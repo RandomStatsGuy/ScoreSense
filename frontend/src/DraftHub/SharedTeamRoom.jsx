@@ -1,3 +1,4 @@
+import "../styles/fantasy.css";
 import React from "react";
 import { useParams } from "react-router-dom";
 import TeamRoom from "./TeamRoom";

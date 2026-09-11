@@ -1,3 +1,4 @@
+import "./styles/tools-draft.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, PRODUCT_DISCLAIMER } from "./auth";
 import { connectionErrorMessage, fmtNum, isPlayerUnavailable, parseApiError } from "./format";

@@ -10,7 +10,7 @@ import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
 const DraftHub = lazy(() => import("./DraftHub/DraftHub"));
 const DfsOptimizer = lazy(() => import("./LineupOptimizer"));
 const MockDraftTool = lazy(() => import("./DraftHub/MockDraftTool"));
-import BestBallBoard from "./BestBallBoard";
+const BestBallBoard = lazy(() => import("./BestBallBoard"));
 import SeasonTable from "./SeasonTable";
 import SeasonTransitionState from "./SeasonTransitionState";
 import InjurySidebar from "./InjurySidebar";
@@ -46,18 +46,21 @@ import {
 } from "./weeklyBoardFilter";
 import { isScheduleAwareMethod } from "./seasonQuantiles";
 import { applyMediaQueryParams } from "./mediaContext";
-import PlayerCompare, { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./PlayerCompare";
+const PlayerCompare = lazy(() => import("./PlayerCompare"));
+import { MAX_COMPARE as MAX_COMPARE_PLAYERS } from "./playerCompareLimits";
 import useAccuracyRebuildPoll from "./useAccuracyRebuildPoll";
 import useAppNavigation from "./useAppNavigation";
 import useMobileLayout from "./useMobileLayout";
 import useProjectionsMeta from "./hooks/useProjectionsMeta";
-import InviteAccept from "./InviteAccept";
-import ClaimAccept from "./ClaimAccept";
+const InviteAccept = lazy(() => import("./InviteAccept"));
+const ClaimAccept = lazy(() => import("./ClaimAccept"));
+import DeferredAccessFlow from "./DeferredAccessFlow";
 import VerifyEmailBanner from "./VerifyEmailBanner";
 import InstallPrompt from "./InstallPrompt";
 import TermsReacceptBanner from "./TermsReacceptBanner";
 import LegalLinks from "./LegalLinks";
-import AdminPortal from "./AdminPortal";
+const AdminPortal = lazy(() => import("./AdminPortal"));
+import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
 import MobileShell from "./layout/MobileShell";
 import MobileHeader from "./layout/MobileHeader";
 import MobileSubnav from "./layout/MobileSubnav";
@@ -1375,6 +1378,7 @@ export default function App() {
       hrefForSection={pathForSection}
     >
         <a className="app-skip-link" href="#main-content">{SKIP_TO_CONTENT}</a>
+        <DeferredAccessFlow active={Boolean(new URLSearchParams(location.search).get("invite")?.trim())}>
         <InviteAccept
           authenticated={authenticated}
           user={user}
@@ -1384,6 +1388,8 @@ export default function App() {
             window.dispatchEvent(new Event("scoresense-auth-changed"));
           }}
         />
+        </DeferredAccessFlow>
+        <DeferredAccessFlow active={Boolean(new URLSearchParams(location.search).get("claim")?.trim())}>
         <ClaimAccept
           authenticated={authenticated}
           user={user}
@@ -1393,6 +1399,7 @@ export default function App() {
             window.dispatchEvent(new Event("scoresense-auth-changed"));
           }}
         />
+        </DeferredAccessFlow>
         {authenticated
           && user?.email_verified === false
           && user?.auth_type === "native"
@@ -1616,6 +1623,7 @@ export default function App() {
         {view === "projections" && projectionsTab === "weekly" && (
           <>
             {compareViewOpen && compareIds.length >= 2 ? (
+              <Suspense fallback={<HubLoadingSkeleton rows={4} />}>
               <PlayerCompare
                 playerIds={compareIds}
                 season={season}
@@ -1625,6 +1633,7 @@ export default function App() {
                 onClear={handleClearCompare}
                 onRemovePlayer={handleRemoveComparePlayer}
               />
+              </Suspense>
             ) : (
               <>
             {mobileLayout && (
@@ -2068,7 +2077,9 @@ export default function App() {
         )}
 
         {view === "admin" && isAdmin && (
+          <Suspense fallback={<HubLoadingSkeleton rows={4} />}>
           <AdminPortal adminTab={adminTab || "overview"} onAdminTabChange={setAdminTab} />
+          </Suspense>
         )}
         </main>
         {!mobileLayout && (

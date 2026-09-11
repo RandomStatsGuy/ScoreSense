@@ -6,10 +6,28 @@ import { productionGtagHtmlSnippet } from "./src/analytics.js";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiPort = env.SCORESENSE_API_PORT || process.env.SCORESENSE_API_PORT || "8000";
+  const initialAssets = new Set(["registerSW.js"]);
 
   return {
   plugins: [
     react(),
+    {
+      name: "initial-precache-assets",
+      apply: "build",
+      generateBundle(_options, bundle) {
+        const visit = (fileName) => {
+          if (initialAssets.has(fileName)) return;
+          initialAssets.add(fileName);
+          const chunk = bundle[fileName];
+          if (chunk?.type !== "chunk") return;
+          for (const css of chunk.viteMetadata?.importedCss || []) initialAssets.add(css);
+          for (const dependency of chunk.imports) visit(dependency);
+        };
+        for (const chunk of Object.values(bundle)) {
+          if (chunk.type === "chunk" && chunk.isEntry) visit(chunk.fileName);
+        }
+      },
+    },
     {
       name: "ga4-html-snippet",
       apply: "build",
@@ -53,12 +71,26 @@ export default defineConfig(({ mode }) => {
         ],
       },
       workbox: {
+        // Precaching every dynamic chunk would download secondary screens on
+        // the first visit anyway. Cache their hashed assets when first used.
+        manifestTransforms: [async (entries) => ({
+          manifest: entries.filter(({ url }) => !/\.(?:js|css)$/.test(url) || initialAssets.has(url)),
+          warnings: [],
+        })],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && /\/assets\/.*\.(?:js|css)$/.test(url.pathname),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "scoresense-section-assets",
+              expiration: { maxEntries: 128, maxAgeSeconds: 30 * 24 * 60 * 60 },
+            },
+          },
           {
             urlPattern: /^\/api\/.*/i,
             handler: "NetworkOnly",

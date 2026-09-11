@@ -209,3 +209,4 @@ export default function BugReportPage() {
 function reportNext(pagePath) {
   return pagePath ? `/report?from=${encodeURIComponent(pagePath)}` : "/report";
 }
+import "./styles/auth-session.css";

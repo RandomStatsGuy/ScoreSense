@@ -12,44 +12,37 @@
 
 @media (max-width: 768px) {
   .hub-page .chart-note,
-  .hub-experience-page .chart-note,
-  .hub-league-home .chart-note,
-  .hub-insights .chart-note,
-  .hub-page .table-meta,
-  .hub-page small,
-  .hub-experience-page small,
-  .hub-league-home small,
-  .hub-filter-label,
-  .hub-page-meta,
-  .hub-stat-label,
-  .hub-status,
-  .hub-experience-kicker,
-  .hub-experience-eyebrow,
-  .hub-experience-chip,
-  .hub-experience-summary dt,
-  .hub-experience-summary-note,
-  .hub-home-priority-kicker,
-  .hub-home-snapshot-list dt,
-  .hub-home-snapshot-head > span,
-  .hub-home-snapshot-list span,
-  .mobile-player-card-hero-label,
-  .mobile-player-card-floor-ceil-label,
-  .mobile-stat-label,
-  .filter-chip--compact,
-  .chip-filter.chip-tier {
+.hub-experience-page .chart-note,
+.hub-league-home .chart-note,
+.hub-page .table-meta,
+.hub-page small,
+.hub-experience-page small,
+.hub-league-home small,
+.hub-filter-label,
+.hub-page-meta,
+.hub-stat-label,
+.hub-status,
+.hub-experience-kicker,
+.hub-experience-eyebrow,
+.hub-experience-chip,
+.hub-experience-summary dt,
+.hub-experience-summary-note,
+.mobile-player-card-hero-label,
+.mobile-player-card-floor-ceil-label,
+.mobile-stat-label,
+.filter-chip--compact,
+.chip-filter.chip-tier {
     font-size: var(--text-xs);
   }
 
   .filter-chip,
-  .chip-filter,
-  .hub-filter-bar .filter-chip,
-  .hub-filter-bar .filter-chip--compact,
-  .hub-pos-chip,
-  .hub-roster-owner-chip,
-  .hub-segment-nav-btn,
-  .btn-link,
-  .hub-tab-intro-learn summary,
-  .hub-roster-contract-rules summary {
+.chip-filter,
+.hub-filter-bar .filter-chip,
+.hub-filter-bar .filter-chip--compact,
+.hub-pos-chip,
+.hub-segment-nav-btn,
+.btn-link,
+.hub-tab-intro-learn summary {
     min-height: var(--touch-target);
     min-width: var(--touch-target);
     padding-block: 0.55rem;
@@ -111,129 +104,9 @@
     box-sizing: border-box;
   }
 
-  .hub-home-snapshot-list > div {
-    grid-template-columns: 1fr;
-  }
-
-  .hub-home-snapshot-list dd,
-  .hub-home-snapshot-list span {
-    text-align: left;
-  }
-
-  .hub-home-deck-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.2rem;
-  }
-
   .hub-section-head--row,
   .hub-section-head {
     flex-wrap: wrap;
-  }
-
-  .hub-home-priority {
-    overflow-x: clip;
-    overflow-y: visible;
-    min-height: 0;
-    padding: 1.05rem;
-  }
-
-  .hub-home-priority h3 {
-    max-width: none;
-    font-size: 1.65rem;
-  }
-
-  .hub-home-priority-actions .btn-link {
-    min-height: var(--touch-target);
-  }
-
-  .hub-home-standing-break {
-    list-style: none;
-    padding: 0.15rem 0;
-    color: var(--text-muted);
-    letter-spacing: 0.18em;
-  }
-
-  .hub-roster-owner-layout {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    padding: 0.75rem 0.85rem 1rem;
-    overflow: visible;
-  }
-
-  .hub-roster-owner-rail,
-  .hub-roster-owner-main,
-  .hub-roster-browser-table-wrap,
-  .hub-roster-team-stats {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .hub-roster-team-stats,
-  .hub-roster-team-stats-facts,
-  .hub-roster-team-stats-pos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem 0.7rem;
-  }
-
-  .hub-roster-team-stats span,
-  .hub-roster-pos-spend {
-    white-space: normal;
-  }
-
-  .hub-roster-owner-chip {
-    min-width: 0;
-    flex: 0 0 auto;
-  }
-
-  .hub-roster-manager-picker,
-  .hub-roster-manager-picker .hub-filter-menu-trigger,
-  .hub-roster-manager-picker .hub-filter-menu-panel {
-    width: 100%;
-  }
-
-  .hub-roster-manager-picker .hub-filter-menu-panel {
-    max-height: 22rem;
-  }
-
-  .hub-roster-selected-heading {
-    padding-inline-end: 0;
-  }
-
-  .hub-roster-browser-page .mobile-player-card-name-row {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-  }
-
-  .hub-roster-browser-page .mobile-player-card-name-row > .mobile-player-card-name,
-  .hub-roster-browser-page .mobile-player-card-name {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-
-  .hub-roster-browser-page .mobile-player-card-chevron {
-    margin-left: 0.15rem;
-    flex: 0 0 auto;
-  }
-
-  .hub-roster-browser-page .mobile-player-card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-  }
-
-  .hub-roster-browser-page .hub-roster-action-group {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    white-space: normal;
-  }
-
-  .hub-roster-browser-page .hub-roster-trade-lock {
-    text-align: left;
   }
 
   .mobile-player-card-header {
@@ -289,21 +162,6 @@
     max-width: 2.75rem;
   }
 
-  .draft-hub .fantasy-chat-dock.is-edge-right:not(.is-open),
-  .draft-hub .fantasy-chat-dock.is-edge-left:not(.is-open),
-  .draft-hub .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
-    top: auto;
-    transform: none;
-    /* Sit above the tab bar and any fixed page action (Vibes / Rules save). */
-    bottom: calc(8.85rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .draft-hub .fantasy-chat-dock.is-edge-right:not(.is-open),
-  .draft-hub .fantasy-chat-dock.is-edge-bottom:not(.is-open) {
-    right: 0.85rem;
-    left: auto;
-  }
-
   .hub-loading-skeleton {
     display: flex;
     flex-direction: column;
@@ -325,39 +183,17 @@
     animation: season-shimmer 1.4s ease-in-out infinite;
   }
 
-  .hub-trade-tabs.hub-filter-bar {
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-
-  .hub-trade-tabs .filter-chip {
-    flex: 1 1 0;
-  }
-
-  .hub-office-tab-bar .hub-office-tab-group {
-    display: none;
-  }
-
   .hub-league-rosters {
     padding-right: 4.25rem;
     padding-bottom: 7.5rem;
   }
 
-  .hub-live-contract-stage,
   .hub-league-team-card-head {
     padding-right: 3.25rem;
   }
 
   .hub-league-team-select {
     max-width: none;
-  }
-
-  .hub-office-pending-tray {
-    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .hub-office-player-title .mobile-player-card-name {
-    white-space: normal;
   }
 
   .hub-league-office .hub-tab-intro-title {
@@ -387,153 +223,8 @@
     min-height: var(--touch-target);
   }
 
-  .hub-wcc-board-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hub-wcc-slot-player strong,
-  .hub-wcc-row-who strong {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
-  }
-
-  .hub-wcc-slot-call,
-  .hub-wcc-call-pill,
-  .hub-wcc-ticket-start,
-  .hub-wcc-ticket-close,
-  .hub-wcc-ticket-foot .btn-ghost {
-    min-height: var(--touch-target);
-    font-size: var(--text-sm);
-  }
-
-  .hub-wcc-row-action {
-    width: 0;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .hub-wcc-row.is-call,
-  .hub-wcc-row.is-empty {
-    flex-wrap: wrap;
-  }
-
-  .hub-wcc-row.is-call .hub-wcc-row-action,
-  .hub-wcc-row.is-empty .hub-wcc-row-action {
-    width: 100%;
-    min-height: var(--touch-target);
-    overflow: visible;
-    justify-content: flex-end;
-  }
-
-  .hub-wcc-row.is-call .hub-wcc-slot-call,
-  .hub-wcc-row.is-call .hub-wcc-call-pills,
-  .hub-wcc-row.is-empty .hub-wcc-slot-fill {
-    width: auto;
-    max-width: 100%;
-  }
-
-  .hub-wcc-ticket-faces {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .hub-wcc-week-stepper {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  .hub-wcc-week-stepper button,
-  .hub-wcc-week-stepper .week-step-btn {
-    min-width: var(--touch-target);
-    min-height: var(--touch-target);
-  }
-
-  .hub-wcc-week-select .header-select {
-    min-height: var(--touch-target);
-    min-width: 4.5rem;
-  }
-
-  .hub-wcc-bench-chip {
-    min-height: 4.6rem;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-  }
-
   .hub-game-center {
     padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .hub-gc-head {
-    align-items: stretch;
-  }
-
-  .hub-gc-week-toolbar {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .hub-gc-week-nav {
-    flex: 1 1 auto;
-    flex-wrap: wrap;
-  }
-
-  .hub-gc-state {
-    flex: none;
-  }
-
-  .hub-gc-week-nav button {
-    min-height: var(--touch-target);
-    white-space: nowrap;
-  }
-
-  .hub-gc-panel-head .btn-link {
-    white-space: nowrap;
-  }
-
-  .hub-week-poll--compact > summary {
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-
-  .hub-week-poll-summary-state {
-    flex: 1 1 100%;
-    order: 3;
-    white-space: normal;
-  }
-
-  .hub-week-poll-summary-cta {
-    font-size: var(--text-xs);
-    min-height: var(--touch-target);
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .hub-insights-rank-row,
-  .hub-insights-rank-row--button {
-    grid-template-columns: 1.4rem minmax(0, 1fr) 5.5rem;
-    min-height: var(--touch-target);
-  }
-
-  .hub-insights-rank-track {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .hub-insights-rank-value {
-    white-space: nowrap;
-    text-align: right;
-    justify-content: flex-end;
-    font-size: var(--text-xs);
-  }
-
-  .hub-stadium-hero-edit {
-    min-height: var(--touch-target);
-    min-width: var(--touch-target);
-    padding: 0.45rem 0.75rem;
   }
 
   .hub-alert-text {
@@ -550,21 +241,6 @@
     padding: 0.35rem 0;
   }
 
-  .hub-office-contract-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-  }
-
-  .hub-office-draft-complete {
-    margin-top: 1rem;
-  }
-
-  .hub-office-draft-complete .btn-danger {
-    width: 100%;
-    min-height: var(--touch-target);
-  }
-
   .hub-league-lifecycle-actions .btn-danger,
   .hub-league-lifecycle-actions .btn-ghost,
   .hub-league-lifecycle-confirm input {
@@ -573,102 +249,6 @@
 
   .hub-league-lifecycle-actions .btn-danger {
     width: 100%;
-  }
-
-  .hub-gc-week-toolbar {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.45rem;
-  }
-
-  .hub-gc-week-nav {
-    display: flex;
-    gap: 0.45rem;
-  }
-
-  .hub-gc-week-nav button {
-    flex: 1 1 0;
-  }
-
-  .hub-gc-duel-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.65rem;
-    padding: 0.75rem 0;
-  }
-
-  .hub-gc-billboard {
-    padding-bottom: 3.25rem;
-  }
-
-  .hub-gc-billboard .hub-gc-storyline {
-    padding-right: 3.5rem;
-  }
-
-  .hub-stadium-cap-legend {
-    display: block;
-    margin-top: 0.35rem;
-    color: var(--text-secondary);
-    font-size: var(--text-xs);
-  }
-
-  .hub-vibes-more {
-    top: 0.75rem;
-    bottom: auto;
-    right: 0.75rem;
-  }
-
-  .hub-vibes-stage {
-    padding-bottom: 7.25rem;
-  }
-
-  .hub-vibes-keys {
-    display: none;
-  }
-
-  .hub-vibes-actions {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-    z-index: var(--z-sticky);
-    padding: 0.45rem 0.85rem 0.55rem;
-    background: var(--bg-base);
-    border-top: 1px solid var(--border);
-  }
-
-  .hub-vibes-votes {
-    width: 100%;
-  }
-
-  .hub-vibes-compare {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
-  }
-
-  .hub-vibes-compare span {
-    display: block;
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-  }
-
-  .hub-vibes-compare strong {
-    display: block;
-    color: var(--text-primary);
-    font-size: var(--text-sm);
-    overflow-wrap: anywhere;
-  }
-
-  .hub-strategy-photo--hero {
-    max-height: 11rem;
-  }
-
-  .hub-strategy-empty-wrap {
-    min-height: 0;
   }
 
   .hub-segment-nav {
@@ -683,12 +263,6 @@
 
   .hub-experience-chip.is-readonly {
     pointer-events: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .hub-wcc-board-grid {
-    grid-template-columns: 1fr;
   }
 }
 

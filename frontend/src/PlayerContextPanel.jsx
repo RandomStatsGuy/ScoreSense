@@ -1,3 +1,4 @@
+import "./styles/player-details.css";
 import React, { useEffect, useState } from "react";
 import Chip, { injuryChipTone } from "./Chip";
 import { apiFetch } from "./auth";

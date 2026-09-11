@@ -1,3 +1,4 @@
+import "./styles/player-details.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
 import { isAbortError } from "./fetchAbort";
@@ -7,8 +8,7 @@ import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
 import PlayerContextPanel from "./PlayerContextPanel";
 import QuantileBar from "./QuantileBarShared";
 import { connectionErrorMessage, parseApiError } from "./format";
-import useMobileLayout from "./useMobileLayout";
-import MobileBottomSheet from "./layout/MobileBottomSheet";
+import PlayerCardFrame from "./PlayerCardFrame";
 import {
   formatSeasonPts,
   isScheduleAwareMethod,
@@ -427,20 +427,10 @@ export default function PlayerCardModal({
   maxCompare = 4,
   onSelectPlayer,
 }) {
-  const mobileLayout = useMobileLayout();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [includeHistorical, setIncludeHistorical] = useState(false);
-
-  useEffect(() => {
-    if (!request || mobileLayout) return undefined;
-    const onKey = (event) => {
-      if (event.key === "Escape") onClose?.();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [request, mobileLayout, onClose]);
 
   useEffect(() => {
     setIncludeHistorical(false);
@@ -552,24 +542,5 @@ export default function PlayerCardModal({
     </div>
   );
 
-  if (mobileLayout) {
-    return (
-      <MobileBottomSheet open onClose={onClose} title={title} className="player-card-sheet">
-        {body}
-      </MobileBottomSheet>
-    );
-  }
-
-  return (
-    <div className="player-card-overlay player-card-overlay--drawer" role="presentation" onClick={onClose}>
-      <div
-        className="player-card-dialog player-card-drawer panel"
-        role="dialog"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {body}
-      </div>
-    </div>
-  );
+  return <PlayerCardFrame title={title} onClose={onClose}>{body}</PlayerCardFrame>;
 }

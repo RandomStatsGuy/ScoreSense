@@ -8,18 +8,12 @@
 .header-context-chip,
 .header-status-chip,
 .hub-pos-chip,
-.hub-cap-chip,
-.hub-insights-chip,
 .hub-need-chip,
 .hub-expire-chip,
 .hub-freshness-chip,
 .hub-season-status-chip,
 .hub-league-hero-phase-chip,
-.hub-live-contract-chip,
 .hub-player-alias-chip,
-.hub-contract-audit-chip,
-.hub-roster-grade-chip,
-.hub-roster-owner-chip,
 .compare-selection-chip,
 .player-status-chip,
 .injury-status-chip,
@@ -27,43 +21,26 @@
 .injury-card .chip,
 .sentiment-source-chip,
 .player-inspector-chip,
-.player-context-driver-chip,
-.player-context-overlay-chip,
-.player-context-source-chip,
 .proj-left-slate-chip,
-.projection-explanation-overlay-chip,
 .projections-mobile-scoring-chip,
 .hub-filter-bar .filter-chip {
   padding: var(--inset-chip);
   line-height: var(--line-normal);
 }
 
-.hub-pick-grid {
-  gap: var(--gutter);
-}
-
-.hub-pick-tile {
-  padding: var(--inset-tile);
-  gap: var(--gutter);
-  font-size: var(--text-sm);
-}
-
 .hub-experience-section,
 .hub-table-card,
 .hub-section,
-.auth-session-card,
 .hub-experience-summary {
   padding: var(--inset-section);
 }
 
 .hub-page-sticky,
-.hub-insights-sticky,
 .hub-toolbar {
   padding-block: var(--space-2);
 }
 
-.hub-page-sticky > *,
-.hub-insights-sticky > * {
+.hub-page-sticky > * {
   margin-block: 0;
 }
 
@@ -78,7 +55,6 @@ td {
 }
 
 .hub-experience-kicker,
-.auth-session-eyebrow,
 small {
   font-size: var(--text-xs);
   line-height: var(--line-normal);
