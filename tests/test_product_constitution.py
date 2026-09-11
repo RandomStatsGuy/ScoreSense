@@ -193,7 +193,7 @@ def test_constitution_covers_phone_chrome() -> None:
 
 def test_constitution_covers_league_strip_menu_stacking() -> None:
     product = _read("docs", "PRODUCT.md")
-    css = _read("frontend", "src", "styles.css")
+    css = _read("frontend", "src", "styles", "fantasy.css")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
     assert "League-strip option menus" in product
     assert "later `.hub-page`" in product
