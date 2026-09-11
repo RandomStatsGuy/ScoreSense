@@ -7,7 +7,6 @@
 
 export const CHROME = Object.freeze([
   "experience",
-  "workspace",
   "action-center",
   "rules-center",
   "table",
@@ -257,7 +256,7 @@ export const LIVING_SURFACES = Object.freeze({
   }),
   "tools.dfs": S({
     label: "DFS",
-    chrome: "workspace",
+    chrome: "table",
     route: "/tools/dfs",
     page: "frontend/src/LineupOptimizer.jsx",
     also: ["frontend/src/DfsWorkspace.jsx", "frontend/src/DfsResults.jsx", "frontend/src/useDfsBuilder.js"],

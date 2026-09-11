@@ -162,7 +162,7 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceLayout` — main column + sticky summary rail
 `HubExperienceSummary` — “At a glance” facts + primary action
 
-Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + a centered phase stepper, Settings in the chip slot, and the heading stays in the Pre-draft card. Strategy and Rosters are also exceptions: no hero band. Rosters uses a compact title and toolbar with a table/details layout; its CSS may define that approved layout without changing unrelated experience pages. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
+Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + a centered phase stepper, Settings in the chip slot, and the heading stays in the Pre-draft card. Strategy and Rosters are also exceptions: no hero band. Strategy is the only Fantasy destination without a `HubExperienceHero` band. Rosters uses a compact title and toolbar with a table/details layout; its CSS may define that approved layout without changing unrelated experience pages. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
 
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
 
@@ -228,7 +228,7 @@ Put user-facing strings in `*Presentation.js` (or an existing copy module). Keep
 Voice:
 
 - Name the **decision** this page is for, not the system.
-- Explain the action and its actual effect. Do not invent consequences or scold the user.
+- Explain the action and its actual effect. The cost of getting it wrong is confusion, not drama. Do not invent consequences or scold the user.
 - Short labels. Specific support text.
 - No slogan that could sit on another sports app (“own the week,” “stay ahead,” “smarter way”).
 - No unexplained abbreviations on configuration or data-dense pages.
