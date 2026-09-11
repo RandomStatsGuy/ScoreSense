@@ -1636,7 +1636,7 @@ export default function App() {
 
         {refreshStatus && (dataRevision > 0 || ["running", "error"].includes(refreshStatus.status)) && (
           <p className="chart-note" role="status" aria-live="polite">
-            {refreshProgressLabel(refreshStatus)}
+            {REFRESH_COPY.label} {refreshProgressLabel(refreshStatus)}
             {refreshStatus.status === "running" ? ` ${REFRESH_COPY.background}` : ""}
           </p>
         )}

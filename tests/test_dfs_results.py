@@ -65,3 +65,27 @@ def test_referenced_builds_survive_recent_build_limit():
     for i in range(101):
         save_build(Build(site="draftkings", slate_id=str(i), slate_name="Later", lineups=[{"lineup": []}], settings={}), "a")
     assert first["id"] in {b["id"] for b in get_results("a")["builds"]}
+
+
+def test_compact_batches_support_large_retries_without_reading_whole_ledger(monkeypatch):
+    rows = [Entry(entry_id=f"000{i}", contest_id="002", points=111.5) for i in range(6001)]
+    original = dfs_results.read_results
+    def unexpected_read(*args):
+        raise AssertionError("A compact score import must not read the entire ledger")
+    monkeypatch.setattr(dfs_results, "read_results", unexpected_read)
+    for _ in range(2):
+        for offset in range(0, len(rows), 1000):
+            batch = rows[offset:offset + 1000]
+            assert import_results(EntryImport(entries=batch), "a", compact=True) == {"imported": len(batch)}
+    monkeypatch.setattr(dfs_results, "read_results", original)
+    assert len(get_results("a")["entries"]) == 6001
+    assert get_results("b")["entries"] == []
+
+
+def test_compact_batch_retains_atomic_validation_and_request_limit():
+    duplicate = Entry(entry_id="1", contest_id="2")
+    with pytest.raises(HTTPException):
+        import_results(EntryImport(entries=[duplicate, duplicate]), "a", compact=True)
+    assert get_results("a")["entries"] == []
+    with pytest.raises(ValidationError):
+        EntryImport(entries=[duplicate] * 5001)

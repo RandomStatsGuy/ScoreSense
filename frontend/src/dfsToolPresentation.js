@@ -16,6 +16,16 @@ export const DFS_WORKSPACE_COPY = {
 };
 
 export const DFS_RESULTS_COPY = {
+  fileLimit: "Import a CSV up to 100 MB at a time.",
+  chooseFile: "Choose the CSV again before previewing.",
+  reading: "Reading CSV…",
+  validating: "Checking entries…",
+  importing: (saved, total) => `Saving entries: ${saved.toLocaleString()} of ${total.toLocaleString()}…`,
+  importInterrupted: (saved, total, reason) => `Import interrupted. ${saved.toLocaleString()} of ${total.toLocaleString()} entries confirmed saved. Retry to finish; existing entries will be updated without duplicates. ${reason}`,
+  savedImport: (total) => `${total.toLocaleString()} entries saved.`,
+  previous: "Previous entries",
+  next: "Next entries",
+  entryPage: (page, pages) => `Page ${page} of ${pages}`,
   title:"See what your lineups earned.",support:"Track the money. Review the decisions behind it.",history:"Import contest history",scores:"Import lineup results",fees:"Entry fees",payouts:"Payouts",net:"Net profit",roi:"ROI",chart:"Spend against payouts",cumulative:"Cumulative · settled cash entries",sample:"Returns describe the imported sample. A profitable period alone does not establish a lasting edge.",empty:"Import contest history to see your entry fees and payouts.",coverage:"Import coverage",matched:"Entries with complete finances",undated:"Settled entries without dates",unsettled:"Unsettled or void entries",groups:"Where did the returns come from?",group:"Group by",stack:"QB stacks",captain:"Captain",contest:"Contest",salary:"Salary left",count:"Entries",noGroups:"Import results or link a saved build to see lineup groups.",descriptive:"These groups describe your entries, not the whole field. Counts and fees matter when comparing returns.",review:"Review an entry",entry:"Entry",date:"Date",points:"Actual points",rank:"Rank",saved:"Saved builds",snapshot:"Original build snapshot",link:"Link saved build",none:"No saved build",lineup:"Lineup",saveLink:"Save link",notes:"Postgame notes",saveNote:"Save review note",projection:"Saved projection sum",difference:"Actual minus saved projection",compareHelp:"This compares the actual lineup total with the saved sum of player projections. It does not identify the cause of a miss.",noSnapshot:"Link this entry to a saved pregame build to compare projections and exposure.",before:"At build time",after:"After the game",journal:"Which assumptions held? Was a role change knowable before lock? Keep hindsight separate from the original decision.",importTitle:"Review your import",mapping:"Match CSV columns",unmapped:"Not in this file",site:"Site",kind:"Import type",historyKind:"Fees and payouts",resultsKind:"Scores and lineups",contestOverride:"Contest ID (if absent from the file)",settled:"These entries are settled",payoutHelp:"Payout must be the total credited cash prize, not net profit. Keep tickets, refunded and promotional entries out of this cash import.",preview:"Preview entries",saveImport:"Save imported entries",cancel:"Cancel import",remove:"Remove entry",removeConfirm:"Remove this entry from your results? The original CSV and saved build remain available.",all:"All sites",noChart:"Dated, settled cash entries will appear here.",partial:"Some settled entries have incomplete financial data. Totals cover complete entries only; ROI is unavailable.",
 };
 

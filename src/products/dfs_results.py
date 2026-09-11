@@ -24,7 +24,7 @@ def read_results(owner):
     return {"entries": entries, "builds": builds}
 
 
-def import_entries(owner, entries):
+def import_entries(owner, entries, *, compact=False):
     with connect() as db:
         for entry in entries:
             key = (owner, entry["site"], entry["contest_id"], entry["entry_id"])
@@ -33,7 +33,7 @@ def import_entries(owner, entries):
             # Partial results imports never erase known fees or payout data.
             payload.update({k: v for k, v in entry.items() if v is not None})
             db.execute("INSERT OR REPLACE INTO entries VALUES (?,?,?,?,?)", (*key, json.dumps(payload, allow_nan=False)))
-    return read_results(owner)
+    return {"imported": len(entries)} if compact else read_results(owner)
 
 
 def save_build(owner, build):

@@ -8,6 +8,60 @@ import {
   resultGroups,
 } from "./dfsResults.js";
 import { readEntryTemplate, buildEntryCsv } from "./dfsEntryExport.js";
+import { importResultsBatches } from "./dfsResultsImport.js";
+
+test("large results CSV preserves every entry and quoted lineup above 5 MB", () => {
+  const lineup = 'CPT Player, "One"\nFLEX ' + "Other Player ".repeat(75);
+  const cell = '"' + lineup.replaceAll('"', '""') + '"';
+  const csv =
+    "Entry ID,Contest ID,Points,Lineup\r\n" +
+    Array.from({ length: 6001 }, (_, i) => `000${i},002,111.5,${cell}`).join(
+      "\r\n",
+    );
+  assert.ok(csv.length > 5_000_000);
+  assert.throws(() => parseDfsCsv(csv), /too large/); // Other upload paths keep their bound.
+  const file = inspectResultsCsv(csv);
+  const rows = parseResultsRows(file, file.mapping, { kind: "results" });
+  assert.equal(rows.length, 6001);
+  assert.equal(rows[6000].entry_id, "0006000");
+  assert.equal(rows[6000].lineup_text, lineup.trim());
+  assert.equal(rows[6000].fee_cents, undefined);
+  assert.throws(() => parseDfsCsv("id\n1\n2", { maxRows: 2 }), /entries/);
+});
+
+test("large saves use bounded requests and report progress without duplicating rows", async () => {
+  const rows = Array.from({ length: 6001 }, (_, i) => ({
+    entry_id: String(i),
+  }));
+  const received = [],
+    progress = [];
+  await importResultsBatches(
+    rows,
+    async (url, options) => {
+      assert.equal(url, "/api/lineup/results/import?compact=true");
+      const batch = JSON.parse(options.body).entries;
+      assert.ok(batch.length <= 1000);
+      received.push(...batch);
+    },
+    (saved) => progress.push(saved),
+  );
+  assert.deepEqual(received, rows);
+  assert.deepEqual(progress, [0, 1000, 2000, 3000, 4000, 5000, 6000, 6001]);
+});
+
+test("interrupted saves stop and explain partial completion and safe retry", async () => {
+  let calls = 0;
+  await assert.rejects(
+    importResultsBatches(
+      Array.from({ length: 2500 }, (_, i) => ({ entry_id: String(i) })),
+      async () => {
+        if (++calls === 2) throw new Error("Connection lost");
+      },
+    ),
+    /1,000 of 2,500 entries confirmed saved.*without duplicates.*Connection lost/,
+  );
+  assert.equal(calls, 2);
+});
 
 test("CSV roundtrips quotes, commas, multiline cells and string IDs", () => {
   assert.deepEqual(
