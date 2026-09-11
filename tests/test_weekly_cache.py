@@ -5,8 +5,14 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
 
 from src.projections import weekly_cache as wc
+
+
+@pytest.fixture(autouse=True)
+def isolate_movement_artifacts(monkeypatch, tmp_path):
+    monkeypatch.setattr("src.projections.projection_movement.WEEKLY_PROJECTION_CHANGES_DIR", tmp_path / "movement")
 
 
 def _sample_frame() -> pd.DataFrame:

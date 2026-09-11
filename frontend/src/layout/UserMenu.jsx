@@ -1,3 +1,4 @@
+import { successfulRefreshRevision } from "../refreshStatus";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -176,9 +177,9 @@ export default function UserMenu({
               Admin portal
             </button>
           )}
-          {refreshStatus?.completed_at && (
+          {successfulRefreshRevision(refreshStatus) && (
             <p className="user-menu-meta">
-              Data updated {new Date(refreshStatus.completed_at).toLocaleString()}
+              Data updated {new Date(successfulRefreshRevision(refreshStatus)).toLocaleString()}
             </p>
           )}
           <div className="user-menu-divider" />

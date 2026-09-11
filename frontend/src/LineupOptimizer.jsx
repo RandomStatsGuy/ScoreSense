@@ -39,6 +39,16 @@ export default function LineupOptimizer({ projMeta }) {
               {builder.error}
             </div>
           )}
+          {builder.dataUpdateAvailable && (
+            <div className="dfw-notice" role="status">
+              {builder.context.source === "live" ? C.dataUpdate : C.uploadedUpdate}
+              {builder.context.source === "live" && (
+                <button type="button" className="btn-ghost" disabled={builder.busy || builder.building} onClick={builder.reloadPlayerPool}>
+                  {C.updatePool}
+                </button>
+              )}
+            </div>
+          )}
           {builder.notice && (
             <div className="dfw-notice" role="status">
               {builder.notice}

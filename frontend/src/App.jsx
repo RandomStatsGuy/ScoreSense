@@ -96,7 +96,9 @@ import {
   rosPPG,
   rosSeasonP50,
 } from "./format";
-import { waitForRefreshComplete } from "./refreshStatus";
+import { successfulRefreshRevision } from "./refreshStatus";
+import useDataRevision, { publishDataRevision } from "./useDataRevision";
+import { REFRESH_COPY, refreshProgressLabel } from "./projectionsPresentation";
 import { leftSlateRowsFromChanges } from "./projectionMovement";
 import { playerSentimentKey, buildSentimentMap, resolveRowSentiment } from "./sentimentDisplay";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
@@ -164,6 +166,8 @@ export default function App() {
   const [meta, setMeta] = useState(null);
   const [refreshStatus, setRefreshStatus] = useState(null);
   const [pipelineRefreshing, setPipelineRefreshing] = useState(false);
+  const dataRevision = useDataRevision();
+  const observedRevision = useRef(undefined);
   const [contextRefreshing, setContextRefreshing] = useState(false);
   const [accuracyReport, setAccuracyReport] = useState(null);
   const [upsideReport, setUpsideReport] = useState(null);
@@ -538,6 +542,56 @@ export default function App() {
       /* optional during dev */
     }
   }, []);
+
+  useEffect(() => {
+    if (!authReady || !authenticated) return undefined;
+    let stopped = false;
+    let timer;
+    let request;
+    const poll = async () => {
+      if (request || stopped) return;
+      clearTimeout(timer);
+      request = new AbortController();
+      const timeout = setTimeout(() => request?.abort(), 10_000);
+      let running = false;
+      try {
+        const response = await apiFetch("/api/refresh/status", { signal: request.signal, cache: "no-store" });
+        if (!response.ok) return;
+        const status = await response.json();
+        if (stopped) return;
+        running = status.status === "running";
+        setRefreshStatus(status);
+        const next = successfulRefreshRevision(status);
+        if (observedRevision.current !== undefined && next &&
+            Date.parse(next) > (Date.parse(observedRevision.current) || 0)) publishDataRevision();
+        if (next || observedRevision.current === undefined) observedRevision.current = next;
+      } catch { /* Keep last status; the next poll retries after a network interruption. */ }
+      finally {
+        clearTimeout(timeout);
+        request = null;
+        if (!stopped) timer = setTimeout(poll, running ? 3_000 : 60_000);
+      }
+    };
+    poll();
+    const onVisible = () => { if (document.visibilityState === "visible") poll(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", poll);
+    window.addEventListener("focus", poll);
+    window.addEventListener("scoresense-refresh-started", poll);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      request?.abort();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", poll);
+      window.removeEventListener("focus", poll);
+      window.removeEventListener("scoresense-refresh-started", poll);
+    };
+  }, [authReady, authenticated]);
+
+  useEffect(() => {
+    if (dataRevision) setContextReloadToken((n) => n + 1);
+  }, [dataRevision]);
 
   const contextualTeams = useMemo(() => {
     if (selectedTeams.length) return selectedTeams;
@@ -1024,7 +1078,7 @@ export default function App() {
   const hubNeedsSignIn = hubAuthRequired !== false && !authenticated;
   const isAdmin = Boolean(user?.is_admin);
   const showDataRefresh = isProjectionsDataView && !isWeeklyProjections;
-  const dataRefreshLoading = pipelineRefreshing || (isSeasonPreseason
+  const dataRefreshLoading = pipelineRefreshing || refreshStatus?.status === "running" || (isSeasonPreseason
     ? draftLoading
     : isWeeklyProjections
       ? projectionsLoading
@@ -1035,7 +1089,7 @@ export default function App() {
   const weeklyStaleLabel = staleRefreshLabel({
     stale: Boolean(weeklyContextMeta?.stale),
     unavailable: Boolean(weeklyContextMeta?.unavailable),
-    updatedAt: weeklyContextMeta?.updatedAt || refreshStatus?.completed_at,
+    updatedAt: weeklyContextMeta?.updatedAt || successfulRefreshRevision(refreshStatus),
     refreshing: contextRefreshing,
   });
 
@@ -1102,14 +1156,14 @@ export default function App() {
     const controller = new AbortController();
     fetchDraft(controller.signal);
     return () => controller.abort();
-  }, [isSeasonPreseason, fetchDraft, draftSeason, position]);
+  }, [isSeasonPreseason, fetchDraft, draftSeason, position, dataRevision]);
 
   useEffect(() => {
     if (!isWeeklyProjections || season == null || week == null) return undefined;
     const controller = new AbortController();
     fetchProjections(controller.signal);
     return () => controller.abort();
-  }, [isWeeklyProjections, fetchProjections, season, week, position]);
+  }, [isWeeklyProjections, fetchProjections, season, week, position, dataRevision]);
 
   useEffect(() => {
     if (!isWeeklyProjections || season == null || week == null) return undefined;
@@ -1129,21 +1183,21 @@ export default function App() {
     const controller = new AbortController();
     fetchRos(controller.signal);
     return () => controller.abort();
-  }, [isSeasonLive, fetchRos, rosSeason, rosFromWeek, position]);
+  }, [isSeasonLive, fetchRos, rosSeason, rosFromWeek, position, dataRevision]);
 
   useEffect(() => {
     if (!isSeasonLive || rosSeason == null || rosFromWeek == null) return undefined;
     const controller = new AbortController();
     fetchSeasonSentiment(controller.signal);
     return () => controller.abort();
-  }, [isSeasonLive, fetchSeasonSentiment, rosSeason, rosFromWeek, position]);
+  }, [isSeasonLive, fetchSeasonSentiment, rosSeason, rosFromWeek, position, dataRevision]);
 
   useEffect(() => {
     if (view === "model") {
       fetchAccuracy();
       syncAccuracyRebuildStatus();
     }
-  }, [view, fetchAccuracy, syncAccuracyRebuildStatus]);
+  }, [view, fetchAccuracy, syncAccuracyRebuildStatus, dataRevision]);
 
   const handleSeasonChange = (nextSeason) => {
     const s = Number(nextSeason);
@@ -1174,28 +1228,11 @@ export default function App() {
   const triggerRefresh = async () => {
     setPipelineRefreshing(true);
     setError("");
-    const cutoffMs = Date.now();
     try {
-      const res = await apiFetch("/api/refresh?retrain=false", { method: "POST" });
+      const res = await apiFetch("/api/refresh?retrain=false", { method: "POST", signal: AbortSignal.timeout(15_000) });
       if (!res.ok) throw new Error(await parseApiError(res, "Refresh failed"));
-      const body = await res.json().catch(() => ({}));
-      if (body?.status !== "completed") {
-        await waitForRefreshComplete({
-          cutoffMs,
-          fetchStatus: async () => {
-            const statusRes = await apiFetch("/api/refresh/status");
-            if (!statusRes.ok) {
-              throw new Error(await parseApiError(statusRes, "Could not check refresh status"));
-            }
-            return statusRes.json();
-          },
-        });
-      }
-      if (isSeasonLive) await fetchRos();
-      else if (isSeasonPreseason) await fetchDraft();
-      else await fetchProjections();
-      await fetchMeta();
-      setContextReloadToken((n) => n + 1);
+      setRefreshStatus(await res.json());
+      window.dispatchEvent(new Event("scoresense-refresh-started"));
     } catch (err) {
       setError(err.message || "Refresh failed");
     } finally {
@@ -1207,11 +1244,11 @@ export default function App() {
     setContextRefreshing(true);
     setError("");
     try {
-      const res = await apiFetch(weeklyContextRefreshPath({ season, week }), { method: "POST" });
+      const res = await apiFetch(weeklyContextRefreshPath({ season, week }), { method: "POST", signal: AbortSignal.timeout(30_000) });
       if (!res.ok) throw new Error(await parseApiError(res, BOARD_COPY.contextRefreshFailed));
       setContextReloadToken((n) => n + 1);
     } catch (err) {
-      setError(err.message || BOARD_COPY.contextRefreshFailed);
+      setError(err.name === "TimeoutError" ? REFRESH_COPY.notesTimeout : err.message || BOARD_COPY.contextRefreshFailed);
     } finally {
       setContextRefreshing(false);
     }
@@ -1434,7 +1471,7 @@ export default function App() {
                     onClick={triggerRefresh}
                     disabled={dataRefreshLoading}
                   >
-                    {dataRefreshLoading ? (pipelineRefreshing ? "Refreshing…" : "Loading…") : "Refresh"}
+                    {dataRefreshLoading ? (pipelineRefreshing || refreshStatus?.status === "running" ? "Refreshing…" : "Loading…") : "Refresh"}
                   </button>
                 )}
                 <UserMenu
@@ -1595,6 +1632,13 @@ export default function App() {
               ))}
             </div>
           </div>
+        )}
+
+        {refreshStatus && (dataRevision > 0 || ["running", "error"].includes(refreshStatus.status)) && (
+          <p className="chart-note" role="status" aria-live="polite">
+            {refreshProgressLabel(refreshStatus)}
+            {refreshStatus.status === "running" ? ` ${REFRESH_COPY.background}` : ""}
+          </p>
         )}
 
         {hubMounted && (

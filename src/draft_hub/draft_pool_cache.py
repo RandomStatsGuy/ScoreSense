@@ -11,11 +11,13 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.artifact_revision import artifact_revision
+
 from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR, SEASON_QUANTILE_METHOD
 from src.draft_hub.auction_values import RISK_WEIGHT
 from src.projections.draft_projections import predict_draft_season
 
-_POOL_CACHE: dict[int, tuple[str, pd.DataFrame]] = {}
+_POOL_CACHE: dict[int, tuple[tuple, pd.DataFrame]] = {}
 _POOL_COMPUTE_LOCK = threading.Lock()
 
 # Bump when WR/TE label handling or other position post-processing changes.
@@ -183,7 +185,7 @@ def save_pool_artifact(season: int, pool: pd.DataFrame | None = None, sidecar: d
     }
     meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
     fp = pool_fingerprint()
-    _POOL_CACHE[season] = (fp, pool)
+    _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
     return parquet_path
 
 
@@ -198,15 +200,17 @@ def load_draft_pool(
     overlay can refresh external rosters even when model computation is disabled.
     """
     fp = pool_fingerprint()
+    parquet_path, meta_path = _artifact_paths(season)
+    memory_fp = (fp, artifact_revision(parquet_path, meta_path))
 
     def finish(pool: pd.DataFrame) -> pd.DataFrame:
         copied = pool.copy()
         if not apply_identity:
             return copied
-        return _with_roster_identity(copied, season, cache_key=f"pool:{season}:{fp}")
+        return _with_roster_identity(copied, season, cache_key=f"pool:{season}:{memory_fp}")
 
     cached = _POOL_CACHE.get(season)
-    if cached is not None and cached[0] == fp:
+    if cached is not None and cached[0] == memory_fp:
         return finish(cached[1])
 
     parquet_path, meta_path = _artifact_paths(season)
@@ -218,7 +222,7 @@ def load_draft_pool(
         if _artifact_is_current(meta, fp):
             pool = pd.read_parquet(parquet_path)
             if _artifact_is_current(meta, fp, pool):
-                _POOL_CACHE[season] = (fp, pool)
+                _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
                 return finish(pool)
 
     if not allow_compute:
@@ -226,7 +230,7 @@ def load_draft_pool(
 
     with _POOL_COMPUTE_LOCK:
         cached = _POOL_CACHE.get(season)
-        if cached is not None and cached[0] == fp:
+        if cached is not None and cached[0] == memory_fp:
             return finish(cached[1])
         if parquet_path.exists() and meta_path.exists():
             try:
@@ -236,7 +240,7 @@ def load_draft_pool(
             if _artifact_is_current(meta, fp):
                 pool = pd.read_parquet(parquet_path)
                 if _artifact_is_current(meta, fp, pool):
-                    _POOL_CACHE[season] = (fp, pool)
+                    _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
                     return finish(pool)
 
         pool, sidecar = _compute_pool(season)

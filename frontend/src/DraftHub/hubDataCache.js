@@ -1,5 +1,8 @@
 /** In-memory cache for Draft Hub pool + overlay payloads. */
 
+let cacheGeneration = 0;
+export function hubCacheGeneration() { return cacheGeneration; }
+
 let poolCache = null;
 let overlayCache = null;
 
@@ -49,6 +52,7 @@ export function setCachedOverlay(season, data) {
 }
 
 export function clearHubDataCache() {
+  cacheGeneration += 1;
   poolCache = null;
   overlayCache = null;
   clearLeagueRostersCache();
@@ -58,7 +62,7 @@ export function clearHubDataCache() {
 const valueSheetInflight = new Map();
 
 export function valueSheetRequestKey(season, rules, { forcePool = false } = {}) {
-  return `${poolCacheKey(season, rules)}:${forcePool ? "force" : "soft"}`;
+  return `${cacheGeneration}:${poolCacheKey(season, rules)}:${forcePool ? "force" : "soft"}`;
 }
 
 export function runValueSheetRequest(key, factory) {
