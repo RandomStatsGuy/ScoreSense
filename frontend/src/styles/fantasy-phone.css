@@ -162,27 +162,6 @@
     max-width: 2.75rem;
   }
 
-  .hub-loading-skeleton {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-    width: 100%;
-    padding: 0.35rem 0;
-  }
-
-  .hub-loading-skeleton-block {
-    height: 2.75rem;
-    border-radius: var(--radius-md);
-    background: linear-gradient(
-      90deg,
-      rgba(148, 163, 184, 0.08) 0%,
-      rgba(148, 163, 184, 0.16) 45%,
-      rgba(148, 163, 184, 0.08) 90%
-    );
-    background-size: 200% 100%;
-    animation: season-shimmer 1.4s ease-in-out infinite;
-  }
-
   .hub-league-rosters {
     padding-right: 4.25rem;
     padding-bottom: 7.5rem;
@@ -270,4 +249,26 @@
   .hub-loading-skeleton-block {
     animation: none;
   }
+}
+
+/* Loading is shared on desktop and phone. */
+.hub-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.35rem 0;
+}
+
+.hub-loading-skeleton-block {
+  height: 2.75rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.08) 0%,
+    rgba(148, 163, 184, 0.16) 45%,
+    rgba(148, 163, 184, 0.08) 90%
+  );
+  background-size: 200% 100%;
+  animation: season-shimmer 1.4s ease-in-out infinite;
 }

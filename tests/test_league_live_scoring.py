@@ -768,3 +768,34 @@ def test_live_scoring_route_forbidden_for_non_member(hub_client, hub_db, monkeyp
     monkeypatch.setattr("app.hub_routes._ctx", _wrong_ctx)
     res = hub_client.get(f"/api/hub/league/{league['id']}/live-scoring")
     assert res.status_code == 403
+
+def test_sleeper_ids_resolve_cached_nfl_projections_without_rewriting_identity():
+    index = {
+        "00-hurts": {"player_id": "00-hurts", "player_name": "Jalen Hurts", "team": "PHI", "p50": 15.33},
+        "00-corum": {"player_id": "00-corum", "player_name": "Blake Corum", "team": "LA", "p50": 2.74},
+        "00-kelce": {"player_id": "00-kelce", "player_name": "Travis Kelce", "team": "KC", "p50": 6.34},
+    }
+    team = {"roster_id": "1", "points": 0, "starters": [
+        {"player_id": "sleeper-6904", "sleeper_player_id": "6904", "name": "Jalen Hurts", "team": "PHI", "points": 0},
+        {"player_id": "sleeper-11586", "name": "Blake Corum", "team": "LAR", "points": 5.4},
+        {"player_id": "00-kelce", "name": "Travis Kelce", "team": "KC", "points": 0},
+        {"player_id": "", "name": "Empty", "points": 0},
+    ], "bench_players": [{"player_id": "sleeper-1466", "name": "Travis Kelce", "team": "KC"}]}
+    attach_matchup_analytics([{"teams": [team]}], index)
+    assert [p["proj"] for p in team["starters"]] == [15.33, 2.74, 6.34, None]
+    assert team["starters"][0]["player_id"] == "sleeper-6904"
+    assert team["bench_players"][0]["proj"] == 6.34
+
+
+def test_projection_name_fallback_rejects_wrong_team_and_ambiguous_names():
+    index = {
+        "qb": {"player_id": "qb", "player_name": "Josh Allen", "team": "BUF", "p50": 23},
+        "def": {"player_id": "def", "player_name": "Josh Allen", "team": "JAX", "p50": 1},
+    }
+    players = [
+        {"player_id": "unknown", "name": "Josh Allen", "team": "KC"},
+        {"player_id": "unknown", "name": "Josh Allen", "team": ""},
+        {"player_id": "qb", "name": "Different Name", "team": "BUF"},
+    ]
+    attach_matchup_analytics([{"teams": [{"starters": players}]}], index)
+    assert [p["proj"] for p in players] == [None, None, 23]

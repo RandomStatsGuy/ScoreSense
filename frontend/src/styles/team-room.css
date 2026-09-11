@@ -1,7 +1,7 @@
 /* User-approved immersive My team room; atmosphere and jersey colors are intentional artwork. */
 .team-room {
-  --room-light: #d7b47c;
-  --room-tint: #1e3047;
+  --room-light: var(--team-room-light);
+  --room-tint: var(--team-room-tint);
   --room-wood: #17140f;
   position: relative;
   isolation: isolate;
@@ -646,3 +646,9 @@
     transition: none !important;
   }
 }
+
+/* The room's scoreboard opens this team and week without changing league focus. */
+a.team-room-scoreboard { position:relative; text-decoration:none; color:inherit; padding-bottom:var(--space-6); }
+a.team-room-scoreboard:hover { outline:1px solid var(--room-light); }
+a.team-room-scoreboard:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.team-room-matchup-link { position:absolute; bottom:var(--space-2); left:0; right:0; text-align:center; font-size:var(--text-xs); color:var(--text-secondary); }
