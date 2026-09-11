@@ -31,6 +31,11 @@ test("numeric columns right-align", () => {
   assert.equal(columnAlign(["15pts", "9pts", "120yds"]), "right");
 });
 
+test("signed currency stays numeric", () => {
+  assert.equal(columnAlign(["-$300.00", "+$80.00", "$0.00"]), "right");
+  assert.equal(isNumericCellText("-$300.00"), true);
+});
+
 test("numeric cell text accepts ordinals and units", () => {
   assert.equal(isNumericCellText("1st"), true);
   assert.equal(isNumericCellText("15pts"), true);

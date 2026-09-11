@@ -387,6 +387,37 @@ def test_optimize_captain_lineup_picks_best_captain():
     assert cpt["proj"] == 33.0  # 22 * 1.5
 
 
+def test_draftkings_captain_never_exports_a_flex_id():
+    players = _showdown_pool()
+    for player in players:
+        player.cpt_dfs_id = ""
+    result = optimize_lineup(players, roster={"cpt": 1, "flex": 5}, salary_cap=50000)
+    assert result["ok"] is True
+    assert result["lineup"][0]["dfs_id"] is None
+    assert all(row["dfs_id"] for row in result["lineup"][1:])
+
+
+def test_captain_lock_and_exclusion_only_apply_to_captain_slot():
+    result = optimize_lineup(_showdown_pool(), roster={"cpt":1,"flex":5}, salary_cap=60000, locked_captain_id="te1", excluded_captain_ids={"qb1"})
+    assert result["ok"]
+    assert result["lineup"][0]["player_id"] == "te1"
+    assert any(r["player_id"] == "qb1" and r["slot"].startswith("FLEX") for r in result["lineup"])
+
+
+def test_captain_exposure_caps_count_separately_from_flex():
+    result=optimize_multiple_lineups(_showdown_pool(),count=4,max_overlap=5,roster={"cpt":1,"flex":5},salary_cap=60000,captain_exposure_limits={"qb1":.25,"qb2":0})
+    assert result["ok"]
+    captains=[e["lineup"][0]["player_id"] for e in result["lineups"]]
+    assert captains.count("qb1") <= 1
+    assert "qb2" not in captains
+
+
+def test_single_game_rejects_multigame_pool():
+    players=_showdown_pool()
+    players[-1].team="CCC"
+    assert not optimize_lineup(players,roster={"cpt":1,"flex":5},salary_cap=50000)["ok"]
+
+
 def test_optimize_captain_lineup_respects_locks():
     result = optimize_lineup(
         _showdown_pool(),
@@ -444,3 +475,35 @@ def test_optimize_lineup_respects_salary_cap():
         locked_player_ids={"qb1", "rb1", "wr1"},
     )
     assert too_tight["ok"] is False
+
+
+def test_locked_captain_is_exempt_from_total_exposure_cap():
+    # Enough alternates to fill three distinct six-player lineups at 2/3 exposure.
+    players = _showdown_pool() + [LineupPlayer(f"alt{i}", f"Alt {i}", "AAA" if i % 2 else "BBB", "WR", 8, 4, 12, salary=3000) for i in range(5)]
+    result = optimize_multiple_lineups(players, count=3, max_overlap=5, max_exposure=.8, locked_captain_id="te1", roster={"cpt":1,"flex":5}, salary_cap=60000)
+    assert len(result["lineups"]) == 3
+    assert all(e["lineup"][0]["player_id"] == "te1" for e in result["lineups"])
+
+
+def test_imported_kicker_is_eligible_without_mutating_source_pool():
+    import pandas as pd
+    from src.products.dfs_inputs import apply_projection_overrides
+    from src.products.lineup_optimizer import _players_from_pool
+    pool = pd.DataFrame([{"player_id":"k1", "Player":"Kicker", "Team":"AAA", "Position":"K", "salary":4000, "Projected Points":None, "Low (P10)":None, "High (P90)":None}])
+    assert _players_from_pool(pool) == []
+    patched = apply_projection_overrides(pool, {"k1":{"proj":8.,"floor":3.,"ceiling":15.}})
+    assert _players_from_pool(patched)[0].position == "K"
+    assert _players_from_pool(patched)[0].proj == 8.
+    assert pd.isna(pool.iloc[0]["Projected Points"])
+    import pytest
+    with pytest.raises(ValueError):
+        apply_projection_overrides(pool, {"k1":{"proj":8.,"floor":9.,"ceiling":15.}})
+
+
+def test_single_lineup_respects_fractional_captain_limit():
+    import pandas as pd
+    from src.products.lineup_optimizer import optimize_from_pool_dataframe
+    pool = pd.DataFrame([{"player_id":p.player_id, "Player":p.name, "Team":p.team, "Position":p.position, "Projected Points":p.proj, "Low (P10)":p.floor, "High (P90)":p.ceiling, "salary":p.salary} for p in _showdown_pool()])
+    result = optimize_from_pool_dataframe(pool, site="draftkings_showdown", salary_cap=60000, captain_exposure_limits={"qb1":.25}, lineup_count=1)
+    assert result["ok"]
+    assert result["lineup"][0]["player_id"] != "qb1"

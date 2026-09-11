@@ -7,6 +7,7 @@
 
 export const CHROME = Object.freeze([
   "experience",
+  "workspace",
   "action-center",
   "rules-center",
   "table",
@@ -256,11 +257,12 @@ export const LIVING_SURFACES = Object.freeze({
   }),
   "tools.dfs": S({
     label: "DFS",
-    chrome: "experience",
+    chrome: "workspace",
     route: "/tools/dfs",
     page: "frontend/src/LineupOptimizer.jsx",
+    also: ["frontend/src/DfsWorkspace.jsx", "frontend/src/DfsResults.jsx", "frontend/src/useDfsBuilder.js"],
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Reuse experience classes and dfsToolPresentation.js. Do not fork a DFS hero. Hero only — do not restate the hero as a sub-nav tagline. Rail is Your lineup · locked · skipped. Pool table lets the page own vertical scroll and sticks the header. Announce a built lineup and highlight those rows. Exclusive format/goal/stack-count choices use radiogroup. Season and Week use HubFilterMenu, not a native select. Format cards are 5-up at desktop width. Vegas games are the shootout board — multi-select on classic and season-long. Picking a game marks it for the build and does not lock a player. Stack cards are optional. Highest is a corner tag, not a wrapping HIGHEST TOTAL line. Lock/Skip use the same ghost height as Free agents History. Amber never marks Highest or the selected game.",
+    doNot: "Match approved September 11 option A and shared Results dashboard: compact title/slate bar, settings/pool/lineup columns and paginated player table. No experience hero or full-page Vegas board. Account owns backgrounds. Keep Captain exposure distinct from total exposure, retain build-time inputs, and label missing/fixed/imported estimates. Imports preview before saving; My Lineups CSV and Edit Entries CSV are distinct. Never invent probabilities, ownership or payouts. Results use account-scoped cash records and show completeness/sample size. Follow docs/PRODUCT.md.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",
