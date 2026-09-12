@@ -233,17 +233,19 @@ export function liveDraftMembersOnlyMessage() {
 }
 
 export function franchiseResizeHint() {
-  return "Add a team to expand your league. Managers can claim open teams from Draft.";
+  return "Set how many seats your league has, then add teams or invite managers to fill them. Changes are available before the draft.";
 }
 
-export function addFranchiseLabel() {
-  return "Add team";
+export function addFranchiseLabel({ configured, actual } = {}) {
+  return Number(actual) < Number(configured) ? "Add team to open seat" : "Add team";
 }
 
-export function addFranchiseSupport({ nextCount, cap } = {}) {
+export function addFranchiseSupport({ nextCount, currentCount, cap } = {}) {
   const seats = Number(nextCount);
   const salary = Number(cap);
-  const seatBit = Number.isFinite(seats) && seats > 0 ? `League becomes ${seats} seats.` : "Adds one seat.";
+  const seatBit = seats === Number(currentCount)
+    ? `Uses one open seat. League stays at ${seats} teams.`
+    : Number.isFinite(seats) && seats > 0 ? `League becomes ${seats} seats.` : "Adds one seat.";
   const capBit = Number.isFinite(salary) && salary > 0
     ? ` The new seat starts at $${salary} with no keepers.`
     : " The new seat starts with a full cap and no keepers.";
@@ -254,17 +256,34 @@ export function canAddSeat({ configured, actual } = {}) {
   const seats = Number(configured);
   const filled = Number(actual);
   if (!Number.isFinite(seats) || !Number.isFinite(filled)) return true;
-  return filled >= seats;
+  return filled < 20;
 }
 
 export function removeFranchiseLabel() {
   return "Remove team";
 }
 
-export function removeFranchiseConfirm(name) {
-  const label = String(name || "").trim() || "this seat";
-  return `Remove ${label}? The seat closes. Contracts must already be gone.`;
+export function removeFranchiseConfirm(name, preview = {}) {
+  const label = String(name || "").trim() || "this team";
+  return `Remove ${label}? ${(preview.consequences || []).join(" ")}`;
 }
+
+export const LEAGUE_SIZE_COPY = {
+  title: "League size & teams",
+  size: "League size",
+  save: "Save league size",
+  saving: "Saving…",
+  teamName: "Team name",
+  teamPlaceholder: "Name the team to add",
+  invite: "Invite managers",
+  addTitle: "Add a team",
+  saved: (n) => `League size saved: ${n} teams.`,
+  added: (name) => `${name} added. Invite a manager to claim the team.`,
+  removed: (name, n) => `${name} removed. League size: ${n} teams.`,
+  preview: (n, actual) => n < actual
+    ? `Remove ${actual - n} ${actual - n === 1 ? "team" : "teams"} below before saving a ${n}-team league. Existing teams are never removed automatically.`
+    : `Room for ${n} teams, with ${n - actual} unassigned ${n - actual === 1 ? "seat" : "seats"}. Existing teams and contracts stay.`,
+};
 
 export function removeFranchiseBlocked(reason) {
   return String(reason || "This seat stays.");
@@ -275,7 +294,7 @@ export function franchiseSeatSummary({ configured, actual } = {}) {
   const filled = Number(actual);
   if (!Number.isFinite(filled) || filled < 0) return "Seats";
   if (Number.isFinite(seats) && seats > 0 && seats !== filled) {
-    return `${filled} of ${seats} seats filled`;
+    return `${seats} seats · ${filled} teams created · ${Math.max(0, seats - filled)} unassigned`;
   }
   if (filled === 1) return "1 seat";
   return `${filled} seats`;

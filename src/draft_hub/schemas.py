@@ -180,7 +180,7 @@ class ActiveLeagueUpdate(BaseModel):
 class LeagueCreateRequest(BaseModel):
     name: str
     season: int
-    team_count: int = 12
+    team_count: int = Field(default=12, ge=2, le=20)
     rules: Optional[LeagueRules] = None
     preset_id: Optional[str] = "salary_cap_auction_v1"
     commissioner_team_name: Optional[str] = "Commissioner"
@@ -190,6 +190,10 @@ class LeagueCreateRequest(BaseModel):
 class LeagueJoinRequest(BaseModel):
     room_code: str
     team_name: str
+
+
+class LeagueSizeUpdate(BaseModel):
+    team_count: int = Field(ge=6, le=14, strict=True)
 
 
 class LeagueInviteCreateRequest(BaseModel):

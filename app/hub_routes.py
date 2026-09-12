@@ -93,6 +93,7 @@ from src.draft_hub.schemas import (
     ContractTypeDecisionRequest,
     ContractTypeUpdateRequest,
     FranchiseAddRequest,
+    LeagueSizeUpdate,
     RosterAddRequest,
     RosterRemoveRequest,
     RosterUpdateRequest,
@@ -153,6 +154,7 @@ from src.draft_hub.league_permissions import (
 from src.draft_hub.league_resize import (
     LeagueResizeError,
     apply_add_franchise,
+    apply_league_size,
     apply_remove_franchise,
     league_resize_snapshot,
 )
@@ -4557,6 +4559,19 @@ def hub_add_franchise(
     require_commissioner(ctx)
     try:
         result = apply_add_franchise(league_id, body.name)
+    except LeagueResizeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result["hub_context"] = _ctx(sub)
+    result["resize"] = league_resize_snapshot(league_id)
+    return result
+
+
+@router.patch("/league/{league_id}/size")
+def hub_resize_league(league_id: str, body: LeagueSizeUpdate, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    require_commissioner(_ctx_for_league(sub, league_id))
+    try:
+        result = apply_league_size(league_id, body.team_count)
     except LeagueResizeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     result["hub_context"] = _ctx(sub)

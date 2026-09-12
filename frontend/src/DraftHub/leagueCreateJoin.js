@@ -1,3 +1,5 @@
+export const LEAGUE_TEAM_SIZES = Object.freeze(Array.from({ length: 9 }, (_, i) => i + 6));
+
 export const FALLBACK_LEAGUE_PRESETS = [
   { id: "salary_cap_auction_v1", label: "Salary cap auction" },
   { id: "snake_draft_v1", label: "Snake draft" },
