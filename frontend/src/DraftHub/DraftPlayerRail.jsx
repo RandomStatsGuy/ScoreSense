@@ -54,6 +54,7 @@ export default function DraftPlayerRail({
   loading = false,
   pickDraft = false,
   needPositions = [],
+  selectedPlayerId = "",
   mediaByPlayerId = null,
   onSelectPlayer,
   onDraftPlayer,

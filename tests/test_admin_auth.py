@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from unittest.mock import Mock
 from fastapi.testclient import TestClient
 
 from app.auth import _hash_password, create_access_token, register_native_user
@@ -312,11 +313,11 @@ def test_refresh_allowed_when_site_auth_is_off(hub_db, auth_db, monkeypatch):
     monkeypatch.setattr("app.auth.ADMIN_EMAILS", frozenset({"admin@example.com"}))
     monkeypatch.setattr(
         "app.api.mark_refresh_started",
-        lambda **kwargs: {"status": "running", "started_at": "2026-01-01T00:00:00+00:00"},
+        lambda **kwargs: {"status": "running", "stage": "queued", "started_at": "2026-01-01T00:00:00+00:00"},
     )
     monkeypatch.setattr(
-        "app.api.run_weekly_refresh",
-        lambda *args, **kwargs: {"completed_at": "2026-01-01T00:00:01+00:00"},
+        "app.api.submit_cpu_job",
+        Mock(),
     )
 
     from app.api import app
@@ -324,6 +325,7 @@ def test_refresh_allowed_when_site_auth_is_off(hub_db, auth_db, monkeypatch):
     res = TestClient(app).post("/api/refresh?retrain=false")
     assert res.status_code == 200
     assert res.json()["status"] == "running"
+    assert res.json()["stage"] == "queued"
 
 
 def test_refresh_requires_login_when_site_auth_is_on(hub_db, auth_db, monkeypatch):
