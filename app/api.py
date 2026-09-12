@@ -7,6 +7,7 @@ import math
 import urllib.parse
 from contextlib import asynccontextmanager
 from pathlib import Path
+from functools import partial
 from typing import Any, Optional
 
 import pandas as pd
@@ -85,7 +86,7 @@ from src.integrations.injury_poll import (
 )
 from src.jobs.weekly_refresh import (
     REFRESH_STATUS, get_refresh_status, mark_refresh_started,
-    public_refresh_status, record_refresh_failure, run_weekly_refresh,
+    public_refresh_status, record_refresh_failure, record_refresh_job_result, run_weekly_refresh,
 )
 from src.jobs.refresh_lock import refresh_lock, RefreshBusy
 from src.projections.predict import get_model_metrics, predict_upcoming_week
@@ -1241,7 +1242,8 @@ async def refresh(
                 if age < 120:
                     return current
             started = mark_refresh_started(retrain=retrain, draft_only=draft_only)
-        submit_cpu_job(run_weekly_refresh, retrain, None, draft_only, started["started_at"])
+        future = submit_cpu_job(run_weekly_refresh, retrain, None, draft_only, started["started_at"])
+        future.add_done_callback(partial(record_refresh_job_result, started_at=started["started_at"]))
         return started
     except RefreshBusy:
         return get_refresh_status()

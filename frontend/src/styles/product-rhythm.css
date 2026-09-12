@@ -1,6 +1,16 @@
 /* Product rhythm — every destination, mobile and desktop.
    Text never sits flush on a border or rule. Type never drops below --text-xs. */
 
+.projection-refresh-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+}
+.projection-refresh-status .chart-note { margin: 0; }
+.projection-refresh-status button { min-height: var(--control-h-lg); }
+
 .chip,
 .team-chip,
 .filter-chip,
