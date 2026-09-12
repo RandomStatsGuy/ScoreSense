@@ -212,3 +212,97 @@ def test_franchise_http_member_cannot_resize(hub_db):
         json={"name": "Nope"},
     )
     assert res.status_code == 403
+
+
+@pytest.mark.parametrize("count", range(6, 15))
+def test_resize_capacity_accepts_every_size_without_changing_teams(hub_db, count):
+    league = _league(team_count=12)
+    before = storage.list_league_teams(league["id"])
+    result = _client_for("resize-comm").patch(
+        f"/api/hub/league/{league['id']}/size", json={"team_count": count}
+    )
+    assert result.status_code == 200
+    assert result.json()["resize"]["team_count"] == count
+    assert storage.list_league_teams(league["id"]) == before
+
+
+@pytest.mark.parametrize("count", [5, 15, 7.5, True, "8"])
+def test_resize_rejects_invalid_size(hub_db, count):
+    league = _league()
+    result = _client_for("resize-comm").patch(
+        f"/api/hub/league/{league['id']}/size", json={"team_count": count}
+    )
+    assert result.status_code == 422
+    assert storage.get_league(league["id"])["team_count"] == 8
+
+
+def test_resize_requires_explicit_removal_before_shrinking(hub_db):
+    league = _league()
+    for n in range(7):
+        apply_add_franchise(league["id"], f"Team {n}")
+    before = storage.list_league_teams(league["id"])
+    client = _client_for("resize-comm")
+    result = client.patch(f"/api/hub/league/{league['id']}/size", json={"team_count": 6})
+    assert result.status_code == 400
+    assert "Remove 2 teams" in result.json()["detail"]
+    assert storage.list_league_teams(league["id"]) == before
+    assert storage.get_league(league["id"])["team_count"] == 8
+
+
+@pytest.mark.parametrize("phase", ["live", "completed"])
+def test_resize_keeps_draft_phase_guard(hub_db, phase):
+    league = _league()
+    if phase == "live":
+        storage.update_league_status(league["id"], "live")
+    else:
+        storage.update_league_settings(league["id"], draft_completed=True)
+    result = _client_for("resize-comm").patch(
+        f"/api/hub/league/{league['id']}/size", json={"team_count": 10}
+    )
+    assert result.status_code == 400
+    assert league_resize_snapshot(league["id"])["blocker"]
+    assert storage.get_league(league["id"])["team_count"] == 8
+
+
+def test_member_cannot_change_capacity(hub_db):
+    league = _league()
+    storage.join_league("member", league["room_code"], "Other")
+    result = _client_for("member").patch(
+        f"/api/hub/league/{league['id']}/size", json={"team_count": 10}
+    )
+    assert result.status_code == 403
+
+
+def test_unrelated_league_cannot_be_resized(hub_db):
+    league = _league()
+    other = _league("other-comm")
+    result = _client_for("other-comm").patch(
+        f"/api/hub/league/{league['id']}/size", json={"team_count": 10}
+    )
+    assert result.status_code in (403, 404)
+    assert storage.get_league(league["id"])["team_count"] == 8
+
+
+def test_size_change_does_not_switch_league_focus(hub_db):
+    first = _league()
+    second = _league(name="Second league")
+    storage.set_hub_focus("resize-comm", league_id=second["id"])
+    result = _client_for("resize-comm").patch(
+        f"/api/hub/league/{first['id']}/size", json={"team_count": 7}
+    )
+    assert result.status_code == 200
+    assert result.json()["hub_context"]["league_id"] == second["id"]
+
+
+@pytest.mark.parametrize("count", range(6, 15))
+def test_every_size_can_fill_and_generate_a_schedule(hub_db, count):
+    from src.draft_hub.hub_scoring import ensure_season_schedule
+    league = _league(team_count=count)
+    for n in range(count - 1):
+        apply_add_franchise(league["id"], f"Team {n}")
+    schedule = ensure_season_schedule(league["id"])
+    rows = [row for row in schedule["matchups"] if row["week"] == 1]
+    playing = [tid for row in rows for tid in (row["home_team_id"], row["away_team_id"]) if tid]
+    assert len(playing) == count
+    assert len(set(playing)) == count
+    assert sum(row["away_team_id"] is None for row in rows) == count % 2

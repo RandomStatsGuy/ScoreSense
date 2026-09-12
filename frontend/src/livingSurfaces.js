@@ -226,7 +226,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/roster-management/members",
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
-    doNot: "List people by owner name. Do not show a nickname as the only identity. Seat is the slot; manager is the person. Add a seat only past the seat count.",
+    doNot: "List people by owner name. Do not show a nickname as the only identity. Seat is the slot; manager is the person. Distinguish league capacity, created teams, and claimed managers. Show every size from 6–14; never delete teams implicitly when resizing.",
   }),
   "hub.office.access": S({
     label: "Access & imports",

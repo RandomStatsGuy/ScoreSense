@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { HubFilterMenu } from "./HubUILayout";
-import { leaguePresetOptions, parseLeagueTeamCount } from "./leagueCreateJoin";
+import { LEAGUE_TEAM_SIZES, leaguePresetOptions, parseLeagueTeamCount } from "./leagueCreateJoin";
 
 export default function LeagueCreateJoinForm({
   season,
@@ -142,17 +142,13 @@ export default function LeagueCreateJoinForm({
                 options={formatOptions.map((p) => ({ id: p.id, label: p.label }))}
                 onChange={setPresetId}
               />
-              <label>
-                Teams
-                <input
-                  type="number"
-                  min={2}
-                  max={20}
-                  value={teamCount}
-                  onChange={(e) => setTeamCount(e.target.value)}
-                  required
-                />
-              </label>
+              <HubFilterMenu
+                label="League size"
+                value={teamCount}
+                options={LEAGUE_TEAM_SIZES.map((n) => ({ id: n, label: `${n} teams` }))}
+                onChange={(value) => setTeamCount(Number(value))}
+                disabled={busy}
+              />
             </div>
             <button type="submit" className="btn-primary btn-sm" disabled={busy}>
               {busy ? "Creating…" : "Create league"}

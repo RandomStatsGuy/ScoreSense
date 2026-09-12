@@ -30,6 +30,8 @@ import {
   draftNightLockAction,
   draftNightSupport,
   draftNightUnlockAction,
+  LEAGUE_SIZE_COPY,
+  removeFranchiseConfirm,
   franchiseResizeHint,
   addFranchiseLabel,
   addFranchiseSupport,
@@ -180,14 +182,14 @@ test("draft night copy names the lock time", () => {
 test("franchise resize copy names the next auction consequence", () => {
   assert.equal(addFranchiseLabel(), "Add team");
   assert.equal(removeFranchiseLabel(), "Remove team");
-  assert.match(franchiseResizeHint(), /claim open teams from Draft/i);
+  assert.match(franchiseResizeHint(), /fill them/i);
   assert.doesNotMatch(franchiseResizeHint(), /Submit|Draft Hub|permission/i);
   assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /11 seats/);
   assert.match(addFranchiseSupport({ nextCount: 11, cap: 200 }), /\$200/);
-  assert.equal(franchiseSeatSummary({ configured: 12, actual: 10 }), "10 of 12 seats filled");
+  assert.equal(franchiseSeatSummary({ configured: 12, actual: 10 }), "12 seats · 10 teams created · 2 unassigned");
   assert.equal(franchiseSeatSummary({ configured: 10, actual: 10 }), "10 seats");
   assert.equal(franchiseSeatSummary({ configured: 1, actual: 1 }), "1 seat");
-  assert.equal(canAddSeat({ configured: 12, actual: 10 }), false);
+  assert.equal(canAddSeat({ configured: 12, actual: 10 }), true);
   assert.equal(canAddSeat({ configured: 12, actual: 12 }), true);
 });
 
@@ -219,4 +221,15 @@ test("offline draft copy stays on Draft and keeps Add locked", () => {
     `${OFFLINE_DRAFT_COPY.title} ${OFFLINE_DRAFT_COPY.hint} ${OFFLINE_DRAFT_COPY.ownerHint} ${OFFLINE_DRAFT_COPY.salaryInvalid}`,
     /Draft Hub|Submit|permission/i,
   );
+});
+
+
+test("size preview explains explicit removal and open capacity", () => {
+  assert.match(LEAGUE_SIZE_COPY.preview(6, 8), /Remove 2 teams/);
+  assert.match(LEAGUE_SIZE_COPY.preview(7, 8), /Remove 1 team below/);
+  assert.match(LEAGUE_SIZE_COPY.preview(14, 8), /6 unassigned seats/);
+  assert.match(addFranchiseSupport({ nextCount: 12, currentCount: 12, cap: 200 }), /Uses one open seat/);
+  assert.equal(addFranchiseLabel({ configured: 12, actual: 8 }), "Add team to open seat");
+  assert.equal(canAddSeat({ configured: 20, actual: 20 }), false);
+  assert.match(removeFranchiseConfirm("Alex", { consequences: ["League becomes 7 teams."] }), /Remove Alex.*7 teams/);
 });

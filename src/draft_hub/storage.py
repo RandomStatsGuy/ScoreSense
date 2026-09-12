@@ -3392,12 +3392,21 @@ def add_unclaimed_team(league_id: str, name: str, budget: float) -> dict[str, An
         return _team_dict(row) if row else {}
 
 
-def update_league_team_count(league_id: str, team_count: int) -> dict[str, Any] | None:
+def update_league_team_count(
+    league_id: str, team_count: int, *, require_capacity_fit: bool = False
+) -> dict[str, Any] | None:
     """Set configured seat count. Does not create or delete team rows."""
     n = int(team_count)
     if n < 2 or n > 20:
         raise ValueError("Team count must be between 2 and 20")
     with get_conn() as conn:
+        if require_capacity_fit:
+            conn.execute("BEGIN IMMEDIATE")
+            actual = conn.execute("SELECT COUNT(*) FROM team WHERE league_id = ?", (league_id,)).fetchone()[0]
+            if actual > n:
+                removed = actual - n
+                noun = "team" if removed == 1 else "teams"
+                raise ValueError(f"Remove {removed} {noun} before saving a {n}-team league.")
         conn.execute("UPDATE league SET team_count = ? WHERE id = ?", (n, league_id))
         row = conn.execute("SELECT * FROM league WHERE id = ?", (league_id,)).fetchone()
         return _league_dict(row) if row else None
