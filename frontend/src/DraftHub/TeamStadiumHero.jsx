@@ -26,7 +26,7 @@ export default function TeamStadiumHero({
   const preview = size === "preview";
   const paintWidth = preview ? HUB_MEDIA_MARK_WIDTH : HUB_MEDIA_HERO_WIDTH;
   const photoUrl = identityMediaUrl(look, "photo", { width: paintWidth });
-  const bannerUrl = identityMediaUrl(look, "banner", { width: paintWidth });
+  const bannerUrl = identityMediaUrl(look, "banner", { width: HUB_MEDIA_HERO_WIDTH });
 
   return (
     <article
@@ -34,7 +34,7 @@ export default function TeamStadiumHero({
     >
       <div className={`hub-stadium-hero-banner hub-banner-fill--${look.banner_preset}`}>
         {bannerUrl ? (
-          <IdentityCropMedia src={bannerUrl} focus={look.banner_focus} className="hub-stadium-hero-banner-img" width={paintWidth} />
+          <IdentityCropMedia src={bannerUrl} focus={look.banner_focus} className="hub-stadium-hero-banner-img" width={HUB_MEDIA_HERO_WIDTH} />
         ) : null}
         {onEdit ? (
           <button type="button" className="hub-stadium-hero-edit" onClick={onEdit}>
