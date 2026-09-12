@@ -14,13 +14,13 @@ import { jsonRequest } from "./useDfsBuilder";
 const num = (n) =>
   n == null || !Number.isFinite(Number(n)) ? "—" : Number(n).toFixed(1);
 const options = (values) => values.map((v) => ({ id: v, label: String(v) }));
-export function DfsFile({ label, onFile, disabled = false }) {
+export function DfsFile({ label, onFile, disabled = false, accept = ".csv,text/csv" }) {
   return (
     <label className={`dfw-file-button${disabled ? " is-disabled" : ""}`}>
       {label}
       <input
         type="file"
-        accept=".csv,text/csv"
+        accept={accept}
         disabled={disabled}
         onChange={(e) => {
           onFile(e.target.files?.[0]);

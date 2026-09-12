@@ -16,7 +16,19 @@ export const DFS_WORKSPACE_COPY = {
 };
 
 export const DFS_RESULTS_COPY = {
-  fileLimit: "Import a CSV up to 100 MB at a time.",
+  fileLimit: "Import a CSV or ZIP up to 100 MB. The CSV inside a ZIP must also be under 100 MB.",
+  invalidZip: "This ZIP could not be read. Download the contest export again or upload the extracted CSV.",
+  zipCsvCount: "Choose a ZIP containing one results CSV, or upload the extracted CSV directly.",
+  zipContestMismatch: "The ZIP and CSV filenames have different contest IDs. Upload the extracted CSV and review its contest ID.",
+  standingsSite: "This is a DraftKings standings export. Choose DraftKings as the site.",
+  standingsFinance: "Contest standings contain scores and lineups, not fees or payouts. Choose Scores and lineups.",
+  scoresOnly: "Fees and payouts are not included.",
+  usernameRequired: "Enter your DraftKings username, or import your contest history first so we can match your entry IDs.",
+  noMatchingEntries: "No entries matched. Check your DraftKings username or import your contest history first.",
+  username: "Your DraftKings username",
+  standingsHelp: "This file contains the whole contest. Enter your DraftKings username to select your entries. Leave it blank to match entries already in your results. Fees and payouts come from contest history.",
+  detectedContest: (id) => `Contest ${id} detected from the filename.`,
+  selectedEntries: (selected, total) => `${selected.toLocaleString()} of ${total.toLocaleString()} contest entries selected.`,
   chooseFile: "Choose the CSV again before previewing.",
   reading: "Reading CSV…",
   validating: "Checking entries…",

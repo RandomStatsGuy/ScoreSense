@@ -89,3 +89,15 @@ def test_compact_batch_retains_atomic_validation_and_request_limit():
     assert get_results("a")["entries"] == []
     with pytest.raises(ValidationError):
         EntryImport(entries=[duplicate] * 5001)
+
+
+def test_standings_entry_name_preserves_cash_history_and_account_scope():
+    import_results(EntryImport(entries=[Entry(entry_id="0001", contest_id="123", fee_cents=500, payout_cents=1500, status="settled")]), "a")
+    request = EntryImport(entries=[Entry(entry_id="0001", entry_name="Example (1/20)", contest_id="123", points=105.8, rank=1)])
+    import_results(request, "a", compact=True)
+    result = get_results("a")["entries"][0]
+    assert result["entry_name"] == "Example (1/20)"
+    assert result["payout_cents"] == 1500
+    assert result["fee_cents"] == 500
+    assert result["points"] == 105.8
+    assert get_results("b")["entries"] == []
