@@ -3,6 +3,8 @@
 import { dealCanTakeExtension } from "./rosterFormat.js";
 
 export const MY_TEAM_COPY = {
+  lookUploadError: "Choose a JPEG, PNG, or WebP image under 2 MB.",
+  lookCropHelp: "Upload an image to adjust its position and zoom.",
   title: "My team",
   room: "Room",
   manage: "Manage roster",

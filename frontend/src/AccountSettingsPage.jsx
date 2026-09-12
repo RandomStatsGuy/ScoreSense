@@ -203,8 +203,8 @@ export default function AccountSettingsPage() {
   return (
     <StandalonePageShell title="Account settings">
       <AtmosphereLayer theme={atmosphere} prefsOverride={atmoPrefs} />
-      <div className="auth-shell auth-shell-page account-settings-page">
-        <div className="panel auth-panel account-settings-panel">
+      <div className="standalone-content-shell account-settings-page">
+        <div className="panel standalone-content account-settings-panel">
           <h2 className="auth-panel-title-desktop">Account settings</h2>
         <p className="chart-note">
           {isNative

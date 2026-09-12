@@ -1,0 +1,117 @@
+/* Standalone reading/settings surfaces share a layout, not the sign-in card. */
+.standalone-content-shell {
+  width: 100%;
+  max-width: 50rem;
+  margin: var(--space-6) auto;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-5);
+}
+.standalone-content.panel {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-6);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.standalone-content > .auth-panel-title-desktop {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-2xl);
+}
+.standalone-content :is(p, li) { font-size: var(--text-lg); line-height: 1.65; }
+.standalone-content .chart-note { font-size: var(--text-md); color: var(--text-secondary); }
+.standalone-content :is(h2, h3) { margin: 0 0 var(--space-3); }
+.legal-page-content section { margin-top: var(--space-6); }
+.legal-page-content section :is(p, ul) { margin: 0; line-height: 1.65; }
+.legal-page-list li + li { margin-top: var(--space-3); }
+.standalone-content a:not([class*="btn-"]) { color: var(--accent-muted); text-underline-offset: 0.2em; }
+.account-settings-section { margin-top: var(--space-5); padding-top: var(--space-5); }
+.standalone-content .account-auth-form { gap: var(--space-4); }
+.standalone-content .account-auth-form > button { justify-self: start; min-height: var(--control-h-md); }
+.standalone-content :is(input[type="text"], input[type="email"], input[type="password"], input[type="tel"]) {
+  width: 100%; min-width: 0; min-height: var(--control-h-lg);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle); color: var(--text-primary); font: inherit;
+}
+.standalone-content input:disabled { color: var(--text-secondary); }
+
+/* Dialogs retain their header and actions while only the contents scroll. */
+.hub-look-overlay { z-index: var(--z-sheet); padding: var(--space-5); }
+.hub-look-dialog.panel {
+  width: min(100%, 56rem);
+  max-height: calc(100dvh - var(--space-7));
+  padding: 0;
+  gap: 0;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-popover);
+}
+.hub-look-dialog-head {
+  padding: var(--space-5);
+  align-items: center;
+  flex-shrink: 0;
+}
+.hub-look-title { margin-top: var(--space-2); font-size: var(--text-xl); }
+.hub-look-tabs {
+  padding: 0 var(--space-5) var(--space-4);
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.hub-look-tab { min-height: var(--control-h-md); padding: var(--space-2) var(--space-5); font-size: var(--text-md); }
+.hub-look-scroll {
+  min-height: 0; overflow: auto; overscroll-behavior: contain;
+  padding: var(--space-5); scrollbar-gutter: stable;
+}
+.hub-look-dialog-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-5); overflow: visible; }
+.hub-look-crop-col, .hub-look-side, .hub-look-room { gap: var(--space-4); }
+.hub-look-crop--photo { width: 100%; max-width: 18rem; margin-inline: auto; flex-shrink: 0; }
+.hub-look-crop--banner { flex-shrink: 0; }
+.hub-look-crop-empty { padding: var(--space-4); font-size: var(--text-lg); }
+.hub-look-crop-empty .hub-team-mark { flex-direction: column; gap: var(--space-4); text-align: center; }
+.hub-look-crop-empty .hub-team-mark-photo { width: 5rem; height: 5rem; font-size: var(--text-xl); }
+.hub-look-dialog .chart-note { margin: 0; font-size: var(--text-md); color: var(--text-secondary); line-height: 1.5; }
+.hub-look-slider { font-size: var(--text-md); gap: var(--space-3); }
+.hub-look-slider input { accent-color: var(--accent); min-height: var(--control-h-md); }
+.hub-look-presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: var(--space-2); }
+.hub-look-preset { min-width: 0; min-height: var(--control-h-lg); padding: var(--space-3); font-size: var(--text-md); }
+.hub-look-preset.is-active { outline: 2px solid var(--accent-muted); outline-offset: 2px; }
+.hub-look-upload-row { gap: var(--space-2); align-items: center; }
+.hub-look-upload-row button { min-height: var(--control-h-md); }
+.hub-look-previews { gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.hub-look-side-label { margin: 0; }
+.hub-look-preview-card { padding: var(--space-3); gap: var(--space-2); background: var(--bg-subtle); border: 0; }
+.hub-look-preview-card > span { margin: 0; }
+.hub-look-preview-card .hub-team-mark { display: inline-flex; align-items: center; gap: var(--space-2); }
+.hub-look-preview-card > .hub-team-mark { font-size: var(--text-md); text-transform: none; letter-spacing: normal; color: var(--text-primary); }
+.hub-look-dialog-foot {
+  flex-shrink: 0; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-subtle);
+}
+.hub-look-dialog-foot button { min-height: var(--control-h-md); }
+.confirm-overlay { padding: var(--space-4); }
+.confirm-card.panel { padding: var(--space-5); gap: var(--space-4); max-height: calc(100dvh - var(--space-6)); overflow: auto; box-shadow: var(--shadow-popover); }
+.confirm-title { font-size: var(--text-xl); }
+.confirm-message { font-size: var(--text-lg); line-height: 1.6; }
+.confirm-actions { align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); }
+.confirm-actions button { min-height: var(--control-h-md); }
+
+@media (max-width: 768px) {
+  .standalone-content-shell { margin: 0 auto; padding: var(--space-3); }
+  .standalone-content.panel { padding: var(--space-4); }
+  .standalone-content .account-auth-form > button { justify-self: stretch; min-height: var(--control-h-lg); }
+  .hub-look-overlay { padding: var(--space-2); }
+  .hub-look-dialog.panel { max-height: calc(100dvh - var(--space-4)); }
+  .hub-look-dialog-head, .hub-look-scroll { padding: var(--space-4); }
+  .hub-look-tabs { padding: 0 var(--space-4) var(--space-3); }
+  .hub-look-tab { flex: 1; padding: var(--space-2); }
+  .hub-look-dialog-body { grid-template-columns: minmax(0, 1fr); }
+  .hub-look-crop--photo { max-width: 12rem; min-height: 0; }
+  .hub-look-slider { grid-template-columns: 6rem 1fr; }
+  .hub-look-dialog-foot { padding: var(--space-3) var(--space-4); padding-bottom: max(var(--space-3), env(safe-area-inset-bottom)); }
+  .hub-look-dialog-foot button { flex: 1; }
+  .hub-look-dialog button, .confirm-actions button { min-height: var(--control-h-lg); }
+}

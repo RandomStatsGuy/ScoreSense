@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import useModalFocus from "../ui/useModalFocus";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import confirmDialog from "../ui/confirm";
@@ -17,6 +19,7 @@ import LockerRoomScene from "./LockerRoomScene";
 import TeamIdentityMark from "./TeamIdentityMark";
 import TeamStadiumHero from "./TeamStadiumHero";
 import { normalizeHubPosition } from "./hubPositions";
+import { MY_TEAM_COPY } from "./rosterPresentation";
 
 const TABS = [
   { id: "photo", label: "Photo" },
@@ -105,8 +108,11 @@ export default function TeamIdentityStudio({
   const pendingPhotoRef = useRef(null);
   const pendingBannerRef = useRef(null);
   const titleRef = useRef(null);
+  const dialogRef = useRef(null);
   const requestCloseRef = useRef(null);
   const promptingRef = useRef(false);
+
+  useModalFocus(open && Boolean(leagueId && teamId), dialogRef, () => requestCloseRef.current?.(), titleRef);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -118,17 +124,7 @@ export default function TeamIdentityStudio({
     setClearBanner(false);
     replacePending(pendingPhotoRef, setPendingPhoto, null);
     replacePending(pendingBannerRef, setPendingBanner, null);
-    const onKey = (event) => {
-      if (event.key === "Escape") requestCloseRef.current?.();
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const frame = window.requestAnimationFrame(() => titleRef.current?.focus());
     return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-      window.cancelAnimationFrame(frame);
       revokeUrl(pendingPhotoRef.current);
       pendingPhotoRef.current = null;
       revokeUrl(pendingBannerRef.current);
@@ -180,6 +176,11 @@ export default function TeamIdentityStudio({
 
   const stageFile = (kind, file) => {
     if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      setError(MY_TEAM_COPY.lookUploadError);
+      return;
+    }
+    setError("");
     const entry = { file, url: URL.createObjectURL(file) };
     if (kind === "photo") {
       replacePending(pendingPhotoRef, setPendingPhoto, entry);
@@ -279,7 +280,7 @@ export default function TeamIdentityStudio({
   const cropFocus = cropKind === "banner" ? draft.banner_focus : draft.photo_focus;
   const cropPreset = cropKind === "banner" ? draft.banner_preset : draft.photo_preset;
 
-  return (
+  return createPortal(
     <div
       className="hub-look-overlay"
       role="presentation"
@@ -288,7 +289,9 @@ export default function TeamIdentityStudio({
       }}
     >
       <div
+        ref={dialogRef}
         className="hub-look-dialog panel"
+        aria-busy={busy}
         role="dialog"
         aria-modal="true"
         aria-labelledby="hub-look-title"
@@ -312,6 +315,20 @@ export default function TeamIdentityStudio({
               type="button"
               role="tab"
               aria-selected={tab === item.id}
+              id={`hub-look-tab-${item.id}`}
+              aria-controls="hub-look-panel"
+              tabIndex={tab === item.id ? 0 : -1}
+              disabled={busy}
+              onKeyDown={(event) => {
+                const index = TABS.findIndex((entry) => entry.id === tab);
+                const next = event.key === "ArrowRight" ? (index + 1) % TABS.length
+                  : event.key === "ArrowLeft" ? (index + TABS.length - 1) % TABS.length
+                    : event.key === "Home" ? 0 : event.key === "End" ? TABS.length - 1 : null;
+                if (next === null) return;
+                event.preventDefault();
+                setTab(TABS[next].id);
+                document.getElementById(`hub-look-tab-${TABS[next].id}`)?.focus();
+              }}
               className={`hub-look-tab${tab === item.id ? " is-active" : ""}`}
               onClick={() => setTab(item.id)}
             >
@@ -320,6 +337,7 @@ export default function TeamIdentityStudio({
           ))}
         </div>
 
+        <div className="hub-look-scroll" id="hub-look-panel" role="tabpanel" aria-labelledby={`hub-look-tab-${tab}`} tabIndex={0} inert={busy ? "" : undefined}>
         {tab === "room" ? (
           <div className="hub-look-room">
             <p className="chart-note">
@@ -396,7 +414,7 @@ export default function TeamIdentityStudio({
                   <IdentityCropMedia src={cropSrc} focus={cropFocus} />
                 ) : (
                   <span className="hub-look-crop-empty">
-                    {cropKind === "banner" ? "Preset banner" : "Preset photo"}
+                    {cropKind === "banner" ? BANNER_LABELS[cropPreset] : <TeamIdentityMark team={team} identity={previewLook} size="md" showName />}
                   </span>
                 )}
               </div>
@@ -405,7 +423,7 @@ export default function TeamIdentityStudio({
                   ? "This is the wide banner on My team."
                   : "This is how the photo appears next to your team name."}
               </p>
-              <FocusSliders
+              {cropSrc ? <FocusSliders
                 label={cropKind === "banner" ? "Banner" : "Photo"}
                 focus={cropFocus}
                 disabled={!cropSrc || busy}
@@ -414,34 +432,13 @@ export default function TeamIdentityStudio({
                     ? { ...prev, banner_focus: next }
                     : { ...prev, photo_focus: next }
                 ))}
-              />
+              /> : <p className="chart-note">{MY_TEAM_COPY.lookCropHelp}</p>}
             </section>
 
             <aside className="hub-look-side">
-              <div className="hub-look-previews">
-                <p className="hub-look-side-label">Live previews</p>
-                <div className="hub-look-preview-card">
-                  <span>Compact</span>
-                  <TeamIdentityMark team={team} identity={previewLook} size="sm" showName />
-                </div>
-                <div className="hub-look-preview-card">
-                  <span>My team card</span>
-                  <TeamStadiumHero
-                    team={team}
-                    identity={previewLook}
-                    size="preview"
-                    meta={`${activeRoster.length} player${activeRoster.length === 1 ? "" : "s"}`}
-                  />
-                </div>
-                <div className="hub-look-preview-card">
-                  <span>League switcher</span>
-                  <TeamIdentityMark team={team} identity={previewLook} size="md" showName />
-                </div>
-              </div>
-
               <fieldset className="hub-identity-fieldset">
                 <legend>{cropKind === "banner" ? "Banner presets" : "Photo presets"}</legend>
-                <div className="hub-look-presets" role="radiogroup" aria-label={cropKind === "banner" ? "Banner preset" : "Photo preset"}>
+                <div className="hub-look-presets" role="group" aria-label={cropKind === "banner" ? "Banner preset" : "Photo preset"}>
                   {(cropKind === "banner" ? BANNER_PRESETS : PHOTO_PRESETS).map((id) => {
                     const active = cropKind === "banner" ? draft.banner_preset === id : draft.photo_preset === id;
                     return (
@@ -450,13 +447,17 @@ export default function TeamIdentityStudio({
                         type="button"
                         className={`hub-look-preset ${
                           cropKind === "banner" ? `hub-banner-fill--${id}` : `hub-team-photo--${id}`
-                        }${active ? " is-active" : ""}`}
-                        aria-pressed={active}
-                        onClick={() => setDraft((prev) => (
+                        }${active && !cropSrc ? " is-active" : ""}`}
+                        aria-pressed={active && !cropSrc}
+                        disabled={busy}
+                        onClick={() => {
+                          if (cropSrc) removeUpload(cropKind);
+                          setDraft((prev) => (
                           cropKind === "banner"
                             ? { ...prev, banner_preset: id }
                             : { ...prev, photo_preset: id }
-                        ))}
+                          ));
+                        }}
                       >
                         {cropKind === "banner" ? BANNER_LABELS[id] : PHOTO_LABELS[id]}
                       </button>
@@ -469,6 +470,7 @@ export default function TeamIdentityStudio({
                 <input
                   ref={fileInputRef}
                   type="file"
+                  tabIndex={-1}
                   accept="image/jpeg,image/png,image/webp"
                   className="sr-only"
                   onChange={(e) => {
@@ -496,11 +498,34 @@ export default function TeamIdentityStudio({
                 ) : null}
               </div>
               <p className="chart-note">JPEG, PNG, or WebP. Under 2 MB. Nothing saves until you hit Save look.</p>
+              <div className="hub-look-previews">
+                <p className="hub-look-side-label">Live previews</p>
+                <div className="hub-look-preview-card">
+                  <span>Compact</span>
+                  <TeamIdentityMark team={team} identity={previewLook} size="sm" showName />
+                </div>
+                <div className="hub-look-preview-card">
+                  <span>My team card</span>
+                  <TeamStadiumHero
+                    team={team}
+                    identity={previewLook}
+                    size="preview"
+                    meta={`${activeRoster.length} player${activeRoster.length === 1 ? "" : "s"}`}
+                  />
+                </div>
+                <div className="hub-look-preview-card">
+                  <span>League switcher</span>
+                  <TeamIdentityMark team={team} identity={previewLook} size="md" showName />
+                </div>
+              </div>
+
+
             </aside>
           </div>
         )}
 
-        {error && <div className="error">{error}</div>}
+        {error && <div className="error" role="alert">{error}</div>}
+        </div>
 
         <div className="hub-look-dialog-foot">
           <button type="button" className="btn-ghost" onClick={requestClose} disabled={busy}>
@@ -511,6 +536,7 @@ export default function TeamIdentityStudio({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

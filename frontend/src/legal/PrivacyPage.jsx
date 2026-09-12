@@ -7,8 +7,8 @@ import { LEGAL_PRIVACY } from "./legalPresentation";
 function LegalShell({ title, children }) {
   return (
     <StandalonePageShell title={title}>
-      <div className="auth-shell auth-shell-page legal-page">
-        <article className="panel auth-panel legal-page-content">
+      <div className="standalone-content-shell legal-page">
+        <article className="panel standalone-content legal-page-content">
           <h1 className="auth-panel-title-desktop">{title}</h1>
           {children}
           <p className="hub-toolbar legal-page-back auth-panel-back-desktop">
