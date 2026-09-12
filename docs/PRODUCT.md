@@ -155,6 +155,8 @@ Rules:
 
 ## Page chrome
 
+Account settings, Terms, and Privacy use the shared standalone content layout: left-aligned reading widths and responsive insets, separate from the narrow sign-in card. Team appearance keeps its header, tabs, and Save visible while the editor body scrolls. Preset selection replaces an uploaded image in the unsaved preview. Appearance and confirmation dialogs trap keyboard focus, make the background inert, and restore focus on dismissal; a nested discard confirmation owns Escape until dismissed.
+
 Editorial Fantasy and Tools pages use the shared experience stack:
 
 `HubPage` + `hub-experience-page`
