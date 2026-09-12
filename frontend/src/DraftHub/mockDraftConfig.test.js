@@ -59,8 +59,8 @@ test("field size follows the linked league when matching rules", () => {
     leagueTeamCount: 10,
     followLeague: true,
   }), 10);
-  assert.deepEqual(mockTeamSizeOptions(10, true), [8, 10, 12]);
-  assert.deepEqual(mockTeamSizeOptions(14, true), [8, 10, 12, 14]);
+  assert.deepEqual(mockTeamSizeOptions(10, true), [6, 7, 8, 9, 10, 11, 12, 13, 14]);
+  assert.deepEqual(mockTeamSizeOptions(14, true), [6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
   const body = buildMockDraftStartBody({
     teamCount: 12,
@@ -208,4 +208,15 @@ test("session storage helpers round-trip a room id", () => {
   assert.equal(mem.get(MOCK_DRAFT_STORAGE_KEY), "abc");
   writeStoredMockLeagueId("", storage);
   assert.equal(readStoredMockLeagueId(storage), "");
+});
+
+
+test("all 6–14 team sizes flow into the mock request", () => {
+  for (let n = 6; n <= 14; n += 1) {
+    assert.equal(resolveMockTeamCount({ teamCount: n }), n);
+    const body = buildMockDraftStartBody({ teamCount: n });
+    assert.equal(body.team_count, n);
+    assert.equal(body.bot_count, n - 1);
+  }
+  assert.ok(mockTeamSizeOptions(16, true).includes(16));
 });

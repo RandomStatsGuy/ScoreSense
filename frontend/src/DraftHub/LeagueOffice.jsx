@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { confirmDialog } from "../ui/confirm";
+import { LEAGUE_TEAM_SIZES } from "./leagueCreateJoin";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
@@ -11,6 +13,7 @@ import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import CapSheetImport from "./CapSheetImport";
 import { hubTeamLabel } from "./hubTeamLabel";
 import {
+  LEAGUE_SIZE_COPY,
   addFranchiseLabel,
   addFranchiseSupport,
   canAddSeat,
@@ -87,17 +90,21 @@ function SheetsYearGuide({ year }) {
   );
 }
 
-function OfficeMembers({ leagueId, hubContext, onChanged }) {
+export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
   const [teams, setTeams] = useState([]);
   const [commissionerSub, setCommissionerSub] = useState("");
   const [resize, setResize] = useState(null);
   const [franchiseName, setFranchiseName] = useState("");
+  const [targetSize, setTargetSize] = useState(12);
+  const [notice, setNotice] = useState("");
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const isPrimary = Boolean(hubContext?.is_primary_commissioner);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (keepTarget = false) => {
     if (!leagueId) return;
     setLoading(true);
     setError("");
@@ -105,13 +112,15 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
       const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/members`);
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!mounted.current) return;
+      if (!keepTarget) setTargetSize(data.resize?.team_count || 12);
       setTeams(data.teams || []);
       setCommissionerSub(data.commissioner_sub || "");
       setResize(data.resize || null);
     } catch (e) {
-      setError(connectionErrorMessage(e));
+      if (mounted.current) setError(connectionErrorMessage(e));
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   }, [leagueId]);
 
@@ -128,6 +137,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
   }, [resize]);
 
   const toggleCoCommish = async (teamId, enabled) => {
+    if (busy || loading) return;
     setBusy(teamId);
     setError("");
     try {
@@ -142,18 +152,19 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
       await load();
+      if (!mounted.current) return;
       onChanged?.(data.hub_context);
     } catch (e) {
-      setError(connectionErrorMessage(e));
+      if (mounted.current) setError(connectionErrorMessage(e));
     } finally {
-      setBusy("");
+      if (mounted.current) setBusy("");
     }
   };
 
   const addFranchise = async (e) => {
     e.preventDefault();
     const name = franchiseName.trim();
-    if (!name) return;
+    if (!name || busy || loading) return;
     setBusy("add");
     setError("");
     try {
@@ -167,20 +178,30 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
       );
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!mounted.current) return;
+      setNotice(LEAGUE_SIZE_COPY.added(name));
       setFranchiseName("");
       setResize(data.resize || null);
       await load();
+      if (!mounted.current) return;
       onChanged?.(data.hub_context);
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (mounted.current) setError(connectionErrorMessage(err));
     } finally {
-      setBusy("");
+      if (mounted.current) setBusy("");
     }
   };
 
   const removeFranchise = async (teamId, teamName) => {
-    const label = teamName || "this seat";
-    if (!window.confirm(removeFranchiseConfirm(label))) {
+    if (busy || loading) return;
+    const label = teamName || "this team";
+    const preview = removals.get(String(teamId));
+    if (!(await confirmDialog({
+      title: removeFranchiseLabel(),
+      message: removeFranchiseConfirm(label, preview),
+      confirmLabel: removeFranchiseLabel(),
+      danger: true,
+    })) || !mounted.current) {
       return;
     }
     setBusy(teamId);
@@ -192,13 +213,46 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
       );
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!mounted.current) return;
+      setNotice(LEAGUE_SIZE_COPY.removed(label, data.resize?.team_count));
       setResize(data.resize || null);
-      await load();
+      await load(targetSize !== resize?.team_count);
+      if (!mounted.current) return;
       onChanged?.(data.hub_context);
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (mounted.current) setError(connectionErrorMessage(err));
     } finally {
-      setBusy("");
+      if (mounted.current) setBusy("");
+    }
+  };
+
+  const actual = resize?.actual_teams ?? teams.length;
+  const configured = resize?.team_count;
+  const sizeOptions = [...new Set([...LEAGUE_TEAM_SIZES, configured].filter(Boolean))].sort((a, b) => a - b);
+  const sizeBlocked = resize?.blocker || (targetSize < actual ? LEAGUE_SIZE_COPY.preview(targetSize, actual) : "");
+  const saveSize = async (e) => {
+    e.preventDefault();
+    if (busy || loading || sizeBlocked || targetSize === configured) return;
+    setBusy("size");
+    setError("");
+    setNotice("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/size`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_count: targetSize }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      if (!mounted.current) return;
+      await load();
+      if (!mounted.current) return;
+      setNotice(LEAGUE_SIZE_COPY.saved(data.league.team_count));
+      onChanged?.(data.hub_context);
+    } catch (err) {
+      if (mounted.current) setError(connectionErrorMessage(err));
+    } finally {
+      if (mounted.current) setBusy("");
     }
   };
 
@@ -222,63 +276,60 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
         </span>
       </div>
 
-      <section className="hub-office-franchises" aria-label="Seats">
+      <section className="hub-office-franchises" aria-label={LEAGUE_SIZE_COPY.title}>
         <header className="hub-section-head">
-          <h3 className="hub-section-title">Seats</h3>
+          <h3 className="hub-section-title">{LEAGUE_SIZE_COPY.title}</h3>
           <p className="hub-section-hint">{franchiseResizeHint()}</p>
         </header>
-        {canAddSeat({
-          configured: resize?.team_count,
-          actual: resize?.actual_teams ?? teams.length,
-        }) ? (
-          <>
-        {addPreview?.blocker ? (
-          <HubAlert variant="warn">{addPreview.blocker}</HubAlert>
-        ) : (
-          <p className="chart-note">
-            {addFranchiseSupport({
-              nextCount: addPreview?.next_team_count,
-              cap: addPreview?.salary_cap,
-            })}
-          </p>
+        <form className="hub-form-row" onSubmit={saveSize}>
+          <HubFilterMenu
+            label={LEAGUE_SIZE_COPY.size}
+            value={targetSize}
+            options={sizeOptions.map((n) => ({ id: n, label: `${n} teams` }))}
+            onChange={(value) => setTargetSize(Number(value))}
+            disabled={loading || Boolean(busy) || Boolean(resize?.blocker)}
+          />
+          <button type="submit" className="btn-primary btn-sm"
+            disabled={loading || Boolean(busy) || Boolean(sizeBlocked) || targetSize === configured}>
+            {busy === "size" ? LEAGUE_SIZE_COPY.saving : LEAGUE_SIZE_COPY.save}
+          </button>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate?.("room")}>
+            {LEAGUE_SIZE_COPY.invite}
+          </button>
+        </form>
+        {resize && <p className="chart-note" role="status">{sizeBlocked || LEAGUE_SIZE_COPY.preview(targetSize, actual)}</p>}
+        <h4 className="hub-section-title">{LEAGUE_SIZE_COPY.addTitle}</h4>
+        {addPreview?.blocker && addPreview.blocker !== resize?.blocker && <HubAlert variant="warn">{addPreview.blocker}</HubAlert>}
+        {addPreview && !addPreview.blocker && (
+          <p className="chart-note">{addFranchiseSupport({ nextCount: addPreview.next_team_count, currentCount: configured, cap: addPreview.salary_cap })}</p>
         )}
         <form className="hub-form-row" onSubmit={addFranchise}>
           <label>
-            New seat
-            <input
-              type="text"
-              value={franchiseName}
-              onChange={(e) => setFranchiseName(e.target.value)}
-              maxLength={80}
-              disabled={!addPreview?.ok || busy === "add"}
-            />
+            {LEAGUE_SIZE_COPY.teamName}
+            <input type="text" value={franchiseName} onChange={(e) => setFranchiseName(e.target.value)}
+              placeholder={LEAGUE_SIZE_COPY.teamPlaceholder} maxLength={80}
+              disabled={loading || !addPreview?.ok || Boolean(busy)} />
           </label>
-          <button
-            type="submit"
-            className="btn-primary btn-sm"
-            disabled={!addPreview?.ok || !franchiseName.trim() || busy === "add"}
-          >
-            {busy === "add" ? "Adding…" : addFranchiseLabel()}
+          <button type="submit" className="btn-ghost btn-sm"
+            disabled={loading || !addPreview?.ok || !franchiseName.trim() || Boolean(busy) || !canAddSeat({ configured, actual })}>
+            {busy === "add" ? "Adding…" : addFranchiseLabel({ configured, actual })}
           </button>
         </form>
-          </>
-        ) : (
-          <p className="chart-note">{franchiseResizeHint()}</p>
-        )}
       </section>
 
+      {notice && <HubAlert variant="info">{notice}</HubAlert>}
       {error && <div className="error">{error}</div>}
       {loading && <p className="chart-note">Loading members…</p>}
 
-      <div className="table-wrap">
-        <table className="data-table hub-table">
+      <div className="table-wrap hub-members-table-wrap">
+        <table className="data-table hub-table hub-members-table">
           <thead>
             <tr>
               <th>Team</th>
               <th>Account</th>
               <th>Sleeper</th>
               <th>Role</th>
-              <th>Sync</th>
+              <th>Last sync</th>
               <th />
             </tr>
           </thead>
@@ -294,24 +345,25 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
               return (
                 <tr key={t.id}>
                   <td>{hubTeamLabel(t)}</td>
-                  <td>{t.user_sub ? "Claimed" : "Unclaimed"}</td>
-                  <td>
+                  <td data-label="Account">{t.user_sub ? "Claimed" : "Unclaimed"}</td>
+                  <td data-label="Sleeper">
                     {t.sleeper_roster_id
                       ? (t.sleeper_team_name || "Linked")
                       : "Not linked"}
                   </td>
-                  <td>{role}</td>
-                  <td className="table-meta">
+                  <td data-label="Role">{role}</td>
+                  <td className="table-meta" data-label="Last sync">
                     {t.sleeper_synced_at
                       ? new Date(t.sleeper_synced_at).toLocaleString()
                       : "—"}
                   </td>
                   <td>
+                    <div className="hub-member-actions">
                     {isPrimary && t.user_sub && !isPrimaryTeam && (
                       <button
                         type="button"
                         className="btn-ghost btn-sm"
-                        disabled={busy === t.id}
+                        disabled={loading || Boolean(busy)}
                         onClick={() => toggleCoCommish(t.id, !t.is_commissioner)}
                       >
                         {t.is_commissioner ? "Remove co-commish" : "Make co-commish"}
@@ -321,8 +373,9 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
                       <button
                         type="button"
                         className="btn-ghost btn-sm"
-                        disabled={busy === t.id}
-                        onClick={() => removeFranchise(t.id, t.name)}
+                        disabled={loading || Boolean(busy)}
+                        aria-label={`${removeFranchiseLabel()}: ${hubTeamLabel(t)}`}
+                        onClick={() => removeFranchise(t.id, hubTeamLabel(t))}
                       >
                         {busy === t.id ? "Removing…" : removeFranchiseLabel()}
                       </button>
@@ -331,6 +384,7 @@ function OfficeMembers({ leagueId, hubContext, onChanged }) {
                         <span className="table-meta">{removeFranchiseBlocked(removal.blocker)}</span>
                       ) : null
                     )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -590,6 +644,8 @@ export default function LeagueOffice({
       {activeTab === "members" && isCommissioner && (
         <HubPage>
           <OfficeMembers
+            key={leagueId}
+            onNavigate={onNavigate}
             leagueId={leagueId}
             hubContext={hubContext}
             onChanged={handleChanged}

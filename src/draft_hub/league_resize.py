@@ -225,9 +225,9 @@ def preview_remove_franchise(league_id: str, team_id: str) -> dict[str, Any]:
 
     consequences = [
         f"League becomes {next_count} teams." if next_count != configured
-        else "The seat closes. Configured league size stays the same.",
-        "The seat closes. Invite and claim links for this name stop.",
-        "Strategy prices move — fewer seats, tighter relevant pool.",
+        else f"League stays at {next_count} teams; an open seat remains for a replacement.",
+        "This team is removed and can no longer be claimed. The league invite link still works for other open seats.",
+        *(["Strategy values will reflect the smaller league."] if next_count != configured else []),
     ]
     if trades:
         consequences.append(f"{len(trades)} pending trade{'s' if len(trades) != 1 else ''} will cancel.")
@@ -315,8 +315,26 @@ def league_resize_snapshot(league_id: str) -> dict[str, Any]:
                 }
             )
     return {
+        "blocker": _phase_blocker(league, storage.get_draft_session(league_id)),
         "team_count": int(league.get("team_count") or 0),
         "actual_teams": len(teams),
         "add": add,
         "removals": removals,
     }
+
+
+def apply_league_size(league_id: str, team_count: int) -> dict[str, Any]:
+    """Change unassigned capacity without silently deleting a team or its data."""
+    league = storage.get_league(league_id)
+    if not league:
+        raise LeagueResizeError("League not found")
+    blocker = _phase_blocker(league, storage.get_draft_session(league_id))
+    if blocker:
+        raise LeagueResizeError(blocker)
+    if not isinstance(team_count, int) or isinstance(team_count, bool) or not 6 <= team_count <= 14:
+        raise LeagueResizeError("Choose a league size from 6 to 14 teams.")
+    try:
+        updated = storage.update_league_team_count(league_id, team_count, require_capacity_fit=True)
+    except ValueError as exc:
+        raise LeagueResizeError(str(exc)) from exc
+    return {"ok": True, "league": updated}

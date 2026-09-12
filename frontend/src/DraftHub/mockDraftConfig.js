@@ -1,5 +1,6 @@
 /** Shared mock-draft launcher config (Tools → Mock draft). */
 
+import { LEAGUE_TEAM_SIZES } from "./leagueCreateJoin.js";
 import { draftLiveCopy } from "./draftLivePresentation.js";
 
 export const MOCK_DRAFT_STORAGE_KEY = "ss_mock_draft_league_id";
@@ -22,7 +23,7 @@ export const MOCK_DRAFT_PRESETS = [
   },
 ];
 
-export const MOCK_TEAM_SIZES = [8, 10, 12];
+export const MOCK_TEAM_SIZES = LEAGUE_TEAM_SIZES;
 export const RECENT_MOCKS_RAIL_LIMIT = 3;
 
 export function mockDraftLiveCopy() {
@@ -66,7 +67,7 @@ export function mockDraftFormatNote(presetId) {
   return "Nominate and bid. Overspend and you miss later names.";
 }
 
-/** League overlay locks field size to that league, even when it is not 8 / 10 / 12. */
+/** League overlay locks field size to that league, including legacy sizes outside 6–14. */
 export function resolveMockTeamCount({
   teamCount = 12,
   leagueTeamCount = null,
