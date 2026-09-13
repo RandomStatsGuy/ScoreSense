@@ -84,8 +84,23 @@ Once linked, Fantasy:
 | GET/PUT/DELETE | `/api/hub/sleeper/link` | Read / save / clear link |
 | GET | `/api/hub/sleeper/roster` | Live Sleeper roster snapshot |
 | POST | `/api/hub/sleeper/sync` | Refresh cached player ids (+ optional hub import) |
+| POST | `/api/hub/league/{id}/sleeper/connect` | Link a Sleeper league, map teams, import rosters (commissioner) |
+| GET | `/api/hub/league/{id}/sleeper/disconnect` | What an unlink would clear — mappings and Sleeper roster rows (commissioner) |
+| POST | `/api/hub/league/{id}/sleeper/disconnect` | Unlink Sleeper; ScoreSense hosts lineups and scoring (commissioner) |
 
 Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when available.
+
+### Who hosts lineups and scoring
+
+A league with a `sleeper_league_id` is **Sleeper-hosted**: `resolve_week_lineup`
+returns advice-only starters and the `/lineup` routes answer `409`. Unlinking
+clears the id and sets `league.sleeper_hosting_disabled`, which is sticky — it
+stops `resolve_sleeper_league_id` from re-attaching a member's personal Sleeper
+link. Connecting a Sleeper league again lifts the flag.
+
+Note that `create_league` still copies the commissioner's personal
+`sleeper_league_id` onto a new league, so a league can start out Sleeper-hosted
+without anyone connecting one. Unlink is the escape hatch.
 
 ## API (all require patron when `AUTH_REQUIRED=true`)
 
