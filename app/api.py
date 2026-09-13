@@ -16,6 +16,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.staticfiles import NotModifiedResponse
 
 from app.process_pool import (
@@ -2270,12 +2271,39 @@ class ImmutableStaticFiles(StaticFiles):
         return response
 
 
+class LegacyFantasyAssetStaticFiles(ImmutableStaticFiles):
+    """Keep a cached Fantasy route from blanking during a hashed-asset rollout.
+
+    A browser can hold an older main bundle while a deploy replaces its lazy
+    Fantasy stylesheet.  That stylesheet is compatible across the transition,
+    so serve the current one as a short-lived recovery path rather than leave
+    the app suspended at its loading shell.
+    """
+
+    async def get_response(self, path: str, scope: dict[str, Any]) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404 or "/" in path or not (
+                path.startswith("fantasy-") and path.endswith(".css")
+            ):
+                raise
+            candidates = sorted(
+                Path(self.directory).glob("fantasy-*.css"),
+                key=lambda item: item.stat().st_mtime_ns,
+                reverse=True,
+            )
+            if not candidates:
+                raise
+            return FileResponse(candidates[0], headers=_FRONTEND_NO_CACHE_HEADERS)
+
+
 def _frontend_file_response(path: Path, *, spa_shell: bool = False) -> FileResponse:
     return FileResponse(path, headers=frontend_cache_headers(path, spa_shell=spa_shell))
 
 
 if FRONTEND_DIST.exists():
-    app.mount("/assets", ImmutableStaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+    app.mount("/assets", LegacyFantasyAssetStaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
     @app.get("/")
     def serve_dashboard():

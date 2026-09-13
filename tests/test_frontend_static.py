@@ -112,3 +112,35 @@ def test_hashed_assets_are_cached_immutably(tmp_path: Path) -> None:
     cache = res.headers.get("cache-control", "")
     assert "immutable" in cache
     assert "max-age=31536000" in cache
+
+
+def test_missing_legacy_fantasy_css_uses_current_stylesheet(tmp_path: Path) -> None:
+    from fastapi import FastAPI
+
+    from app.api import LegacyFantasyAssetStaticFiles
+
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "fantasy-current.css").write_text(".fantasy { color: teal; }", encoding="utf-8")
+    mini = FastAPI()
+    mini.mount("/assets", LegacyFantasyAssetStaticFiles(directory=assets), name="assets")
+
+    res = TestClient(mini).get("/assets/fantasy-retired.css")
+
+    assert res.status_code == 200
+    assert "color: teal" in res.text
+    assert "no-store" in res.headers.get("cache-control", "")
+
+
+def test_missing_non_fantasy_asset_stays_not_found(tmp_path: Path) -> None:
+    from fastapi import FastAPI
+
+    from app.api import LegacyFantasyAssetStaticFiles
+
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "fantasy-current.css").write_text(".fantasy {}", encoding="utf-8")
+    mini = FastAPI()
+    mini.mount("/assets", LegacyFantasyAssetStaticFiles(directory=assets), name="assets")
+
+    assert TestClient(mini).get("/assets/DraftHub-retired.js").status_code == 404
