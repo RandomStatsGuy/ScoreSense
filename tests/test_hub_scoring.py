@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+from pydantic import ValidationError
+
 from fastapi.testclient import TestClient
 
 from app.api import app
@@ -24,7 +27,7 @@ from src.draft_hub.hub_scoring import (
     swap_lineup_players,
 )
 from src.draft_hub.presets import load_preset
-from src.draft_hub.schemas import LeagueRules
+from src.draft_hub.schemas import LeagueRules, ScoringRules
 
 
 def _client(sub: str) -> TestClient:
@@ -519,3 +522,118 @@ def test_nfl_game_started_uses_et_kickoff_not_gameday_midnight(monkeypatch):
     after = datetime(2026, 9, 13, 17, 30, tzinfo=timezone.utc)
     assert nfl_game_started("MIA", 2026, 1, now=before) is False
     assert nfl_game_started("MIA", 2026, 1, now=after) is True
+
+
+@pytest.mark.parametrize("points", [0, 0.5, 1, 1.5])
+def test_custom_receptions_and_touchdowns(points):
+    scoring = ScoringRules(receptions=points, passing_tds=6, interceptions=-3)
+    assert fantasy_points_from_stats({"receptions": 4, "passing_tds": 2, "interceptions": 1}, scoring) == 9 + 4 * points
+    assert fantasy_points_from_stats({"passing_tds": 2}, ScoringRules(passing_tds=0)) == 0
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -101, 101])
+def test_invalid_scoring_weights_rejected(value):
+    with pytest.raises(ValidationError):
+        ScoringRules(receptions=value)
+
+
+def test_scoring_settings_reject_unsupported_keys():
+    with pytest.raises(ValidationError):
+        ScoringRules(kicker_points=3)
+
+
+def test_custom_scoring_uses_raw_stats_and_explicit_recalculation(hub_db, monkeypatch):
+    league, home, _away, comm = _seed_two_team_league(hub_db)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *_a, **_k: False)
+    stats = {"wr-a1": {"receptions": 6, "receiving_yards": 90, "fantasy_points": 999}}
+    apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
+    prior = {r["player_id"]: r for r in storage.list_player_week_scores(league["id"], 2026, 1)}
+    assert prior["wr-a1"]["points"] == 15
+    raw = storage.get_league(league["id"])["rules"]
+    raw["scoring"]["receptions"] = 0.5
+    result = _client(comm).put("/api/hub/workspace", json={"league_id": league["id"], "rules": raw})
+    assert result.status_code == 200
+    assert storage.get_week_scoring_run(league["id"], 2026, 1)["scoring"]["receptions"] == 1
+    assert build_hub_live_week(league["id"], week=1, rules=raw, nfl_state={"season": "2026", "week": 1, "season_type": "regular"})["scoring_control"]["settings_changed"] is True
+    assert storage.list_player_week_scores(league["id"], 2026, 1) == list(prior.values())
+    apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
+    after = {r["player_id"]: r for r in storage.list_player_week_scores(league["id"], 2026, 1)}
+    assert after["wr-a1"]["points"] == 12
+    assert storage.get_week_scoring_run(league["id"], 2026, 1)["scoring"]["receptions"] == 0.5
+    assert all(r["locked"] for r in storage.list_week_lineups(league["id"], 2026, 1))
+
+
+def test_sleeper_settings_rejected_without_other_side_effects(hub_db):
+    league, _home, _away, comm = _seed_two_team_league(hub_db)
+    storage.update_league_sleeper_id(league["id"], "123456")
+    before = storage.get_league(league["id"])
+    raw = dict(before["rules"])
+    raw["scoring"] = {**raw["scoring"], "receptions": 0.5}
+    result = _client(comm).put("/api/hub/workspace", json={"league_id": league["id"], "name": "Changed", "rules": raw})
+    assert result.status_code == 409
+    assert "Sleeper" in result.json()["detail"]
+    after = storage.get_league(league["id"])
+    assert after["rules"] == before["rules"]
+    assert after["name"] == before["name"]
+
+
+def test_older_rules_clients_preserve_custom_weights(hub_db):
+    league, _home, _away, comm = _seed_two_team_league(hub_db)
+    raw = storage.get_league(league["id"])["rules"]
+    raw["scoring"]["receptions"] = 0.5
+    storage.update_league_rules(league["id"], LeagueRules.model_validate(raw))
+    raw.pop("scoring")
+    raw["salary_cap"] = 250
+    response = _client(comm).put("/api/hub/workspace", json={"league_id": league["id"], "rules": raw})
+    assert response.status_code == 200
+    saved = storage.get_league(league["id"])["rules"]
+    assert saved["scoring"]["receptions"] == 0.5
+    assert saved["salary_cap"] == 250
+
+
+def test_atomic_score_write_keeps_previous_results_on_failure(hub_db):
+    import sqlite3
+    league, home, _away, _comm = _seed_two_team_league(hub_db)
+    scoring = ScoringRules().model_dump()
+    player = {"player_id": "wr-a1", "team_id": home["id"], "points": 10}
+    team = {"team_id": home["id"], "points": 10}
+    storage.save_native_week_scores(league["id"], 2026, 1, [player], [team], scoring)
+    before = storage.list_team_week_scores(league["id"], 2026, 1)
+    with pytest.raises(sqlite3.IntegrityError):
+        storage.save_native_week_scores(league["id"], 2026, 1, [player, player], [{**team, "points": 99}], scoring)
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == before
+
+
+def test_settings_change_during_calculation_aborts_publish(hub_db):
+    league, _home, _away, _comm = _seed_two_team_league(hub_db)
+    def load_stats(*_args):
+        raw = storage.get_league(league["id"])["rules"]
+        raw["scoring"]["receptions"] = 0.5
+        storage.update_league_rules(league["id"], LeagueRules.model_validate(raw))
+        return {"wr-a1": {"receptions": 2}}
+    with pytest.raises(LineupError, match="changed during"):
+        apply_week_scores(league["id"], 2026, 1, load_stats=load_stats, slate_complete=True)
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == []
+
+
+def test_native_scoring_rejects_unsupported_starters(hub_db, monkeypatch):
+    league, home, _away, _comm = _seed_two_team_league(hub_db)
+    original = storage.list_week_lineups
+    monkeypatch.setattr(storage, "list_week_lineups", lambda *args: [*original(*args),
+        {"player_id": "kicker", "team_id": home["id"], "position": "K", "lineup_role": "starter"}])
+    with pytest.raises(LineupError, match="Kicker and defense"):
+        apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"receptions": 1}}, slate_complete=True)
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == []
+
+
+def test_week_stats_normalize_nflverse_turnovers(monkeypatch):
+    import pandas as pd
+    from src.draft_hub.hub_scoring import load_week_stat_index
+    frame = pd.DataFrame([{"week": 1, "player_id": "qb", "passing_interceptions": 2,
+                           "sack_fumbles_lost": 1, "rushing_fumbles_lost": 1,
+                           "receiving_fumbles_lost": float("nan")}])
+    monkeypatch.setattr("src.etl.nflverse_etl.load_weekly_player_stats", lambda *_: frame)
+    stats = load_week_stat_index(2026, 1)["qb"]
+    assert stats["interceptions"] == 2
+    assert stats["fumbles_lost"] == 2
+    assert fantasy_points_from_stats(stats) == -8

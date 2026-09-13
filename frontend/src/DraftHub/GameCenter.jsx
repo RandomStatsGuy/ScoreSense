@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
@@ -19,6 +19,7 @@ import {
   shouldShowNextWeek,
   shouldShowPrevWeek,
 } from "./gameCenterPresentation";
+import LeagueScoringControl from "./LeagueScoringControl";
 import GameCenterMatchup from "./GameCenterMatchup";
 import "../styles/game-center-room.css";
 
@@ -40,6 +41,10 @@ export default function GameCenter({
     setWeek(gameCenterWeek(requestedWeek));
   }, [leagueId, requestedWeek]);
 
+  const scope = `${leagueId}:${week}`;
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+
   const load = useCallback(
     async (signal, { refresh = false } = {}) => {
       if (!leagueId) return;
@@ -55,15 +60,15 @@ export default function GameCenter({
         );
         if (!res.ok) throw new Error(await parseApiError(res));
         const payload = await res.json();
-        if (!signal?.aborted) setData(payload);
+        if (!signal?.aborted && scopeRef.current === scope) setData(payload);
       } catch (e) {
-        if (isAbortError(e) || signal?.aborted) return;
+        if (isAbortError(e) || signal?.aborted || scopeRef.current !== scope) return;
         setError(connectionErrorMessage(e));
       } finally {
-        if (!signal?.aborted) setLoading(false);
+        if (!signal?.aborted && scopeRef.current === scope) setLoading(false);
       }
     },
-    [leagueId, week],
+    [leagueId, week, scope],
   );
 
   useEffect(() => {
@@ -201,6 +206,11 @@ export default function GameCenter({
           <a href="/hub/roster">{GAME_CENTER_COPY.backToTeam}</a>
         </div>
       </header>
+      {!loading && data && <LeagueScoringControl
+        key={`${leagueId}-${data.season}-${data.week}`}
+        leagueId={leagueId} data={data} hubContext={hubContext} onNavigate={onNavigate}
+        onScored={() => load()}
+      />}
       {error && (
         <HubAlert variant="warn">
           {error}

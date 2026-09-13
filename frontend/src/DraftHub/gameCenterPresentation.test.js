@@ -11,6 +11,7 @@ import {
   formatMatchupScore,
   formatWinProb,
   GAME_CENTER_COPY,
+  LEAGUE_SCORING_CONTROL_COPY,
   gameCenterBanner,
   gameCenterHeroCopy,
   gameCenterStandingRows,
@@ -385,4 +386,12 @@ test("current forecasts preserve zero and do not imply a saved pregame baseline"
     gameCenterLead({ points: 5.4 }, { points: 0 }),
     "5.4 point lead",
   );
+});
+
+
+test("unscored native leagues are not told to link Sleeper", () => {
+  assert.equal(gameCenterBanner({ draftCompleted: true, placeholder: true, reason: "hub_unscored", sleeperLinked: false }), null);
+  assert.match(LEAGUE_SCORING_CONTROL_COPY.result({ scored: false, reason: "week_in_progress" }), /still in progress/);
+  assert.match(LEAGUE_SCORING_CONTROL_COPY.result({ scored: false, reason: "no_stats" }), /Existing scores have been kept/);
+  assert.match(LEAGUE_SCORING_CONTROL_COPY.confirm(3), /Week 3/);
 });

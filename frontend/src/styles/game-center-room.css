@@ -551,3 +551,21 @@
   height: 100%;
   object-fit: cover;
 }
+
+/* Scoring ownership and completed-week commissioner actions. */
+.league-scoring-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--inset-section);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+}
+
+.league-scoring-control .chart-note { margin: 0; }
+.league-scoring-control .hub-form-row { align-items: center; gap: var(--space-2); }
+.league-scoring-control .hub-form-row > * { min-height: var(--control-h-sm); }
+
+@media (max-width: 768px) {
+  .league-scoring-control .hub-form-row > * { min-height: var(--control-h-lg); }
+}
