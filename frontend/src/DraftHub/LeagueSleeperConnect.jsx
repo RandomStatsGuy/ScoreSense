@@ -6,6 +6,7 @@ import MobileDataList from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import { HubFilterMenu } from "./HubUILayout";
 import { OFFICE_CONTRACTS_COPY } from "./officeContractsPresentation";
+import { SLEEPER_UNLINK_COPY, sleeperUnlinkSummary } from "./leagueAccessCopy";
 
 export default function LeagueSleeperConnect({ leagueId, hubContext, overview, onConnected }) {
   const linkedLeagueId = overview?.league?.sleeper_league_id || hubContext?.sleeper_league_id || "";
@@ -24,6 +25,10 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
   const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const [unlinkPreview, setUnlinkPreview] = useState(null);
+  const [unlinkBusy, setUnlinkBusy] = useState(false);
+  const [keepRosters, setKeepRosters] = useState(false);
   const mobileLayout = useMobileLayout();
 
   useEffect(() => {
@@ -148,6 +153,51 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
     }
   };
 
+  const openUnlink = async () => {
+    setUnlinkOpen(true);
+    setError("");
+    setMsg("");
+    try {
+      const res = await apiFetch(
+        `/api/hub/league/${encodeURIComponent(leagueId)}/sleeper/disconnect`,
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      setUnlinkPreview(await res.json());
+    } catch (e) {
+      setError(e.message || "Could not read the Sleeper link");
+    }
+  };
+
+  const runUnlink = async () => {
+    setUnlinkBusy(true);
+    setError("");
+    setMsg("");
+    try {
+      const res = await apiFetch(
+        `/api/hub/league/${encodeURIComponent(leagueId)}/sleeper/disconnect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clear_sleeper_roster: !keepRosters }),
+        },
+      );
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setUnlinkOpen(false);
+      setUnlinkPreview(null);
+      setSleeperTeams([]);
+      setSleeperMeta(null);
+      setMsg(SLEEPER_UNLINK_COPY.done);
+      onConnected?.(data);
+    } catch (e) {
+      setError(e.message || "Could not unlink Sleeper");
+    } finally {
+      setUnlinkBusy(false);
+    }
+  };
+
+  const unlinkRows = Number(unlinkPreview?.sleeper_roster_rows) || 0;
+
   return (
     <section className="hub-league-sleeper-connect">
       <h3>Link Sleeper</h3>
@@ -231,6 +281,63 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             </button>
           </div>
         </details>
+      )}
+
+      {hasSleeperLink && (
+        <div className="hub-league-sleeper-unlink">
+          <h4>{SLEEPER_UNLINK_COPY.title}</h4>
+          <p className="chart-note">{SLEEPER_UNLINK_COPY.support}</p>
+          {!unlinkOpen ? (
+            <button type="button" className="btn-ghost btn-sm" onClick={openUnlink}>
+              {SLEEPER_UNLINK_COPY.start}
+            </button>
+          ) : (
+            <div className="hub-league-sleeper-unlink-confirm">
+              <p className="chart-note">
+                {sleeperUnlinkSummary({
+                  teamsLinked: unlinkPreview?.teams_linked ?? linkedCount,
+                  rosterRows: unlinkRows,
+                  clearRoster: !keepRosters,
+                })}
+              </p>
+              <label className="hub-league-sleeper-unlink-keep">
+                <input
+                  type="checkbox"
+                  checked={keepRosters}
+                  onChange={(e) => setKeepRosters(e.target.checked)}
+                />
+                {SLEEPER_UNLINK_COPY.keepRosters}
+              </label>
+              <p className={keepRosters ? "chart-note" : "chart-note is-warn"}>
+                {keepRosters
+                  ? SLEEPER_UNLINK_COPY.rosterKept
+                  : SLEEPER_UNLINK_COPY.rosterWarning(unlinkRows)}
+              </p>
+              <div className="hub-league-sleeper-unlink-actions">
+                <button
+                  type="button"
+                  className="btn-primary btn-sm"
+                  onClick={runUnlink}
+                  disabled={unlinkBusy}
+                >
+                  {unlinkBusy ? SLEEPER_UNLINK_COPY.busy : SLEEPER_UNLINK_COPY.confirm}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => {
+                    setUnlinkOpen(false);
+                    setUnlinkPreview(null);
+                  }}
+                  disabled={unlinkBusy}
+                >
+                  {SLEEPER_UNLINK_COPY.cancel}
+                </button>
+              </div>
+              <p className="chart-note">{SLEEPER_UNLINK_COPY.relinkHint}</p>
+            </div>
+          )}
+        </div>
       )}
 
       {sleeperMeta && (
