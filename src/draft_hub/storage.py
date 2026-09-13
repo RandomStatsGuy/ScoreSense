@@ -805,6 +805,13 @@ def _migrate(conn: sqlite3.Connection) -> None:
         "ON league_team_week_score(league_id, season, week)"
     )
     conn.execute(
+        """CREATE TABLE IF NOT EXISTS league_week_scoring_run (
+            league_id TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
+            scoring_json TEXT NOT NULL, scored_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, season, week)
+        )"""
+    )
+    conn.execute(
         """CREATE TABLE IF NOT EXISTS league_delete_request (
             id TEXT PRIMARY KEY,
             league_id TEXT NOT NULL,
@@ -5685,6 +5692,7 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_week_lineup",
             "league_player_week_score",
             "league_team_week_score",
+            "league_week_scoring_run",
             "team_vibe_aura",
             "insights_cap_cache",
             "insights_fair_values",
@@ -6685,3 +6693,46 @@ def close_fa_bids_for_player(
                      AND status = 'open'""",
                 (now, league_id, window_id, player_id),
             )
+
+
+def get_week_scoring_run(league_id: str, season: int, week: int) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM league_week_scoring_run WHERE league_id=? AND season=? AND week=?",
+                           (league_id, season, week)).fetchone()
+    if row is None:
+        return None
+    result = dict(row)
+    result["scoring"] = json.loads(result.pop("scoring_json"))
+    return result
+
+
+def save_native_week_scores(league_id, season, week, player_rows, team_rows, scoring):
+    """Publish a complete calculation and its rules snapshot atomically."""
+    from src.draft_hub.schemas import LeagueRules
+    now = _utcnow()
+    key = (league_id, int(season), int(week))
+    with get_conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
+        if league is None or league["sleeper_league_id"]:
+            raise ValueError("Native scoring is unavailable for this league.")
+        current = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
+        if current.scoring.model_dump() != scoring:
+            raise ValueError("Scoring settings changed during calculation. Try again with the saved rules.")
+        conn.execute("DELETE FROM league_player_week_score WHERE league_id=? AND season=? AND week=?", key)
+        conn.execute("DELETE FROM league_team_week_score WHERE league_id=? AND season=? AND week=?", key)
+        conn.executemany(
+            """INSERT INTO league_player_week_score
+            (league_id,season,week,player_id,team_id,slot,lineup_role,points,stats_json,scored_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            [(*key, str(row["player_id"]), str(row["team_id"]), row.get("slot"), row.get("lineup_role"),
+              float(row["points"]), json.dumps(row.get("stats") or {}), now) for row in player_rows],
+        )
+        conn.executemany(
+            """INSERT INTO league_team_week_score
+            (league_id,season,week,team_id,matchup_id,points,scored_at) VALUES (?,?,?,?,?,?,?)""",
+            [(*key, str(row["team_id"]), row.get("matchup_id"), float(row["points"]), now) for row in team_rows],
+        )
+        conn.execute("UPDATE league_week_lineup SET locked=1 WHERE league_id=? AND season=? AND week=?", key)
+        conn.execute("INSERT OR REPLACE INTO league_week_scoring_run VALUES (?,?,?,?,?)",
+                     (*key, json.dumps(scoring, sort_keys=True), now))

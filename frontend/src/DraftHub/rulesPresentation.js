@@ -4,7 +4,7 @@ import { normalizeHubPosition } from "./hubPositions.js";
 export const RULES_COPY = {
   eyebrow: "League rules",
   heading: "League rules",
-  support: "Set salary, contract, roster, and draft rules for your league.",
+  support: "Set scoring, salary, contract, roster, and draft rules for your league.",
   saveFootnote: "Saving these rules does not rewrite existing contract schedules.",
   staffOnly: "Managers can read these rules here. Only commissioners can change them.",
   commissionerManaged: "Commissioner managed",
@@ -22,7 +22,7 @@ export const RULES_COPY = {
   leaveConfirm: "Leave",
   keepEditing: "Keep editing",
   templatesTitle: "Start over from a league template",
-  templatesHelp: "Fills this form. League rules stay unsaved until you press Save.",
+  templatesHelp: "Fills this form and keeps your scoring settings. League rules stay unsaved until you press Save.",
   templateConfirmTitle: (label) => `Replace these rules with ${label}?`,
   templateConfirmLead: (label) => (
     `Applying ${label} replaces the current rules on this page. It does not save until you press Save.`
@@ -75,7 +75,35 @@ export const FORMAT_OPTIONS = [
 
 export const ROSTER_LIMIT_KEYS = ["qb", "rb", "wr", "te", "k", "def"];
 
+export const SCORING_FIELDS = [
+  ["passing_yards", "Passing yard", 0.04],
+  ["passing_tds", "Passing touchdown", 4],
+  ["interceptions", "Interception thrown", -2],
+  ["rushing_yards", "Rushing yard", 0.1],
+  ["rushing_tds", "Rushing touchdown", 6],
+  ["receptions", "Reception", 1],
+  ["receiving_yards", "Receiving yard", 0.1],
+  ["receiving_tds", "Receiving touchdown", 6],
+  ["fumbles_lost", "Fumble lost", -2],
+];
+export const DEFAULT_SCORING = Object.fromEntries(SCORING_FIELDS.map(([key, , value]) => [key, value]));
+export const SCORING_COPY = {
+  title: "Scoring & lineup host",
+  native: "ScoreSense native league",
+  sleeper: "Sleeper-linked league",
+  nativeHelp: "Set lineups in This Week. Commissioners calculate completed weeks in Game center using these saved scoring rules.",
+  sleeperHelp: "Sleeper controls scoring rules, starting lineups, live points, and stat corrections. Change them in Sleeper; Game center reads its results. ScoreSense still manages local contracts, cap, and draft tools.",
+  supported: "Native scoring supports QB, RB, WR and TE. Kicker, defense, bonuses, and two-point scoring are not supported by this calculation yet.",
+  effect: "Saving scoring rules leaves existing results unchanged. Recalculate a week in Game center to apply the new rules to that week's totals and standings.",
+  projections: "Projection and Strategy estimates remain PPR-based and are separate from recorded league scores.",
+  points: "Points per stat",
+  receptionHelp: "Reception: 0 for standard, 0.5 for half PPR, or 1 for full PPR.",
+  invalid: "Enter a finite points value from −100 to 100.",
+  openSleeper: "Open league in Sleeper",
+};
+
 export const DEFAULT_RULES = {
+  scoring: DEFAULT_SCORING,
   draft_type: "auction",
   salary_cap: 200,
   roster_size_max: 27,
@@ -127,6 +155,7 @@ export function mergeLeagueRules(incoming = {}) {
     ...DEFAULT_RULES,
     ...incoming,
     roster,
+    scoring: { ...DEFAULT_SCORING, ...(incoming.scoring || {}) },
     auction: { ...DEFAULT_RULES.auction, ...(incoming.auction || {}) },
     contracts: { ...DEFAULT_RULES.contracts, ...(incoming.contracts || {}) },
   };
@@ -149,6 +178,10 @@ export function validateLeagueSettings({ name, season, rules }) {
   const merged = mergeLeagueRules(rules);
   const errors = {};
   const maxYears = Number(merged.contracts.max_years);
+  for (const [key] of SCORING_FIELDS) {
+    if (merged.scoring[key] === "" || !numberInRange(merged.scoring[key], -100, 100)) errors[`scoring.${key}`] = SCORING_COPY.invalid;
+  }
+
 
   if (!String(name || "").trim()) errors.name = "Give the league a name.";
   if (!numberInRange(season, 2020, 2100)) errors.season = "Use a season from 2020–2100.";
@@ -323,6 +356,7 @@ export function snapshotRulesForm({ name, season, rules }) {
   return JSON.stringify({
     name: String(name || "").trim(),
     season: Number(season) || 0,
+    scoring: Object.fromEntries(SCORING_FIELDS.map(([key]) => [key, merged.scoring[key] === "" ? "" : Number(merged.scoring[key])])),
     draft_type: merged.draft_type,
     salary_cap: Number(merged.salary_cap) || 0,
     roster_size_max: merged.roster_size_max == null ? null : Number(merged.roster_size_max),

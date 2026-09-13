@@ -1,7 +1,7 @@
-"""Hub-native weekly lineups, schedule, PPR scoring, and standings.
+"""Native weekly lineups, schedule, configurable scoring, and standings.
 
 ScoreSense-only leagues persist start/sit here and score weeks from nflverse
-box scores through ``FANTASY_SCORING``. Linked Sleeper leagues keep using
+box scores using their saved ``ScoringRules``. Linked Sleeper leagues keep using
 Sleeper as the scoring host.
 """
 
@@ -24,7 +24,7 @@ from src.draft_hub.league_live_scoring import (
     week_picker_meta,
 )
 from src.draft_hub.rules_engine import normalize_position, roster_limits
-from src.draft_hub.schemas import LeagueRules
+from src.draft_hub.schemas import LeagueRules, ScoringRules
 
 ACTIVE_ROSTER = "active"
 
@@ -104,7 +104,8 @@ def ensure_season_schedule(
     if not league:
         raise LineupError("League not found")
     season_n = int(season or league.get("season") or 2026)
-    rules = rules or _league_rules(league)
+    if not isinstance(rules, LeagueRules):
+        rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     teams = storage.list_league_teams(league_id)
     weeks = schedule_week_count(rules)
     existing = storage.list_season_matchups(league_id, season_n)
@@ -277,7 +278,8 @@ def ensure_team_lineup(
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
-    rules = rules or _league_rules(league)
+    if not isinstance(rules, LeagueRules):
+        rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     ws = storage.roster_workspace_for_league(league)
     roster = roster if roster is not None else _active_roster(ws, team_id)
     cards = _cards_from_roster(roster)
@@ -417,7 +419,8 @@ def set_team_starters(
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
-    rules = rules or _league_rules(league)
+    if not isinstance(rules, LeagueRules):
+        rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     ws = storage.roster_workspace_for_league(league)
     roster = _active_roster(ws, team_id)
     cards = {card["player_id"]: card for card in _cards_from_roster(roster)}
@@ -494,7 +497,8 @@ def swap_lineup_players(
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
-    rules = rules or _league_rules(league)
+    if not isinstance(rules, LeagueRules):
+        rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     rows = ensure_team_lineup(league_id, team_id, season, week, rules=rules)
     by_id = {row["player_id"]: dict(row) for row in rows}
     starter_id = str(starter_player_id or "").strip()
@@ -526,10 +530,10 @@ def swap_lineup_players(
     return storage.replace_team_lineup(league_id, team_id, season, week, next_rows)
 
 
-def fantasy_points_from_stats(stats: dict[str, Any] | None) -> float:
+def fantasy_points_from_stats(stats: dict[str, Any] | None, scoring: ScoringRules | None = None) -> float:
     total = 0.0
     blob = stats or {}
-    for key, weight in FANTASY_SCORING.items():
+    for key, weight in (scoring or ScoringRules()).model_dump().items():
         try:
             total += float(blob.get(key) or 0) * float(weight)
         except (TypeError, ValueError):
@@ -552,6 +556,13 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
     week_df = frame.loc[pd.to_numeric(frame["week"], errors="coerce") == int(week)].copy()
     if week_df.empty:
         return {}
+    if "interceptions" not in week_df and "passing_interceptions" in week_df:
+        week_df["interceptions"] = week_df["passing_interceptions"]
+    if "fumbles_lost" not in week_df:
+        week_df["fumbles_lost"] = sum(
+            pd.to_numeric(week_df.get(key, pd.Series(0, index=week_df.index)), errors="coerce").fillna(0)
+            for key in ("sack_fumbles_lost", "rushing_fumbles_lost", "receiving_fumbles_lost")
+        )
     week_df["fantasy_points"] = calc_fantasy_points_ppr(week_df)
     index: dict[str, dict[str, Any]] = {}
     for _, row in week_df.iterrows():
@@ -619,6 +630,10 @@ def apply_week_scores(
 
     lineups = storage.list_week_lineups(league_id, season, week)
     matchups = storage.list_week_matchups(league_id, season, week)
+    unsupported = [row for row in lineups if str(row.get("lineup_role")) == "starter"
+                   and normalize_position(row.get("position")) not in {"QB", "RB", "WR", "TE"}]
+    if unsupported:
+        raise LineupError("Native scoring currently supports QB, RB, WR and TE only. Kicker and defense starters require a supported scoring feed; use Sleeper for those leagues.")
     team_matchup = {}
     for row in matchups:
         team_matchup[str(row["home_team_id"])] = row["matchup_id"]
@@ -634,7 +649,12 @@ def apply_week_scores(
         stats = lookup.get(pid) or {}
         if stats:
             with_stats += 1
-            points = float(stats.get("fantasy_points") or fantasy_points_from_stats(stats))
+            if any(key in stats for key in FANTASY_SCORING):
+                points = fantasy_points_from_stats(stats, rules.scoring)
+            elif rules.scoring == ScoringRules() and "fantasy_points" in stats:
+                points = float(stats["fantasy_points"])
+            else:
+                raise LineupError("Raw player stats are required to apply this league's scoring rules.")
         else:
             points = 0.0
         if str(row.get("lineup_role")) == "starter":
@@ -658,9 +678,10 @@ def apply_week_scores(
         }
         for tid, pts in team_points.items()
     ]
-    storage.replace_player_week_scores(league_id, season, week, player_rows)
-    storage.replace_team_week_scores(league_id, season, week, team_rows)
-    storage.lock_week_lineups(league_id, season, week)
+    try:
+        storage.save_native_week_scores(league_id, season, week, player_rows, team_rows, rules.scoring.model_dump())
+    except ValueError as exc:
+        raise LineupError(str(exc)) from exc
     return {
         "scored": True,
         "reason": None,
@@ -798,7 +819,8 @@ def build_hub_live_week(
     resolved_week, state = resolve_current_week(week_override=week)
     state = nfl_state or state
     season_n = int(league.get("season") or state.get("season") or 2026)
-    rules = rules or _league_rules(league)
+    if not isinstance(rules, LeagueRules):
+        rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     slots = starting_slots_from_rules(rules)
     ensure_season_schedule(league_id, season=season_n, rules=rules)
     teams = {str(t["id"]): t for t in storage.list_league_teams(league_id)}
@@ -903,13 +925,21 @@ def build_hub_live_week(
     if proj_index:
         attach_matchup_analytics(matchup_payloads, proj_index)
 
+    scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
     payload = {
+        "scoring_control": {
+            "host": "native",
+            "scored": scored,
+            "run": scoring_run,
+            "settings_changed": bool(scoring_run and scoring_run["scoring"] != rules.scoring.model_dump()),
+            "settings": rules.scoring.model_dump(),
+        },
         "available": True,
         "source": "hub",
         "placeholder": not scored,
         "reason": "hub" if scored else "hub_unscored",
         "hint": (
-            "Week scored with Hub PPR."
+            "Week scored with saved ScoreSense league rules."
             if scored
             else "Scores fill after this week is scored."
         ),

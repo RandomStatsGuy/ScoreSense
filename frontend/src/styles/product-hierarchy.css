@@ -566,6 +566,7 @@ button.btn-link.hub-league-switcher-create:hover {
   grid-template-columns: minmax(14rem, 1.5fr) minmax(7rem, 0.65fr) minmax(9rem, 0.8fr);
 }
 
+.hub-rules-field-grid--scoring,
 .hub-rules-field-grid--contracts {
   grid-template-columns: repeat(3, minmax(9rem, 1fr));
 }
@@ -1444,6 +1445,7 @@ button.btn-link.hub-league-switcher-create:hover {
     grid-template-columns: minmax(0, 1fr) 17.5rem;
   }
 
+  .hub-rules-field-grid--scoring,
   .hub-rules-field-grid--contracts {
     grid-template-columns: repeat(2, minmax(9rem, 1fr));
   }
@@ -1478,6 +1480,7 @@ button.btn-link.hub-league-switcher-create:hover {
     padding: 0.7rem;
   }
 
+  .hub-rules-field-grid--scoring,
   .hub-rules-field-grid--foundation,
   .hub-rules-field-grid--contracts,
   .hub-rules-field-grid--draft,

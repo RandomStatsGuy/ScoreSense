@@ -476,6 +476,14 @@ def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) ->
     rules = body.rules
     if body.preset_id:
         rules = load_preset(body.preset_id)
+    if write_league_id and rules is not None:
+        target = storage.get_league(write_league_id) or {}
+        target_ctx = _ctx_for_league(sub, write_league_id)
+        old_scoring = LeagueRules.model_validate(target.get("rules") or {}).scoring
+        if body.preset_id or (body.rules is not None and "scoring" not in body.rules.model_fields_set):
+            rules = rules.model_copy(update={"scoring": old_scoring})
+        if target_ctx.get("sleeper_league_id") and rules.scoring != old_scoring:
+            raise HTTPException(status_code=409, detail="Scoring settings are managed in Sleeper. Change them there; ScoreSense reads Sleeper results.")
     if update_personal:
         ws = storage.update_workspace(
             sub,

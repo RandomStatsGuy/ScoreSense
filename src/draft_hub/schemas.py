@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PositionRule(BaseModel):
@@ -39,7 +39,23 @@ class ContractRules(BaseModel):
     one_renewal_after_rookie: bool = True
 
 
+class ScoringRules(BaseModel):
+    """Native league points per stat; legacy leagues default to full PPR."""
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    passing_yards: float = Field(default=0.04, ge=-100, le=100)
+    passing_tds: float = Field(default=4.0, ge=-100, le=100)
+    interceptions: float = Field(default=-2.0, ge=-100, le=100)
+    rushing_yards: float = Field(default=0.1, ge=-100, le=100)
+    rushing_tds: float = Field(default=6.0, ge=-100, le=100)
+    receptions: float = Field(default=1.0, ge=-100, le=100)
+    receiving_yards: float = Field(default=0.1, ge=-100, le=100)
+    receiving_tds: float = Field(default=6.0, ge=-100, le=100)
+    fumbles_lost: float = Field(default=-2.0, ge=-100, le=100)
+
+
 class LeagueRules(BaseModel):
+    scoring: ScoringRules = Field(default_factory=ScoringRules)
     salary_cap: float = Field(default=200.0, ge=0)
     # auction = salary-cap nomination auction; snake/linear = classic pick draft.
     draft_type: Literal["auction", "snake", "linear"] = "auction"

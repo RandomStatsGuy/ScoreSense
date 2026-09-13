@@ -335,15 +335,16 @@ export function gameCenterBanner({
 } = {}) {
   if (draftCompleted === false) {
     const date = formatDraftNightDate(draftStartsAt);
+    const scoringTiming = sleeperLinked ? "scores start after Week 1 kicks off" : "calculate scores after Week 1 finishes";
     return {
       text: date
-        ? `Draft night is ${date} · scores start after Week 1 kicks off`
-        : "Draft night is not locked · scores start after Week 1 kicks off",
+        ? `Draft night is ${date} · ${scoringTiming}`
+        : `Draft night is not locked · ${scoringTiming}`,
       action: "room",
       actionLabel: GAME_CENTER_COPY.openDraft,
     };
   }
-  if (reason === "no_sleeper_league" || (!sleeperLinked && placeholder)) {
+  if (reason === "no_sleeper_league") {
     return {
       text: GAME_CENTER_COPY.emptyNoSleeper,
       action: "office-access",
@@ -453,3 +454,28 @@ export function gameCenterProjection(player) {
     ? `${GAME_CENTER_COPY.currentForecast}: ${Number(value).toFixed(1)}`
     : GAME_CENTER_COPY.noProjection;
 }
+
+
+export const LEAGUE_SCORING_CONTROL_COPY = {
+  title: "League scoring",
+  lastCalculated: (when) => `Last calculated ${new Date(when).toLocaleString()}`,
+  failed: "Scoring could not be calculated.",
+  native: "Scored in ScoreSense",
+  sleeper: "Scored in Sleeper",
+  nativeHelp: "Set lineups in This Week. After the NFL week finishes, a commissioner calculates scores here. Scores are not updated live.",
+  sleeperHelp: "Sleeper owns scoring settings, lineups, live scores, and corrections. ScoreSense displays those results; local calculations cannot overwrite them.",
+  projections: "Forecasts remain PPR-based and are separate from recorded league points.",
+  calculate: "Calculate week",
+  recalculate: "Recalculate week",
+  busy: "Calculating…",
+  rules: "Scoring settings",
+  draftFirst: "Finish the draft before calculating league scores.",
+  staff: "A commissioner calculates completed weeks.",
+  changed: "Scoring settings changed since this week was calculated. Existing results remain until a commissioner recalculates it.",
+  confirm: (week) => `Recalculate Week ${week}? This replaces this week's points and updates standings using the currently saved scoring settings. Lineups stay locked.`,
+  result: (result) => result.scored
+    ? `Week ${result.week} calculated for ${result.teams} teams.`
+    : result.reason === "week_in_progress"
+      ? "The NFL week is still in progress. Try again after all games finish."
+      : "Weekly NFL stats are not available yet. Existing scores have been kept.",
+};
