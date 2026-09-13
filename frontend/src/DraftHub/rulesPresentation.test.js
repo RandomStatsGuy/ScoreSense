@@ -10,6 +10,7 @@ import {
   mergeLeagueRules,
   presetRulesFromList,
   RULES_COPY,
+  SCORING_COPY,
   rulesFormWarnings,
   rulesSaveDisabledReason,
   rulesSummary,
@@ -212,4 +213,21 @@ test("late Rules save does not apply when the form or header has moved leagues",
     currentLeagueId: "alpha",
     savedLeagueId: "beta",
   }), false);
+});
+
+
+test("scoring defaults, validation, and dirty state include custom weights", () => {
+  const base = { name: "League", season: 2026, rules: mergeLeagueRules({}) };
+  assert.equal(base.rules.scoring.receptions, 1);
+  const custom = { ...base, rules: mergeLeagueRules({ scoring: { receptions: 0.5, passing_tds: 6 } }) };
+  assert.equal(custom.rules.scoring.receiving_yards, 0.1);
+  assert.notEqual(snapshotRulesForm(base), snapshotRulesForm(custom));
+  assert.deepEqual(validateLeagueSettings(custom), {});
+  for (const value of ["", NaN, Infinity, -101, 101]) {
+    const rules = mergeLeagueRules({ scoring: { receptions: value } });
+    assert.ok(validateLeagueSettings({ ...base, rules })["scoring.receptions"]);
+  }
+  assert.match(SCORING_COPY.sleeperHelp, /Sleeper controls scoring rules/);
+  assert.match(SCORING_COPY.effect, /Recalculate/);
+  assert.match(SCORING_COPY.projections, /PPR-based/);
 });

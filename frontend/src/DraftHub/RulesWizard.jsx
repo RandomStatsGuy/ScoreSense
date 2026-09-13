@@ -21,6 +21,8 @@ import {
   presetRulesFromList,
   ROSTER_LIMIT_KEYS,
   RULES_COPY,
+  SCORING_FIELDS,
+  SCORING_COPY,
   rulesFormWarnings,
   rulesSaveDisabledReason,
   rulesSummary,
@@ -89,6 +91,7 @@ export default function RulesWizard({
   readOnlyRules = false,
 }) {
   const inLeague = hubContext?.mode === "league";
+  const sleeperLinked = Boolean(inLeague && hubContext?.sleeper_league_id);
   const [name, setName] = useState("");
   const [season, setSeason] = useState(new Date().getFullYear());
   const [rules, setRules] = useState(() => mergeLeagueRules(workspace?.rules || DEFAULT_RULES));
@@ -289,7 +292,7 @@ export default function RulesWizard({
       rules,
       label: preset.label,
     });
-    setRules(nextRules);
+    setRules({ ...nextRules, scoring: rules.scoring });
     setStatus({ kind: "", text: "" });
   };
 
@@ -333,9 +336,42 @@ export default function RulesWizard({
 
       <div className="hub-rules-layout">
         <div className="hub-rules-sections">
-          <section className="hub-rules-section" aria-labelledby="rules-foundation-title">
+          <section className="hub-rules-section" aria-labelledby="rules-scoring-title">
             <header className="hub-rules-section-head">
               <span>01</span>
+              <div>
+                <h3 id="rules-scoring-title">{SCORING_COPY.title}</h3>
+                <p><strong>{sleeperLinked ? SCORING_COPY.sleeper : SCORING_COPY.native}</strong></p>
+                <p>{sleeperLinked ? SCORING_COPY.sleeperHelp : SCORING_COPY.nativeHelp}</p>
+              </div>
+            </header>
+            {sleeperLinked ? (
+              <a className="btn-ghost" href={`https://sleeper.com/leagues/${encodeURIComponent(hubContext.sleeper_league_id)}`} target="_blank" rel="noreferrer">{SCORING_COPY.openSleeper}</a>
+            ) : (
+              <>
+                <p className="chart-note">{SCORING_COPY.receptionHelp}</p>
+                <div className="hub-rules-field-grid hub-rules-field-grid--scoring">
+                  {SCORING_FIELDS.map(([key, label]) => (
+                    <label key={key}>
+                      <span>{label} · {SCORING_COPY.points}</span>
+                      <input type="number" step="0.01" min="-100" max="100" value={rules.scoring[key]}
+                        disabled={readOnlyRules} aria-invalid={Boolean(errors[`scoring.${key}`])}
+                        aria-describedby={errors[`scoring.${key}`] ? `scoring-${key}-error` : undefined}
+                        onChange={(e) => { const value = e.target.value === "" ? "" : Number(e.target.value); updateRules((current) => ({ ...current, scoring: { ...current.scoring, [key]: value } })); }} />
+                      <RuleError id={`scoring-${key}-error`}>{errors[`scoring.${key}`]}</RuleError>
+                    </label>
+                  ))}
+                </div>
+                <p className="chart-note">{SCORING_COPY.effect}</p>
+                <p className="chart-note">{SCORING_COPY.supported}</p>
+              </>
+            )}
+            <p className="chart-note">{SCORING_COPY.projections}</p>
+          </section>
+
+          <section className="hub-rules-section" aria-labelledby="rules-foundation-title">
+            <header className="hub-rules-section-head">
+              <span>02</span>
               <div>
                 <h3 id="rules-foundation-title">League settings</h3>
                 <p>Set your league name, season, and draft format.</p>
@@ -449,7 +485,7 @@ export default function RulesWizard({
           {!pickDraft && (
             <section className="hub-rules-section" aria-labelledby="rules-contracts-title">
               <header className="hub-rules-section-head">
-                <span>02</span>
+                <span>03</span>
                 <div>
                   <h3 id="rules-contracts-title">Contract rules</h3>
                   <p>Set contract lengths, annual salary increases, and extension eligibility.</p>
@@ -578,7 +614,7 @@ export default function RulesWizard({
 
           <section className="hub-rules-section" aria-labelledby="rules-roster-title">
             <header className="hub-rules-section-head">
-              <span>{pickDraft ? "02" : "03"}</span>
+              <span>{pickDraft ? "03" : "04"}</span>
               <div>
                 <h3 id="rules-roster-title">Roster limits</h3>
                 <p>Set the minimum and maximum number of players at each position.</p>
@@ -647,7 +683,7 @@ export default function RulesWizard({
           {!pickDraft && (
             <section className="hub-rules-section" aria-labelledby="rules-draft-title">
               <header className="hub-rules-section-head">
-                <span>04</span>
+                <span>05</span>
                 <div>
                   <h3 id="rules-draft-title">Draft settings</h3>
                   <p>{RULES_COPY.draftBehaviorHint}</p>

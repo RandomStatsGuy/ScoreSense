@@ -301,7 +301,7 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Static rookie deals and vet deals stay flat for the first term. The configured step-up starts on an **Extension**. Rules shows **Keep vet deals flat** and **Allow vet deal extensions** as their own toggles.
 - Final-year rookie deals may take one extension when **Allow rookie deal extensions** is on. Final-year vet deals may take one when **Allow vet deal extensions** is on. An extension cannot be extended again.
 - Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
-- ScoreSense-only leagues persist weekly lineups on This Week and score the week with ScoreSense PPR (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
+- ScoreSense-only leagues persist weekly lineups on This Week and score completed weeks with configurable ScoreSense scoring (full PPR by default) (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.
 - Headshots: mock boards, nominee cards, and rails use the same photos as rosters. Hub media and remote photos request the size they paint (`?w=48` / `96` / `256`); do not ship the studio original on every page.
 
@@ -374,3 +374,12 @@ An interrupted projection refresh is a persisted failure, not a permanent runnin
 Weekly's notes chip rebuilds notes from existing weekly artifacts and reports missing projections promptly. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.
 
 Open pages check refresh status periodically and on returning to the app. Completed rebuilds update projection boards and Best ball, and invalidate Fantasy projection caches without remounting its workspace. DFS offers Update player pool explicitly: it clears the current unsaved build, preserves user settings/imported estimates, and leaves saved build snapshots unchanged. Do not silently replace an active DFS build after a background refresh.
+
+
+### League scoring ownership
+
+Rules identifies the scoring and lineup host. Native leagues save validated points-per-stat weights inside LeagueRules, defaulting to full PPR for existing leagues. Supported native stats currently cover QB/RB/WR/TE yardage, touchdowns, receptions, interceptions, and lost fumbles. Kicker, defense, bonuses, and two-point scoring are explicitly unsupported; calculations reject unsupported starters instead of publishing misleading totals. Projection and Strategy estimates remain PPR-based and must be labeled separately from configurable recorded scores.
+
+Game center gives native commissioners Calculate week / Recalculate week controls after the draft. Calculations require a finished NFL slate and available stats, save player/team totals, locked lineups and a scoring-rules snapshot atomically, and update standings. Recalculation confirms that it replaces the selected week's totals using current saved rules. Saving scoring settings alone never rewrites results; Game center flags an older rules snapshot. Native scoring is weekly, not a live feed.
+
+Sleeper-linked leagues use Sleeper's rules, lineups, live points and corrections. Rules shows this ownership instead of editable native scoring fields, and Game center links to Sleeper without offering local calculation controls. Backend writes reject scoring-rule changes for linked leagues. ScoreSense contract, cap and draft tools remain local. League templates preserve scoring settings; old clients that omit scoring preserve the saved weights.
