@@ -159,72 +159,75 @@ function ContractSidePanelBody({
           </div>
         )}
 
+        {usesSalaries && (
+          <>
+            {contractsReadOnly ? (
+              <div className="hub-roster-contract-panel-stat">
+                <span className="mobile-stat-label">Cap hit ({season})</span>
+                <strong>{fmtSal(edit.salary)}</strong>
+              </div>
+            ) : (
+              <label className="hub-roster-mobile-field">
+                <span className="mobile-stat-label">Cap hit ({season})</span>
+                <input
+                  type="number"
+                  className="hub-roster-edit-input"
+                  min={0}
+                  step={1}
+                  value={edit.salary}
+                  disabled={isSaving}
+                  onChange={(e) => setEdit(r.player_id, { salary: e.target.value })}
+                  onBlur={() => saveRow(r)}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                />
+              </label>
+            )}
+
+            {contractsReadOnly ? (
+              <div className="hub-roster-contract-panel-stat">
+                <span className="mobile-stat-label">Years left</span>
+                <strong>{edit.years}</strong>
+              </div>
+            ) : (
+              <label className="hub-roster-mobile-field">
+                <span className="mobile-stat-label">Years left</span>
+                <input
+                  type="number"
+                  className="hub-roster-edit-input hub-roster-edit-input-sm"
+                  min={1}
+                  max={maxYears}
+                  step={1}
+                  value={edit.years}
+                  disabled={isSaving}
+                  onChange={(e) => setEdit(r.player_id, { years: e.target.value })}
+                  onBlur={() => saveRow(r)}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                />
+              </label>
+            )}
+          </>
+        )}
+      </div>
+
       {usesSalaries && (
         <>
-        {contractsReadOnly ? (
-          <div className="hub-roster-contract-panel-stat">
-            <span className="mobile-stat-label">Cap hit ({season})</span>
-            <strong>{fmtSal(edit.salary)}</strong>
+          <div className="hub-roster-contract-panel-stat hub-roster-contract-panel-schedule">
+            <span className="mobile-stat-label">Salary schedule</span>
+            <strong className="hub-schedule-preview">{livePreview || "—"}</strong>
           </div>
-        ) : (
-          <label className="hub-roster-mobile-field">
-            <span className="mobile-stat-label">Cap hit ({season})</span>
-            <input
-              type="number"
-              className="hub-roster-edit-input"
-              min={0}
-              step={1}
-              value={edit.salary}
-              disabled={isSaving}
-              onChange={(e) => setEdit(r.player_id, { salary: e.target.value })}
-              onBlur={() => saveRow(r)}
-              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-            />
-          </label>
-        )}
 
-        {contractsReadOnly ? (
-          <div className="hub-roster-contract-panel-stat">
-            <span className="mobile-stat-label">Years left</span>
-            <strong>{edit.years}</strong>
+          <div className="hub-roster-contract-panel-grid">
+            <div className="hub-roster-contract-panel-stat">
+              <span className="mobile-stat-label">{deadStory.isCut ? "Dead cap" : "Dead cap if cut"}</span>
+              <strong>{deadStory.deadLabel}</strong>
+            </div>
+            {deadStory.isCut && (
+              <div className="hub-roster-contract-panel-stat">
+                <span className="mobile-stat-label">Salary restored if cut is undone</span>
+                <strong>{fmtSal(deadStory.salary)}</strong>
+              </div>
+            )}
           </div>
-        ) : (
-          <label className="hub-roster-mobile-field">
-            <span className="mobile-stat-label">Years left</span>
-            <input
-              type="number"
-              className="hub-roster-edit-input hub-roster-edit-input-sm"
-              min={1}
-              max={maxYears}
-              step={1}
-              value={edit.years}
-              disabled={isSaving}
-              onChange={(e) => setEdit(r.player_id, { years: e.target.value })}
-              onBlur={() => saveRow(r)}
-              onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-            />
-          </label>
-        )}
-      </div>
-
-      <div className="hub-roster-contract-panel-stat hub-roster-contract-panel-schedule">
-        <span className="mobile-stat-label">Salary schedule</span>
-        <strong className="hub-schedule-preview">{livePreview || "—"}</strong>
-      </div>
-
-      <div className="hub-roster-contract-panel-grid">
-        <div className="hub-roster-contract-panel-stat">
-          <span className="mobile-stat-label">{deadStory.isCut ? "Dead cap" : "Dead cap if cut"}</span>
-          <strong>{deadStory.deadLabel}</strong>
-        </div>
-        {deadStory.isCut && (
-          <div className="hub-roster-contract-panel-stat">
-            <span className="mobile-stat-label">Salary restored if cut is undone</span>
-            <strong>{fmtSal(deadStory.salary)}</strong>
-          </div>
-        )}
-      </div>
-
         </>
       )}
 

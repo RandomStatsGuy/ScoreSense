@@ -123,5 +123,11 @@ jobs:
               rm -rf "$ART_BACKUP"
             fi
 
-            # Rebuild frontend inside the image and recreate the API container
-            bash deploy/server/deploy-on-server.sh
+            # Rebuild frontend inside the image and recreate the API container.
+            # The API is already stopped. If the image rebuild fails, start the
+            # previous container so Cloudflare does not sit on 502.
+            if ! bash deploy/server/deploy-on-server.sh; then
+              echo "error: rebuild failed; restarting previous API container" >&2
+              docker compose -f deploy/docker-compose.prod.yml start api || true
+              exit 1
+            fi
