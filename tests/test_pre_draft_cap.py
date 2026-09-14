@@ -132,6 +132,15 @@ def test_fa_contract_always_expires_before_draft():
     assert any(p["player_id"] == "fac" for p in summary["dropping_at_draft"])
 
 
+def test_active_fa_contract_is_owned_after_draft_until_cut():
+    row = _row("fac", 1, 1)
+    row["acquisition_type"] = "fa_contract"
+    assert not expires_before_draft(row, draft_completed=True)
+    assert retained_through_draft(row, draft_completed=True)
+    row["roster_status"] = ROSTER_CUT_BEFORE_DRAFT
+    assert not retained_through_draft(row, draft_completed=True)
+
+
 def test_expiring_veteran_must_extend_and_does_not_occupy_leftover():
     rules = LeagueRules(salary_cap=200)
     roster = [

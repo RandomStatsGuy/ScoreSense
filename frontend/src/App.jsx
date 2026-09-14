@@ -1226,6 +1226,7 @@ export default function App() {
   };
 
   const triggerRefresh = async () => {
+    if (pipelineRefreshing || refreshStatus?.status === "running") return;
     setPipelineRefreshing(true);
     setError("");
     try {
@@ -1235,6 +1236,7 @@ export default function App() {
       window.dispatchEvent(new Event("scoresense-refresh-started"));
     } catch (err) {
       setError(err.message || "Refresh failed");
+      setRefreshStatus((previous) => ({ ...previous, status: "error", error: err.message || REFRESH_COPY.failed }));
     } finally {
       setPipelineRefreshing(false);
     }
@@ -1635,10 +1637,17 @@ export default function App() {
         )}
 
         {refreshStatus && (dataRevision > 0 || ["running", "error"].includes(refreshStatus.status)) && (
-          <p className="chart-note" role="status" aria-live="polite">
-            {REFRESH_COPY.label} {refreshProgressLabel(refreshStatus)}
-            {refreshStatus.status === "running" ? ` ${REFRESH_COPY.background}` : ""}
-          </p>
+          <div className="projection-refresh-status">
+            <p className="chart-note" role="status" aria-live="polite">
+              {REFRESH_COPY.label} {refreshProgressLabel(refreshStatus)}
+              {refreshStatus.status === "running" ? ` ${REFRESH_COPY.background}` : ""}
+            </p>
+            {refreshStatus.status === "error" && isAdmin && (
+              <button type="button" className="btn-ghost" onClick={triggerRefresh} disabled={pipelineRefreshing}>
+                {pipelineRefreshing ? REFRESH_COPY.starting : REFRESH_COPY.retry}
+              </button>
+            )}
+          </div>
         )}
 
         {hubMounted && (

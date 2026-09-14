@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   CREATE_LEAGUE_VALUE,
   LEAGUE_CREATE_COPY,
+  SLEEPER_UNLINK_COPY,
+  sleeperUnlinkSummary,
   SOLO_VALUE,
   interpretLeagueSwitcherValue,
   draftInviteLabel,
@@ -236,4 +238,25 @@ test("size preview explains explicit removal and open capacity", () => {
   assert.equal(addFranchiseLabel({ configured: 12, actual: 8 }), "Add team to open seat");
   assert.equal(canAddSeat({ configured: 20, actual: 20 }), false);
   assert.match(removeFranchiseConfirm("Alex", { consequences: ["League becomes 7 teams."] }), /Remove Alex.*7 teams/);
+});
+
+test("sleeper unlink copy says ScoreSense takes over lineups", () => {
+  assert.match(SLEEPER_UNLINK_COPY.support, /ScoreSense takes them over/);
+  assert.match(SLEEPER_UNLINK_COPY.rosterWarning(1), /^1 roster player came from Sleeper/);
+  assert.match(SLEEPER_UNLINK_COPY.rosterWarning(4), /^4 roster players came from Sleeper/);
+});
+
+test("sleeper unlink summary counts mappings and only warns on roster rows when clearing", () => {
+  assert.equal(
+    sleeperUnlinkSummary({ teamsLinked: 1, rosterRows: 0, clearRoster: true }),
+    "Clears 1 team mapping.",
+  );
+  assert.equal(
+    sleeperUnlinkSummary({ teamsLinked: 10, rosterRows: 152, clearRoster: true }),
+    "Clears 10 team mappings and 152 Sleeper roster rows.",
+  );
+  assert.equal(
+    sleeperUnlinkSummary({ teamsLinked: 10, rosterRows: 152, clearRoster: false }),
+    "Clears 10 team mappings.",
+  );
 });

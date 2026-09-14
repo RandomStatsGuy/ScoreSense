@@ -47,9 +47,25 @@ def _write_refresh_status(payload: dict) -> None:
         Path(name).unlink(missing_ok=True)
 
 
-def record_refresh_failure(error: str) -> None:
-    _write_refresh_status({**get_refresh_status(), "status": "error", "error": error,
-                           "completed_at": datetime.now(timezone.utc).isoformat()})
+def record_refresh_failure(error: str, *, started_at: str | None = None) -> None:
+    # A late parent-process callback must not overwrite a newer live run.
+    try:
+        with refresh_lock(REFRESH_STATUS.with_suffix(".lock")):
+            status = get_refresh_status()
+            if started_at and (status.get("started_at") != started_at or status.get("status") != "running"):
+                return
+            _write_refresh_status({**status, "status": "error", "error": error,
+                                   "completed_at": datetime.now(timezone.utc).isoformat()})
+    except RefreshBusy:
+        return
+
+
+def record_refresh_job_result(future, *, started_at: str) -> None:
+    """Record failures before the worker gets a chance to write its status."""
+    if future.cancelled():
+        record_refresh_failure("Refresh was cancelled. Try again.", started_at=started_at)
+    elif future.exception() is not None:
+        record_refresh_failure("Refresh worker stopped unexpectedly. Try again.", started_at=started_at)
 
 
 def _progress(stage: str) -> None:
@@ -106,7 +122,10 @@ def public_refresh_status() -> dict:
             age = (datetime.now(timezone.utc) - started).total_seconds()
             if status.get("stage") == "queued" and age < 120:
                 return status
-            return {**status, "status": "error", "error": "Refresh stopped before finishing. Start it again."}
+            _write_refresh_status({**status, "status": "error",
+                                   "error": "Previous refresh was interrupted. Try again.",
+                                   "completed_at": datetime.now(timezone.utc).isoformat()})
+            return get_refresh_status()
     except RefreshBusy:
         return status
 
@@ -119,7 +138,11 @@ def _execute_weekly_refresh(
 ) -> dict:
     seasons = seasons or DEFAULT_TRAIN_SEASONS + DEFAULT_TEST_SEASONS
     started = started_at or mark_refresh_started(retrain=retrain, draft_only=draft_only)["started_at"]
-    _progress("starting")
+    # A queued job can outlive the status reader's startup grace period while
+    # another CPU job occupies the shared pool. Reclaim its own marker when it
+    # actually starts; the run-id check above already excludes superseded jobs.
+    _write_refresh_status({"status": "running", "stage": "starting", "started_at": started,
+                           "error": None, "completed_at": None})
 
     try:
         return _run_weekly_refresh(

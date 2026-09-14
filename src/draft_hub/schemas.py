@@ -436,6 +436,12 @@ class SleeperLeagueConnectRequest(BaseModel):
     commissioner_sleeper_roster_id: Optional[str] = None
 
 
+class SleeperLeagueDisconnectRequest(BaseModel):
+    """Unlink Sleeper and hand lineups + scoring back to ScoreSense."""
+
+    clear_sleeper_roster: bool = True
+
+
 class SleeperSyncRequest(BaseModel):
     import_to_hub: bool = False
 

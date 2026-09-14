@@ -348,6 +348,34 @@ export const LEAGUE_WORKBOOK_COPY = {
   exportSupport: "Every roster, salary, and history row. Opens in Excel.",
 };
 
+export const SLEEPER_UNLINK_COPY = {
+  title: "Unlink Sleeper",
+  support:
+    "Sleeper hosts lineups and scoring while a league is linked. Unlink and ScoreSense takes them over — you set lineups here.",
+  start: "Unlink Sleeper",
+  confirm: "Unlink and host here",
+  cancel: "Keep Sleeper",
+  busy: "Unlinking…",
+  keepRosters: "Keep players that came from Sleeper",
+  rosterWarning: (n) =>
+    n === 1
+      ? "1 roster player came from Sleeper and will be removed."
+      : `${n} roster players came from Sleeper and will be removed.`,
+  rosterKept: "Rosters stay exactly as they are.",
+  done: "Sleeper unlinked. ScoreSense hosts lineups and scoring for this league.",
+  relinkHint: "You can connect Sleeper again later — that hands lineups back.",
+};
+
+export function sleeperUnlinkSummary({ teamsLinked = 0, rosterRows = 0, clearRoster = true } = {}) {
+  const teams = Number(teamsLinked) || 0;
+  const rows = Number(rosterRows) || 0;
+  const bits = [teams === 1 ? "1 team mapping" : `${teams} team mappings`];
+  if (clearRoster && rows > 0) {
+    bits.push(rows === 1 ? "1 Sleeper roster row" : `${rows} Sleeper roster rows`);
+  }
+  return `Clears ${bits.join(" and ")}.`;
+}
+
 export const LEAGUE_DELETE_COPY = {
   title: "Delete this league",
   support:

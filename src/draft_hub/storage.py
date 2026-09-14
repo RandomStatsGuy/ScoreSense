@@ -198,6 +198,14 @@ def _safe_add_column(conn: sqlite3.Connection, table: str, column: str, ddl: str
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
+    conn.execute("""CREATE TABLE IF NOT EXISTS league_week_correction (
+        id TEXT PRIMARY KEY, league_id TEXT NOT NULL, season INTEGER NOT NULL,
+        week INTEGER NOT NULL, actor_sub TEXT NOT NULL, reason TEXT NOT NULL,
+        revision TEXT NOT NULL, preview_json TEXT NOT NULL, published_at TEXT,
+        idempotency_key TEXT, created_at TEXT NOT NULL,
+        UNIQUE(league_id, idempotency_key)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_week_correction ON league_week_correction(league_id, season, week)")
     cols = {row[1] for row in conn.execute("PRAGMA table_info(hub_workspace)").fetchall()}
     additions = {
         "sleeper_league_id": "TEXT",
@@ -249,6 +257,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     _safe_add_column(conn, "league", "historic_snapshot_revision", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "league", "sandbox_baseline_json", "TEXT")
     _safe_add_column(conn, "league", "mock_saved", "INTEGER NOT NULL DEFAULT 0")
+    # Commissioner unlinked Sleeper on purpose: ScoreSense hosts lineups and
+    # scoring, and link inference must not silently re-attach a personal link.
+    _safe_add_column(conn, "league", "sleeper_hosting_disabled", "INTEGER NOT NULL DEFAULT 0")
 
     roster_cols = {row[1] for row in conn.execute("PRAGMA table_info(roster_slot)").fetchall()}
     if "roster_status" not in roster_cols:
@@ -3582,6 +3593,28 @@ def update_league_sleeper_id(league_id: str, sleeper_league_id: str) -> None:
         )
 
 
+def clear_league_sleeper_id(league_id: str, *, disable_hosting: bool = True) -> None:
+    """Drop the league's Sleeper link so ScoreSense hosts lineups and scoring.
+
+    ``disable_hosting`` also sets the sticky flag that keeps
+    ``resolve_sleeper_league_id`` from re-attaching a member's personal link.
+    """
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET sleeper_league_id = NULL, sleeper_hosting_disabled = ?"
+            " WHERE id = ?",
+            (1 if disable_hosting else 0, league_id),
+        )
+
+
+def set_league_sleeper_hosting_disabled(league_id: str, disabled: bool) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET sleeper_hosting_disabled = ? WHERE id = ?",
+            (1 if disabled else 0, league_id),
+        )
+
+
 def set_league_workspace_id(league_id: str, workspace_id: str) -> None:
     with get_conn() as conn:
         conn.execute(
@@ -3928,6 +3961,9 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
         "team_count": row["team_count"],
         "test_mode": bool(row["test_mode"]) if "test_mode" in keys else False,
         "sleeper_league_id": row["sleeper_league_id"] if "sleeper_league_id" in keys else None,
+        "sleeper_hosting_disabled": bool(row["sleeper_hosting_disabled"])
+        if "sleeper_hosting_disabled" in keys
+        else False,
         "lock_team_claims": bool(row["lock_team_claims"]) if "lock_team_claims" in keys else True,
         "draft_completed": bool(row["draft_completed"]) if "draft_completed" in keys else False,
         "draft_starts_at": row["draft_starts_at"] if "draft_starts_at" in keys else None,
@@ -5752,6 +5788,7 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_player_week_score",
             "league_team_week_score",
             "league_week_scoring_run",
+            "league_week_correction",
             "team_vibe_aura",
             "insights_cap_cache",
             "insights_fair_values",
@@ -6775,6 +6812,8 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
         league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
         if league is None or league["sleeper_league_id"]:
             raise ValueError("Native scoring is unavailable for this league.")
+        if conn.execute("SELECT 1 FROM league_week_correction WHERE league_id=? AND season=? AND week=? AND published_at IS NOT NULL", key).fetchone():
+            raise ValueError("This week has a published commissioner correction. Preview a new correction to change its results.")
         current = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
         if current.scoring.model_dump() != scoring:
             raise ValueError("Scoring settings changed during calculation. Try again with the saved rules.")

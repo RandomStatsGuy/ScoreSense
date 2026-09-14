@@ -39,6 +39,12 @@ function showdownLineup() {
   };
 }
 
+function mvpLineup() {
+  const entry = showdownLineup();
+  entry.lineup[0].slot = "MVP";
+  return entry;
+}
+
 test("draftkings export uses Name (ID) cells under position headers", () => {
   const result = buildSiteLineupCsv("draftkings", [classicLineup()]);
   assert.equal(result.ok, true);
@@ -61,14 +67,37 @@ test("multi-lineup export writes one row per lineup", () => {
   assert.equal(result.lines.length, 3);
 });
 
-test("showdown export leads with the CPT column", () => {
+test("showdown export writes bare unquoted draftable IDs under CPT/FLEX", () => {
   const result = buildSiteLineupCsv("draftkings_showdown", [showdownLineup()]);
   assert.equal(result.ok, true);
-  assert.equal(result.lines[0], '"CPT","FLEX","FLEX","FLEX","FLEX","FLEX"');
-  assert.match(result.lines[1], /^"QB Home \(101\)"/);
+  // Matches a file DraftKings accepted: no quotes, no names, CPT first.
+  assert.equal(result.lines[0], "CPT,FLEX,FLEX,FLEX,FLEX,FLEX");
+  assert.equal(result.lines[1], "101,105,103,104,106,107");
+  assert.equal(result.lines.length, 2);
 
   const single = buildSiteLineupCsv("fanduel_single", [showdownLineup()]);
   assert.equal(single.ok, false); // MVP slot label differs from CPT
+});
+
+test("showdown export stays bare across multiple lineups", () => {
+  const result = buildSiteLineupCsv("draftkings_showdown", [showdownLineup(), showdownLineup()]);
+  assert.equal(result.ok, true);
+  assert.equal(result.lines.length, 3);
+  for (const line of result.lines.slice(1)) {
+    assert.doesNotMatch(line, /"/);
+    assert.match(line, /^\d+(,\d+){5}$/);
+  }
+});
+
+test("classic draftkings and fanduel keep quoted Name (ID) / Id:Name cells", () => {
+  const dk = buildSiteLineupCsv("draftkings", [classicLineup()]);
+  assert.equal(dk.ok, true);
+  assert.match(dk.lines[1], /^"QB One \(1\)"/);
+
+  const fd = buildSiteLineupCsv("fanduel_single", [mvpLineup()]);
+  assert.equal(fd.ok, true);
+  assert.match(fd.lines[0], /^"MVP"/);
+  assert.match(fd.lines[1], /^"101:QB Home"/);
 });
 
 test("missing dfs ids fail with a helpful reason", () => {

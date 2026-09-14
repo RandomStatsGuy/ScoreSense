@@ -155,3 +155,89 @@ def test_refresh_route_records_submission_failure(tmp_path, monkeypatch):
         with pytest.raises(HTTPException):
             asyncio.run(api.refresh(retrain=False, _user={}))
     assert wr.public_refresh_status()["status"] == "error"
+
+
+def test_legacy_interrupted_job_is_persisted_and_can_be_retried(tmp_path, monkeypatch):
+    import asyncio
+    from app import api
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "refresh.json")
+    monkeypatch.setattr(api, "REFRESH_STATUS", wr.REFRESH_STATUS)
+    # Same shape as the production marker left behind by a container restart.
+    wr.REFRESH_STATUS.write_text(json.dumps({
+        "status": "running", "started_at": "2026-09-01T01:00:00+00:00",
+        "retrain": False, "draft_only": False,
+        "last_completed_at": "2026-08-31T01:00:00+00:00",
+    }))
+    stopped = wr.public_refresh_status()
+    assert stopped["status"] == wr.get_refresh_status()["status"] == "error"
+    assert stopped["completed_at"]
+    with patch.object(api, "submit_cpu_job") as submit:
+        retry = asyncio.run(api.refresh(retrain=False, _user={}))
+    assert retry["status"] == "running"
+    assert retry["stage"] == "queued"
+    assert retry["last_completed_at"] == stopped["last_completed_at"]
+    assert "error" not in wr.get_refresh_status()
+    submit.assert_called_once()
+    submit.return_value.add_done_callback.assert_called_once()
+
+
+def test_background_failure_updates_status_without_waiting_for_queue_timeout(tmp_path, monkeypatch):
+    import asyncio
+    from app import api
+    from concurrent.futures.process import BrokenProcessPool
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "refresh.json")
+    monkeypatch.setattr(api, "REFRESH_STATUS", wr.REFRESH_STATUS)
+
+    async def exercise():
+        future = asyncio.get_running_loop().create_future()
+        with patch.object(api, "submit_cpu_job", return_value=future):
+            started = await api.refresh(retrain=False, _user={})
+        future.set_exception(BrokenProcessPool("worker died"))
+        await asyncio.sleep(0)
+        status = wr.get_refresh_status()
+        assert status["status"] == "error"
+        assert status["started_at"] == started["started_at"]
+        assert "worker" in status["error"]
+    asyncio.run(exercise())
+
+
+def test_late_worker_callback_does_not_overwrite_new_run_or_original_error(tmp_path, monkeypatch):
+    from concurrent.futures import Future
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "refresh.json")
+    first = wr.mark_refresh_started(retrain=False)
+    failed = Future()
+    failed.set_exception(RuntimeError("dispatch failure"))
+    wr.record_refresh_failure("specific failure", started_at=first["started_at"])
+    wr.record_refresh_job_result(failed, started_at=first["started_at"])
+    assert wr.get_refresh_status()["error"] == "specific failure"
+    next_run = wr.mark_refresh_started(retrain=False)
+    wr.record_refresh_job_result(failed, started_at=first["started_at"])
+    assert wr.get_refresh_status()["started_at"] == next_run["started_at"]
+    assert wr.get_refresh_status()["status"] == "running"
+
+
+def test_cancelled_background_job_is_not_left_running(tmp_path, monkeypatch):
+    from concurrent.futures import Future
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "refresh.json")
+    started = wr.mark_refresh_started(retrain=False)
+    cancelled = Future()
+    cancelled.cancel()
+    wr.record_refresh_job_result(cancelled, started_at=started["started_at"])
+    assert wr.get_refresh_status()["status"] == "error"
+    assert "cancelled" in wr.get_refresh_status()["error"]
+
+
+def test_delayed_worker_reclaims_its_marker_after_startup_grace(tmp_path, monkeypatch):
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "refresh.json")
+    started = "2026-09-01T01:00:00+00:00"
+    wr._write_refresh_status({"status": "running", "stage": "queued", "started_at": started})
+    assert wr.public_refresh_status()["status"] == "error"
+    def inspect_running(**kwargs):
+        status = wr.get_refresh_status()
+        assert status["status"] == "running"
+        assert status["stage"] == "starting"
+        assert status["error"] is None
+        assert status["completed_at"] is None
+        return status
+    monkeypatch.setattr(wr, "_run_weekly_refresh", inspect_running)
+    wr.run_weekly_refresh(retrain=False, started_at=started)

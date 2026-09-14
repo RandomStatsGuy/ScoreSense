@@ -9,11 +9,11 @@ import {
 test("roster management contains commissioner operations and no chat tab", () => {
   assert.deepEqual(
     visibleOfficeTabs(true).map((tab) => tab.id),
-    ["current", "historic", "members", "access"],
+    ["current", "historic", "corrections", "members", "access"],
   );
   assert.deepEqual(
     visibleOfficeTabs(true).map((tab) => tab.label),
-    ["Contracts", "Salary sheets", "Members", "Access & imports"],
+    ["Contracts", "Salary sheets", "Corrections", "Members", "Access & imports"],
   );
   assert.equal(visibleOfficeTabs(true).some((tab) => tab.type === "label"), false);
   assert.equal(visibleOfficeTabs(false).length, 0);

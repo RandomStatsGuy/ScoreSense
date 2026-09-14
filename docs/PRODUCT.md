@@ -14,7 +14,7 @@ Agents: `.cursor/rules/scoresense-core.mdc` injects these rules on every turn. D
 It helps people make decisions, not maintain a database:
 
 1. **Projections** — weekly and season outlooks with floor–ceiling ranges.
-2. **Fantasy** — run a salary-cap (or pick) league: draft, contracts, cap, waivers, trades, rules.
+2. **Fantasy** — run a salary-cap (or pick) league: draft, contracts, cap, waivers, trades, rules. Native scoring is ScoreSense PPR; linked Sleeper leagues keep Sleeper as the scoring host.
 3. **Tools** — DFS lineups, mock drafts, and the best ball board.
 
 Internal code may still say “Draft Hub.” **Users never should.** The product area is **Fantasy**.
@@ -108,9 +108,11 @@ If you add or rename a Fantasy destination, update `hubSubnav.js`, `appNavigatio
 
 Source of truth: `frontend/src/DraftHub/hubOfficeTabs.js`.
 
-Contracts · Salary sheets · Members · Access & imports.
+Contracts · Salary sheets · Corrections · Members · Access & imports.
 
-The pane switcher is the four pane pills only. Do not inline group labels with the pills.
+Corrections repairs native historical-week rosters and starters through a reasoned preview and audited publication. Past ownership is not inferred from today's roster. Corrected results use the week's scoring snapshot and actual statistics; missing statistics block publication. Current rosters and later lineups remain unchanged. The initial recovery editor uses explicit player IDs; draft-record and current-roster repairs are separate workflows, not implied by publishing a weekly correction.
+
+The pane switcher uses pane pills only. Do not inline group labels with the pills.
 
 Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Members shows league capacity, created teams, and claimed managers separately. The league-size picker offers every integer from 6 through 14; existing legacy sizes remain readable. Saving changes unassigned capacity only and never deletes a team. Add team uses an open seat first and expands capacity when full. Remove team previews the resulting size and consequences before confirming. Draft owns the invite link. New-league and mock-draft size pickers also offer 6–14. Access & imports assigns a named email to one seat; it does not copy the Draft invite link. Commissioners download the league workbook and start a delete here. Every commissioner must type the league name and agree; the last confirm erases the room. Members download that same workbook on Rosters.
 
@@ -369,6 +371,8 @@ Game center labels current forecasts separately from the pregame baselines froze
 
 
 ### Refresh behavior
+
+An interrupted projection refresh is a persisted failure, not a permanent running marker. Admins can Retry refresh directly from the shared status banner in any product area. Retry uses the existing no-retrain pipeline and preserves the last successful data timestamp until completion; it does not deploy or change league state.
 
 Weekly's notes chip rebuilds notes from existing weekly artifacts and reports missing projections promptly. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.
 

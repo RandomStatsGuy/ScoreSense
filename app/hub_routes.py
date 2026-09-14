@@ -100,6 +100,7 @@ from src.draft_hub.schemas import (
     HistoricCorrectionRequest,
     SleeperImportRequest,
     SleeperLeagueConnectRequest,
+    SleeperLeagueDisconnectRequest,
     SleeperLinkRequest,
     SleeperSyncRequest,
     DraftContractsRequest,
@@ -180,7 +181,11 @@ from src.draft_hub.league_claim import (
     staff_claim_payload,
 )
 from src.draft_hub.draft_availability import build_availability_payload, save_availability
-from src.draft_hub.league_sleeper_sync import connect_sleeper_league
+from src.draft_hub.league_sleeper_sync import (
+    connect_sleeper_league,
+    disconnect_sleeper_league,
+    sleeper_roster_slot_count,
+)
 from src.draft_hub.league_sheet_import import parse_league_sheet_csv
 from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.draft_expire_preview import build_draft_expire_preview
@@ -901,6 +906,69 @@ def _lineup_target_team(ctx: dict[str, Any], requested_team_id: str | None) -> s
 def _require_hub_hosted_scoring(ctx: dict[str, Any]) -> None:
     if ctx.get("sleeper_league_id"):
         raise HTTPException(status_code=409, detail="Lineups and scoring stay in Sleeper")
+
+
+class WeekCorrectionPlayer(BaseModel):
+    player_id: str
+    player_name: str = ""
+    nfl_team: str = ""
+    position: str
+    slot: str = "BN"
+
+
+class WeekCorrectionTeam(BaseModel):
+    team_id: str
+    players: list[WeekCorrectionPlayer]
+
+
+class WeekCorrectionPreview(BaseModel):
+    teams: list[WeekCorrectionTeam]
+    reason: str
+    revision: str
+    acknowledge_empty: bool = False
+
+
+class WeekCorrectionPublish(BaseModel):
+    preview_id: str
+    revision: str
+    reason: str
+    idempotency_key: str
+
+
+def _week_correction_call(operation, *args, **kwargs):
+    from src.draft_hub.week_corrections import CorrectionError
+    try:
+        return operation(*args, **kwargs)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except CorrectionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/league/{league_id}/corrections/{season}/{week}")
+def hub_week_correction_context(league_id: str, season: int, week: int, _user=Depends(require_hub_user)):
+    from src.draft_hub.week_corrections import correction_context, correction_history
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    result = _week_correction_call(correction_context, league_id, season, week, _sub(_user))
+    result["history"] = correction_history(league_id, season, week)
+    return result
+
+
+@router.post("/league/{league_id}/corrections/{season}/{week}/preview")
+def hub_week_correction_preview(league_id: str, season: int, week: int, body: WeekCorrectionPreview, _user=Depends(require_hub_user)):
+    from src.draft_hub.week_corrections import preview_correction
+    require_commissioner(_ctx_for_league(_sub(_user), league_id))
+    return _week_correction_call(preview_correction, league_id, season, week, _sub(_user),
+                                 [team.model_dump() for team in body.teams], body.reason, body.revision, body.acknowledge_empty)
+
+
+@router.post("/league/{league_id}/corrections/{season}/{week}/publish")
+def hub_week_correction_publish(league_id: str, season: int, week: int, body: WeekCorrectionPublish, _user=Depends(require_hub_user)):
+    from src.draft_hub.week_corrections import publish_correction
+    require_commissioner(_ctx_for_league(_sub(_user), league_id))
+    return _week_correction_call(publish_correction, league_id, season, week, _sub(_user),
+                                 body.preview_id, body.revision, body.reason, body.idempotency_key)
 
 
 @router.get("/league/{league_id}/lineup")
@@ -3206,7 +3274,11 @@ def hub_league_insights(
             or ctx.get("sleeper_league_id")
             or ""
         )
-        if sleeper_lid and not league.get("sleeper_league_id"):
+        if (
+            sleeper_lid
+            and not league.get("sleeper_league_id")
+            and not league.get("sleeper_hosting_disabled")
+        ):
             storage.update_league_sleeper_id(league_id, str(sleeper_lid))
         if _insights_section(wanted_sections, "scoring"):
             with timer.phase("scoring"):
@@ -6279,6 +6351,47 @@ def hub_connect_sleeper_league(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _refresh_scoring_cache_for_league(league_id)
+    _clear_league_rosters_cache(league_id)
+    return {**result, "hub_context": _ctx(sub)}
+
+
+@router.get("/league/{league_id}/sleeper/disconnect")
+def hub_disconnect_sleeper_league_preview(
+    league_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """What an unlink would remove — the confirm step reads this first."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    league = storage.get_league(league_id) or {}
+    teams = storage.list_league_teams(league_id)
+    return {
+        "league_id": league_id,
+        "sleeper_league_id": league.get("sleeper_league_id"),
+        "linked": bool(league.get("sleeper_league_id")),
+        "teams_linked": sum(1 for t in teams if t.get("sleeper_roster_id")),
+        "sleeper_roster_rows": sleeper_roster_slot_count(league_id),
+    }
+
+
+@router.post("/league/{league_id}/sleeper/disconnect")
+def hub_disconnect_sleeper_league(
+    league_id: str,
+    body: SleeperLeagueDisconnectRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Unlink Sleeper so ScoreSense hosts lineups and scoring for this league."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        result = disconnect_sleeper_league(
+            league_id,
+            clear_sleeper_roster=body.clear_sleeper_roster,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     _clear_league_rosters_cache(league_id)
     return {**result, "hub_context": _ctx(sub)}
 

@@ -296,6 +296,11 @@ def resolve_sleeper_league_id(league_id: str) -> str | None:
     sl = league.get("sleeper_league_id")
     if sl:
         return str(sl)
+    # The commissioner unlinked on purpose: ScoreSense hosts lineups and scoring
+    # for this league. Never re-attach a member's personal Sleeper link behind
+    # their back — that is what silently flipped leagues to Sleeper-hosted.
+    if league.get("sleeper_hosting_disabled"):
+        return None
     comm = league.get("commissioner_sub")
     if comm:
         ws = storage.get_or_create_workspace(comm)
@@ -315,6 +320,70 @@ def resolve_sleeper_league_id(league_id: str) -> str | None:
             storage.update_league_sleeper_id(league_id, str(sl))
             return str(sl)
     return None
+
+
+def sleeper_roster_slot_count(league_id: str) -> int:
+    """How many roster rows came from Sleeper — the preview for an unlink."""
+    league = storage.get_league(league_id)
+    if not league:
+        return 0
+    ws_id = league.get("workspace_id")
+    if not ws_id:
+        return 0
+    return sum(
+        1
+        for slot in storage.list_league_roster(str(ws_id))
+        if str(slot.get("source") or "").strip().lower() == "sleeper"
+    )
+
+
+def disconnect_sleeper_league(
+    league_id: str,
+    *,
+    clear_sleeper_roster: bool = True,
+) -> dict[str, Any]:
+    """Unlink Sleeper so ScoreSense hosts lineups and scoring for this league.
+
+    Clears the league link and every team's roster mapping, and sets the sticky
+    ``sleeper_hosting_disabled`` flag so link inference cannot re-attach a
+    member's personal Sleeper link. Commissioner-only — the caller authorizes.
+
+    With ``clear_sleeper_roster`` the Sleeper-sourced roster rows are removed
+    too; cap-sheet, draft, and manual rows are always kept.
+    """
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    ws_id = league.get("workspace_id")
+    if not ws_id:
+        raise ValueError("League has no shared workspace")
+
+    was_linked_to = league.get("sleeper_league_id")
+    teams = storage.list_league_teams(league_id)
+
+    removed = 0
+    if clear_sleeper_roster:
+        removed = storage.remove_roster_by_source(str(ws_id), "sleeper")
+
+    teams_cleared = 0
+    for team in teams:
+        if not (team.get("sleeper_roster_id") or team.get("sleeper_team_name")):
+            continue
+        storage.update_team_sleeper_link(str(team["id"]), clear=True)
+        teams_cleared += 1
+
+    storage.clear_league_sleeper_id(league_id, disable_hosting=True)
+    storage.bump_live_roster_revision(league_id)
+    invalidate_team_allowlist_cache(league_id)
+
+    return {
+        "league_id": league_id,
+        "was_linked_to": str(was_linked_to) if was_linked_to else None,
+        "teams_cleared": teams_cleared,
+        "roster_rows_removed": removed,
+        "roster_cleared": bool(clear_sleeper_roster),
+        "lineup_source": "hub",
+    }
 
 
 def resolve_hub_team_for_sleeper_roster(
@@ -863,6 +932,8 @@ def connect_sleeper_league(
             resolved.append((rid, team))
 
     storage.update_league_sleeper_id(league_id, str(sleeper_league_id))
+    # A deliberate re-connect lifts the unlink, so Sleeper hosts again.
+    storage.set_league_sleeper_hosting_disabled(league_id, False)
 
     all_snapshots = fetch_all_linked_rosters(str(sleeper_league_id))
     team_snapshots: dict[str, list[dict[str, Any]]] = {}

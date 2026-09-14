@@ -134,13 +134,13 @@ def retained_through_draft(row: dict[str, Any], *, draft_completed: bool) -> boo
     from src.draft_hub.acquisition_semantics import is_current_auction_award, is_fa_contract
     from src.draft_hub.contracts import has_pending_extension
 
-    if is_fa_contract(row):
-        return False
     yrs = years_remaining(row)
     if yrs < 1:
         return False
     if draft_completed:
         return True
+    if is_fa_contract(row):
+        return False
     if yrs > 1:
         return True
     if has_pending_extension(row):

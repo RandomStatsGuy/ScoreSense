@@ -220,6 +220,14 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/TeamSalarySheets.jsx",
     doNot: "Keep sheets inside Roster management. Do not add a top-level destination.",
   }),
+  "hub.office.corrections": S({
+    label: "Corrections",
+    chrome: "office",
+    route: "/hub/roster-management/corrections",
+    page: "frontend/src/DraftHub/WeekCorrections.jsx",
+    copy: "frontend/src/DraftHub/weekCorrectionsPresentation.js",
+    doNot: "Historical edits require preview and audited publication. Never infer past ownership from the current roster or overwrite later lineups.",
+  }),
   "hub.office.members": S({
     label: "Members",
     chrome: "office",
