@@ -207,6 +207,22 @@ export function scoresArePlaceholder(payload, hubContext) {
   return Boolean(payload?.placeholder) || hubContext?.draft_completed === false;
 }
 
+export function shouldPollGameCenter(payload, hubContext) {
+  if (!payload?.available || payload.preseason) return false;
+  if (hubContext?.draft_completed === false) return false;
+  if (
+    payload.week != null &&
+    payload.current_week != null &&
+    Number(payload.week) !== Number(payload.current_week)
+  ) {
+    return false;
+  }
+  if (payload.source === "sleeper" || hubContext?.sleeper_league_id) {
+    return !scoresArePlaceholder(payload, hubContext);
+  }
+  return payload?.scoring_control?.final !== true;
+}
+
 export function gameStateLabel(payload, hubContext) {
   if (scoresArePlaceholder(payload, hubContext))
     return GAME_CENTER_COPY.unscoredChip;
@@ -462,7 +478,7 @@ export const LEAGUE_SCORING_CONTROL_COPY = {
   failed: "Scoring could not be calculated.",
   native: "Scored in ScoreSense",
   sleeper: "Scored in Sleeper",
-  nativeHelp: "Set lineups in This Week. A commissioner can calculate scores during the NFL week. Recalculate after more games finish. Lineups lock when the week is calculated after the last game.",
+  nativeHelp: "Set lineups in This Week. Game center updates scores as weekly NFL stats arrive. Recalculate if you need a fresh snapshot. Lineups lock when the week is calculated after the last game.",
   sleeperHelp: "Sleeper owns scoring settings, lineups, live scores, and corrections. ScoreSense displays those results; local calculations cannot overwrite them.",
   projections: "Forecasts remain PPR-based and are separate from recorded league points.",
   calculate: "Calculate week",

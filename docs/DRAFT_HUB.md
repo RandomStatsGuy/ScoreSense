@@ -133,7 +133,7 @@ without anyone connecting one. Unlink is the escape hatch.
 | POST | `/api/hub/league/{id}/delete-request/approve` | Agree to a pending delete |
 | POST | `/api/hub/league/{id}/delete-request/cancel` | Withdraw a pending delete |
 
-Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). Linked Sleeper leagues keep inferred (advice-only) starters on This Week; lineup writes and `score-week` return 409. Game center still reads Sleeper matchups.
+Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). After the draft, Game center `live-scoring` refresh applies the current nflverse snapshot until that week is final. Linked Sleeper leagues keep inferred (advice-only) starters on This Week; lineup writes and `score-week` return 409. Game center still reads Sleeper matchups.
 
 ## Site admin
 
