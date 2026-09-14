@@ -874,9 +874,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         """CREATE TABLE IF NOT EXISTS league_week_scoring_run (
             league_id TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
             scoring_json TEXT NOT NULL, scored_at TEXT NOT NULL,
+            final INTEGER NOT NULL DEFAULT 1,
             PRIMARY KEY (league_id, season, week)
         )"""
     )
+    _safe_add_column(conn, "league_week_scoring_run", "final", "INTEGER NOT NULL DEFAULT 1")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_delete_request (
             id TEXT PRIMARY KEY,
@@ -6799,11 +6801,16 @@ def get_week_scoring_run(league_id: str, season: int, week: int) -> dict[str, An
         return None
     result = dict(row)
     result["scoring"] = json.loads(result.pop("scoring_json"))
+    result["final"] = bool(int(result["final"])) if result.get("final") is not None else True
     return result
 
 
-def save_native_week_scores(league_id, season, week, player_rows, team_rows, scoring):
-    """Publish a complete calculation and its rules snapshot atomically."""
+def save_native_week_scores(league_id, season, week, player_rows, team_rows, scoring, *, final=True):
+    """Publish a calculation and its rules snapshot atomically.
+
+    A live in-week snapshot keeps leftover lineup edits open. A final
+    calculate after the NFL slate ends locks that week's lineups.
+    """
     from src.draft_hub.schemas import LeagueRules
     now = _utcnow()
     key = (league_id, int(season), int(week))
@@ -6831,6 +6838,11 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
             (league_id,season,week,team_id,matchup_id,points,scored_at) VALUES (?,?,?,?,?,?,?)""",
             [(*key, str(row["team_id"]), row.get("matchup_id"), float(row["points"]), now) for row in team_rows],
         )
-        conn.execute("UPDATE league_week_lineup SET locked=1 WHERE league_id=? AND season=? AND week=?", key)
-        conn.execute("INSERT OR REPLACE INTO league_week_scoring_run VALUES (?,?,?,?,?)",
-                     (*key, json.dumps(scoring, sort_keys=True), now))
+        if final:
+            conn.execute("UPDATE league_week_lineup SET locked=1 WHERE league_id=? AND season=? AND week=?", key)
+        conn.execute(
+            """INSERT OR REPLACE INTO league_week_scoring_run
+               (league_id, season, week, scoring_json, scored_at, final)
+               VALUES (?,?,?,?,?,?)""",
+            (*key, json.dumps(scoring, sort_keys=True), now, 1 if final else 0),
+        )

@@ -91,7 +91,7 @@ export const SCORING_COPY = {
   title: "Scoring & lineup host",
   native: "ScoreSense native league",
   sleeper: "Sleeper-linked league",
-  nativeHelp: "Set lineups in This Week. Commissioners calculate completed weeks in Game center using these saved scoring rules.",
+  nativeHelp: "Set lineups in This Week. Commissioners calculate the week in Game center using these saved scoring rules, including while NFL games are still in progress.",
   sleeperHelp: "Sleeper controls scoring rules, starting lineups, live points, and stat corrections. Change them in Sleeper; Game center reads its results. ScoreSense still manages local contracts, cap, and draft tools.",
   supported: "Native scoring supports QB, RB, WR and TE. Kicker, defense, bonuses, and two-point scoring are not supported by this calculation yet.",
   effect: "Saving scoring rules leaves existing results unchanged. Recalculate a week in Game center to apply the new rules to that week's totals and standings.",

@@ -269,6 +269,12 @@ def week_is_scored(league_id: str, season: int, week: int) -> bool:
     return bool(storage.get_week_scoring_run(league_id, season, week))
 
 
+def week_is_final(league_id: str, season: int, week: int) -> bool:
+    """True after a calculate that locked the completed NFL slate."""
+    run = storage.get_week_scoring_run(league_id, season, week)
+    return bool(run and run.get("final"))
+
+
 def ensure_team_lineup(
     league_id: str,
     team_id: str,
@@ -291,7 +297,7 @@ def ensure_team_lineup(
     if not isinstance(rules, LeagueRules):
         rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     existing = storage.list_team_lineup(league_id, team_id, season, week)
-    if week_is_scored(league_id, season, week):
+    if week_is_final(league_id, season, week):
         return existing
     if nfl_week_slate_complete(season, week) and (existing or not fill_missing):
         return existing
@@ -417,8 +423,8 @@ def resolve_week_lineup(
         }
 
     saved = ensure_team_lineup(league_id, team_id, season, week, rules=rules)
-    scored = week_is_scored(league_id, season, week)
-    historical = scored or nfl_week_slate_complete(season, week)
+    final = week_is_final(league_id, season, week)
+    historical = final or nfl_week_slate_complete(season, week)
     if historical:
         by_id = {str(player.get("player_id")): player for player in players}
         players = [{**by_id.get(row["player_id"], {}), **row, "team": row.get("nfl_team") or ""} for row in saved]
@@ -428,7 +434,8 @@ def resolve_week_lineup(
         "lineup_source": "hub",
         "lineup_locked": locked,
         "lineup_persisted": True,
-        "week_scored": scored,
+        "week_scored": final,
+        "week_final": final,
     }
 
 
@@ -445,7 +452,7 @@ def set_team_starters(
     staff_edit: bool = False,
 ) -> list[dict[str, Any]]:
     """Replace the week's starters. Remaining roster players go to the bench."""
-    if week_is_scored(league_id, season, week):
+    if week_is_final(league_id, season, week):
         raise LineupError("Past-week lineups require a commissioner correction")
     if nfl_week_slate_complete(season, week, now=now) and not staff_edit:
         raise LineupError("Past-week lineups require a commissioner correction")
@@ -528,7 +535,7 @@ def swap_lineup_players(
     staff_edit: bool = False,
 ) -> list[dict[str, Any]]:
     """Swap a starter with a bench player when the bench is eligible for that slot."""
-    if week_is_scored(league_id, season, week):
+    if week_is_final(league_id, season, week):
         raise LineupError("Past-week lineups require a commissioner correction")
     if nfl_week_slate_complete(season, week, now=now) and not staff_edit:
         raise LineupError("Past-week lineups require a commissioner correction")
@@ -664,14 +671,6 @@ def apply_week_scores(
         }
     if slate_complete is None:
         slate_complete = nfl_week_slate_complete(int(season), int(week), now=now)
-    if not slate_complete:
-        return {
-            "scored": False,
-            "reason": "week_in_progress",
-            "season": int(season),
-            "week": int(week),
-            "source": "hub_ppr",
-        }
 
     lineups = storage.list_week_lineups(league_id, season, week)
     matchups = storage.list_week_matchups(league_id, season, week)
@@ -734,11 +733,20 @@ def apply_week_scores(
         for tid, pts in team_points.items()
     ]
     try:
-        storage.save_native_week_scores(league_id, season, week, player_rows, team_rows, rules.scoring.model_dump())
+        storage.save_native_week_scores(
+            league_id,
+            season,
+            week,
+            player_rows,
+            team_rows,
+            rules.scoring.model_dump(),
+            final=bool(slate_complete),
+        )
     except ValueError as exc:
         raise LineupError(str(exc)) from exc
     return {
         "scored": True,
+        "live": not bool(slate_complete),
         "reason": None,
         "season": int(season),
         "week": int(week),
@@ -981,10 +989,16 @@ def build_hub_live_week(
         attach_matchup_analytics(matchup_payloads, proj_index)
 
     scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
+    slate_done = nfl_week_slate_complete(season_n, resolved_week)
+    run_final = bool(scoring_run and scoring_run.get("final"))
+    live = bool(scored and not run_final)
     payload = {
         "scoring_control": {
             "host": "native",
             "scored": scored,
+            "live": live,
+            "final": run_final,
+            "slate_complete": slate_done,
             "run": scoring_run,
             "settings_changed": bool(scoring_run and scoring_run["scoring"] != rules.scoring.model_dump()),
             "settings": rules.scoring.model_dump(),
@@ -994,7 +1008,9 @@ def build_hub_live_week(
         "placeholder": not scored,
         "reason": "hub" if scored else "hub_unscored",
         "hint": (
-            "Week scored with saved ScoreSense league rules."
+            "Live scores. Recalculate as more games finish."
+            if live
+            else "Week scored with saved ScoreSense league rules."
             if scored
             else "Scores fill after this week is scored."
         ),

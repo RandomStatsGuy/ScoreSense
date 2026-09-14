@@ -16,10 +16,11 @@ export default function LeagueScoringControl({ leagueId, data, hubContext, onNav
   const linked = Boolean(sleeperId || data?.source === "sleeper");
   const control = data?.scoring_control;
   const scored = Boolean(control?.scored);
+  const live = Boolean(control?.live) && !control?.slate_complete;
   const disabled = busy || !control || !data?.week || !hubContext?.draft_completed;
   const calculate = async () => {
     if (disabled || linked || !hubContext?.is_commissioner) return;
-    if (scored && !(await confirmDialog({ title: COPY.recalculate, message: COPY.confirm(data.week), confirmLabel: COPY.recalculate, danger: true }))) return;
+    if (scored && !(await confirmDialog({ title: COPY.recalculate, message: COPY.confirm(data.week, { live }), confirmLabel: COPY.recalculate, danger: true }))) return;
     if (!mounted.current) return;
     setBusy(true); setMessage(""); setError("");
     try {
