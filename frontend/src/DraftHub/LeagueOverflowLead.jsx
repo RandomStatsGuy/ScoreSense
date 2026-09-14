@@ -13,6 +13,7 @@ import {
 } from "./leagueAttention";
 import { useLeagueChrome } from "./leagueChromeContext";
 import { isSoloContext } from "./hubLeagues";
+import { leagueUsesSalaries } from "./leagueCapabilities";
 
 /** Warm the freshness cache while Fantasy is open — the sheet unmounts when closed. */
 export function useLeagueFreshness(leagueId, enabled) {
@@ -65,6 +66,7 @@ export default function LeagueOverflowLead({
       projAge: ageShort(freshness?.projections?.built_at),
       capSheetsStale: Boolean(freshness?.cap_sheets?.stale),
       isCommish: Boolean(hubContext?.is_commissioner),
+      usesSalaries: leagueUsesSalaries(hubContext),
     }),
     chrome?.attentionItems,
   );

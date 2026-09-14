@@ -240,12 +240,15 @@ export function addFranchiseLabel({ configured, actual } = {}) {
   return Number(actual) < Number(configured) ? "Add team to open seat" : "Add team";
 }
 
-export function addFranchiseSupport({ nextCount, currentCount, cap } = {}) {
+export function addFranchiseSupport({ nextCount, currentCount, cap, usesSalaries = true } = {}) {
   const seats = Number(nextCount);
   const salary = Number(cap);
   const seatBit = seats === Number(currentCount)
     ? `Uses one open seat. League stays at ${seats} teams.`
     : Number.isFinite(seats) && seats > 0 ? `League becomes ${seats} seats.` : "Adds one seat.";
+  if (usesSalaries === false) {
+    return `${seatBit} The new seat starts empty.`;
+  }
   const capBit = Number.isFinite(salary) && salary > 0
     ? ` The new seat starts at $${salary} with no keepers.`
     : " The new seat starts with a full cap and no keepers.";
@@ -280,9 +283,11 @@ export const LEAGUE_SIZE_COPY = {
   saved: (n) => `League size saved: ${n} teams.`,
   added: (name) => `${name} added. Invite a manager to claim the team.`,
   removed: (name, n) => `${name} removed. League size: ${n} teams.`,
-  preview: (n, actual) => n < actual
+  preview: (n, actual, usesSalaries = true) => n < actual
     ? `Remove ${actual - n} ${actual - n === 1 ? "team" : "teams"} below before saving a ${n}-team league. Existing teams are never removed automatically.`
-    : `Room for ${n} teams, with ${n - actual} unassigned ${n - actual === 1 ? "seat" : "seats"}. Existing teams and contracts stay.`,
+    : usesSalaries === false
+      ? `Room for ${n} teams, with ${n - actual} unassigned ${n - actual === 1 ? "seat" : "seats"}. Existing teams stay.`
+      : `Room for ${n} teams, with ${n - actual} unassigned ${n - actual === 1 ? "seat" : "seats"}. Existing teams and contracts stay.`,
 };
 
 export function removeFranchiseBlocked(reason) {

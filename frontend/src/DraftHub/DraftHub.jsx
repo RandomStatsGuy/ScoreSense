@@ -630,8 +630,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       setSubView("rules");
       return;
     }
-    if (!isOfficeTabAllowed(officeTab, isCommish)) {
-      onOfficeTabChange?.(defaultOfficeTab(isCommish));
+    if (!isOfficeTabAllowed(officeTab, isCommish, effectiveCtx.capabilities)) {
+      onOfficeTabChange?.(defaultOfficeTab(isCommish, effectiveCtx.capabilities));
     }
   }, [subView, officeTab, effectiveCtx, onOfficeTabChange, setSubView]);
 
@@ -812,6 +812,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           season={valueSheet?.season || workspace?.season}
           onAddToRoster={onRosterChanged}
           rosterIds={rosterIds}
+          roster={roster}
           sleeper={valueSleeper}
           loading={valueSheetLoading}
           isCommissioner={Boolean(effectiveCtx?.is_commissioner)}

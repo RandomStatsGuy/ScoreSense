@@ -10746,6 +10746,69 @@ td.col-rank.col-rank-top {
   margin: 0 0 0.75rem;
 }
 
+.hub-fa-claims {
+  margin-bottom: var(--gutter);
+  padding: var(--inset-section);
+}
+
+.hub-fa-claim-list {
+  display: grid;
+  gap: var(--inset-chip);
+  margin: var(--inset-tile) 0 0;
+  padding-inline-start: var(--space-5);
+}
+
+.hub-fa-claim-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--inset-chip);
+  min-height: 2.75rem;
+}
+
+.hub-fa-claim-list li > strong {
+  min-width: 10rem;
+  margin-right: auto;
+}
+
+.hub-fa-priority-editor {
+  margin-top: var(--inset-section);
+  padding-top: var(--inset-tile);
+  border-top: 1px solid var(--border);
+}
+
+.hub-fa-priority-editor ol {
+  display: grid;
+  gap: var(--inset-chip);
+  margin: var(--inset-tile) 0;
+  padding-inline-start: var(--space-5);
+}
+
+.hub-fa-priority-editor li {
+  display: flex;
+  align-items: center;
+  gap: var(--inset-chip);
+}
+
+.hub-fa-priority-editor li > span {
+  margin-right: auto;
+}
+
+@media (max-width: 640px) {
+  .hub-fa-claim-list li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hub-fa-claim-list li > strong {
+    min-width: 0;
+  }
+
+  .hub-fa-priority-editor li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .hub-star-btn {
   flex: 0 0 auto;
   width: 1.75rem;

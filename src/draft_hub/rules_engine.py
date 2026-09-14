@@ -7,6 +7,7 @@ from typing import Any
 
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.contracts import cap_hit, multi_year_cap_plan as contract_cap_plan
+from src.draft_hub.league_capabilities import uses_contracts, uses_salaries
 
 
 def normalize_position(pos: str) -> str:
@@ -80,7 +81,7 @@ def blocking_acquisition_errors(rules: LeagueRules, roster: list[dict[str, Any]]
     roster = cap_relevant_roster(rules, roster)
     errors: list[str] = []
     summary = cap_summary(rules, roster)
-    if summary["remaining"] < 0:
+    if uses_salaries(rules) and summary["remaining"] < 0:
         errors.append(f"Over cap by ${abs(summary['remaining']):.0f}")
     limits = roster_limits(rules)
     counts = summary["by_position_count"]
@@ -96,7 +97,7 @@ def validate_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[st
     errors: list[str] = []
     roster = cap_relevant_roster(rules, roster)
     summary = cap_summary(rules, roster)
-    if summary["remaining"] < 0:
+    if uses_salaries(rules) and summary["remaining"] < 0:
         errors.append(f"Over cap by ${abs(summary['remaining']):.0f}")
 
     limits = roster_limits(rules)
@@ -109,12 +110,13 @@ def validate_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[st
         if count > lim["max"]:
             errors.append(f"{count - lim['max']} too many {pos_key} (max {lim['max']})")
 
-    max_years = int(rules.contracts.max_years)
-    for row in roster:
-        yrs = int(row.get("contract_years") or 1)
-        if yrs < 1 or yrs > max_years:
-            name = row.get("player_name") or row.get("player_id")
-            errors.append(f"{name}: contract years must be 1–{max_years}")
+    if uses_contracts(rules):
+        max_years = int(rules.contracts.max_years)
+        for row in roster:
+            yrs = int(row.get("contract_years") or 1)
+            if yrs < 1 or yrs > max_years:
+                name = row.get("player_name") or row.get("player_id")
+                errors.append(f"{name}: contract years must be 1–{max_years}")
 
     return errors
 

@@ -2,7 +2,7 @@
 
 Salary-cap and pick-draft league tooling. **Users see this as Fantasy**, not “Draft Hub.” Names, chrome, and copy: [PRODUCT.md](./PRODUCT.md). Contract cases: [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md).
 
-This file is the **API and storage** map. Do not add user-facing destinations here without updating `HubSubnav.jsx` and `PRODUCT.md`.
+This file is the **API and storage** map. Do not add user-facing destinations here without updating `hubSubnav.js` and `PRODUCT.md`.
 
 Shipped: solo prep, live auction / snake / linear rooms, contracts, cap planner, Sleeper import, trades, Rules, Roster management, Insights, persistent league chat.
 

@@ -29,6 +29,18 @@ test("Needs attention names Cap for over-cap and Review extensions for extend", 
   assert.equal(items.find((item) => item.id === "extend")?.action, "roster-extend");
 });
 
+test("no-money leagues hide financial attention", () => {
+  const items = buildLeagueAttentionItems({
+    inLeague: true,
+    overCapLabel: "$12",
+    mustExtendCount: 2,
+    capSheetsStale: true,
+    isCommish: true,
+    usesSalaries: false,
+  });
+  assert.equal(items.length, 0);
+});
+
 test("Needs attention names the stale sheet and the sync", () => {
   const items = buildLeagueAttentionItems({
     inLeague: true,

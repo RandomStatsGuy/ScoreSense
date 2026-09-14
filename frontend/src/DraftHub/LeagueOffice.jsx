@@ -30,8 +30,10 @@ import {
   isOfficeTabAllowed,
   visibleOfficeTabs,
 } from "./hubOfficeTabs";
+import { leagueUsesContracts, leagueUsesSalaries } from "./leagueCapabilities";
 import {
   commissionerIntro,
+  officeBoundaryNote,
   markSheetsGuideSeen,
   sheetsDefaultHint,
   sheetsGuideCopy,
@@ -130,6 +132,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
 
   const claimed = teams.filter((t) => t.user_sub).length;
   const sleeperLinked = teams.filter((t) => t.sleeper_roster_id).length;
+  const usesSalaries = leagueUsesSalaries(hubContext);
   const addPreview = resize?.add || null;
   const removals = useMemo(() => {
     const byId = new Map((resize?.removals || []).map((row) => [String(row.team_id), row]));
@@ -229,7 +232,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
   const actual = resize?.actual_teams ?? teams.length;
   const configured = resize?.team_count;
   const sizeOptions = [...new Set([...LEAGUE_TEAM_SIZES, configured].filter(Boolean))].sort((a, b) => a - b);
-  const sizeBlocked = resize?.blocker || (targetSize < actual ? LEAGUE_SIZE_COPY.preview(targetSize, actual) : "");
+  const sizeBlocked = resize?.blocker || (targetSize < actual ? LEAGUE_SIZE_COPY.preview(targetSize, actual, usesSalaries) : "");
   const saveSize = async (e) => {
     e.preventDefault();
     if (busy || loading || sizeBlocked || targetSize === configured) return;
@@ -297,11 +300,11 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
             {LEAGUE_SIZE_COPY.invite}
           </button>
         </form>
-        {resize && <p className="chart-note" role="status">{sizeBlocked || LEAGUE_SIZE_COPY.preview(targetSize, actual)}</p>}
+        {resize && <p className="chart-note" role="status">{sizeBlocked || LEAGUE_SIZE_COPY.preview(targetSize, actual, usesSalaries)}</p>}
         <h4 className="hub-section-title">{LEAGUE_SIZE_COPY.addTitle}</h4>
         {addPreview?.blocker && addPreview.blocker !== resize?.blocker && <HubAlert variant="warn">{addPreview.blocker}</HubAlert>}
         {addPreview && !addPreview.blocker && (
-          <p className="chart-note">{addFranchiseSupport({ nextCount: addPreview.next_team_count, currentCount: configured, cap: addPreview.salary_cap })}</p>
+          <p className="chart-note">{addFranchiseSupport({ nextCount: addPreview.next_team_count, currentCount: configured, cap: addPreview.salary_cap, usesSalaries })}</p>
         )}
         <form className="hub-form-row" onSubmit={addFranchise}>
           <label>
@@ -500,11 +503,18 @@ export default function LeagueOffice({
 }) {
   const mobileLayout = useMobileLayout();
   const isCommissioner = Boolean(hubContext?.is_commissioner);
-  const tabs = useMemo(() => visibleOfficeTabs(isCommissioner), [isCommissioner]);
-  const intro = useMemo(() => commissionerIntro(isCommissioner), [isCommissioner]);
-  const activeTab = isOfficeTabAllowed(officeTab, isCommissioner)
+  const capabilities = hubContext?.capabilities;
+  const tabs = useMemo(
+    () => visibleOfficeTabs(isCommissioner, capabilities),
+    [isCommissioner, capabilities],
+  );
+  const intro = useMemo(
+    () => commissionerIntro(isCommissioner, { usesContracts: leagueUsesContracts(hubContext) }),
+    [isCommissioner, hubContext],
+  );
+  const activeTab = isOfficeTabAllowed(officeTab, isCommissioner, capabilities)
     ? officeTab
-    : defaultOfficeTab(isCommissioner);
+    : defaultOfficeTab(isCommissioner, capabilities);
   const [historySeason, setHistorySeason] = useState("current");
   const [dataEpoch, setDataEpoch] = useState(0);
   const season = Number(hubContext?.season || new Date().getFullYear());
@@ -548,7 +558,7 @@ export default function LeagueOffice({
 
       {isCommissioner && (
         <p className="hub-office-admin-boundary" role="note">
-          Changes here apply league-wide. Day-to-day roster and cap decisions stay on My team and Cap.
+          {officeBoundaryNote(leagueUsesSalaries(hubContext))}
         </p>
       )}
 

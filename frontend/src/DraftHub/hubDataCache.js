@@ -14,6 +14,7 @@ function rulesKey(rules) {
   const roster = rules.roster || {};
   const serialize = (pos) => JSON.stringify(roster[pos] || {});
   return [
+    rules.draft_type,
     rules.salary_cap,
     rules.risk_tolerance ?? 0,
     serialize("qb"),
@@ -254,7 +255,8 @@ export function homeCacheKey(hubContext) {
   const leagueId = hubContext?.league_id || "solo";
   const teamId = hubContext?.team_id || "";
   const mode = hubContext?.mode || "";
-  return `${leagueId}:${teamId}:${mode}`;
+  const capabilities = hubContext?.capabilities || {};
+  return `${leagueId}:${teamId}:${mode}:${capabilities.version || 0}:${capabilities.economics || ""}:${capabilities.acquisition_mode || ""}`;
 }
 
 export function getHomeCache(key) {

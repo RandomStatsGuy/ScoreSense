@@ -76,7 +76,7 @@ def test_mirror_skill_and_unix_script_agree() -> None:
 
 def test_production_skills_name_canonical_files() -> None:
     dest = _skill("add-fantasy-destination")
-    assert "HubSubnav.jsx" in dest
+    assert "hubSubnav.js" in dest
     assert "livingSurfaces.js" in dest
     assert "routes.js" in dest
     assert "PRODUCT.md" in dest

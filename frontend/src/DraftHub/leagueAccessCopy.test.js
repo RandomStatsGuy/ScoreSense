@@ -229,6 +229,10 @@ test("size preview explains explicit removal and open capacity", () => {
   assert.match(LEAGUE_SIZE_COPY.preview(7, 8), /Remove 1 team below/);
   assert.match(LEAGUE_SIZE_COPY.preview(14, 8), /6 unassigned seats/);
   assert.match(addFranchiseSupport({ nextCount: 12, currentCount: 12, cap: 200 }), /Uses one open seat/);
+  assert.match(addFranchiseSupport({ nextCount: 12, currentCount: 12, cap: 200, usesSalaries: false }), /starts empty/);
+  assert.doesNotMatch(addFranchiseSupport({ nextCount: 12, currentCount: 12, cap: 200, usesSalaries: false }), /\$200|keepers/);
+  assert.match(LEAGUE_SIZE_COPY.preview(14, 8, false), /Existing teams stay/);
+  assert.doesNotMatch(LEAGUE_SIZE_COPY.preview(14, 8, false), /contracts/);
   assert.equal(addFranchiseLabel({ configured: 12, actual: 8 }), "Add team to open seat");
   assert.equal(canAddSeat({ configured: 20, actual: 20 }), false);
   assert.match(removeFranchiseConfirm("Alex", { consequences: ["League becomes 7 teams."] }), /Remove Alex.*7 teams/);

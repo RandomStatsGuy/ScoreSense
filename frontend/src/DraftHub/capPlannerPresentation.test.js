@@ -37,7 +37,14 @@ import {
   CAP_MODEL_COPY,
   CAP_STATUS_COPY,
   CAP_CUT_COPY,
+  CAP_UNAVAILABLE_COPY,
 } from "./capPlannerPresentation.js";
+
+test("direct Cap URL explains when salaries do not apply", () => {
+  assert.equal(CAP_UNAVAILABLE_COPY.heading, "Salaries do not apply");
+  assert.match(CAP_UNAVAILABLE_COPY.body, /Free agents/i);
+  assert.doesNotMatch(CAP_UNAVAILABLE_COPY.body, /Submit|Draft Hub|permission/i);
+});
 
 test("Cap hero asks if you can afford the bid", () => {
   const live = capHeroCopy();

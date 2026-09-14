@@ -60,6 +60,14 @@ export const CAP_FIGURE_COPY = {
   seasonLeftover: "cap room",
 };
 
+export const CAP_UNAVAILABLE_COPY = {
+  eyebrow: "Cap",
+  heading: "Salaries do not apply",
+  support: "This league does not use a salary cap.",
+  body: "Cap leftover, cuts, and bid previews stay on salary-cap leagues. Use Free agents for claims and adds.",
+  cta: "Open Free agents",
+};
+
 export const CAP_NEED_COPY = {
   browseFreeAgents: "Browse free agents",
 };
