@@ -20,7 +20,7 @@ Props are backlog — not top-level nav. Do not add them as a fourth product are
 
 **Construction controls:** QB stack Off / +1 / +2, bring-back, team limit, minimum spend, lineup counts 1–150, max overlap, max exposure (locks exempt), randomness jitter.
 
-**Exports:** DraftKings upload CSV (`Name (ID)` cells), FanDuel upload CSV (`Id:Name` cells), captain-mode variants (CPT/MVP column first), plus a detail CSV. Rows paste over the placeholder players in each site's entries template.
+**Exports:** DraftKings classic upload CSV (`Name (ID)` cells), FanDuel upload CSV (`Id:Name` cells), captain-mode variants (CPT/MVP column first), plus a detail CSV. **DraftKings Showdown is the exception:** bare, unquoted draftable IDs under `CPT,FLEX,FLEX,FLEX,FLEX,FLEX` — the shape DraftKings accepted. IDs are digits and the headers carry no commas, so that file never needs quoting. Rows paste over the placeholder players in each site's entries template.
 
 **Vegas board:** `/api/lineup/vegas` reads cached nflverse schedules — spread, total, moneylines, implied team totals; implied totals also annotate the player pool. On classic and season-long DFS the board is the shootout picker: tap one or more high-total games to stack. That does not lock a player. Pin a stack if you want that QB; otherwise Build takes a stack from the marked games. Highest stays a corner tag.
 

@@ -2,7 +2,10 @@
  * Lineup CSV exports (Tools → DFS).
  *
  * Lineup-library upload files:
- * - DraftKings reads position-headed rows with "Name (ID)" cells.
+ * - DraftKings classic reads position-headed rows with "Name (ID)" cells.
+ * - DraftKings Showdown reads bare draftable IDs under CPT/FLEX headers,
+ *   unquoted — matching a file DraftKings accepted. IDs are digits and the
+ *   headers have no commas, so nothing in this file ever needs quoting.
  * - FanDuel reads position-headed rows with "Id:Name" cells.
  * These files do not contain reserved-entry IDs or contest metadata. They
  * must not be presented as files for editing existing contest entries.
@@ -33,7 +36,9 @@ export const SITE_EXPORTS = {
     filename: "draftkings-showdown-lineups",
     headers: ["CPT", "FLEX", "FLEX", "FLEX", "FLEX", "FLEX"],
     slotOrder: ["CPT", ...CAPTAIN_FLEX_ORDER],
-    cell: (row) => `${row.player} (${row.dfs_id})`,
+    cell: (row) => `${row.dfs_id}`,
+    // Bare, unquoted draftable IDs — the shape DraftKings accepted.
+    quoteCells: false,
   },
   fanduel_single: {
     label: "FanDuel",
@@ -79,7 +84,8 @@ export function buildSiteLineupCsv(site, lineups = [], salaryCatalog = null) {
     return { ok: false, reason: "DraftKings accepts up to 500 lineups per upload. Export a smaller set." };
   }
 
-  const lines = [config.headers.map(csvQuote).join(",")];
+  const quote = config.quoteCells === false ? (value) => String(value ?? "") : csvQuote;
+  const lines = [config.headers.map(quote).join(",")];
   for (const entry of entries) {
     const ordered = orderLineup(entry?.lineup, config.slotOrder);
     if (!ordered) {
@@ -133,7 +139,7 @@ export function buildSiteLineupCsv(site, lineups = [], salaryCatalog = null) {
         return { ok: false, reason: "A Showdown lineup must include players from both teams in one game." };
       }
     }
-    lines.push(ordered.map((row) => csvQuote(config.cell(row))).join(","));
+    lines.push(ordered.map((row) => quote(config.cell(row))).join(","));
   }
   return { ok: true, lines, filename: config.filename };
 }
