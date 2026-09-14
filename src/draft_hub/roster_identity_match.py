@@ -8,9 +8,10 @@ A player may be active on two rosters only when one row is a cut.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any
 
-from src.draft_hub.player_name_match import roster_name_key
+from src.draft_hub.player_name_match import cluster_key, roster_name_key
 from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.storage import roster_row_occupies
 
@@ -43,10 +44,38 @@ def identities_overlap(left: dict[str, Any] | None, right: dict[str, Any] | None
     return bool(roster_identity_tokens(left) & roster_identity_tokens(right))
 
 
+def identity_token_set(ids: Iterable[str] | None) -> set[str]:
+    """Expand GSIS / sleeper-<n> / bare Sleeper n lists into comparable tokens."""
+    tokens: set[str] = set()
+    for raw in ids or []:
+        tokens |= roster_identity_tokens({"player_id": raw})
+    return tokens
+
+
+def overlay_identity_from_pool_row(row: dict[str, Any] | None) -> dict[str, Any]:
+    """Pool rows store the display name on ``player``, not ``player_name``."""
+    row = row or {}
+    return {
+        "player_id": row.get("player_id"),
+        "sleeper_player_id": row.get("sleeper_player_id") or row.get("sleeper_id"),
+        "player_name": row.get("player_name") or row.get("player"),
+        "position": row.get("position"),
+    }
+
+
+def _row_cluster_key(row: dict[str, Any] | None) -> str | None:
+    if not row:
+        return None
+    return cluster_key(
+        str(row.get("player_name") or row.get("player") or ""),
+        row.get("position"),
+    )
+
+
 def name_pos_key(row: dict[str, Any] | None) -> str:
     if not row:
         return ""
-    name = roster_name_key(str(row.get("player_name") or ""))
+    name = roster_name_key(str(row.get("player_name") or row.get("player") or ""))
     pos = normalize_position(row.get("position"))
     if pos in {"DST", "D"}:
         pos = "DEF"
@@ -109,14 +138,35 @@ def find_matching_roster_slot(
         return _prefer_team(overlap, team_id)
 
     want = name_pos_key(player)
-    if not want:
+    if want:
+        named = [r for r in candidates if name_pos_key(r) == want]
+        if team_id:
+            on_team = [r for r in named if _team_key(r) == str(team_id)]
+            if on_team:
+                return pick_keeper_slot(on_team)
+        if named:
+            return pick_keeper_slot(named)
+
+    # Last-name + position only when one side is a single-token nickname
+    # ("Jeanty") and the other is the full name. Two full names that share a
+    # last name (Kyren vs Javonte Williams) stay unmatched.
+    want_cluster = _row_cluster_key(player)
+    if not want_cluster:
         return None
-    named = [r for r in candidates if name_pos_key(r) == want]
+    incoming_name = str(player.get("player_name") or player.get("player") or "").strip()
+    incoming_abbrev = len(incoming_name.split()) == 1
+    clustered: list[dict[str, Any]] = []
+    for row in candidates:
+        if _row_cluster_key(row) != want_cluster:
+            continue
+        other = str(row.get("player_name") or row.get("player") or "").strip()
+        if incoming_abbrev or len(other.split()) == 1:
+            clustered.append(row)
     if team_id:
-        on_team = [r for r in named if _team_key(r) == str(team_id)]
-        if on_team:
-            return pick_keeper_slot(on_team)
-    return pick_keeper_slot(named) if named else None
+        clustered = [r for r in clustered if _team_key(r) == str(team_id)]
+    if len(clustered) == 1:
+        return clustered[0]
+    return None
 
 
 def _prefer_team(rows: list[dict[str, Any]], team_id: str | None) -> dict[str, Any]:

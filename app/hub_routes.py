@@ -206,6 +206,7 @@ from src.draft_hub.trade_proposals import (
     respond_to_proposal,
     validate_trade_package,
 )
+from src.draft_hub.roster_identity_match import find_matching_roster_slot, identities_overlap
 from src.draft_hub.roster_overview_enrich import enrich_league_roster_overview
 from src.draft_hub.trade_insights import build_trade_insights
 from src.draft_hub.league_efficiency import build_cap_efficiency
@@ -355,14 +356,20 @@ def _ctx_for_league(sub: str, league_id: str) -> dict[str, Any]:
 def _value_overlay_inputs(
     ctx: dict,
     sub: str,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None, str | None, set[str]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None, str | None, set[str], set[str]]:
     ws_id, team_id = roster_scope(ctx)
     roster = list_roster_for_context(ctx, live_sleeper=False)
     league_roster = None
+    league_sleeper_ids: set[str] = set()
     if ctx.get("mode") == "league" and ws_id:
         league_roster = storage.list_league_roster(ws_id)
+        if ctx.get("league_id"):
+            for team in storage.list_league_teams(str(ctx["league_id"])):
+                for pid in team.get("sleeper_player_ids") or []:
+                    if pid:
+                        league_sleeper_ids.add(str(pid))
     sleeper_ids = sleeper_player_id_set(sub)
-    return roster, league_roster, team_id, sleeper_ids
+    return roster, league_roster, team_id, sleeper_ids, league_sleeper_ids
 
 
 @router.get("/context")
@@ -597,7 +604,7 @@ def hub_value_overlay(
                     detail="Draft pool cache is cold. Request GET /api/hub/draft-pool first.",
                 )
         with timer.phase("overlay_inputs"):
-            roster, league_roster, team_id, sleeper_ids = _value_overlay_inputs(ctx, sub)
+            roster, league_roster, team_id, sleeper_ids, league_sleeper_ids = _value_overlay_inputs(ctx, sub)
         with timer.phase("overlay_build"):
             sheet = build_value_overlay_sheet(
                 target_season,
@@ -607,6 +614,7 @@ def hub_value_overlay(
                 league_roster=league_roster,
                 my_team_id=team_id,
                 sleeper_player_ids=sleeper_ids,
+                league_sleeper_player_ids=league_sleeper_ids,
                 team_count=team_count,
                 pool_payload=pool_payload,
                 draft_completed=bool(ctx.get("draft_completed")),
@@ -631,7 +639,7 @@ def hub_value_sheet(
             rules = LeagueRules.model_validate(ctx["rules"])
             ranges = storage.list_salary_ranges(ctx.get("personal_workspace_id") or ctx["workspace_id"])
             team_count = _team_count_for_ctx(ctx)
-            roster, league_roster, team_id, sleeper_ids = _value_overlay_inputs(ctx, sub)
+            roster, league_roster, team_id, sleeper_ids, league_sleeper_ids = _value_overlay_inputs(ctx, sub)
         with timer.phase("build"):
             if overlay_only:
                 pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count)
@@ -646,6 +654,7 @@ def hub_value_sheet(
                     league_roster=league_roster,
                     my_team_id=team_id,
                     sleeper_player_ids=sleeper_ids,
+                    league_sleeper_player_ids=league_sleeper_ids,
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
             else:
@@ -657,6 +666,7 @@ def hub_value_sheet(
                     league_roster=league_roster,
                     my_team_id=team_id,
                     sleeper_player_ids=sleeper_ids,
+                    league_sleeper_player_ids=league_sleeper_ids,
                     team_count=team_count,
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
@@ -1506,8 +1516,25 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     ws_id, _own_team_id = roster_scope(ctx)
     team_id, dest_label = _resolve_roster_add_team(ctx, body.team_id)
     dest_key = str(team_id) if team_id else ""
-    slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
-    occupying = [s for s in slots if storage.roster_row_occupies(s)]
+    sleeper_id = str(body.sleeper_player_id or "").strip() or None
+    if not sleeper_id and str(body.player_id).isdigit():
+        sleeper_id = str(body.player_id)
+    incoming = {
+        "player_id": body.player_id,
+        "player_name": body.player_name,
+        "position": body.position,
+        "sleeper_player_id": sleeper_id,
+    }
+    if ctx.get("mode") == "league" and ws_id:
+        match = find_matching_roster_slot(
+            storage.list_league_roster(ws_id),
+            incoming,
+            occupying_only=True,
+        )
+        occupying = [match] if match else []
+    else:
+        slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
+        occupying = [s for s in slots if storage.roster_row_occupies(s)]
     dest_occupying = next(
         (s for s in occupying if str(s.get("team_id") or "") == dest_key),
         None,
@@ -1578,9 +1605,6 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
         acq_type = "post_draft_fa"
     if acq_type:
         contract["acquisition_type"] = acq_type
-    sleeper_id = str(body.sleeper_player_id or "").strip() or None
-    if not sleeper_id and str(body.player_id).isdigit():
-        sleeper_id = str(body.player_id)
     dest_roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
     preview_slot = {
         "player_id": body.player_id,
@@ -1593,10 +1617,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     preview = [
         r
         for r in dest_roster
-        if not (
-            storage.roster_row_occupies(r)
-            and str(r.get("player_id")) == str(body.player_id)
-        )
+        if not (storage.roster_row_occupies(r) and identities_overlap(r, incoming))
     ]
     preview.append(preview_slot)
     staff_override = bool(body.staff_edit) and bool(ctx.get("is_commissioner"))
@@ -1604,7 +1625,11 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     if blocking and not staff_override:
         raise HTTPException(status_code=400, detail=blocking[0])
     if other_occupying and body.force:
-        moved = storage.move_roster_player(ws_id, body.player_id, dest_key)
+        moved = storage.move_roster_player(
+            ws_id,
+            str(other_occupying.get("player_id") or body.player_id),
+            dest_key,
+        )
         if not moved:
             raise HTTPException(status_code=404, detail="Player not on roster")
         roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
@@ -1647,8 +1672,6 @@ def _resolve_roster_write_row(
     existing = storage.get_roster_slot(workspace_id, player_id, team_id=team_id)
     if existing:
         return existing
-    from src.draft_hub.roster_identity_match import find_matching_roster_slot
-
     return find_matching_roster_slot(
         storage.list_workspace_roster_slots(workspace_id),
         {"player_id": player_id},
