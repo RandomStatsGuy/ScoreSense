@@ -116,6 +116,8 @@ from src.draft_hub.schemas import (
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
     FaBidRequest,
+    WaiverClaimsRequest,
+    WaiverPriorityRequest,
     AtmospherePrefsUpdate,
     TeamIdentityUpdate,
     WeekPollVoteRequest,
@@ -146,12 +148,23 @@ from src.draft_hub.fa_market import (
     process_due_windows,
     process_window,
 )
+from src.draft_hub.priority_waivers import (
+    confirm_waiver_priority,
+    list_claims,
+    list_protected_player_ids,
+    process_claims,
+    process_due_claim_windows,
+    replace_claims,
+    waiver_protection,
+    waiver_priority,
+)
 from src.draft_hub.league_permissions import (
     can_edit_roster,
     require_commissioner,
     require_league_member,
     require_primary_commissioner,
 )
+from src.draft_hub.league_capabilities import league_capabilities
 from src.draft_hub.league_resize import (
     LeagueResizeError,
     apply_add_franchise,
@@ -1479,6 +1492,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
         lid = str(ctx.get("league_id") or "")
         if lid:
             process_due_windows(lid, window.get("window_id"))
+            process_due_claim_windows(lid, window.get("window_id") if window.get("add_mode") == "claim" else None)
         staff_edit = bool(body.staff_edit)
         if staff_edit and not ctx.get("is_commissioner"):
             raise HTTPException(status_code=403, detail="Only commissioners can make roster-management edits")
@@ -1487,6 +1501,8 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
                 status_code=403,
                 detail=window.get("message") or "Adding players is not open right now",
             )
+        if not staff_edit and waiver_protection(lid, body.player_id):
+            raise HTTPException(status_code=409, detail="Player remains on waivers until the next claim period")
     ws_id, _own_team_id = roster_scope(ctx)
     team_id, dest_label = _resolve_roster_add_team(ctx, body.team_id)
     dest_key = str(team_id) if team_id else ""
@@ -1527,16 +1543,21 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
                 ),
             )
     rules = LeagueRules.model_validate(ctx["rules"])
+    capabilities = ctx.get("capabilities") or league_capabilities(rules)
     ctype = str(body.contract_type or "").strip().lower() or None
     if ctype and ctype not in CONTRACT_TYPES:
         raise HTTPException(
             status_code=400,
             detail="contract_type must be rookie, veteran, or extension",
         )
+    if not capabilities["uses_contracts"]:
+        ctype = None
+    effective_salary = float(body.salary) if capabilities["uses_salaries"] else 0.0
+    effective_years = int(body.contract_years or 1) if capabilities["uses_contracts"] else 1
     contract = build_contract_from_roster_edit(
         rules,
-        current_salary=float(body.salary),
-        years_remaining=int(body.contract_years or 1),
+        current_salary=effective_salary,
+        years_remaining=effective_years,
         contract_type=ctype,
     )
     if ctype:
@@ -1680,13 +1701,62 @@ def hub_fa_market(_user=Depends(require_hub_user)) -> dict:
     window = ctx.get("acquisition_window") or {}
     lid = str(ctx["league_id"])
     processed = process_due_windows(lid, window.get("window_id"))
+    claim_processing = process_due_claim_windows(
+        lid,
+        window.get("window_id") if window.get("add_mode") == "claim" else None,
+    )
     market = list_market(lid, window_id=window.get("window_id"), team_id=ctx.get("team_id"))
+    capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
+    if window.get("add_mode") == "claim" or capabilities.get("acquisition_mode") == "priority":
+        market["protected_player_ids"] = list_protected_player_ids(lid)
+    if window.get("add_mode") == "claim":
+        market["my_claims"] = list_claims(lid, str(window["window_id"]), str(ctx.get("team_id") or ""))
+        market["waiver_priority"] = waiver_priority(lid)
+        market["waiver_priority"]["current_team_id"] = str(ctx.get("team_id") or "")
     return {
         "window": window,
         "market": market,
         "processed": processed,
+        "claim_processing": claim_processing,
         "hub_context": ctx,
     }
+
+
+@router.put("/fa-market/claims")
+def hub_fa_market_claims(body: WaiverClaimsRequest, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    window = ctx.get("acquisition_window") or {}
+    if ctx.get("mode") != "league" or not ctx.get("league_id") or not ctx.get("team_id"):
+        raise HTTPException(status_code=403, detail="Join a league team to submit claims")
+    if window.get("add_mode") != "claim" or not window.get("window_id"):
+        raise HTTPException(status_code=400, detail=window.get("message") or "Claims are not open")
+    try:
+        claims = replace_claims(
+            league_id=str(ctx["league_id"]),
+            team_id=str(ctx["team_id"]),
+            window_id=str(window["window_id"]),
+            claims=[claim.model_dump() for claim in body.claims],
+            user_sub=sub,
+        )
+        priority = waiver_priority(str(ctx["league_id"]))
+        priority["current_team_id"] = str(ctx["team_id"])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"claims": claims, "priority": priority, "window": window, "hub_context": ctx}
+
+
+@router.put("/fa-market/priority")
+def hub_fa_market_priority(body: WaiverPriorityRequest, _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx(_sub(_user))
+    require_commissioner(ctx)
+    if ctx.get("mode") != "league" or not ctx.get("league_id"):
+        raise HTTPException(status_code=400, detail="Join a league first")
+    try:
+        priority = confirm_waiver_priority(str(ctx["league_id"]), body.team_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"priority": priority, "hub_context": ctx}
 
 
 @router.post("/fa-market/bid")
@@ -1726,9 +1796,13 @@ def hub_fa_market_process(_user=Depends(require_hub_user)) -> dict:
     wid = window.get("window_id")
     if not wid:
         processed = process_due_windows(str(ctx["league_id"]), None)
-        return {"processed": processed, "window": window, "hub_context": ctx}
+        claims = process_due_claim_windows(str(ctx["league_id"]), None)
+        return {"processed": processed, "claim_processing": claims, "window": window, "hub_context": ctx}
     try:
-        result = process_window(str(ctx["league_id"]), str(wid))
+        if window.get("add_mode") == "claim":
+            raise ValueError("Priority claims process Wednesday at 10 a.m. Eastern")
+        else:
+            result = process_window(str(ctx["league_id"]), str(wid))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _invalidate_league_rosters_from_ctx(ctx)
@@ -1740,6 +1814,8 @@ def hub_set_roster_contract_type(body: ContractTypeUpdateRequest, _user=Depends(
     """Dedicated contract-type writer — avoids general roster PATCH field-drop issues."""
     sub = _sub(_user)
     ctx = _ctx(sub)
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     ctype = str(body.contract_type or "").strip().lower()
     if ctype not in CONTRACT_TYPES:
@@ -1808,6 +1884,11 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     salary_fields = body.salary is not None or body.contract_years is not None or body.salary_schedule is not None
     type_field = body.contract_type is not None
     status_field = body.roster_status is not None
+    capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
+    if salary_fields and not capabilities["uses_salaries"]:
+        raise HTTPException(status_code=400, detail="Salaries do not apply to this league")
+    if type_field and not capabilities["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     if salary_fields and ctx.get("mode") == "league" and not ctx.get("can_edit_salaries"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can update salaries")
     if type_field and ctx.get("mode") == "league" and not (
@@ -5349,6 +5430,8 @@ def _hub_rookie_extend(
 
     Client salaries are ignored. Terms activate after the draft-complete tick.
     """
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     rules = LeagueRules.model_validate(ctx["rules"])
     draft_completed = bool(ctx.get("draft_completed"))
@@ -5415,6 +5498,8 @@ def hub_rookie_extend(body: RookieExtendRequest, _user=Depends(require_hub_user)
 
 def _hub_cancel_rookie_extend(*, player_id: str, ctx: dict[str, Any]) -> dict:
     """Undo a queued manager extension. Own-team only, same as queue."""
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     rules = LeagueRules.model_validate(ctx["rules"])
     draft_completed = bool(ctx.get("draft_completed"))

@@ -9,7 +9,7 @@ Do not add a fourth top-level area. Place the work under Projections, Fantasy, o
 
 ## Same-change checklist
 
-1. **Nav** — `frontend/src/DraftHub/HubSubnav.jsx` (`HUB_SUBVIEWS`) and/or `frontend/src/appNavigation.js` (`TOOLS_TABS` / `PROJECTIONS_TABS` / `SECTION_SUBTITLES`). User-facing **label** from `docs/PRODUCT.md`. Keep the internal `id`.
+1. **Nav** — `frontend/src/DraftHub/hubSubnav.js` (`HUB_SUBVIEWS`) and/or `frontend/src/appNavigation.js` (`TOOLS_TABS` / `PROJECTIONS_TABS` / `SECTION_SUBTITLES`). User-facing **label** from `docs/PRODUCT.md`. Keep the internal `id`.
 2. **Routes** — `frontend/src/routes.js` (`HUB_SLUG_TO_ID` + `HUB_ID_TO_SLUG`, or tools/projections parsers). Add a round-trip in `frontend/src/routes.test.js`. Old URLs redirect; do not break bookmarks.
 3. **Living surface** — row + aliases in `frontend/src/livingSurfaces.js`. `page` / `copy` must exist. Chrome from the existing enum. Test in `frontend/src/livingSurfaces.test.js` and `tests/test_living_surfaces.py`.
 4. **Constitution** — `docs/PRODUCT.md` destination table (and roster panes if office). `tests/test_product_constitution.py` labels must match.

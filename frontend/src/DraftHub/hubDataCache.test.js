@@ -2,11 +2,28 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  homeCacheKey,
+  poolCacheKey,
   resetValueSheetInflightForTests,
   runValueSheetRequest,
   valueSheetInflightCount,
   valueSheetRequestKey,
 } from "./hubDataCache.js";
+
+test("pool cache separates auction and pick-draft economics", () => {
+  assert.notEqual(
+    poolCacheKey(2026, { draft_type: "auction", salary_cap: 200 }),
+    poolCacheKey(2026, { draft_type: "snake", salary_cap: 200 }),
+  );
+});
+
+test("home cache separates capability modes", () => {
+  const base = { league_id: "league", team_id: "team", mode: "league" };
+  assert.notEqual(
+    homeCacheKey({ ...base, capabilities: { version: 1, economics: "salary_cap", acquisition_mode: "bid" } }),
+    homeCacheKey({ ...base, capabilities: { version: 1, economics: "none", acquisition_mode: "priority" } }),
+  );
+});
 
 test("value-sheet inflight coalesces concurrent callers", async () => {
   resetValueSheetInflightForTests();

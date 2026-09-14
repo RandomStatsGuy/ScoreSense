@@ -38,6 +38,7 @@ export function buildLeagueAttentionItems({
   droppingCount = 0,
   capSheetsStale = false,
   isCommish = false,
+  usesSalaries = true,
 } = {}) {
   if (!inLeague) return [];
   const items = [];
@@ -51,7 +52,7 @@ export function buildLeagueAttentionItems({
       action: "projections",
     });
   }
-  if (overCapLabel) {
+  if (usesSalaries && overCapLabel) {
     items.push({
       id: "over-cap",
       label: `Over cap ${overCapLabel}`,
@@ -59,14 +60,14 @@ export function buildLeagueAttentionItems({
       action: "planner",
     });
   }
-  if (mustExtendCount > 0) {
+  if (usesSalaries && mustExtendCount > 0) {
     items.push({
       id: "extend",
       label: `${mustExtendCount} need extension`,
       actionLabel: "Review extensions",
       action: "roster-extend",
     });
-  } else if (droppingCount > 0) {
+  } else if (usesSalaries && droppingCount > 0) {
     items.push({
       id: "expire",
       label: `${droppingCount} expire → FA`,
@@ -74,7 +75,7 @@ export function buildLeagueAttentionItems({
       action: "planner",
     });
   }
-  if (capSheetsStale && isCommish) {
+  if (usesSalaries && capSheetsStale && isCommish) {
     items.push({
       id: "cap-sheets",
       label: "Cap sheets stale",

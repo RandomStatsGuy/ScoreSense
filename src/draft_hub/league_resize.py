@@ -15,6 +15,7 @@ import json
 from typing import Any
 
 from src.draft_hub import storage
+from src.draft_hub.league_capabilities import uses_salaries
 from src.draft_hub.pre_draft_cap import is_active_for_pre_draft
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.trade_proposals import cancel_proposal
@@ -141,13 +142,21 @@ def preview_add_franchise(league_id: str, name: str | None = None) -> dict[str, 
         taken = {str(t.get("name") or "").strip().lower() for t in teams}
         if clean.lower() in taken:
             blocker = blocker or f"{clean} is already a franchise in this league."
-    consequences = [
-        f"League becomes {next_count} teams.",
-        f"New club starts at ${cap:g} with no keepers.",
-        "Existing contracts stay on their current clubs.",
-        "Strategy prices move — more seats, more relevant players.",
-        "Invite the manager after the seat exists.",
-    ]
+    if uses_salaries(rules):
+        consequences = [
+            f"League becomes {next_count} teams.",
+            f"New club starts at ${cap:g} with no keepers.",
+            "Existing contracts stay on their current clubs.",
+            "Strategy prices move — more seats, more relevant players.",
+            "Invite the manager after the seat exists.",
+        ]
+    else:
+        consequences = [
+            f"League becomes {next_count} teams.",
+            "New club starts empty.",
+            "Existing rosters stay on their current clubs.",
+            "Invite the manager after the seat exists.",
+        ]
     if league.get("sleeper_league_id"):
         consequences.append("Sleeper is separate. Add the roster there, then map it under Access.")
     return {

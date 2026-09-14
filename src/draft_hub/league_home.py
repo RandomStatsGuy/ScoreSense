@@ -14,6 +14,7 @@ from src.draft_hub import storage
 from src.draft_hub.draft_budgets import occupying_roster
 from src.draft_hub.hub_context import list_roster_for_context
 from src.draft_hub.hub_freshness import league_data_freshness
+from src.draft_hub.league_capabilities import uses_contracts, uses_salaries
 from src.draft_hub.pre_draft_cap import cap_summary_for_phase, pre_draft_cap_summary
 from src.draft_hub.rules_engine import (
     normalize_position,
@@ -193,12 +194,13 @@ def _roster_hole_action(
     have, _, pos, min_n = holes[0]
     remaining = cap.get("remaining")
     remaining_txt = ""
-    if remaining is not None:
+    if cap.get("uses_salaries") is not False and remaining is not None:
         remaining_txt = f" ${int(round(float(remaining)))} to spend."
+    hole_label = "on the roster" if cap.get("uses_salaries") is False else "under contract"
     return _action(
         "roster_hole",
         severity="high",
-        message=f"You draft with {_pos_count_label(have, pos)} under contract.{remaining_txt}",
+        message=f"You draft with {_pos_count_label(have, pos)} {hole_label}.{remaining_txt}",
         href="room",
         count=min_n - have,
         meta={"position": pos, "have": have, "min": min_n},
@@ -295,7 +297,7 @@ def _build_actions(
             actions.append(hole)
 
     remaining = float(cap.get("remaining") or 0)
-    if remaining < 0:
+    if cap.get("uses_salaries") is not False and remaining < 0:
         overage = abs(remaining)
         actions.append(
             _action(
@@ -381,7 +383,7 @@ def _build_actions(
             )
         )
 
-    if phase_id == PHASE_PRE_DRAFT and pre_draft:
+    if phase_id == PHASE_PRE_DRAFT and pre_draft and cap.get("uses_contracts") is not False:
         must_extend = list(pre_draft.get("must_extend") or [])
         dropping = list(pre_draft.get("dropping_at_draft") or [])
         expiring = list(pre_draft.get("expiring_before_draft") or must_extend)
@@ -424,7 +426,11 @@ def _build_actions(
             )
 
     cap_sheets = (freshness or {}).get("cap_sheets") or {}
-    if cap_sheets.get("stale") and cap_sheets.get("has_commissioner_files"):
+    if (
+        cap.get("uses_salaries") is not False
+        and cap_sheets.get("stale")
+        and cap_sheets.get("has_commissioner_files")
+    ):
         actions.append(
             _action(
                 "cap_sheets_stale",
@@ -563,8 +569,20 @@ def build_league_home(
 
     # DB-only roster — never live_sleeper on home load.
     roster = list_roster_for_context(ctx, live_sleeper=False)
+    money = uses_salaries(rules)
+    contracts = uses_contracts(rules)
     cap = cap_summary_for_phase(rules, roster, draft_completed=draft_completed)
+    cap["uses_salaries"] = money
+    cap["uses_contracts"] = contracts
+    if not money:
+        cap["salary_cap"] = None
+        cap["spent"] = None
+        cap["dead_cap"] = None
+        cap["remaining"] = None
+        cap["by_position_spend"] = {}
     pre_draft = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
+    if not money and phase["id"] == PHASE_OFFSEASON:
+        phase = {**phase, "primary_cta": {"view": "roster", "label": "My team"}}
 
     if league_id:
         freshness = league_data_freshness(str(league_id), include_contract_detail=False)

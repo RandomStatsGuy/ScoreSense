@@ -498,6 +498,22 @@ class FaBidRequest(BaseModel):
     bid_amount: float
 
 
+class WaiverClaimItem(BaseModel):
+    player_id: str
+    player_name: str
+    team: str = ""
+    position: str = ""
+    drop_player_id: Optional[str] = None
+
+
+class WaiverClaimsRequest(BaseModel):
+    claims: list[WaiverClaimItem] = Field(default_factory=list)
+
+
+class WaiverPriorityRequest(BaseModel):
+    team_ids: list[str]
+
+
 class AtmospherePrefsUpdate(BaseModel):
     atmosphere: Optional[str] = None
     atmosphere_motion: Optional[bool] = None

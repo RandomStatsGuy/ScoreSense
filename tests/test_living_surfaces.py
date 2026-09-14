@@ -38,7 +38,7 @@ def _surface_ids() -> set[str]:
 
 
 def _hub_ids() -> list[str]:
-    return HUB_ID_RE.findall(_read("frontend", "src", "DraftHub", "HubSubnav.jsx"))
+    return HUB_ID_RE.findall(_read("frontend", "src", "DraftHub", "hubSubnav.js"))
 
 
 def _nav_tab_ids(const_name: str) -> list[str]:

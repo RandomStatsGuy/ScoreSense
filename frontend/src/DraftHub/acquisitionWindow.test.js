@@ -1,11 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CLAIM_QUEUE_COPY,
   PLAYERS_TAB_COPY,
   playersTabAddDisabledReason,
   playersTabAddLabel,
   playersTabAddMode,
   playersTabBanner,
+  playersTabBusyLabel,
+  playersTabClaimedLabel,
   playersTabLockedChip,
   playersTabStarCopy,
   playerTradeableInWindow,
@@ -38,6 +41,17 @@ test("waiver window uses bid copy", () => {
   assert.equal(playersTabAddLabel("bid"), "Bid");
   const banner = playersTabBanner({ add_mode: "bid", message: "Place a bid.", label: "Waiver bidding" });
   assert.equal(banner.variant, "warn");
+});
+
+test("priority waiver window uses claim actions", () => {
+  assert.equal(playersTabAddMode({ add_mode: "claim" }, { inLeague: true }), "claim");
+  assert.equal(playersTabAddLabel("claim"), "Claim");
+  assert.equal(playersTabBusyLabel("claim"), CLAIM_QUEUE_COPY.claiming);
+  assert.equal(playersTabClaimedLabel(), CLAIM_QUEUE_COPY.claimed);
+  const banner = playersTabBanner({ add_mode: "claim", message: "Submit claims.", label: "Waivers" });
+  assert.equal(banner.variant, "warn");
+  assert.match(CLAIM_QUEUE_COPY.support, /end of priority/i);
+  assert.doesNotMatch(CLAIM_QUEUE_COPY.empty, /Submit|Draft Hub|permission/i);
 });
 
 test("offseason surviving-contract trades skip one-year deals", () => {

@@ -38,7 +38,7 @@ Use these labels. Keep internal ids if they already exist.
 
 Roster management panes: Contracts, Salary sheets, Members, Access & imports. A seat is the slot; a manager is the person. Chat is not a pane or a Fantasy destination.
 
-Source: `frontend/src/DraftHub/HubSubnav.jsx`, `frontend/src/appNavigation.js`.
+Source: `frontend/src/DraftHub/hubSubnav.js`, `frontend/src/appNavigation.js`.
 
 ## Design
 
@@ -61,7 +61,8 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Opening a Fantasy page does not change the saved league. Practice rooms never become strip focus. Only Switch league, or joining/creating a live league, writes focus.
 - Switching Projections, Fantasy, or Tools returns you to the last destination you used in that area. Tapping the already-selected top-level tab reopens that area’s destination picker on phone.
 - Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit.
-- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not.
+- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not. Pick-draft waivers use priority claims; auction waivers still bid.
+- League capabilities (`uses_salaries`, `uses_contracts`, `acquisition_mode`) come from `draft_type`. Auction is salary-cap + bid. Snake and linear are no-money + priority claims. Legacy salary fields have no effect when `uses_salaries` is false. Hide Cap, Contracts, and Salary sheets in those leagues.
 - Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot.
 - One `<main id="main-content">` plus a skip link; do not nest a second main.

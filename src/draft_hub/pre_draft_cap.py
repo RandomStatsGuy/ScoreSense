@@ -170,7 +170,9 @@ def pre_draft_cap_summary(
     *,
     draft_completed: bool = False,
 ) -> dict[str, Any] | None:
-    if draft_completed:
+    from src.draft_hub.league_capabilities import uses_salaries
+
+    if draft_completed or not uses_salaries(rules):
         return None
 
     cap = float(rules.salary_cap)
