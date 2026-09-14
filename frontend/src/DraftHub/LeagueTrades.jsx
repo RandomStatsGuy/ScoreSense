@@ -16,6 +16,11 @@ import { getInsightsSection, setInsightsSection } from "./hubDataCache";
 import { confirmDialog } from "../ui/confirm";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
+import { leagueUsesSalaries } from "./leagueCapabilities";
+
+/** False in a no-money league: the backend sends null cap figures. */
+const TradesMoneyContext = React.createContext(true);
+const useTradesMoney = () => React.useContext(TradesMoneyContext);
 import { hubTeamLabel } from "./hubTeamLabel";
 import { clearTradeSeed, readTradeSeed, resolveTradePartnerId } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
@@ -133,6 +138,8 @@ function TradeWeekStrip({ preview, emptyCopy, media }) {
 }
 
 function TeamCapStrip({ projected, salaryCap }) {
+  // salary_cap, committed, dead_cap and unspent all come back null here.
+  if (!useTradesMoney()) return null;
   if (!projected) return null;
   const { committed, dead_cap: dead, unspent, by_position_count: byPos, base, dirty } = projected;
   const basePos = base?.by_position_count || {};
@@ -268,7 +275,7 @@ function TradePlayerRow({
         </div>
       </div>
       <div className="hub-trade-player-actions">
-        <span className="hub-trade-salary">{fmtSal(row.salary)}</span>
+        {useTradesMoney() && <span className="hub-trade-salary">{fmtSal(row.salary)}</span>}
         <button
           type="button"
           className={`btn-ghost btn-sm${sending ? " active" : ""}`}
@@ -300,6 +307,7 @@ function TradePlayerRow({
 }
 
 export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
+  const usesSalaries = leagueUsesSalaries(hubContext);
   const [tab, setTab] = useState("builder");
   const [builderStep, setBuilderStep] = useState("partner");
   const [insights, setInsights] = useState(null);
@@ -955,7 +963,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                       showTeam={false}
                       narrativeScope="season"
                     />
-                    <span className="hub-trade-salary-inline">{fmtSal(s.row?.salary)}</span>
+                    {usesSalaries && (
+                      <span className="hub-trade-salary-inline">{fmtSal(s.row?.salary)}</span>
+                    )}
                     <span className="table-meta">from {teamName(s.from_team_id)}</span>
                   </div>
                 ))}
@@ -971,7 +981,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                     <div key={s.player_id} className="hub-trade-leg-row">
                       <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
                       <span>{playerLabel(party.team_id, s.player_id)}</span>
-                      <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                      {usesSalaries && (
+                        <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                      )}
                       <span className="table-meta">→</span>
                       {activeParties.length > 2 ? (
                         <HubFilterMenu
@@ -1057,7 +1069,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
             <li key={`${leg.drop ? "cut" : "send"}-${leg.from}-${leg.player_id}`}>
               <span className="hub-roster-pos-tag">{leg.position || "?"}</span>
               <strong>{leg.name}</strong>
-              <span className="hub-trade-salary-inline">{fmtSal(leg.salary)}</span>
+              {usesSalaries && (
+                <span className="hub-trade-salary-inline">{fmtSal(leg.salary)}</span>
+              )}
               <span className="hub-trade-leg-flow">{packageLegFlow(leg, teamName)}</span>
             </li>
           ))}
@@ -1106,7 +1120,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                     <span className="table-meta">{TRADES_COPY.sendVerb}</span>
                     <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
                     <span>{playerLabel(party.team_id, s.player_id)}</span>
-                    <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                    {usesSalaries && (
+                      <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                    )}
                   </div>
                 );
               })}
@@ -1148,6 +1164,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   );
 
   return (
+    <TradesMoneyContext.Provider value={usesSalaries}>
     <HubPage className="hub-experience-page">
       <HubExperienceHero
         eyebrow={TRADES_COPY.eyebrow}
@@ -1483,7 +1500,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
                               showTeam={false}
                               narrativeScope="season"
                             />
-                            <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                            {usesSalaries && (
+                              <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>
+                            )}
                             <span className="table-meta">→ {teamName(s.to_team_id)}</span>
                           </li>
                         );
@@ -1676,5 +1695,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         </div>
       )}
     </HubPage>
+    </TradesMoneyContext.Provider>
   );
 }

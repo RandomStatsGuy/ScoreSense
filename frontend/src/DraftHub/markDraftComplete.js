@@ -7,13 +7,17 @@ export const MARK_DRAFT_COMPLETE_COPY = Object.freeze({
   confirmTitle: "Mark draft complete",
   confirm:
     "Mark draft complete: burns one year on every contract. Cannot be undone.",
+  confirmNoMoney:
+    "Mark draft complete: moves the league in-season. Cannot be undone.",
   done: "Draft complete",
 });
 
-export async function markDraftComplete(leagueId) {
+export async function markDraftComplete(leagueId, { usesContracts = true } = {}) {
   const ok = await confirmDialog({
     title: MARK_DRAFT_COMPLETE_COPY.confirmTitle,
-    message: MARK_DRAFT_COMPLETE_COPY.confirm,
+    message: usesContracts
+      ? MARK_DRAFT_COMPLETE_COPY.confirm
+      : MARK_DRAFT_COMPLETE_COPY.confirmNoMoney,
     confirmLabel: MARK_DRAFT_COMPLETE_COPY.action,
     danger: true,
   });

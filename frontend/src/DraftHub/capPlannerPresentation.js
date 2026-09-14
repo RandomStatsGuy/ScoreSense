@@ -108,6 +108,7 @@ export const CAP_STATUS_COPY = {
 export const CAP_DRAFT_COPY = {
   markComplete: "Mark draft complete",
   markCompleteRest: "on Roster management · Contracts when the auction ends.",
+  markCompleteRestNoMoney: "on Roster management · Roster moves when the draft ends.",
 };
 
 export const CAP_SHEET_COPY = {

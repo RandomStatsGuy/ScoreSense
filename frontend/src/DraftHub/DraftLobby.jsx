@@ -11,6 +11,7 @@ import {
   isPickDraft,
   utcIsoToWall,
 } from "./draftEntryStatus";
+import { rulesUseContracts } from "./leagueCapabilities";
 import useMobileLayout from "../useMobileLayout";
 import {
   availabilityTimezone,
@@ -287,7 +288,12 @@ export default function DraftLobby({
   const roomFull = claimed >= teamCount && teamCount > 0;
   const readyToStart = Boolean(nightLocked && roomFull);
   const heading = draftLobbyHeroHeading({ testMode, locked: nightLocked, roomFull });
-  const support = draftLobbyHeroSupport({ testMode, locked: nightLocked, roomFull });
+  const support = draftLobbyHeroSupport({
+    testMode,
+    locked: nightLocked,
+    roomFull,
+    usesContracts: rulesUseContracts(rules || league?.rules),
+  });
   const keepersLine = expirePreview && (Number(expirePreview.retained_count) || Number(expirePreview.expire_count))
     ? `${Number(expirePreview.retained_count) || 0} retained · ${Number(expirePreview.expire_count) || 0} expire before draft`
     : "";

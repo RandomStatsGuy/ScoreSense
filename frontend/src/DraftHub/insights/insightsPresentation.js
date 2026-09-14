@@ -348,11 +348,36 @@ export const DEFAULT_AWARD_CATALOG = [
   { id: "cap_efficiency_fraud", group: "scoring", default_title: "Worst points per dollar" },
 ];
 
+/**
+ * Mirrors MONEY_AWARDS in src/draft_hub/insight_awards.py. `group` is not the
+ * axis: nomad and loyalty are "spend" but count teams and tenure, and the two
+ * cap_efficiency awards are "scoring" but divide by dollars.
+ */
+export const MONEY_AWARD_IDS = new Set([
+  "highest_paid",
+  "most_overpaid",
+  "worst_contract",
+  "best_bargain",
+  "waiver_king",
+  "cap_hog",
+  "payroll_king",
+  "dead_cap_disaster",
+  "career_earnings",
+  "biggest_raise",
+  "cap_crunch",
+  "cap_efficiency_goat",
+  "cap_efficiency_fraud",
+]);
+
 export function awardCatalogFromRules(rules, catalog = DEFAULT_AWARD_CATALOG) {
   const titles = rules?.insight_award_titles && typeof rules.insight_award_titles === "object"
     ? rules.insight_award_titles
     : {};
-  return (catalog || []).map((row) => {
+  const usesSalaries = String(rules?.draft_type || "auction") === "auction";
+  const scoped = usesSalaries
+    ? (catalog || [])
+    : (catalog || []).filter((row) => !MONEY_AWARD_IDS.has(row.id));
+  return scoped.map((row) => {
     const custom = String(titles[row.id] || "").trim();
     return {
       ...row,
