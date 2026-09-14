@@ -259,7 +259,8 @@ def test_lineup_swap_and_score_week_routes(hub_db, monkeypatch):
         "src.draft_hub.hub_scoring.nfl_game_started",
         lambda *_a, **_k: False,
     )
-    league, home, _away, comm = _seed_two_team_league(hub_db)
+    league, home, away, comm = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], away["id"], 2026, 1)
     client = _client(comm)
 
     got = client.get(f"/api/hub/league/{league['id']}/lineup?week=1")

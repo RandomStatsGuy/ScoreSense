@@ -3,6 +3,7 @@
 export const OFFICE_TABS = [
   { id: "current", label: "Contracts", group: "rosters", roles: ["commissioner"] },
   { id: "historic", label: "Salary sheets", group: "records", roles: ["commissioner"] },
+  { id: "corrections", label: "Corrections", group: "records", roles: ["commissioner"] },
   { id: "members", label: "Members", group: "league", roles: ["commissioner"] },
   { id: "access", label: "Access & imports", group: "league", roles: ["commissioner"] },
 ];

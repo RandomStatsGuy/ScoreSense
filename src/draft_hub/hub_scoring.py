@@ -280,10 +280,12 @@ def ensure_team_lineup(
         raise LineupError("League not found")
     if not isinstance(rules, LeagueRules):
         rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
+    existing = storage.list_team_lineup(league_id, team_id, season, week)
+    if storage.get_week_scoring_run(league_id, season, week) or nfl_week_slate_complete(season, week):
+        return existing
     ws = storage.roster_workspace_for_league(league)
     roster = roster if roster is not None else _active_roster(ws, team_id)
     cards = _cards_from_roster(roster)
-    existing = storage.list_team_lineup(league_id, team_id, season, week)
     if existing and any(row.get("locked") for row in existing):
         return existing
     if not cards:
@@ -395,8 +397,12 @@ def resolve_week_lineup(
         return starters, bench, {"lineup_source": "inferred", "lineup_locked": False}
 
     saved = ensure_team_lineup(league_id, team_id, season, week, rules=rules)
+    historical = bool(storage.get_week_scoring_run(league_id, season, week)) or nfl_week_slate_complete(season, week)
+    if historical:
+        by_id = {str(player.get("player_id")): player for player in players}
+        players = [{**by_id.get(row["player_id"], {}), **row, "team": row.get("nfl_team") or ""} for row in saved]
     starters, bench = apply_saved_lineup(players, saved)
-    locked = any(row.get("locked") for row in saved)
+    locked = historical or any(row.get("locked") for row in saved)
     return starters, bench, {
         "lineup_source": "hub",
         "lineup_locked": locked,
@@ -416,6 +422,8 @@ def set_team_starters(
     game_started: Callable[[str], bool] | None = None,
 ) -> list[dict[str, Any]]:
     """Replace the week's starters. Remaining roster players go to the bench."""
+    if storage.get_week_scoring_run(league_id, season, week) or nfl_week_slate_complete(season, week, now=now):
+        raise LineupError("Past-week lineups require a commissioner correction")
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
@@ -494,6 +502,8 @@ def swap_lineup_players(
     game_started: Callable[[str], bool] | None = None,
 ) -> list[dict[str, Any]]:
     """Swap a starter with a bench player when the bench is eligible for that slot."""
+    if storage.get_week_scoring_run(league_id, season, week) or nfl_week_slate_complete(season, week, now=now):
+        raise LineupError("Past-week lineups require a commissioner correction")
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
@@ -630,6 +640,9 @@ def apply_week_scores(
 
     lineups = storage.list_week_lineups(league_id, season, week)
     matchups = storage.list_week_matchups(league_id, season, week)
+    recorded_teams = {row["team_id"] for row in lineups}
+    if any(str(team["id"]) not in recorded_teams for team in teams):
+        return {"scored": False, "reason": "incomplete_historical_lineups", "season": int(season), "week": int(week)}
     unsupported = [row for row in lineups if str(row.get("lineup_role")) == "starter"
                    and normalize_position(row.get("position")) not in {"QB", "RB", "WR", "TE"}]
     if unsupported:
