@@ -6,7 +6,7 @@ import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobil
 import { interceptAppNav } from "../appNavLink";
 import { buildAppPath } from "../routes";
 import LeagueOverflowLead from "./LeagueOverflowLead";
-import { HUB_SUBVIEWS, HUB_GROUP_LABELS, filterHubSubviews, hubDestinationGroups } from "./hubSubnav";
+import { HUB_SUBVIEWS, HUB_GROUP_LABELS, filterHubSubviews, hubDestinationGroups } from "./hubSubnav.js";
 
 export { HUB_SUBVIEWS, HUB_GROUP_LABELS, filterHubSubviews, hubDestinationGroups };
 
