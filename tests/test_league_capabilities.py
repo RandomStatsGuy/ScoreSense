@@ -164,12 +164,73 @@ def test_no_money_trade_ignores_cap_but_keeps_roster_limits(hub_db):
     assert any("too many WR" in error for error in overloaded["errors"])
 
 
-def test_no_money_instant_add_respects_waiver_protection(hub_db):
+def test_no_money_home_omits_financial_actions(hub_db):
+    from unittest.mock import patch
+
+    from src.draft_hub.hub_context import resolve_hub_context
+    from src.draft_hub.league_home import build_league_home
+
+    commissioner, workspace, league, team_a, _team_b = _league(hub_db, _rules("snake", salary_cap=1))
+    storage.add_roster_slot(
+        workspace["id"],
+        {
+            "player_id": "legacy-wr",
+            "player_name": "Legacy Money",
+            "position": "WR",
+            "salary": 999,
+            "contract_years": 1,
+        },
+        team_id=team_a["id"],
+    )
+    ctx = resolve_hub_context(commissioner)
+    stale_built = "2026-01-01T00:00:00+00:00"
+    with patch(
+        "src.draft_hub.league_home.league_data_freshness",
+        return_value={
+            "available": True,
+            "league_id": league["id"],
+            "sleeper": {"synced_at": None, "linked": True},
+            "scoring": {"synced_at": None, "linked": True},
+            "cap_sheets": {
+                "stale": True,
+                "last_imported_at": None,
+                "has_commissioner_files": True,
+            },
+            "projections": {
+                "built_at": stale_built,
+                "stale": True,
+                "available": True,
+                "season": 2026,
+            },
+        },
+    ):
+        payload = build_league_home(ctx, include_week=False)
+
+    action_ids = {action["id"] for action in payload["actions"]}
+    assert "cap_overage" not in action_ids
+    assert "expiring_contracts" not in action_ids
+    assert "cap_sheets_stale" not in action_ids
+    assert payload["cap"]["remaining"] is None
+    assert payload["pre_draft"] is None
+
+
+def test_no_money_instant_add_respects_waiver_protection(hub_db, monkeypatch):
     from datetime import datetime, timedelta, timezone
+    from zoneinfo import ZoneInfo
 
     from src.draft_hub.priority_waivers import waiver_protection
 
+    et = ZoneInfo("America/New_York")
     commissioner, _workspace, league, team_a, _team_b = _league(hub_db, _rules("snake"))
+    storage.update_league_settings(league["id"], draft_completed=True)
+    monkeypatch.setattr(
+        "src.draft_hub.acquisition_window.get_nfl_state",
+        lambda use_cache=True: {"season_type": "regular", "week": 2, "season": 2026},
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.acquisition_window._now_et",
+        lambda now=None: datetime(2026, 9, 17, 11, 0, tzinfo=et),
+    )
     stamp = storage._utcnow()
     eligible = (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()
     with storage.get_conn() as conn:
@@ -197,5 +258,5 @@ def test_no_money_instant_add_respects_waiver_protection(hub_db):
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
 
-    assert response.status_code == 400
-    assert "waiver protection" in response.json()["detail"].lower()
+    assert response.status_code == 409, response.text
+    assert "waivers" in response.json()["detail"].lower()

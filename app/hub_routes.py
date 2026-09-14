@@ -1532,17 +1532,6 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     ]
     preview.append(preview_slot)
     staff_override = bool(body.staff_edit) and bool(ctx.get("is_commissioner"))
-    if (
-        not staff_override
-        and ctx.get("mode") == "league"
-        and ctx.get("league_id")
-        and capabilities.get("acquisition_mode") == "priority"
-        and waiver_protection(str(ctx["league_id"]), str(body.player_id))
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="That player is on waiver protection until the next window",
-        )
     blocking = blocking_acquisition_errors(rules, preview)
     if blocking and not staff_override:
         raise HTTPException(status_code=400, detail=blocking[0])
