@@ -12,6 +12,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from src.integrations.sleeper import get_nfl_state
+from src.draft_hub.league_capabilities import league_capabilities
 
 PHASE_PRE_DRAFT = "pre_draft"
 PHASE_LIVE_DRAFT = "live_draft"
@@ -138,8 +139,8 @@ def resolve_acquisition_window(
 
     from src.draft_hub.league_home import resolve_league_phase
 
-    draft_type = str((ctx.get("rules") or {}).get("draft_type") or "auction").lower()
-    priority_waivers = draft_type in {"snake", "linear"}
+    capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
+    priority_waivers = capabilities.get("acquisition_mode") == "priority"
 
     phase = resolve_league_phase(
         draft_completed=bool(ctx.get("draft_completed")),
@@ -181,8 +182,12 @@ def resolve_acquisition_window(
     else:
         window = WINDOW_OFFSEASON
         add_mode = ADD_LOCKED
-        trade_scope = TRADE_SURVIVING
-        message = _ADD_COPY[ADD_LOCKED]
+        trade_scope = TRADE_ACTIVE if priority_waivers else TRADE_SURVIVING
+        message = (
+            "Offseason roster additions are locked until the draft. Trades remain open."
+            if priority_waivers
+            else _ADD_COPY[ADD_LOCKED]
+        )
 
     can_record = bool(ctx.get("owner_entry_open")) and not bool(ctx.get("draft_completed"))
     if can_record and phase_id == PHASE_PRE_DRAFT:

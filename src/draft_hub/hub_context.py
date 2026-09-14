@@ -6,6 +6,7 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.acquisition_window import attach_acquisition_window
+from src.draft_hub.league_capabilities import league_capabilities
 from src.draft_hub.schemas import LeagueRules
 
 _MAX_TEAM_ROSTER_BEFORE_RECONCILE = 28
@@ -199,7 +200,9 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
 def _with_permissions(ctx: dict[str, Any]) -> dict[str, Any]:
     is_comm = bool(ctx.get("is_commissioner"))
     in_league = ctx.get("mode") == "league"
-    ctx["can_edit_salaries"] = (not in_league) or is_comm
+    capabilities = league_capabilities(ctx.get("rules") or {})
+    ctx["capabilities"] = capabilities
+    ctx["can_edit_salaries"] = capabilities["uses_salaries"] and ((not in_league) or is_comm)
     ctx["can_edit_rules"] = (not in_league) or is_comm
     ctx["can_import_league_sheet"] = (not in_league) or is_comm
     ctx["can_invite_members"] = in_league and is_comm

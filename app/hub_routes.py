@@ -162,6 +162,7 @@ from src.draft_hub.league_permissions import (
     require_league_member,
     require_primary_commissioner,
 )
+from src.draft_hub.league_capabilities import league_capabilities
 from src.draft_hub.league_resize import (
     LeagueResizeError,
     apply_add_franchise,
@@ -1473,16 +1474,21 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
                 ),
             )
     rules = LeagueRules.model_validate(ctx["rules"])
+    capabilities = ctx.get("capabilities") or league_capabilities(rules)
     ctype = str(body.contract_type or "").strip().lower() or None
     if ctype and ctype not in CONTRACT_TYPES:
         raise HTTPException(
             status_code=400,
             detail="contract_type must be rookie, veteran, or extension",
         )
+    if not capabilities["uses_contracts"]:
+        ctype = None
+    effective_salary = float(body.salary) if capabilities["uses_salaries"] else 0.0
+    effective_years = int(body.contract_years or 1) if capabilities["uses_contracts"] else 1
     contract = build_contract_from_roster_edit(
         rules,
-        current_salary=float(body.salary),
-        years_remaining=int(body.contract_years or 1),
+        current_salary=effective_salary,
+        years_remaining=effective_years,
         contract_type=ctype,
     )
     if ctype:
@@ -1736,6 +1742,8 @@ def hub_set_roster_contract_type(body: ContractTypeUpdateRequest, _user=Depends(
     """Dedicated contract-type writer — avoids general roster PATCH field-drop issues."""
     sub = _sub(_user)
     ctx = _ctx(sub)
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     ctype = str(body.contract_type or "").strip().lower()
     if ctype not in CONTRACT_TYPES:
@@ -1804,6 +1812,11 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     salary_fields = body.salary is not None or body.contract_years is not None or body.salary_schedule is not None
     type_field = body.contract_type is not None
     status_field = body.roster_status is not None
+    capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
+    if salary_fields and not capabilities["uses_salaries"]:
+        raise HTTPException(status_code=400, detail="Salaries do not apply to this league")
+    if type_field and not capabilities["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     if salary_fields and ctx.get("mode") == "league" and not ctx.get("can_edit_salaries"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can update salaries")
     if type_field and ctx.get("mode") == "league" and not (
@@ -5341,6 +5354,8 @@ def _hub_rookie_extend(
 
     Client salaries are ignored. Terms activate after the draft-complete tick.
     """
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     rules = LeagueRules.model_validate(ctx["rules"])
     draft_completed = bool(ctx.get("draft_completed"))
@@ -5407,6 +5422,8 @@ def hub_rookie_extend(body: RookieExtendRequest, _user=Depends(require_hub_user)
 
 def _hub_cancel_rookie_extend(*, player_id: str, ctx: dict[str, Any]) -> dict:
     """Undo a queued manager extension. Own-team only, same as queue."""
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     rules = LeagueRules.model_validate(ctx["rules"])
     draft_completed = bool(ctx.get("draft_completed"))
