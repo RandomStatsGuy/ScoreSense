@@ -2617,9 +2617,10 @@ def _league_award_titles(league: dict | None) -> dict[str, str]:
 
 
 def _with_award_titles(awards: list | None, league: dict | None) -> list:
-    from src.draft_hub.insight_awards import apply_award_titles
+    from src.draft_hub.insight_awards import apply_award_titles, drop_money_awards
 
-    return apply_award_titles(awards or [], _league_award_titles(league))
+    scoped = drop_money_awards(awards or [], (league or {}).get("rules") or {})
+    return apply_award_titles(scoped, _league_award_titles(league))
 
 
 def _parse_insights_sections(value: str | None) -> set[str] | None:

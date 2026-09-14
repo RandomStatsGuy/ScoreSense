@@ -33,6 +33,7 @@ import { HubExperienceHero, HubPage, HubPageSticky, HubTableCard, HubFilterMenu,
 import { HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import ContractHistoryLink from "./ContractHistoryLink";
+import { rulesUseContracts } from "./leagueCapabilities";
 import { columnsForDraftMode, positionalRanks, sortLabelForKey } from "./valueSheetColumns";
 import {
   CLAIM_QUEUE_COPY,
@@ -1124,7 +1125,8 @@ export default function ValueSheetTable({
                 </button>,
               );
             }
-            if (inLeague && !draftConsole && r.player_id && onOpenContractHistory) {
+            if (inLeague && !draftConsole && r.player_id && onOpenContractHistory
+              && rulesUseContracts(rules)) {
               actions.push(
                 <ContractHistoryLink
                   key="history"

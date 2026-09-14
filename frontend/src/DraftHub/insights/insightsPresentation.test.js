@@ -262,3 +262,15 @@ test("formatSpendValue and hero status stay screenshot-ready", () => {
   assert.equal(rankShowsTeam({ label: "Caleb K", teamName: "White Supremacists" }), true);
   assert.equal(rankShowsTeam({ label: "Caleb K · White Supremacists", teamName: "White Supremacists" }), false);
 });
+
+test("award catalog drops money awards for a league without them", () => {
+  const auction = awardCatalogFromRules({ draft_type: "auction" }).map((r) => r.id);
+  const snake = awardCatalogFromRules({ draft_type: "snake" }).map((r) => r.id);
+  assert.ok(auction.includes("highest_paid"));
+  assert.equal(snake.includes("highest_paid"), false);
+  assert.equal(snake.includes("cap_efficiency_goat"), false);
+  // Tenure awards sit in the spend group but are not about money.
+  assert.ok(snake.includes("nomad"));
+  assert.ok(snake.includes("loyalty"));
+  assert.ok(snake.length < auction.length);
+});

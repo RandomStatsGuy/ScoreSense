@@ -51,13 +51,17 @@ def next_count_on_remove(configured: int, actual: int) -> int:
 
 
 def _phase_blocker(league: dict[str, Any], session: dict[str, Any] | None) -> str | None:
+    # A pick-draft league has no auction to name. The uses_salaries gate further
+    # down only covers the consequences list, so this copy has to ask too.
+    money = uses_salaries(league.get("rules") or {})
+    draft_word = "auction" if money else "draft"
     status = str((session or {}).get("status") or "").lower()
     if status in LIVE_SESSION or str(league.get("status") or "").lower() == "live":
-        return "The auction is live. Finish or reset the draft first."
+        return f"The {draft_word} is live. Finish or reset the draft first."
     if league.get("draft_completed"):
         return (
             "This season is already drafted. Advance the year, then add or remove "
-            "a franchise before the next auction."
+            f"a franchise before the next {draft_word}."
         )
     return None
 

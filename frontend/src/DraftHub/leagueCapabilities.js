@@ -31,3 +31,22 @@ export function leagueUsesContracts(hubContext) {
 export function leagueUsesPriorityClaims(hubContext) {
   return leagueCapabilitiesFromContext(hubContext).acquisition_mode === "priority";
 }
+
+/**
+ * Same derivation as src/draft_hub/league_capabilities.py, for the components
+ * that are handed league rules rather than the hub context. Keeping one client
+ * definition stops a second draft-type predicate growing beside this one.
+ */
+export function capabilitiesFromRules(rules) {
+  const usesSalaries = String(rules?.draft_type || "auction") === "auction";
+  return {
+    economics: usesSalaries ? "salary_cap" : "none",
+    uses_salaries: usesSalaries,
+    uses_contracts: usesSalaries,
+    acquisition_mode: usesSalaries ? "bid" : "priority",
+  };
+}
+
+export function rulesUseContracts(rules) {
+  return capabilitiesFromRules(rules).uses_contracts;
+}

@@ -7,6 +7,7 @@ import { fmtSal, formatStatusLabel, tierChipClass } from "./valueSheetUtils";
 import RaavBidCell from "./RaavBidCell";
 import { riskBand, riskBandTooltip, suggestedBidCaption } from "./draftLiveConsole";
 import ContractHistoryLink from "./ContractHistoryLink";
+import { rulesUseContracts } from "./leagueCapabilities";
 import {
   CLAIM_QUEUE_COPY,
   PLAYERS_TAB_COPY,
@@ -307,7 +308,7 @@ function ValueSheetPlayerRow({
             {addLabel}
           </button>
         )}
-        {onOpenContractHistory && row.player_id ? (
+        {onOpenContractHistory && row.player_id && rulesUseContracts(rules) ? (
           <ContractHistoryLink
             playerId={row.player_id}
             playerName={row.player || row.player_name}
