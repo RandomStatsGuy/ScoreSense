@@ -10755,7 +10755,7 @@ td.col-rank.col-rank-top {
   display: grid;
   gap: var(--inset-chip);
   margin: var(--inset-tile) 0 0;
-  padding-left: 1.5rem;
+  padding-inline-start: var(--space-5);
 }
 
 .hub-fa-claim-list li {
@@ -10780,7 +10780,7 @@ td.col-rank.col-rank-top {
   display: grid;
   gap: var(--inset-chip);
   margin: var(--inset-tile) 0;
-  padding-left: 1.5rem;
+  padding-inline-start: var(--space-5);
 }
 
 .hub-fa-priority-editor li {

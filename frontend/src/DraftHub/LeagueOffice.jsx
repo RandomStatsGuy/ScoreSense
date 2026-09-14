@@ -30,8 +30,10 @@ import {
   isOfficeTabAllowed,
   visibleOfficeTabs,
 } from "./hubOfficeTabs";
+import { leagueUsesContracts, leagueUsesSalaries } from "./leagueCapabilities";
 import {
   commissionerIntro,
+  officeBoundaryNote,
   markSheetsGuideSeen,
   sheetsDefaultHint,
   sheetsGuideCopy,
@@ -500,11 +502,18 @@ export default function LeagueOffice({
 }) {
   const mobileLayout = useMobileLayout();
   const isCommissioner = Boolean(hubContext?.is_commissioner);
-  const tabs = useMemo(() => visibleOfficeTabs(isCommissioner), [isCommissioner]);
-  const intro = useMemo(() => commissionerIntro(isCommissioner), [isCommissioner]);
-  const activeTab = isOfficeTabAllowed(officeTab, isCommissioner)
+  const capabilities = hubContext?.capabilities;
+  const tabs = useMemo(
+    () => visibleOfficeTabs(isCommissioner, capabilities),
+    [isCommissioner, capabilities],
+  );
+  const intro = useMemo(
+    () => commissionerIntro(isCommissioner, { usesContracts: leagueUsesContracts(hubContext) }),
+    [isCommissioner, hubContext],
+  );
+  const activeTab = isOfficeTabAllowed(officeTab, isCommissioner, capabilities)
     ? officeTab
-    : defaultOfficeTab(isCommissioner);
+    : defaultOfficeTab(isCommissioner, capabilities);
   const [historySeason, setHistorySeason] = useState("current");
   const [dataEpoch, setDataEpoch] = useState(0);
   const season = Number(hubContext?.season || new Date().getFullYear());
@@ -548,7 +557,7 @@ export default function LeagueOffice({
 
       {isCommissioner && (
         <p className="hub-office-admin-boundary" role="note">
-          Changes here apply league-wide. Day-to-day roster and cap decisions stay on My team and Cap.
+          {officeBoundaryNote(leagueUsesSalaries(hubContext))}
         </p>
       )}
 

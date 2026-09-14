@@ -1,5 +1,28 @@
 /** Players-tab add vs bid vs lock copy. */
 
+export const CLAIM_QUEUE_COPY = {
+  title: "My waiver claims",
+  support: "Claims run in this order. A successful claim moves your team to the end of priority.",
+  empty: "No claims yet. Choose Claim beside a free agent.",
+  dropLabel: "Drop if successful",
+  noDrop: "No conditional drop",
+  moveUp: "Move up",
+  moveDown: "Move down",
+  cancel: "Cancel claim",
+  claimed: "Claimed",
+  claiming: "Claiming…",
+  protected: "On waiver protection until the next window",
+  loadError: "Could not load waiver claims",
+  saveError: "Could not save waiver claims",
+  confirmTitle: "Confirm initial waiver priority",
+  confirmSupport: "Put first priority at the top. Processing stays blocked until you confirm every team.",
+  confirmAction: "Confirm waiver order",
+  confirming: "Confirming…",
+  confirmError: "Could not confirm waiver priority",
+  prioritySet: (priority) => `Priority ${priority ?? "set"}`,
+  needsConfirm: "Order needs commissioner confirmation",
+};
+
 export const PLAYERS_TAB_COPY = {
   add: "Add",
   bid: "Bid",
@@ -23,6 +46,16 @@ export function playersTabAddMode(window, { inLeague = false, draftConsole = fal
   const mode = String(window?.add_mode || "locked");
   if (mode === "add" || mode === "bid" || mode === "claim" || mode === "locked") return mode;
   return "locked";
+}
+
+export function playersTabBusyLabel(mode) {
+  if (mode === "bid") return "Bidding…";
+  if (mode === "claim") return CLAIM_QUEUE_COPY.claiming;
+  return "Adding…";
+}
+
+export function playersTabClaimedLabel() {
+  return CLAIM_QUEUE_COPY.claimed;
 }
 
 export function playersTabAddLabel(mode, { taken = false, isCommissioner = false } = {}) {

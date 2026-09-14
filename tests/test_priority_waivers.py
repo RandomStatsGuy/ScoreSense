@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
@@ -173,6 +173,53 @@ def test_failed_conditional_drop_keeps_roster_and_priority(hub_db):
     assert result["failed"][0]["reason"] == "conditional_drop_unavailable"
     assert result["priority"] == before
     assert storage.get_roster_slot(workspace_id, "add") is None
+
+
+def test_dropped_player_stays_on_waiver_protection(hub_db):
+    league, _teams, order = _league()
+    team_id = list(reversed(order))[0]
+    workspace_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(workspace_id, {
+        "player_id": "drop", "player_name": "Drop Me", "team": "FA", "position": "WR",
+        "salary": 0, "contract_years": 1, "source": "draft",
+    }, team_id=team_id)
+    replace_claims(
+        league_id=league["id"], team_id=team_id, window_id="2026-w2-waiver",
+        claims=[_claim("add", "Add Me", drop_player_id="drop")], user_sub="owner",
+    )
+    process_claims(league["id"], "2026-w2-waiver")
+    assert waiver_protection(league["id"], "drop") is not None
+    try:
+        replace_claims(
+            league_id=league["id"], team_id=list(reversed(order))[1],
+            window_id="2026-w3-waiver",
+            claims=[_claim("drop", "Drop Me")], user_sub="other",
+        )
+    except ValueError as exc:
+        assert "waiver protection" in str(exc).lower()
+    else:
+        raise AssertionError("Protected player claim should fail")
+
+
+def test_process_fails_protected_claim_without_moving_priority(hub_db):
+    league, _teams, order = _league()
+    team_id = list(reversed(order))[0]
+    replace_claims(
+        league_id=league["id"], team_id=team_id, window_id="2026-w2-waiver",
+        claims=[_claim("locked", "Locked")], user_sub="owner",
+    )
+    stamp = storage._utcnow()
+    eligible = (datetime.now(timezone.utc) + timedelta(days=6)).isoformat()
+    with storage.get_conn() as conn:
+        conn.execute(
+            "INSERT INTO waiver_protection VALUES (?,?,?,?,?)",
+            (league["id"], "locked", team_id, eligible, stamp),
+        )
+    before = [row["team_id"] for row in waiver_priority(league["id"])["teams"]]
+    result = process_claims(league["id"], "2026-w2-waiver")
+    assert result["awarded_count"] == 0
+    assert result["failed"][0]["reason"] == "waiver_protected"
+    assert result["priority"] == before
 
 
 def test_repeated_processing_is_idempotent(hub_db):

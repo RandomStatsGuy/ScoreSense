@@ -35,11 +35,14 @@ import ValueSheetPlayerRow from "./ValueSheetPlayerRow";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { columnsForDraftMode, positionalRanks, sortLabelForKey } from "./valueSheetColumns";
 import {
+  CLAIM_QUEUE_COPY,
   PLAYERS_TAB_COPY,
   playersTabAddDisabledReason,
   playersTabAddLabel,
   playersTabAddMode,
   playersTabBanner,
+  playersTabBusyLabel,
+  playersTabClaimedLabel,
 } from "./acquisitionWindow";
 import { vsCostCell } from "./capPlannerPresentation";
 import {
@@ -184,6 +187,7 @@ export default function ValueSheetTable({
   const [addError, setAddError] = useState("");
   const [claimQueue, setClaimQueue] = useState([]);
   const [waiverPriority, setWaiverPriority] = useState(null);
+  const [protectedIds, setProtectedIds] = useState([]);
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [mobileListLimit, setMobileListLimit] = useState(20);
@@ -449,6 +453,7 @@ export default function ValueSheetTable({
     if (addMode !== "claim" || !leagueId) {
       setClaimQueue([]);
       setWaiverPriority(null);
+      setProtectedIds([]);
       return undefined;
     }
     const controller = new AbortController();
@@ -460,9 +465,10 @@ export default function ValueSheetTable({
       .then((result) => {
         setClaimQueue(result?.market?.my_claims || []);
         setWaiverPriority(result?.market?.waiver_priority || null);
+        setProtectedIds(result?.market?.protected_player_ids || []);
       })
       .catch((failure) => {
-        if (failure.name !== "AbortError") setAddError(failure.message || "Could not load waiver claims");
+        if (failure.name !== "AbortError") setAddError(failure.message || CLAIM_QUEUE_COPY.loadError);
       });
     return () => controller.abort();
   }, [addMode, leagueId]);
@@ -479,7 +485,7 @@ export default function ValueSheetTable({
         drop_player_id: claim.drop_player_id || null,
       })));
     } catch (failure) {
-      setAddError(failure.message || "Could not save waiver claims");
+      setAddError(failure.message || CLAIM_QUEUE_COPY.saveError);
     } finally {
       setAddingId(null);
     }
@@ -509,7 +515,7 @@ export default function ValueSheetTable({
       const result = await res.json();
       setWaiverPriority({ ...result.priority, current_team_id: waiverPriority?.current_team_id });
     } catch (failure) {
-      setAddError(failure.message || "Could not confirm waiver priority");
+      setAddError(failure.message || CLAIM_QUEUE_COPY.confirmError);
     } finally {
       setAddingId(null);
     }
@@ -573,6 +579,10 @@ export default function ValueSheetTable({
         setAddError(`${row.player || "Player"} is already on a roster.`);
         return;
       }
+      if (protectedIds.some((playerId) => String(playerId) === String(row.player_id))) {
+        setAddError(CLAIM_QUEUE_COPY.protected);
+        return;
+      }
       if (claimQueue.some((claim) => String(claim.player_id) === String(row.player_id))) return;
       await updateClaims([...claimQueue, {
         player_id: row.player_id,
@@ -607,7 +617,7 @@ export default function ValueSheetTable({
     } finally {
       setAddingId(null);
     }
-  }, [addMode, claimQueue, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer, updateClaims]);
+  }, [addMode, claimQueue, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer, protectedIds, updateClaims]);
 
   const panelTitle = title || (isAvailableView ? "Free agents" : "Strategy");
   const panelSub = subtitle || (
@@ -769,25 +779,27 @@ export default function ValueSheetTable({
         <section className="panel hub-fa-claims" aria-live="polite">
           <div className="section-head">
             <div>
-              <h2>My waiver claims</h2>
-              <p>Claims run in this order. A successful claim moves your team to the end of priority.</p>
+              <h2>{CLAIM_QUEUE_COPY.title}</h2>
+              <p>{CLAIM_QUEUE_COPY.support}</p>
             </div>
             <span className="chip">
               {waiverPriority?.confirmed
-                ? `Priority ${waiverPriority.teams?.find((team) => team.team_id === waiverPriority.current_team_id)?.priority ?? "set"}`
-                : "Order needs commissioner confirmation"}
+                ? CLAIM_QUEUE_COPY.prioritySet(
+                  waiverPriority.teams?.find((team) => team.team_id === waiverPriority.current_team_id)?.priority,
+                )
+                : CLAIM_QUEUE_COPY.needsConfirm}
             </span>
           </div>
-          {!claimQueue.length ? <p>No claims yet. Choose Claim beside a free agent.</p> : (
+          {!claimQueue.length ? <p>{CLAIM_QUEUE_COPY.empty}</p> : (
             <ol className="hub-fa-claim-list">
               {claimQueue.map((claim, index) => (
                 <li key={claim.id || claim.player_id}>
                   <strong>{claim.player_name}</strong>
                   <HubFilterMenu
-                    label="Drop if successful"
+                    label={CLAIM_QUEUE_COPY.dropLabel}
                     value={claim.drop_player_id || ""}
                     options={[
-                      { id: "", label: "No conditional drop" },
+                      { id: "", label: CLAIM_QUEUE_COPY.noDrop },
                       ...roster.map((player) => ({
                         id: String(player.player_id),
                         label: player.player_name || player.player_id,
@@ -803,37 +815,37 @@ export default function ValueSheetTable({
                       const next = [...claimQueue];
                       [next[index - 1], next[index]] = [next[index], next[index - 1]];
                       updateClaims(next);
-                    }}>Move up</button>
+                    }}>{CLAIM_QUEUE_COPY.moveUp}</button>
                   <button type="button" className="btn-ghost btn-sm" disabled={index === claimQueue.length - 1 || addingId === "claims"}
                     onClick={() => {
                       const next = [...claimQueue];
                       [next[index], next[index + 1]] = [next[index + 1], next[index]];
                       updateClaims(next);
-                    }}>Move down</button>
+                    }}>{CLAIM_QUEUE_COPY.moveDown}</button>
                   <button type="button" className="btn-ghost btn-sm" disabled={addingId === "claims"}
-                    onClick={() => updateClaims(claimQueue.filter((_, row) => row !== index))}>Cancel claim</button>
+                    onClick={() => updateClaims(claimQueue.filter((_, row) => row !== index))}>{CLAIM_QUEUE_COPY.cancel}</button>
                 </li>
               ))}
             </ol>
           )}
           {!waiverPriority?.confirmed && isCommissioner && waiverPriority?.teams?.length ? (
             <div className="hub-fa-priority-editor">
-              <h3>Confirm initial waiver priority</h3>
-              <p>Put first priority at the top. Processing stays blocked until you confirm every team.</p>
+              <h3>{CLAIM_QUEUE_COPY.confirmTitle}</h3>
+              <p>{CLAIM_QUEUE_COPY.confirmSupport}</p>
               <ol>
                 {waiverPriority.teams.map((team, index) => (
                   <li key={team.team_id}>
                     <span>{team.team_name}</span>
                     <button type="button" className="btn-ghost btn-sm" disabled={index === 0 || addingId === "priority"}
-                      onClick={() => movePriorityTeam(index, -1)}>Move up</button>
+                      onClick={() => movePriorityTeam(index, -1)}>{CLAIM_QUEUE_COPY.moveUp}</button>
                     <button type="button" className="btn-ghost btn-sm"
                       disabled={index === waiverPriority.teams.length - 1 || addingId === "priority"}
-                      onClick={() => movePriorityTeam(index, 1)}>Move down</button>
+                      onClick={() => movePriorityTeam(index, 1)}>{CLAIM_QUEUE_COPY.moveDown}</button>
                   </li>
                 ))}
               </ol>
               <button type="button" className="btn-primary" disabled={addingId === "priority"}
-                onClick={confirmPriority}>{addingId === "priority" ? "Confirming…" : "Confirm waiver order"}</button>
+                onClick={confirmPriority}>{addingId === "priority" ? CLAIM_QUEUE_COPY.confirming : CLAIM_QUEUE_COPY.confirmAction}</button>
             </div>
           ) : null}
         </section>
@@ -1073,10 +1085,12 @@ export default function ValueSheetTable({
               const locked = addMode === "locked";
               const claimed = addMode === "claim"
                 && claimQueue.some((claim) => String(claim.player_id) === String(r.player_id));
+              const protectedPlayer = addMode === "claim"
+                && protectedIds.some((playerId) => String(playerId) === String(r.player_id));
               const label = claimed
-                ? "Claimed"
+                ? playersTabClaimedLabel()
                 : addingId === r.player_id
-                ? (addMode === "bid" ? "Bidding…" : addMode === "claim" ? "Claiming…" : "Adding…")
+                ? playersTabBusyLabel(addMode)
                 : playersTabAddLabel(addMode, { taken, isCommissioner });
               const ceiling = showWalkaway ? ceilingFor(r.player_id) : null;
               const suggested = suggestedFaBid(r, effectiveAuctionBid(r, riskTolerance, rules));
@@ -1098,9 +1112,11 @@ export default function ValueSheetTable({
                   key="add"
                   type="button"
                   className="btn-ghost btn-sm"
-                  disabled={actionsDisabled || addingId === r.player_id || addingId === "claims" || locked || claimed || (addMode === "claim" && taken)}
+                  disabled={actionsDisabled || addingId === r.player_id || addingId === "claims" || locked || claimed || protectedPlayer || (addMode === "claim" && taken)}
                   title={locked
                     ? playersTabAddDisabledReason(addMode)
+                    : protectedPlayer
+                    ? CLAIM_QUEUE_COPY.protected
                     : (taken && !isCommissioner && !["bid", "claim"].includes(addMode) ? "Already on another roster" : undefined)}
                   onClick={locked ? undefined : () => addPlayer(r)}
                 >
@@ -1398,6 +1414,7 @@ export default function ValueSheetTable({
                   inRoster={Boolean(rosterIds?.has(r.player_id))}
                   isAdding={addingId === r.player_id}
                   isClaimed={addMode === "claim" && claimQueue.some((claim) => String(claim.player_id) === String(r.player_id))}
+                  isProtected={addMode === "claim" && protectedIds.some((playerId) => String(playerId) === String(r.player_id))}
                   isSelected={selectedPlayerId === r.player_id}
                   isCommissioner={isCommissioner}
                   onSelectPlayer={onSelectPlayer}

@@ -28,3 +28,11 @@ def uses_salaries(rules: LeagueRules | dict[str, Any]) -> bool:
 
 def uses_contracts(rules: LeagueRules | dict[str, Any]) -> bool:
     return bool(league_capabilities(rules)["uses_contracts"])
+
+
+def acquisition_mode(rules: LeagueRules | dict[str, Any]) -> str:
+    return str(league_capabilities(rules)["acquisition_mode"])
+
+
+def uses_priority_claims(rules: LeagueRules | dict[str, Any]) -> bool:
+    return acquisition_mode(rules) == "priority"

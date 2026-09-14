@@ -4,7 +4,7 @@ from app.api import app
 from app.auth import require_hub_user
 from src.draft_hub import storage
 from src.draft_hub.hub_context import resolve_hub_context_for_league
-from src.draft_hub.league_capabilities import league_capabilities
+from src.draft_hub.league_capabilities import acquisition_mode, league_capabilities, uses_priority_claims
 from src.draft_hub.acquisition_window import TRADE_ACTIVE, resolve_acquisition_window
 from src.draft_hub.pre_draft_cap import pre_draft_cap_summary
 from src.draft_hub.rules_engine import blocking_acquisition_errors, validate_roster
@@ -48,6 +48,9 @@ def test_capabilities_follow_draft_type_not_cap_amount():
     assert snake["economics"] == "none"
     assert snake["uses_contracts"] is False
     assert snake["acquisition_mode"] == "priority"
+    assert acquisition_mode(_rules("linear")) == "priority"
+    assert uses_priority_claims(_rules("snake")) is True
+    assert uses_priority_claims(_rules("auction")) is False
 
 
 def test_hub_context_exposes_capabilities_and_permissions(hub_db):
@@ -159,3 +162,40 @@ def test_no_money_trade_ignores_cap_but_keeps_roster_limits(hub_db):
     assert balanced["preview"][team_a["id"]]["committed"] is None
     assert overloaded["ok"] is False
     assert any("too many WR" in error for error in overloaded["errors"])
+
+
+def test_no_money_instant_add_respects_waiver_protection(hub_db):
+    from datetime import datetime, timedelta, timezone
+
+    from src.draft_hub.priority_waivers import waiver_protection
+
+    commissioner, _workspace, league, team_a, _team_b = _league(hub_db, _rules("snake"))
+    stamp = storage._utcnow()
+    eligible = (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()
+    with storage.get_conn() as conn:
+        conn.execute(
+            "INSERT INTO waiver_protection VALUES (?,?,?,?,?)",
+            (league["id"], "protected-wr", team_a["id"], eligible, stamp),
+        )
+    assert waiver_protection(league["id"], "protected-wr") is not None
+    app.dependency_overrides[require_hub_user] = lambda: {
+        "sub": commissioner,
+        "auth_type": "dev",
+    }
+    try:
+        response = TestClient(app).post(
+            "/api/hub/roster",
+            json={
+                "player_id": "protected-wr",
+                "player_name": "Protected",
+                "position": "WR",
+                "salary": 0,
+                "contract_years": 1,
+                "team_id": team_a["id"],
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+    assert response.status_code == 400
+    assert "waiver protection" in response.json()["detail"].lower()

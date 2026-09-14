@@ -150,6 +150,7 @@ from src.draft_hub.fa_market import (
 from src.draft_hub.priority_waivers import (
     confirm_waiver_priority,
     list_claims,
+    list_protected_player_ids,
     process_claims,
     process_due_claim_windows,
     replace_claims,
@@ -1531,6 +1532,17 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     ]
     preview.append(preview_slot)
     staff_override = bool(body.staff_edit) and bool(ctx.get("is_commissioner"))
+    if (
+        not staff_override
+        and ctx.get("mode") == "league"
+        and ctx.get("league_id")
+        and capabilities.get("acquisition_mode") == "priority"
+        and waiver_protection(str(ctx["league_id"]), str(body.player_id))
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="That player is on waiver protection until the next window",
+        )
     blocking = blocking_acquisition_errors(rules, preview)
     if blocking and not staff_override:
         raise HTTPException(status_code=400, detail=blocking[0])
@@ -1637,6 +1649,9 @@ def hub_fa_market(_user=Depends(require_hub_user)) -> dict:
         window.get("window_id") if window.get("add_mode") == "claim" else None,
     )
     market = list_market(lid, window_id=window.get("window_id"), team_id=ctx.get("team_id"))
+    capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
+    if window.get("add_mode") == "claim" or capabilities.get("acquisition_mode") == "priority":
+        market["protected_player_ids"] = list_protected_player_ids(lid)
     if window.get("add_mode") == "claim":
         market["my_claims"] = list_claims(lid, str(window["window_id"]), str(ctx.get("team_id") or ""))
         market["waiver_priority"] = waiver_priority(lid)

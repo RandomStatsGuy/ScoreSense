@@ -136,6 +136,8 @@ def replace_claims(
         ]
         if occupying:
             raise ValueError("Claims are limited to available players")
+        if waiver_protection(league_id, player_id):
+            raise ValueError("That player is on waiver protection until the next window")
         drop_player_id = str(claim.get("drop_player_id") or "").strip() or None
         if drop_player_id == player_id:
             raise ValueError("A claim cannot drop the player being added")
@@ -198,19 +200,55 @@ def _active_owner(conn: sqlite3.Connection, workspace_id: str, player_id: str) -
     return str(row["team_id"]) if row else None
 
 
+def _parse_eligible_at(value: Any) -> datetime:
+    eligible = datetime.fromisoformat(str(value))
+    if eligible.tzinfo is None:
+        eligible = eligible.replace(tzinfo=timezone.utc)
+    return eligible.astimezone(timezone.utc)
+
+
+def _active_protection(
+    conn: sqlite3.Connection,
+    league_id: str,
+    player_id: str,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any] | None:
+    row = conn.execute(
+        "SELECT * FROM waiver_protection WHERE league_id=? AND player_id=?",
+        (league_id, player_id),
+    ).fetchone()
+    if not row:
+        return None
+    clock = now or datetime.now(timezone.utc)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=timezone.utc)
+    if _parse_eligible_at(row["eligible_at"]) <= clock.astimezone(timezone.utc):
+        conn.execute(
+            "DELETE FROM waiver_protection WHERE league_id=? AND player_id=?",
+            (league_id, player_id),
+        )
+        return None
+    return dict(row)
+
+
 def waiver_protection(league_id: str, player_id: str) -> dict[str, Any] | None:
     with storage.get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM waiver_protection WHERE league_id=? AND player_id=?",
-            (league_id, player_id),
-        ).fetchone()
-        if row and datetime.fromisoformat(str(row["eligible_at"])) <= datetime.now(timezone.utc):
-            conn.execute(
-                "DELETE FROM waiver_protection WHERE league_id=? AND player_id=?",
-                (league_id, player_id),
-            )
-            row = None
-    return dict(row) if row else None
+        row = _active_protection(conn, league_id, player_id)
+    return row
+
+
+def list_protected_player_ids(league_id: str) -> list[str]:
+    with storage.get_conn() as conn:
+        rows = conn.execute(
+            "SELECT player_id FROM waiver_protection WHERE league_id=?",
+            (league_id,),
+        ).fetchall()
+        return [
+            str(row["player_id"])
+            for row in rows
+            if _active_protection(conn, league_id, str(row["player_id"]))
+        ]
 
 
 def _protect_drop(
@@ -272,6 +310,8 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
                 reason = None
                 if _active_owner(conn, workspace_id, str(claim["player_id"])):
                     reason = "already_rostered"
+                elif _active_protection(conn, league_id, str(claim["player_id"])):
+                    reason = "waiver_protected"
                 roster = _active_roster(conn, workspace_id, team_id)
                 drop_row = None
                 drop_player_id = claim.get("drop_player_id")

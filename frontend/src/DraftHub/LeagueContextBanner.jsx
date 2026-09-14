@@ -22,6 +22,7 @@ import {
   leagueRoleLabel,
 } from "./leagueAttention";
 import { useLeagueChrome } from "./leagueChromeContext";
+import { leagueUsesSalaries } from "./leagueCapabilities";
 
 function ageShort(at) {
   if (!at) return null;
@@ -216,6 +217,7 @@ export default function LeagueContextBanner({
     droppingCount: dropping.length,
     capSheetsStale,
     isCommish,
+    usesSalaries: leagueUsesSalaries(hubContext),
   }).map((item) => {
     const withTone = { ...item, tone: "attention" };
     if (item.action === "projections") {

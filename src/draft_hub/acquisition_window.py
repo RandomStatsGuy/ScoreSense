@@ -196,9 +196,14 @@ def resolve_acquisition_window(
             "until after the draft is marked complete."
         )
 
+    if window == WINDOW_WAIVERS:
+        label = "Waivers" if priority_waivers else _WINDOW_LABELS[window]
+    else:
+        label = _WINDOW_LABELS[window]
+
     return {
         "id": window,
-        "label": _WINDOW_LABELS[window],
+        "label": label,
         "add_mode": add_mode,
         "can_instant_add": add_mode == ADD_INSTANT,
         "can_record_draft_result": can_record,

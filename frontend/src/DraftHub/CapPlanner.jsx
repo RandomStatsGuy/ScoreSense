@@ -46,7 +46,9 @@ import {
   CAP_NEED_COPY,
   CAP_SHEET_COPY,
   CAP_CUT_COPY,
+  CAP_UNAVAILABLE_COPY,
 } from "./capPlannerPresentation";
+import { leagueUsesSalaries } from "./leagueCapabilities";
 import { buildCapStatusCard } from "./capStatusCard";
 import { contractDeadCapStory, contractTypeLabel, dealSalaryIsStatic, fmtSal, leagueStepUp, rosterSlotKey } from "./rosterFormat";
 import { MY_TEAM_COPY } from "./rosterPresentation";
@@ -495,6 +497,28 @@ export default function CapPlanner({
   const extendYearsSafe = yearOptions.some((option) => option.id === String(extendYears))
     ? String(extendYears)
     : String(Math.min(2, maxExtensionYears));
+
+  if (!leagueUsesSalaries(hubContext)) {
+    return (
+      <HubPage className="hub-experience-page hub-planner-page">
+        <HubExperienceHero
+          eyebrow={CAP_UNAVAILABLE_COPY.eyebrow}
+          heading={CAP_UNAVAILABLE_COPY.heading}
+          support={CAP_UNAVAILABLE_COPY.support}
+        />
+        <HubAlert
+          variant="info"
+          action={(
+            <button type="button" className="btn-primary" onClick={() => onNavigate?.("available")}>
+              {CAP_UNAVAILABLE_COPY.cta}
+            </button>
+          )}
+        >
+          {CAP_UNAVAILABLE_COPY.body}
+        </HubAlert>
+      </HubPage>
+    );
+  }
 
   return (
     <HubPage className="hub-experience-page hub-planner-page">

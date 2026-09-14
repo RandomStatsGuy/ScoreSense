@@ -66,6 +66,7 @@ def test_in_season_waivers_require_bids():
     assert window["id"] == WINDOW_WAIVERS
     assert window["add_mode"] == ADD_BID
     assert window["window_id"] == "2026-w3-waiver"
+    assert window["label"] == "Waiver bidding"
 
 
 def test_pick_draft_waivers_use_priority_claims():
@@ -77,6 +78,7 @@ def test_pick_draft_waivers_use_priority_claims():
     assert window["add_mode"] == ADD_CLAIM
     assert window["can_claim"] is True
     assert window["can_bid"] is False
+    assert window["label"] == "Waivers"
 
 
 def test_pick_draft_post_draft_preseason_allows_free_adds():

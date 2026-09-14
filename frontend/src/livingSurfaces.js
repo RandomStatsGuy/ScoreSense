@@ -18,7 +18,7 @@ export const CHROME = Object.freeze([
 ]);
 
 export const SHARED = Object.freeze({
-  desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/ProductSubnav.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
+    desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/ProductSubnav.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/hubSubnav.js", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
   tokens: [
     "frontend/src/styles/tokens.css",
     "frontend/src/styles/product-hierarchy.css",
@@ -171,7 +171,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/cap",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. Leftover is auction leftover on Cap, Rosters, and My team. Expiring 1-year keepers are not committed. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. Cut dead cap floors to the lower dollar. Adding a player does not remove that dead cap. Undo cut only if they are not active on any team. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is leftover / open the room unless a Cap sheet row is selected — then Cut and open bid (or Cut / Cut and add) is the one primary and Keep is ghost. Do not POST a bid from Cap. Selecting a row rewrites the rail with dead after cut, leftover after cut, and This cut funds. Undo cut and Undo extension are ghost — never a second blue fill. League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expiring uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut, queued-extension, and expiring bullets get Undo cut / Undo extension / Contract. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
+    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. Hide Cap in pick-draft nav; a direct URL explains that salaries do not apply. Leftover is auction leftover on Cap, Rosters, and My team. Expiring 1-year keepers are not committed. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. Cut dead cap floors to the lower dollar. Adding a player does not remove that dead cap. Undo cut only if they are not active on any team. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is leftover / open the room unless a Cap sheet row is selected — then Cut and open bid (or Cut / Cut and add) is the one primary and Keep is ghost. Do not POST a bid from Cap. Selecting a row rewrites the rail with dead after cut, leftover after cut, and This cut funds. Undo cut and Undo extension are ghost — never a second blue fill. League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expiring uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut, queued-extension, and expiring bullets get Undo cut / Undo extension / Contract. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
   }),
   "hub.trades": S({
     label: "Trades",
@@ -202,7 +202,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/hubOfficeTabs.js",
       "frontend/src/DraftHub/insights/AwardTitlesEditor.jsx",
     ],
-    doNot: "Chat is FantasyChatDock plus the Home thread. Not an office pane. Do not add a Chat tab.",
+    doNot: "Chat is FantasyChatDock plus the Home thread. Not an office pane. Do not add a Chat tab. Hide Contracts and Salary sheets when the league does not use contracts.",
   }),
   "hub.office.current": S({
     label: "Contracts",

@@ -20,3 +20,13 @@ test("roster management contains commissioner operations and no chat tab", () =>
   assert.equal(isOfficeTabAllowed("chat", true), false);
   assert.equal(defaultOfficeTab(true), "current");
 });
+
+test("no-money roster management keeps members and access only", () => {
+  const caps = { uses_contracts: false, uses_salaries: false };
+  assert.deepEqual(
+    visibleOfficeTabs(true, caps).map((tab) => tab.id),
+    ["members", "access"],
+  );
+  assert.equal(isOfficeTabAllowed("current", true, caps), false);
+  assert.equal(defaultOfficeTab(true, caps), "members");
+});

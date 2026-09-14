@@ -79,7 +79,7 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 ### Fantasy destinations
 
-Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
+Source of truth: `frontend/src/DraftHub/hubSubnav.js`.
 
 | Label | Internal id | Purpose |
 |-------|-------------|---------|
@@ -94,15 +94,15 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | My team | `roster` | Immersive team room; Manage roster for contracts and cap |
 | Free agents | `available` | Add / claim / bid / locked by calendar. Pick-draft leagues order priority claims with optional conditional drops; auction leagues bid. Rows always show the current action; when locked, disable with Adds open after the draft. Hide Vs cost until a contract cost exists. Desktop virtualizes on page scroll. Season pts use a number plus text range. How adds work lives in the acquisition banner. |
 | Rosters | `rosters` | Table-first league contract comparison, matching the approved September 10 mockup. Compact title/actions, Contract values and Team rosters tabs, searchable manager picker, player/position/value filters, eight-row pagination, and a selected-player details panel. No hero band, At a glance card, tall manager rail, or repeated row actions. Salary, estimated value, and difference sit side by side. |
-| Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. The rail primary is leftover / open the room. Undo cut and Undo extension are ghost. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expiring uses amber; extend-to-keep uses blue. |
+| Cap | `planner` | Salary-cap leagues only. Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. The rail primary is leftover / open the room. Undo cut and Undo extension are ghost. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expiring uses amber; extend-to-keep uses blue. Pick-draft leagues hide Cap; a direct URL explains that salaries do not apply. |
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. Continue (or Propose on the last step) is the only primary; Accept and Load into builder are ghost. Cap line is **current roster** salary (active contracts this season, including expiring). My team **{season} committed** is draft-surviving salary — same $200 cap, different base; do not use one word for both. Auto-check every package change and gate Propose on a pass. The verdict is a colored live status banner next to the primary, not grey chart-note. Ideas need chips mark starter-thin positions only — a 6-RB roster is extra depth, not a need. |
 | Rules | `rules` | League model (read for members, edit for staff) |
-| Roster management | `office` | Staff-only contracts, sheets, members, access |
+| Roster management | `office` | Staff-only members and access. Contracts and Salary sheets appear only when the league uses contracts. |
 | Insights | `insights` | League history and awards. Overview is a dynasty plaque, championship years, records, and career scoring — not Spend. Rank bars share a fixed track and start near the field (or show the gap from first). Career lists show every manager by the name that persists; team nicknames sit underneath — never as the only label. Award names are a Roster management control. The tab strip stays live; skeleton the plaque and boards. |
 
 Desktop Fantasy navigation is one readable row from Home through Trades, followed by a League dropdown containing Rules, Roster management (commissioners only), and Insights. Do not restore Draft/Team/League overlines or vertical group dividers. Phone destination sheets retain their useful grouping.
 
-If you add or rename a Fantasy destination, update `HubSubnav.jsx`, `appNavigation.js` subtitles, routes, `frontend/src/livingSurfaces.js`, this table, and tests in the same change.
+If you add or rename a Fantasy destination, update `hubSubnav.js`, `appNavigation.js` subtitles, routes, `frontend/src/livingSurfaces.js`, this table, and tests in the same change.
 
 ### Roster management panes
 
@@ -300,7 +300,8 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Contract types shown to users are **Rookie deal**, **Vet deal**, and **Extension**. Never “Rookie Extension” or “Veteran Deal”.
 - Static rookie deals and vet deals stay flat for the first term. The configured step-up starts on an **Extension**. Rules shows **Keep vet deals flat** and **Allow vet deal extensions** as their own toggles.
 - Final-year rookie deals may take one extension when **Allow rookie deal extensions** is on. Final-year vet deals may take one when **Allow vet deal extensions** is on. An extension cannot be extended again.
-- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
+- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; **priority claims** during waivers in pick-draft leagues (FAAB bid in auction leagues); instant add after waivers; offseason trades stay open in pick-draft leagues and are limited to surviving contracts in auction leagues.
+- League capabilities (`uses_salaries`, `uses_contracts`, `acquisition_mode`) come from `draft_type`, not leftover salary fields. Auction leagues are salary-cap + bid. Snake and linear leagues are no-money + priority claims. Legacy salary / years / cap numbers have no effect when `uses_salaries` is false.
 - ScoreSense-only leagues persist weekly lineups on This Week and score completed weeks with configurable ScoreSense scoring (full PPR by default) (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.
 - Headshots: mock boards, nominee cards, and rails use the same photos as rosters. Hub media and remote photos request the size they paint (`?w=48` / `96` / `256`); do not ship the studio original on every page.
@@ -336,7 +337,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
 | Spacing rhythm | `frontend/src/styles/product-rhythm.css` |
 | Fantasy phone | `frontend/src/styles/fantasy-phone.css` |
-| Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
+| Nav source | `frontend/src/appNavigation.js`, `DraftHub/hubSubnav.js` |
 | Living page to match | `frontend/src/livingSurfaces.js` |
 | Redesign / first-design options | [mockups/](./mockups/) · `.cursor/skills/fast-ui-mock/SKILL.md` |
 | Cloud Agent runtime | `.cursor/environment.json` |
