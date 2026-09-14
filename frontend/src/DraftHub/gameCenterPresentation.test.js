@@ -18,6 +18,7 @@ import {
   gameCenterTeamLabel,
   gameStateLabel,
   scoresArePlaceholder,
+  shouldPollGameCenter,
   interpretStandings,
   lineupIsEmpty,
   matchupStoryline,
@@ -407,5 +408,42 @@ test("unscored native leagues are not told to link Sleeper", () => {
   );
   assert.match(LEAGUE_SCORING_CONTROL_COPY.confirm(3), /Week 3/);
   assert.match(LEAGUE_SCORING_CONTROL_COPY.confirm(1, { live: true }), /can still be moved/);
-  assert.match(LEAGUE_SCORING_CONTROL_COPY.nativeHelp, /during the NFL week/);
+  assert.match(LEAGUE_SCORING_CONTROL_COPY.nativeHelp, /updates scores/);
+});
+
+test("native Game center polls the current week until it is final", () => {
+  const current = {
+    available: true,
+    source: "hub",
+    week: 1,
+    current_week: 1,
+    placeholder: true,
+    scoring_control: { final: false },
+  };
+  assert.equal(shouldPollGameCenter(current, { draft_completed: true }), true);
+  assert.equal(
+    shouldPollGameCenter(
+      { ...current, scoring_control: { final: true }, placeholder: false },
+      { draft_completed: true },
+    ),
+    false,
+  );
+  assert.equal(
+    shouldPollGameCenter(current, { draft_completed: false }),
+    false,
+  );
+  assert.equal(
+    shouldPollGameCenter(
+      { ...current, source: "sleeper", placeholder: true },
+      { draft_completed: true, sleeper_league_id: "123" },
+    ),
+    false,
+  );
+  assert.equal(
+    shouldPollGameCenter(
+      { ...current, source: "sleeper", placeholder: false },
+      { draft_completed: true, sleeper_league_id: "123" },
+    ),
+    true,
+  );
 });

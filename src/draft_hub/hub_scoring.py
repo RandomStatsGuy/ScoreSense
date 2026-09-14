@@ -7,6 +7,7 @@ Sleeper as the scoring host.
 
 from __future__ import annotations
 
+import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
@@ -23,8 +24,12 @@ from src.draft_hub.league_live_scoring import (
     starting_slots_from_rules,
     week_picker_meta,
 )
+from src.draft_hub.roster_identity_match import is_gsis_player_id, name_pos_key
 from src.draft_hub.rules_engine import normalize_position, roster_limits
 from src.draft_hub.schemas import LeagueRules, ScoringRules
+
+_STAT_INDEX_CACHE: dict[tuple[int, int], tuple[float, dict[str, dict[str, Any]]]] = {}
+_STAT_INDEX_TTL_S = 60.0
 
 ACTIVE_ROSTER = "active"
 
@@ -586,21 +591,107 @@ def fantasy_points_from_stats(stats: dict[str, Any] | None, scoring: ScoringRule
     return round(total, 2)
 
 
+def _lineup_stat_keys(row: dict[str, Any]) -> list[str]:
+    keys: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: Any) -> None:
+        key = str(value or "").strip()
+        if key and key not in seen:
+            seen.add(key)
+            keys.append(key)
+
+    pid = str(row.get("player_id") or "").strip()
+    add(pid)
+    if pid.startswith("sleeper-"):
+        add(pid[8:])
+    elif pid.isdigit():
+        add(f"sleeper-{pid}")
+    add(row.get("sleeper_player_id"))
+    add(name_pos_key(row))
+    return keys
+
+
+def stats_for_lineup_row(
+    lookup: dict[str, dict[str, Any]] | None,
+    row: dict[str, Any],
+) -> dict[str, Any]:
+    """Resolve nflverse stats for a lineup row across GSIS, Sleeper, and name keys."""
+    if not lookup:
+        return {}
+    for key in _lineup_stat_keys(row):
+        stats = lookup.get(key)
+        if stats:
+            return stats
+    return {}
+
+
+def _alias_week_stat_index(
+    index: dict[str, dict[str, Any]],
+    week_df: pd.DataFrame,
+) -> dict[str, dict[str, Any]]:
+    """Index the same stat row under Sleeper ids and name|pos keys."""
+    aliased = dict(index)
+    name_col = next(
+        (col for col in ("player_display_name", "player_name", "player") if col in week_df.columns),
+        None,
+    )
+    if name_col and "position" in week_df.columns:
+        for _, row in week_df.iterrows():
+            pid = str(row.get("player_id") or "").strip()
+            stats = aliased.get(pid)
+            if not stats:
+                continue
+            key = name_pos_key({"player_name": row.get(name_col), "position": row.get("position")})
+            if key:
+                aliased.setdefault(key, stats)
+    try:
+        from src.draft_hub.draft_enrichment import _sleeper_lookup_tables
+
+        _df, by_gsis, _by_sleeper_id, _by_name_team, _by_name = _sleeper_lookup_tables()
+    except Exception:
+        return aliased
+    for gsis, stats in index.items():
+        if not is_gsis_player_id(gsis):
+            continue
+        sleeper_row = by_gsis.get(gsis)
+        if sleeper_row is None:
+            continue
+        sid = str(sleeper_row.get("sleeper_id") or "").strip()
+        if not sid:
+            continue
+        aliased.setdefault(sid, stats)
+        aliased.setdefault(f"sleeper-{sid}", stats)
+    return aliased
+
+
 def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
     """player_id → stat dict + fantasy_points for one NFL week (nflverse)."""
+    from src.config import is_testing
+
+    cache_key = (int(season), int(week))
+    if not is_testing():
+        cached = _STAT_INDEX_CACHE.get(cache_key)
+        if cached and (time.monotonic() - cached[0]) < _STAT_INDEX_TTL_S:
+            return cached[1]
+    def _store(payload: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        if not is_testing():
+            _STAT_INDEX_CACHE[cache_key] = (time.monotonic(), payload)
+        return payload
+
     try:
         from src.etl.nflverse_etl import load_weekly_player_stats
 
         frame = load_weekly_player_stats([int(season)])
     except Exception:
-        return {}
+        return _store({})
     if frame is None or getattr(frame, "empty", True):
-        return {}
+        return _store({})
     if "week" not in frame.columns or "player_id" not in frame.columns:
-        return {}
+        return _store({})
     week_df = frame.loc[pd.to_numeric(frame["week"], errors="coerce") == int(week)].copy()
     if week_df.empty:
-        return {}
+        return _store({})
     if "interceptions" not in week_df and "passing_interceptions" in week_df:
         week_df["interceptions"] = week_df["passing_interceptions"]
     if "fumbles_lost" not in week_df:
@@ -624,7 +715,23 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
             pts = fantasy_points_from_stats(stats)
         stats["fantasy_points"] = round(pts, 2)
         index[pid] = stats
-    return index
+    return _store(_alias_week_stat_index(index, week_df))
+
+
+def native_week_needs_score_refresh(
+    league: dict[str, Any] | None,
+    scoring_run: dict[str, Any] | None,
+    *,
+    refresh: bool,
+) -> bool:
+    """True when Game Center should persist the current nflverse snapshot."""
+    if not league or not league.get("draft_completed"):
+        return False
+    if sleeper_hosts_scoring(league):
+        return False
+    if scoring_run and scoring_run.get("final"):
+        return False
+    return bool(refresh or scoring_run is None)
 
 
 def apply_week_scores(
@@ -684,10 +791,6 @@ def apply_week_scores(
     ]
     if missing_with_roster:
         return {"scored": False, "reason": "incomplete_historical_lineups", "season": int(season), "week": int(week)}
-    unsupported = [row for row in lineups if str(row.get("lineup_role")) == "starter"
-                   and normalize_position(row.get("position")) not in {"QB", "RB", "WR", "TE"}]
-    if unsupported:
-        raise LineupError("Native scoring currently supports QB, RB, WR and TE only. Kicker and defense starters require a supported scoring feed; use Sleeper for those leagues.")
     team_matchup = {}
     for row in matchups:
         team_matchup[str(row["home_team_id"])] = row["matchup_id"]
@@ -700,7 +803,7 @@ def apply_week_scores(
     for row in lineups:
         pid = str(row["player_id"])
         tid = str(row["team_id"])
-        stats = lookup.get(pid) or {}
+        stats = stats_for_lineup_row(lookup, row)
         if stats:
             with_stats += 1
             if any(key in stats for key in FANTASY_SCORING):
@@ -894,6 +997,15 @@ def build_hub_live_week(
             ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules)
         lineups = storage.list_week_lineups(league_id, season_n, resolved_week)
 
+    scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
+    if native_week_needs_score_refresh(league, scoring_run, refresh=refresh):
+        try:
+            apply_week_scores(league_id, season_n, resolved_week)
+        except LineupError:
+            pass
+        scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
+        lineups = storage.list_week_lineups(league_id, season_n, resolved_week)
+
     team_scores = {
         str(row["team_id"]): float(row.get("points") or 0)
         for row in storage.list_team_week_scores(league_id, season_n, resolved_week)
@@ -988,7 +1100,6 @@ def build_hub_live_week(
     if proj_index:
         attach_matchup_analytics(matchup_payloads, proj_index)
 
-    scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
     slate_done = nfl_week_slate_complete(season_n, resolved_week)
     run_final = bool(scoring_run and scoring_run.get("final"))
     live = bool(scored and not run_final)
@@ -1012,7 +1123,7 @@ def build_hub_live_week(
             if live
             else "Week scored with saved ScoreSense league rules."
             if scored
-            else "Scores fill after this week is scored."
+            else "Scores update as weekly NFL stats arrive."
         ),
         "season": str(season_n),
         "week": int(resolved_week),

@@ -229,6 +229,7 @@ test("scoring defaults, validation, and dirty state include custom weights", () 
   }
   assert.match(SCORING_COPY.sleeperHelp, /Sleeper controls scoring rules/);
   assert.match(SCORING_COPY.nativeHelp, /still in progress/);
+  assert.match(SCORING_COPY.supported, /do not block/);
   assert.match(SCORING_COPY.effect, /Recalculate/);
   assert.match(SCORING_COPY.projections, /PPR-based/);
 });
