@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from src.draft_hub.acquisition_window import (
     ADD_BID,
+    ADD_CLAIM,
     ADD_INSTANT,
     ADD_LOCKED,
     TRADE_SURVIVING,
@@ -65,6 +66,26 @@ def test_in_season_waivers_require_bids():
     assert window["id"] == WINDOW_WAIVERS
     assert window["add_mode"] == ADD_BID
     assert window["window_id"] == "2026-w3-waiver"
+
+
+def test_pick_draft_waivers_use_priority_claims():
+    window = resolve_acquisition_window(
+        _ctx(rules={"draft_type": "snake"}),
+        now=datetime(2026, 9, 22, 10, 0, tzinfo=ET),
+        nfl_state={"season_type": "regular", "week": 3, "season": 2026},
+    )
+    assert window["add_mode"] == ADD_CLAIM
+    assert window["can_claim"] is True
+    assert window["can_bid"] is False
+
+
+def test_pick_draft_post_draft_preseason_allows_free_adds():
+    window = resolve_acquisition_window(
+        _ctx(rules={"draft_type": "linear"}),
+        nfl_state={"season_type": "pre", "week": 1, "season": 2026},
+    )
+    assert window["id"] == WINDOW_FREE_AGENCY
+    assert window["add_mode"] == ADD_INSTANT
 
 
 def test_preseason_after_draft_is_fa_bidding():

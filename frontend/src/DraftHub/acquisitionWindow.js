@@ -3,6 +3,7 @@
 export const PLAYERS_TAB_COPY = {
   add: "Add",
   bid: "Bid",
+  claim: "Claim",
   reassign: "Reassign",
   lockedReason: "Adds open after the draft",
   star: "Add to draft watchlist",
@@ -10,7 +11,7 @@ export const PLAYERS_TAB_COPY = {
   unstar: "Remove from draft watchlist",
   howAddsWork: "How adds work",
   howAddsBody:
-    "Player additions follow the league calendar. Use Draft before the draft ends. Afterward, use Bid during waivers or Add during free agency.",
+    "Player additions follow the league calendar. Pick-draft leagues use priority claims during waivers; auction leagues bid. Free agency uses immediate adds.",
   starHint: "Add a player to your draft watchlist.",
   history: "Contract history",
   seasonPts: "Projected season pts",
@@ -20,12 +21,13 @@ export function playersTabAddMode(window, { inLeague = false, draftConsole = fal
   if (draftConsole) return "hidden";
   if (!inLeague) return "add";
   const mode = String(window?.add_mode || "locked");
-  if (mode === "add" || mode === "bid" || mode === "locked") return mode;
+  if (mode === "add" || mode === "bid" || mode === "claim" || mode === "locked") return mode;
   return "locked";
 }
 
 export function playersTabAddLabel(mode, { taken = false, isCommissioner = false } = {}) {
   if (mode === "bid") return PLAYERS_TAB_COPY.bid;
+  if (mode === "claim") return PLAYERS_TAB_COPY.claim;
   if (taken && isCommissioner) return PLAYERS_TAB_COPY.reassign;
   return PLAYERS_TAB_COPY.add;
 }
@@ -60,7 +62,7 @@ export function playersTabLockedChip() {
 export function playersTabBanner(window) {
   if (!window) return null;
   return {
-    variant: window.add_mode === "locked" ? "warn" : window.add_mode === "bid" ? "warn" : "info",
+    variant: window.add_mode === "locked" ? "warn" : ["bid", "claim"].includes(window.add_mode) ? "warn" : "info",
     text: window.message || window.label,
     label: window.label,
   };

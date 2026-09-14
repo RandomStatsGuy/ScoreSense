@@ -115,6 +115,8 @@ from src.draft_hub.schemas import (
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
     FaBidRequest,
+    WaiverClaimsRequest,
+    WaiverPriorityRequest,
     AtmospherePrefsUpdate,
     TeamIdentityUpdate,
     WeekPollVoteRequest,
@@ -144,6 +146,15 @@ from src.draft_hub.fa_market import (
     place_fa_bid,
     process_due_windows,
     process_window,
+)
+from src.draft_hub.priority_waivers import (
+    confirm_waiver_priority,
+    list_claims,
+    process_claims,
+    process_due_claim_windows,
+    replace_claims,
+    waiver_protection,
+    waiver_priority,
 )
 from src.draft_hub.league_permissions import (
     can_edit_roster,
@@ -1411,6 +1422,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
         lid = str(ctx.get("league_id") or "")
         if lid:
             process_due_windows(lid, window.get("window_id"))
+            process_due_claim_windows(lid, window.get("window_id") if window.get("add_mode") == "claim" else None)
         staff_edit = bool(body.staff_edit)
         if staff_edit and not ctx.get("is_commissioner"):
             raise HTTPException(status_code=403, detail="Only commissioners can make roster-management edits")
@@ -1419,6 +1431,8 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
                 status_code=403,
                 detail=window.get("message") or "Adding players is not open right now",
             )
+        if not staff_edit and waiver_protection(lid, body.player_id):
+            raise HTTPException(status_code=409, detail="Player remains on waivers until the next claim period")
     ws_id, _own_team_id = roster_scope(ctx)
     team_id, dest_label = _resolve_roster_add_team(ctx, body.team_id)
     dest_key = str(team_id) if team_id else ""
@@ -1612,13 +1626,59 @@ def hub_fa_market(_user=Depends(require_hub_user)) -> dict:
     window = ctx.get("acquisition_window") or {}
     lid = str(ctx["league_id"])
     processed = process_due_windows(lid, window.get("window_id"))
+    claim_processing = process_due_claim_windows(
+        lid,
+        window.get("window_id") if window.get("add_mode") == "claim" else None,
+    )
     market = list_market(lid, window_id=window.get("window_id"), team_id=ctx.get("team_id"))
+    if window.get("add_mode") == "claim":
+        market["my_claims"] = list_claims(lid, str(window["window_id"]), str(ctx.get("team_id") or ""))
+        market["waiver_priority"] = waiver_priority(lid)
+        market["waiver_priority"]["current_team_id"] = str(ctx.get("team_id") or "")
     return {
         "window": window,
         "market": market,
         "processed": processed,
+        "claim_processing": claim_processing,
         "hub_context": ctx,
     }
+
+
+@router.put("/fa-market/claims")
+def hub_fa_market_claims(body: WaiverClaimsRequest, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    window = ctx.get("acquisition_window") or {}
+    if ctx.get("mode") != "league" or not ctx.get("league_id") or not ctx.get("team_id"):
+        raise HTTPException(status_code=403, detail="Join a league team to submit claims")
+    if window.get("add_mode") != "claim" or not window.get("window_id"):
+        raise HTTPException(status_code=400, detail=window.get("message") or "Claims are not open")
+    try:
+        claims = replace_claims(
+            league_id=str(ctx["league_id"]),
+            team_id=str(ctx["team_id"]),
+            window_id=str(window["window_id"]),
+            claims=[claim.model_dump() for claim in body.claims],
+            user_sub=sub,
+        )
+        priority = waiver_priority(str(ctx["league_id"]))
+        priority["current_team_id"] = str(ctx["team_id"])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"claims": claims, "priority": priority, "window": window, "hub_context": ctx}
+
+
+@router.put("/fa-market/priority")
+def hub_fa_market_priority(body: WaiverPriorityRequest, _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx(_sub(_user))
+    require_commissioner(ctx)
+    if ctx.get("mode") != "league" or not ctx.get("league_id"):
+        raise HTTPException(status_code=400, detail="Join a league first")
+    try:
+        priority = confirm_waiver_priority(str(ctx["league_id"]), body.team_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"priority": priority, "hub_context": ctx}
 
 
 @router.post("/fa-market/bid")
@@ -1658,9 +1718,13 @@ def hub_fa_market_process(_user=Depends(require_hub_user)) -> dict:
     wid = window.get("window_id")
     if not wid:
         processed = process_due_windows(str(ctx["league_id"]), None)
-        return {"processed": processed, "window": window, "hub_context": ctx}
+        claims = process_due_claim_windows(str(ctx["league_id"]), None)
+        return {"processed": processed, "claim_processing": claims, "window": window, "hub_context": ctx}
     try:
-        result = process_window(str(ctx["league_id"]), str(wid))
+        if window.get("add_mode") == "claim":
+            raise ValueError("Priority claims process Wednesday at 10 a.m. Eastern")
+        else:
+            result = process_window(str(ctx["league_id"]), str(wid))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _invalidate_league_rosters_from_ctx(ctx)

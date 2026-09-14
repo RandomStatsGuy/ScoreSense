@@ -812,6 +812,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           season={valueSheet?.season || workspace?.season}
           onAddToRoster={onRosterChanged}
           rosterIds={rosterIds}
+          roster={roster}
           sleeper={valueSleeper}
           loading={valueSheetLoading}
           isCommissioner={Boolean(effectiveCtx?.is_commissioner)}
