@@ -10,6 +10,8 @@ import pandas as pd
 
 from src.draft_hub.auction_values import build_player_values
 from src.draft_hub.draft_pool_cache import load_draft_pool
+from src.draft_hub.league_capabilities import uses_contracts
+from src.draft_hub.roster_identity_match import roster_identity_tokens
 from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.tier_generator import generate_tiers
@@ -230,17 +232,36 @@ def build_value_overlay(
     draft_completed: bool = False,
 ) -> dict[str, Any]:
     """Apply roster / league availability overlay to a pre-built pool payload."""
-    from src.draft_hub.pre_draft_cap import retained_through_draft
+    from src.draft_hub.pre_draft_cap import is_active_for_pre_draft, retained_through_draft
+
+    keeps_contracts = uses_contracts(rules)
+
+    def _owns(row: dict[str, Any]) -> bool:
+        """Is this player on someone's roster, for availability purposes?
+
+        A league with no contracts has no keeper question, so an active roster
+        row on a team is ownership. retained_through_draft() answers a
+        cap/keeper question instead, and its pre-draft fallback is
+        is_current_auction_award() — never true in a pick draft, which left
+        every rostered player showing as a free agent.
+        """
+        if not keeps_contracts:
+            return is_active_for_pre_draft(row)
+        return retained_through_draft(row, draft_completed=draft_completed)
 
     def _kept(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        """Map every id this person answers to -> their roster row.
+
+        Keyed on identity tokens, not the bare player_id: a roster row stored
+        under a Sleeper id would otherwise never match a GSIS-keyed pool row
+        and the player would read as available.
+        """
         out: dict[str, dict[str, Any]] = {}
         for row in rows:
-            pid = str(row.get("player_id") or "")
-            if not pid:
+            if not _owns(row):
                 continue
-            if not retained_through_draft(row, draft_completed=draft_completed):
-                continue
-            out[pid] = row
+            for token in roster_identity_tokens(row):
+                out.setdefault(token, row)
         return out
 
     roster_map = _kept(roster)
