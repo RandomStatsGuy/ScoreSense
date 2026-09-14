@@ -198,6 +198,14 @@ def _safe_add_column(conn: sqlite3.Connection, table: str, column: str, ddl: str
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
+    conn.execute("""CREATE TABLE IF NOT EXISTS league_week_correction (
+        id TEXT PRIMARY KEY, league_id TEXT NOT NULL, season INTEGER NOT NULL,
+        week INTEGER NOT NULL, actor_sub TEXT NOT NULL, reason TEXT NOT NULL,
+        revision TEXT NOT NULL, preview_json TEXT NOT NULL, published_at TEXT,
+        idempotency_key TEXT, created_at TEXT NOT NULL,
+        UNIQUE(league_id, idempotency_key)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_week_correction ON league_week_correction(league_id, season, week)")
     cols = {row[1] for row in conn.execute("PRAGMA table_info(hub_workspace)").fetchall()}
     additions = {
         "sleeper_league_id": "TEXT",
@@ -5693,6 +5701,7 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_player_week_score",
             "league_team_week_score",
             "league_week_scoring_run",
+            "league_week_correction",
             "team_vibe_aura",
             "insights_cap_cache",
             "insights_fair_values",
@@ -6716,6 +6725,8 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
         league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
         if league is None or league["sleeper_league_id"]:
             raise ValueError("Native scoring is unavailable for this league.")
+        if conn.execute("SELECT 1 FROM league_week_correction WHERE league_id=? AND season=? AND week=? AND published_at IS NOT NULL", key).fetchone():
+            raise ValueError("This week has a published commissioner correction. Preview a new correction to change its results.")
         current = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
         if current.scoring.model_dump() != scoring:
             raise ValueError("Scoring settings changed during calculation. Try again with the saved rules.")

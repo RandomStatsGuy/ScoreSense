@@ -890,6 +890,69 @@ def _require_hub_hosted_scoring(ctx: dict[str, Any]) -> None:
         raise HTTPException(status_code=409, detail="Lineups and scoring stay in Sleeper")
 
 
+class WeekCorrectionPlayer(BaseModel):
+    player_id: str
+    player_name: str = ""
+    nfl_team: str = ""
+    position: str
+    slot: str = "BN"
+
+
+class WeekCorrectionTeam(BaseModel):
+    team_id: str
+    players: list[WeekCorrectionPlayer]
+
+
+class WeekCorrectionPreview(BaseModel):
+    teams: list[WeekCorrectionTeam]
+    reason: str
+    revision: str
+    acknowledge_empty: bool = False
+
+
+class WeekCorrectionPublish(BaseModel):
+    preview_id: str
+    revision: str
+    reason: str
+    idempotency_key: str
+
+
+def _week_correction_call(operation, *args, **kwargs):
+    from src.draft_hub.week_corrections import CorrectionError
+    try:
+        return operation(*args, **kwargs)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except CorrectionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/league/{league_id}/corrections/{season}/{week}")
+def hub_week_correction_context(league_id: str, season: int, week: int, _user=Depends(require_hub_user)):
+    from src.draft_hub.week_corrections import correction_context, correction_history
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    result = _week_correction_call(correction_context, league_id, season, week, _sub(_user))
+    result["history"] = correction_history(league_id, season, week)
+    return result
+
+
+@router.post("/league/{league_id}/corrections/{season}/{week}/preview")
+def hub_week_correction_preview(league_id: str, season: int, week: int, body: WeekCorrectionPreview, _user=Depends(require_hub_user)):
+    from src.draft_hub.week_corrections import preview_correction
+    require_commissioner(_ctx_for_league(_sub(_user), league_id))
+    return _week_correction_call(preview_correction, league_id, season, week, _sub(_user),
+                                 [team.model_dump() for team in body.teams], body.reason, body.revision, body.acknowledge_empty)
+
+
+@router.post("/league/{league_id}/corrections/{season}/{week}/publish")
+def hub_week_correction_publish(league_id: str, season: int, week: int, body: WeekCorrectionPublish, _user=Depends(require_hub_user)):
+    from src.draft_hub.week_corrections import publish_correction
+    require_commissioner(_ctx_for_league(_sub(_user), league_id))
+    return _week_correction_call(publish_correction, league_id, season, week, _sub(_user),
+                                 body.preview_id, body.revision, body.reason, body.idempotency_key)
+
+
 @router.get("/league/{league_id}/lineup")
 def hub_get_lineup(
     league_id: str,

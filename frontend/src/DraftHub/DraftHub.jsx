@@ -512,6 +512,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
     if (TABS_NEED_VALUE_SHEET.has(tab)) {
       await refreshOverlayOnly(workspace?.season, workspace?.rules);
+    } else {
+      // Reload ownership when returning from roster/planner tabs.
+      setValueSheet(null);
     }
   }, [hubContext?.mode, loadCapSheet, refreshOverlayOnly, refreshRoster, workspace?.rules, workspace?.season]);
 

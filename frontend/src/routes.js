@@ -57,6 +57,7 @@ export const INSIGHT_ID_TO_SLUG = Object.fromEntries(
 
 /** Commissioner (/hub/office) URL slug ↔ internal tab id */
 export const OFFICE_SLUG_TO_ID = {
+  corrections: "corrections",
   chat: "current",
   current: "current",
   contracts: "current",
@@ -67,6 +68,7 @@ export const OFFICE_SLUG_TO_ID = {
 };
 
 export const OFFICE_ID_TO_SLUG = {
+  corrections: "corrections",
   current: "contracts",
   historic: "sheets",
   members: "members",

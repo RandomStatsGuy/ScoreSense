@@ -7,6 +7,7 @@ import useMobileLayout from "../useMobileLayout";
 import { HubAlert, HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky } from "./HubUILayout";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import TeamSalarySheets from "./TeamSalarySheets";
+import WeekCorrections from "./WeekCorrections";
 import LeagueContractHistory from "./LeagueContractHistory";
 import LeagueInvites from "./LeagueInvites";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
@@ -603,6 +604,10 @@ export default function LeagueOffice({
             onSaved={onWorkspaceSaved}
           />
         </HubPage>
+      )}
+
+      {activeTab === "corrections" && isCommissioner && (
+        <WeekCorrections key={leagueId} leagueId={leagueId} season={season} onChanged={handleChanged} />
       )}
 
       {activeTab === "historic" && isCommissioner && (
