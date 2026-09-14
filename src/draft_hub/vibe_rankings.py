@@ -462,12 +462,14 @@ def build_vibe_rankings(
     sleeper_hosted = sleeper_hosts_scoring(league, ctx)
     lineup_source = lineup_meta.get("lineup_source") or "inferred"
     lineup_locked = bool(lineup_meta.get("lineup_locked"))
+    week_scored = bool(lineup_meta.get("week_scored"))
     can_edit = (
         mode == "league"
         and bool(league_id)
         and bool(team_id)
         and lineup_source == "hub"
-        and not lineup_locked
+        and not week_scored
+        and (not lineup_locked or bool(ctx.get("is_commissioner")))
     )
 
     sync = _sync_metadata(ctx)
@@ -485,6 +487,7 @@ def build_vibe_rankings(
             "team_name": ctx.get("team_name"),
             "season": hub_season,
             "sleeper_league_id": ctx.get("sleeper_league_id"),
+            "is_commissioner": bool(ctx.get("is_commissioner")),
         },
         "meta": {
             "season": resolved_season,
@@ -492,6 +495,7 @@ def build_vibe_rankings(
             "projections_available": bool(proj_meta.get("available")),
             "lineup_source": lineup_source,
             "lineup_locked": lineup_locked,
+            "week_scored": week_scored,
             "can_edit_lineup": can_edit,
             "sleeper_hosts_scoring": sleeper_hosted,
             "lineup_set_path": (

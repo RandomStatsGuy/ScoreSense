@@ -363,6 +363,8 @@ export default function VibeRankings({
     mode: data?.hub_context?.mode || hubContext?.mode,
     lineupSource: data?.meta?.lineup_source,
     lineupLocked: data?.meta?.lineup_locked,
+    weekScored: data?.meta?.week_scored,
+    isCommissioner: Boolean(hubContext?.is_commissioner || data?.hub_context?.is_commissioner),
   });
   const nextActions = vibeNextActions({ canReview, canEdit });
   const todayReads = todayReadRows(players, dayVotes?.votes);

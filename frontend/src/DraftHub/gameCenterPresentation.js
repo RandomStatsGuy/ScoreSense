@@ -473,9 +473,17 @@ export const LEAGUE_SCORING_CONTROL_COPY = {
   staff: "A commissioner calculates completed weeks.",
   changed: "Scoring settings changed since this week was calculated. Existing results remain until a commissioner recalculates it.",
   confirm: (week) => `Recalculate Week ${week}? This replaces this week's points and updates standings using the currently saved scoring settings. Lineups stay locked.`,
-  result: (result) => result.scored
-    ? `Week ${result.week} calculated for ${result.teams} teams.`
-    : result.reason === "week_in_progress"
-      ? "The NFL week is still in progress. Try again after all games finish."
-      : "Weekly NFL stats are not available yet. Existing scores have been kept.",
+  result: (result) => {
+    if (result.scored) return `Week ${result.week} calculated for ${result.teams} teams.`;
+    if (result.reason === "week_in_progress") {
+      return "The NFL week is still in progress. Try again after all games finish.";
+    }
+    if (result.reason === "incomplete_historical_lineups") {
+      return "Some teams do not have a recorded lineup for this week. Set starters on This Week, then calculate again.";
+    }
+    if (result.reason === "no_stats") {
+      return "Weekly NFL stats are not available yet. Existing scores have been kept.";
+    }
+    return "Weekly NFL stats are not available yet. Existing scores have been kept.";
+  },
 };

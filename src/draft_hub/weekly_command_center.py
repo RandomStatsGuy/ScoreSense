@@ -1061,6 +1061,7 @@ def build_weekly_command_center(
             "team_name": ctx.get("team_name"),
             "season": hub_season,
             "sleeper_league_id": ctx.get("sleeper_league_id"),
+            "is_commissioner": bool(ctx.get("is_commissioner")),
         },
         "meta": {
             "season": resolved_season,
@@ -1078,6 +1079,7 @@ def build_weekly_command_center(
             ),
             "lineup_source": lineup_meta.get("lineup_source") or "inferred",
             "lineup_locked": bool(lineup_meta.get("lineup_locked")),
+            "week_scored": bool(lineup_meta.get("week_scored")),
             "persists_projections": False,
         },
         "sync": sync,

@@ -117,3 +117,4 @@ def test_historical_view_preserves_departed_players(recovery):
     assert [row["player_id"] for row in starters] == ["past-qb"]
     assert not bench
     assert meta["lineup_locked"]
+    assert meta["week_scored"]

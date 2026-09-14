@@ -627,6 +627,76 @@ def test_native_scoring_rejects_unsupported_starters(hub_db, monkeypatch):
     assert storage.list_team_week_scores(league["id"], 2026, 1) == []
 
 
+def test_staff_can_start_bench_after_kickoff(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    rows = storage.list_team_lineup(league["id"], home["id"], 2026, 1)
+    wr2 = next(row for row in rows if row["player_id"] == "wr-a2")
+    swapped = swap_lineup_players(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        starter_player_id=wr2["player_id"],
+        bench_player_id="wr-a3",
+        game_started=lambda _team: True,
+        staff_edit=True,
+    )
+    by_id = {row["player_id"]: row for row in swapped}
+    assert by_id["wr-a3"]["lineup_role"] == "starter"
+    assert by_id["wr-a2"]["lineup_role"] == "bench"
+
+
+def test_staff_cannot_edit_lineup_after_week_is_scored(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.nfl_game_started",
+        lambda *_a, **_k: False,
+    )
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    ensure_team_lineup(league["id"], away["id"], 2026, 1)
+    result = apply_week_scores(
+        league["id"],
+        2026,
+        1,
+        stat_index={"qb-a": {"passing_yards": 200, "fantasy_points": 8.0}},
+        slate_complete=True,
+    )
+    assert result["scored"] is True
+    with pytest.raises(LineupError, match="commissioner correction"):
+        swap_lineup_players(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            starter_player_id="wr-a2",
+            bench_player_id="wr-a3",
+            game_started=lambda _team: False,
+            staff_edit=True,
+        )
+
+
+def test_calculate_fills_missing_lineups_from_current_roster(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.nfl_week_slate_complete",
+        lambda *_a, **_k: True,
+    )
+    assert ensure_team_lineup(league["id"], home["id"], 2026, 1) == []
+    stats = {
+        "qb-a": {"passing_yards": 300, "passing_tds": 2, "fantasy_points": 24.0},
+        "rb-a1": {"rushing_yards": 80, "rushing_tds": 1, "fantasy_points": 14.0},
+        "wr-a1": {"receptions": 6, "receiving_yards": 90, "fantasy_points": 15.0},
+        "qb-b": {"passing_yards": 180, "passing_tds": 1, "fantasy_points": 13.2},
+        "rb-b1": {"rushing_yards": 40, "fantasy_points": 4.0},
+        "wr-b1": {"receptions": 3, "receiving_yards": 30, "fantasy_points": 6.0},
+    }
+    result = apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
+    assert result["scored"] is True
+    assert storage.list_team_lineup(league["id"], home["id"], 2026, 1)
+    assert storage.list_team_lineup(league["id"], away["id"], 2026, 1)
+
+
 def test_week_stats_normalize_nflverse_turnovers(monkeypatch):
     import pandas as pd
     from src.draft_hub.hub_scoring import load_week_stat_index
