@@ -148,3 +148,121 @@ def test_ownership_matches_a_bare_sleeper_id_pool_row():
     )
 
     assert _available(sheet, "sleeper-4242") is False
+
+
+def test_gsis_pool_row_matches_sleeper_only_roster_by_name():
+    """2026 pool keys Jeanty on GSIS; a Sleeper import often stored sleeper-<n>."""
+    pool = {
+        "season": 2026,
+        "team_count": 6,
+        "rows": [
+            {
+                "player_id": "00-0040122",
+                "player": "Ashton Jeanty",
+                "player_name": "Ashton Jeanty",
+                "position": "RB",
+                "fair_value": 40.0,
+            }
+        ],
+    }
+    sheet = build_value_overlay(
+        pool,
+        SNAKE,
+        [],
+        league_roster=[
+            _slot(
+                "sleeper-12527",
+                team_id="team-a",
+                player_name="Ashton Jeanty",
+                position="RB",
+            )
+        ],
+        my_team_id="team-a",
+        draft_completed=True,
+    )
+
+    assert _available(sheet, "00-0040122") is False
+    assert _status(sheet, "00-0040122") == "rostered"
+
+
+def test_sheet_nickname_matches_full_pool_name():
+    pool = {
+        "season": 2026,
+        "team_count": 6,
+        "rows": [
+            {
+                "player_id": "00-0040122",
+                "player": "Ashton Jeanty",
+                "position": "RB",
+                "fair_value": 40.0,
+            }
+        ],
+    }
+    sheet = build_value_overlay(
+        pool,
+        SNAKE,
+        [],
+        league_roster=[_slot("sleeper-11563", player_name="Jeanty", position="RB")],
+        my_team_id="team-b",
+        draft_completed=True,
+    )
+
+    assert _available(sheet, "00-0040122") is False
+    assert _status(sheet, "00-0040122") == "taken"
+
+
+def test_shared_last_name_does_not_steal_another_williams():
+    pool = {
+        "season": 2026,
+        "team_count": 6,
+        "rows": [
+            {
+                "player_id": "00-0038997",
+                "player": "Kyren Williams",
+                "position": "RB",
+                "fair_value": 20.0,
+            }
+        ],
+    }
+    sheet = build_value_overlay(
+        pool,
+        SNAKE,
+        [],
+        league_roster=[
+            _slot("sleeper-8151", player_name="Javonte Williams", position="RB")
+        ],
+        my_team_id="team-b",
+        draft_completed=True,
+    )
+
+    assert _available(sheet, "00-0038997") is True
+
+
+def test_sleeper_snapshot_hides_my_player_in_a_pick_draft():
+    """My team can show a Sleeper snapshot while the hub slot still has the old id."""
+    sheet = build_value_overlay(
+        _pool("00-0040122"),
+        SNAKE,
+        [],
+        league_roster=[],
+        my_team_id="team-a",
+        sleeper_player_ids={"00-0040122"},
+        draft_completed=True,
+    )
+
+    assert _available(sheet, "00-0040122") is False
+    assert _status(sheet, "00-0040122") == "rostered"
+
+
+def test_auction_pre_draft_still_lists_a_sleeper_expiree():
+    sheet = build_value_overlay(
+        _pool("00-0000001"),
+        AUCTION,
+        [],
+        league_roster=[_slot("00-0000001", salary=12)],
+        my_team_id="team-b",
+        sleeper_player_ids={"00-0000001"},
+        draft_completed=False,
+    )
+
+    assert _available(sheet, "00-0000001") is True
