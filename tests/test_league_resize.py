@@ -17,6 +17,7 @@ from src.draft_hub.league_resize import (
     preview_remove_franchise,
 )
 from src.draft_hub.presets import load_preset
+from src.draft_hub.schemas import LeagueRules
 
 
 @pytest.fixture()
@@ -78,6 +79,25 @@ def test_add_franchise_fills_open_seat_without_raising_cap(hub_db):
     apply_add_franchise(league["id"], "Seat Two")
     assert storage.get_league(league["id"])["team_count"] == 10
     assert len(storage.list_league_teams(league["id"])) == 2
+
+
+def test_pick_draft_add_franchise_preview_omits_salary_copy(hub_db):
+    ws = storage.get_or_create_workspace("resize-snake")
+    league = storage.create_league(
+        "resize-snake",
+        "Snake Resize",
+        2026,
+        LeagueRules(draft_type="snake"),
+        workspace_id=ws["id"],
+        team_count=4,
+    )
+    preview = preview_add_franchise(league["id"], "Seat Two")
+    assert preview["ok"] is True
+    joined = " ".join(preview["consequences"])
+    assert "starts empty" in joined
+    assert "$" not in joined
+    assert "keepers" not in joined
+    assert "contracts" not in joined
 
 
 def test_add_franchise_blocked_after_draft_complete(hub_db):

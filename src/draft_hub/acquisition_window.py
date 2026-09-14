@@ -161,8 +161,12 @@ def resolve_acquisition_window(
         add_mode = ADD_LOCKED
         trade_scope = TRADE_ACTIVE
         message = (
-            "Pre-draft adds go through the draft. Rosters stay put until auction night, "
-            "except trades of players already under contract."
+            "Pre-draft adds go through the draft. Rosters stay put until draft night. Trades stay open."
+            if priority_waivers
+            else (
+                "Pre-draft adds go through the draft. Rosters stay put until auction night, "
+                "except trades of players already under contract."
+            )
         )
     elif phase_id == PHASE_IN_SEASON and is_waiver_period(now):
         window = WINDOW_WAIVERS

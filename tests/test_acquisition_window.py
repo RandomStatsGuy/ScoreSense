@@ -123,6 +123,18 @@ def test_pre_draft_locks_adds():
     )
     assert window["id"] == WINDOW_PRE_DRAFT
     assert window["add_mode"] == ADD_LOCKED
+    assert "auction night" in window["message"]
+
+
+def test_pick_draft_pre_draft_does_not_say_auction_night():
+    window = resolve_acquisition_window(
+        _ctx(draft_completed=False, league_status="setup", rules={"draft_type": "snake"}),
+        nfl_state={"season_type": "off", "week": 1, "season": 2026},
+    )
+    assert window["id"] == WINDOW_PRE_DRAFT
+    assert window["add_mode"] == ADD_LOCKED
+    assert "auction night" not in window["message"].lower()
+    assert "draft night" in window["message"].lower()
 
 
 def test_solo_prep_always_allows_adds():
