@@ -97,7 +97,7 @@ Source of truth: `frontend/src/DraftHub/hubSubnav.js`.
 | Cap | `planner` | Salary-cap leagues only. Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. The rail primary is leftover / open the room. Undo cut and Undo extension are ghost. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expiring uses amber; extend-to-keep uses blue. Pick-draft leagues hide Cap; a direct URL explains that salaries do not apply. |
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. Continue (or Propose on the last step) is the only primary; Accept and Load into builder are ghost. Cap line is **current roster** salary (active contracts this season, including expiring). My team **{season} committed** is draft-surviving salary — same $200 cap, different base; do not use one word for both. Auto-check every package change and gate Propose on a pass. The verdict is a colored live status banner next to the primary, not grey chart-note. Ideas need chips mark starter-thin positions only — a 6-RB roster is extra depth, not a need. |
 | Rules | `rules` | League model (read for members, edit for staff) |
-| Roster management | `office` | Staff-only members and access. Contracts and Salary sheets appear only when the league uses contracts. |
+| Roster management | `office` | Staff-only members and access. Contracts and Salary sheets appear only when the league uses contracts; leagues without them get **Roster moves** instead. |
 | Insights | `insights` | League history and awards. Overview is a dynasty plaque, championship years, records, and career scoring — not Spend. Rank bars share a fixed track and start near the field (or show the gap from first). Career lists show every manager by the name that persists; team nicknames sit underneath — never as the only label. Award names are a Roster management control. The tab strip stays live; skeleton the plaque and boards. |
 
 Desktop Fantasy navigation is one readable row from Home through Trades, followed by a League dropdown containing Rules, Roster management (commissioners only), and Insights. Do not restore Draft/Team/League overlines or vertical group dividers. Phone destination sheets retain their useful grouping.
@@ -108,9 +108,11 @@ If you add or rename a Fantasy destination, update `hubSubnav.js`, `appNavigatio
 
 Source of truth: `frontend/src/DraftHub/hubOfficeTabs.js`.
 
-Contracts · Salary sheets · Corrections · Members · Access & imports.
+Contracts · Salary sheets · Corrections · Members · Access & imports. A league with no contracts shows **Roster moves** in place of Contracts, and no Salary sheets or Corrections.
 
 Corrections repairs native historical-week rosters and starters through a reasoned preview and audited publication. Past ownership is not inferred from today's roster. Corrected results use the week's scoring snapshot and actual statistics; missing statistics block publication. Current rosters and later lineups remain unchanged. The initial recovery editor uses explicit player IDs; draft-record and current-roster repairs are separate workflows, not implied by publishing a weekly correction.
+
+Roster moves is the no-contract pane. It is the same staff roster editor as Contracts with the money off: no Type, salary, Yrs, Schedule, committed, dead cap, or free. Staff assign a player to a team and drop one; there is no salary to set and no cap to bust. It never appears beside Contracts — a league has one or the other. Do not call it Rosters; that is the league-wide destination.
 
 The pane switcher uses pane pills only. Do not inline group labels with the pills.
 

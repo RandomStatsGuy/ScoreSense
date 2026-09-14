@@ -616,6 +616,26 @@ export default function LeagueOffice({
         </HubPage>
       )}
 
+      {activeTab === "rosters" && isCommissioner && (
+        <HubPage>
+          <header className="hub-section-head">
+            <h3 className="hub-section-title">Roster moves</h3>
+            <p className="hub-section-hint">
+              Assign a player to a team or drop one. This league has no contracts,
+              so there is no salary or cap to set.
+            </p>
+          </header>
+          <CommissionerLeagueRosters
+            leagueId={leagueId}
+            season={hubContext?.season}
+            workspace={workspace}
+            hubContext={hubContext}
+            onChanged={handleChanged}
+            reloadNonce={dataEpoch}
+          />
+        </HubPage>
+      )}
+
       {activeTab === "corrections" && isCommissioner && (
         <WeekCorrections key={leagueId} leagueId={leagueId} season={season} onChanged={handleChanged} />
       )}

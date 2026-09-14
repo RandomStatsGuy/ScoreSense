@@ -2,6 +2,9 @@
 
 export const OFFICE_TABS = [
   { id: "current", label: "Contracts", group: "rosters", roles: ["commissioner"], salaryOnly: true },
+  // Leagues with no contracts still need staff roster moves. Contracts stays
+  // auction-only; this pane carries the assignment and drop work without money.
+  { id: "rosters", label: "Roster moves", group: "rosters", roles: ["commissioner"], noContracts: true },
   { id: "historic", label: "Salary sheets", group: "records", roles: ["commissioner"], salaryOnly: true },
   { id: "corrections", label: "Corrections", group: "records", roles: ["commissioner"], salaryOnly: true },
   { id: "members", label: "Members", group: "league", roles: ["commissioner"] },
@@ -32,6 +35,7 @@ export function isOfficeTabAllowed(tabId, isCommissioner, capabilities) {
   const role = isCommissioner ? "commissioner" : "owner";
   if (!tab.roles.includes(role)) return false;
   if (tab.salaryOnly && !officeUsesContracts(capabilities)) return false;
+  if (tab.noContracts && officeUsesContracts(capabilities)) return false;
   return true;
 }
 
@@ -40,6 +44,7 @@ export function visibleOfficeTabs(isCommissioner, capabilities) {
   return OFFICE_TABS.filter((t) => {
     if (!t.roles.includes(role)) return false;
     if (t.salaryOnly && !officeUsesContracts(capabilities)) return false;
+    if (t.noContracts && officeUsesContracts(capabilities)) return false;
     return true;
   });
 }

@@ -5,7 +5,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { reportHref } from "./bugReportPresentation";
 import { useAuth } from "./AuthContext";
 import DraftTable from "./DraftTable";
-import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav";
+// Explicit extension: hubSubnav.js and HubSubnav.jsx differ only by case, so a
+// case-insensitive filesystem (Windows, default macOS) resolves the bare
+// specifier to the data module, which has no default export.
+import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav.jsx";
 import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
 const DraftHub = lazy(() => import("./DraftHub/DraftHub"));
 const DfsOptimizer = lazy(() => import("./LineupOptimizer"));

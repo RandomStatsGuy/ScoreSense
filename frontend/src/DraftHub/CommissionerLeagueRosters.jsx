@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
@@ -8,6 +8,11 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import { HubFilterMenu } from "./HubUILayout";
 import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
+import { leagueUsesContracts } from "./leagueCapabilities";
+
+/** False in a no-contract league: the same roster editor, without the money. */
+const OfficeMoneyContext = createContext(true);
+const useShowsMoney = () => useContext(OfficeMoneyContext);
 import {
   getAnyLeagueRostersCache,
   setLeagueRostersCache,
@@ -397,6 +402,7 @@ function TeamRosterBlock({
   onWriteImmediate,
   onSaved,
 }) {
+  const showsMoney = useShowsMoney();
   const [open, setOpen] = useState(defaultOpen);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -640,11 +646,13 @@ function TeamRosterBlock({
         </div>
         <div className="hub-league-team-card-stats">
           <span>{stats.playerCount} players</span>
-          <span>{fmtSal(stats.committed)} committed</span>
-          {stats.deadCap > 0 && (
+          {showsMoney && <span>{fmtSal(stats.committed)} committed</span>}
+          {showsMoney && stats.deadCap > 0 && (
             <span className="hub-league-cut-count">{fmtSal(stats.deadCap)} dead cap</span>
           )}
-          <span className="hub-league-cap-free">{fmtSal(stats.remaining)} free</span>
+          {showsMoney && (
+            <span className="hub-league-cap-free">{fmtSal(stats.remaining)} free</span>
+          )}
           {stats.cutCount > 0 && (
             <span className="hub-league-cut-count">{stats.cutCount} cut</span>
           )}
@@ -800,14 +808,18 @@ function TeamRosterBlock({
             <tr>
               <th>Player</th>
               <th>Pos</th>
-              <th>Type</th>
-              <th title={stage?.capHint}>
-                <StageColHead label={stage?.capColumn || `${season} $`} sub={stage?.capColumnSub} />
-              </th>
-              <th title={stage?.yearsHint}>
-                <StageColHead label={stage?.yearsColumn || "Yrs"} sub={stage?.yearsColumnSub} />
-              </th>
-              <th>Schedule</th>
+              {showsMoney && <th>Type</th>}
+              {showsMoney && (
+                <th title={stage?.capHint}>
+                  <StageColHead label={stage?.capColumn || `${season} $`} sub={stage?.capColumnSub} />
+                </th>
+              )}
+              {showsMoney && (
+                <th title={stage?.yearsHint}>
+                  <StageColHead label={stage?.yearsColumn || "Yrs"} sub={stage?.yearsColumnSub} />
+                </th>
+              )}
+              {showsMoney && <th>Schedule</th>}
               <th aria-label="Actions" />
             </tr>
           </thead>
@@ -834,65 +846,69 @@ function TeamRosterBlock({
                     </div>
                   </td>
                   <td><span className="hub-roster-pos-tag">{r.position}</span></td>
-                  <td>
-                    <HubFilterMenu
-                      label="Type"
-                      value={vm.pendingType || vm.ctype}
-                      options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
-                      onChange={(id) => onTypeChange(r, id)}
-                      disabled={vm.locked}
-                    />
-                  </td>
-                  <td>
-                    <label className="hub-roster-field">
-                      <span className="sr-only">
-                        {stage?.salaryFieldLabel || "Cap"} for {r.player_name}
-                      </span>
-                      <input
-                        type="number"
-                        className="hub-roster-edit-input"
-                        min={0}
-                        max={vm.salaryMax}
-                        step={1}
-                        value={vm.edit.salary}
+                  {showsMoney && (
+                    <>
+                    <td>
+                      <HubFilterMenu
+                        label="Type"
+                        value={vm.pendingType || vm.ctype}
+                        options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
+                        onChange={(id) => onTypeChange(r, id)}
                         disabled={vm.locked}
-                        aria-label={`${stage?.salaryFieldLabel || "Cap"} for ${r.player_name}`}
-                        aria-describedby={`cap-hint-${r.player_id}`}
-                        aria-invalid={Boolean(vm.salaryError)}
-                        onChange={(e) => onQueue(r, { salary: e.target.value })}
-                        onBlur={() => {
-                          if (vm.salaryError || vm.pending?.salary == null) return;
-                          flushField(r, { salary: vm.pending.salary });
-                        }}
                       />
-                      <span id={`cap-hint-${r.player_id}`} className="hub-cap-field-hint">
-                        {capFigures}
-                      </span>
-                      {vm.salaryError && <span className="hub-field-error">{vm.salaryError}</span>}
-                    </label>
-                  </td>
-                  <td>
-                    <label className="hub-roster-field">
-                      <span className="sr-only">
-                        {stage?.yearsFieldLabel || "Years"} for {r.player_name}
-                      </span>
-                      <input
-                        type="number"
-                        className="hub-roster-edit-input hub-roster-edit-input-sm"
-                        min={1}
-                        max={maxYears}
-                        step={1}
-                        value={vm.edit.years}
-                        disabled={vm.locked}
-                        aria-label={`${stage?.yearsFieldLabel || "Years"} for ${r.player_name}`}
-                        onChange={(e) => onQueue(r, { years: e.target.value })}
-                        onBlur={() => {
-                          if (vm.pending?.years != null) flushField(r, { years: vm.pending.years });
-                        }}
-                      />
-                    </label>
-                  </td>
-                  <td className="chart-note hub-schedule-preview">{vm.livePreview}</td>
+                    </td>
+                    <td>
+                      <label className="hub-roster-field">
+                        <span className="sr-only">
+                          {stage?.salaryFieldLabel || "Cap"} for {r.player_name}
+                        </span>
+                        <input
+                          type="number"
+                          className="hub-roster-edit-input"
+                          min={0}
+                          max={vm.salaryMax}
+                          step={1}
+                          value={vm.edit.salary}
+                          disabled={vm.locked}
+                          aria-label={`${stage?.salaryFieldLabel || "Cap"} for ${r.player_name}`}
+                          aria-describedby={`cap-hint-${r.player_id}`}
+                          aria-invalid={Boolean(vm.salaryError)}
+                          onChange={(e) => onQueue(r, { salary: e.target.value })}
+                          onBlur={() => {
+                            if (vm.salaryError || vm.pending?.salary == null) return;
+                            flushField(r, { salary: vm.pending.salary });
+                          }}
+                        />
+                        <span id={`cap-hint-${r.player_id}`} className="hub-cap-field-hint">
+                          {capFigures}
+                        </span>
+                        {vm.salaryError && <span className="hub-field-error">{vm.salaryError}</span>}
+                      </label>
+                    </td>
+                    <td>
+                      <label className="hub-roster-field">
+                        <span className="sr-only">
+                          {stage?.yearsFieldLabel || "Years"} for {r.player_name}
+                        </span>
+                        <input
+                          type="number"
+                          className="hub-roster-edit-input hub-roster-edit-input-sm"
+                          min={1}
+                          max={maxYears}
+                          step={1}
+                          value={vm.edit.years}
+                          disabled={vm.locked}
+                          aria-label={`${stage?.yearsFieldLabel || "Years"} for ${r.player_name}`}
+                          onChange={(e) => onQueue(r, { years: e.target.value })}
+                          onBlur={() => {
+                            if (vm.pending?.years != null) flushField(r, { years: vm.pending.years });
+                          }}
+                        />
+                      </label>
+                    </td>
+                    <td className="chart-note hub-schedule-preview">{vm.livePreview}</td>
+                    </>
+                  )}
                   <td className="hub-roster-actions">
                     {vm.cutControl}
                     {vm.dropControl}
@@ -969,6 +985,7 @@ function LeagueRostersSkeleton() {
 }
 
 export default function CommissionerLeagueRosters({ leagueId, season, workspace, hubContext, onChanged, reloadNonce = 0 }) {
+  const showsMoney = leagueUsesContracts(hubContext);
   const [searchParams] = useSearchParams();
   const playerFromUrl = (searchParams.get("player") || "").trim();
   const [overview, setOverview] = useState(null);
@@ -1268,11 +1285,12 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   }
 
   return (
+    <OfficeMoneyContext.Provider value={showsMoney}>
     <div className="hub-league-rosters">
       <LiveContractStageBanner stage={stage} />
       <header className="hub-league-rosters-head">
         <div className="hub-league-rosters-intro">
-          <h2>Contracts</h2>
+          <h2>{showsMoney ? "Contracts" : "Roster moves"}</h2>
         </div>
         <div className="hub-league-rosters-summary" aria-label="League totals">
           {hubContext?.is_commissioner && draftCompleted ? (
@@ -1285,10 +1303,12 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           <span className="hub-league-summary-stat">
             <strong>{leagueTotals.players || "—"}</strong> players
           </span>
-          <span className="hub-league-summary-stat">
-            <strong>{overview ? fmtSal(leagueTotals.committed) : "—"}</strong> committed
-          </span>
-          {leagueTotals.deadCap > 0 && (
+          {showsMoney && (
+            <span className="hub-league-summary-stat">
+              <strong>{overview ? fmtSal(leagueTotals.committed) : "—"}</strong> committed
+            </span>
+          )}
+          {showsMoney && leagueTotals.deadCap > 0 && (
             <span className="hub-league-summary-stat">
               <strong>{fmtSal(leagueTotals.deadCap)}</strong> dead cap
             </span>
@@ -1465,6 +1485,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
         </div>
       ) : null}
     </div>
+    </OfficeMoneyContext.Provider>
   );
 }
 
