@@ -23,6 +23,7 @@ import {
   seasonCapYearHint,
   YEARS_LEFT_HINT,
 } from "./rosterFormat";
+import { leagueUsesSalaries } from "./leagueCapabilities";
 import {
   canManagerRookieExtend,
   cancelRookieExtend,
@@ -95,6 +96,7 @@ function ContractRulesDisclosure({
 function ContractSidePanelBody({
   r,
   season,
+  usesSalaries = true,
   contractsReadOnly,
   canEditType,
   draftCompleted,
@@ -157,6 +159,8 @@ function ContractSidePanelBody({
           </div>
         )}
 
+      {usesSalaries && (
+        <>
         {contractsReadOnly ? (
           <div className="hub-roster-contract-panel-stat">
             <span className="mobile-stat-label">Cap hit ({season})</span>
@@ -220,6 +224,9 @@ function ContractSidePanelBody({
           </div>
         )}
       </div>
+
+        </>
+      )}
 
       {(pendingType || pendingExt) && (
         <p className="chart-note">
@@ -359,6 +366,7 @@ export default function RosterBuilder({
   const maxYears = Math.max(1, Number(workspace?.rules?.contracts?.max_years ?? 3) || 3);
   const defaultStepUp = leagueStepUp(workspace?.rules);
   const salaryCap = Number(workspace?.rules?.salary_cap ?? 200);
+  const usesSalaries = leagueUsesSalaries(hubContext);
   const season = workspace?.season ?? new Date().getFullYear();
   const draftCompleted = Boolean(hubContext?.draft_completed);
   const preDraft = !draftCompleted ? capSheet?.pre_draft : null;
@@ -811,13 +819,15 @@ export default function RosterBuilder({
     savedId,
   ]);
 
-  const colSpan = showManagerTeam ? 7 : 6;
+  // Cap hit and Years are hidden when the league has no money.
+  const colSpan = (showManagerTeam ? 7 : 6) - (usesSalaries ? 0 : 2);
 
   const panelProps = selectedRow ? (() => {
     const vm = rowViewModel(selectedRow);
     return {
       r: selectedRow,
       season,
+      usesSalaries,
       contractsReadOnly,
       canEditType,
       draftCompleted,
@@ -872,7 +882,7 @@ export default function RosterBuilder({
             ? () => setLookOpen(true)
             : null
         }
-        cap={(
+        cap={!usesSalaries ? null : (
           <div className="hub-stat-card hub-stat-card--accent hub-stadium-cap-card">
             <span className="hub-stat-label">{preDraft ? MY_TEAM_COPY.capForDraft : `Cap (${season})`}</span>
             <strong className="hub-stat-value">
@@ -1106,22 +1116,26 @@ export default function RosterBuilder({
               <th className="hub-roster-col-player">Player</th>
               {showManagerTeam && <th className="hub-roster-col-manager">Manager</th>}
               <th className="hub-roster-col-pos">Pos</th>
-              <SortTh
-                label={`Cap hit (${season})`}
-                col="cap"
-                sortKey={sortKey}
-                sortDir={sortDir}
-                onSort={onSort}
-                className="num hub-roster-col-cap"
-              />
-              <SortTh
-                label="Years"
-                col="years"
-                sortKey={sortKey}
-                sortDir={sortDir}
-                onSort={onSort}
-                className="num hub-roster-col-years"
-              />
+              {usesSalaries && (
+                <>
+                <SortTh
+                  label={`Cap hit (${season})`}
+                  col="cap"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  className="num hub-roster-col-cap"
+                />
+                <SortTh
+                  label="Years"
+                  col="years"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={onSort}
+                  className="num hub-roster-col-years"
+                />
+                </>
+              )}
               <SortTh
                 label="Status"
                 col="status"
@@ -1180,8 +1194,12 @@ export default function RosterBuilder({
                   </td>
                   {showManagerTeam && <td className="hub-roster-col-manager">{r.manager_team || "—"}</td>}
                   <td className="hub-roster-col-pos"><span className="hub-roster-pos-tag">{normalizeHubPosition(r.position) || r.position || "—"}</span></td>
-                  <td className="num hub-roster-col-cap">{fmtSal(vm.edit.salary)}</td>
-                  <td className="num hub-roster-col-years">{vm.edit.years}</td>
+                  {usesSalaries && (
+                    <>
+                    <td className="num hub-roster-col-cap">{fmtSal(vm.edit.salary)}</td>
+                    <td className="num hub-roster-col-years">{vm.edit.years}</td>
+                    </>
+                  )}
                   <td className="hub-roster-col-status">
                     <span className={`hub-roster-status hub-roster-status--${vm.status.tone}`}>
                       {vm.status.label}
