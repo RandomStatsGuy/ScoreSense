@@ -44,12 +44,19 @@ export function draftLobbyHeroHeading({ testMode = false, locked = false, roomFu
   return "Lock a night, then start the draft.";
 }
 
-export function draftLobbyHeroSupport({ testMode = false, locked = false, roomFull = false } = {}) {
+export function draftLobbyHeroSupport({
+  testMode = false,
+  locked = false,
+  roomFull = false,
+  usesContracts = true,
+} = {}) {
   if (testMode) {
     return "Send the practice link. Friends sit down with a name — no ScoreSense account. This room does not write real contracts.";
   }
   if (locked && roomFull) {
-    return "Every seat is claimed. Start the draft so the auction writes keepers and contracts.";
+    return usesContracts
+      ? "Every seat is claimed. Start the draft so the auction writes keepers and contracts."
+      : "Every seat is claimed. Start the draft so every pick lands on a roster.";
   }
   if (locked) {
     return "Share the room so claimed seats fill. Miss the night and you draft late or not at all.";

@@ -66,6 +66,49 @@ AWARD_GROUPS: dict[str, str] = {
 }
 
 
+# Awards that only mean something when the league has money. AWARD_GROUPS is not
+# the right axis: nomad and loyalty sit in "spend" but count teams and tenure,
+# and the two cap_efficiency awards sit in "scoring" but divide by dollars.
+MONEY_AWARDS: frozenset[str] = frozenset({
+    "highest_paid",
+    "most_overpaid",
+    "worst_contract",
+    "best_bargain",
+    "waiver_king",
+    "cap_hog",
+    "payroll_king",
+    "dead_cap_disaster",
+    "career_earnings",
+    "biggest_raise",
+    "cap_crunch",
+    "cap_efficiency_goat",
+    "cap_efficiency_fraud",
+})
+
+
+def is_money_award(award_id: str) -> bool:
+    return str(award_id or "") in MONEY_AWARDS
+
+
+def award_ids_for_rules(rules: Any) -> list[str]:
+    """Award ids this league can actually earn."""
+    from src.draft_hub.league_capabilities import uses_salaries
+
+    if uses_salaries(rules or {}):
+        return list(DEFAULT_AWARD_TITLES)
+    return [aid for aid in DEFAULT_AWARD_TITLES if not is_money_award(aid)]
+
+
+def drop_money_awards(awards: list[dict[str, Any]] | None, rules: Any) -> list[dict[str, Any]]:
+    """Strip cap and salary awards from a league that has neither."""
+    from src.draft_hub.league_capabilities import uses_salaries
+
+    rows = list(awards or [])
+    if uses_salaries(rules or {}):
+        return rows
+    return [row for row in rows if not is_money_award(str(row.get("id") or ""))]
+
+
 def award_title(award_id: str, default: str | None = None) -> str:
     return DEFAULT_AWARD_TITLES.get(award_id) or default or award_id.replace("_", " ").title()
 

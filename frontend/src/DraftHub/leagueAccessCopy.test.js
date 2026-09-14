@@ -260,3 +260,12 @@ test("sleeper unlink summary counts mappings and only warns on roster rows when 
     "Clears 10 team mappings.",
   );
 });
+
+test("lobby hero copy drops auction language for a pick draft", () => {
+  const full = { locked: true, roomFull: true };
+  assert.match(draftLobbyHeroSupport({ ...full, usesContracts: true }), /auction writes keepers/i);
+  assert.doesNotMatch(draftLobbyHeroSupport({ ...full, usesContracts: false }), /auction|contract/i);
+  assert.match(draftLobbyHeroSupport({ ...full, usesContracts: false }), /every pick lands on a roster/i);
+  // Default stays the salary-league wording.
+  assert.match(draftLobbyHeroSupport(full), /auction writes keepers/i);
+});
