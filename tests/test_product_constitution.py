@@ -26,7 +26,7 @@ FANTASY_LABELS = [
 
 TOP_LEVEL = ["Projections", "Fantasy", "Tools"]
 
-ROSTER_MGMT_PANES = ["Contracts", "Roster moves", "Salary sheets", "Members", "Access & imports"]
+ROSTER_MGMT_PANES = ["Contracts", "Roster moves", "Salary sheets", "Corrections", "Members", "Access & imports"]
 
 RULE_FILES = (
     "frontend-craft.mdc",

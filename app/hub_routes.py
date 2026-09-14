@@ -1030,6 +1030,7 @@ def hub_set_lineup(
             resolved_week,
             [item.model_dump() for item in body.starters],
             rules=rules,
+            staff_edit=bool(ctx.get("is_commissioner")),
         )
     except LineupError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1066,6 +1067,7 @@ def hub_swap_lineup(
             starter_player_id=body.starter_player_id,
             bench_player_id=body.bench_player_id,
             rules=rules,
+            staff_edit=bool(ctx.get("is_commissioner")),
         )
     except LineupError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

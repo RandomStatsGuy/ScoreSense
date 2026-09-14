@@ -108,7 +108,7 @@ If you add or rename a Fantasy destination, update `hubSubnav.js`, `appNavigatio
 
 Source of truth: `frontend/src/DraftHub/hubOfficeTabs.js`.
 
-Contracts · Salary sheets · Corrections · Members · Access & imports. A league with no contracts shows **Roster moves** in place of Contracts, and no Salary sheets or Corrections.
+Contracts · Salary sheets · Corrections · Members · Access & imports. A league with no contracts shows **Roster moves** in place of Contracts, and no Salary sheets. Corrections stays available so staff can repair native weekly lineups.
 
 Corrections repairs native historical-week rosters and starters through a reasoned preview and audited publication. Past ownership is not inferred from today's roster. Corrected results use the week's scoring snapshot and actual statistics; missing statistics block publication. Current rosters and later lineups remain unchanged. The initial recovery editor uses explicit player IDs; draft-record and current-roster repairs are separate workflows, not implied by publishing a weekly correction.
 

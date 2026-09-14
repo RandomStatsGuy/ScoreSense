@@ -36,7 +36,7 @@ Use these labels. Keep internal ids if they already exist.
 | Roster management | `office` | Office, Commissioner |
 | Model accuracy | `model` | Accuracy tab |
 
-Roster management panes: Contracts, Salary sheets, Members, Access & imports. A seat is the slot; a manager is the person. Chat is not a pane or a Fantasy destination.
+Roster management panes: Contracts, Salary sheets, Corrections, Members, Access & imports. A seat is the slot; a manager is the person. Chat is not a pane or a Fantasy destination.
 
 Source: `frontend/src/DraftHub/hubSubnav.js`, `frontend/src/appNavigation.js`.
 

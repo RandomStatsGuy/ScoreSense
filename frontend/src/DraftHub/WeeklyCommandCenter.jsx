@@ -202,7 +202,10 @@ export default function WeeklyCommandCenter({
     mode: data?.hub_context?.mode || hubContext?.mode,
     lineupSource: meta.lineup_source,
     lineupLocked: meta.lineup_locked,
+    weekScored: meta.week_scored,
+    isCommissioner: Boolean(hubContext?.is_commissioner || data?.hub_context?.is_commissioner),
   });
+  const staffLineupOpen = canEdit && Boolean(meta.lineup_locked) && !meta.week_scored;
   const leagueId = data?.hub_context?.league_id || hubContext?.league_id;
   const sleeperLeagueId = data?.hub_context?.sleeper_league_id || hubContext?.sleeper_league_id || "";
 
@@ -481,6 +484,7 @@ export default function WeeklyCommandCenter({
       >
         {error && <div className="error">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
+        {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
         {lineupError && <div className="error">{lineupError}</div>}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
