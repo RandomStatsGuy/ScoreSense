@@ -660,6 +660,61 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_fa_bid_window ON fa_bid(league_id, window_id, status)"
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_priority (
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            team_id TEXT NOT NULL,
+            priority INTEGER NOT NULL,
+            confirmed INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, season, team_id),
+            UNIQUE (league_id, season, priority)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_claim (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            window_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            player_id TEXT NOT NULL,
+            player_name TEXT,
+            nfl_team TEXT,
+            position TEXT,
+            claim_rank INTEGER NOT NULL,
+            drop_player_id TEXT,
+            status TEXT NOT NULL DEFAULT 'open',
+            outcome_reason TEXT,
+            user_sub TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            CHECK (claim_rank > 0)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_waiver_claim_window ON waiver_claim(league_id, window_id, status)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_protection (
+            league_id TEXT NOT NULL,
+            player_id TEXT NOT NULL,
+            dropped_by_team_id TEXT NOT NULL,
+            eligible_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, player_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_process (
+            league_id TEXT NOT NULL,
+            window_id TEXT NOT NULL,
+            result_json TEXT NOT NULL,
+            processed_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, window_id)
+        )"""
+    )
     _safe_add_column(conn, "hub_workspace", "prefs_json", "TEXT")
     _safe_add_column(conn, "team", "identity_json", "TEXT")
     conn.execute(
@@ -5686,6 +5741,10 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_invite",
             "league_chat_channel",
             "fa_bid",
+            "waiver_claim",
+            "waiver_priority",
+            "waiver_protection",
+            "waiver_process",
             "week_poll",
             "matchup_emote",
             "league_week_matchup",

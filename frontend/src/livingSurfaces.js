@@ -76,7 +76,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/faBidPresentation.js",
       "frontend/src/DraftHub/faWalkaway.js",
     ],
-    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Rows always show Bid or Add; when locked, disable with Adds open after the draft — do not omit the action. Star is Star for draft with a visible starred state. Hide Vs cost until a contract cost exists. Fold tier into the player cell. Desktop virtualizes on page scroll — no nested table scroller. Season pts use a number plus text range. How adds work lives in the acquisition banner. Mobile still shows the disabled Add beside the muted SUGGESTED bid. Walk-away is a personal local ceiling — hide it when Bid is locked. Place bid stays the only primary; amber means suggested bid is above your ceiling.",
+    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Pick drafts use an ordered Claim queue with optional conditional drops; auctions keep Bid. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Rows always show Claim, Bid, or Add; when locked, disable with Adds open after the draft — do not omit the action. Star is Star for draft with a visible starred state. Hide Vs cost until a contract cost exists. Fold tier into the player cell. Desktop virtualizes on page scroll — no nested table scroller. Season pts use a number plus text range. How adds work lives in the acquisition banner. Walk-away is a personal local ceiling for bids only. Place bid stays the only auction primary; amber means suggested bid is above your ceiling.",
   }),
   "hub.room": S({
     label: "Draft",

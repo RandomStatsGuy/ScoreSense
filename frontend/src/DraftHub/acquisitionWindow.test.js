@@ -40,6 +40,13 @@ test("waiver window uses bid copy", () => {
   assert.equal(banner.variant, "warn");
 });
 
+test("priority waiver window uses claim actions", () => {
+  assert.equal(playersTabAddMode({ add_mode: "claim" }, { inLeague: true }), "claim");
+  assert.equal(playersTabAddLabel("claim"), "Claim");
+  const banner = playersTabBanner({ add_mode: "claim", message: "Submit claims.", label: "Waivers" });
+  assert.equal(banner.variant, "warn");
+});
+
 test("offseason surviving-contract trades skip one-year deals", () => {
   const window = { trade_scope: "surviving_contracts", add_mode: "locked", label: "Offseason" };
   assert.equal(playerTradeableInWindow({ contract_years: 2 }, window), true);

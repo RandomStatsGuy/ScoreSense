@@ -29,6 +29,7 @@ function ValueSheetPlayerRow({
   rules = null,
   inRoster,
   isAdding,
+  isClaimed = false,
   isSelected,
   isCommissioner = false,
   onSelectPlayer,
@@ -97,12 +98,14 @@ function ValueSheetPlayerRow({
   const statusLabel = formatStatusLabel(row.status);
   const taken = row.status === "taken";
   const locked = addMode === "locked";
-  const addLabel = isAdding
+  const addLabel = isClaimed
+    ? "Claimed"
+    : isAdding
     ? (addMode === "bid" ? "Bidding…" : "Adding…")
     : playersTabAddLabel(addMode, { taken, isCommissioner });
   const addReason = locked
     ? playersTabAddDisabledReason(addMode)
-    : (taken && !isCommissioner && addMode !== "bid" ? "Already on another roster" : undefined);
+    : (taken && !isCommissioner && !["bid", "claim"].includes(addMode) ? "Already on another roster" : undefined);
   const watching = (watchIds || []).map(String).includes(String(row.player_id));
   const starLabel = playersTabStarCopy(watching);
   const spreadLabel = useMemo(
@@ -291,7 +294,7 @@ function ValueSheetPlayerRow({
           <button
             type="button"
             className="btn-ghost btn-sm"
-            disabled={actionsDisabled || isAdding || locked}
+            disabled={actionsDisabled || isAdding || isClaimed || locked}
             title={addReason}
             onClick={locked ? undefined : handleAddClick}
           >
@@ -331,6 +334,7 @@ function propsAreEqual(prev, next) {
     && prev.rules === next.rules
     && prev.inRoster === next.inRoster
     && prev.isAdding === next.isAdding
+    && prev.isClaimed === next.isClaimed
     && prev.isSelected === next.isSelected
     && prev.isCommissioner === next.isCommissioner
     && prev.onSelectPlayer === next.onSelectPlayer

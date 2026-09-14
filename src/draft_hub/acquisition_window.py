@@ -30,6 +30,7 @@ WINDOW_OFFSEASON = "offseason"
 
 ADD_LOCKED = "locked"
 ADD_BID = "bid"
+ADD_CLAIM = "claim"
 ADD_INSTANT = "add"
 
 TRADE_SURVIVING = "surviving_contracts"
@@ -54,6 +55,7 @@ _WINDOW_LABELS = {
 _ADD_COPY = {
     ADD_LOCKED: "Rosters are locked. Use Trades for players whose contracts survive the upcoming draft.",
     ADD_BID: "Place a bid. The highest bid wins when this window processes — same as post-draft FA.",
+    ADD_CLAIM: "Submit priority claims. Successful claims move that team to the end of the waiver order.",
     ADD_INSTANT: "Waiver period is over. You can add available players now.",
 }
 
@@ -111,6 +113,7 @@ def resolve_acquisition_window(
             "can_instant_add": True,
             "can_record_draft_result": False,
             "can_bid": False,
+            "can_claim": False,
             "roster_locked": False,
             "trade_scope": TRADE_ACTIVE,
             "window_id": None,
@@ -134,6 +137,9 @@ def resolve_acquisition_window(
         season_n = None
 
     from src.draft_hub.league_home import resolve_league_phase
+
+    draft_type = str((ctx.get("rules") or {}).get("draft_type") or "auction").lower()
+    priority_waivers = draft_type in {"snake", "linear"}
 
     phase = resolve_league_phase(
         draft_completed=bool(ctx.get("draft_completed")),
@@ -159,19 +165,19 @@ def resolve_acquisition_window(
         )
     elif phase_id == PHASE_IN_SEASON and is_waiver_period(now):
         window = WINDOW_WAIVERS
-        add_mode = ADD_BID
+        add_mode = ADD_CLAIM if priority_waivers else ADD_BID
         trade_scope = TRADE_ACTIVE
-        message = _ADD_COPY[ADD_BID]
+        message = _ADD_COPY[add_mode]
     elif phase_id == PHASE_IN_SEASON:
         window = WINDOW_FREE_AGENCY
         add_mode = ADD_INSTANT
         trade_scope = TRADE_ACTIVE
         message = _ADD_COPY[ADD_INSTANT]
     elif nfl_type == "pre":
-        window = WINDOW_POST_DRAFT_FA
-        add_mode = ADD_BID
+        window = WINDOW_FREE_AGENCY if priority_waivers else WINDOW_POST_DRAFT_FA
+        add_mode = ADD_INSTANT if priority_waivers else ADD_BID
         trade_scope = TRADE_ACTIVE
-        message = "Post-draft free agents go to the highest bid, same as the auction."
+        message = _ADD_COPY[ADD_INSTANT] if priority_waivers else "Post-draft free agents go to the highest bid, same as the auction."
     else:
         window = WINDOW_OFFSEASON
         add_mode = ADD_LOCKED
@@ -192,6 +198,7 @@ def resolve_acquisition_window(
         "can_instant_add": add_mode == ADD_INSTANT,
         "can_record_draft_result": can_record,
         "can_bid": add_mode == ADD_BID,
+        "can_claim": add_mode == ADD_CLAIM,
         "roster_locked": add_mode == ADD_LOCKED,
         "trade_scope": trade_scope,
         "window_id": window_id_for(window, season=season_n, week=week_n),
