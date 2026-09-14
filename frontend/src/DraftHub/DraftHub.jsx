@@ -19,6 +19,7 @@ import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
 import FantasyChatDock from "./FantasyChatDock";
 import { hideFantasyChatDock } from "./fantasyChatPresentation";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
+import { leagueCapabilitiesFromContext } from "./leagueCapabilities";
 import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
 import {
   clearHubDataCache,
@@ -621,8 +622,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   useEffect(() => {
     if (subView !== "insights" || !effectiveCtx) return;
     const isCommish = Boolean(effectiveCtx.is_commissioner);
-    if (!isInsightTabAllowed(insightTab, isCommish)) {
-      onInsightTabChange?.(defaultInsightTab(isCommish));
+    const caps = leagueCapabilitiesFromContext(effectiveCtx);
+    if (!isInsightTabAllowed(insightTab, isCommish, caps)) {
+      onInsightTabChange?.(defaultInsightTab(isCommish, caps));
     }
   }, [subView, insightTab, effectiveCtx, onInsightTabChange]);
 
