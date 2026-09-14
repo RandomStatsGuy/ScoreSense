@@ -6,7 +6,7 @@ export const OFFICE_TABS = [
   // auction-only; this pane carries the assignment and drop work without money.
   { id: "rosters", label: "Roster moves", group: "rosters", roles: ["commissioner"], noContracts: true },
   { id: "historic", label: "Salary sheets", group: "records", roles: ["commissioner"], salaryOnly: true },
-  { id: "corrections", label: "Corrections", group: "records", roles: ["commissioner"], salaryOnly: true },
+  { id: "corrections", label: "Corrections", group: "records", roles: ["commissioner"] },
   { id: "members", label: "Members", group: "league", roles: ["commissioner"] },
   { id: "access", label: "Access & imports", group: "league", roles: ["commissioner"] },
 ];

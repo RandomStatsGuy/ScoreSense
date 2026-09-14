@@ -25,14 +25,15 @@ test("no-money roster management swaps Contracts for Roster moves", () => {
   const caps = { uses_contracts: false, uses_salaries: false };
   assert.deepEqual(
     visibleOfficeTabs(true, caps).map((tab) => tab.id),
-    ["rosters", "members", "access"],
+    ["rosters", "corrections", "members", "access"],
   );
   assert.deepEqual(
     visibleOfficeTabs(true, caps).map((tab) => tab.label),
-    ["Roster moves", "Members", "Access & imports"],
+    ["Roster moves", "Corrections", "Members", "Access & imports"],
   );
   assert.equal(isOfficeTabAllowed("current", true, caps), false);
   assert.equal(isOfficeTabAllowed("rosters", true, caps), true);
+  assert.equal(isOfficeTabAllowed("corrections", true, caps), true);
   // Staff land on roster work, not the members list.
   assert.equal(defaultOfficeTab(true, caps), "rosters");
 });
