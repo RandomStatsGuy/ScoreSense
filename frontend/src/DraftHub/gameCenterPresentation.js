@@ -462,7 +462,7 @@ export const LEAGUE_SCORING_CONTROL_COPY = {
   failed: "Scoring could not be calculated.",
   native: "Scored in ScoreSense",
   sleeper: "Scored in Sleeper",
-  nativeHelp: "Set lineups in This Week. After the NFL week finishes, a commissioner calculates scores here. Scores are not updated live.",
+  nativeHelp: "Set lineups in This Week. A commissioner can calculate scores during the NFL week. Recalculate after more games finish. Lineups lock when the week is calculated after the last game.",
   sleeperHelp: "Sleeper owns scoring settings, lineups, live scores, and corrections. ScoreSense displays those results; local calculations cannot overwrite them.",
   projections: "Forecasts remain PPR-based and are separate from recorded league points.",
   calculate: "Calculate week",
@@ -470,10 +470,15 @@ export const LEAGUE_SCORING_CONTROL_COPY = {
   busy: "Calculating…",
   rules: "Scoring settings",
   draftFirst: "Finish the draft before calculating league scores.",
-  staff: "A commissioner calculates completed weeks.",
+  staff: "A commissioner calculates the week.",
   changed: "Scoring settings changed since this week was calculated. Existing results remain until a commissioner recalculates it.",
-  confirm: (week) => `Recalculate Week ${week}? This replaces this week's points and updates standings using the currently saved scoring settings. Lineups stay locked.`,
+  confirm: (week, { live = false } = {}) => live
+    ? `Recalculate Week ${week}? This replaces the current scores using the saved scoring settings. Players whose games have not started can still be moved.`
+    : `Recalculate Week ${week}? This replaces this week's points and updates standings using the currently saved scoring settings. Lineups stay locked.`,
   result: (result) => {
+    if (result.scored && result.live) {
+      return `Week ${result.week} live scores updated for ${result.teams} teams. Recalculate after more games finish.`;
+    }
     if (result.scored) return `Week ${result.week} calculated for ${result.teams} teams.`;
     if (result.reason === "week_in_progress") {
       return "The NFL week is still in progress. Try again after all games finish.";

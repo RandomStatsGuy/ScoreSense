@@ -228,9 +228,10 @@ def test_apply_week_scores_and_standings(hub_db, monkeypatch):
     assert empty["reason"] == "no_stats"
 
     midweek = apply_week_scores(league["id"], 2026, 2, stat_index=stats, slate_complete=False)
-    assert midweek["scored"] is False
-    assert midweek["reason"] == "week_in_progress"
-    assert storage.list_team_week_scores(league["id"], 2026, 2) == []
+    assert midweek["scored"] is True
+    assert midweek["live"] is True
+    assert storage.list_team_week_scores(league["id"], 2026, 2)
+    assert storage.get_week_scoring_run(league["id"], 2026, 2)["final"] is False
     assert not any(row.get("locked") for row in storage.list_team_lineup(league["id"], home["id"], 2026, 2))
 
     payload = build_hub_live_week(
@@ -625,6 +626,37 @@ def test_native_scoring_rejects_unsupported_starters(hub_db, monkeypatch):
     with pytest.raises(LineupError, match="Kicker and defense"):
         apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"receptions": 1}}, slate_complete=True)
     assert storage.list_team_week_scores(league["id"], 2026, 1) == []
+
+
+def test_live_calculate_keeps_unplayed_lineup_open(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.nfl_game_started",
+        lambda *_a, **_k: False,
+    )
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    ensure_team_lineup(league["id"], away["id"], 2026, 1)
+    result = apply_week_scores(
+        league["id"],
+        2026,
+        1,
+        stat_index={"qb-a": {"passing_yards": 200, "fantasy_points": 8.0}},
+        slate_complete=False,
+    )
+    assert result["scored"] is True
+    assert result["live"] is True
+    swapped = swap_lineup_players(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        starter_player_id="wr-a2",
+        bench_player_id="wr-a3",
+        game_started=lambda _team: False,
+    )
+    by_id = {row["player_id"]: row for row in swapped}
+    assert by_id["wr-a3"]["lineup_role"] == "starter"
+    assert by_id["wr-a2"]["lineup_role"] == "bench"
 
 
 def test_staff_can_start_bench_after_kickoff(hub_db):

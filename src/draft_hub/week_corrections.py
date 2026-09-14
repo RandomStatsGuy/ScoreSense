@@ -238,7 +238,12 @@ def publish_correction(league_id, season, week, actor, preview_id, revision, rea
         conn.executemany("""INSERT INTO league_team_week_score
             (league_id,season,week,team_id,matchup_id,points,scored_at) VALUES (?,?,?,?,?,?,?)""",
             [(*key, row["team_id"], row["matchup_id"], row["points"], stamp) for row in preview["after"]["scores"]])
-        conn.execute("INSERT OR REPLACE INTO league_week_scoring_run VALUES (?,?,?,?,?)", (*key, json.dumps(preview["scoring"]), stamp))
+        conn.execute(
+            """INSERT OR REPLACE INTO league_week_scoring_run
+               (league_id, season, week, scoring_json, scored_at, final)
+               VALUES (?,?,?,?,?,1)""",
+            (*key, json.dumps(preview["scoring"]), stamp),
+        )
         conn.execute("UPDATE league_week_correction SET published_at=?,idempotency_key=? WHERE id=?", (stamp, idempotency_key, preview_id))
         conn.execute("INSERT INTO draft_event (league_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
                      (league_id, "week_correction", json.dumps({"correction_id": preview_id, "week": week, "season": season,
