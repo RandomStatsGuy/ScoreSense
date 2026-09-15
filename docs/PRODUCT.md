@@ -296,6 +296,8 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 
 ## League rules features must respect
 
+Native snake and linear leagues initialize an unsaved current/future lineup using available weekly model projections and eligible slots, never salary. Players without a projection, on bye, ruled out, or already playing stay on the bench. If no eligible projections exist, no default is saved; managers can still set their lineup. Saved choices are never re-ranked when projections refresh. This Week explains the initial default and asks managers to review it before kickoff. Historical recovery remains separate.
+
 Do not invent a parallel rules model. Canonical merge/validate/preview: `frontend/src/DraftHub/rulesPresentation.js`. Backend remains authoritative for eligibility and materialized contracts.
 
 - Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists on the page.

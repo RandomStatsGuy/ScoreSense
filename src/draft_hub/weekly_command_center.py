@@ -586,6 +586,39 @@ def attach_call_facts(
     return cards
 
 
+def projected_default_lineup(
+    roster: list[dict[str, Any]],
+    rules: LeagueRules,
+    *,
+    season: int,
+    week: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Seed an unsaved native lineup from this week's cached model projections."""
+    from src.draft_hub.hub_scoring import nfl_game_started
+
+    index, meta = _load_projection_index(season, week, apply_injury_adjustments=True)
+    cards = _enrich_roster_players(
+        roster, index,
+        by_name_team=meta.get("_by_name_team"),
+        by_name=meta.get("_by_name"),
+    )
+    eligible = [
+        card for card in cards
+        if isinstance(card.get("p50"), (int, float))
+        and math.isfinite(card["p50"])
+        and not card.get("on_bye")
+        and not card.get("injured")
+        and not nfl_game_started(card.get("team"), season, week)
+    ]
+    starters, _ = infer_starters_and_bench(eligible, rules, fill_key="projection")
+    starter_ids = {card["player_id"] for card in starters}
+    bench = [
+        {**card, "slot": "BN", "lineup_role": "bench"}
+        for card in cards if card["player_id"] not in starter_ids
+    ]
+    return starters, bench
+
+
 def infer_starters_and_bench(
     players: list[dict[str, Any]],
     rules: LeagueRules,
@@ -1078,6 +1111,7 @@ def build_weekly_command_center(
                 else "league_rules_salary"
             ),
             "lineup_source": lineup_meta.get("lineup_source") or "inferred",
+            "lineup_default_policy": lineup_meta.get("lineup_default_policy"),
             "lineup_locked": bool(lineup_meta.get("lineup_locked")),
             "week_scored": bool(lineup_meta.get("week_scored")),
             "persists_projections": False,
