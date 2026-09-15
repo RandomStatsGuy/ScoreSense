@@ -102,6 +102,7 @@ from src.draft_hub.schemas import (
     SleeperLeagueConnectRequest,
     SleeperLeagueDisconnectRequest,
     SleeperLinkRequest,
+    SleeperSyncModeRequest,
     SleeperSyncRequest,
     DraftContractsRequest,
     MockDraftStartRequest,
@@ -6422,11 +6423,48 @@ def hub_disconnect_sleeper_league(
     return {**result, "hub_context": _ctx(sub)}
 
 
+@router.put("/league/{league_id}/sleeper/sync-mode")
+def hub_league_sleeper_sync_mode(
+    league_id: str,
+    body: SleeperSyncModeRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Pause or resume Sleeper-driven roster writes. Commissioner-only; writes nothing else."""
+    from src.draft_hub.sleeper_sync_mode import set_sleeper_sync_mode
+
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        state = set_sleeper_sync_mode(league_id, body.mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _clear_league_rosters_cache(league_id)
+    return {
+        "league_id": league_id,
+        "sleeper_sync": state,
+        "hub_context": _ctx(sub),
+    }
+
+
 @router.post("/league/{league_id}/sleeper/sync")
 def hub_league_sleeper_sync(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.sleeper_sync_mode import SCORING_ONLY_MESSAGE, SleeperSyncPaused
+
     sub = _sub(_user)
     try:
         result = sync_league_sleeper(league_id, sub)
+    except SleeperSyncPaused:
+        # Rosters stay as they are. Scoring is read-only Sleeper data, so keep it fresh.
+        _refresh_scoring_cache_for_league(league_id)
+        return {
+            "league_id": league_id,
+            "sleeper_sync_paused": True,
+            "teams_synced": 0,
+            "trade_count": 0,
+            "message": SCORING_ONLY_MESSAGE,
+            "hub_context": _ctx(sub),
+        }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

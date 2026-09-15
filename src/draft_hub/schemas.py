@@ -446,6 +446,12 @@ class SleeperSyncRequest(BaseModel):
     import_to_hub: bool = False
 
 
+class SleeperSyncModeRequest(BaseModel):
+    """Pause (``off``) or resume (``live``) Sleeper-driven roster writes for one league."""
+
+    mode: Literal["live", "off"]
+
+
 class LineupStarterEntry(BaseModel):
     player_id: str
     slot: str
