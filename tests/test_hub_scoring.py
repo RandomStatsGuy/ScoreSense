@@ -627,24 +627,20 @@ def test_native_scoring_rejects_unsupported_starters(hub_db, monkeypatch):
     assert storage.list_team_week_scores(league["id"], 2026, 1) == []
 
 
-def test_staff_can_start_bench_after_kickoff(hub_db):
-    league, home, _away, _ = _seed_two_team_league(hub_db)
+def test_commissioner_swap_route_respects_kickoff(hub_db, monkeypatch):
+    league, home, _away, commissioner = _seed_two_team_league(hub_db)
     ensure_team_lineup(league["id"], home["id"], 2026, 1)
     rows = storage.list_team_lineup(league["id"], home["id"], 2026, 1)
     wr2 = next(row for row in rows if row["player_id"] == "wr-a2")
-    swapped = swap_lineup_players(
-        league["id"],
-        home["id"],
-        2026,
-        1,
-        starter_player_id=wr2["player_id"],
-        bench_player_id="wr-a3",
-        game_started=lambda _team: True,
-        staff_edit=True,
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *args, **kwargs: True)
+    response = _client(commissioner).post(
+        f"/api/hub/league/{league['id']}/lineup/swap",
+        json={"season": 2026, "week": 1, "team_id": home["id"],
+              "starter_player_id": wr2["player_id"], "bench_player_id": "wr-a3"},
     )
-    by_id = {row["player_id"]: row for row in swapped}
-    assert by_id["wr-a3"]["lineup_role"] == "starter"
-    assert by_id["wr-a2"]["lineup_role"] == "bench"
+    assert response.status_code == 400
+    assert "started" in response.json()["detail"]
+    assert storage.list_team_lineup(league["id"], home["id"], 2026, 1) == rows
 
 
 def test_staff_cannot_edit_lineup_after_week_is_scored(hub_db, monkeypatch):
@@ -672,12 +668,12 @@ def test_staff_cannot_edit_lineup_after_week_is_scored(hub_db, monkeypatch):
             starter_player_id="wr-a2",
             bench_player_id="wr-a3",
             game_started=lambda _team: False,
-            staff_edit=True,
         )
 
 
-def test_calculate_fills_missing_lineups_from_current_roster(hub_db, monkeypatch):
+def test_calculate_preserves_missing_history_and_week_two(hub_db, monkeypatch):
     league, home, away, _ = _seed_two_team_league(hub_db)
+    week_two = ensure_team_lineup(league["id"], home["id"], 2026, 2)
     monkeypatch.setattr(
         "src.draft_hub.hub_scoring.nfl_week_slate_complete",
         lambda *_a, **_k: True,
@@ -692,9 +688,12 @@ def test_calculate_fills_missing_lineups_from_current_roster(hub_db, monkeypatch
         "wr-b1": {"receptions": 3, "receiving_yards": 30, "fantasy_points": 6.0},
     }
     result = apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
-    assert result["scored"] is True
-    assert storage.list_team_lineup(league["id"], home["id"], 2026, 1)
-    assert storage.list_team_lineup(league["id"], away["id"], 2026, 1)
+    assert result["scored"] is False
+    assert result["reason"] == "incomplete_historical_lineups"
+    assert storage.list_team_lineup(league["id"], home["id"], 2026, 1) == []
+    assert storage.list_team_lineup(league["id"], away["id"], 2026, 1) == []
+    assert storage.list_team_lineup(league["id"], home["id"], 2026, 2) == week_two
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == []
 
 
 def test_week_stats_normalize_nflverse_turnovers(monkeypatch):

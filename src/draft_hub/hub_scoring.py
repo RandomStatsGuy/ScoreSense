@@ -277,14 +277,8 @@ def ensure_team_lineup(
     *,
     rules: LeagueRules | None = None,
     roster: list[dict[str, Any]] | None = None,
-    fill_missing: bool = False,
 ) -> list[dict[str, Any]]:
-    """Create a salary-fill lineup if none exists; reconcile roster adds/drops.
-
-    After the NFL slate ends, a missing lineup stays empty so Corrections can
-    repair historical weeks. Calculate may pass ``fill_missing`` to infer from
-    the current roster for a late draft that never opened This Week.
-    """
+    """Initialize current lineups; preserve completed weeks for Corrections."""
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
@@ -293,7 +287,7 @@ def ensure_team_lineup(
     existing = storage.list_team_lineup(league_id, team_id, season, week)
     if week_is_scored(league_id, season, week):
         return existing
-    if nfl_week_slate_complete(season, week) and (existing or not fill_missing):
+    if nfl_week_slate_complete(season, week):
         return existing
     ws = storage.roster_workspace_for_league(league)
     roster = roster if roster is not None else _active_roster(ws, team_id)
@@ -442,12 +436,11 @@ def set_team_starters(
     rules: LeagueRules | None = None,
     now: datetime | None = None,
     game_started: Callable[[str], bool] | None = None,
-    staff_edit: bool = False,
 ) -> list[dict[str, Any]]:
     """Replace the week's starters. Remaining roster players go to the bench."""
     if week_is_scored(league_id, season, week):
         raise LineupError("Past-week lineups require a commissioner correction")
-    if nfl_week_slate_complete(season, week, now=now) and not staff_edit:
+    if nfl_week_slate_complete(season, week, now=now):
         raise LineupError("Past-week lineups require a commissioner correction")
     league = storage.get_league(league_id)
     if not league:
@@ -483,7 +476,7 @@ def set_team_starters(
         if not slot_accepts_position(slot, card["position"], rules):
             raise LineupError(f"{card['position']} cannot start at {slot}")
         prior = existing_by_id.get(pid) or {}
-        if not staff_edit and _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
+        if _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
             if str(prior.get("lineup_role")) != "starter" or str(prior.get("slot") or "") != slot:
                 raise LineupError("That player's game has started")
         starters.append({**card, "slot": slot, "lineup_role": "starter"})
@@ -504,7 +497,7 @@ def set_team_starters(
         if pid in seen:
             continue
         prior = existing_by_id.get(pid) or {}
-        if not staff_edit and _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
+        if _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
             if str(prior.get("lineup_role")) == "starter":
                 raise LineupError("That player's game has started")
             # Already-started bench players stay on the bench.
@@ -525,12 +518,11 @@ def swap_lineup_players(
     rules: LeagueRules | None = None,
     now: datetime | None = None,
     game_started: Callable[[str], bool] | None = None,
-    staff_edit: bool = False,
 ) -> list[dict[str, Any]]:
     """Swap a starter with a bench player when the bench is eligible for that slot."""
     if week_is_scored(league_id, season, week):
         raise LineupError("Past-week lineups require a commissioner correction")
-    if nfl_week_slate_complete(season, week, now=now) and not staff_edit:
+    if nfl_week_slate_complete(season, week, now=now):
         raise LineupError("Past-week lineups require a commissioner correction")
     league = storage.get_league(league_id)
     if not league:
@@ -552,9 +544,9 @@ def swap_lineup_players(
     slot = str(starter.get("slot") or "")
     if not slot_accepts_position(slot, bench.get("position") or "", rules):
         raise LineupError(f"{bench.get('position')} cannot start at {slot}")
-    if not staff_edit and _lineup_row_locked(starter, season, week, now=now, game_started=game_started):
+    if _lineup_row_locked(starter, season, week, now=now, game_started=game_started):
         raise LineupError("The starter's game has started")
-    if not staff_edit and _lineup_row_locked(bench, season, week, now=now, game_started=game_started):
+    if _lineup_row_locked(bench, season, week, now=now, game_started=game_started):
         raise LineupError("The bench player's game has started")
 
     new_starter = {**bench, "slot": slot, "lineup_role": "starter"}
@@ -647,7 +639,6 @@ def apply_week_scores(
             season,
             week,
             rules=rules,
-            fill_missing=True,
         )
 
     lookup = stat_index
