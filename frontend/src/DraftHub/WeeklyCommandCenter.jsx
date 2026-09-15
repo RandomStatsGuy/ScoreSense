@@ -486,6 +486,9 @@ export default function WeeklyCommandCenter({
         {syncError && <div className="error">{syncError}</div>}
         {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
         {lineupError && <div className="error">{lineupError}</div>}
+        {meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
+          <p className="chart-note">{WEEK_BOARD_COPY.projectionDefaults}</p>
+        )}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
         <WeekLineupBoard {...boardProps} includeBench={false} />
