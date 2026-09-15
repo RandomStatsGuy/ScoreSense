@@ -95,6 +95,98 @@ def _seed_two_team_league(hub_db):
     return league, home, away, comm
 
 
+@pytest.mark.parametrize("draft_type", ["snake", "linear"])
+def test_no_money_defaults_use_weekly_projections_and_preserve_choices(hub_db, monkeypatch, draft_type):
+    from src.draft_hub import hub_scoring, weekly_command_center
+
+    league, home, _, _ = _seed_two_team_league(hub_db)
+    rules = load_preset("salary_cap_auction_v1").model_copy(update={"draft_type": draft_type})
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args, **kwargs: False)
+    calls = []
+    projections = {
+        "wr-a1": {"p50": 1, "p90": 2},
+        "wr-a2": {"p50": 2, "p90": 3},
+        "wr-a3": {"p50": 30, "p90": 35},
+        "wr-a4": {"p50": 25, "p90": 30},
+    }
+
+    def cached_index(season, week, **kwargs):
+        calls.append((season, week, kwargs))
+        return projections, {}
+
+    monkeypatch.setattr(weekly_command_center, "_load_projection_index", cached_index)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 2, rules=rules)
+    starting_wrs = {row["player_id"] for row in rows if row["slot"].startswith("WR")}
+    assert starting_wrs == {"wr-a3", "wr-a4"}
+    assert len({row["player_id"] for row in rows}) == len(rows) == 9
+    assert calls == [(2026, 2, {"apply_injury_adjustments": True})]
+    selected = set_team_starters(
+        league["id"], home["id"], 2026, 2,
+        [{"player_id": "wr-a1", "slot": "WR1"}], rules=rules,
+        game_started=lambda team: False,
+    )
+    projections["wr-a3"]["p50"] = 100
+    assert ensure_team_lineup(league["id"], home["id"], 2026, 2, rules=rules) == selected
+    assert len(calls) == 1
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: True)
+    assert ensure_team_lineup(league["id"], home["id"], 2026, 1, rules=rules, fill_missing=True) == []
+    assert storage.list_team_lineup(league["id"], home["id"], 2026, 2) == selected
+
+
+def test_auction_defaults_keep_salary_order(hub_db, monkeypatch):
+    from src.draft_hub import hub_scoring, weekly_command_center
+
+    league, home, _, _ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
+
+    def unexpected_projection_load(*args, **kwargs):
+        pytest.fail("Auction defaults must not load projections")
+
+    monkeypatch.setattr(weekly_command_center, "_load_projection_index", unexpected_projection_load)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 2)
+    assert {row["player_id"] for row in rows if row["slot"].startswith("WR")} == {"wr-a1", "wr-a2"}
+
+
+def test_projection_defaults_skip_unavailable_players(monkeypatch):
+    from src.draft_hub import hub_scoring, weekly_command_center
+
+    rules = load_preset("salary_cap_auction_v1")
+    roster = [
+        {"player_id": player_id, "team": player_id, "position": "WR"}
+        for player_id in ("bye", "out", "started", "missing", "nan", "zero")
+    ]
+    projections = {
+        "bye": {"p50": 90, "opponent": "BYE"},
+        "out": {"p50": 80, "injury_status": "Out"},
+        "started": {"p50": 70},
+        "nan": {"p50": float("nan")},
+        "zero": {"p50": 0},
+    }
+    monkeypatch.setattr(weekly_command_center, "_load_projection_index", lambda *args, **kwargs: (projections, {}))
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda team, *args: team == "started")
+    starters, bench = weekly_command_center.projected_default_lineup(roster, rules, season=2026, week=2)
+    assert [card["player_id"] for card in starters] == ["zero"]
+    assert len(bench) == 5
+
+
+def test_missing_projections_do_not_save_salary_defaults(hub_db, monkeypatch):
+    from src.draft_hub import hub_scoring, weekly_command_center
+
+    league, home, _, _ = _seed_two_team_league(hub_db)
+    rules = load_preset("salary_cap_auction_v1").model_copy(update={"draft_type": "snake"})
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
+    monkeypatch.setattr(weekly_command_center, "_load_projection_index", lambda *args, **kwargs: ({}, {}))
+    assert ensure_team_lineup(league["id"], home["id"], 2026, 2, rules=rules) == []
+    assert storage.list_team_lineup(league["id"], home["id"], 2026, 2) == []
+    selected = set_team_starters(
+        league["id"], home["id"], 2026, 2,
+        [{"player_id": "wr-a1", "slot": "WR1"}], rules=rules,
+        game_started=lambda team: False,
+    )
+    assert any(row["lineup_role"] == "starter" for row in selected)
+
+
 def test_fantasy_points_from_stats_is_standard_ppr():
     pts = fantasy_points_from_stats(
         {

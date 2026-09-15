@@ -18,6 +18,7 @@ from src.config import FANTASY_SCORING
 from src.core.features import calc_fantasy_points_ppr
 from src.core.team_codes import normalize_team_to_mlready
 from src.draft_hub import storage
+from src.draft_hub.league_capabilities import uses_salaries
 from src.draft_hub.league_live_scoring import (
     attach_matchup_analytics,
     pair_placeholder_teams,
@@ -290,7 +291,7 @@ def ensure_team_lineup(
     roster: list[dict[str, Any]] | None = None,
     fill_missing: bool = False,
 ) -> list[dict[str, Any]]:
-    """Create a salary-fill lineup if none exists; reconcile roster adds/drops.
+    """Create an initial lineup if none exists; reconcile roster adds/drops.
 
     After the NFL slate ends, a missing lineup stays empty so Corrections can
     repair historical weeks. Calculate may pass ``fill_missing`` to infer from
@@ -319,7 +320,16 @@ def ensure_team_lineup(
     if not existing:
         from src.draft_hub.weekly_command_center import infer_starters_and_bench
 
-        starters, bench = infer_starters_and_bench(cards, rules)
+        if uses_salaries(rules):
+            starters, bench = infer_starters_and_bench(cards, rules)
+        else:
+            if nfl_week_slate_complete(season, week):
+                return []
+            from src.draft_hub.weekly_command_center import projected_default_lineup
+
+            starters, bench = projected_default_lineup(roster, rules, season=season, week=week)
+            if not starters:
+                return []
         return _persist_cards(league_id, team_id, season, week, starters, bench)
 
     roster_ids = {card["player_id"] for card in cards}
@@ -437,8 +447,9 @@ def resolve_week_lineup(
     locked = historical or any(row.get("locked") for row in saved)
     return starters, bench, {
         "lineup_source": "hub",
+        "lineup_default_policy": "salary" if uses_salaries(rules) else "weekly_projections",
         "lineup_locked": locked,
-        "lineup_persisted": True,
+        "lineup_persisted": bool(saved),
         "week_scored": final,
         "week_final": final,
     }
