@@ -11,7 +11,7 @@ export function commissionerIntro(isCommissioner, { usesContracts = true } = {})
       title: "Roster management",
       purpose: usesContracts
         ? "Manage team contracts, salary sheets, and league access."
-        : "Manage members and league access.",
+        : "Manage roster assignments, members, and league access.",
       audience: "Commissioners and co-commissioners",
     };
   }
@@ -19,7 +19,7 @@ export function commissionerIntro(isCommissioner, { usesContracts = true } = {})
     title: "Roster management",
     purpose: usesContracts
       ? "Only commissioners can edit contracts and team access here."
-      : "Only commissioners can edit members and access here.",
+      : "Only commissioners can edit rosters, members, and access here.",
     audience: null,
   };
 }

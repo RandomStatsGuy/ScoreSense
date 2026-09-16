@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import DesktopPrimaryHeader from '../src/layout/DesktopPrimaryHeader';
 import MobileHeader from '../src/layout/MobileHeader';
 import UserMenu from '../src/layout/UserMenu';
-import HubSubnav, { HUB_SUBVIEWS } from '../src/DraftHub/HubSubnav';
+import HubSubnav, { HUB_SUBVIEWS } from '../src/DraftHub/HubSubnav.jsx';
 import LeagueContextBanner from '../src/DraftHub/LeagueContextBanner';
 import useMobileLayout from '../src/useMobileLayout';
 import '../src/styles.css';

@@ -7,6 +7,7 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import { HubFilterMenu } from "./HubUILayout";
 import { OFFICE_CONTRACTS_COPY } from "./officeContractsPresentation";
 import {
+  SLEEPER_LINK_COPY,
   SLEEPER_SYNC_PAUSE_COPY,
   SLEEPER_UNLINK_COPY,
   sleeperSyncPaused,
@@ -158,7 +159,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
         data.sleeper_sync_paused
           ? data.message
           : `Synced ${data.teams_synced ?? 0} team(s) from Sleeper`
-            + (data.trade_count ? ` · ${data.trade_count} contract move(s)` : "")
+            + (data.trade_count ? ` · ${SLEEPER_LINK_COPY.movedPlayers(data.trade_count)}` : "")
             + ".",
       );
       onConnected?.(data);
@@ -240,7 +241,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
     <section className="hub-league-sleeper-connect">
       <h3>Link Sleeper</h3>
       <p className="chart-note">
-        Import full Sleeper league for all contracts.
+        {SLEEPER_LINK_COPY.importSupport}
       </p>
 
       {needsFullImport && (
@@ -262,7 +263,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             {OFFICE_CONTRACTS_COPY.sleeperLinked(linkedCount, hubTeamCount)}
           </span>
           {!paused && (
-            <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
+            <button type="button" className="btn-ghost btn-sm" onClick={syncAll} disabled={syncing}>
               {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
             </button>
           )}
@@ -283,7 +284,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             {loading ? "Loading…" : "Check Sleeper status"}
           </button>
           {!paused && (
-            <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
+            <button type="button" className="btn-ghost btn-sm" onClick={syncAll} disabled={syncing}>
               {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
             </button>
           )}
@@ -329,7 +330,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
               placeholder="e.g. 1257419072740644612"
             />
           </label>
-          <button type="button" className="btn-ghost" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
             {loading ? "Loading…" : "Load teams"}
           </button>
         </div>
@@ -347,7 +348,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
                 placeholder="e.g. 1257419072740644612"
               />
             </label>
-            <button type="button" className="btn-ghost" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
               {loading ? "Loading…" : "Load teams"}
             </button>
           </div>

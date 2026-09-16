@@ -2,6 +2,7 @@
  * Roster management · Contracts copy and pending-write helpers.
  */
 import { isRetainedThroughDraft } from "./draftRoomHelpers.js";
+import { rulesUseContracts } from "./leagueCapabilities.js";
 import {
   contractDeadCapStory,
   dealCanTakeExtension,
@@ -42,6 +43,15 @@ export const OFFICE_CONTRACTS_COPY = {
     "These contracts have expired and no longer use cap room. Remove them to clear them from this roster.",
   liveEditNote: "Roster management live edit",
   liveSaved: "Saved. Rosters now matches this contract.",
+  rosterSaved: "Roster updated.",
+  rosterMovesSupport: "Assign a player to a team or drop one.",
+  dropPlayer: "Drop player",
+  dropPlayerAria: (name) => `Drop ${name || "player"}`,
+  dropPlayerTitle: (name) => `Drop ${name || "this player"}?`,
+  dropPlayerConfirm: (name, team) => `Removes ${name || "this player"} from ${team}.`,
+  pickPlayer: "Search and pick a player to add.",
+  noRosteredPlayer: "This player is not currently rostered. Pick a team to add them.",
+  noTeamSelected: "No team selected — pick a team above to add, assign, or drop players.",
   refreshAction: "Re-import Sleeper rosters",
   refreshSupport:
     "Re-importing replaces roster entries with Sleeper data and can overwrite commissioner edits. For routine updates, use Sync league at the top of the page.",
@@ -237,7 +247,9 @@ export function teamCapStats(block, salaryCap, rules, draftCompleted = false) {
   const committed = occupying.reduce((sum, r) => sum + Number(r.salary || 0), 0);
   const deadCap = cuts.reduce((sum, r) => sum + preDraftCutDeadCap(r, rules), 0);
   const cap = Number(salaryCap) || 200;
-  const playerCount = draftCompleted ? parts.live.length : activeRoster(block?.roster).length;
+  const playerCount = !rulesUseContracts(rules)
+    ? (block?.roster || []).length
+    : draftCompleted ? parts.live.length : activeRoster(block?.roster).length;
   return {
     committed,
     deadCap,

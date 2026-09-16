@@ -40,6 +40,7 @@ import {
   sheetsGuideCopy,
   shouldAutoOpenSheetsGuide,
 } from "./commissionerSections";
+import { OFFICE_CONTRACTS_COPY } from "./officeContractsPresentation";
 import { liveContractStage } from "./officeCurrentContracts";
 import AwardTitlesEditor from "./insights/AwardTitlesEditor";
 import { awardCatalogFromRules } from "./insights/insightsPresentation";
@@ -621,8 +622,7 @@ export default function LeagueOffice({
           <header className="hub-section-head">
             <h3 className="hub-section-title">Roster moves</h3>
             <p className="hub-section-hint">
-              Assign a player to a team or drop one. This league has no contracts,
-              so there is no salary or cap to set.
+              {OFFICE_CONTRACTS_COPY.rosterMovesSupport}
             </p>
           </header>
           <CommissionerLeagueRosters
