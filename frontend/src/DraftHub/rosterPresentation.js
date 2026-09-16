@@ -23,6 +23,13 @@ export const MY_TEAM_COPY = {
   openGameCenter: "Open matchup in Game center",
   roomStates: { pregame: "Pregame", live: "Week in progress", final: "Final", unknown: "Scores" },
   purpose: "View your players, manage contracts, and check your cap room.",
+  noMoneyPurpose: "View your players and manage your roster.",
+  noMoneyEmptyHeading: "No players on your roster yet.",
+  dropPlayer: "Drop player",
+  dropPlayerTitle: (name) => `Drop ${name || "this player"}?`,
+  dropPlayerConfirm: (name) => `Removes ${name || "this player"} from your roster.`,
+  playerDetails: "Player details",
+  rosteredStatus: "Rostered",
   learnMoreReadonlyLeague:
     "Commissioners edit salaries, years, and contract types in Roster management → Contracts. You can cut your players here or queue an eligible extension before the draft.",
   cutLabel: "Cut",

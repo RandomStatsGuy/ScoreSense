@@ -351,3 +351,16 @@ test("leaving contracts path detects destination changes", () => {
     true,
   );
 });
+
+test("pick-draft roster counts include legacy zero-year rows before and after draft", () => {
+  const block = { roster: [
+    { player_id: "zero", contract: { years_remaining: 0 }, salary: 250 },
+    { player_id: "current", contract: { years_remaining: 2 }, salary: 1 },
+  ] };
+  for (const draft_type of ["snake", "linear"]) {
+    for (const completed of [false, true]) {
+      assert.equal(teamCapStats(block, 200, { ...RULES, draft_type }, completed).playerCount, 2);
+    }
+  }
+  assert.equal(teamCapStats(block, 200, { ...RULES, draft_type: "auction" }, true).playerCount, 1);
+});

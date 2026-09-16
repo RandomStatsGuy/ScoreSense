@@ -28,7 +28,7 @@ test("officeBoundaryNote drops Cap when salaries are off", () => {
 
 test("commissionerIntro drops contract language for no-money leagues", () => {
   const staff = commissionerIntro(true, { usesContracts: false });
-  assert.match(staff.purpose, /members and league access/i);
+  assert.match(staff.purpose, /roster assignments, members, and league access/i);
   assert.doesNotMatch(staff.purpose, /salary sheets/i);
 });
 

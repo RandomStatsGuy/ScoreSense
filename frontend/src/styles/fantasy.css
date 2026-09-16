@@ -2080,8 +2080,11 @@
   white-space: nowrap;
 }
 
-.hub-roster-builder .hub-roster-col-pos {
+.hub-roster-table .hub-roster-col-pos {
+  width: 1%;
+  white-space: nowrap;
   text-align: center;
+  padding-inline: var(--space-1);
 }
 
 .hub-roster-player-cell { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
