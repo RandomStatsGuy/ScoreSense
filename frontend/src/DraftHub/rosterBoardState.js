@@ -29,3 +29,7 @@ export function writeRosterState(leagueId, state, storage) {
   try { (storage ?? window.sessionStorage).setItem(key(leagueId), JSON.stringify(normalizeRosterState(state))); }
   catch { /* Browsing still works when storage is unavailable. */ }
 }
+
+export function rosterStateForCapabilities(state, usesSalaries) {
+  return usesSalaries ? state : { ...state, view: "teams", value: "all", sort: "name", page: 0 };
+}

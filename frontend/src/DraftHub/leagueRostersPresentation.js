@@ -229,6 +229,11 @@ export function managerPickerOptions(teamBlocks, dealRows) {
 }
 
 export const ROSTER_BOARD_COPY = {
+  playerSupport: "Browse every team and find players to trade for.",
+  choosePlayerTeamHelp: "Choose a manager to see their full roster.",
+  playerFilterHelp: "Filter this roster or select a player to view details and trade actions.",
+  playerDetails: (name) => `View ${name} details`,
+  noPlayerResults: "No players match these filters.",
   tabs: [{ id: "deals", label: "Contract values" }, { id: "teams", label: "Team rosters" }],
   filters: [{ id: "all", label: "All" }, { id: "below", label: "Below estimate" }, { id: "above", label: "Above estimate" }],
   sorts: [{ id: "difference", label: "Largest difference" }, { id: "salary", label: "Highest salary" }, { id: "name", label: "Player name" }],
@@ -253,7 +258,7 @@ export const ROSTER_BOARD_COPY = {
   contract: "Contract", player: "Player", manager: "Manager", close: "Close player details",
   managedBy: "Managed by", remaining: "remaining", capRoom: "Cap room", deadCap: "Dead cap",
   unknownContract: "Contract not recorded", readonly: "Trade actions are unavailable in this view.",
-  noId: "This contract needs a matched player before it can be traded.",
+  noId: "This player needs a matched ID before they can be traded.",
   resultCount: (n) => `${n} contract${n === 1 ? "" : "s"}`,
   pagination: (start, end, total) => `Showing ${start}–${end} of ${total} contracts`,
   below: (n) => `${n} below estimate`, above: (n) => `${n} above estimate`,

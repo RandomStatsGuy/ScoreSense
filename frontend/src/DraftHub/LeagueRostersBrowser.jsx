@@ -1,4 +1,5 @@
-import { readRosterState, writeRosterState } from "./rosterBoardState";
+import { leagueUsesSalaries, leagueUsesContracts } from "./leagueCapabilities";
+import { readRosterState, writeRosterState, rosterStateForCapabilities } from "./rosterBoardState";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
@@ -84,15 +85,18 @@ function RosterBoard({
   const [error, setError] = useState("");
   const [exportError, setExportError] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [view, setView] = useState(initial.view);
+  const [savedView, setView] = useState(initial.view);
   const [teamId, setTeamId] = useState(initial.teamId);
   const [query, setQuery] = useState(initial.query);
   const [position, setPosition] = useState(initial.position);
   const [value, setValue] = useState(initial.value);
-  const [sort, setSort] = useState(initial.sort);
+  const [savedSort, setSort] = useState(initial.sort);
   const [page, setPage] = useState(initial.page);
   const [selectedKey, setSelectedKey] = useState(initial.selectedKey);
   const [closed, setClosed] = useState(initial.closed);
+  const usesSalaries = leagueUsesSalaries(hubContext);
+  const usesContracts = leagueUsesContracts(hubContext);
+  const { view, sort } = rosterStateForCapabilities({ view: savedView, sort: savedSort }, usesSalaries);
   useEffect(() => {
     writeRosterState(leagueId, { view, teamId, query, position, value, sort, page, selectedKey, closed });
   }, [leagueId, view, teamId, query, position, value, sort, page, selectedKey, closed]);
@@ -223,7 +227,7 @@ function RosterBoard({
     id,
     label: id
   }))];
-  const detail = selected && <aside className="rosters-detail" aria-label={`${selected.player_name} contract`} onKeyDown={e => {
+  const detail = selected && <aside className="rosters-detail" aria-label={C.playerDetails(selected.player_name)} onKeyDown={e => {
     if (e.key === "Escape") {
       e.stopPropagation();
       close();
@@ -232,10 +236,10 @@ function RosterBoard({
     <button className="rosters-close" aria-label={C.close} onClick={close}>×</button>
     <h2 ref={detailHeading} tabIndex={-1}><PlayerCell name={selected.player_name} playerId={selected.player_id} team={selected.team} position={selected.position} media={media} size="lg" /></h2>
     <p className="rosters-managed">{C.managedBy} <strong>{ownerLine(selected.ownerTeam)}{selected.ownerTeamId === myTeamId ? ` · ${ROSTERS_COPY.you}` : ""}</strong></p>
-    <div className="rosters-detail-values"><dl><div><dt>{C.salary}</dt><dd>{rosterMoney(selected.salary)}</dd></div><div><dt>{C.estimate}</dt><dd>{rosterMoney(selected.fair_value)}</dd></div></dl><Difference row={selected} /></div>
-    {selected.estimate_status === "minimum_bid" && <p className="rosters-help">{C.minimumBidHelp}</p>}
-    {selected.fair_value == null && <p className="rosters-help">{C.missingEstimateHelp}</p>}
-    <div className="rosters-detail-contract"><span>{C.contract}</span><strong>{rosterContractLabel(selected)}</strong>{expireChipLabel(selected.expire_chip) && <span>{expireChipLabel(selected.expire_chip)}</span>}</div>
+    {usesSalaries && <div className="rosters-detail-values"><dl><div><dt>{C.salary}</dt><dd>{rosterMoney(selected.salary)}</dd></div><div><dt>{C.estimate}</dt><dd>{rosterMoney(selected.fair_value)}</dd></div></dl><Difference row={selected} /></div>}
+    {usesSalaries && selected.estimate_status === "minimum_bid" && <p className="rosters-help">{C.minimumBidHelp}</p>}
+    {usesSalaries && selected.fair_value == null && <p className="rosters-help">{C.missingEstimateHelp}</p>}
+    {usesContracts && <div className="rosters-detail-contract"><span>{C.contract}</span><strong>{rosterContractLabel(selected)}</strong>{expireChipLabel(selected.expire_chip) && <span>{expireChipLabel(selected.expire_chip)}</span>}</div>}
     <button className="rosters-primary" disabled={Boolean(disabledReason)} aria-describedby={disabledReason ? "rosters-trade-reason" : undefined} onClick={() => {
       if (disabledReason) return;
       seedTradeFromPlayer({
@@ -248,45 +252,45 @@ function RosterBoard({
       onNavigateTrade();
     }}>{selected.ownerTeamId === myTeamId ? ROSTERS_COPY.addToTrade : ROSTERS_COPY.proposeTrade}</button>
     {disabledReason && <p id="rosters-trade-reason" className="rosters-help">{disabledReason}</p>}
-    <ContractHistoryLink playerId={selected.player_id} playerName={selected.player_name} onOpen={onOpenContractHistory} className="rosters-history">{C.history}</ContractHistoryLink>
+    {usesContracts && <ContractHistoryLink playerId={selected.player_id} playerName={selected.player_name} onOpen={onOpenContractHistory} className="rosters-history">{C.history}</ContractHistoryLink>}
   </aside>;
-  return <section className={`rosters-board${view === "teams" ? " is-team-view" : ""}`} aria-labelledby="rosters-heading">
-    <header className="rosters-header"><div><h1 id="rosters-heading">{ROSTERS_COPY.heading}</h1><p>{ROSTERS_COPY.support}</p></div><div className="rosters-header-actions"><button className="rosters-control" disabled={!leagueId || loading} onClick={() => load(true)} aria-label={ROSTERS_COPY.refreshLeague}><span aria-hidden="true">↻</span>{loading && overview ? C.refreshing : C.refresh}</button><button className="rosters-control" disabled={!leagueId || exporting} onClick={exportWorkbook}><span aria-hidden="true">↓</span>{exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}</button></div></header>
+  return <section className={`rosters-board${view === "teams" ? " is-team-view" : ""}${!usesSalaries ? " is-player-view" : ""}`} aria-labelledby="rosters-heading">
+    <header className="rosters-header"><div><h1 id="rosters-heading">{ROSTERS_COPY.heading}</h1><p>{usesSalaries ? ROSTERS_COPY.support : C.playerSupport}</p></div><div className="rosters-header-actions"><button className="rosters-control" disabled={!leagueId || loading} onClick={() => load(true)} aria-label={ROSTERS_COPY.refreshLeague}><span aria-hidden="true">↻</span>{loading && overview ? C.refreshing : C.refresh}</button><button className="rosters-control" disabled={!leagueId || exporting} onClick={exportWorkbook}><span aria-hidden="true">↓</span>{exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}</button></div></header>
     {(error || exportError) && <p className="rosters-error" role="alert">{error || exportError}</p>}
     {!leagueId ? <p className="rosters-empty">{C.noLeague}</p> : <>
-    <div className="rosters-tabbar"><div className="rosters-tabs" role="tablist" aria-label={ROSTERS_COPY.heading}>{C.tabs.map(tab => <button key={tab.id} id={`rosters-tab-${tab.id}`} role="tab" aria-selected={view === tab.id} aria-controls="rosters-results" tabIndex={view === tab.id ? 0 : -1} onKeyDown={e => {
+    {usesSalaries && <div className="rosters-tabbar"><div className="rosters-tabs" role="tablist" aria-label={ROSTERS_COPY.heading}>{C.tabs.map(tab => <button key={tab.id} id={`rosters-tab-${tab.id}`} role="tab" aria-selected={view === tab.id} aria-controls="rosters-results" tabIndex={view === tab.id ? 0 : -1} onKeyDown={e => {
             if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
               e.preventDefault();
               const next = e.key === "Home" ? "deals" : e.key === "End" ? "teams" : view === "deals" ? "teams" : "deals";
               switchView(next);
               document.getElementById(`rosters-tab-${next}`)?.focus();
             }
-          }} onClick={() => switchView(tab.id)}>{tab.label}</button>)}</div>{overview && view === "deals" && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>
+          }} onClick={() => switchView(tab.id)}>{tab.label}</button>)}</div>{overview && view === "deals" && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>}
     {view === "teams" && block && <section className="rosters-selected-team" aria-labelledby="rosters-team-heading">
       <div className="rosters-selected-team-heading"><div><h2 id="rosters-team-heading" ref={teamHeading} tabIndex={-1}>{ownerLine(block.team)}</h2><p>{nicknameLine(block.team)}</p></div>
       <button className="rosters-control" onClick={() => chooseTeam("")}>{C.changeTeam}</button></div>
-      <dl className="rosters-cap-summary"><div><dt>{C.fullRoster}</dt><dd>{activeRoster(block).length}</dd></div><div><dt>{C.committed}</dt><dd>{rosterMoney(block.stats?.committed)}</dd></div><div><dt>{C.capRoom}</dt><dd>{rosterMoney(block.stats?.unspent)}</dd></div><div><dt>{C.deadCap}</dt><dd>{rosterMoney(block.stats?.dead_cap)}</dd></div></dl>
+      <dl className="rosters-cap-summary"><div><dt>{C.fullRoster}</dt><dd>{activeRoster(block).length}</dd></div>{usesSalaries && <><div><dt>{C.committed}</dt><dd>{rosterMoney(block.stats?.committed)}</dd></div><div><dt>{C.capRoom}</dt><dd>{rosterMoney(block.stats?.unspent)}</dd></div><div><dt>{C.deadCap}</dt><dd>{rosterMoney(block.stats?.dead_cap)}</dd></div></>}</dl>
     </section>}
     {!directory && <>
-    <div className="rosters-toolbar">{view === "deals" && <BoardFilter label={C.manager} value={teamId} options={teams} onChange={v => change(setTeamId, v)} searchable />}<label className="rosters-search"><span aria-hidden="true">⌕</span><input aria-label={C.search} placeholder={C.search} value={query} onChange={e => change(setQuery, e.target.value)} /></label><BoardFilter label="Position" value={position} options={positions} onChange={v => change(setPosition, v)} />{view === "deals" && <div className="rosters-segments" role="radiogroup" aria-label={C.difference}>{C.filters.map(f => <button key={f.id} role="radio" aria-checked={value === f.id} tabIndex={value === f.id ? 0 : -1} onKeyDown={e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) { e.preventDefault(); const index = C.filters.findIndex(item => item.id === value); const next = e.key === "Home" ? 0 : e.key === "End" ? 2 : (index + (e.key === "ArrowRight" ? 1 : 2)) % 3; change(setValue, C.filters[next].id); e.currentTarget.parentElement.children[next]?.focus(); } }} onClick={() => change(setValue, f.id)}>{f.label}</button>)}</div>}<div className="rosters-sort"><BoardFilter label="Sort by" value={sort} options={C.sorts} onChange={v => change(setSort, v)} /></div></div>
-    <p className="rosters-explanation">{view === "teams" ? C.teamFilterHelp : C.explanation}</p>
+    <div className="rosters-toolbar">{view === "deals" && <BoardFilter label={C.manager} value={teamId} options={teams} onChange={v => change(setTeamId, v)} searchable />}<label className="rosters-search"><span aria-hidden="true">⌕</span><input aria-label={C.search} placeholder={C.search} value={query} onChange={e => change(setQuery, e.target.value)} /></label><BoardFilter label="Position" value={position} options={positions} onChange={v => change(setPosition, v)} />{view === "deals" && <div className="rosters-segments" role="radiogroup" aria-label={C.difference}>{C.filters.map(f => <button key={f.id} role="radio" aria-checked={value === f.id} tabIndex={value === f.id ? 0 : -1} onKeyDown={e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) { e.preventDefault(); const index = C.filters.findIndex(item => item.id === value); const next = e.key === "Home" ? 0 : e.key === "End" ? 2 : (index + (e.key === "ArrowRight" ? 1 : 2)) % 3; change(setValue, C.filters[next].id); e.currentTarget.parentElement.children[next]?.focus(); } }} onClick={() => change(setValue, f.id)}>{f.label}</button>)}</div>}{usesSalaries && <div className="rosters-sort"><BoardFilter label="Sort by" value={sort} options={C.sorts} onChange={v => change(setSort, v)} /></div>}</div>
+    <p className="rosters-explanation">{view === "teams" ? (usesContracts ? C.teamFilterHelp : C.playerFilterHelp) : C.explanation}</p>
     {overview && view === "deals" && <div className="rosters-coverage">
       <p>{C.coverage(coverage)}</p>
       <button className="rosters-control" onClick={openTeamRosters}>{C.showAll}</button>
     </div>}
-    {overview && <div className="rosters-estimate-context"><p>{rosterEstimateContext(overview.estimate_context)}</p>
+    {overview && usesSalaries && <div className="rosters-estimate-context"><p>{rosterEstimateContext(overview.estimate_context)}</p>
       <details><summary>{C.aboutEstimates}</summary><p>{C.estimateBasis}</p></details>
     </div>}
     </>}
-    <div id="rosters-results" role="tabpanel" aria-labelledby={`rosters-tab-${view}`} aria-busy={loading}>
+    <div id="rosters-results" role={usesSalaries ? "tabpanel" : "region"} aria-labelledby={usesSalaries ? `rosters-tab-${view}` : "rosters-heading"} aria-busy={loading}>
     {loading && !overview ? <div className="rosters-skeleton" role="status" aria-label={ROSTERS_COPY.loading}>{Array.from({
             length: 8
-          }, (_, i) => <div key={i}><span /><span /><span /></div>)}</div> : overview && directory ? <RosterTeamDirectory headingRef={teamHeading} blocks={blocks} myTeamId={myTeamId} onChoose={chooseTeam} /> : overview && <div className={`rosters-content${selected ? " has-selection" : ""}`}><div className="rosters-table-card"><table className="rosters-table"><caption className="rosters-sr">{C.tabs.find(t => t.id === view).label}</caption><thead><tr><th scope="col">{C.player}</th><th scope="col" className="rosters-manager-col">{C.manager}</th><th scope="col" className="rosters-num">{C.salary}</th><th scope="col" className="rosters-num rosters-estimate-col">{C.estimate}</th><th scope="col" className="rosters-num">{C.difference}</th><th scope="col" className="rosters-contract-col">{C.contract}</th><th scope="col" className="rosters-chevron"><span className="rosters-sr">{C.select}</span></th></tr></thead><tbody>{visible.map(row => <React.Fragment key={rosterRowKey(row)}><tr className={selected && rosterRowKey(selected) === rosterRowKey(row) ? "is-selected" : ""} onClick={() => select(row)}><td><button className="rosters-player" ref={el => {
+          }, (_, i) => <div key={i}><span /><span /><span /></div>)}</div> : overview && directory ? <RosterTeamDirectory usesSalaries={usesSalaries} headingRef={teamHeading} blocks={blocks} myTeamId={myTeamId} onChoose={chooseTeam} /> : overview && <div className={`rosters-content${selected ? " has-selection" : ""}`}><div className="rosters-table-card"><table className="rosters-table"><caption className="rosters-sr">{C.tabs.find(t => t.id === view).label}</caption><thead><tr><th scope="col">{C.player}</th><th scope="col" className="rosters-manager-col">{C.manager}</th>{usesSalaries && <><th scope="col" className="rosters-num">{C.salary}</th><th scope="col" className="rosters-num rosters-estimate-col">{C.estimate}</th><th scope="col" className="rosters-num">{C.difference}</th></>}{usesContracts && <th scope="col" className="rosters-contract-col">{C.contract}</th>}<th scope="col" className="rosters-chevron"><span className="rosters-sr">{C.playerFilterHelp}</span></th></tr></thead><tbody>{visible.map(row => <React.Fragment key={rosterRowKey(row)}><tr className={selected && rosterRowKey(selected) === rosterRowKey(row) ? "is-selected" : ""} onClick={() => select(row)}><td><button className="rosters-player" ref={el => {
                         if (el) rowButtons.current.set(rosterRowKey(row), el);else rowButtons.current.delete(rosterRowKey(row));
-                      }} aria-label={C.selectPlayer(row.player_name)} aria-expanded={Boolean(selected && rosterRowKey(selected) === rosterRowKey(row))} onClick={e => {
+                      }} aria-label={C.playerDetails(row.player_name)} aria-expanded={Boolean(selected && rosterRowKey(selected) === rosterRowKey(row))} onClick={e => {
                         e.stopPropagation();
                         select(row);
-                      }}><PlayerCell name={row.player_name} playerId={row.player_id} team={row.team} position={row.position} media={media} size="md" /></button></td><td className="rosters-manager-col">{ownerLine(row.ownerTeam)}</td><td className="rosters-num">{rosterMoney(row.salary)}</td><td className="rosters-num rosters-estimate-col">{rosterMoney(row.fair_value)}</td><td className="rosters-num"><Difference row={row} /></td><td className="rosters-contract-col">{rosterContractLabel(row)}</td><td className="rosters-chevron" aria-hidden="true">›</td></tr>{mobileLayout && selected && rosterRowKey(selected) === rosterRowKey(row) && <tr className="rosters-inline-detail"><td colSpan={7}>{detail}</td></tr>}</React.Fragment>)}</tbody></table>{!rows.length && <div className="rosters-empty"><p>{view === "teams" && !activeRoster(block).length ? ROSTERS_COPY.emptyRoster : C.noResults}</p>{(view !== "teams" || activeRoster(block).length > 0) && <button className="rosters-control" onClick={reset}>{C.reset}</button>}</div>}<footer className="rosters-pagination"><span role="status">{view === "teams" ? C.resultCount(rows.length) : C.pagination(rows.length ? currentPage * 8 + 1 : 0, Math.min(rows.length, currentPage * 8 + 8), rows.length)}</span>{view === "deals" && <div><button disabled={currentPage === 0} aria-label="Previous page" onClick={() => {
+                      }}><PlayerCell name={row.player_name} playerId={row.player_id} team={row.team} position={row.position} media={media} size="md" /></button></td><td className="rosters-manager-col">{ownerLine(row.ownerTeam)}</td>{usesSalaries && <><td className="rosters-num">{rosterMoney(row.salary)}</td><td className="rosters-num rosters-estimate-col">{rosterMoney(row.fair_value)}</td><td className="rosters-num"><Difference row={row} /></td></>}{usesContracts && <td className="rosters-contract-col">{rosterContractLabel(row)}</td>}<td className="rosters-chevron" aria-hidden="true">›</td></tr>{mobileLayout && selected && rosterRowKey(selected) === rosterRowKey(row) && <tr className="rosters-inline-detail"><td colSpan={3 + (usesSalaries ? 3 : 0) + (usesContracts ? 1 : 0)}>{detail}</td></tr>}</React.Fragment>)}</tbody></table>{!rows.length && <div className="rosters-empty"><p>{view === "teams" && !activeRoster(block).length ? ROSTERS_COPY.emptyRoster : (usesContracts ? C.noResults : C.noPlayerResults)}</p>{(view !== "teams" || activeRoster(block).length > 0) && <button className="rosters-control" onClick={reset}>{C.reset}</button>}</div>}<footer className="rosters-pagination"><span role="status">{view === "teams" ? C.playerCount(rows.length) : C.pagination(rows.length ? currentPage * 8 + 1 : 0, Math.min(rows.length, currentPage * 8 + 8), rows.length)}</span>{view === "deals" && <div><button disabled={currentPage === 0} aria-label="Previous page" onClick={() => {
                   setPage(currentPage - 1);
                 }}>‹</button><span>{currentPage + 1} / {pages}</span><button disabled={currentPage >= pages - 1} aria-label="Next page" onClick={() => {
                   setPage(currentPage + 1);
