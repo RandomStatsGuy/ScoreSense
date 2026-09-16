@@ -210,3 +210,10 @@ To serve `https://fourthdownlabs.com` (marketing page):
 ---
 
 See also [DEPLOY_VPS.md](./DEPLOY_VPS.md) (nginx/A-record alternative) and [DEPLOY.md](./DEPLOY.md) (Patreon flow).
+
+
+## Retained frontend assets
+
+Use `deploy.ps1` / `deploy/server/deploy-on-server.sh` for releases. Before replacing the running API container, the script archives its exact built assets in the persistent `artifacts/frontend_assets/` directory. The new API serves a missing hashed asset from this archive, preserving open clients across a release. Archived assets are retained for seven days after retirement; expired files are pruned on the next deployment. The shell and service worker continue to revalidate.
+
+A direct `docker compose up --build` bypasses the archive step. This recovery does not repair an asset that was already missing from the running release, and clients older than the retention window may still need to reload. No new JavaScript is substituted under an old hash.

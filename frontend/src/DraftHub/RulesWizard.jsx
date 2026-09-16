@@ -21,7 +21,7 @@ import {
   presetRulesFromList,
   ROSTER_LIMIT_KEYS,
   RULES_COPY,
-  SCORING_FIELDS,
+  SCORING_GROUPS,
   SCORING_COPY,
   rulesFormWarnings,
   rulesSaveDisabledReason,
@@ -350,10 +350,13 @@ export default function RulesWizard({
             ) : (
               <>
                 <p className="chart-note">{SCORING_COPY.receptionHelp}</p>
-                <div className="hub-rules-field-grid hub-rules-field-grid--scoring">
-                  {SCORING_FIELDS.map(([key, label]) => (
+                {SCORING_GROUPS.map((group) => (
+                  <fieldset className="hub-rules-scoring-group" key={group.label}>
+                    <legend>{group.label} · {SCORING_COPY.points}</legend>
+                    <div className="hub-rules-field-grid hub-rules-field-grid--scoring">
+                  {group.fields.map(([key, label]) => (
                     <label key={key}>
-                      <span>{label} · {SCORING_COPY.points}</span>
+                      <span>{label}</span>
                       <input type="number" step="0.01" min="-100" max="100" value={rules.scoring[key]}
                         disabled={readOnlyRules} aria-invalid={Boolean(errors[`scoring.${key}`])}
                         aria-describedby={errors[`scoring.${key}`] ? `scoring-${key}-error` : undefined}
@@ -361,7 +364,9 @@ export default function RulesWizard({
                       <RuleError id={`scoring-${key}-error`}>{errors[`scoring.${key}`]}</RuleError>
                     </label>
                   ))}
-                </div>
+                    </div>
+                  </fieldset>
+                ))}
                 <p className="chart-note">{SCORING_COPY.effect}</p>
                 <p className="chart-note">{SCORING_COPY.supported}</p>
               </>

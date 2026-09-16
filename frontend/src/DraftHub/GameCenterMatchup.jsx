@@ -1,9 +1,8 @@
 import React, { useId, useState } from "react";
 import { JerseySvg } from "./LockerRoomScene";
 import { nflTeamColors } from "./nflTeamColors";
-import { identityMediaUrl } from "./atmosphereCatalog";
 import { identityFor } from "./TeamIdentityContext";
-import IdentityCropMedia from "./IdentityCropMedia";
+import MatchupBannerArt from "./MatchupBannerArt";
 import TeamIdentityMark from "./TeamIdentityMark";
 import WeekCulturePanel from "./WeekCulturePanel";
 import {
@@ -29,22 +28,6 @@ const score = (p, placeholder) =>
     ? "—"
     : formatMatchupScore(p.points, { placeholder }).score;
 
-function BannerArt({ identity, side }) {
-  const src = identityMediaUrl(identity, "banner");
-  return src ? (
-    <div
-      className={`gc-room-banner-art gc-room-banner-art--${side}`}
-      aria-hidden="true"
-    >
-      <IdentityCropMedia
-        key={src}
-        src={src}
-        focus={identity?.banner_focus}
-        alt=""
-      />
-    </div>
-  ) : null;
-}
 function TeamName({ team, identity, away = false }) {
   const parts = gameCenterTeamParts(team);
   return (
@@ -160,8 +143,8 @@ export default function GameCenterMatchup({
   return (
     <>
       <section className="gc-room-scoreboard" aria-label="Matchup score">
-        <BannerArt identity={mine} side="home" />
-        <BannerArt identity={theirs} side="away" />
+        <MatchupBannerArt identity={mine} side="home" />
+        <MatchupBannerArt identity={theirs} side="away" />
         <TeamName team={viewer} identity={mine} />
         <div className="gc-room-score" aria-live="polite" aria-atomic="true">
           <strong>

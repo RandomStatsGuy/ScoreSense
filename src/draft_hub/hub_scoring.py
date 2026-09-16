@@ -33,6 +33,9 @@ _STAT_INDEX_CACHE: dict[tuple[int, int], tuple[float, dict[str, dict[str, Any]]]
 _STAT_INDEX_TTL_S = 60.0
 
 ACTIVE_ROSTER = "active"
+NATIVE_STAT_FIELDS = frozenset(ScoringRules.model_fields) | {"def_points_allowed"}
+KICKER_STAT_FIELDS = frozenset(key for key in NATIVE_STAT_FIELDS if key.startswith(("fg_", "pat_")))
+DEFENSE_STAT_FIELDS = frozenset(key for key in NATIVE_STAT_FIELDS if key.startswith("def_"))
 
 
 class LineupError(ValueError):
@@ -593,7 +596,20 @@ def swap_lineup_players(
 
 def fantasy_points_from_stats(stats: dict[str, Any] | None, scoring: ScoringRules | None = None) -> float:
     total = 0.0
-    blob = stats or {}
+    blob = dict(stats or {})
+    # Derive mutually exclusive bands from actual values, never from a missing
+    # value (in particular, an absent defense score is not a shutout).
+    for stat, lower, upper in (("passing", 300, 400), ("rushing", 100, 200), ("receiving", 100, 200)):
+        if f"{stat}_yards" in blob:
+            yards = float(blob[f"{stat}_yards"] or 0)
+            blob[f"bonus_{stat}_{lower}"] = int(lower <= yards < upper)
+            blob[f"bonus_{stat}_{upper}"] = int(yards >= upper)
+    if blob.get("def_points_allowed") is not None:
+        allowed = float(blob["def_points_allowed"])
+        for low, high, suffix in ((0, 0, "0"), (1, 6, "1_6"), (7, 13, "7_13"),
+                                  (14, 20, "14_20"), (21, 27, "21_27"),
+                                  (28, 34, "28_34"), (35, float("inf"), "35_plus")):
+            blob[f"def_points_allowed_{suffix}"] = int(low <= allowed <= high)
     for key, weight in (scoring or ScoringRules()).model_dump().items():
         try:
             total += float(blob.get(key) or 0) * float(weight)
@@ -676,6 +692,18 @@ def _alias_week_stat_index(
     return aliased
 
 
+def require_position_stats(position: str, stats: dict[str, Any], scoring: ScoringRules) -> None:
+    """Never score unsupported specialist feeds as zero or as a shutout."""
+    position = normalize_position(position)
+    keys = KICKER_STAT_FIELDS if position == "K" else DEFENSE_STAT_FIELDS if position == "DEF" else ()
+    required = {key for key in keys if getattr(scoring, key, 0) != 0}
+    if position == "DEF" and any(key.startswith("def_points_allowed_") for key in required):
+        required = {key for key in required if not key.startswith("def_points_allowed_")}
+        required.add("def_points_allowed")
+    if any(key not in stats or stats[key] is None for key in required):
+        raise LineupError(f"Actual {position} scoring statistics are incomplete; no results were saved.")
+
+
 def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
     """player_id → stat dict + fantasy_points for one NFL week (nflverse)."""
     from src.config import is_testing
@@ -720,6 +748,8 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
             key: float(row[key]) if key in row and pd.notna(row[key]) else 0.0
             for key in FANTASY_SCORING
         }
+        stats.update({key: float(row[key]) for key in NATIVE_STAT_FIELDS
+                      if key in row and pd.notna(row[key])})
         try:
             pts = float(row["fantasy_points"])
         except (TypeError, ValueError):
@@ -802,6 +832,12 @@ def apply_week_scores(
     ]
     if missing_with_roster:
         return {"scored": False, "reason": "incomplete_historical_lineups", "season": int(season), "week": int(week)}
+
+
+    unsupported = [row for row in lineups if str(row.get("lineup_role")) == "starter"
+                   and normalize_position(row.get("position")) not in {"QB", "RB", "WR", "TE", "K", "DEF"}]
+    if unsupported:
+        raise LineupError("Native scoring does not support this starter position")
     team_matchup = {}
     for row in matchups:
         team_matchup[str(row["home_team_id"])] = row["matchup_id"]
@@ -815,9 +851,11 @@ def apply_week_scores(
         pid = str(row["player_id"])
         tid = str(row["team_id"])
         stats = stats_for_lineup_row(lookup, row)
+        if str(row.get("lineup_role")) == "starter":
+            require_position_stats(row.get("position"), stats, rules.scoring)
         if stats:
             with_stats += 1
-            if any(key in stats for key in FANTASY_SCORING):
+            if any(key in stats for key in NATIVE_STAT_FIELDS):
                 points = fantasy_points_from_stats(stats, rules.scoring)
             elif rules.scoring == ScoringRules() and "fantasy_points" in stats:
                 points = float(stats["fantasy_points"])
@@ -834,7 +872,7 @@ def apply_week_scores(
                 "slot": row.get("slot"),
                 "lineup_role": row.get("lineup_role"),
                 "points": round(points, 2),
-                "stats": {k: stats[k] for k in FANTASY_SCORING if k in stats},
+                "stats": {k: stats[k] for k in NATIVE_STAT_FIELDS if k in stats},
             }
         )
 
@@ -1122,7 +1160,7 @@ def build_hub_live_week(
             "final": run_final,
             "slate_complete": slate_done,
             "run": scoring_run,
-            "settings_changed": bool(scoring_run and scoring_run["scoring"] != rules.scoring.model_dump()),
+            "settings_changed": bool(scoring_run and ScoringRules.model_validate(scoring_run["scoring"]) != rules.scoring),
             "settings": rules.scoring.model_dump(),
         },
         "available": True,

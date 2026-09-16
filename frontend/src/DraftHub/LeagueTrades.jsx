@@ -12,7 +12,9 @@ import {
   HubPage,
   HubSegmentNav,
 } from "./HubUILayout";
-import { getInsightsSection, setInsightsSection } from "./hubDataCache";
+import { getInsightsSection, setInsightsSection, loadLeagueRosterRequest } from "./hubDataCache";
+import { isAbortError } from "../fetchAbort";
+import { loadTradeBootstrap } from "./tradeBootstrap";
 import { confirmDialog } from "../ui/confirm";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import { fmtSal } from "./rosterFormat";
@@ -306,7 +308,7 @@ function TradePlayerRow({
   );
 }
 
-export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
+export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheScope }) {
   const usesSalaries = leagueUsesSalaries(hubContext);
   const [tab, setTab] = useState("builder");
   const [builderStep, setBuilderStep] = useState("partner");
@@ -315,6 +317,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
   const [rosters, setRosters] = useState([]);
   const [salaryCap, setSalaryCap] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [secondaryLoading, setSecondaryLoading] = useState(true);
+  const [secondaryError, setSecondaryError] = useState({});
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
@@ -373,96 +377,127 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
 
   const trade = insights?.trade || {};
 
-  const loadRosters = useCallback(async () => {
+  const loadRosters = useCallback(async (signal) => {
     if (!leagueId) return;
-    const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters`);
-    if (!res.ok) throw new Error(await parseApiError(res));
-    const data = await res.json();
+    const data = await loadLeagueRosterRequest(cacheScope, leagueId, async () => {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters`);
+      if (!res.ok) throw new Error(await parseApiError(res));
+      return res.json();
+    });
+    if (signal?.aborted) return;
     setRosters(data.teams || []);
     if (data.salary_cap != null) setSalaryCap(data.salary_cap);
     return data.teams || [];
-  }, [leagueId]);
+  }, [leagueId, cacheScope]);
 
-  const loadProposals = useCallback(async () => {
+  const loadProposals = useCallback(async (signal) => {
     if (!leagueId) return;
-    const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trades?status=pending`);
+    const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trades?status=pending`, { signal });
     if (!res.ok) throw new Error(await parseApiError(res));
     const data = await res.json();
+    if (signal?.aborted) return;
     setProposals(data.proposals || []);
   }, [leagueId]);
 
-  const loadInsights = useCallback(async () => {
+  const loadInsights = useCallback(async (signal) => {
     if (!leagueId) return;
     const cached = getInsightsSection(leagueId, "trades", "current");
     if (cached) setInsights(cached);
     const params = new URLSearchParams({ sections: "trades" });
     const res = await apiFetch(
       `/api/hub/league/${encodeURIComponent(leagueId)}/insights?${params}`,
+      { signal },
     );
     if (!res.ok) throw new Error(await parseApiError(res));
     const payload = await res.json();
+    if (signal?.aborted) return;
     setInsightsSection(leagueId, "trades", "current", payload);
     setInsights(payload);
   }, [leagueId]);
 
-  const loadWeekPreview = useCallback(async () => {
+  const loadWeekPreview = useCallback(async (signal) => {
     try {
-      const res = await apiFetch("/api/hub/week?league_cards=1");
+      const res = await apiFetch("/api/hub/week?league_cards=1", { signal });
       if (!res.ok) {
         setWeekState({ status: "missing" });
         return;
       }
-      setWeekState({ status: "ready", data: await res.json() });
+      const data = await res.json();
+      if (!signal?.aborted) setWeekState({ status: "ready", data });
     } catch {
-      setWeekState({ status: "missing" });
+      if (!signal?.aborted) setWeekState({ status: "missing" });
     }
   }, []);
 
-  const boot = useCallback(async () => {
+  const boot = useCallback(async (signal) => {
     setLoading(true);
+    setSecondaryLoading(true);
+    setSecondaryError({});
     setError("");
     try {
-      const teamBlocks = await loadRosters();
-      await Promise.all([loadProposals(), loadInsights(), loadWeekPreview()]);
-      const seed = readTradeSeed();
-      if (seed?.players?.length || seed?.partnerTeamId) {
-        clearTradeSeed();
-        const myId = hubContext?.team_id || myTeamId;
-        const otherId = resolveTradePartnerId(seed, myId, teamBlocks);
-        const next = [
-          emptyParty(myId),
-          emptyParty(otherId),
-        ];
-        (seed.players || []).forEach((p) => {
-          const fromIdx = next.findIndex((x) => x.team_id === p.team_id);
-          const from = fromIdx >= 0 ? next[fromIdx] : next[1];
-          if (!from.team_id) from.team_id = p.team_id;
-          const toId = from.team_id === myId ? otherId : myId;
-          if (toId && !from.sends.some((s) => s.player_id === p.player_id)) {
-            from.sends.push({ player_id: p.player_id, to_team_id: toId });
+      const results = await loadTradeBootstrap({
+        loadRosters: () => loadRosters(signal),
+        applyRosters: (teamBlocks) => {
+          const seed = readTradeSeed();
+          if (seed?.players?.length || seed?.partnerTeamId) {
+            clearTradeSeed();
+            const myId = hubContext?.team_id || myTeamId;
+            const otherId = resolveTradePartnerId(seed, myId, teamBlocks);
+            const next = [
+              emptyParty(myId),
+              emptyParty(otherId),
+            ];
+            (seed.players || []).forEach((p) => {
+              const fromIdx = next.findIndex((x) => x.team_id === p.team_id);
+              const from = fromIdx >= 0 ? next[fromIdx] : next[1];
+              if (!from.team_id) from.team_id = p.team_id;
+              const toId = from.team_id === myId ? otherId : myId;
+              if (toId && !from.sends.some((s) => s.player_id === p.player_id)) {
+                from.sends.push({ player_id: p.player_id, to_team_id: toId });
+              }
+            });
+            setParties(next);
+            setTab("builder");
+            setBuilderStep(otherId ? "players" : "partner");
+          } else if (myTeamId) {
+            setParties((prev) => {
+              if (prev[0]?.team_id) return prev;
+              const copy = prev.map((p) => ({ ...p }));
+              copy[0] = { ...copy[0], team_id: myTeamId };
+              return copy;
+            });
           }
-        });
-        setParties(next);
-        setTab("builder");
-        setBuilderStep(otherId ? "players" : "partner");
-      } else if (myTeamId) {
-        setParties((prev) => {
-          if (prev[0]?.team_id) return prev;
-          const copy = prev.map((p) => ({ ...p }));
-          copy[0] = { ...copy[0], team_id: myTeamId };
-          return copy;
-        });
-      }
+        },
+        onReady: () => setLoading(false),
+        secondary: [() => loadProposals(signal), () => loadInsights(signal)],
+        signal,
+      });
+      if (signal.aborted) return;
+      setSecondaryError(Object.fromEntries(results.flatMap((result, index) =>
+        result.status === "rejected" ? [[index === 0 ? "inbox" : "ideas", connectionErrorMessage(result.reason)]] : [])));
     } catch (e) {
-      setError(connectionErrorMessage(e));
+      if (!signal.aborted && !isAbortError(e)) setError(connectionErrorMessage(e));
     } finally {
-      setLoading(false);
+      if (!signal.aborted) {
+        setLoading(false);
+        setSecondaryLoading(false);
+      }
     }
-  }, [loadRosters, loadProposals, loadInsights, loadWeekPreview, hubContext?.team_id, myTeamId]);
+  }, [loadRosters, loadProposals, loadInsights, hubContext?.team_id, myTeamId]);
 
   useEffect(() => {
-    boot();
+    const controller = new AbortController();
+    boot(controller.signal);
+    return () => controller.abort();
   }, [boot]);
+
+  const needsWeekPreview = tab === "inbox" || (tab === "builder" && builderStep !== "partner");
+  useEffect(() => {
+    if (!needsWeekPreview || weekState.status !== "idle") return undefined;
+    const controller = new AbortController();
+    loadWeekPreview(controller.signal);
+    return () => controller.abort();
+  }, [needsWeekPreview, weekState.status, loadWeekPreview]);
 
   const allPlayerIds = useMemo(() => {
     const ids = new Set();
@@ -1203,6 +1238,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         <HubAlert variant="ready">{msg}</HubAlert>
       )}
       {loading && <HubLoadingSkeleton label="Loading trades" rows={4} />}
+      {tab !== "builder" && secondaryLoading && <HubLoadingSkeleton label={TRADES_COPY.loadingDetails} rows={4} />}
+      {tab !== "builder" && secondaryError[tab] && <HubAlert variant="warn">{secondaryError[tab]}</HubAlert>}
 
       {tab === "builder" && !loading && (
         <div className="hub-trade-builder" id="trades-panel-builder">
@@ -1460,7 +1497,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         </div>
       )}
 
-      {tab === "inbox" && (
+      {tab === "inbox" && !secondaryLoading && !secondaryError.inbox && (
         <div className="hub-trade-inbox" id="trades-panel-inbox">
           {proposals.length === 0 && (
             <div className="hub-insights-empty-state">
@@ -1570,7 +1607,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate }) {
         </div>
       )}
 
-      {tab === "ideas" && (
+      {tab === "ideas" && !secondaryLoading && !secondaryError.ideas && (
         <div className="hub-trade-ideas" id="trades-panel-ideas">
           <p className="chart-note hub-trade-ideas-blurb">{TRADES_COPY.ideasBlurb}</p>
           {((trade.balance?.surplus || []).length > 0 || (trade.balance?.need || []).length > 0) && (

@@ -71,3 +71,14 @@ def _process_pool_lifecycle():
     process_pool._executor = None
     yield
     process_pool.shutdown_process_executor(wait=False)
+
+
+@pytest.fixture
+def before_nfl_week_one(monkeypatch):
+    """Keep prospective 2026 Week 1 lineup tests independent of today's date."""
+    from datetime import datetime, timezone
+
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring._utcnow",
+        lambda: datetime(2026, 9, 1, tzinfo=timezone.utc),
+    )

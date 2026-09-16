@@ -50,6 +50,7 @@ EXCLUDE_PREFIXES = (
     "data/draft_hub/",  # SQLite league state — volume-mounted on VPS; never overwrite
     "data/processed/",  # ETL output from VPS refresh — do not clobber with laptop copies
     "artifacts/analytics/",
+    "artifacts/frontend_assets/",  # retained releases belong to the deployment host
     "artifacts/backtest/",
     "artifacts/draft_pool/",
     "artifacts/weekly_predictions/",

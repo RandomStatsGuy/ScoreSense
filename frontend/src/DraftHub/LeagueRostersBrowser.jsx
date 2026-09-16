@@ -2,6 +2,8 @@ import { leagueUsesSalaries, leagueUsesContracts } from "./leagueCapabilities";
 import { readRosterState, writeRosterState, rosterStateForCapabilities } from "./rosterBoardState";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import { loadLeagueRosterRequest } from "./hubDataCache";
+import { isAbortError } from "../fetchAbort";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { rosterCoverage } from "./leagueRostersPresentation";
 import useMobileLayout from "../useMobileLayout";
@@ -74,6 +76,7 @@ export default function LeagueRostersBrowser(props) {
 
 function RosterBoard({
   leagueId,
+  cacheScope,
   hubContext,
   onNavigateTrade,
   onOpenContractHistory
@@ -116,16 +119,18 @@ function RosterBoard({
     setLoading(true);
     setError("");
     try {
-      const response = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters${refresh ? "?refresh=1" : ""}`);
-      if (!response.ok) throw new Error(await parseApiError(response));
-      const data = await response.json();
+      const data = await loadLeagueRosterRequest(cacheScope, leagueId, async () => {
+        const response = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters${refresh ? "?refresh=1" : ""}`);
+        if (!response.ok) throw new Error(await parseApiError(response));
+        return response.json();
+      }, { refresh });
       if (id === request.current && currentLeague.current === leagueId) setOverview(data);
     } catch (e) {
-      if (id === request.current && currentLeague.current === leagueId) setError(connectionErrorMessage(e));
+      if (!isAbortError(e) && id === request.current && currentLeague.current === leagueId) setError(connectionErrorMessage(e));
     } finally {
       if (id === request.current && currentLeague.current === leagueId) setLoading(false);
     }
-  }, [leagueId]);
+  }, [leagueId, cacheScope]);
   useEffect(() => {
     setOverview(null);
     setExportError("");

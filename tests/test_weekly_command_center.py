@@ -617,7 +617,7 @@ def test_lookup_prior_ppg_follows_name_when_team_changes():
     assert _lookup_prior_ppg(card, index) == 16.4
 
 
-def test_hub_only_week_persists_lineup(hub_db):
+def test_hub_only_week_persists_lineup(hub_db, before_nfl_week_one):
     league, team, _ws, comm = _seed_league_roster(hub_db, sleeper=False)
     from src.draft_hub.hub_context import resolve_hub_context
 
@@ -731,7 +731,7 @@ def test_list_roster_for_context_not_called_with_live_sleeper(hub_db):
     assert roster_fn.call_args.kwargs.get("live_sleeper") is False
 
 
-def test_name_fallback_joins_sleeper_prefixed_roster_ids(hub_db):
+def test_name_fallback_joins_sleeper_prefixed_roster_ids(hub_db, before_nfl_week_one):
     comm = "week-comm-names"
     ws = storage.get_or_create_workspace(comm, season=2026)
     rules = load_preset("salary_cap_auction_v1")

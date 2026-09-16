@@ -88,9 +88,59 @@ def test_room_payload_is_allowlisted_and_does_not_leak_contracts(hub_db, monkeyp
 def test_sleeper_nicknames_are_optional_and_filtered(monkeypatch):
     from src.draft_hub import league_live_scoring
     team_room._nickname_cache.clear()
-    monkeypatch.setattr(league_live_scoring,"_fetch_json",lambda _: [{"roster_id":4,"metadata":{"nickname_123":"Rocket","owner":"private","nickname_456":None}}])
+    monkeypatch.setattr(league_live_scoring,"_fetch_json",lambda *a, **k: [{"roster_id":4,"metadata":{"nickname_123":"Rocket","owner":"private","nickname_456":None}}])
+    team_room._refresh_nicknames("test")
     assert team_room.sleeper_nicknames("test", "4") == {"123":"Rocket"}
     assert team_room.sleeper_nicknames("test", "5") == {}
+
+
+def test_room_snapshot_batch_uses_one_connection_and_preserves_kickoff(hub_db, monkeypatch):
+    from contextlib import contextmanager
+    original = storage.get_conn
+    calls = []
+
+    @contextmanager
+    def counted():
+        calls.append(1)
+        with original() as conn:
+            yield conn
+
+    monkeypatch.setattr(storage, "get_conn", counted)
+    players = [(f"p{i}", i, False) for i in range(25)]
+    assert len(team_room.projection_snapshots("league", 2026, 2, players)) == 25
+    assert len(calls) == 1
+    result = team_room.projection_snapshots("league", 2026, 2, [
+        ("p1", 99, True), ("late", 20, True), ("p2", float("nan"), False), ("p3", 30, False),
+    ])
+    assert result == {"p1": 1, "p2": 2, "p3": 30}
+    assert team_room.projection_snapshots("other", 2026, 2, [("p1", 99, True)]) == {}
+
+
+def test_nickname_cache_miss_is_nonblocking_and_deduplicated(monkeypatch):
+    queued = []
+    monkeypatch.setattr(team_room, "_nickname_cache", {})
+    monkeypatch.setattr(team_room, "_nickname_pending", set())
+    monkeypatch.setattr(team_room._nickname_executor, "submit", lambda *args: queued.append(args))
+    assert team_room.sleeper_nicknames("one", "4") == {}
+    assert team_room.sleeper_nicknames("one", "4") == {}
+    assert len(queued) == 1
+    team_room.sleeper_nicknames("two", "4")
+    team_room.sleeper_nicknames("three", "4")
+    assert len(queued) == 2  # No unbounded worker queue.
+
+
+def test_failed_nickname_refresh_keeps_stale_data_and_backs_off(monkeypatch):
+    from src.draft_hub import league_live_scoring
+    rows = [{"roster_id": 4, "metadata": {"nickname_p": "Rocket"}}]
+    monkeypatch.setattr(team_room, "_nickname_cache", {"one": (0, rows)})
+    monkeypatch.setattr(team_room, "_nickname_pending", {"one"})
+    def fail(*args, **kwargs):
+        raise TimeoutError()
+    monkeypatch.setattr(league_live_scoring, "_fetch_json", fail)
+    team_room._refresh_nicknames("one")
+    monkeypatch.setattr(team_room._nickname_executor, "submit", lambda *args: pytest.fail("must back off"))
+    assert team_room.sleeper_nicknames("one", "4") == {"p": "Rocket"}
+    assert not team_room._nickname_pending
 
 
 def test_pregame_projection_is_frozen_and_never_backfilled_after_kickoff(hub_db):
