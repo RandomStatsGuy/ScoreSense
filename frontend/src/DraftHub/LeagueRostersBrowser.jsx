@@ -153,7 +153,6 @@ export default function LeagueRostersBrowser({
     setter(next);
     setPage(0);
     setSelectedKey(null);
-    setClosed(false);
   };
   const reset = () => {
     setTeamId("");
@@ -161,7 +160,6 @@ export default function LeagueRostersBrowser({
     setPosition("");
     setValue("all");
     setPage(0);
-    setClosed(false);
   };
   const select = row => {
     setSelectedKey(rosterRowKey(row));
@@ -258,10 +256,8 @@ export default function LeagueRostersBrowser({
                         select(row);
                       }}><PlayerCell name={row.player_name} playerId={row.player_id} team={row.team} position={row.position} media={media} size="md" /></button></td><td className="rosters-manager-col">{ownerLine(row.ownerTeam)}</td><td className="rosters-num">{rosterMoney(row.salary)}</td><td className="rosters-num rosters-estimate-col">{rosterMoney(row.fair_value)}</td><td className="rosters-num"><Difference row={row} /></td><td className="rosters-contract-col">{rosterContractLabel(row)}</td><td className="rosters-chevron" aria-hidden="true">›</td></tr>{mobileLayout && selected && rosterRowKey(selected) === rosterRowKey(row) && <tr className="rosters-inline-detail"><td colSpan={7}>{detail}</td></tr>}</React.Fragment>)}</tbody></table>{!rows.length && <div className="rosters-empty"><p>{C.noResults}</p><button className="rosters-control" onClick={reset}>{C.reset}</button></div>}<footer className="rosters-pagination"><span role="status">{C.pagination(rows.length ? currentPage * 8 + 1 : 0, Math.min(rows.length, currentPage * 8 + 8), rows.length)}</span><div><button disabled={currentPage === 0} aria-label="Previous page" onClick={() => {
                   setPage(currentPage - 1);
-                  setClosed(false);
                 }}>‹</button><span>{currentPage + 1} / {pages}</span><button disabled={currentPage >= pages - 1} aria-label="Next page" onClick={() => {
                   setPage(currentPage + 1);
-                  setClosed(false);
                 }}>›</button></div></footer></div>{!mobileLayout && detail}</div>}
     </div></>}
   </section>;
