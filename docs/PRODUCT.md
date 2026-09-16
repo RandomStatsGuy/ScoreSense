@@ -136,6 +136,12 @@ Fantasy lists people by **owner name**. A team nickname may sit underneath or af
 
 ## Visual language
 
+### Approved Cap contract workbench — September 16, 2026
+
+Cap follows the selected option B: keep the experience hero, lead the desktop main column with the contract sheet, and place the cut/bid preview above the current-cap summary in the right rail. Phone shows the preview before dense contract rows. Extensions, saved cuts, and spending details remain below the sheet. Use existing experience components and tokens.
+
+Say current cap room versus room after the preview. Selecting a contract and entering a possible bid never saves a cut or places a bid. The cut action still confirms. Label the selected player's penalty “Dead-cap charge for this player,” not total dead cap after the cut. Future-season previews include the cut but do not assume a new contract for the entered bid. Years left includes the current season. Keep saved extension and cut controls separate from the unsaved calculator.
+
 Dark mode only. Matte, editorial, layered. Sports-product energy without casino chrome.
 
 | Role | Token / value | Use |
