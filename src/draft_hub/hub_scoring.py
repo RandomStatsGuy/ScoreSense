@@ -728,7 +728,12 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
         return _store({})
     if "week" not in frame.columns or "player_id" not in frame.columns:
         return _store({})
-    week_df = frame.loc[pd.to_numeric(frame["week"], errors="coerce") == int(week)].copy()
+    selected = pd.to_numeric(frame["week"], errors="coerce") == int(week)
+    if "season" in frame:
+        selected &= pd.to_numeric(frame["season"], errors="coerce") == int(season)
+    if "season_type" in frame:
+        selected &= frame["season_type"].astype(str).str.upper() == "REG"
+    week_df = frame.loc[selected].copy()
     if week_df.empty:
         return _store({})
     if "interceptions" not in week_df and "passing_interceptions" in week_df:
@@ -738,6 +743,8 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
             pd.to_numeric(week_df.get(key, pd.Series(0, index=week_df.index)), errors="coerce").fillna(0)
             for key in ("sack_fumbles_lost", "rushing_fumbles_lost", "receiving_fumbles_lost")
         )
+    from src.draft_hub.native_specialist_stats import normalize_kicking_stats, load_defense_stat_index
+
     week_df["fantasy_points"] = calc_fantasy_points_ppr(week_df)
     index: dict[str, dict[str, Any]] = {}
     for _, row in week_df.iterrows():
@@ -750,13 +757,16 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
         }
         stats.update({key: float(row[key]) for key in NATIVE_STAT_FIELDS
                       if key in row and pd.notna(row[key])})
+        stats.update(normalize_kicking_stats(row))
         try:
             pts = float(row["fantasy_points"])
         except (TypeError, ValueError):
             pts = fantasy_points_from_stats(stats)
         stats["fantasy_points"] = round(pts, 2)
         index[pid] = stats
-    return _store(_alias_week_stat_index(index, week_df))
+    result = _alias_week_stat_index(index, week_df)
+    result.update(load_defense_stat_index(int(season), int(week)))
+    return _store(result)
 
 
 def native_week_needs_score_refresh(

@@ -35,6 +35,7 @@ from src.draft_hub.schemas import LeagueRules, ScoringRules
 
 @pytest.fixture(autouse=True)
 def before_week_one(monkeypatch):
+    monkeypatch.setattr("src.draft_hub.native_specialist_stats.load_defense_stat_index", lambda *_: {})
     # Lineup fixtures must not depend on the wall clock passing Week 1.
     monkeypatch.setattr("src.draft_hub.hub_scoring._utcnow",
                         lambda: datetime(2026, 9, 1, tzinfo=timezone.utc))
