@@ -12,6 +12,7 @@ import "./styles/product-rhythm.css";
 import "./styles/fantasy-phone.css";
 import "./styles/fantasy-header.css";
 import "./styles/standalone-dialogs.css";
+import "./styles/color-theme.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

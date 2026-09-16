@@ -1,3 +1,5 @@
+import ThemeToggle from "./layout/ThemeToggle";
+import { THEME_COPY } from "./themePresentation";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
@@ -251,6 +253,11 @@ export default function AccountSettingsPage() {
           <SmsOptInCard termsUrl={termsUrl} privacyUrl={privacyUrl} />
         </section>
 
+        <section className="account-settings-section">
+          <h3 className="hub-panel-subtitle">{THEME_COPY.title}</h3>
+          <p className="chart-note">{THEME_COPY.support}</p>
+          <ThemeToggle />
+        </section>
         <section className="account-settings-section">
           <h3 className="hub-panel-subtitle">Fantasy atmosphere</h3>
           <p className="chart-note">

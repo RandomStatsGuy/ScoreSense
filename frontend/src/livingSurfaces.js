@@ -21,10 +21,12 @@ export const SHARED = Object.freeze({
     desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/ProductSubnav.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/hubSubnav.js", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
   tokens: [
     "frontend/src/styles/tokens.css",
+    "frontend/src/styles/color-theme.css",
     "frontend/src/styles/product-hierarchy.css",
     "frontend/src/styles/product-rhythm.css",
     "frontend/src/styles/fantasy-phone.css",
   ],
+  theme: ["frontend/public/theme-init.js", "frontend/src/layout/ThemeToggle.jsx", "frontend/src/themePresentation.js"],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
