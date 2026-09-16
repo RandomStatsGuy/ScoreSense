@@ -237,7 +237,7 @@ export const ROSTER_BOARD_COPY = {
   refresh: "Refresh", refreshing: "Refreshing…", history: "View contract history",
   noLeague: "Choose a league to compare rosters.", noResults: "No contracts match these filters.",
   showAll: "View all matching contracts",
-  coverage: ({ total, atEstimate, minimumBid, unavailable }) => `${total} active contract${total === 1 ? "" : "s"} match your team, player, and position filters. Excluded from Contract values: ${atEstimate} at estimate, ${minimumBid} at minimum bid, and ${unavailable} without enough data to compare.`,
+  coverage: ({ total, atEstimate, minimumBid, unavailable }) => `${total} active contract${total === 1 ? " matches" : "s match"} your team, player, and position filters. Excluded from Contract values: ${atEstimate} at estimate, ${minimumBid} at minimum bid, and ${unavailable} without enough data to compare.`,
   reset: "Reset filters", select: "Select a player to view their contract.",
   unavailable: "Estimate unavailable", estimate: "Est. value", salary: "Salary", difference: "Difference",
   contract: "Contract", player: "Player", manager: "Manager", close: "Close player details",
