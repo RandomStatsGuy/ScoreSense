@@ -144,3 +144,45 @@ def test_missing_non_fantasy_asset_stays_not_found(tmp_path: Path) -> None:
     mini.mount("/assets", LegacyFantasyAssetStaticFiles(directory=assets), name="assets")
 
     assert TestClient(mini).get("/assets/DraftHub-retired.js").status_code == 404
+
+
+def test_retired_assets_serve_exact_bytes_and_keep_missing_chunks_404(tmp_path):
+    from fastapi import FastAPI
+    from app.api import LegacyFantasyAssetStaticFiles
+    from scripts.ops.archive_frontend_assets import archive_assets
+    previous, current, archive = [tmp_path / name for name in ("previous", "current", "archive")]
+    previous.mkdir(); current.mkdir()
+    (previous / "DraftHub-old.js").write_text("old exact bytes")
+    (previous / "fantasy-old.css").write_text("old exact css")
+    archive_assets(previous, archive)
+    (current / "DraftHub-new.js").write_text("new bytes")
+    (current / "fantasy-new.css").write_text("new css")
+    app = FastAPI()
+    app.mount("/assets", LegacyFantasyAssetStaticFiles(directory=current, archive_directory=archive))
+    client = TestClient(app)
+    old = client.get("/assets/DraftHub-old.js")
+    assert old.status_code == 200 and old.text == "old exact bytes"
+    assert "javascript" in old.headers["content-type"]
+    assert "immutable" in old.headers["cache-control"]
+    assert client.get("/assets/fantasy-old.css").text == "old exact css"
+    assert client.get("/assets/DraftHub-new.js").text == "new bytes"
+    assert client.get("/assets/DraftHub-absent.js").status_code == 404
+    assert client.get("/assets/%2e%2e/secret.txt").status_code == 404
+
+
+def test_asset_retention_starts_at_retirement_and_refuses_hash_replacement(tmp_path):
+    import os
+    from scripts.ops.archive_frontend_assets import archive_assets
+    source, archive = tmp_path / "source", tmp_path / "archive"
+    source.mkdir(); archive.mkdir()
+    (source / "current.js").write_text("current")
+    os.utime(source / "current.js", (1, 1))
+    (archive / "expired.js").write_text("expired")
+    os.utime(archive / "expired.js", (1, 1))
+    archive_assets(source, archive, now=1_000_000)
+    assert not (archive / "expired.js").exists()
+    assert (archive / "current.js").stat().st_mtime == 1_000_000
+    (source / "current.js").write_text("changed")
+    with pytest.raises(ValueError, match="immutable"):
+        archive_assets(source, archive, now=1_000_001)
+    assert (archive / "current.js").read_text() == "current"

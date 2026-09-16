@@ -75,7 +75,7 @@ from src.jobs.accuracy_rebuild import (
     run_full_accuracy_rebuild,
     start_full_accuracy_rebuild,
 )
-from src.config import FRONTEND_DIST, TWA_PACKAGE_NAME, TWA_SHA256_FINGERPRINT
+from src.config import FRONTEND_DIST, FRONTEND_ASSET_ARCHIVE, TWA_PACKAGE_NAME, TWA_SHA256_FINGERPRINT
 from src.auth import user_store
 from src.integrations.sleeper import get_nfl_state, injured_players
 from src.integrations.injury_snapshot import injured_players_from_disk
@@ -2282,10 +2282,22 @@ class LegacyFantasyAssetStaticFiles(ImmutableStaticFiles):
     the app suspended at its loading shell.
     """
 
+    def __init__(self, *args, archive_directory=FRONTEND_ASSET_ARCHIVE, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.archive = ImmutableStaticFiles(directory=archive_directory, check_dir=False)
+
     async def get_response(self, path: str, scope: dict[str, Any]) -> Response:
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
+            if exc.status_code == 404 and Path(self.archive.directory).is_dir():
+                try:
+                    # Serve the exact old bytes under their original hash. StaticFiles
+                    # retains its path traversal/symlink checks for this directory.
+                    return await self.archive.get_response(path, scope)
+                except StarletteHTTPException as archive_exc:
+                    if archive_exc.status_code != 404:
+                        raise
             if exc.status_code != 404 or "/" in path or not (
                 path.startswith("fantasy-") and path.endswith(".css")
             ):

@@ -159,6 +159,7 @@ BDB_DIR = PROJECT_ROOT / "artifacts" / "bdb"
 NGS_RAW_DIR = DATA_DIR / "raw" / "ngs"
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 FRONTEND_DIST = FRONTEND_DIR / "dist"
+FRONTEND_ASSET_ARCHIVE = PROJECT_ROOT / "artifacts" / "frontend_assets"
 
 # Quantile levels for prediction intervals (P10 / P50 / P90)
 PREDICTION_QUANTILES = (0.1, 0.5, 0.9)
