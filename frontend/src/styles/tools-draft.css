@@ -76,7 +76,7 @@
 
 .lineup-format-hint {
   margin: 0 0 0.65rem;
-  color: #94a3b8;
+  color: var(--theme-muted, #94a3b8);
   font-size: 0.85rem;
 }
 
@@ -91,7 +91,7 @@
   padding: 0.15rem 0.45rem;
   border-radius: 6px;
   background: #1e3a5f;
-  color: #93c5fd;
+  color: var(--theme-blue, #93c5fd);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -99,7 +99,7 @@
 .lineup-roadmap {
   margin: 1rem 0 0;
   padding-left: 1.1rem;
-  color: #94a3b8;
+  color: var(--theme-muted, #94a3b8);
   font-size: 0.82rem;
 }
 
@@ -111,8 +111,8 @@
   margin: 0.75rem 0 1rem;
   padding: 0.65rem 0.85rem;
   font-size: 0.9rem;
-  color: #94a3b8;
-  background: rgba(15, 23, 42, 0.35);
+  color: var(--theme-muted, #94a3b8);
+  background: var(--theme-translucent, rgba(15, 23, 42, 0.35));
   border-radius: 8px;
 }
 
@@ -120,8 +120,8 @@
   width: 6.5rem;
   padding: 0.35rem 0.5rem;
   border-radius: 6px;
-  border: 1px solid #334155;
-  background: #0f172a;
+  border: 1px solid var(--theme-raised, #334155);
+  background: var(--theme-surface, #0f172a);
   color: inherit;
 }
 
@@ -140,7 +140,7 @@
 .lineup-roadmap-details summary {
   cursor: pointer;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--theme-muted, #94a3b8);
 }
 
 .lineup-check {
@@ -699,7 +699,7 @@
 }
 
 .mock-draft-format-check {
-  color: #b9cff7;
+  color: var(--theme-blue, #b9cff7);
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -793,7 +793,7 @@
   overflow: hidden;
   border: 1px solid #304158;
   border-radius: 22px;
-  background: #0f1a29;
+  background: var(--theme-surface, #0f1a29);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
 }
 
@@ -828,7 +828,7 @@
   place-items: center;
   border: 1px solid var(--border);
   border-radius: 50%;
-  background: #142133;
+  background: var(--theme-raised, #142133);
   color: #687a94;
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
@@ -846,7 +846,7 @@
   gap: 0.35rem;
   padding: 0.3rem;
   border-radius: 14px;
-  background: #09121e;
+  background: var(--theme-canvas, #09121e);
 }
 
 .mock-draft-experience-toggle button {
@@ -862,7 +862,7 @@
 
 .mock-draft-experience-toggle button.is-active {
   border-color: #35517a;
-  background: #172a43;
+  background: var(--theme-raised, #172a43);
   color: var(--text-primary);
 }
 
@@ -1105,7 +1105,7 @@
   padding: 0 0.55rem;
   border: 1px solid var(--border-strong);
   border-radius: 10px;
-  background: #0f1624;
+  background: var(--theme-surface, #0f1624);
 }
 
 .dfs-currency span {
@@ -1176,7 +1176,7 @@
 }
 
 .dfs-pool-section .table-sticky tbody tr.is-in-lineup td {
-  background: color-mix(in srgb, var(--experience-blue) 20%, #0f172a);
+  background: color-mix(in srgb, var(--experience-blue) 20%, var(--theme-surface, #0f172a));
   box-shadow: inset 3px 0 0 var(--experience-blue);
 }
 
@@ -1187,7 +1187,7 @@
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
   background: var(--experience-blue-soft);
-  color: #c5d8f7;
+  color: var(--theme-blue, #c5d8f7);
   font-size: var(--text-xs);
   font-weight: 700;
 }
@@ -1208,7 +1208,7 @@
   padding: 0.35rem 0.7rem;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: #142133;
+  background: var(--theme-raised, #142133);
   color: var(--text-muted);
   font-size: var(--text-xs);
   font-weight: 700;
@@ -1221,13 +1221,13 @@
 .dfs-pin.is-lock {
   border-color: rgba(91, 143, 232, 0.45);
   background: var(--experience-blue-soft);
-  color: #c5d8f7;
+  color: var(--theme-blue, #c5d8f7);
 }
 
 .dfs-pin.is-skip {
   border-color: rgba(248, 113, 113, 0.35);
   background: rgba(248, 113, 113, 0.1);
-  color: #fecaca;
+  color: var(--theme-negative, #fecaca);
 }
 
 .dfs-launchpad {
@@ -1270,7 +1270,7 @@
   margin: 0.4rem 0 0.35rem;
   overflow: hidden;
   border-radius: 999px;
-  background: #09121e;
+  background: var(--theme-canvas, #09121e);
 }
 
 .dfs-cap-meter-track span {
@@ -1372,7 +1372,7 @@
   border: 1px solid rgba(248, 113, 113, 0.28);
   border-radius: 12px;
   background: rgba(248, 113, 113, 0.08);
-  color: #fecaca;
+  color: var(--theme-negative, #fecaca);
   font-size: 0.75rem;
   line-height: 1.45;
 }

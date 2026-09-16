@@ -239,7 +239,7 @@
 
 .proj-disclosure {
   border-radius: var(--radius-md);
-  background: rgba(7, 13, 23, 0.35);
+  background: var(--theme-translucent, rgba(7, 13, 23, 0.35));
 }
 
 .proj-disclosure-summary-row {
@@ -308,7 +308,7 @@
   align-items: stretch;
   justify-content: flex-end;
   padding: 0;
-  background: rgba(7, 13, 23, 0.55);
+  background: var(--theme-translucent, rgba(7, 13, 23, 0.55));
 }
 
 .player-card-drawer {
@@ -473,7 +473,7 @@
 .player-inspector-pill {
   padding: 0.22rem 0.5rem;
   border-radius: var(--radius-pill);
-  background: rgba(7, 13, 23, 0.45);
+  background: var(--theme-translucent, rgba(7, 13, 23, 0.45));
   color: var(--text-secondary);
   font-size: var(--text-xs);
   font-weight: 650;
