@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — A · Corrections</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  
+.workspace {display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:var(--space-5);align-items:start}
+.toolbar,.row,.steps {display:flex;align-items:center;gap:var(--space-4)}
+.toolbar {margin:var(--space-5) 0;flex-wrap:wrap}
+label {display:grid;gap:var(--space-2);font-size:var(--text-sm);color:var(--text-secondary)}
+button,input,textarea {font:inherit;color:var(--text-primary);background:var(--bg-subtle);border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:var(--space-3);min-height:var(--control-h-lg)}
+button {cursor:pointer} button:hover {background:var(--surface-raised)}
+.primary {background:var(--accent);width:100%;font-weight:700;margin-top:var(--space-4)}
+.row {padding:var(--space-3) 0;border-bottom:1px solid var(--border)}
+.player {flex:1;min-width:0}.player strong,.player small {display:block} small,.muted {color:var(--text-secondary);font-size:var(--text-sm)}
+.slot {width:3.5rem;font-size:var(--text-xs);color:var(--text-secondary)}
+h2 {font-size:1.2rem;margin:0 0 var(--space-3)} h3 {margin:var(--space-5) 0 var(--space-2)}
+textarea {width:100%;min-height:6rem;resize:vertical} .search {width:100%;margin:var(--space-3) 0}
+.change {background:var(--accent-soft);padding:var(--space-4);margin:var(--space-4) 0;border-radius:var(--radius-sm)}
+.steps {justify-content:space-between;color:var(--text-secondary);padding:var(--space-4);background:var(--bg-elevated);margin-bottom:var(--space-5)}
+.steps strong {color:var(--accent-muted)} .choice {text-align:left;display:block;width:100%;margin:var(--space-3) 0}
+summary {min-height:var(--control-h-lg);padding:var(--space-3) 0;cursor:pointer;color:var(--text-secondary)}
+.concept-nav a {display:inline-flex;align-items:center;min-height:var(--control-h-lg);min-width:var(--control-h-lg);justify-content:center}
+.mock-header,.mock-league-strip {flex-wrap:wrap}.mock-brand {flex-wrap:wrap}.mock-subnav {flex-wrap:wrap;gap:var(--space-2)}
+.mock-hero {background:var(--bg-elevated)} .mock-hero h1 {font-size:1.7rem}
+@media(max-width:760px){.workspace {grid-template-columns:1fr}.mock-viewport {padding:0 var(--space-4) var(--space-5)}.mock-account {display:none}.mock-hero {padding:var(--space-5)}.steps {font-size:var(--text-xs);gap:var(--space-2)}.row {gap:var(--space-2)}.slot {width:2.5rem}.row button {font-size:var(--text-xs)}}
+
+</style>
+</head>
+<body>
+<div class="concept-banner">
+  <div><strong>Corrections</strong> <span>· option A · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="corrections-easy.html">Chooser</a>
+    <a class="is-on" href="corrections-easy-a.html">A</a>
+    <a href="corrections-easy-b.html">B</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span class="active">Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">MC</span> Maya Chen</span>
+  </header>
+
+<nav class="mock-subnav"><span class="mock-tab">Home</span><span class="mock-tab">My team</span><span class="mock-tab">Game center</span><span class="mock-tab active">Roster management</span></nav>
+  <div class="mock-league-strip">
+    <span class="lg-name">Tessa’s Touchdown Memorial League</span>
+    <span>Week 1 · 2026</span>
+    <span class="spacer"></span>
+    <span class="mock-pill mock-pill--accent">Commissioner</span>
+  </div>
+
+  <section class="mock-hero">
+    <p class="mock-kicker">Roster management · Corrections</p>
+    <h1>One team at a time</h1>
+    <p class="support">Repair a past lineup. Current rosters and later weeks stay unchanged.</p>
+  </section>
+
+<main id="main-content"><div class="toolbar"><label>Week<button>2026 · Week 1 ▾</button></label><label>Manager<button>Maya Chen · Ragdollin With Mahomies ▾</button></label><span class="muted">Saved historical lineup</span></div><div class="workspace"><section class="card"><h2>Maya’s Week 1 lineup</h2><p class="muted">Change a slot or find a player by name.</p><div class="row"><span class="slot">QB</span><div class="player"><strong>Drake Maye</strong><small>NE · QB</small></div><button type="button">Change slot</button></div><div class="row"><span class="slot">RB 1</span><div class="player"><strong>Saquon Barkley</strong><small>PHI · RB</small></div><button type="button">Change slot</button></div><div class="row"><span class="slot">RB 2</span><div class="player"><strong>De’Von Achane</strong><small>MIA · RB</small></div><button type="button">Change slot</button></div><div class="row"><span class="slot">WR 1</span><div class="player"><strong>CeeDee Lamb</strong><small>DAL · WR</small></div><button type="button">Change slot</button></div><div class="row"><span class="slot">WR 2</span><div class="player"><strong>Justin Jefferson</strong><small>MIN · WR</small></div><button type="button">Change slot</button></div><div class="row"><span class="slot">TE</span><div class="player"><strong>Travis Kelce</strong><small>KC · TE</small></div><button type="button">Change slot</button></div><div class="row"><span class="slot">FLEX</span><div class="player"><strong>Jeremiyah Love</strong><small>RB · Changed from bench</small></div><button>Undo</button></div><h3>Add a missing player</h3><label>Search players<input class="search" placeholder="Player name or NFL team" /></label><details><summary>Bench · 4 players</summary><p class="muted">Saved bench players appear here with Move to starter controls.</p></details></section><aside class="card"><h2>Review your changes</h2><p class="muted">Week 1 · Maya Chen</p><div class="change"><strong>2 slot changes</strong><p>Jeremiyah Love: Bench → FLEX<br>CeeDee Lamb: FLEX → WR 1</p></div><label>Reason for correction<textarea>Restore the lineup submitted before kickoff.</textarea></label><button class="primary">Preview updated scores</button><p class="muted">Review score and standings changes before publishing.</p><details><summary>Advanced player details</summary><p class="muted">Player IDs and manual entry live here.</p></details></aside></div></main>
+  <p class="footnote">Static concept · sample manager and changes · not saved to your league</p>
+</div>
+</body>
+</html>
