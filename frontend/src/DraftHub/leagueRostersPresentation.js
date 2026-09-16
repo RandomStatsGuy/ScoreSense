@@ -236,6 +236,8 @@ export const ROSTER_BOARD_COPY = {
   positions: "All positions", explanation: "Difference compares annual salary with ScoreSense estimated value.",
   refresh: "Refresh", refreshing: "Refreshing…", history: "View contract history",
   noLeague: "Choose a league to compare rosters.", noResults: "No contracts match these filters.",
+  showAll: "View all matching contracts",
+  coverage: ({ total, atEstimate, minimumBid, unavailable }) => `${total} active contract${total === 1 ? " matches" : "s match"} your team, player, and position filters. Excluded from Contract values: ${atEstimate} at estimate, ${minimumBid} at minimum bid, and ${unavailable} without enough data to compare.`,
   reset: "Reset filters", select: "Select a player to view their contract.",
   unavailable: "Estimate unavailable", estimate: "Est. value", salary: "Salary", difference: "Difference",
   contract: "Contract", player: "Player", manager: "Manager", close: "Close player details",
@@ -247,6 +249,16 @@ export const ROSTER_BOARD_COPY = {
   below: (n) => `${n} below estimate`, above: (n) => `${n} above estimate`,
   selectPlayer: (name) => `View ${name} contract`,
 };
+
+export function rosterCoverage(blocks, filters = {}) {
+  const all = rosterBoardRows(blocks, { ...filters, view: "teams", value: "all" });
+  return {
+    total: all.length,
+    atEstimate: all.filter(row => rosterDifference(row) === 0).length,
+    minimumBid: all.filter(row => row.estimate_status === "minimum_bid").length,
+    unavailable: all.filter(row => rosterDifference(row) === null && row.estimate_status !== "minimum_bid").length,
+  };
+}
 
 export function rosterMoney(value) {
   return value == null || value === "" || !Number.isFinite(Number(value)) ? "—" : fmtSal(Number(value));

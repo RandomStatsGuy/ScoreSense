@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
+import { rosterCoverage } from "./leagueRostersPresentation";
 import useMobileLayout from "../useMobileLayout";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import ContractHistoryLink from "./ContractHistoryLink";
@@ -139,6 +140,7 @@ export default function LeagueRostersBrowser({
     query,
     position
   }), [blocks, view, teamId, query, position]);
+  const coverage = rosterCoverage(blocks, { teamId, query, position });
   const pages = Math.max(1, Math.ceil(rows.length / 8));
   const currentPage = Math.min(page, pages - 1);
   const visible = rows.slice(currentPage * 8, currentPage * 8 + 8);
@@ -244,6 +246,10 @@ export default function LeagueRostersBrowser({
           }} onClick={() => change(setView, tab.id)}>{tab.label}</button>)}</div>{overview && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>
     <div className="rosters-toolbar"><BoardFilter label={C.manager} value={teamId} options={teams} onChange={v => change(setTeamId, v)} searchable /><label className="rosters-search"><span aria-hidden="true">⌕</span><input aria-label={C.search} placeholder={C.search} value={query} onChange={e => change(setQuery, e.target.value)} /></label><BoardFilter label="Position" value={position} options={positions} onChange={v => change(setPosition, v)} /><div className="rosters-segments" role="radiogroup" aria-label={C.difference}>{C.filters.map(f => <button key={f.id} role="radio" aria-checked={value === f.id} tabIndex={value === f.id ? 0 : -1} onKeyDown={e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) { e.preventDefault(); const index = C.filters.findIndex(item => item.id === value); const next = e.key === "Home" ? 0 : e.key === "End" ? 2 : (index + (e.key === "ArrowRight" ? 1 : 2)) % 3; change(setValue, C.filters[next].id); e.currentTarget.parentElement.children[next]?.focus(); } }} onClick={() => change(setValue, f.id)}>{f.label}</button>)}</div><div className="rosters-sort"><BoardFilter label="Sort by" value={sort} options={C.sorts} onChange={v => change(setSort, v)} /></div></div>
     <p className="rosters-explanation">{C.explanation}</p>
+    {overview && view === "deals" && <div className="rosters-coverage">
+      <p>{C.coverage(coverage)}</p>
+      <button className="rosters-control" onClick={() => { setValue("all"); change(setView, "teams"); }}>{C.showAll}</button>
+    </div>}
     {view === "teams" && block && <div className="rosters-team-summary"><strong>{ownerLine(block.team)}</strong><span>{nicknameLine(block.team)}</span><span>{C.capRoom}: {rosterMoney(block.stats?.unspent)}</span><span>{C.deadCap}: {rosterMoney(block.stats?.dead_cap)}</span>{onNavigateTrade && teamId !== myTeamId && <button className="rosters-control" onClick={() => {
           seedTradePartner(teamId);
           onNavigateTrade();
