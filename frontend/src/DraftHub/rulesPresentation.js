@@ -75,17 +75,59 @@ export const FORMAT_OPTIONS = [
 
 export const ROSTER_LIMIT_KEYS = ["qb", "rb", "wr", "te", "k", "def"];
 
-export const SCORING_FIELDS = [
-  ["passing_yards", "Passing yard", 0.04],
-  ["passing_tds", "Passing touchdown", 4],
-  ["interceptions", "Interception thrown", -2],
-  ["rushing_yards", "Rushing yard", 0.1],
-  ["rushing_tds", "Rushing touchdown", 6],
-  ["receptions", "Reception", 1],
-  ["receiving_yards", "Receiving yard", 0.1],
-  ["receiving_tds", "Receiving touchdown", 6],
-  ["fumbles_lost", "Fumble lost", -2],
+export const SCORING_GROUPS = [
+  { label: "Offense", fields: [
+    ["passing_yards", "Passing yard", 0.04],
+    ["passing_tds", "Passing touchdown", 4],
+    ["interceptions", "Interception thrown", -2],
+    ["rushing_yards", "Rushing yard", 0.1],
+    ["rushing_tds", "Rushing touchdown", 6],
+    ["receptions", "Reception", 1],
+    ["receiving_yards", "Receiving yard", 0.1],
+    ["receiving_tds", "Receiving touchdown", 6],
+    ["fumbles_lost", "Fumble lost", -2],
+    ["passing_2pt_conversions", "Passing two-point conversion", 2],
+    ["rushing_2pt_conversions", "Rushing two-point conversion", 2],
+    ["receiving_2pt_conversions", "Receiving two-point conversion", 2],
+    ["special_teams_tds", "Player return touchdown", 6],
+  ] },
+  { label: "Kicker", fields: [
+    ["pat_made", "Extra point made", 1],
+    ["pat_missed", "Extra point missed", -1],
+    ["fg_made_0_19", "Field goal made: 0-19 yards", 3],
+    ["fg_made_20_29", "Field goal made: 20-29 yards", 3],
+    ["fg_made_30_39", "Field goal made: 30-39 yards", 3],
+    ["fg_made_40_49", "Field goal made: 40-49 yards", 4],
+    ["fg_made_50_59", "Field goal made: 50-59 yards", 5],
+    ["fg_made_60_plus", "Field goal made: 60+ yards", 5],
+    ["fg_missed", "Field goal missed", -1],
+  ] },
+  { label: "Defense / special teams", fields: [
+    ["def_sacks", "Sack", 1],
+    ["def_interceptions", "Interception", 2],
+    ["def_fumble_recoveries", "Fumble recovery", 2],
+    ["def_touchdowns", "Defense / special teams touchdown", 6],
+    ["def_safeties", "Safety", 2],
+    ["def_blocked_kicks", "Blocked kick", 2],
+    ["def_2pt_returns", "Two-point return", 2],
+    ["def_points_allowed_0", "Points allowed: 0", 10],
+    ["def_points_allowed_1_6", "Points allowed: 1-6", 7],
+    ["def_points_allowed_7_13", "Points allowed: 7-13", 4],
+    ["def_points_allowed_14_20", "Points allowed: 14-20", 1],
+    ["def_points_allowed_21_27", "Points allowed: 21-27", 0],
+    ["def_points_allowed_28_34", "Points allowed: 28-34", -1],
+    ["def_points_allowed_35_plus", "Points allowed: 35+", -4],
+  ] },
+  { label: "Yardage bonuses", fields: [
+    ["bonus_passing_300", "Passing: 300-399 yards", 0],
+    ["bonus_passing_400", "Passing: 400+ yards", 0],
+    ["bonus_rushing_100", "Rushing: 100-199 yards", 0],
+    ["bonus_rushing_200", "Rushing: 200+ yards", 0],
+    ["bonus_receiving_100", "Receiving: 100-199 yards", 0],
+    ["bonus_receiving_200", "Receiving: 200+ yards", 0],
+  ] },
 ];
+export const SCORING_FIELDS = SCORING_GROUPS.flatMap((group) => group.fields);
 export const DEFAULT_SCORING = Object.fromEntries(SCORING_FIELDS.map(([key, , value]) => [key, value]));
 export const SCORING_COPY = {
   title: "Scoring & lineup host",
@@ -93,7 +135,7 @@ export const SCORING_COPY = {
   sleeper: "Sleeper-linked league",
   nativeHelp: "Set lineups in This Week. Game center updates scores from these saved rules as weekly NFL stats arrive, including while games are still in progress.",
   sleeperHelp: "Sleeper controls scoring rules, starting lineups, live points, and stat corrections. Change them in Sleeper; Game center reads its results. ScoreSense still manages local contracts, cap, and draft tools.",
-  supported: "Native scoring records QB, RB, WR and TE. Kicker and defense starters stay at 0 until those stats are supported; they do not block the week. Bonuses and two-point scoring are not included yet.",
+  supported: "Kicker and defense calculations require their actual statistics; unavailable data blocks scoring. Yardage bonuses use only the highest reached band. Defense points allowed uses one band; a missing value is not a shutout.",
   effect: "Saving scoring rules leaves existing results unchanged. Recalculate a week in Game center to apply the new rules to that week's totals and standings.",
   projections: "Projection and Strategy estimates remain PPR-based and are separate from recorded league scores.",
   points: "Points per stat",

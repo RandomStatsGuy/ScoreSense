@@ -111,7 +111,7 @@ def _validate_lineups(state, changes, acknowledge_empty):
             ownership.add(player_id)
             positions[position] += 1
             if slot != "BN":
-                if position not in {"QB", "RB", "WR", "TE"}:
+                if position not in {"QB", "RB", "WR", "TE", "K", "DEF"}:
                     raise CorrectionError("Native scoring does not support this starter position")
                 if slot not in allowed_slots or slot in slots or not hub_scoring.slot_accepts_position(slot, position, rules):
                     raise CorrectionError("Starter slots must be distinct and position-eligible")
@@ -157,9 +157,14 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
     for entry in entries:
         raw = stats.get(entry["player_id"])
         points = 0.0
-        if entry["lineup_role"] == "starter" and (not raw or not any(key in raw for key in hub_scoring.FANTASY_SCORING)):
+        if entry["lineup_role"] == "starter":
+            try:
+                hub_scoring.require_position_stats(entry["position"], raw or {}, scoring)
+            except hub_scoring.LineupError as exc:
+                blockers.append(str(exc))
+        if entry["lineup_role"] == "starter" and (not raw or not any(key in raw for key in hub_scoring.NATIVE_STAT_FIELDS)):
             blockers.append(f"Actual scoring statistics unavailable for {entry['player_name']}")
-        if raw and any(key in raw for key in hub_scoring.FANTASY_SCORING):
+        if raw and any(key in raw for key in hub_scoring.NATIVE_STAT_FIELDS):
             points = hub_scoring.fantasy_points_from_stats(raw, scoring)
             if not math.isfinite(points):
                 raise CorrectionError("Player statistics contain an invalid score")
