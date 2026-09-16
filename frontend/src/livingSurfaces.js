@@ -162,8 +162,9 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "table",
     route: "/hub/rosters",
     page: "frontend/src/DraftHub/LeagueRostersBrowser.jsx",
+    also: ["frontend/src/DraftHub/RosterTeamDirectory.jsx"],
     copy: "frontend/src/DraftHub/leagueRostersPresentation.js",
-    doNot: "Match the approved September 10 table/details mockup. Compact title and actions; no hero band, At a glance, manager rail, or repeated row actions. Contract values and Team rosters tabs; searchable manager picker, player/position/value filters, eight-row pagination. Salary, estimated value, and text delta stay adjacent. Selected-player panel owns Propose trade and contract history. Teal below/coral above estimates with explicit text; neutral rows. Responsive details below at laptop widths, inline on phone. Cap room uses backend auction leftover. Preserve trade eligibility, owner identity, export, and refresh scope; never invent missing estimates. Download Excel is ghost beside Refresh league. Dedicated layout CSS is approved.",
+    doNot: "Match the approved September 10 table/details mockup. Compact title and actions; no hero band, At a glance, manager rail, or repeated row actions. Contract values retains its searchable manager picker, player/position/value filters and eight-row pagination. Team rosters starts with a searchable manager directory, then the chosen team's full active roster and cap summary without pagination or value exclusions. Never select the first player automatically; only an explicit player selection opens details. Salary, estimated value, and text delta stay adjacent. Selected-player panel owns Propose trade and contract history. Teal below/coral above estimates with explicit text; neutral rows. Responsive details below at laptop widths, inline on phone. Cap room uses backend auction leftover. Preserve trade eligibility, owner identity, export, and refresh scope; never invent missing estimates. Download Excel is ghost beside Refresh league. Dedicated layout CSS is approved.",
   }),
   "hub.planner": S({
     label: "Cap",
