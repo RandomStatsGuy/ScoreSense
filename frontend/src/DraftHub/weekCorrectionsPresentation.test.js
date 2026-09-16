@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer } from "./weekCorrectionsPresentation.js";
+import { correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer, currentCorrectionCandidates } from "./weekCorrectionsPresentation.js";
 import { buildAppPath, parseAppPath } from "../routes.js";
 
 test("missing history stays empty instead of copying current players", () => {
@@ -41,4 +41,25 @@ test("moving a starter leaves their old slot empty and benches the displaced pla
 test("assigning a search result does not duplicate a prefixed historical player", () => {
   const rows = assignCorrectionPlayer([{player_id:"sleeper-123",slot:"BN"}],{player_id:"123"},"QB1");
   assert.equal(rows.length,1);
+});
+
+
+test("saved native singleton starters render in indexed correction slots", () => {
+  const capacity = {QB:1,RB:2,TE:1,K:1,DEF:1,FLEX:1};
+  const context = {teams:[{id:"a"}],slots:capacity,lineups:["QB","RB1","RB2","TE","K","DEF","FLEX"].map(slot => ({team_id:"a",player_id:slot,slot}))};
+  const team = correctionTeamRows(context)[0];
+  assert.equal(correctionSlotRows(team.players,correctionSlots(capacity)).filter(row => !row.player).length,0);
+  assert.equal(context.lineups[0].slot,"QB");
+});
+
+test("current roster candidates only enter history when selected", () => {
+  const context = {teams:[{id:"a"},{id:"b"}],lineups:[],current_roster_candidates:{a:[{player_id:"new",player_name:"Current player",position:"QB"}],b:[{player_id:"other"}]}};
+  const team = correctionTeamRows(context)[0];
+  const candidates = currentCorrectionCandidates(context,team);
+  assert.deepEqual(candidates.map(row=>row.player_id),["new"]);
+  assert.equal(team.players.length,0);
+  const players = assignCorrectionPlayer(team.players,candidates[0],"BN");
+  assert.equal(players[0].slot,"BN");
+  assert.deepEqual(currentCorrectionCandidates(context,{...team,players}),[]);
+  assert.equal(context.lineups.length,0);
 });

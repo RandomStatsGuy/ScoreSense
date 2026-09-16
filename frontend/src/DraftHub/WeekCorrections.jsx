@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { HubFilterMenu, HubPage } from "./HubUILayout";
-import { CORRECTIONS_COPY as COPY, correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer, correctionChanges } from "./weekCorrectionsPresentation";
+import { CORRECTIONS_COPY as COPY, correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer, correctionChanges, currentCorrectionCandidates } from "./weekCorrectionsPresentation";
 import "./WeekCorrections.css";
 import { clearHubDataCache } from "./hubDataCache";
 
@@ -107,7 +107,9 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
     }, 250);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [query, leagueId, season, week, selectedTeam]);
-  const candidates = [...(team?.players || []), ...suggestions].filter((player, index, all) =>
+  const currentCandidates = currentCorrectionCandidates(context, team);
+  const historicalOwner = player => teams.find(item => item.team_id !== selectedTeam && item.players.some(other => other.player_id.replace(/^sleeper-/, "") === player.player_id.replace(/^sleeper-/, "")));
+  const candidates = [...(team?.players || []), ...currentCandidates.map(player => ({...player, slot:"BN"})), ...suggestions].filter((player, index, all) =>
     all.findIndex(other => other.player_id === player.player_id) === index && eligible(player.position, targetSlot) &&
     `${player.player_name} ${player.nfl_team}`.toLowerCase().includes(query.trim().toLowerCase()));
   const playerRow = (player, slot) => <div className="correction-player-row" key={slot?.id || player.player_id}>
@@ -136,8 +138,17 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
           {metadata?.owner_name && metadata.name !== metadata.owner_name && <p>{metadata.name}</p>}
           {!team?.players.length && <p>{COPY.missing}</p>}
           {team && correctionSlotRows(team.players, slots).map(row => playerRow(row.player, row))}
-          <details><summary>{COPY.bench} · {team?.players.filter(player => player.slot === "BN").length || 0}</summary>
-            {team?.players.filter(player => player.slot === "BN").map(player => playerRow(player))}</details>
+          <details><summary>{COPY.bench} · {team?.players.filter(player => player.slot === "BN").length || 0}{currentCandidates.length > 0 ? ` · ${COPY.currentOptions(currentCandidates.length)}` : ""}</summary>
+            {team?.players.filter(player => player.slot === "BN").map(player => playerRow(player))}
+            {currentCandidates.length > 0 && <section className="correction-search">
+              <h3>{COPY.currentRoster}</h3><p>{COPY.currentRosterHelp}</p>
+              {currentCandidates.map(player => <div className="correction-player-row" key={player.player_id}>
+                <div className="correction-player"><strong>{player.player_name || player.player_id}</strong><span>{player.position} · {player.nfl_team}{historicalOwner(player) ? ` · ${COPY.assignedElsewhere}` : ""}</span></div>
+                <button className="btn-ghost btn-sm" disabled={busy || Boolean(historicalOwner(player))}
+                  onClick={() => changePlayers(assignCorrectionPlayer(team.players, player, "BN"))}>{COPY.addToBench(week)}</button>
+              </div>)}
+            </section>}
+          </details>
           <section className="correction-search" aria-label={COPY.add}>
             <h3>{COPY.add}</h3><p>{COPY.searchHelp}</p>
             <HubFilterMenu label={COPY.destination} value={targetSlot} options={[{id:"BN",label:COPY.bench}, ...slots]} disabled={busy} onChange={setTargetSlot} />
@@ -147,7 +158,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
             {query.trim().length >= 2 && !searching && !searchError && !candidates.length && <p>{COPY.noMatches}</p>}
             {(query.trim().length >= 2 ? candidates : candidates.filter(player => player.slot === "BN")).slice(0,12).map(player => {
               const owner = teams.find(item => item.team_id !== selectedTeam && item.players.some(other => other.player_id.replace(/^sleeper-/, "") === player.player_id.replace(/^sleeper-/, "")));
-              return <div className="correction-player-row" key={player.player_id}><div className="correction-player"><strong>{player.player_name}</strong><span>{player.position} · {player.nfl_team}{owner ? ` · ${COPY.assignedElsewhere}` : ""}</span></div>
+              return <div className="correction-player-row" key={player.player_id}><div className="correction-player"><strong>{player.player_name}</strong><span>{player.position} · {player.nfl_team}{currentCandidates.some(row => row.player_id === player.player_id) ? ` · ${COPY.currentRoster}` : ""}{owner ? ` · ${COPY.assignedElsewhere}` : ""}</span></div>
                 <button className="btn-ghost btn-sm" disabled={busy || Boolean(owner)} onClick={() => assign(player)}>{COPY.assign}</button></div>;
             })}
           </section>
