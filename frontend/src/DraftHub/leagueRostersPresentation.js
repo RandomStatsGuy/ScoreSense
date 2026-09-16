@@ -236,7 +236,12 @@ export const ROSTER_BOARD_COPY = {
   positions: "All positions", explanation: "Difference compares annual salary with ScoreSense estimated value.",
   refresh: "Refresh", refreshing: "Refreshing…", history: "View contract history",
   noLeague: "Choose a league to compare rosters.", noResults: "No contracts match these filters.",
-  showAll: "View all matching contracts",
+  showAll: "Browse full team rosters",
+  chooseTeam: "Choose a team", chooseTeamHelp: "Start with a manager to see their full roster and cap summary.",
+  yourTeam: "Your team", teamRoster: "Team roster", viewRoster: "View roster", changeTeam: "Change team",
+  noMatchingTeams: "No teams match this search.", noTeams: "No teams in this league yet.", committed: "Committed",
+  openTeam: (name) => `View ${name} roster`, playerCount: (n) => `${n} player${n === 1 ? "" : "s"}`,
+  fullRoster: "Players", teamFilterHelp: "Filter this roster or select a player to view their contract.",
   coverage: ({ total, atEstimate, minimumBid, unavailable }) => `${total} active contract${total === 1 ? " matches" : "s match"} your team, player, and position filters. Excluded from Contract values: ${atEstimate} at estimate, ${minimumBid} at minimum bid, and ${unavailable} without enough data to compare.`,
   reset: "Reset filters", select: "Select a player to view their contract.",
   aboutEstimates: "How estimates are calculated",
@@ -324,4 +329,13 @@ export function rosterEstimateContext(context) {
     ? `Calculated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(date)} UTC`
     : "Estimate calculation time unavailable";
   return `${seasonLabel} · ${updated}.`;
+}
+
+export function rosterVisibleRows(rows, view, page) {
+  return view === "teams" ? rows : rows.slice(page * 8, page * 8 + 8);
+}
+
+export function rosterSelection(rows, selectedKey, closed) {
+  if (closed || !selectedKey) return null;
+  return rows.find(row => rosterRowKey(row) === selectedKey) || null;
 }
