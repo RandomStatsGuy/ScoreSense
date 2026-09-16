@@ -142,7 +142,9 @@ Cap follows the selected option B: keep the experience hero, lead the desktop ma
 
 Say current cap room versus room after the preview. Selecting a contract and entering a possible bid never saves a cut or places a bid. The cut action still confirms. Label the selected player's penalty “Dead-cap charge for this player,” not total dead cap after the cut. Future-season previews include the cut but do not assume a new contract for the entered bid. Years left includes the current season. Keep saved extension and cut controls separate from the unsaved calculator.
 
-Dark mode only. Matte, editorial, layered. Sports-product energy without casino chrome.
+Dark and light modes. Matte, editorial, layered. Sports-product energy without casino chrome.
+
+Light mode follows the approved soft-canvas B concept: pale neutral canvas, white surfaces, navy text, blue current context, and teal healthy states. A sun/moon control beside the desktop account menu and a labeled switch in phone More change modes immediately. Account settings offers the same switch. Dark remains the first-visit default; the choice persists per browser, applies before first paint, and stays separate from Fantasy atmosphere. My team and Game center retain their navy artwork and local readable palette. Theme changes do not change page layout or league state.
 
 | Role | Token / value | Use |
 |------|----------------|-----|
