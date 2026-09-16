@@ -6787,6 +6787,7 @@ td.col-rank.col-rank-top {
   }
   .hub-league-add-search {
     min-width: 0;
+    flex-basis: auto;
   }
   .hub-league-team-card-stats > span:not(.hub-league-cap-free):not(.hub-league-cut-count):not(.hub-league-expand-hint) {
     border-right: none;
@@ -8284,8 +8285,8 @@ td.col-rank.col-rank-top {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
+    width: var(--touch-target);
+    height: var(--touch-target);
     border: none;
     border-radius: var(--radius-pill);
     background: rgba(255, 255, 255, 0.06);
@@ -9886,6 +9887,7 @@ td.col-rank.col-rank-top {
 }
 
 .app-mobile-sheet-contract-edit .app-mobile-sheet-body {
+  padding: var(--inset-section);
   max-height: min(78vh, 640px);
   overflow-y: auto;
 }

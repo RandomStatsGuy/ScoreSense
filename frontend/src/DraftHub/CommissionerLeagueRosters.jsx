@@ -131,6 +131,7 @@ function AddPlayerForm({
   onError,
   onNotice,
 }) {
+  const showsMoney = useShowsMoney();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -143,7 +144,7 @@ function AddPlayerForm({
   const [adding, setAdding] = useState(false);
   const abortRef = useRef(null);
   const salaryMax = Number.isFinite(Number(maxSalary)) ? Number(maxSalary) : remaining;
-  const salaryError = validateSalaryValue(salary, salaryMax);
+  const salaryError = showsMoney ? validateSalaryValue(salary, salaryMax) : "";
 
   useEffect(() => {
     const q = query.trim();
@@ -224,7 +225,7 @@ function AddPlayerForm({
       acquired: draftCompleted ? acquired : "",
     });
     if (!body) {
-      onError?.("Search and pick a player, then set salary and years.");
+      onError?.(showsMoney ? "Search and pick a player, then set salary and years." : OFFICE_CONTRACTS_COPY.pickPlayer);
       return;
     }
     if (!force) setAdding(true);
@@ -312,7 +313,7 @@ function AddPlayerForm({
             </ul>
           )}
         </label>
-        {draftCompleted ? (
+        {showsMoney && draftCompleted ? (
           <HubFilterMenu
             label={OFFICE_CONTRACTS_COPY.acquired}
             value={acquired}
@@ -321,14 +322,14 @@ function AddPlayerForm({
             disabled={adding}
           />
         ) : null}
-        <HubFilterMenu
+        {showsMoney && <HubFilterMenu
           label="Type"
           value={contractType}
           options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
           onChange={setContractType}
           disabled={adding}
-        />
-        <label>
+        />}
+        {showsMoney && <label>
           <span>
             {draftCompleted
               ? OFFICE_CONTRACTS_COPY.bidLabel
@@ -350,8 +351,8 @@ function AddPlayerForm({
               ? OFFICE_CONTRACTS_COPY.bidSupport
               : capFieldFigures({ free: remaining, dead: 0 })}
           </span>
-        </label>
-        <label>
+        </label>}
+        {showsMoney && <label>
           <span>{stage?.yearsFieldLabel || "Yrs left"}</span>
           <input
             type="number"
@@ -363,7 +364,7 @@ function AddPlayerForm({
             disabled={adding}
             onChange={(e) => setYears(e.target.value)}
           />
-        </label>
+        </label>}
         <button
           type="button"
           className="btn-primary btn-sm"
@@ -423,7 +424,9 @@ function TeamRosterBlock({
     () => partitionOfficeRoster(block.roster),
     [block.roster],
   );
-  const tableRows = draftCompleted ? [...liveRows, ...cutRows] : (block.roster || []);
+  const tableRows = !showsMoney
+    ? (block.roster || [])
+    : draftCompleted ? [...liveRows, ...cutRows] : (block.roster || []);
   const sorted = useMemo(
     () => [...tableRows].sort(
       (a, b) => posSortKey(a.position) - posSortKey(b.position)
@@ -461,6 +464,21 @@ function TeamRosterBlock({
   const team = block.team;
 
   const onToggleDrop = async (r, queuedDrop) => {
+    if (!showsMoney) {
+      const ok = await confirmDialog({
+        title: OFFICE_CONTRACTS_COPY.dropPlayerTitle(r?.player_name),
+        message: OFFICE_CONTRACTS_COPY.dropPlayerConfirm(r?.player_name, hubTeamLabel(team)),
+        confirmLabel: OFFICE_CONTRACTS_COPY.dropPlayer,
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await onWriteImmediate?.(r, { drop: true });
+      } catch (e) {
+        setError(e.message || "Could not drop that player.");
+      }
+      return;
+    }
     if (queuedDrop && !draftCompleted) {
       onQueue(r, { drop: false });
       return;
@@ -597,10 +615,10 @@ function TeamRosterBlock({
       <button
         type="button"
         className="btn-ghost btn-sm hub-drop-btn"
-        aria-label={dropCopy.ariaLabel}
+        aria-label={showsMoney ? dropCopy.ariaLabel : OFFICE_CONTRACTS_COPY.dropPlayerAria(r.player_name)}
         onClick={() => onToggleDrop(r, queuedDrop)}
       >
-        {dropCopy.label}
+        {showsMoney ? dropCopy.label : OFFICE_CONTRACTS_COPY.dropPlayer}
       </button>
     );
     return {
@@ -645,7 +663,7 @@ function TeamRosterBlock({
           </span>
         </div>
         <div className="hub-league-team-card-stats">
-          <span>{stats.playerCount} players</span>
+          <span>{stats.playerCount} {stats.playerCount === 1 ? "player" : "players"}</span>
           {showsMoney && <span>{fmtSal(stats.committed)} committed</span>}
           {showsMoney && stats.deadCap > 0 && (
             <span className="hub-league-cut-count">{fmtSal(stats.deadCap)} dead cap</span>
@@ -653,14 +671,14 @@ function TeamRosterBlock({
           {showsMoney && (
             <span className="hub-league-cap-free">{fmtSal(stats.remaining)} free</span>
           )}
-          {stats.cutCount > 0 && (
+          {showsMoney && stats.cutCount > 0 && (
             <span className="hub-league-cut-count">{stats.cutCount} cut</span>
           )}
           {!open && stats.playerCount > 0 && (
             <span className="hub-league-expand-hint hub-league-expand-hint--desktop">Tap to edit</span>
           )}
         </div>
-        <div
+        {showsMoney && <div
           className="hub-cap-bar"
           role="progressbar"
           aria-valuenow={capPct}
@@ -672,7 +690,7 @@ function TeamRosterBlock({
           {deadCapPct > 0 && (
             <div className="hub-cap-bar-dead" style={{ width: `${deadCapPct}%` }} />
           )}
-        </div>
+        </div>}
       </summary>
 
       {open && error && <div className="error hub-league-team-error">{error}</div>}
@@ -718,20 +736,20 @@ function TeamRosterBlock({
                 titleNode={(
                   <span className="hub-office-player-title">
                     <span className="mobile-player-card-name">{r.player_name}</span>
-                    <span className="hub-office-player-chips">
+                    {showsMoney && <span className="hub-office-player-chips">
                       <span className={contractTypeBadgeClass(vm.ctype)}>{contractTypeLabel(vm.ctype)}</span>
                       <StateChips
                         chip={vm.chip}
                         pendingType={vm.pendingType}
                         inferredMeta={vm.inferredMeta}
                       />
-                    </span>
+                    </span>}
                   </span>
                 )}
                 meta={[r.team, r.position].filter(Boolean).join(" · ") || "—"}
-                heroValue={fmtSal(vm.edit.salary)}
-                heroLabel={stage?.salaryFieldLabel || `${season} $`}
-                expanded={(
+                heroValue={showsMoney ? fmtSal(vm.edit.salary) : (r.position || "—")}
+                heroLabel={showsMoney ? (stage?.salaryFieldLabel || `${season} $`) : "position"}
+                expanded={showsMoney ? (
                   <div className="mobile-stat-grid hub-roster-mobile-grid">
                     <HubFilterMenu
                       label="Contract type"
@@ -789,10 +807,10 @@ function TeamRosterBlock({
                       className="hub-roster-mobile-schedule"
                     />
                   </div>
-                )}
+                ) : null}
                 actions={(
                   <>
-                    {vm.cutControl}
+                    {showsMoney && vm.cutControl}
                     {vm.dropControl}
                   </>
                 )}
@@ -807,7 +825,7 @@ function TeamRosterBlock({
           <thead>
             <tr>
               <th>Player</th>
-              <th>Pos</th>
+              <th className="hub-roster-col-pos">Pos</th>
               {showsMoney && <th>Type</th>}
               {showsMoney && (
                 <th title={stage?.capHint}>
@@ -820,7 +838,7 @@ function TeamRosterBlock({
                 </th>
               )}
               {showsMoney && <th>Schedule</th>}
-              <th aria-label="Actions" />
+              <th className="hub-roster-actions" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
@@ -845,7 +863,7 @@ function TeamRosterBlock({
                       </span>
                     </div>
                   </td>
-                  <td><span className="hub-roster-pos-tag">{r.position}</span></td>
+                  <td className="hub-roster-col-pos"><span className="hub-roster-pos-tag">{r.position}</span></td>
                   {showsMoney && (
                     <>
                     <td>
@@ -910,7 +928,7 @@ function TeamRosterBlock({
                     </>
                   )}
                   <td className="hub-roster-actions">
-                    {vm.cutControl}
+                    {showsMoney && vm.cutControl}
                     {vm.dropControl}
                   </td>
                 </tr>
@@ -918,7 +936,7 @@ function TeamRosterBlock({
             })}
             {!sorted.length && (
               <tr>
-                <td colSpan={7} className="chart-note hub-roster-empty">
+                <td colSpan={showsMoney ? 7 : 3} className="chart-note hub-roster-empty">
                   No players. Add one above, or sync from Sleeper above.
                 </td>
               </tr>
@@ -929,7 +947,7 @@ function TeamRosterBlock({
       )
       )}
 
-      {open && draftCompleted && expiredSorted.length > 0 && (
+      {showsMoney && open && draftCompleted && expiredSorted.length > 0 && (
         <details className="hub-office-expired-fa">
           <summary>
             {OFFICE_CONTRACTS_COPY.expiredToFa}
@@ -1060,10 +1078,10 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       );
       return;
     }
-    setPlayerLinkNotice(
-      "No live contract for this player. Add them here, or open History for year-book records.",
-    );
-  }, [overview, playerFromUrl]);
+    setPlayerLinkNotice(showsMoney
+      ? "No live contract for this player. Add them here, or open History for year-book records."
+      : OFFICE_CONTRACTS_COPY.noRosteredPlayer);
+  }, [overview, playerFromUrl, showsMoney]);
 
   const maxYears = Number(
     workspace?.rules?.contracts?.max_years
@@ -1133,7 +1151,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
     [teams, pendingByPlayer, salaryCap, leagueRules, draftCompleted],
   );
   const hasPending = pendingSummary.count > 0;
-  const showPendingTray = hasPending && !draftCompleted;
+  const showPendingTray = showsMoney && hasPending && !draftCompleted;
 
   const writeImmediate = useCallback(async (row, patch) => {
     const playerId = row?.player_id;
@@ -1162,10 +1180,10 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       delete next[playerId];
       return next;
     });
-    setSaveNotice(OFFICE_CONTRACTS_COPY.liveSaved);
+    setSaveNotice(showsMoney ? OFFICE_CONTRACTS_COPY.liveSaved : OFFICE_CONTRACTS_COPY.rosterSaved);
     setTimeout(() => setSaveNotice(""), 4000);
     await handleSaved({ syncHub: true });
-  }, [handleSaved]);
+  }, [handleSaved, showsMoney]);
 
   const queueChange = useCallback((row, patch) => {
     setFieldErrors((prev) => {
@@ -1287,7 +1305,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   return (
     <OfficeMoneyContext.Provider value={showsMoney}>
     <div className="hub-league-rosters">
-      <LiveContractStageBanner stage={stage} />
+      {showsMoney && <LiveContractStageBanner stage={stage} />}
       <header className="hub-league-rosters-head">
         <div className="hub-league-rosters-intro">
           <h2>{showsMoney ? "Contracts" : "Roster moves"}</h2>
@@ -1382,12 +1400,16 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                       type="button"
                       className={`hub-league-jump-pill${teamFilter === block.team.id ? " active" : ""}`}
                       onClick={() => setTeamFilter((id) => (id === block.team.id ? "" : block.team.id))}
-                      title={`${hubTeamLabel(block.team)} · ${fmtSal(s.committed)} committed`}
+                      title={showsMoney
+                        ? `${hubTeamLabel(block.team)} · ${fmtSal(s.committed)} committed`
+                        : `${hubTeamLabel(block.team)} · ${s.playerCount} player${s.playerCount === 1 ? "" : "s"}`}
                     >
                       {ownerLabel}
                       <span className="hub-league-jump-meta">
                         {parts.owner && parts.team ? `${parts.team} · ` : ""}
-                        {fmtSal(s.committed)}
+                        {showsMoney
+                          ? fmtSal(s.committed)
+                          : `${s.playerCount} player${s.playerCount === 1 ? "" : "s"}`}
                       </span>
                     </button>
                   );
@@ -1410,7 +1432,9 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       <div className="hub-league-team-list">
         {!teamFilter && !search.trim() ? (
           <p className="chart-note">
-            No team selected — pick a team above to add players or edit salaries, years, and contract type.
+            {showsMoney
+              ? "No team selected — pick a team above to add players or edit salaries, years, and contract type."
+              : OFFICE_CONTRACTS_COPY.noTeamSelected}
           </p>
         ) : (
           <>
@@ -1442,7 +1466,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       </div>
         </>
       )}
-      {showPendingTray && (
+      {showsMoney && showPendingTray && (
         <div className="hub-office-pending-tray" role="region" aria-label="Pending contract changes">
           <p className="hub-office-pending-summary">{pendingTraySummary(pendingSummary)}</p>
           <div className="hub-office-pending-actions">
@@ -1465,7 +1489,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           </div>
         </div>
       )}
-      {hubContext?.is_commissioner && !draftCompleted ? (
+      {showsMoney && hubContext?.is_commissioner && !draftCompleted ? (
         <div className="hub-office-draft-complete">
           <button
             type="button"

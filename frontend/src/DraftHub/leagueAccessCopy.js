@@ -440,3 +440,8 @@ export function leagueDeletePendingLine({ approved = 0, required = 0, waiting = 
 }
 
 export const FANTASY_HEADER_COPY = { league: "League", leagueNavigation: "League navigation", yourTeam: "Your team:", searchLeagues: "Search leagues", noLeagues: "No leagues match your search.", sync: "Sync league" };
+
+export const SLEEPER_LINK_COPY = {
+  importSupport: "Import rosters for every team in this Sleeper league.",
+  movedPlayers: (count) => `${count} roster move${Number(count) === 1 ? "" : "s"}`,
+};
