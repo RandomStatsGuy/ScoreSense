@@ -1,3 +1,7 @@
+
+.rosters-coverage { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 16px; }
+.rosters-coverage p { flex: 1 1 28rem; margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+
 /* Approved Rosters table/details surface; intentionally independent of experience chrome. */
 .rosters-board { width: 100%; min-width: 0; padding: var(--space-5); color: var(--text-primary); font-size: var(--rosters-text); }
 .rosters-board button, .rosters-board input { font: inherit; }
