@@ -153,4 +153,4 @@ def test_disconnect_routes_registered():
     from app.hub_routes import router
 
     paths = {getattr(route, "path", "") for route in router.routes}
-    assert "/league/{league_id}/sleeper/disconnect" in paths
+    assert "/api/hub/league/{league_id}/sleeper/disconnect" in paths
