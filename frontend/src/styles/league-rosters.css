@@ -131,3 +131,29 @@
 .rosters-estimate-context { margin-bottom: 16px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 .rosters-estimate-context summary { cursor: pointer; color: var(--text-primary); padding: 8px 0; }
 .rosters-estimate-context p { margin: 4px 0 8px; }
+
+/* Team rosters starts with managers, then gives one whole roster its own page. */
+.rosters-directory-heading, .rosters-selected-team-heading { display:flex; justify-content:space-between; align-items:center; gap:var(--space-4); margin-bottom:var(--space-5); }
+.rosters-directory-heading h2, .rosters-selected-team h2 { margin:0; font-size:var(--text-xl); }
+.rosters-directory-heading p, .rosters-selected-team-heading p { color:var(--text-secondary); margin:var(--space-2) 0 0; }
+.rosters-team-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--space-4); }
+.rosters-team-card { display:flex; flex-direction:column; gap:var(--space-3); text-align:left; padding:var(--space-5); border:1px solid var(--border-strong); border-radius:var(--radius-sm); background:var(--bg-elevated); color:var(--text-primary); cursor:pointer; min-width:0; }
+.rosters-team-owner { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); font-size:var(--text-lg); font-weight:var(--font-weight-bold); }
+.rosters-team-owner small { color:var(--accent-muted); font-size:var(--text-xs); }
+.rosters-team-name { color:var(--text-secondary); min-height:1.5em; overflow-wrap:anywhere; }
+.rosters-team-facts { display:flex; flex-wrap:wrap; justify-content:space-between; gap:var(--space-3); color:var(--text-secondary); font-size:var(--rosters-meta); margin-top:auto; }
+.rosters-team-facts strong { color:var(--text-primary); margin-left:var(--space-2); }
+.rosters-team-open { border-top:1px solid var(--border); padding-top:var(--space-3); display:flex; justify-content:space-between; color:var(--accent-muted); }
+.rosters-selected-team { padding:var(--space-5); margin-bottom:var(--space-5); border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-elevated); }
+.rosters-cap-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--space-4); margin:0 0 var(--space-4); }
+.rosters-cap-summary dt { color:var(--text-secondary); font-size:var(--rosters-meta); }
+.rosters-cap-summary dd { margin:var(--space-2) 0 0; font-size:var(--text-xl); font-weight:var(--font-weight-bold); }
+.is-team-view .rosters-manager-col { display:none; }
+@media(max-width:768px) {
+ .rosters-directory-heading { align-items:stretch; flex-direction:column; }
+ .rosters-selected-team-heading { align-items:flex-start; flex-wrap:wrap; margin-bottom:var(--space-4); }
+ .rosters-selected-team-heading > div { flex:1 1 140px; }
+ .rosters-directory-heading .rosters-search { width:100%; }
+ .rosters-cap-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .rosters-selected-team { padding:var(--space-4); }
+}

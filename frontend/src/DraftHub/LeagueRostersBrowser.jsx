@@ -5,6 +5,8 @@ import { connectionErrorMessage, parseApiError } from "../format";
 import { rosterCoverage } from "./leagueRostersPresentation";
 import useMobileLayout from "../useMobileLayout";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
+import RosterTeamDirectory from "./RosterTeamDirectory";
+import { activeRoster, rosterVisibleRows, rosterSelection } from "./leagueRostersPresentation";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
 import { downloadLeagueWorkbook } from "./leagueWorkbook";
@@ -97,6 +99,7 @@ function RosterBoard({
   const request = useRef(0);
   const rowButtons = useRef(new Map());
   const detailHeading = useRef(null);
+  const teamHeading = useRef(null);
   const currentLeague = useRef(leagueId);
   currentLeague.current = leagueId;
   const load = useCallback(async (refresh = false) => {
@@ -133,7 +136,7 @@ function RosterBoard({
     teamId,
     query,
     position,
-    value,
+    value: view === "teams" ? "all" : value,
     sort
   }), [blocks, view, teamId, query, position, value, sort]);
   const scopeRows = useMemo(() => rosterBoardRows(blocks, {
@@ -145,12 +148,13 @@ function RosterBoard({
   const coverage = rosterCoverage(blocks, { teamId, query, position });
   const pages = Math.max(1, Math.ceil(rows.length / 8));
   const currentPage = Math.min(page, pages - 1);
-  const visible = rows.slice(currentPage * 8, currentPage * 8 + 8);
-  const selected = closed ? null : visible.find(r => rosterRowKey(r) === selectedKey) || visible[0] || null;
+  const block = blocks.find(b => b.team?.id === teamId);
+  const directory = view === "teams" && !block;
+  const visible = directory ? [] : rosterVisibleRows(rows, view, currentPage);
+  const selected = rosterSelection(visible, selectedKey, closed);
   const ids = useMemo(() => visible.map(r => r.player_id).filter(Boolean), [visible.map(rosterRowKey).join("|")]);
   const media = usePlayerMedia(ids);
   const myTeamId = hubContext?.team_id;
-  const block = blocks.find(b => b.team?.id === teamId);
   const lockReason = selected ? tradeLockReason(selected, hubContext?.acquisition_window) : "";
   const disabledReason = !onNavigateTrade ? C.readonly : !selected?.player_id ? C.noId : lockReason;
   const change = (setter, next) => {
@@ -159,12 +163,24 @@ function RosterBoard({
     setSelectedKey(null);
   };
   const reset = () => {
-    setTeamId("");
+    if (view !== "teams") setTeamId("");
+    setSelectedKey(null);
     setQuery("");
     setPosition("");
     setValue("all");
     setPage(0);
   };
+  const chooseTeam = (id, focus = true) => {
+    setTeamId(id); setQuery(""); setPosition(""); setValue("all"); setSort("name");
+    setPage(0); setSelectedKey(null); setClosed(true);
+    if (focus) requestAnimationFrame(() => teamHeading.current?.focus());
+  };
+  const switchView = next => {
+    if (next === view) return;
+    setView(next); chooseTeam("", false);
+    setSort(next === "teams" ? "name" : "difference");
+  };
+  const openTeamRosters = () => { setView("teams"); chooseTeam(teamId); };
   const select = row => {
     setSelectedKey(rosterRowKey(row));
     setClosed(false);
@@ -234,44 +250,47 @@ function RosterBoard({
     {disabledReason && <p id="rosters-trade-reason" className="rosters-help">{disabledReason}</p>}
     <ContractHistoryLink playerId={selected.player_id} playerName={selected.player_name} onOpen={onOpenContractHistory} className="rosters-history">{C.history}</ContractHistoryLink>
   </aside>;
-  return <section className="rosters-board" aria-labelledby="rosters-heading">
+  return <section className={`rosters-board${view === "teams" ? " is-team-view" : ""}`} aria-labelledby="rosters-heading">
     <header className="rosters-header"><div><h1 id="rosters-heading">{ROSTERS_COPY.heading}</h1><p>{ROSTERS_COPY.support}</p></div><div className="rosters-header-actions"><button className="rosters-control" disabled={!leagueId || loading} onClick={() => load(true)} aria-label={ROSTERS_COPY.refreshLeague}><span aria-hidden="true">↻</span>{loading && overview ? C.refreshing : C.refresh}</button><button className="rosters-control" disabled={!leagueId || exporting} onClick={exportWorkbook}><span aria-hidden="true">↓</span>{exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}</button></div></header>
-    {overview && <div className="rosters-estimate-context"><p>{rosterEstimateContext(overview.estimate_context)}</p>
-      <details><summary>{C.aboutEstimates}</summary><p>{C.estimateBasis}</p></details>
-    </div>}
     {(error || exportError) && <p className="rosters-error" role="alert">{error || exportError}</p>}
     {!leagueId ? <p className="rosters-empty">{C.noLeague}</p> : <>
     <div className="rosters-tabbar"><div className="rosters-tabs" role="tablist" aria-label={ROSTERS_COPY.heading}>{C.tabs.map(tab => <button key={tab.id} id={`rosters-tab-${tab.id}`} role="tab" aria-selected={view === tab.id} aria-controls="rosters-results" tabIndex={view === tab.id ? 0 : -1} onKeyDown={e => {
             if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
               e.preventDefault();
               const next = e.key === "Home" ? "deals" : e.key === "End" ? "teams" : view === "deals" ? "teams" : "deals";
-              change(setView, next);
+              switchView(next);
               document.getElementById(`rosters-tab-${next}`)?.focus();
             }
-          }} onClick={() => change(setView, tab.id)}>{tab.label}</button>)}</div>{overview && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>
-    <div className="rosters-toolbar"><BoardFilter label={C.manager} value={teamId} options={teams} onChange={v => change(setTeamId, v)} searchable /><label className="rosters-search"><span aria-hidden="true">⌕</span><input aria-label={C.search} placeholder={C.search} value={query} onChange={e => change(setQuery, e.target.value)} /></label><BoardFilter label="Position" value={position} options={positions} onChange={v => change(setPosition, v)} /><div className="rosters-segments" role="radiogroup" aria-label={C.difference}>{C.filters.map(f => <button key={f.id} role="radio" aria-checked={value === f.id} tabIndex={value === f.id ? 0 : -1} onKeyDown={e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) { e.preventDefault(); const index = C.filters.findIndex(item => item.id === value); const next = e.key === "Home" ? 0 : e.key === "End" ? 2 : (index + (e.key === "ArrowRight" ? 1 : 2)) % 3; change(setValue, C.filters[next].id); e.currentTarget.parentElement.children[next]?.focus(); } }} onClick={() => change(setValue, f.id)}>{f.label}</button>)}</div><div className="rosters-sort"><BoardFilter label="Sort by" value={sort} options={C.sorts} onChange={v => change(setSort, v)} /></div></div>
-    <p className="rosters-explanation">{C.explanation}</p>
+          }} onClick={() => switchView(tab.id)}>{tab.label}</button>)}</div>{overview && view === "deals" && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>
+    {view === "teams" && block && <section className="rosters-selected-team" aria-labelledby="rosters-team-heading">
+      <div className="rosters-selected-team-heading"><div><h2 id="rosters-team-heading" ref={teamHeading} tabIndex={-1}>{ownerLine(block.team)}</h2><p>{nicknameLine(block.team)}</p></div>
+      <button className="rosters-control" onClick={() => chooseTeam("")}>{C.changeTeam}</button></div>
+      <dl className="rosters-cap-summary"><div><dt>{C.fullRoster}</dt><dd>{activeRoster(block).length}</dd></div><div><dt>{C.committed}</dt><dd>{rosterMoney(block.stats?.committed)}</dd></div><div><dt>{C.capRoom}</dt><dd>{rosterMoney(block.stats?.unspent)}</dd></div><div><dt>{C.deadCap}</dt><dd>{rosterMoney(block.stats?.dead_cap)}</dd></div></dl>
+    </section>}
+    {!directory && <>
+    <div className="rosters-toolbar">{view === "deals" && <BoardFilter label={C.manager} value={teamId} options={teams} onChange={v => change(setTeamId, v)} searchable />}<label className="rosters-search"><span aria-hidden="true">⌕</span><input aria-label={C.search} placeholder={C.search} value={query} onChange={e => change(setQuery, e.target.value)} /></label><BoardFilter label="Position" value={position} options={positions} onChange={v => change(setPosition, v)} />{view === "deals" && <div className="rosters-segments" role="radiogroup" aria-label={C.difference}>{C.filters.map(f => <button key={f.id} role="radio" aria-checked={value === f.id} tabIndex={value === f.id ? 0 : -1} onKeyDown={e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) { e.preventDefault(); const index = C.filters.findIndex(item => item.id === value); const next = e.key === "Home" ? 0 : e.key === "End" ? 2 : (index + (e.key === "ArrowRight" ? 1 : 2)) % 3; change(setValue, C.filters[next].id); e.currentTarget.parentElement.children[next]?.focus(); } }} onClick={() => change(setValue, f.id)}>{f.label}</button>)}</div>}<div className="rosters-sort"><BoardFilter label="Sort by" value={sort} options={C.sorts} onChange={v => change(setSort, v)} /></div></div>
+    <p className="rosters-explanation">{view === "teams" ? C.teamFilterHelp : C.explanation}</p>
     {overview && view === "deals" && <div className="rosters-coverage">
       <p>{C.coverage(coverage)}</p>
-      <button className="rosters-control" onClick={() => { setValue("all"); change(setView, "teams"); }}>{C.showAll}</button>
+      <button className="rosters-control" onClick={openTeamRosters}>{C.showAll}</button>
     </div>}
-    {view === "teams" && block && <div className="rosters-team-summary"><strong>{ownerLine(block.team)}</strong><span>{nicknameLine(block.team)}</span><span>{C.capRoom}: {rosterMoney(block.stats?.unspent)}</span><span>{C.deadCap}: {rosterMoney(block.stats?.dead_cap)}</span>{onNavigateTrade && teamId !== myTeamId && <button className="rosters-control" onClick={() => {
-          seedTradePartner(teamId);
-          onNavigateTrade();
-        }}>{ROSTERS_COPY.proposeTrade}</button>}</div>}
+    {overview && <div className="rosters-estimate-context"><p>{rosterEstimateContext(overview.estimate_context)}</p>
+      <details><summary>{C.aboutEstimates}</summary><p>{C.estimateBasis}</p></details>
+    </div>}
+    </>}
     <div id="rosters-results" role="tabpanel" aria-labelledby={`rosters-tab-${view}`} aria-busy={loading}>
     {loading && !overview ? <div className="rosters-skeleton" role="status" aria-label={ROSTERS_COPY.loading}>{Array.from({
             length: 8
-          }, (_, i) => <div key={i}><span /><span /><span /></div>)}</div> : overview && <div className={`rosters-content${selected ? " has-selection" : ""}`}><div className="rosters-table-card"><table className="rosters-table"><caption className="rosters-sr">{C.tabs.find(t => t.id === view).label}</caption><thead><tr><th scope="col">{C.player}</th><th scope="col" className="rosters-manager-col">{C.manager}</th><th scope="col" className="rosters-num">{C.salary}</th><th scope="col" className="rosters-num rosters-estimate-col">{C.estimate}</th><th scope="col" className="rosters-num">{C.difference}</th><th scope="col" className="rosters-contract-col">{C.contract}</th><th scope="col" className="rosters-chevron"><span className="rosters-sr">{C.select}</span></th></tr></thead><tbody>{visible.map(row => <React.Fragment key={rosterRowKey(row)}><tr className={selected && rosterRowKey(selected) === rosterRowKey(row) ? "is-selected" : ""} onClick={() => select(row)}><td><button className="rosters-player" ref={el => {
+          }, (_, i) => <div key={i}><span /><span /><span /></div>)}</div> : overview && directory ? <RosterTeamDirectory headingRef={teamHeading} blocks={blocks} myTeamId={myTeamId} onChoose={chooseTeam} /> : overview && <div className={`rosters-content${selected ? " has-selection" : ""}`}><div className="rosters-table-card"><table className="rosters-table"><caption className="rosters-sr">{C.tabs.find(t => t.id === view).label}</caption><thead><tr><th scope="col">{C.player}</th><th scope="col" className="rosters-manager-col">{C.manager}</th><th scope="col" className="rosters-num">{C.salary}</th><th scope="col" className="rosters-num rosters-estimate-col">{C.estimate}</th><th scope="col" className="rosters-num">{C.difference}</th><th scope="col" className="rosters-contract-col">{C.contract}</th><th scope="col" className="rosters-chevron"><span className="rosters-sr">{C.select}</span></th></tr></thead><tbody>{visible.map(row => <React.Fragment key={rosterRowKey(row)}><tr className={selected && rosterRowKey(selected) === rosterRowKey(row) ? "is-selected" : ""} onClick={() => select(row)}><td><button className="rosters-player" ref={el => {
                         if (el) rowButtons.current.set(rosterRowKey(row), el);else rowButtons.current.delete(rosterRowKey(row));
                       }} aria-label={C.selectPlayer(row.player_name)} aria-expanded={Boolean(selected && rosterRowKey(selected) === rosterRowKey(row))} onClick={e => {
                         e.stopPropagation();
                         select(row);
-                      }}><PlayerCell name={row.player_name} playerId={row.player_id} team={row.team} position={row.position} media={media} size="md" /></button></td><td className="rosters-manager-col">{ownerLine(row.ownerTeam)}</td><td className="rosters-num">{rosterMoney(row.salary)}</td><td className="rosters-num rosters-estimate-col">{rosterMoney(row.fair_value)}</td><td className="rosters-num"><Difference row={row} /></td><td className="rosters-contract-col">{rosterContractLabel(row)}</td><td className="rosters-chevron" aria-hidden="true">›</td></tr>{mobileLayout && selected && rosterRowKey(selected) === rosterRowKey(row) && <tr className="rosters-inline-detail"><td colSpan={7}>{detail}</td></tr>}</React.Fragment>)}</tbody></table>{!rows.length && <div className="rosters-empty"><p>{C.noResults}</p><button className="rosters-control" onClick={reset}>{C.reset}</button></div>}<footer className="rosters-pagination"><span role="status">{C.pagination(rows.length ? currentPage * 8 + 1 : 0, Math.min(rows.length, currentPage * 8 + 8), rows.length)}</span><div><button disabled={currentPage === 0} aria-label="Previous page" onClick={() => {
+                      }}><PlayerCell name={row.player_name} playerId={row.player_id} team={row.team} position={row.position} media={media} size="md" /></button></td><td className="rosters-manager-col">{ownerLine(row.ownerTeam)}</td><td className="rosters-num">{rosterMoney(row.salary)}</td><td className="rosters-num rosters-estimate-col">{rosterMoney(row.fair_value)}</td><td className="rosters-num"><Difference row={row} /></td><td className="rosters-contract-col">{rosterContractLabel(row)}</td><td className="rosters-chevron" aria-hidden="true">›</td></tr>{mobileLayout && selected && rosterRowKey(selected) === rosterRowKey(row) && <tr className="rosters-inline-detail"><td colSpan={7}>{detail}</td></tr>}</React.Fragment>)}</tbody></table>{!rows.length && <div className="rosters-empty"><p>{view === "teams" && !activeRoster(block).length ? ROSTERS_COPY.emptyRoster : C.noResults}</p>{(view !== "teams" || activeRoster(block).length > 0) && <button className="rosters-control" onClick={reset}>{C.reset}</button>}</div>}<footer className="rosters-pagination"><span role="status">{view === "teams" ? C.resultCount(rows.length) : C.pagination(rows.length ? currentPage * 8 + 1 : 0, Math.min(rows.length, currentPage * 8 + 8), rows.length)}</span>{view === "deals" && <div><button disabled={currentPage === 0} aria-label="Previous page" onClick={() => {
                   setPage(currentPage - 1);
                 }}>‹</button><span>{currentPage + 1} / {pages}</span><button disabled={currentPage >= pages - 1} aria-label="Next page" onClick={() => {
                   setPage(currentPage + 1);
-                }}>›</button></div></footer></div>{!mobileLayout && detail}</div>}
+                }}>›</button></div>}{view === "teams" && onNavigateTrade && teamId !== myTeamId && <button className="rosters-control" onClick={() => { seedTradePartner(teamId); onNavigateTrade(); }}>{ROSTERS_COPY.proposeTrade}</button>}</footer></div>{!mobileLayout && detail}</div>}
     </div></>}
   </section>;
 }
