@@ -94,6 +94,10 @@ def read_fair_values(league_id: str, season: int) -> dict[str, float] | None:
     return storage.get_insights_fair_values(league_id, season, _fair_fingerprint())
 
 
+def read_fair_values_built_at(league_id: str, season: int) -> str | None:
+    return storage.get_insights_fair_values_built_at(league_id, season, _fair_fingerprint())
+
+
 def build_and_store_fair_values(
     league_id: str,
     overview: dict[str, Any],

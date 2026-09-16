@@ -2483,7 +2483,7 @@ def hub_league_rosters(
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
         with timer.phase("enrich"):
-            from src.draft_hub.insights_cache import build_and_store_fair_values, read_fair_values
+            from src.draft_hub.insights_cache import build_and_store_fair_values, read_fair_values, read_fair_values_built_at
 
             league_meta = overview.get("league") or {}
             season_int = int(league_meta.get("season") or 0)
@@ -2492,6 +2492,9 @@ def hub_league_rosters(
                 with timer.phase("fair-warm"):
                     fair_map = build_and_store_fair_values(league_id, overview, season_int)
             overview = enrich_league_roster_overview(overview, fair_map=fair_map or {})
+            overview["estimate_context"]["built_at"] = (
+                read_fair_values_built_at(league_id, season_int) if fair_map and season_int else None
+            )
 
     payload = {
         **overview,

@@ -237,6 +237,11 @@ export const ROSTER_BOARD_COPY = {
   refresh: "Refresh", refreshing: "Refreshing…", history: "View contract history",
   noLeague: "Choose a league to compare rosters.", noResults: "No contracts match these filters.",
   reset: "Reset filters", select: "Select a player to view their contract.",
+  aboutEstimates: "How estimates are calculated",
+  minimumBid: "Minimum bid",
+  estimateBasis: "Estimates use season projection ranks, league roster rules, team count, and salary cap. They are not trade prices. Refresh reloads the saved estimates.",
+  minimumBidHelp: "This value is at the league minimum bid. It is not a market comparison, so no above/below grade is shown.",
+  missingEstimateHelp: "No usable estimate is available for this player. Their salary is still included in the roster.",
   unavailable: "Estimate unavailable", estimate: "Est. value", salary: "Salary", difference: "Difference",
   contract: "Contract", player: "Player", manager: "Manager", close: "Close player details",
   managedBy: "Managed by", remaining: "remaining", capRoom: "Cap room", deadCap: "Dead cap",
@@ -254,12 +259,14 @@ export function rosterMoney(value) {
 
 // Use the API estimate, never infer it from a grade or convert missing values to zero.
 export function rosterDifference(row) {
+  if (row?.estimate_status === "minimum_bid") return null;
   if (rosterMoney(row?.salary) === "—" || rosterMoney(row?.fair_value) === "—") return null;
   return Number(row.salary) - Number(row.fair_value);
 }
 
 export function rosterDifferenceLabel(row) {
   const delta = rosterDifference(row);
+  if (row?.estimate_status === "minimum_bid") return ROSTER_BOARD_COPY.minimumBid;
   if (delta == null) return ROSTER_BOARD_COPY.unavailable;
   if (delta === 0) return "At estimate";
   return `${fmtSal(Math.abs(delta))} ${delta < 0 ? "below" : "above"}`;
@@ -294,4 +301,15 @@ export function rosterBoardRows(blocks, { view = "deals", teamId = "", query = "
     const bv = sort === "salary" ? (rosterMoney(b.salary) === "—" ? -Infinity : Number(b.salary)) : (rosterDifference(b) == null ? -Infinity : Math.abs(rosterDifference(b)));
     return (av === bv ? 0 : av > bv ? -1 : 1) || String(a.player_name).localeCompare(String(b.player_name));
   });
+}
+
+export function rosterEstimateContext(context) {
+  const season = Number(context?.season);
+  const seasonLabel = Number.isInteger(season) && season > 2000 ? `${season} season estimates` : "Season not provided";
+  const raw = context?.built_at;
+  const date = typeof raw === "string" && raw.trim() ? new Date(raw) : null;
+  const updated = date && Number.isFinite(date.getTime())
+    ? `Calculated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(date)} UTC`
+    : "Estimate calculation time unavailable";
+  return `${seasonLabel} · ${updated}.`;
 }
