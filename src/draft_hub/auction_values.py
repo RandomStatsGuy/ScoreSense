@@ -21,6 +21,11 @@ RISK_WEIGHT = 0.12
 _RISK_Z_EPS = 1e-9
 
 
+def _player_name_key(value: Any) -> str:
+    """Normalize display names for a conservative pool fallback match."""
+    return "".join(ch for ch in str(value or "").casefold() if ch.isalnum())
+
+
 def auction_relevant_count(pos: str, team_count: int, rules: LeagueRules) -> int:
     """How many players at a position receive meaningful auction bids league-wide.
 
@@ -314,16 +319,25 @@ def fair_value_for_row(
     """Lookup fair value for a single roster row using pool rank."""
     pid = str(row.get("player_id") or "")
     pos = normalize_position(row.get("position"))
-    if pool.empty or not pid:
+    if pool.empty:
         return None
     sub = pool[pool[pos_col].astype(str).str.upper() == pos.upper()].sort_values(proj_col, ascending=False)
     ids = [str(x) for x in sub.get("player_id", sub.get("Player", []))]
     if pid not in ids and pos == "TE":
         wr_sub = pool[pool[pos_col].astype(str).str.upper() == "WR"].sort_values(proj_col, ascending=False)
-        ids = [str(x) for x in wr_sub.get("player_id", wr_sub.get("Player", []))]
-    if pid not in ids:
-        # fallback from salary if not in projection pool
-        return float(row.get("salary") or 0) or None
-    rank = ids.index(pid)
+        sub = wr_sub
+        ids = [str(x) for x in sub.get("player_id", sub.get("Player", []))]
+
+    matched_pid = pid if pid in ids else None
+    if matched_pid is None:
+        name_key = _player_name_key(row.get("player_name") or row.get("player") or row.get("Player"))
+        if name_key and "Player" in sub.columns:
+            matches = sub[sub["Player"].map(_player_name_key) == name_key]
+            if len(matches) == 1:
+                matched_pid = str(matches.iloc[0].get("player_id") or matches.iloc[0].get("Player") or "")
+
+    if not matched_pid or matched_pid not in ids:
+        return None
+    rank = ids.index(matched_pid)
     n_rel = auction_relevant_count(pos, team_count, rules)
     return fair_auction_value(rank, n_rel, pos, rules, team_count=team_count)
