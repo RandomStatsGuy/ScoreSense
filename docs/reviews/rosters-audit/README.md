@@ -4,6 +4,8 @@ These screenshots show the actual changed React components bundled together with
 
 The five branches target `develop` independently: `codex/rosters-load-recovery`, `codex/rosters-estimate-coverage`, `codex/rosters-browsing-state`, `codex/rosters-detail-dismissal`, and `codex/rosters-estimate-context`. All five applied together without conflicts in a separate verification branch.
 
+Draft PRs: [load recovery #497](https://github.com/RandomStatsGuy/ScoreSense/pull/497), [coverage #498](https://github.com/RandomStatsGuy/ScoreSense/pull/498), [browsing state #499](https://github.com/RandomStatsGuy/ScoreSense/pull/499), [details dismissal #500](https://github.com/RandomStatsGuy/ScoreSense/pull/500), and [estimate context #501](https://github.com/RandomStatsGuy/ScoreSense/pull/501).
+
 ## Checks
 
 - Production Vite build: PASS.
@@ -15,6 +17,7 @@ The five branches target `develop` independently: `codex/rosters-load-recovery`,
 | Layout audit | 1280 | 390 |
 | --- | --- | --- |
 | Actual Rosters component fixture | PASS | PASS |
+| Rejected-import recovery state | PASS | PASS |
 
 The repository `layout_audit.mjs` ran against the fixture using `LAYOUT_AUDIT_BASE=http://127.0.0.1:5174`. This is component layout verification, not an authenticated whole-app route audit.
 
