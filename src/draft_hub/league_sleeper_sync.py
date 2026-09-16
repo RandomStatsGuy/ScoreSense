@@ -14,6 +14,15 @@ from src.draft_hub.roster_identity_match import (
     preferred_player_id,
 )
 from src.draft_hub.schemas import LeagueRules
+from src.draft_hub.sleeper_sync_mode import (
+    SKIPPED_PAUSED,
+    UNLINK_CLEAR_PAUSED_MESSAGE,
+    SleeperSyncPaused,
+    require_sleeper_roster_writes,
+    require_team_sleeper_roster_writes,
+    require_workspace_sleeper_roster_writes,
+    sleeper_sync_paused,
+)
 from src.draft_hub.years_exp_lookup import years_exp_for_player
 from src.integrations.sleeper_league import fetch_all_linked_rosters, fetch_linked_roster, list_league_teams
 
@@ -154,6 +163,7 @@ def merge_sleeper_team_roster(
     draft_completed: bool = False,
 ) -> dict[str, int]:
     """Add new Sleeper pickups; refresh names/teams without overwriting contracts."""
+    require_team_sleeper_roster_writes(team_id)
     rules = rules or LeagueRules()
     season = int(season or 2026)
     added = 0
@@ -210,6 +220,7 @@ def merge_sleeper_team_roster(
 
 def collapse_duplicate_occupying_players(workspace_id: str) -> dict[str, int]:
     """Delete extra occupying rows that are the same person on the same team."""
+    require_workspace_sleeper_roster_writes(workspace_id)
     slots = _workspace_slots(workspace_id)
     removed = 0
     for cluster in group_duplicate_occupying(slots):
@@ -354,6 +365,8 @@ def disconnect_sleeper_league(
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
+    if clear_sleeper_roster and sleeper_sync_paused(league_id):
+        raise SleeperSyncPaused(UNLINK_CLEAR_PAUSED_MESSAGE)
     ws_id = league.get("workspace_id")
     if not ws_id:
         raise ValueError("League has no shared workspace")
@@ -565,6 +578,7 @@ def ensure_sleeper_team_links(league_id: str) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league or not league.get("workspace_id"):
         raise ValueError("League not found")
+    require_sleeper_roster_writes(league_id)
     ws_id = str(league["workspace_id"])
     sleeper_league_id = resolve_sleeper_league_id(league_id)
     if not sleeper_league_id:
@@ -665,6 +679,7 @@ def detect_and_apply_sleeper_trades(
     Compare fresh Sleeper rosters to hub assignments.
     When a player moves between linked teams, move their contract row too.
     """
+    require_workspace_sleeper_roster_writes(workspace_id)
     slots = [r for r in _workspace_slots(workspace_id) if storage.roster_row_occupies(r)]
     seen_slot_ids: set[int] = set()
     moves: list[dict[str, Any]] = []
@@ -727,6 +742,8 @@ def reattach_league_roster_slots(league_id: str) -> dict[str, Any]:
     orphans = storage.list_orphan_roster_slots(ws_id)
     if not orphans:
         return {"reattached": 0, "orphans_remaining": 0}
+    if sleeper_sync_paused(league_id):
+        return {"reattached": 0, "orphans_remaining": len(orphans), "skipped": SKIPPED_PAUSED}
 
     teams = storage.list_league_teams(league_id)
     sleeper_to_team = _sleeper_player_team_map(teams)
@@ -795,6 +812,8 @@ def reconcile_league_roster_assignments(league_id: str) -> dict[str, Any]:
     league = storage.get_league(league_id)
     if not league or not league.get("workspace_id"):
         return {"moved": 0, "skipped": "no_workspace"}
+    if sleeper_sync_paused(league_id):
+        return {"moved": 0, "skipped": SKIPPED_PAUSED}
     ws_id = str(league["workspace_id"])
     sleeper_league_id = resolve_sleeper_league_id(league_id)
     if not sleeper_league_id:
@@ -872,6 +891,7 @@ def connect_sleeper_league(
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
+    require_sleeper_roster_writes(league_id)
     ws_id = league.get("workspace_id")
     if not ws_id:
         raise ValueError("League has no shared workspace")
@@ -1002,6 +1022,7 @@ def sync_team_sleeper_to_league(
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
+    require_sleeper_roster_writes(league_id)
     team = storage.get_team(team_id)
     if not team or team.get("league_id") != league_id:
         raise ValueError("Team not in this league")

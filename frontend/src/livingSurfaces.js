@@ -252,7 +252,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
     also: ["frontend/src/DraftHub/OfficeLeagueLifecycle.jsx"],
-    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link, email-assign, league workbook, and delete. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked. Delete requires every commissioner to type the league name and agree.",
+    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link (with the roster sync pause), email-assign, league workbook, and delete. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked. Delete requires every commissioner to type the league name and agree.",
   }),
   "hub.insights": S({
     label: "Insights",

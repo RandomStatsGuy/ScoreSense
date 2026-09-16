@@ -373,6 +373,31 @@ export const SLEEPER_UNLINK_COPY = {
   relinkHint: "You can connect Sleeper again later — that hands lineups back.",
 };
 
+export const SLEEPER_SYNC_PAUSE_COPY = {
+  title: "Sleeper roster sync",
+  pausedPill: "Roster sync paused",
+  pausedSupport:
+    "Rosters and contracts stay exactly as they are here. Sync league still refreshes scoring from Sleeper.",
+  liveSupport:
+    "Sync league copies Sleeper rosters into ScoreSense and can move contracts between teams.",
+  pause: "Pause roster sync",
+  resume: "Turn roster sync back on",
+  busy: "Saving…",
+  pausedDone: "Roster sync paused. Rosters stay as they are.",
+  resumedDone: "Roster sync is on. The next Sync league copies Sleeper rosters again.",
+  stripStatus: "Rosters paused",
+  stripTitle: "Refresh scoring from Sleeper. Roster sync is paused in Access & imports.",
+  importPaused: "Roster sync is paused, so importing Sleeper rosters is off.",
+  unlinkKeepsRosters: "Roster sync is paused, so unlinking keeps every player.",
+};
+
+/** True when Sleeper must not write this league's rosters. */
+export function sleeperSyncPaused({ overview, hubContext } = {}) {
+  const mode = overview?.league?.sleeper_sync_mode;
+  if (mode) return mode === "off";
+  return Boolean(hubContext?.sleeper_sync_paused);
+}
+
 export function sleeperUnlinkSummary({ teamsLinked = 0, rosterRows = 0, clearRoster = true } = {}) {
   const teams = Number(teamsLinked) || 0;
   const rows = Number(rosterRows) || 0;
