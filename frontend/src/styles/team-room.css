@@ -140,7 +140,9 @@
   font-size: var(--text-xs);
 }
 .team-room-scoreboard {
-  max-width: 800px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 1.2fr 1fr;
   align-items: center;
@@ -149,11 +151,9 @@
   padding: var(--space-4) var(--space-5);
   text-align: center;
   background: linear-gradient(135deg, #111b2a, #182b43 50%, #0a131f);
-  border: 5px ridge #786647;
-  border-radius: var(--radius-md);
-  box-shadow:
-    0 12px 22px #0009,
-    inset 0 0 30px #0005;
+  border: 1px solid color-mix(in srgb, var(--room-light) 55%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 3px var(--room-light);
 }
 .team-room-scoreboard > div {
   min-width: 0;
@@ -648,7 +648,8 @@
 }
 
 /* The room's scoreboard opens this team and week without changing league focus. */
-a.team-room-scoreboard { position:relative; text-decoration:none; color:inherit; padding-bottom:var(--space-6); }
+a.team-room-scoreboard { position:relative; text-decoration:none; color:inherit; }
 a.team-room-scoreboard:hover { outline:1px solid var(--room-light); }
 a.team-room-scoreboard:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
-.team-room-matchup-link { position:absolute; bottom:var(--space-2); left:0; right:0; text-align:center; font-size:var(--text-xs); color:var(--text-secondary); }
+.team-room-matchup-link { grid-column:1 / -1; text-align:center; font-size:var(--text-xs); color:var(--text-secondary); }
+.team-room-matchup-link span { display:inline; }
