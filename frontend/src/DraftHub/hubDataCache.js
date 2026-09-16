@@ -150,6 +150,7 @@ export function getAnyLeagueRostersCache(leagueId) {
 }
 
 export function clearLeagueRostersCache(leagueId) {
+  invalidateLeagueRosterRequests(leagueId);
   getLeagueRostersCache._mem = {};
   try {
     const prefix = leagueId
@@ -224,8 +225,49 @@ export function clearInsightsSectionCache(leagueId) {
 
 /** Clear insights cache after cap sheet sync / contract updates. */
 export function invalidateInsightsAfterCapSync(leagueId) {
+  clearLeagueRostersCache(leagueId);
   if (leagueId) clearInsightsSectionCache(leagueId);
   invalidateFreshnessCache(leagueId);
+}
+
+// Short-lived, account-scoped shared reads for Rosters and Trades. Keep these
+// out of sessionStorage: permissions and account identity can change between visits.
+const rosterRequests = new Map();
+const ROSTER_REQUEST_TTL_MS = 30_000;
+
+export function invalidateLeagueRosterRequests(leagueId) {
+  for (const [key, entry] of rosterRequests) {
+    if (!leagueId || entry.leagueId === leagueId) rosterRequests.delete(key);
+  }
+}
+
+export function loadLeagueRosterRequest(scope, leagueId, factory, { refresh = false } = {}) {
+  if (!scope || !leagueId) return Promise.resolve().then(factory);
+  const key = JSON.stringify([scope, leagueId]);
+  if (refresh) invalidateLeagueRosterRequests(leagueId);
+  const hit = rosterRequests.get(key);
+  if (hit?.pending) return hit.pending;
+  if (hit && Date.now() - hit.at < ROSTER_REQUEST_TTL_MS) return Promise.resolve(hit.data);
+  const entry = { leagueId };
+  // Bound memory while retaining active requests and their invalidation guards.
+  for (const [oldKey, old] of rosterRequests) {
+    if (!old.pending && Date.now() - old.at >= ROSTER_REQUEST_TTL_MS) rosterRequests.delete(oldKey);
+  }
+  if (rosterRequests.size >= 100) return Promise.resolve().then(factory);
+  const pending = Promise.resolve().then(factory).then((data) => {
+    if (rosterRequests.get(key) !== entry) {
+      throw new DOMException("Roster request invalidated", "AbortError");
+    }
+    entry.data = data;
+    entry.at = Date.now();
+    return data;
+  }).catch((error) => {
+    if (rosterRequests.get(key) === entry) rosterRequests.delete(key);
+    throw error;
+  }).finally(() => { entry.pending = null; });
+  entry.pending = pending;
+  rosterRequests.set(key, entry);
+  return pending;
 }
 
 /** In-memory freshness strip cache (/league/{id}/freshness). */

@@ -20,3 +20,6 @@ data/raw/
 data/cache/
 *.md
 !README.md
+
+artifacts/frontend_assets/
+artifacts/frontend-assets.*/

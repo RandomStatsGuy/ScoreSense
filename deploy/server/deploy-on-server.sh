@@ -20,6 +20,19 @@ fi
 
 echo "==> Building and starting ScoreSense (production)..."
 docker compose -f deploy/docker-compose.prod.yml build --pull
+
+# Archive the running release before replacing its container. Both old and new
+# API images serve their own shell; the new API can also serve exact old chunks.
+previous_api="$(docker compose -f deploy/docker-compose.prod.yml ps -q api)"
+if [ -n "$previous_api" ]; then
+  mkdir -p "$ROOT/artifacts"
+  asset_stage="$(mktemp -d "$ROOT/artifacts/frontend-assets.XXXXXX")"
+  trap 'rm -rf -- "$asset_stage"' EXIT
+  docker cp "$previous_api:/app/frontend/dist/assets/." "$asset_stage/"
+  docker compose -f deploy/docker-compose.prod.yml run --rm --no-deps api \
+    python scripts/ops/archive_frontend_assets.py \
+    "/app/artifacts/$(basename "$asset_stage")" /app/artifacts/frontend_assets
+fi
 docker compose -f deploy/docker-compose.prod.yml up -d --force-recreate
 
 echo "==> Health check..."

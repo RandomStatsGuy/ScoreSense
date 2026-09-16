@@ -1,6 +1,7 @@
 /** User-facing copy for Fantasy → Trades. */
 
 export const TRADES_COPY = {
+  loadingDetails: "Loading trade details",
   title: "Trades",
   eyebrow: "Trades",
   heading: "Build a trade",

@@ -1,3 +1,5 @@
+import { invalidateLeagueRosterRequests } from "./DraftHub/hubDataCache.js";
+
 const TOKEN_KEY = "scoresense_token";
 const GUEST_KEY = "ss_draft_guest";
 
@@ -6,6 +8,7 @@ export function getToken() {
 }
 
 export function setToken(token) {
+  invalidateLeagueRosterRequests();
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
 }
@@ -27,6 +30,7 @@ export function getGuestToken() {
 }
 
 export function setGuestSession({ token, leagueId, roomCode } = {}) {
+  invalidateLeagueRosterRequests();
   if (!token) {
     localStorage.removeItem(GUEST_KEY);
     return;
@@ -39,6 +43,7 @@ export function setGuestSession({ token, leagueId, roomCode } = {}) {
 }
 
 export function clearGuestSession() {
+  invalidateLeagueRosterRequests();
   localStorage.removeItem(GUEST_KEY);
 }
 
@@ -91,6 +96,10 @@ export async function apiFetch(url, options = {}) {
     init.signal = signal;
   }
   const res = await fetch(url, init);
+  if (res.ok && !["GET", "HEAD"].includes((rest.method || "GET").toUpperCase())
+      && /^\/api\/(hub|auth)\//.test(String(url))) {
+    invalidateLeagueRosterRequests();
+  }
   return res;
 }
 

@@ -5,6 +5,9 @@ import json
 import copy
 import secrets
 import time
+import math
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from typing import Any
 
 from src.draft_hub import storage
@@ -25,21 +28,34 @@ def settings(team_id: str) -> dict:
 
 def projection_snapshot(league_id, season, week, player_id, value, *, started):
     """Never substitute a post-kickoff estimate for a missing pregame baseline."""
+    return projection_snapshots(league_id, season, week, [(player_id, value, started)]).get(player_id)
+
+
+def projection_snapshots(league_id, season, week, players):
+    """Read/update one room's baselines in a single database transaction."""
+    if not players:
+        return {}
     with storage.get_conn() as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS team_room_projection (
             league_id TEXT, season INTEGER, week INTEGER, player_id TEXT, projection REAL,
             PRIMARY KEY(league_id,season,week,player_id))""")
-        key = (league_id, season, week, player_id)
-        if not started and value is not None:
-            import math
+        writes = []
+        for player_id, value, started in players:
+            if started or value is None:
+                continue
             try:
                 number = float(value)
                 if math.isfinite(number):
-                    conn.execute("INSERT OR REPLACE INTO team_room_projection VALUES (?,?,?,?,?)", (*key, number))
+                    writes.append((league_id, season, week, player_id, number))
             except (ValueError, TypeError):
                 pass
-        row = conn.execute("SELECT projection FROM team_room_projection WHERE league_id=? AND season=? AND week=? AND player_id=?", key).fetchone()
-    return row[0] if row else None
+        conn.executemany("INSERT OR REPLACE INTO team_room_projection VALUES (?,?,?,?,?)", writes)
+        rows = conn.execute(
+            "SELECT player_id, projection FROM team_room_projection WHERE league_id=? AND season=? AND week=?",
+            (league_id, season, week),
+        ).fetchall()
+    wanted = {player_id for player_id, _, _ in players}
+    return {row[0]: row[1] for row in rows if row[0] in wanted}
 
 
 def share(team_id: str, enabled: bool) -> str | None:
@@ -74,23 +90,45 @@ def nickname(team_id: str, player_id: str, value: str | None) -> None:
 
 
 _nickname_cache: dict[str, tuple[float, list]] = {}
+_nickname_pending: set[str] = set()
+_nickname_lock = Lock()
+# Optional network I/O only; at most two outstanding refreshes, with no backlog.
+_nickname_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="room-nicknames")
+
+
+def _refresh_nicknames(league_id: str) -> None:
+    from src.draft_hub.league_live_scoring import _fetch_json, SLEEPER_API
+    try:
+        rows = _fetch_json(f"{SLEEPER_API}/league/{league_id}/rosters", timeout=5)
+        if not isinstance(rows, list):
+            raise ValueError("Invalid roster metadata")
+    except Exception:
+        with _nickname_lock:
+            rows = _nickname_cache.get(league_id, (0, []))[1]
+    finally:
+        with _nickname_lock:
+            if league_id not in _nickname_cache and len(_nickname_cache) >= 100:
+                oldest = min(_nickname_cache, key=lambda key: _nickname_cache[key][0])
+                del _nickname_cache[oldest]
+            # Failed refreshes also back off; preserve the last successful rows.
+            _nickname_cache[league_id] = (time.monotonic(), rows)
+            _nickname_pending.discard(league_id)
 
 
 def sleeper_nicknames(league_id: str, roster_id: str) -> dict:
     """Optional provider metadata; absent nicknames never block the room."""
     if not league_id:
         return {}
-    from src.draft_hub.league_live_scoring import _fetch_json, SLEEPER_API
     try:
-        cached = _nickname_cache.get(league_id)
-        if cached and time.monotonic() - cached[0] < 300:
-            rows = cached[1]
-        else:
-            rows = _fetch_json(f"{SLEEPER_API}/league/{league_id}/rosters")
-            rows = rows if isinstance(rows, list) else []
-            if len(_nickname_cache) > 100:
-                _nickname_cache.clear()
-            _nickname_cache[league_id] = (time.monotonic(), rows)
+        with _nickname_lock:
+            cached = _nickname_cache.get(league_id)
+            rows = cached[1] if cached else []
+            if (not cached or time.monotonic() - cached[0] >= 300) and league_id not in _nickname_pending and len(_nickname_pending) < 2:
+                _nickname_pending.add(league_id)
+                try:
+                    _nickname_executor.submit(_refresh_nicknames, league_id)
+                except RuntimeError:
+                    _nickname_pending.discard(league_id)
         row = next((r for r in rows if str(r.get("roster_id")) == str(roster_id)), {})
         return {str(k)[9:]: str(v)[:40] for k, v in (row.get("metadata") or {}).items()
                 if str(k).startswith("nickname_") and isinstance(v, str)}
@@ -150,11 +188,14 @@ def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
 
     # The existing live-scoring estimates may refresh during a game. Freeze the
     # room's baseline before kickoff; older games without a capture show no delta.
-    for p in (mine.get("starters") or []) + (mine.get("bench_players") or []):
-        if not p.get("player_id"):
-            continue
-        started = state in ("final", "unknown") or nfl_game_started(p.get("team"), int(season), current_week)
-        p["proj"] = projection_snapshot(league_id, season, current_week, p.get("player_id"), p.get("proj"), started=started)
+    room_players = [p for p in (mine.get("starters") or []) + (mine.get("bench_players") or []) if p.get("player_id")]
+    started_by_player = {p["player_id"]: state in ("final", "unknown") or nfl_game_started(p.get("team"), int(season), current_week) for p in room_players}
+    snapshots = projection_snapshots(league_id, season, current_week, [
+        (p["player_id"], p.get("proj"), started_by_player[p["player_id"]]) for p in room_players
+    ])
+    for p in room_players:
+        started = started_by_player[p["player_id"]]
+        p["proj"] = snapshots.get(p["player_id"])
         p["projection_status"] = "available" if p["proj"] is not None else "not_saved" if started else "unavailable"
 
 
