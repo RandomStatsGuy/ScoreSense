@@ -127,3 +127,7 @@
 @media (max-width: 768px) { .rosters-content.has-selection { grid-template-columns: minmax(0,1fr); } .rosters-table .rosters-inline-detail td { padding: 0; } .rosters-inline-detail .rosters-detail { border: 0; border-radius: 0; } }
 
 @media (max-width: 768px) { .rosters-table th:first-child { width: 50%; } .rosters-table th:nth-child(3) { width: 18%; } .rosters-table th:nth-child(5) { width: 32%; } .rosters-table .rosters-difference { white-space: nowrap; } }
+
+.rosters-estimate-context { margin-bottom: 16px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.rosters-estimate-context summary { cursor: pointer; color: var(--text-primary); padding: 8px 0; }
+.rosters-estimate-context p { margin: 4px 0 8px; }

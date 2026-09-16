@@ -8,7 +8,7 @@ import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
 import { downloadLeagueWorkbook } from "./leagueWorkbook";
-import { ROSTERS_COPY, ROSTER_BOARD_COPY as C, rosterBoardRows, rosterRowKey, rosterMoney, rosterDifference, rosterDifferenceLabel, rosterContractLabel, ownerLine, nicknameLine, tradeLockReason, expireChipLabel } from "./leagueRostersPresentation";
+import { ROSTERS_COPY, ROSTER_BOARD_COPY as C, rosterBoardRows, rosterEstimateContext, rosterRowKey, rosterMoney, rosterDifference, rosterDifferenceLabel, rosterContractLabel, ownerLine, nicknameLine, tradeLockReason, expireChipLabel } from "./leagueRostersPresentation";
 import "../styles/league-rosters.css";
 
 // Local filter control for the approved board: searchable team list, native buttons,
@@ -217,6 +217,8 @@ function RosterBoard({
     <h2 ref={detailHeading} tabIndex={-1}><PlayerCell name={selected.player_name} playerId={selected.player_id} team={selected.team} position={selected.position} media={media} size="lg" /></h2>
     <p className="rosters-managed">{C.managedBy} <strong>{ownerLine(selected.ownerTeam)}{selected.ownerTeamId === myTeamId ? ` · ${ROSTERS_COPY.you}` : ""}</strong></p>
     <div className="rosters-detail-values"><dl><div><dt>{C.salary}</dt><dd>{rosterMoney(selected.salary)}</dd></div><div><dt>{C.estimate}</dt><dd>{rosterMoney(selected.fair_value)}</dd></div></dl><Difference row={selected} /></div>
+    {selected.estimate_status === "minimum_bid" && <p className="rosters-help">{C.minimumBidHelp}</p>}
+    {selected.fair_value == null && <p className="rosters-help">{C.missingEstimateHelp}</p>}
     <div className="rosters-detail-contract"><span>{C.contract}</span><strong>{rosterContractLabel(selected)}</strong>{expireChipLabel(selected.expire_chip) && <span>{expireChipLabel(selected.expire_chip)}</span>}</div>
     <button className="rosters-primary" disabled={Boolean(disabledReason)} aria-describedby={disabledReason ? "rosters-trade-reason" : undefined} onClick={() => {
       if (disabledReason) return;
@@ -234,6 +236,9 @@ function RosterBoard({
   </aside>;
   return <section className="rosters-board" aria-labelledby="rosters-heading">
     <header className="rosters-header"><div><h1 id="rosters-heading">{ROSTERS_COPY.heading}</h1><p>{ROSTERS_COPY.support}</p></div><div className="rosters-header-actions"><button className="rosters-control" disabled={!leagueId || loading} onClick={() => load(true)} aria-label={ROSTERS_COPY.refreshLeague}><span aria-hidden="true">↻</span>{loading && overview ? C.refreshing : C.refresh}</button><button className="rosters-control" disabled={!leagueId || exporting} onClick={exportWorkbook}><span aria-hidden="true">↓</span>{exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}</button></div></header>
+    {overview && <div className="rosters-estimate-context"><p>{rosterEstimateContext(overview.estimate_context)}</p>
+      <details><summary>{C.aboutEstimates}</summary><p>{C.estimateBasis}</p></details>
+    </div>}
     {(error || exportError) && <p className="rosters-error" role="alert">{error || exportError}</p>}
     {!leagueId ? <p className="rosters-empty">{C.noLeague}</p> : <>
     <div className="rosters-tabbar"><div className="rosters-tabs" role="tablist" aria-label={ROSTERS_COPY.heading}>{C.tabs.map(tab => <button key={tab.id} id={`rosters-tab-${tab.id}`} role="tab" aria-selected={view === tab.id} aria-controls="rosters-results" tabIndex={view === tab.id ? 0 : -1} onKeyDown={e => {
