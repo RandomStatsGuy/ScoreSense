@@ -212,7 +212,7 @@
 .admin-form input[type="number"],
 .admin-delete-row input {
   border-color: var(--border-strong);
-  background-color: #101a28;
+  background-color: var(--theme-surface, #101a28);
   color: var(--text-primary);
   box-shadow: none;
 }
