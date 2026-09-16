@@ -875,8 +875,7 @@ export default function RosterBuilder({
       />
 
       <TeamStadiumHero
-        className="hub-stadium-hero--my-team"
-        hideName
+        compact
         team={{ id: hubContext?.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
         identity={teamIdentity}
         meta={`${roster.length} player${roster.length === 1 ? "" : "s"}${

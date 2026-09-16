@@ -1,0 +1,21 @@
+.matchup-banner-art {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  height: 100%;
+  width: 50%;
+  overflow: hidden;
+  opacity: 0.25;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, black, transparent);
+}
+.matchup-banner-art--home { left: 0; }
+.matchup-banner-art--away {
+  right: 0;
+  mask-image: linear-gradient(270deg, black, transparent);
+}
+.matchup-banner-art .hub-crop-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

@@ -19,20 +19,21 @@ export default function TeamStadiumHero({
   size = "full",
   className = "",
   hideName = false,
+  compact = false,
 }) {
   const look = mergeTeamIdentity(identity);
   const name = hubTeamLabel(team) || team?.name || "Team";
   const initialsName = hubTeamInitialsName(team) || team?.name || "Team";
   const preview = size === "preview";
-  const paintWidth = preview ? HUB_MEDIA_MARK_WIDTH : HUB_MEDIA_HERO_WIDTH;
+  const paintWidth = preview || compact ? HUB_MEDIA_MARK_WIDTH : HUB_MEDIA_HERO_WIDTH;
   const photoUrl = identityMediaUrl(look, "photo", { width: paintWidth });
   const bannerUrl = identityMediaUrl(look, "banner", { width: HUB_MEDIA_HERO_WIDTH });
 
   return (
     <article
-      className={`hub-stadium-hero${preview ? " hub-stadium-hero--preview" : ""}${className ? ` ${className}` : ""}`}
+      className={`hub-stadium-hero${preview ? " hub-stadium-hero--preview" : ""}${compact ? " hub-stadium-hero--compact" : ""}${className ? ` ${className}` : ""}`}
     >
-      <div className={`hub-stadium-hero-banner hub-banner-fill--${look.banner_preset}`}>
+      {!compact && <div className={`hub-stadium-hero-banner hub-banner-fill--${look.banner_preset}`}>
         {bannerUrl ? (
           <IdentityCropMedia src={bannerUrl} focus={look.banner_focus} className="hub-stadium-hero-banner-img" width={HUB_MEDIA_HERO_WIDTH} />
         ) : null}
@@ -41,7 +42,7 @@ export default function TeamStadiumHero({
             Customize team appearance
           </button>
         ) : null}
-      </div>
+      </div>}
       <div className="hub-stadium-hero-body">
         <div
           className={`hub-stadium-hero-photo hub-team-photo--${look.photo_preset}`}
@@ -56,6 +57,7 @@ export default function TeamStadiumHero({
         <div className="hub-stadium-hero-id">
           {hideName ? null : <div className="hub-stadium-hero-name">{name}</div>}
           {meta ? <div className="hub-stadium-hero-meta">{meta}</div> : null}
+          {compact && onEdit && <button type="button" className="btn-ghost" onClick={onEdit}>Customize team appearance</button>}
         </div>
         {cap ? <div className="hub-stadium-hero-cap">{cap}</div> : null}
       </div>

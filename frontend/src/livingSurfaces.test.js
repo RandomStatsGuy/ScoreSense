@@ -136,9 +136,9 @@ test("Vibes done-state keeps one Review or Save lineup primary", () => {
   assert.match(LIVING_SURFACES["hub.vibes"].doNot, /Otherwise Review is the one primary on the ranking card/);
 });
 
-test("My team packs columns and grounds the stadium count", () => {
+test("My team packs columns and uses a compact management summary", () => {
   assert.match(LIVING_SURFACES["hub.roster"].doNot, /Pack non-player columns to min-content/);
-  assert.match(LIVING_SURFACES["hub.roster"].doNot, /under the stadium banner/);
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /without a stadium banner/);
 });
 
 test("file lookup returns the surfaces that own a page", () => {

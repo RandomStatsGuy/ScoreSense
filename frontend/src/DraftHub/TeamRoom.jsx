@@ -11,6 +11,8 @@ import { nflTeamColors } from "./nflTeamColors";
 import { paintMediaUrl, PAINT_WIDTH, teamLogoUrl } from "./draftMedia";
 import { HubFilterMenu } from "./HubUILayout";
 import { formatSyncedAgo } from "./gameCenterPresentation";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import MatchupBannerArt from "./MatchupBannerArt";
 import "../styles/team-room.css";
 
 export function TeamRoomView({
@@ -26,6 +28,7 @@ export function TeamRoomView({
   busy = false,
   message = "",
 }) {
+  const { identities } = useTeamIdentities();
   const [section, setSection] = useState("starters");
   const [selected, setSelected] = useState(null);
   const [nickname, setNickname] = useState("");
@@ -164,6 +167,7 @@ export function TeamRoomView({
         </div>
       )}
       <Scoreboard className="team-room-scoreboard" href={matchupHref} aria-label={matchupHref ? COPY.openGameCenter : undefined}>
+        <MatchupBannerArt identity={identityFor(identities, data.team)} />
         <div>
           <span>{data.team.name}</span>
           <strong key={data.score}>{roomNumber(data.score)}</strong>

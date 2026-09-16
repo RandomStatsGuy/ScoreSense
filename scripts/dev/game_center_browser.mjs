@@ -25,7 +25,7 @@ try {
     await page.goto(`${base}/test-fixtures/game-center.html`, {waitUntil:"domcontentloaded"});
     await page.locator(".gc-room-feature").waitFor();
     await page.waitForFunction(
-      () => document.querySelectorAll(".gc-room-banner-art img").length === 2,
+      () => document.querySelectorAll(".matchup-banner-art img").length === 2,
     );
     await page.screenshot({
       path: `outputs/game-center/implemented-b-${width}.png`,
@@ -101,7 +101,7 @@ try {
     await p.locator(".gc-room-team h2").first().textContent(),
     "Thanks noob noob",
   );
-  assert.equal(await p.locator(".gc-room-banner-art").count(), 0);
+  assert.equal(await p.locator(".matchup-banner-art").count(), 0);
   await p.goto(`${base}/test-fixtures/team-room.html`, {waitUntil:"domcontentloaded"});
   await p.locator("a.team-room-scoreboard").waitFor();
   assert.equal(

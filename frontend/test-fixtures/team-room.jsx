@@ -3,8 +3,10 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import RosterBuilder from "../src/DraftHub/RosterBuilder";
 import TeamRoom from "../src/DraftHub/TeamRoom";
+import { TeamIdentityProvider } from "../src/DraftHub/TeamIdentityContext";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";
 import "../src/styles.css";
+import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
@@ -81,6 +83,7 @@ window.fetch = async (url, options = {}) => {
   const path = String(url);
   if (!path.startsWith("/api/")) return original(url, options);
   window.__requests.push({ path, method: options.method || "GET" });
+  if (path.endsWith("/identities")) return Response.json({ identities: { mine: { banner_url: "/art/team-room/locker-interior.webp", banner_focus: { x: 35, y: 40, zoom: 1.2 } } } });
   if (path.includes("/room/nicknames/")) {
     const pid = decodeURIComponent(path.split("/").pop());
     const value = JSON.parse(options.body).nickname;
@@ -133,7 +136,7 @@ createRoot(document.getElementById("root")).render(
         {params.has("readonly") ? (
           <TeamRoom token="fixture" />
         ) : (
-          <RosterBuilder
+          <TeamIdentityProvider leagueId="fixture"><RosterBuilder
             roster={roster}
             valueRows={[]}
             workspace={{
@@ -143,7 +146,7 @@ createRoot(document.getElementById("root")).render(
             hubContext={context}
             capSheet={{ summary: { dead_cap: 9 } }}
             onNavigate={() => {}}
-          />
+          /></TeamIdentityProvider>
         )}
       </div>
     </main>
