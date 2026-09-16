@@ -340,4 +340,4 @@ def test_sync_mode_route_registered():
         for route in router.routes
         for method in (getattr(route, "methods", None) or set())
     }
-    assert ("/league/{league_id}/sleeper/sync-mode", "PUT") in methods
+    assert ("/api/hub/league/{league_id}/sleeper/sync-mode", "PUT") in methods
