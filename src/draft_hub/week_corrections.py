@@ -155,7 +155,7 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
     totals = {team["id"]: 0.0 for team in state["teams"]}
     player_scores = []
     for entry in entries:
-        raw = stats.get(entry["player_id"])
+        raw = hub_scoring.stats_for_lineup_row(stats, entry)
         points = 0.0
         if entry["lineup_role"] == "starter":
             try:

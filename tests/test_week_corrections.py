@@ -63,6 +63,16 @@ def test_missing_stats_block_publication(recovery, monkeypatch):
         publish(recovery[0], result)
 
 
+def test_correction_resolves_saved_player_name_when_provider_id_differs(recovery, monkeypatch):
+    recovery[3][0]["players"][0]["player_name"] = "Drake Maye"
+    name_key = hub_scoring.name_pos_key({"player_name": "Drake Maye", "position": "QB"})
+    monkeypatch.setattr(hub_scoring, "load_week_stat_index", lambda *args: {
+        name_key: {"passing_yards": 300}, "other-qb": {"passing_yards": 200}})
+    result = preview(recovery)
+    assert result["can_publish"]
+    assert next(row for row in result["player_scores"] if row["player_id"] == "past-qb")["points"] == 12
+
+
 def test_only_commissioner_can_repair(recovery):
     with pytest.raises(PermissionError):
         corrections.correction_context(recovery[0], 2026, 1, "manager")
