@@ -10110,9 +10110,10 @@ button.hub-locker {
 .hub-cap-row.is-selected td,
 .hub-cap-dense-row.is-selected {
   background: var(--accent-soft);
-  box-shadow: inset 3px 0 0 var(--accent);
   transition: background 160ms ease;
 }
+.hub-cap-row.is-selected td:first-child,
+.hub-cap-dense-row.is-selected { box-shadow: inset 3px 0 0 var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
   .hub-cap-row.is-selected td,
@@ -10129,7 +10130,7 @@ button.hub-locker {
 }
 
 .hub-cap-league-spend {
-  min-height: auto;
+  min-height: var(--control-h-sm);
   padding: 0;
 }
 
@@ -10162,6 +10163,94 @@ button.hub-locker {
   display: flex;
   flex-direction: column;
   gap: var(--gutter-section);
+}
+
+/* Approved Cap contract workbench: the sheet leads; previews use the rail. */
+.hub-cap-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  align-items: start;
+}
+.hub-cap-workbench-main,
+.hub-cap-workbench-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.hub-cap-preview,
+.hub-cap-snapshot {
+  padding: var(--inset-section);
+  background: var(--experience-surface);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+.hub-cap-preview h2,
+.hub-cap-snapshot h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+.hub-cap-preview-hint {
+  margin: 0 0 var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.hub-cap-preview-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+.hub-cap-preview-controls .hub-filter-menu-trigger { width: 100%; }
+.hub-cap-snapshot dl { margin: var(--space-4) 0; }
+.hub-cap-snapshot dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--experience-rule);
+}
+.hub-cap-snapshot dt,
+.hub-cap-snapshot p { color: var(--text-secondary); font-size: var(--text-xs); }
+.hub-cap-snapshot dd { margin: 0; font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
+.hub-cap-preview-years { margin-top: var(--space-3); }
+.hub-cap-preview-years summary,
+.hub-cap-disclosure > summary { cursor: pointer; min-height: var(--control-h-sm); font-size: var(--text-sm); }
+.hub-cap-disclosure > summary { padding: var(--space-2) 0; }
+.hub-cap-sheet-table { min-width: 0; }
+@media (max-width: 1024px) {
+  .hub-cap-workbench { grid-template-columns: minmax(0, 1fr); }
+  .hub-cap-workbench-rail { order: -1; }
+}
+@media (max-width: 768px) {
+  .hub-cap-workbench-rail { order: 0; }
+  .hub-cap-preview-controls button,
+  .hub-cap-snapshot button,
+  .hub-cap-preview-years summary,
+  .hub-cap-disclosure > summary { min-height: var(--control-h-lg); }
+}
+.hub-cap-values-table th:not(:first-child),
+.hub-cap-values-table td:not(:first-child) {
+  text-align: right;
+  width: 1%;
+  padding-inline: var(--space-1);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-cap-player-select {
+  text-align: left;
+  min-height: var(--control-h-sm);
+}
+
+@media (max-width: 768px) {
+  .hub-cap-need button { min-height: var(--control-h-lg); }
+  .hub-cap-player-select {
+    min-height: var(--control-h-lg);
+  }
 }
 
 .hub-cap-field {
