@@ -33,6 +33,13 @@ from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules, ScoringRules
 
 
+@pytest.fixture(autouse=True)
+def before_week_one(monkeypatch):
+    # Lineup fixtures must not depend on the wall clock passing Week 1.
+    monkeypatch.setattr("src.draft_hub.hub_scoring._utcnow",
+                        lambda: datetime(2026, 9, 1, tzinfo=timezone.utc))
+
+
 def _client(sub: str) -> TestClient:
     app.dependency_overrides[require_hub_user] = lambda: {"sub": sub, "auth_type": "dev"}
     return TestClient(app)
@@ -665,7 +672,7 @@ def test_sleeper_settings_rejected_without_other_side_effects(hub_db):
     storage.update_league_sleeper_id(league["id"], "123456")
     before = storage.get_league(league["id"])
     raw = dict(before["rules"])
-    raw["scoring"] = {**raw["scoring"], "receptions": 0.5}
+    raw["scoring"] = {**raw["scoring"], "receptions": 0.5, "def_sacks": 3, "fg_made_50_59": 6}
     result = _client(comm).put("/api/hub/workspace", json={"league_id": league["id"], "name": "Changed", "rules": raw})
     assert result.status_code == 409
     assert "Sleeper" in result.json()["detail"]
@@ -713,51 +720,14 @@ def test_settings_change_during_calculation_aborts_publish(hub_db):
     assert storage.list_team_week_scores(league["id"], 2026, 1) == []
 
 
-def test_native_scoring_keeps_kicker_and_defense_at_zero(hub_db, monkeypatch):
-    league, home, away, _comm = _seed_two_team_league(hub_db)
-    monkeypatch.setattr(
-        "src.draft_hub.hub_scoring.nfl_game_started",
-        lambda *_a, **_k: False,
-    )
-    ensure_team_lineup(league["id"], home["id"], 2026, 1)
-    ensure_team_lineup(league["id"], away["id"], 2026, 1)
+def test_native_scoring_rejects_missing_kicker_statistics(hub_db, monkeypatch):
+    league, home, _away, _comm = _seed_two_team_league(hub_db)
     original = storage.list_week_lineups
-    monkeypatch.setattr(
-        storage,
-        "list_week_lineups",
-        lambda *args: [
-            *original(*args),
-            {
-                "player_id": "kicker",
-                "team_id": home["id"],
-                "position": "K",
-                "lineup_role": "starter",
-                "player_name": "Kicker One",
-            },
-            {
-                "player_id": "dst",
-                "team_id": home["id"],
-                "position": "DEF",
-                "lineup_role": "starter",
-                "player_name": "Team D",
-            },
-        ],
-    )
-    result = apply_week_scores(
-        league["id"],
-        2026,
-        1,
-        stat_index={"wr-a1": {"receptions": 1, "fantasy_points": 1.0}},
-        slate_complete=False,
-    )
-    assert result["scored"] is True
-    by_player = {
-        row["player_id"]: row["points"]
-        for row in storage.list_player_week_scores(league["id"], 2026, 1)
-    }
-    assert by_player["kicker"] == 0
-    assert by_player["dst"] == 0
-    assert by_player["wr-a1"] == 1.0
+    monkeypatch.setattr(storage, "list_week_lineups", lambda *args: [*original(*args),
+        {"player_id": "kicker", "team_id": home["id"], "position": "K", "lineup_role": "starter"}])
+    with pytest.raises(LineupError, match="K scoring statistics are incomplete"):
+        apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"receptions": 1}}, slate_complete=True)
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == []
 
 
 def test_live_calculate_keeps_unplayed_lineup_open(hub_db, monkeypatch):
@@ -1041,3 +1011,63 @@ def test_game_center_refresh_skips_final_week(hub_db, monkeypatch):
         storage.get_week_scoring_run(league["id"], 2026, 1),
         refresh=True,
     ) is False
+
+
+@pytest.mark.parametrize('allowed,expected', [(0,10),(1,7),(6,7),(7,4),(13,4),(14,1),(20,1),(21,0),(27,0),(28,-1),(34,-1),(35,-4)])
+def test_defense_points_allowed_exclusive_bands(allowed, expected):
+    assert fantasy_points_from_stats({'def_points_allowed': allowed}) == expected
+
+
+def test_missing_defense_points_is_not_a_shutout():
+    assert fantasy_points_from_stats({'def_sacks': 2}) == 2
+
+
+def test_custom_kicker_defense_conversions_and_bonuses():
+    rules = ScoringRules(fg_made_50_59=6, def_interceptions=3,
+                         bonus_passing_300=3, bonus_passing_400=5)
+    assert fantasy_points_from_stats({'fg_made_50_59': 2, 'pat_made': 3, 'fg_missed': 1}, rules) == 14
+    assert fantasy_points_from_stats({'def_interceptions': 2, 'def_sacks': 3, 'def_points_allowed': 7}, rules) == 13
+    assert fantasy_points_from_stats({'passing_yards': 401, 'passing_2pt_conversions': 1}, rules) == 23.04
+    assert fantasy_points_from_stats({'passing_yards': 350}, rules) == 17
+
+
+def test_specialist_stats_must_include_every_enabled_rule():
+    from src.draft_hub.hub_scoring import require_position_stats, KICKER_STAT_FIELDS
+    rules = ScoringRules()
+    with pytest.raises(LineupError, match='incomplete'):
+        require_position_stats('K', {'pat_made': 2}, rules)
+    raw = {key: 0 for key in KICKER_STAT_FIELDS}
+    require_position_stats('K', raw, rules)
+    raw['fg_made_40_49'] = 2
+    assert fantasy_points_from_stats(raw, rules) == 8
+
+
+def test_frontend_and_backend_scoring_defaults_match():
+    import json
+    import subprocess
+    from pathlib import Path
+    result = subprocess.run(['node', '--input-type=module', '-e',
+        "import {DEFAULT_SCORING} from './frontend/src/DraftHub/rulesPresentation.js'; console.log(JSON.stringify(DEFAULT_SCORING));"],
+        cwd=Path(__file__).resolve().parents[1], check=True, capture_output=True, text=True)
+    assert json.loads(result.stdout) == ScoringRules().model_dump()
+
+def test_native_specialist_scores_save_custom_rules_atomically(hub_db, monkeypatch):
+    from src.draft_hub.hub_scoring import KICKER_STAT_FIELDS, DEFENSE_STAT_FIELDS
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    raw = storage.get_league(league['id'])['rules']
+    raw['scoring'].update(fg_made_50_59=6, def_sacks=2)
+    storage.update_league_rules(league['id'], LeagueRules.model_validate(raw))
+    for team, pid, position in [(home, 'k', 'K'), (away, 'dst', 'DEF')]:
+        storage.replace_team_lineup(league['id'], team['id'], 2026, 1,
+            [{'player_id': pid, 'position': position, 'slot': position+'1', 'lineup_role': 'starter'}])
+    monkeypatch.setattr('src.draft_hub.hub_scoring.nfl_week_slate_complete', lambda *a, **kw: True)
+    kicker = {key: 0 for key in KICKER_STAT_FIELDS}
+    kicker['fg_made_50_59'] = 2
+    defense = {key: 0 for key in DEFENSE_STAT_FIELDS}
+    defense.update(def_sacks=3, def_points_allowed=7)
+    result = apply_week_scores(league['id'], 2026, 1, stat_index={'k': kicker, 'dst': defense})
+    assert result['scored']
+    scores = {row['team_id']: row['points'] for row in storage.list_team_week_scores(league['id'], 2026, 1)}
+    assert scores == {home['id']: 12, away['id']: 10}
+    assert storage.get_week_scoring_run(league['id'], 2026, 1)['scoring']['def_sacks'] == 2
+    assert all(row['locked'] for row in storage.list_week_lineups(league['id'], 2026, 1))

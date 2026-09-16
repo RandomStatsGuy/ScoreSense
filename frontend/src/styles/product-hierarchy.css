@@ -562,6 +562,21 @@ button.btn-link.hub-league-switcher-create:hover {
   gap: 0.75rem;
 }
 
+.hub-rules-scoring-group {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: var(--space-5) 0;
+}
+
+.hub-rules-scoring-group > legend {
+  padding: 0;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .hub-rules-field-grid--foundation {
   grid-template-columns: minmax(14rem, 1.5fr) minmax(7rem, 0.65fr) minmax(9rem, 0.8fr);
 }
