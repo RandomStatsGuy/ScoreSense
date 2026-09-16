@@ -76,9 +76,14 @@ def correction_context(league_id, season, week, actor):
         state = _state(conn, league_id, season, week)
         _authorize(state, actor)
     rules = LeagueRules.model_validate(json.loads(state["league"]["rules_json"]))
+    from src.draft_hub.owner_display import attach_owner_names_to_teams
+    teams = attach_owner_names_to_teams(league_id, [dict(team) for team in state["teams"]], season_year=season)
     return {"league_id": league_id, "season": season, "week": week,
-            "teams": [{"id": team["id"], "name": team["name"]} for team in state["teams"]],
+            "teams": [{"id": team["id"], "name": team["name"], "owner_name": team.get("owner_name")} for team in teams],
             "lineups": state["lineups"], "slots": hub_scoring._starter_capacity(rules),
+            "slot_positions": {slot: [position for position in ("QB", "RB", "WR", "TE", "K", "DEF")
+                                      if hub_scoring.slot_accepts_position(f"{slot}1", position, rules)]
+                               for slot in hub_scoring._starter_capacity(rules)},
             "incomplete_team_ids": [team["id"] for team in state["teams"]
                                     if not any(row["team_id"] == team["id"] for row in state["lineups"])],
             "revision": _digest(state), "standings": _standings(state, state["scores"])}

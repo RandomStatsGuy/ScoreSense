@@ -1,0 +1,24 @@
+/* Approved team-scoped historical lineup editor. */
+.correction-toolbar, .correction-player-row { display:flex; align-items:center; gap:var(--space-3); }
+.correction-toolbar { flex-wrap:wrap; margin-block:var(--space-4); }
+.correction-toolbar input { width:5rem; }
+.correction-workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(16rem,22rem); gap:var(--space-5); align-items:start; }
+.correction-card { min-width:0; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-5); }
+.correction-card h3 { margin:0 0 var(--space-3); }
+.correction-card p { margin:0 0 var(--space-4); }
+.correction-player-row { padding-block:var(--space-3); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.correction-slot { width:3rem; color:var(--text-secondary); font-size:var(--text-xs); }
+.correction-player { flex:1; min-width:7rem; }
+.correction-player strong, .correction-player span { display:block; }
+.correction-player span { color:var(--text-secondary); font-size:var(--text-xs); margin-top:var(--space-1); }
+.correction-card label, .correction-toolbar label { display:flex; flex-direction:column; gap:var(--space-2); }
+.correction-card input:not([type=checkbox]), .correction-card textarea { width:100%; min-width:0; font:inherit; color:var(--text-primary); background:var(--bg-subtle); border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:var(--space-3); }
+.correction-card textarea { min-height:7rem; resize:vertical; }
+.correction-card summary { padding-block:var(--space-3); cursor:pointer; min-height:var(--control-h-lg); }
+.correction-search, .correction-advanced-row { margin-top:var(--space-5); display:flex; flex-direction:column; gap:var(--space-3); }
+.correction-card .correction-ack { flex-direction:row; align-items:flex-start; margin-block:var(--space-4); }
+.correction-ack input { flex-shrink:0; }
+.correction-results { overflow-x:auto; }
+.correction-results table { width:100%; }
+.correction-results th:not(:first-child), .correction-results td:not(:first-child) { text-align:right; white-space:nowrap; }
+@media(max-width:760px) { .correction-workspace { grid-template-columns:minmax(0,1fr); } .correction-card { padding:var(--space-4); } }
