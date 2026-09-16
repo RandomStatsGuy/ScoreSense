@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import AnalyticsListener from "./AnalyticsListener";
 import AppRouter from "./AppRouter";
 import AuthGate from "./AuthGate";
+import PageRecoveryBoundary from "./PageRecoveryBoundary";
 import "./styles.css";
 import "./styles/product-hierarchy.css";
 import "./styles/projections-experience.css";
@@ -16,9 +17,9 @@ createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <AnalyticsListener />
-      <AuthGate>
+      <PageRecoveryBoundary><AuthGate>
         <AppRouter />
-      </AuthGate>
+      </AuthGate></PageRecoveryBoundary>
     </BrowserRouter>
   </React.StrictMode>
 );
