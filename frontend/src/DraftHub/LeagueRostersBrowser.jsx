@@ -1,3 +1,4 @@
+import { readRosterState, writeRosterState } from "./rosterBoardState";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
@@ -63,27 +64,35 @@ function Difference({
   const delta = rosterDifference(row);
   return <span className={`rosters-difference ${delta == null || delta === 0 ? "" : delta < 0 ? "is-below" : "is-above"}`}>{delta != null && delta !== 0 && <i aria-hidden="true" />}{rosterDifferenceLabel(row)}</span>;
 }
-export default function LeagueRostersBrowser({
+export default function LeagueRostersBrowser(props) {
+  return <RosterBoard key={props.leagueId} {...props} />;
+}
+
+function RosterBoard({
   leagueId,
   hubContext,
   onNavigateTrade,
   onOpenContractHistory
 }) {
+  const [initial] = useState(() => readRosterState(leagueId));
   const mobileLayout = useMobileLayout();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exportError, setExportError] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [view, setView] = useState("deals");
-  const [teamId, setTeamId] = useState("");
-  const [query, setQuery] = useState("");
-  const [position, setPosition] = useState("");
-  const [value, setValue] = useState("all");
-  const [sort, setSort] = useState("difference");
-  const [page, setPage] = useState(0);
-  const [selectedKey, setSelectedKey] = useState(null);
-  const [closed, setClosed] = useState(false);
+  const [view, setView] = useState(initial.view);
+  const [teamId, setTeamId] = useState(initial.teamId);
+  const [query, setQuery] = useState(initial.query);
+  const [position, setPosition] = useState(initial.position);
+  const [value, setValue] = useState(initial.value);
+  const [sort, setSort] = useState(initial.sort);
+  const [page, setPage] = useState(initial.page);
+  const [selectedKey, setSelectedKey] = useState(initial.selectedKey);
+  const [closed, setClosed] = useState(initial.closed);
+  useEffect(() => {
+    writeRosterState(leagueId, { view, teamId, query, position, value, sort, page, selectedKey, closed });
+  }, [leagueId, view, teamId, query, position, value, sort, page, selectedKey, closed]);
   const request = useRef(0);
   const rowButtons = useRef(new Map());
   const detailHeading = useRef(null);
@@ -111,13 +120,6 @@ export default function LeagueRostersBrowser({
   }, [leagueId]);
   useEffect(() => {
     setOverview(null);
-    setTeamId("");
-    setQuery("");
-    setPosition("");
-    setValue("all");
-    setPage(0);
-    setSelectedKey(null);
-    setClosed(false);
     setExportError("");
     load();
     return () => {
