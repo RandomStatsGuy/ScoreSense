@@ -91,6 +91,50 @@ def test_fair_value_for_te_falls_back_to_wr_pool():
     assert fair > 0
 
 
+def test_fair_value_for_row_matches_name_when_roster_uses_sleeper_id():
+    from src.draft_hub.auction_values import fair_value_for_row
+
+    rules = _rules()
+    pool = pd.DataFrame([
+        {"player_id": "00-0038542", "Player": "Bijan Robinson", "Position": "RB", "Season Proj": 260},
+        {"player_id": "rb-2", "Player": "Other Back", "Position": "RB", "Season Proj": 220},
+    ])
+    roster_row = {
+        "player_id": "sleeper-9509",
+        "player_name": "Bijan Robinson",
+        "position": "RB",
+        "salary": 37,
+    }
+
+    fair = fair_value_for_row(roster_row, pool, rules, team_count=10)
+
+    assert fair == fair_auction_value(
+        0,
+        auction_relevant_count("RB", 10, rules),
+        "RB",
+        rules,
+        team_count=10,
+    )
+    assert fair != roster_row["salary"]
+
+
+def test_fair_value_for_row_does_not_use_salary_when_player_is_missing():
+    from src.draft_hub.auction_values import fair_value_for_row
+
+    rules = _rules()
+    pool = pd.DataFrame([
+        {"player_id": "known", "Player": "Known Player", "Position": "WR", "Season Proj": 200},
+    ])
+    roster_row = {
+        "player_id": "sleeper-missing",
+        "player_name": "Missing Player",
+        "position": "WR",
+        "salary": 18,
+    }
+
+    assert fair_value_for_row(roster_row, pool, rules, team_count=10) is None
+
+
 def test_upside_skew_matches_frontend_formula():
     # (280-210)/(210-140) = 70/70 = 1.0
     assert upside_skew(140, 210, 280) == 1.0

@@ -8,7 +8,7 @@ from src.draft_hub import storage
 from src.draft_hub.draft_pool_cache import pool_fingerprint
 
 # Bump when fair-value math changes so stored snapshots invalidate.
-FAIR_VALUE_ALGO = "v2-roster-min"
+FAIR_VALUE_ALGO = "v3-player-identity"
 
 
 def _fair_fingerprint() -> str:
