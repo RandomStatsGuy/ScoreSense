@@ -851,9 +851,13 @@ def mark_waived_not_on_sleeper(league_id: str) -> dict[str, Any]:
     from src.draft_hub import storage
     from src.draft_hub.league_sleeper_sync import fetch_all_linked_rosters, resolve_sleeper_league_id
 
+    from src.draft_hub.sleeper_sync_mode import SKIPPED_PAUSED, sleeper_sync_paused
+
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
+    if sleeper_sync_paused(league_id):
+        return {"waived": 0, "skipped": SKIPPED_PAUSED}
     ws_id = storage.roster_workspace_for_league(league)
     sleeper_league_id = resolve_sleeper_league_id(league_id)
     if not sleeper_league_id:

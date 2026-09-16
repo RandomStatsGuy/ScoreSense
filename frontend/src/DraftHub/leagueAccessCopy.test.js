@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   CREATE_LEAGUE_VALUE,
   LEAGUE_CREATE_COPY,
+  SLEEPER_SYNC_PAUSE_COPY,
   SLEEPER_UNLINK_COPY,
+  sleeperSyncPaused,
   sleeperUnlinkSummary,
   SOLO_VALUE,
   interpretLeagueSwitcherValue,
@@ -238,6 +240,25 @@ test("size preview explains explicit removal and open capacity", () => {
   assert.equal(addFranchiseLabel({ configured: 12, actual: 8 }), "Add team to open seat");
   assert.equal(canAddSeat({ configured: 20, actual: 20 }), false);
   assert.match(removeFranchiseConfirm("Alex", { consequences: ["League becomes 7 teams."] }), /Remove Alex.*7 teams/);
+});
+
+test("sleeper sync pause reads the league row before hub context", () => {
+  assert.equal(sleeperSyncPaused({ overview: { league: { sleeper_sync_mode: "off" } } }), true);
+  assert.equal(
+    sleeperSyncPaused({
+      overview: { league: { sleeper_sync_mode: "live" } },
+      hubContext: { sleeper_sync_paused: true },
+    }),
+    false,
+  );
+  assert.equal(sleeperSyncPaused({ hubContext: { sleeper_sync_paused: true } }), true);
+  assert.equal(sleeperSyncPaused({}), false);
+});
+
+test("sleeper sync pause copy names the effect, not a permission", () => {
+  assert.match(SLEEPER_SYNC_PAUSE_COPY.pausedSupport, /stay exactly as they are/);
+  assert.match(SLEEPER_SYNC_PAUSE_COPY.liveSupport, /move contracts between teams/);
+  assert.doesNotMatch(Object.values(SLEEPER_SYNC_PAUSE_COPY).join(" "), /permission|Submit/);
 });
 
 test("sleeper unlink copy says ScoreSense takes over lineups", () => {

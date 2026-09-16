@@ -6,7 +6,12 @@ import MobileDataList from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import { HubFilterMenu } from "./HubUILayout";
 import { OFFICE_CONTRACTS_COPY } from "./officeContractsPresentation";
-import { SLEEPER_UNLINK_COPY, sleeperUnlinkSummary } from "./leagueAccessCopy";
+import {
+  SLEEPER_SYNC_PAUSE_COPY,
+  SLEEPER_UNLINK_COPY,
+  sleeperSyncPaused,
+  sleeperUnlinkSummary,
+} from "./leagueAccessCopy";
 
 export default function LeagueSleeperConnect({ leagueId, hubContext, overview, onConnected }) {
   const linkedLeagueId = overview?.league?.sleeper_league_id || hubContext?.sleeper_league_id || "";
@@ -29,7 +34,16 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
   const [unlinkPreview, setUnlinkPreview] = useState(null);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
   const [keepRosters, setKeepRosters] = useState(false);
+  const serverPaused = sleeperSyncPaused({ overview, hubContext });
+  const [paused, setPaused] = useState(serverPaused);
+  const [pauseBusy, setPauseBusy] = useState(false);
   const mobileLayout = useMobileLayout();
+
+  useEffect(() => {
+    setPaused(serverPaused);
+  }, [serverPaused]);
+
+  const keepSleeperRosters = keepRosters || paused;
 
   useEffect(() => {
     setSleeperLeagueId(linkedLeagueId);
@@ -141,15 +155,39 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
       setMsg(
-        `Synced ${data.teams_synced ?? 0} team(s) from Sleeper`
-        + (data.trade_count ? ` · ${data.trade_count} contract move(s)` : "")
-        + ".",
+        data.sleeper_sync_paused
+          ? data.message
+          : `Synced ${data.teams_synced ?? 0} team(s) from Sleeper`
+            + (data.trade_count ? ` · ${data.trade_count} contract move(s)` : "")
+            + ".",
       );
       onConnected?.(data);
     } catch (e) {
       setError(e.message || "Could not sync from Sleeper");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const setSyncPaused = async (nextPaused) => {
+    setPauseBusy(true);
+    setError("");
+    setMsg("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/sleeper/sync-mode`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: nextPaused ? "off" : "live" }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const data = await res.json();
+      setPaused(Boolean(data.sleeper_sync?.paused));
+      setMsg(data.sleeper_sync?.paused ? SLEEPER_SYNC_PAUSE_COPY.pausedDone : SLEEPER_SYNC_PAUSE_COPY.resumedDone);
+      onConnected?.(data);
+    } catch (e) {
+      setError(e.message || "Could not change Sleeper roster sync");
+    } finally {
+      setPauseBusy(false);
     }
   };
 
@@ -178,7 +216,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ clear_sleeper_roster: !keepRosters }),
+          body: JSON.stringify({ clear_sleeper_roster: !keepSleeperRosters }),
         },
       );
       if (!res.ok) throw new Error(await parseApiError(res));
@@ -211,9 +249,10 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
           <p className="chart-note">
             Import to add all teams and rosters.
           </p>
-          <button type="button" className="btn-primary" onClick={connectAll} disabled={connecting || loading}>
+          <button type="button" className="btn-primary" onClick={connectAll} disabled={connecting || loading || paused}>
             {connecting ? "Importing…" : `Import all ${sleeperTeamCount} Sleeper teams`}
           </button>
+          {paused && <p className="chart-note">{SLEEPER_SYNC_PAUSE_COPY.importPaused}</p>}
         </div>
       )}
 
@@ -222,12 +261,16 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
           <span className="hub-roster-cap-pill hub-roster-cap-pill-ok">
             {OFFICE_CONTRACTS_COPY.sleeperLinked(linkedCount, hubTeamCount)}
           </span>
-          <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
-            {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
-          </button>
-          <p className="chart-note hub-sleeper-refresh-support">
-            {OFFICE_CONTRACTS_COPY.refreshSupport}
-          </p>
+          {!paused && (
+            <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
+              {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
+            </button>
+          )}
+          {!paused && (
+            <p className="chart-note hub-sleeper-refresh-support">
+              {OFFICE_CONTRACTS_COPY.refreshSupport}
+            </p>
+          )}
         </div>
       )}
 
@@ -239,12 +282,40 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
           <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams(linkedLeagueId)} disabled={loading}>
             {loading ? "Loading…" : "Check Sleeper status"}
           </button>
-          <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
-            {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
-          </button>
-          <p className="chart-note hub-sleeper-refresh-support">
-            {OFFICE_CONTRACTS_COPY.refreshSupport}
+          {!paused && (
+            <button type="button" className="btn-ghost" onClick={syncAll} disabled={syncing}>
+              {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
+            </button>
+          )}
+          {!paused && (
+            <p className="chart-note hub-sleeper-refresh-support">
+              {OFFICE_CONTRACTS_COPY.refreshSupport}
+            </p>
+          )}
+        </div>
+      )}
+
+      {hasSleeperLink && (
+        <div className="hub-league-sleeper-pause">
+          <h4>{SLEEPER_SYNC_PAUSE_COPY.title}</h4>
+          {paused && (
+            <span className="hub-roster-cap-pill">{SLEEPER_SYNC_PAUSE_COPY.pausedPill}</span>
+          )}
+          <p className="chart-note">
+            {paused ? SLEEPER_SYNC_PAUSE_COPY.pausedSupport : SLEEPER_SYNC_PAUSE_COPY.liveSupport}
           </p>
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={() => setSyncPaused(!paused)}
+            disabled={pauseBusy}
+          >
+            {pauseBusy
+              ? SLEEPER_SYNC_PAUSE_COPY.busy
+              : paused
+                ? SLEEPER_SYNC_PAUSE_COPY.resume
+                : SLEEPER_SYNC_PAUSE_COPY.pause}
+          </button>
         </div>
       )}
 
@@ -297,21 +368,24 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
                 {sleeperUnlinkSummary({
                   teamsLinked: unlinkPreview?.teams_linked ?? linkedCount,
                   rosterRows: unlinkRows,
-                  clearRoster: !keepRosters,
+                  clearRoster: !keepSleeperRosters,
                 })}
               </p>
               <label className="hub-league-sleeper-unlink-keep">
                 <input
                   type="checkbox"
-                  checked={keepRosters}
+                  checked={keepSleeperRosters}
+                  disabled={paused}
                   onChange={(e) => setKeepRosters(e.target.checked)}
                 />
                 {SLEEPER_UNLINK_COPY.keepRosters}
               </label>
-              <p className={keepRosters ? "chart-note" : "chart-note is-warn"}>
-                {keepRosters
-                  ? SLEEPER_UNLINK_COPY.rosterKept
-                  : SLEEPER_UNLINK_COPY.rosterWarning(unlinkRows)}
+              <p className={keepSleeperRosters ? "chart-note" : "chart-note is-warn"}>
+                {paused
+                  ? SLEEPER_SYNC_PAUSE_COPY.unlinkKeepsRosters
+                  : keepSleeperRosters
+                    ? SLEEPER_UNLINK_COPY.rosterKept
+                    : SLEEPER_UNLINK_COPY.rosterWarning(unlinkRows)}
               </p>
               <div className="hub-league-sleeper-unlink-actions">
                 <button
@@ -433,9 +507,10 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             )}
           </details>
 
-          <button type="button" className="btn-primary" onClick={connectAll} disabled={connecting || loading}>
+          <button type="button" className="btn-primary" onClick={connectAll} disabled={connecting || loading || paused}>
             {connecting ? "Connecting…" : needsFullImport ? `Import all ${sleeperTeams.length} teams` : "Update links & import rosters"}
           </button>
+          {paused && <p className="chart-note">{SLEEPER_SYNC_PAUSE_COPY.importPaused}</p>}
         </>
       )}
 

@@ -886,6 +886,7 @@ def _sync_metadata(ctx: dict[str, Any]) -> dict[str, Any]:
     synced_at: str | None = None
     linked = False
     sync_endpoint: str | None = None
+    paused = False
 
     if ctx.get("mode") == "league" and ctx.get("team_id"):
         team = storage.get_team(str(ctx["team_id"]))
@@ -893,7 +894,11 @@ def _sync_metadata(ctx: dict[str, Any]) -> dict[str, Any]:
             synced_at = team.get("sleeper_synced_at")
         linked = bool(ctx.get("sleeper_league_id") and ctx.get("sleeper_roster_id"))
         if ctx.get("league_id"):
-            sync_endpoint = f"/api/hub/league/{ctx['league_id']}/sleeper/sync"
+            from src.draft_hub.sleeper_sync_mode import sleeper_sync_paused
+
+            paused = sleeper_sync_paused(str(ctx["league_id"]))
+            if not paused:
+                sync_endpoint = f"/api/hub/league/{ctx['league_id']}/sleeper/sync"
     else:
         ws = storage.get_workspace_by_id(str(ctx.get("workspace_id") or ""))
         if ws:
@@ -906,6 +911,7 @@ def _sync_metadata(ctx: dict[str, Any]) -> dict[str, Any]:
         "linked": linked,
         "sync_endpoint": sync_endpoint,
         "sync_action": "POST",
+        "paused": paused,
         "note": "Use Sync League explicitly; dashboard load never polls Sleeper.",
     }
 
