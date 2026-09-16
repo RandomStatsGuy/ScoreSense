@@ -157,3 +157,7 @@
  .rosters-cap-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
  .rosters-selected-team { padding:var(--space-4); }
 }
+
+/* PlayerCell supplies position and NFL team for leagues without salary columns. */
+.rosters-board.is-player-view .rosters-table th:first-child { width: 96%; }
+.rosters-board.is-player-view .rosters-table th:last-child { width: 4%; }
