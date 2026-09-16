@@ -144,3 +144,29 @@ def test_manager_display_enrichment_does_not_change_revision(recovery, monkeypat
         return teams
     monkeypatch.setattr("src.draft_hub.owner_display.attach_owner_names_to_teams", enrich)
     assert preview(recovery)["can_publish"]
+
+
+@pytest.mark.parametrize("slot", ["QB", " qb ", "QB1"])
+def test_native_singleton_slots_can_be_previewed(recovery, slot):
+    recovery[3][0]["players"][0]["slot"] = slot
+    result = preview(recovery)
+    assert result["can_publish"]
+    assert all(row["slot"] == "QB1" for row in result["player_scores"])
+
+
+def test_mixed_slot_aliases_still_reject_duplicate_starters(recovery):
+    recovery[3][0]["players"].append({"player_id":"duplicate", "position":"QB", "slot":"QB"})
+    with pytest.raises(corrections.CorrectionError, match="distinct"):
+        preview(recovery)
+
+
+def test_current_players_are_suggestions_not_historical_lineups(recovery, monkeypatch):
+    league_id, home, away, _ = recovery
+    monkeypatch.setattr(storage, "list_league_rosters_by_team", lambda _: {
+        home:[{"player_id":"current", "player_name":"Current QB", "position":"QB", "team":"NE"},
+              {"player_id":"cut", "position":"QB", "roster_status":"cut"}], away:[]})
+    context = corrections.correction_context(league_id,2026,1,"commissioner")
+    assert [row["player_id"] for row in context["current_roster_candidates"][home]] == ["current"]
+    assert context["lineups"] == []
+    assert storage.list_week_lineups(league_id,2026,1) == []
+    assert preview(recovery)["can_publish"]  # suggestions never change revision

@@ -1,4 +1,7 @@
 export const CORRECTIONS_COPY = {
+  currentOptions: count => `${count} current-roster ${count === 1 ? "option" : "options"}`,
+  currentRoster: "From current roster", currentRosterHelp: "These players are on this team now. Add one only if they belonged here in the selected week.",
+  addToBench: week => `Add to Week ${week} bench`,
   undo: "Undo changes",
   manager: "Manager", week: "Week", bench: "Bench", slot: "Slot", position: "Position",
   emptySlot: "Empty", needsPlayer: "Needs a starter", fill: "Fill", destination: "Add to",
@@ -27,7 +30,7 @@ export function correctionTeamRows(context) {
     team_id: team.id,
     players: (context.lineups || []).filter(row => row.team_id === team.id).map(row => ({
       player_id: row.player_id, player_name: row.player_name || "", nfl_team: row.nfl_team || "",
-      position: row.position || "QB", slot: row.slot || "BN",
+      position: row.position || "QB", slot: correctionSlotId(row.slot, context.slots),
     })),
   }));
 }
@@ -61,4 +64,17 @@ export function correctionChanges(before, after) {
         name: next?.player_name || old?.player_name || id, before: old?.slot || "Not on roster", after: next?.slot || "Removed"}];
     });
   });
+}
+
+
+export function correctionSlotId(value, capacity = {}) {
+  const slot = String(value || "BN").trim().toUpperCase();
+  return Number(capacity?.[slot]) === 1 ? `${slot}1` : slot;
+}
+
+export function currentCorrectionCandidates(context, team) {
+  const key = value => String(value || "").replace(/^sleeper-/, "");
+  const existing = new Set((team?.players || []).map(player => key(player.player_id)));
+  return (context?.current_roster_candidates?.[team?.team_id] || []).filter((player, index, all) =>
+    !existing.has(key(player.player_id)) && all.findIndex(row => key(row.player_id) === key(player.player_id)) === index);
 }
