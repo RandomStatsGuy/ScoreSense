@@ -79,6 +79,7 @@ def enrich_league_roster_overview(
                 {
                     **row,
                     "fair_value": fair,
+                    "estimate_status": "projection" if marketable else ("minimum_bid" if fair is not None else "unavailable"),
                     "value_delta": value_delta,
                     "overpay": overpay,
                     "contract_grade": contract_grade,
@@ -110,4 +111,4 @@ def enrich_league_roster_overview(
             }
         )
 
-    return {**overview, "teams": teams_out}
+    return {**overview, "teams": teams_out, "estimate_context": {"season": season or None, "minimum_bid": min_bid}}

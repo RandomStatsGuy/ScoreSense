@@ -1,12 +1,14 @@
+import { readRosterState, writeRosterState } from "./rosterBoardState";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
+import { rosterCoverage } from "./leagueRostersPresentation";
 import useMobileLayout from "../useMobileLayout";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
 import { downloadLeagueWorkbook } from "./leagueWorkbook";
-import { ROSTERS_COPY, ROSTER_BOARD_COPY as C, rosterBoardRows, rosterRowKey, rosterMoney, rosterDifference, rosterDifferenceLabel, rosterContractLabel, ownerLine, nicknameLine, tradeLockReason, expireChipLabel } from "./leagueRostersPresentation";
+import { ROSTERS_COPY, ROSTER_BOARD_COPY as C, rosterBoardRows, rosterEstimateContext, rosterRowKey, rosterMoney, rosterDifference, rosterDifferenceLabel, rosterContractLabel, ownerLine, nicknameLine, tradeLockReason, expireChipLabel } from "./leagueRostersPresentation";
 import "../styles/league-rosters.css";
 
 // Local filter control for the approved board: searchable team list, native buttons,
@@ -63,27 +65,35 @@ function Difference({
   const delta = rosterDifference(row);
   return <span className={`rosters-difference ${delta == null || delta === 0 ? "" : delta < 0 ? "is-below" : "is-above"}`}>{delta != null && delta !== 0 && <i aria-hidden="true" />}{rosterDifferenceLabel(row)}</span>;
 }
-export default function LeagueRostersBrowser({
+export default function LeagueRostersBrowser(props) {
+  return <RosterBoard key={props.leagueId} {...props} />;
+}
+
+function RosterBoard({
   leagueId,
   hubContext,
   onNavigateTrade,
   onOpenContractHistory
 }) {
+  const [initial] = useState(() => readRosterState(leagueId));
   const mobileLayout = useMobileLayout();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exportError, setExportError] = useState("");
   const [exporting, setExporting] = useState(false);
-  const [view, setView] = useState("deals");
-  const [teamId, setTeamId] = useState("");
-  const [query, setQuery] = useState("");
-  const [position, setPosition] = useState("");
-  const [value, setValue] = useState("all");
-  const [sort, setSort] = useState("difference");
-  const [page, setPage] = useState(0);
-  const [selectedKey, setSelectedKey] = useState(null);
-  const [closed, setClosed] = useState(false);
+  const [view, setView] = useState(initial.view);
+  const [teamId, setTeamId] = useState(initial.teamId);
+  const [query, setQuery] = useState(initial.query);
+  const [position, setPosition] = useState(initial.position);
+  const [value, setValue] = useState(initial.value);
+  const [sort, setSort] = useState(initial.sort);
+  const [page, setPage] = useState(initial.page);
+  const [selectedKey, setSelectedKey] = useState(initial.selectedKey);
+  const [closed, setClosed] = useState(initial.closed);
+  useEffect(() => {
+    writeRosterState(leagueId, { view, teamId, query, position, value, sort, page, selectedKey, closed });
+  }, [leagueId, view, teamId, query, position, value, sort, page, selectedKey, closed]);
   const request = useRef(0);
   const rowButtons = useRef(new Map());
   const detailHeading = useRef(null);
@@ -111,13 +121,6 @@ export default function LeagueRostersBrowser({
   }, [leagueId]);
   useEffect(() => {
     setOverview(null);
-    setTeamId("");
-    setQuery("");
-    setPosition("");
-    setValue("all");
-    setPage(0);
-    setSelectedKey(null);
-    setClosed(false);
     setExportError("");
     load();
     return () => {
@@ -139,6 +142,7 @@ export default function LeagueRostersBrowser({
     query,
     position
   }), [blocks, view, teamId, query, position]);
+  const coverage = rosterCoverage(blocks, { teamId, query, position });
   const pages = Math.max(1, Math.ceil(rows.length / 8));
   const currentPage = Math.min(page, pages - 1);
   const visible = rows.slice(currentPage * 8, currentPage * 8 + 8);
@@ -153,7 +157,6 @@ export default function LeagueRostersBrowser({
     setter(next);
     setPage(0);
     setSelectedKey(null);
-    setClosed(false);
   };
   const reset = () => {
     setTeamId("");
@@ -161,7 +164,6 @@ export default function LeagueRostersBrowser({
     setPosition("");
     setValue("all");
     setPage(0);
-    setClosed(false);
   };
   const select = row => {
     setSelectedKey(rosterRowKey(row));
@@ -215,6 +217,8 @@ export default function LeagueRostersBrowser({
     <h2 ref={detailHeading} tabIndex={-1}><PlayerCell name={selected.player_name} playerId={selected.player_id} team={selected.team} position={selected.position} media={media} size="lg" /></h2>
     <p className="rosters-managed">{C.managedBy} <strong>{ownerLine(selected.ownerTeam)}{selected.ownerTeamId === myTeamId ? ` · ${ROSTERS_COPY.you}` : ""}</strong></p>
     <div className="rosters-detail-values"><dl><div><dt>{C.salary}</dt><dd>{rosterMoney(selected.salary)}</dd></div><div><dt>{C.estimate}</dt><dd>{rosterMoney(selected.fair_value)}</dd></div></dl><Difference row={selected} /></div>
+    {selected.estimate_status === "minimum_bid" && <p className="rosters-help">{C.minimumBidHelp}</p>}
+    {selected.fair_value == null && <p className="rosters-help">{C.missingEstimateHelp}</p>}
     <div className="rosters-detail-contract"><span>{C.contract}</span><strong>{rosterContractLabel(selected)}</strong>{expireChipLabel(selected.expire_chip) && <span>{expireChipLabel(selected.expire_chip)}</span>}</div>
     <button className="rosters-primary" disabled={Boolean(disabledReason)} aria-describedby={disabledReason ? "rosters-trade-reason" : undefined} onClick={() => {
       if (disabledReason) return;
@@ -232,6 +236,9 @@ export default function LeagueRostersBrowser({
   </aside>;
   return <section className="rosters-board" aria-labelledby="rosters-heading">
     <header className="rosters-header"><div><h1 id="rosters-heading">{ROSTERS_COPY.heading}</h1><p>{ROSTERS_COPY.support}</p></div><div className="rosters-header-actions"><button className="rosters-control" disabled={!leagueId || loading} onClick={() => load(true)} aria-label={ROSTERS_COPY.refreshLeague}><span aria-hidden="true">↻</span>{loading && overview ? C.refreshing : C.refresh}</button><button className="rosters-control" disabled={!leagueId || exporting} onClick={exportWorkbook}><span aria-hidden="true">↓</span>{exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}</button></div></header>
+    {overview && <div className="rosters-estimate-context"><p>{rosterEstimateContext(overview.estimate_context)}</p>
+      <details><summary>{C.aboutEstimates}</summary><p>{C.estimateBasis}</p></details>
+    </div>}
     {(error || exportError) && <p className="rosters-error" role="alert">{error || exportError}</p>}
     {!leagueId ? <p className="rosters-empty">{C.noLeague}</p> : <>
     <div className="rosters-tabbar"><div className="rosters-tabs" role="tablist" aria-label={ROSTERS_COPY.heading}>{C.tabs.map(tab => <button key={tab.id} id={`rosters-tab-${tab.id}`} role="tab" aria-selected={view === tab.id} aria-controls="rosters-results" tabIndex={view === tab.id ? 0 : -1} onKeyDown={e => {
@@ -244,6 +251,10 @@ export default function LeagueRostersBrowser({
           }} onClick={() => change(setView, tab.id)}>{tab.label}</button>)}</div>{overview && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>
     <div className="rosters-toolbar"><BoardFilter label={C.manager} value={teamId} options={teams} onChange={v => change(setTeamId, v)} searchable /><label className="rosters-search"><span aria-hidden="true">⌕</span><input aria-label={C.search} placeholder={C.search} value={query} onChange={e => change(setQuery, e.target.value)} /></label><BoardFilter label="Position" value={position} options={positions} onChange={v => change(setPosition, v)} /><div className="rosters-segments" role="radiogroup" aria-label={C.difference}>{C.filters.map(f => <button key={f.id} role="radio" aria-checked={value === f.id} tabIndex={value === f.id ? 0 : -1} onKeyDown={e => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) { e.preventDefault(); const index = C.filters.findIndex(item => item.id === value); const next = e.key === "Home" ? 0 : e.key === "End" ? 2 : (index + (e.key === "ArrowRight" ? 1 : 2)) % 3; change(setValue, C.filters[next].id); e.currentTarget.parentElement.children[next]?.focus(); } }} onClick={() => change(setValue, f.id)}>{f.label}</button>)}</div><div className="rosters-sort"><BoardFilter label="Sort by" value={sort} options={C.sorts} onChange={v => change(setSort, v)} /></div></div>
     <p className="rosters-explanation">{C.explanation}</p>
+    {overview && view === "deals" && <div className="rosters-coverage">
+      <p>{C.coverage(coverage)}</p>
+      <button className="rosters-control" onClick={() => { setValue("all"); change(setView, "teams"); }}>{C.showAll}</button>
+    </div>}
     {view === "teams" && block && <div className="rosters-team-summary"><strong>{ownerLine(block.team)}</strong><span>{nicknameLine(block.team)}</span><span>{C.capRoom}: {rosterMoney(block.stats?.unspent)}</span><span>{C.deadCap}: {rosterMoney(block.stats?.dead_cap)}</span>{onNavigateTrade && teamId !== myTeamId && <button className="rosters-control" onClick={() => {
           seedTradePartner(teamId);
           onNavigateTrade();
@@ -258,10 +269,8 @@ export default function LeagueRostersBrowser({
                         select(row);
                       }}><PlayerCell name={row.player_name} playerId={row.player_id} team={row.team} position={row.position} media={media} size="md" /></button></td><td className="rosters-manager-col">{ownerLine(row.ownerTeam)}</td><td className="rosters-num">{rosterMoney(row.salary)}</td><td className="rosters-num rosters-estimate-col">{rosterMoney(row.fair_value)}</td><td className="rosters-num"><Difference row={row} /></td><td className="rosters-contract-col">{rosterContractLabel(row)}</td><td className="rosters-chevron" aria-hidden="true">›</td></tr>{mobileLayout && selected && rosterRowKey(selected) === rosterRowKey(row) && <tr className="rosters-inline-detail"><td colSpan={7}>{detail}</td></tr>}</React.Fragment>)}</tbody></table>{!rows.length && <div className="rosters-empty"><p>{C.noResults}</p><button className="rosters-control" onClick={reset}>{C.reset}</button></div>}<footer className="rosters-pagination"><span role="status">{C.pagination(rows.length ? currentPage * 8 + 1 : 0, Math.min(rows.length, currentPage * 8 + 8), rows.length)}</span><div><button disabled={currentPage === 0} aria-label="Previous page" onClick={() => {
                   setPage(currentPage - 1);
-                  setClosed(false);
                 }}>‹</button><span>{currentPage + 1} / {pages}</span><button disabled={currentPage >= pages - 1} aria-label="Next page" onClick={() => {
                   setPage(currentPage + 1);
-                  setClosed(false);
                 }}>›</button></div></footer></div>{!mobileLayout && detail}</div>}
     </div></>}
   </section>;

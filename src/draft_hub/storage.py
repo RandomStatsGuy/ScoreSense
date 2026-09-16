@@ -5355,6 +5355,19 @@ def get_insights_fair_values(
     return {str(r["player_id"]): float(r["fair_value"]) for r in rows}
 
 
+def get_insights_fair_values_built_at(
+    league_id: str, season: int, pool_fingerprint: str,
+) -> str | None:
+    """Oldest calculation time in the matching saved estimate snapshot."""
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT MIN(built_at) AS built_at FROM insights_fair_values
+               WHERE league_id = ? AND season = ? AND pool_fingerprint = ?""",
+            (str(league_id), int(season), str(pool_fingerprint)),
+        ).fetchone()
+    return row["built_at"] if row else None
+
+
 def upsert_insights_fair_values(
     league_id: str,
     season: int,
