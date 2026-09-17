@@ -67,6 +67,15 @@ export const RULES_COPY = {
   cutRefundHelp: "Dead cap is rounded down to the nearest dollar. Cutting $1 is $0 dead; cutting $7 is $3 dead at 50%.",
 };
 
+export function rulesCopyForFormat(pickDraft) {
+  return pickDraft
+    ? {
+        support: "Set scoring, roster, and draft rules for your league.",
+        saveFootnote: "Saving these rules does not change existing rosters or scored weeks.",
+      }
+    : { support: RULES_COPY.support, saveFootnote: RULES_COPY.saveFootnote };
+}
+
 export const FORMAT_OPTIONS = [
   { id: "auction", label: "Salary cap", hint: "Nominate and bid with contracts." },
   { id: "snake", label: "Snake", hint: "Pick order reverses each round." },

@@ -170,6 +170,15 @@ def test_constitution_covers_auction_leftover() -> None:
     assert "Practice rooms never become strip focus" in core_rule
 
 
+def test_non_salary_leagues_use_roster_language() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    for text in (product, core_rule):
+        assert "Non-salary leagues never show salary, cap, contract" in text
+        assert "roster space" in text
+        assert "positional impact" in text
+
+
 def test_constitution_covers_phone_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     phone_css = _read("frontend", "src", "styles", "fantasy-phone.css")

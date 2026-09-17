@@ -17,6 +17,8 @@ It helps people make decisions, not maintain a database:
 2. **Fantasy** — run a salary-cap (or pick) league: draft, contracts, cap, waivers, trades, rules. Native scoring is ScoreSense PPR; linked Sleeper leagues keep Sleeper as the scoring host.
 3. **Tools** — DFS lineups, mock drafts, and the best ball board.
 
+Non-salary leagues never show salary, cap, contract, dead-cap, or points-per-dollar concepts. Their Fantasy screens use roster space, roster limits, and positional impact instead.
+
 Internal code may still say “Draft Hub.” **Users never should.** The product area is **Fantasy**.
 
 ### What this is not

@@ -40,7 +40,9 @@ export default function WeeklyCommandCenter({
   onNavigate,
   reloadToken,
 }) {
-  const [data, setData] = useState(null);
+  const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
+  const [dataState, setDataState] = useState({ key: "", payload: null });
+  const data = dataState.key === contextKey ? dataState.payload : null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [syncing, setSyncing] = useState(false);
@@ -64,15 +66,15 @@ export default function WeeklyCommandCenter({
       const res = await apiFetch(path, { signal, ...(rebuild ? { method: "POST" } : {}) });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (!signal?.aborted) setData(payload);
+      if (!signal?.aborted) setDataState({ key: contextKey, payload });
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return;
       setError(connectionErrorMessage(e, "Server did not respond — Retry"));
-      if (!rebuild) setData(null);
+      if (!rebuild) setDataState({ key: contextKey, payload: null });
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [weekOverride]);
+  }, [weekOverride, contextKey]);
 
   useEffect(() => {
     const ctrl = new AbortController();
