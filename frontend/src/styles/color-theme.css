@@ -1,4 +1,4 @@
-/* Approved light B: soft canvas, white layers, blue current context, teal health. */
+/* Approved light B: soft canvas, white layers, green current context, teal health. */
 :root[data-theme="light"] {
   color-scheme: light;
   color: var(--text-primary);
@@ -12,9 +12,9 @@
   --text-secondary: #4b5b70;
   --text-muted: #5e6d80;
   --muted: var(--text-muted);
-  --accent: #285fbe;
-  --accent-muted: #285fbe;
-  --accent-soft: #e1ebfc;
+  --accent: #18734e;
+  --accent-muted: #18734e;
+  --accent-soft: #e0f1e8;
   --accent-glow: transparent;
   --tone-positive: #147763;
   --tone-positive-soft: #e4f3ee;
@@ -47,6 +47,8 @@
   --experience-blue: var(--accent);
   --experience-blue-soft: var(--accent-soft);
   --experience-gold: #856013;
+  --team-room-light: #718f79;
+  --team-room-tint: #dfe9e1;
   --slate-950: #edf1f1;
   --slate-900: #fff;
   --slate-800: #e6edf3;
@@ -57,7 +59,7 @@
   --slate-300: #43536a;
   --slate-200: #283b53;
   --slate-100: #18263b;
-  --row-hover-bg: #edf3fe;
+  --row-hover-bg: #e7f3eb;
   --shadow-panel: 0 12px 30px rgba(24, 38, 59, .09);
   --shadow-popover: 0 20px 48px rgba(24, 38, 59, .16);
   /* Compatibility roles let existing dark literals keep their exact defaults. */
@@ -112,30 +114,37 @@
   background: linear-gradient(160deg, var(--accent-soft), var(--bg-elevated) 65%);
 }
 
-/* Team and matchup artwork remains a navy room inside the light application.
-   Re-establish all inherited palette roles so controls inside it remain legible. */
-:root[data-theme="light"] :is(.team-room, .hub-game-room) {
-  color-scheme: dark;
-  --bg-base: #070d17; --bg-elevated: #0d1624; --bg-subtle: #121d2d;
-  --bg: #070d17; --panel-bg: #0d1624; --muted: #95a4b8;
-  --slate-950: #070d17; --slate-900: #0d1624; --slate-800: #172437; --slate-700: #243249;
-  --slate-600: #42536e; --slate-500: #687a94; --slate-400: #95a4b8; --slate-300: #c5cfdd; --slate-200: #dce4ee; --slate-100: #eef3fb;
-  --row-hover-bg: rgba(115,165,255,.1);
-  --theme-negative-soft: initial; --theme-caution-soft: initial; --theme-positive-soft: initial;
-  --surface-raised: #172437; --border: #243249; --border-strong: #33435d;
-  --text-primary: #eef3fb; --text-secondary: #a8b5c7; --text-muted: #7f8fa5;
-  --accent: #4f7fda; --accent-muted: #73a5ff; --accent-soft: rgba(115,165,255,.13);
-  --tone-positive: #34d399; --tone-positive-soft: rgba(52,211,153,.18);
-  --tone-negative: #f87171; --tone-negative-soft: rgba(248,113,113,.16);
-  --tone-caution: #fbbf24; --tone-caution-text: #fde68a; --tone-caution-soft: rgba(251,191,36,.14);
-  --danger: #ef4444; --danger-soft: rgba(239,68,68,.14);
-  --experience-canvas: #09111d; --experience-surface: #101a28;
-  --experience-surface-strong: #142133; --experience-rule: rgba(149,164,184,.2);
-  --experience-blue: #5b8fe8; --experience-blue-soft: rgba(91,143,232,.13); --experience-gold: #d6aa61;
-  --theme-surface: initial; --theme-canvas: initial; --theme-raised: initial;
-  --theme-text: initial; --theme-muted: initial; --theme-blue: initial;
-  --theme-positive: initial; --theme-caution: initial; --theme-negative: initial; --theme-translucent: initial;
-  background-color: #09111d;
+/* Immersive Fantasy rooms inherit light tokens while banners and jerseys keep their artwork colors. */
+:root[data-theme="light"] .team-room {
+  --room-wood: #d7dfd8;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-elevated) 82%, transparent), var(--bg-subtle));
+  color: var(--text-primary);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--room-light) 60%, transparent);
+}
+:root[data-theme="light"] .team-room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(237,241,237,.96) 18rem);
+  pointer-events: none;
+}
+:root[data-theme="light"] .team-room-crest,
+:root[data-theme="light"] .team-room-toolbar [role="group"] button,
+:root[data-theme="light"] .gc-room-jersey {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+}
+:root[data-theme="light"] .hub-game-room {
+  color: var(--text-primary);
+  background: var(--bg-base);
+}
+:root[data-theme="light"] .gc-room-scoreboard,
+:root[data-theme="light"] .gc-room-feature {
+  background: linear-gradient(115deg, var(--bg-elevated), var(--room-tint), var(--bg-elevated));
+}
+:root[data-theme="light"] .gc-room-selected {
+  background: linear-gradient(150deg, var(--accent-soft), var(--bg-elevated));
 }
 
 :root[data-theme="light"] :is(.btn.primary, .btn-primary) { background: var(--accent); color: #fff; }
