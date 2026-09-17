@@ -4,7 +4,6 @@ import {
   MY_TEAM_COPY as COPY,
   roomNumber,
   roomDelta,
-  roomResult,
 } from "./rosterPresentation";
 import { JerseySvg } from "./LockerRoomScene";
 import { nflTeamColors } from "./nflTeamColors";
@@ -73,7 +72,6 @@ export function TeamRoomView({
   const shareUrl = data.share_token
     ? `${location.origin}/team-room/${data.share_token}`
     : "";
-  const Scoreboard = matchupHref ? "a" : "div";
   return (
     <section
       className={`team-room team-room--${data.theme || "none"}`}
@@ -85,6 +83,7 @@ export function TeamRoomView({
         }
       }}
     >
+      <MatchupBannerArt identity={identityFor(identities, data.team)} variant="room" />
       <div className="team-room-orbits" aria-hidden="true">
         <i />
         <i />
@@ -166,32 +165,6 @@ export function TeamRoomView({
           )}
         </div>
       )}
-      <Scoreboard className="team-room-scoreboard" href={matchupHref} aria-label={matchupHref ? COPY.openGameCenter : undefined}>
-        <MatchupBannerArt identity={identityFor(identities, data.team)} />
-        <div>
-          <span>{data.team.name}</span>
-          <strong key={data.score}>{roomNumber(data.score)}</strong>
-        </div>
-        <div className="team-room-score-context">
-          <span>
-            {data.season} · Week {data.week}
-          </span>
-          <b className={`team-room-state team-room-state--${data.state}`}>
-            {COPY.roomStates[data.state] || COPY.roomStates.unknown}
-          </b>
-          <p>
-            {roomResult(data) ||
-              (data.opponent
-                ? "Scores appear after kickoff"
-                : "Opponent not available")}
-          </p>
-        </div>
-        <div>
-          <span>{data.opponent?.name || "Opponent"}</span>
-          <strong>{roomNumber(data.opponent?.score)}</strong>
-        </div>
-        {matchupHref && <span className="team-room-matchup-link">{COPY.openGameCenter} <span aria-hidden="true">→</span></span>}
-      </Scoreboard>
       <div className="team-room-toolbar">
         <HubFilterMenu
           label="Week"
@@ -225,6 +198,7 @@ export function TeamRoomView({
         <span className="team-room-freshness">
           {formatSyncedAgo(data.synced_at)}
         </span>
+        {matchupHref && <a className="team-room-matchup-link" href={matchupHref}>{COPY.openGameCenter} <span aria-hidden="true">→</span></a>}
       </div>
       {!hasStarters && section === "starters" && (
         <div className="team-room-empty">
