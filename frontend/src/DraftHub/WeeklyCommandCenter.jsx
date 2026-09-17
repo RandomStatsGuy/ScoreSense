@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
@@ -14,6 +14,7 @@ import {
 } from "./projectionCoverage";
 import WeekLineupBoard from "./WeekLineupBoard";
 import WeekLineupCallSheet from "./WeekLineupCallSheet";
+import WeekLineupPicker from "./WeekLineupPicker";
 import { usePlayerMedia } from "../PlayerCell";
 import { loadAura, readAura, saveAura, storageKey, vibeScore } from "./vibeAura";
 import {
@@ -24,6 +25,8 @@ import {
   decisionSwapIds,
   formatDraftNightShort,
   WEEK_BOARD_COPY,
+  LINEUP_PICKER_COPY,
+  eligibleLineupReplacements,
   callSheetPlayers,
   weekHeroCopy,
   weekPrimaryAction,
@@ -49,11 +52,23 @@ export default function WeeklyCommandCenter({
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
   const [weekOverride, setWeekOverride] = useState("");
-  const [selectedBenchId, setSelectedBenchId] = useState("");
+  const mutationScope = `${contextKey}:${weekOverride}`;
+  const mutationScopeRef = useRef(mutationScope);
+  mutationScopeRef.current = mutationScope;
+  const [pickerSlot, setPickerSlot] = useState(null);
+  const [lineupMessage, setLineupMessage] = useState("");
   const [openCall, setOpenCall] = useState(null);
   const [lineupBusy, setLineupBusy] = useState(false);
   const [lineupError, setLineupError] = useState("");
   const [auraById, setAuraById] = useState({});
+
+  useEffect(() => {
+    setPickerSlot(null);
+    setLineupBusy(false);
+    setOpenCall(null);
+    setLineupError("");
+    setLineupMessage("");
+  }, [contextKey, weekOverride]);
 
   const load = useCallback(async (signal, { rebuild = false } = {}) => {
     setLoading(true);
@@ -274,14 +289,18 @@ export default function WeeklyCommandCenter({
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      setSelectedBenchId("");
+      if (mutationScopeRef.current !== mutationScope) return false;
+      setPickerSlot(null);
       await load();
+      return true;
     } catch (e) {
+      if (mutationScopeRef.current !== mutationScope) return false;
       setLineupError(connectionErrorMessage(e));
+      return false;
     } finally {
-      setLineupBusy(false);
+      if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, slots, weekOverride]);
+  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope]);
 
   const applySwap = useCallback(async (starterId, benchId) => {
     if (!leagueId || !starterId || !benchId) return;
@@ -298,15 +317,19 @@ export default function WeeklyCommandCenter({
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      setSelectedBenchId("");
+      if (mutationScopeRef.current !== mutationScope) return false;
+      setPickerSlot(null);
       setOpenCall(null);
       await load();
+      return true;
     } catch (e) {
+      if (mutationScopeRef.current !== mutationScope) return false;
       setLineupError(connectionErrorMessage(e));
+      return false;
     } finally {
-      setLineupBusy(false);
+      if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, weekOverride]);
+  }, [leagueId, load, meta.week, weekOverride, mutationScope]);
 
   const runPrimary = () => {
     if (primary.kind === "sync" || primary.kind === "strip-sync") return undefined;
@@ -406,29 +429,26 @@ export default function WeeklyCommandCenter({
     weekPlaceholder: meta.week != null ? String(meta.week) : "auto",
     onWeekChange: (week) => setWeekOverride(String(week)),
     overlayActions: loading && !data ? null : overlayActions,
-    coverageActions: openCall ? null : coverageActions,
+    coverageActions: openCall || pickerSlot ? null : coverageActions,
     refreshAction: () => load(undefined, { rebuild: true }),
     refreshing: loading,
     canEdit: canEdit && !lineupBusy,
     lineupLocked: Boolean(meta.lineup_locked),
     sleeperLeagueId,
-    selectedBenchId,
-    onSelectBench: (player) => {
-      const pid = String(player?.player_id || "");
-      setSelectedBenchId((cur) => (cur === pid ? "" : pid));
-    },
-    onSelectSlot: (slot) => {
-      const starterId = slot?.player?.player_id;
-      if (selectedBenchId && starterId) {
-        applySwap(starterId, selectedBenchId);
-      }
+    selectedSlotKey: pickerSlot?.key || pickerSlot?.slot || "",
+    onOpenSlot: (slot) => {
+      setOpenCall(null);
+      setLineupError("");
+      setLineupMessage("");
+      setPickerSlot(slot);
     },
     onNavigate,
     onFillSlot: (slot) => {
       const action = emptySlotAction(slot, bench, hubContext?.rules || data?.hub_context?.rules);
-      if (action.kind === "bench" && action.player) {
-        if (canEdit) applyFill(slot, action.player);
-        else setSelectedBenchId(String(action.player.player_id));
+      if (eligibleLineupReplacements(slot, bench, hubContext?.rules || data?.hub_context?.rules).length) {
+        setLineupError("");
+        setLineupMessage("");
+        setPickerSlot(slot);
         return;
       }
       onNavigate?.("available", { pos: action.pos });
@@ -437,12 +457,12 @@ export default function WeeklyCommandCenter({
       const ids = decisionSwapIds(decision);
       if (ids) applySwap(ids.starter_player_id, ids.bench_player_id);
     },
-    onOpenCall: (decision) => setOpenCall(decision),
+    onOpenCall: (decision) => { setPickerSlot(null); setOpenCall(decision); },
     media,
   };
 
   return (
-    <HubPage className={`hub-wcc hub-experience-page${openCall ? " is-call-open" : ""}`}>
+    <HubPage className={`hub-wcc hub-experience-page${openCall || pickerSlot ? " is-call-open" : ""}`}>
       <HubExperienceHero
         eyebrow="This week"
         heading={hero.heading}
@@ -463,7 +483,7 @@ export default function WeeklyCommandCenter({
             subtitle={weekLabel + (meta.season != null ? ` · ${meta.season}` : "")}
             items={railItems}
             note={railNote}
-            action={openCall ? null : primary.kind === "strip-sync" ? (
+            action={openCall || pickerSlot ? null : primary.kind === "strip-sync" ? (
               <p className="hub-experience-summary-note">Use Sync league in the league strip.</p>
             ) : primary.kind && primary.kind !== "none" && primary.kind !== "wait" ? (
               <button
@@ -487,7 +507,8 @@ export default function WeeklyCommandCenter({
         {error && <div className="error">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
         {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
-        {lineupError && <div className="error">{lineupError}</div>}
+        {lineupError && !pickerSlot && <div className="error" role="alert">{lineupError}</div>}
+        {lineupMessage && <p className="hub-wcc-lineup-saved" role="status">{lineupMessage}</p>}
         {meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
           <p className="chart-note">{WEEK_BOARD_COPY.projectionDefaults}</p>
         )}
@@ -496,6 +517,20 @@ export default function WeeklyCommandCenter({
         <WeekLineupBoard {...boardProps} includeBench={false} />
 
       </HubExperienceLayout>
+      {pickerSlot && <WeekLineupPicker
+        key={`${contextKey}:${meta.week}:${pickerSlot.key || pickerSlot.slot}`}
+        slot={pickerSlot} bench={bench} rules={hubContext?.rules || data?.hub_context?.rules}
+        media={media} canEdit={canEdit} lineupLocked={Boolean(meta.lineup_locked)}
+        staffOverride={Boolean(hubContext?.is_commissioner || data?.hub_context?.is_commissioner)}
+        sleeperLeagueId={sleeperLeagueId} busy={lineupBusy} error={lineupError}
+        onClose={() => { if (!lineupBusy) setPickerSlot(null); }} onNavigate={onNavigate}
+        onApply={async (slot, player) => {
+          const saved = slot.player?.player_id
+            ? await applySwap(slot.player.player_id, player.player_id)
+            : await applyFill(slot, player);
+          if (saved && mutationScopeRef.current === mutationScope) setLineupMessage(LINEUP_PICKER_COPY.saved(player.player_name || player.player_id, slot.slot));
+        }}
+      />}
       {openCall ? (
         <WeekLineupCallSheet
           decision={openCall}
