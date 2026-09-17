@@ -106,6 +106,7 @@ export default function RulesWizard({
   const [status, setStatus] = useState({ kind: "", text: "" });
   const [savedAt, setSavedAt] = useState(null);
   const [undo, setUndo] = useState(null);
+  const [category, setCategory] = useState("scoring");
   const sourceKeyRef = useRef("");
   const dirtyRef = useRef(false);
 
@@ -165,6 +166,8 @@ export default function RulesWizard({
   }));
 
   const pickDraft = isPickDraft(rules);
+  const categories = RULES_COPY.categories.filter((item) => !pickDraft || !item.salaryOnly);
+  const activeCategory = categories.some((item) => item.id === category) ? category : "foundation";
   const errors = useMemo(
     () => validateLeagueSettings({ name, season, rules }),
     [name, season, rules],
@@ -173,6 +176,11 @@ export default function RulesWizard({
     () => rulesFormWarnings({ rules, roster }),
     [rules, roster],
   );
+  const errorCategory = (key) => key.startsWith("scoring.") ? "scoring"
+    : key.startsWith("roster_") ? "roster"
+    : ["name", "season", "salary_cap"].includes(key) ? "foundation"
+    : ["min_bid", "nomination_timer_sec", "bid_timer_sec", "bid_extension_sec"].includes(key) ? "draft" : "contracts";
+  const categoryErrorCount = (id) => Object.keys(errors).filter((key) => errorCategory(key) === id).length;
   const warningList = Object.values(warnings);
   const errorCount = Object.keys(errors).length;
   const saveReason = rulesSaveDisabledReason({ dirty, saving, errorCount });
@@ -285,7 +293,7 @@ export default function RulesWizard({
       message: templateConfirmMessage(preset, rules),
       confirmLabel: RULES_COPY.templateConfirm,
       cancelLabel: RULES_COPY.keepEditing,
-      danger: true,
+      danger: false,
     });
     if (!ok) return;
     setUndo({
@@ -307,22 +315,6 @@ export default function RulesWizard({
     setStatus({ kind: "", text: "" });
   };
 
-  const saveControls = !readOnlyRules && (
-    <>
-      <p className="hub-rules-summary-note">{formatCopy.saveFootnote}</p>
-      <button
-        type="button"
-        className="btn-primary hub-rules-save"
-        disabled={saveDisabled}
-        onClick={save}
-      >
-        {saving ? RULES_COPY.saving : RULES_COPY.save}
-      </button>
-      {saveReason ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
-      {lastSavedLabel ? <p className="hub-rules-last-saved">{lastSavedLabel}</p> : null}
-    </>
-  );
-
   return (
     <HubPage className="hub-rules-center">
       <header className="hub-rules-hero">
@@ -337,8 +329,27 @@ export default function RulesWizard({
       </header>
 
       <div className="hub-rules-layout">
+        <nav className="hub-rules-category-nav" aria-label={RULES_COPY.categoryTitle}>
+          <strong>{RULES_COPY.categoryTitle}</strong>
+          {categories.map((item) => (
+            <button key={item.id} type="button" aria-pressed={activeCategory === item.id} onClick={() => setCategory(item.id)}>
+              <span>{item.label}</span>{categoryErrorCount(item.id) > 0 && <small>{RULES_COPY.categoryErrors(categoryErrorCount(item.id))}</small>}
+            </button>
+          ))}
+          {presets.length > 0 && !readOnlyRules ? (
+            <details className="hub-rules-category-templates">
+              <summary>{RULES_COPY.templatesTitle}</summary>
+              <p>{RULES_COPY.templatesHelp}</p>
+              {presets.map((preset) => (
+                <button key={preset.id} type="button" className="btn-ghost btn-sm" disabled={saving} onClick={() => applyPreset(preset)}>
+                  {preset.label}
+                </button>
+              ))}
+            </details>
+          ) : null}
+        </nav>
         <div className="hub-rules-sections">
-          <section className="hub-rules-section" aria-labelledby="rules-scoring-title">
+          <section hidden={activeCategory !== "scoring"} className="hub-rules-section" aria-labelledby="rules-scoring-title">
             <header className="hub-rules-section-head">
               <span>01</span>
               <div>
@@ -352,7 +363,9 @@ export default function RulesWizard({
             ) : (
               <>
                 <p className="chart-note">{SCORING_COPY.receptionHelp}</p>
-                {SCORING_GROUPS.map((group) => (
+                {SCORING_GROUPS.map((group, index) => (
+                  <details key={group.label} className="hub-rules-scoring-disclosure" open={index === 0 || group.fields.some(([key]) => errors[`scoring.${key}`])}>
+                    <summary>{group.label}</summary>
                   <fieldset className="hub-rules-scoring-group" key={group.label}>
                     <legend>{group.label} · {SCORING_COPY.points}</legend>
                     <div className="hub-rules-field-grid hub-rules-field-grid--scoring">
@@ -368,6 +381,7 @@ export default function RulesWizard({
                   ))}
                     </div>
                   </fieldset>
+                  </details>
                 ))}
                 <p className="chart-note">{SCORING_COPY.effect}</p>
                 <p className="chart-note">{SCORING_COPY.supported}</p>
@@ -376,7 +390,7 @@ export default function RulesWizard({
             <p className="chart-note">{SCORING_COPY.projections}</p>
           </section>
 
-          <section className="hub-rules-section" aria-labelledby="rules-foundation-title">
+          <section hidden={activeCategory !== "foundation"} className="hub-rules-section" aria-labelledby="rules-foundation-title">
             <header className="hub-rules-section-head">
               <span>02</span>
               <div>
@@ -490,7 +504,7 @@ export default function RulesWizard({
           </section>
 
           {!pickDraft && (
-            <section className="hub-rules-section" aria-labelledby="rules-contracts-title">
+            <section hidden={activeCategory !== "contracts"} className="hub-rules-section" aria-labelledby="rules-contracts-title">
               <header className="hub-rules-section-head">
                 <span>03</span>
                 <div>
@@ -619,7 +633,7 @@ export default function RulesWizard({
             </section>
           )}
 
-          <section className="hub-rules-section" aria-labelledby="rules-roster-title">
+          <section hidden={activeCategory !== "roster"} className="hub-rules-section" aria-labelledby="rules-roster-title">
             <header className="hub-rules-section-head">
               <span>{pickDraft ? "03" : "04"}</span>
               <div>
@@ -688,7 +702,7 @@ export default function RulesWizard({
           </section>
 
           {!pickDraft && (
-            <section className="hub-rules-section" aria-labelledby="rules-draft-title">
+            <section hidden={activeCategory !== "draft"} className="hub-rules-section" aria-labelledby="rules-draft-title">
               <header className="hub-rules-section-head">
                 <span>05</span>
                 <div>
@@ -764,33 +778,15 @@ export default function RulesWizard({
 
           {!readOnlyRules && (
             <div className="hub-rules-sticky-save">
+              <div><strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong><p className="hub-rules-summary-note">{formatCopy.saveFootnote}</p></div>
+              <button type="button" className="btn-ghost" disabled={!dirty || saving} onClick={() => applyServerState(workspace, hubContext)}>{RULES_COPY.discard}</button>
               <button type="button" className="btn-primary" disabled={saveDisabled} onClick={save}>
                 {saving ? RULES_COPY.saving : RULES_COPY.save}
               </button>
-              {saveReason ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
+              {saveReason && dirty ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
             </div>
           )}
 
-          {presets.length > 0 && !readOnlyRules && (
-            <details className="hub-rules-templates">
-              <summary>{RULES_COPY.templatesTitle}</summary>
-              <p id="rules-template-help">{RULES_COPY.templatesHelp}</p>
-              <div>
-                {presets.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    className="btn-danger btn-sm"
-                    disabled={saving}
-                    aria-describedby="rules-template-help"
-                    onClick={() => applyPreset(preset)}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </details>
-          )}
         </div>
 
         <aside className="hub-rules-summary" aria-label="League rule summary">
@@ -803,7 +799,7 @@ export default function RulesWizard({
           </div>
           <dl>{summary.map((item) => <div key={item.id}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>
           <p className="hub-rules-summary-note">{RULES_COPY.staffOnly}</p>
-          {saveControls}
+          <p className="hub-rules-summary-note">{lastSavedLabel}</p>
           {undo && (
             <div className="hub-rules-undo" role="status">
               <p>{RULES_COPY.templateApplied(undo.label)}</p>

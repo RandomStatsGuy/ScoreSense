@@ -24,6 +24,13 @@ export default function InsightsOverview({
   mineName,
 }) {
   const copy = INSIGHTS_COPY.overview;
+  const openHistory = (id) => {
+    const summary = document.getElementById(id);
+    if (!summary) return;
+    summary.parentElement.open = true;
+    summary.focus();
+    summary.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
   const hasLanding = Boolean(landing?.available);
   const seasonCount = landing?.seasons_included?.length || 0;
   const plaque = useMemo(
@@ -64,6 +71,29 @@ export default function InsightsOverview({
 
       {hasLanding && (
         <div className="hub-insights-overview">
+          <section className="hub-insights-story-grid" aria-label={copy.stories}>
+            <article className="hub-insights-story is-gold">
+              <span>{copy.titles}</span>
+              <h3>{plaque ? copy.titleStory(plaque.owner) : copy.titleStoryEmpty}</h3>
+              <p>{plaque ? copy.plaqueSupport(plaque) : copy.titlesEmpty}</p>
+              <button type="button" className="btn-link" onClick={() => openHistory("insights-title-history")}>{copy.openTitles} →</button>
+            </article>
+            <article className="hub-insights-story">
+              <span>{copy.scoringStory}</span>
+              <h3>{scoringRows[0]?.label || copy.scoringEmpty}</h3>
+              <p>{scoringRows[0] ? copy.scoringStorySupport(scoringRows[0].total) : copy.scoringEmpty}</p>
+              <button type="button" className="btn-link" onClick={() => onOpenTab("scoring")}>{copy.openScoring} →</button>
+            </article>
+            <article className="hub-insights-story">
+              <span>{copy.recordStory}</span>
+              <h3>{recordRows[0]?.label || copy.recordsEmpty}</h3>
+              <p>{recordRows[0] ? copy.recordStorySupport(formatRecordLine(recordRows[0])) : copy.recordsEmpty}</p>
+              <button type="button" className="btn-link" onClick={() => openHistory("insights-record-history")}>{copy.openRecords} →</button>
+            </article>
+          </section>
+
+          <details className="hub-insights-history-disclosure">
+            <summary id="insights-title-history">{copy.titlesYears}</summary>
           {plaque ? (
             <section className="hub-insights-plaque" aria-label={copy.titles}>
               <div>
@@ -101,8 +131,10 @@ export default function InsightsOverview({
             <p className="chart-note">{copy.titlesNone}</p>
           )}
 
+          </details>
           <div className="hub-insights-overview-boards">
-            <section className="hub-insights-overview-panel" aria-label={copy.records}>
+            <details className="hub-insights-overview-panel" aria-label={copy.records}>
+              <summary id="insights-record-history">{copy.records}</summary>
               <div className="hub-insights-talk-head">
                 <h3>{copy.records}</h3>
                 <p>
@@ -119,7 +151,7 @@ export default function InsightsOverview({
               ) : (
                 <p className="chart-note">{copy.recordsEmpty}</p>
               )}
-            </section>
+            </details>
 
             <section className="hub-insights-overview-panel" aria-label={copy.scoring}>
               <div className="hub-insights-talk-head hub-insights-talk-head--row">
@@ -127,7 +159,7 @@ export default function InsightsOverview({
                   <h3>{copy.scoring}</h3>
                   <p>{copy.scoringSupport}</p>
                 </div>
-                <button type="button" className="btn-primary btn-sm" onClick={() => onOpenTab("scoring")}>
+                <button type="button" className="btn-ghost btn-sm" onClick={() => onOpenTab("scoring")}>
                   {copy.openScoring}
                 </button>
               </div>
@@ -143,6 +175,11 @@ export default function InsightsOverview({
               )}
             </section>
           </div>
+          <nav className="hub-insights-explore" aria-label={copy.explore}>
+            <strong>{copy.explore}</strong>
+            <button type="button" className="btn-ghost" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button>
+            <button type="button" className="btn-ghost" onClick={() => onOpenTab("ownership")}>{copy.openOwnership}</button>
+          </nav>
         </div>
       )}
     </HubPage>

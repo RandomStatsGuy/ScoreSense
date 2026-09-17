@@ -388,6 +388,17 @@ export function awardCatalogFromRules(rules, catalog = DEFAULT_AWARD_CATALOG) {
 
 export const INSIGHTS_COPY = {
   overview: {
+    stories: "League stories",
+    titleStory: (name) => `${name} sets the title pace`,
+    titleStoryEmpty: "The next title is still open",
+    scoringStory: "Scoring leader",
+    scoringStorySupport: (points) => `${formatPoints(points)} career points across recorded seasons`,
+    recordStory: "Best career record",
+    recordStorySupport: (record) => `${record} across recorded seasons`,
+    openTitles: "Open title history",
+    openRecords: "Open records",
+    explore: "Explore league data",
+    openOwnership: "Player history",
     eyebrow: "Insights",
     heading: "Your league's history",
     support: "Championships, records, and total points across your league's history.",

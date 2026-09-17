@@ -1,0 +1,597 @@
+[
+  {
+    "route": "/hub/rules",
+    "width": 1280,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "36 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": false,
+        "selector": ".btn-primary",
+        "detail": "2 visible primaries"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=22"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": [
+      "Sign in",
+      "Save league rules"
+    ]
+  },
+  {
+    "route": "/hub/roster-management/sheets",
+    "width": 1280,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "1 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "18 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=22"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": [
+      "Sign in"
+    ]
+  },
+  {
+    "route": "/hub/roster-management/access",
+    "width": 1280,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "3 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "23 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=22"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": [
+      "Sign in"
+    ]
+  },
+  {
+    "route": "/hub/insights/overview",
+    "width": 1280,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "16 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=47"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": [
+      "Sign in"
+    ]
+  },
+  {
+    "route": "/hub/rules",
+    "width": 390,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": false,
+        "selector": "fantasy-chat-dismiss fantasy-chat-dismiss--on-bubble",
+        "detail": "height=29 < 44"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=13"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": [
+      "Save league rules"
+    ]
+  },
+  {
+    "route": "/hub/roster-management/sheets",
+    "width": 390,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "1 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": false,
+        "selector": "fantasy-chat-dismiss fantasy-chat-dismiss--on-bubble",
+        "detail": "height=29 < 44"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": []
+  },
+  {
+    "route": "/hub/roster-management/access",
+    "width": 390,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "3 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": false,
+        "selector": "fantasy-chat-dismiss fantasy-chat-dismiss--on-bubble",
+        "detail": "height=29 < 44"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": []
+  },
+  {
+    "route": "/hub/insights/overview",
+    "width": 390,
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": false,
+        "selector": "fantasy-chat-dismiss fantasy-chat-dismiss--on-bubble",
+        "detail": "height=29 < 44"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=37"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "primary": []
+  }
+]
