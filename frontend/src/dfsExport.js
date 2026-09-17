@@ -3,6 +3,10 @@
  *
  * Lineup-library upload files:
  * - DraftKings classic reads position-headed rows with "Name (ID)" cells.
+ * Every site also declares `cellId`, the inverse of `cell`: it reads the
+ * draftable ID back out of a written cell. Reserved-entry editing validates
+ * against it, so a site whose cell shape changes must change both together.
+ *
  * - DraftKings Showdown reads bare draftable IDs under CPT/FLEX headers,
  *   unquoted — matching a file DraftKings accepted. IDs are digits and the
  *   headers have no commas, so nothing in this file ever needs quoting.
@@ -23,6 +27,7 @@ export const SITE_EXPORTS = {
     headers: ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "DST"],
     slotOrder: CLASSIC_SLOT_ORDER,
     cell: (row) => `${row.player} (${row.dfs_id})`,
+    cellId: (cell) => String(cell).match(/\((\d+)\)$/)?.[1] || "",
   },
   fanduel: {
     label: "FanDuel",
@@ -30,6 +35,7 @@ export const SITE_EXPORTS = {
     headers: ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "DEF"],
     slotOrder: CLASSIC_SLOT_ORDER,
     cell: (row) => `${row.dfs_id}:${row.player}`,
+    cellId: (cell) => String(cell).match(/^(\d+):/)?.[1] || "",
   },
   draftkings_showdown: {
     label: "DraftKings",
@@ -37,6 +43,7 @@ export const SITE_EXPORTS = {
     headers: ["CPT", "FLEX", "FLEX", "FLEX", "FLEX", "FLEX"],
     slotOrder: ["CPT", ...CAPTAIN_FLEX_ORDER],
     cell: (row) => `${row.dfs_id}`,
+    cellId: (cell) => (/^\d+$/.test(String(cell).trim()) ? String(cell).trim() : ""),
     // Bare, unquoted draftable IDs — the shape DraftKings accepted.
     quoteCells: false,
   },
@@ -46,6 +53,7 @@ export const SITE_EXPORTS = {
     headers: ["MVP", "FLEX", "FLEX", "FLEX", "FLEX", "FLEX"],
     slotOrder: ["MVP", ...CAPTAIN_FLEX_ORDER],
     cell: (row) => `${row.dfs_id}:${row.player}`,
+    cellId: (cell) => String(cell).match(/^(\d+):/)?.[1] || "",
   },
 };
 
