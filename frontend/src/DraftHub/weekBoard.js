@@ -73,6 +73,52 @@ export const ROSTER_STALE_HOURS = 48;
 export const VIBE_DELTA_FLOOR = 0.45;
 export const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 
+export const LINEUP_PICKER_COPY = {
+  lineup: "Lineup",
+  emptySlot: "Empty slot",
+  title: (slot) => `Who starts at ${slot}?`,
+  choose: "Choose an eligible bench player.",
+  move: (name, slot) => `Change ${slot}: ${name || "Empty"}`,
+  current: "Currently starting",
+  toBench: "To bench",
+  toSlot: (slot) => `To ${slot}`,
+  empty: "No eligible bench players for this slot.",
+  find: (slot) => `Find ${slot} on Free agents`,
+  select: "Choose a player to preview the move.",
+  start: (name, slot) => `Start ${name} at ${slot}`,
+  saving: "Saving lineup…",
+  cancel: "Cancel",
+  close: "Close position picker",
+  locked: "Locked · game started",
+  lineupLocked: "This lineup is locked.",
+  readonly: "This lineup is read-only.",
+  linked: "Your lineup is managed in Sleeper. Make this move there.",
+  openSleeper: "Set lineup in Sleeper",
+  lockNote: "Players lock at kickoff.",
+  delta: "projected lineup points",
+  missing: "Projection unavailable",
+  saved: (name, slot) => `Lineup updated. ${name} starts at ${slot}.`,
+};
+
+/** Kickoff checks are a preview; the write endpoint enforces the current lock. */
+export function lineupPlayerLocked(player, { staffOverride = false, now = Date.now() } = {}) {
+  if (!player || staffOverride) return false;
+  if (player.locked || player.lineup_locked) return true;
+  const kickoff = Date.parse(player.kickoff_et || "");
+  return Number.isFinite(kickoff) && kickoff <= now;
+}
+
+export function eligibleLineupReplacements(slot, bench = [], rules) {
+  return bench.filter((player) => player?.player_id && slotAcceptsPosition(slot, player.position, rules))
+    .sort((a, b) => (b.p50 == null ? -Infinity : Number(b.p50)) - (a.p50 == null ? -Infinity : Number(a.p50)));
+}
+
+export function lineupReplacementDelta(slot, player) {
+  if (player?.p50 == null || (slot?.player && slot.player.p50 == null)) return null;
+  const delta = Number(player.p50) - Number(slot?.player?.p50 ?? 0);
+  return Number.isFinite(delta) ? delta : null;
+}
+
 export function slotAcceptsPosition(slot, position, rules) {
   const pos = String(position || "").toUpperCase();
   const label = String(slot?.slot || slot || "").toUpperCase();

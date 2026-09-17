@@ -27,6 +27,7 @@ import {
   startCallLabel,
   swapBenchIdSet,
   WEEK_BOARD_COPY,
+  LINEUP_PICKER_COPY,
   WEEK_BOUNDS,
   weekBoardOverlayCopy,
   weekSelectOptions,
@@ -36,7 +37,7 @@ function fmtPts(value) {
   return value == null || value === "" ? "—" : fmtNum(value, 1);
 }
 
-function RowFace({ player, slot, media }) {
+export function RowFace({ player, slot, media }) {
   const [shotIndex, setShotIndex] = useState(0);
   const row = lookupPlayerMedia(media, player?.player_id);
   const shots = headshotCandidates(row, [], { width: PAINT_WIDTH.avatar });
@@ -139,9 +140,9 @@ function SlateRow({
   vibePts,
   canEdit,
   selected,
-  onSelect,
   onOpenCall,
   onFillSlot,
+  onOpenSlot,
   media,
 }) {
   const player = slot.player;
@@ -174,13 +175,16 @@ function SlateRow({
         + (empty && isSpecialistSlot(slot) ? " is-doorway" : "")
         + (selected ? " is-target" : "")
         + (highlighted ? " is-pick" : "")
-        + (canEdit && !empty ? " is-editable" : "")
         + (!canEdit ? " is-inert" : "")
       }
       aria-label={label}
-      onClick={canEdit && !empty && onSelect ? () => onSelect(slot) : undefined}
     >
-      <span className="hub-wcc-row-pos">{slot.slot}</span>
+      {onOpenSlot && slot.slot !== "BN" ? (
+        <button type="button" className="hub-wcc-position-button"
+          aria-label={LINEUP_PICKER_COPY.move(player?.player_name || player?.player_id, slot.slot)}
+          aria-haspopup="dialog" aria-expanded={Boolean(selected)}
+          onClick={() => onOpenSlot(slot)}>{slot.slot}</button>
+      ) : <span className="hub-wcc-row-pos">{slot.slot}</span>}
       <RowFace player={player} slot={slot.slot} media={media} />
       {empty ? (
         <div className="hub-wcc-row-who">
@@ -288,13 +292,12 @@ export default function WeekLineupBoard({
   canEdit = false,
   lineupLocked = false,
   sleeperLeagueId = "",
-  selectedBenchId = "",
-  onSelectBench,
-  onSelectSlot,
+  selectedSlotKey = "",
   onApplyDecision,
   onNavigate,
   onFillSlot,
   onOpenCall,
+  onOpenSlot,
   media = {},
   includeChrome = true,
   includeStarters = true,
@@ -317,7 +320,7 @@ export default function WeekLineupBoard({
     rosterLabel: syncedLabel,
     weekLabel: projectionsBuiltAt ? formatRelativeTime(projectionsBuiltAt) : "",
   });
-  const renderRow = (slot, { onSelect, selected, highlighted = false, showCall = true } = {}) => {
+  const renderRow = (slot, { selected, highlighted = false, showCall = true } = {}) => {
     const player = slot.player;
     const pid = player?.player_id;
     return (
@@ -331,8 +334,8 @@ export default function WeekLineupBoard({
         vibePts={pid ? vibeById[String(pid)] : null}
         canEdit={canEdit}
         selected={selected}
-        onSelect={onSelect}
         onOpenCall={onOpenCall}
+        onOpenSlot={onOpenSlot}
         onFillSlot={!pid && onFillSlot ? () => onFillSlot(slot) : undefined}
         media={media}
       />
@@ -352,10 +355,6 @@ export default function WeekLineupBoard({
               player,
             },
             {
-              onSelect: onSelectBench
-                ? () => onSelectBench(player)
-                : undefined,
-              selected: String(selectedBenchId) === String(player.player_id),
               highlighted: swapBenchIds.has(String(player.player_id)),
               showCall: false,
             },
@@ -431,8 +430,7 @@ export default function WeekLineupBoard({
         <div className="hub-wcc-board-stage">
           <div className="hub-wcc-slate" id="hub-wcc-calls">
             {hideSlots ? null : slots.map((slot) => renderRow(slot, {
-              onSelect: onSelectSlot,
-              selected: Boolean(canEdit && selectedBenchId && slot.player?.player_id),
+              selected: selectedSlotKey === (slot.key || slot.slot),
             }))}
           </div>
           {showOverlay ? (
