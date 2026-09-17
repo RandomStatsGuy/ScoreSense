@@ -26,6 +26,22 @@ await context.route(`${origin}/**`, async (route) => {
   try { await route.fulfill({ body: await fs.readFile(file), contentType: types[path.extname(file)] || "application/octet-stream" }); }
   catch { await route.abort(); }
 });
+// Light mode must reach the room material too: a hardcoded dark gradient under light
+// tokens is invisible text, not atmosphere. Every opaque background stop stays light.
+const ROOM_LIGHT_SURFACES = ".team-room-player-name, .team-room-player-score, .team-room-cubicle, .team-room-scoreboard, .team-room-floor, .team-room-bench, .gc-room-jersey";
+function opaqueStops(declaration) {
+  const stops = [];
+  for (const match of declaration.matchAll(/rgba?\(([^)]+)\)|color\(srgb ([^)]+)\)/g)) {
+    const parts = (match[1] || match[2]).split(/[\s,/]+/).filter(Boolean).map(Number);
+    if (parts.some(Number.isNaN)) continue;
+    const scale = match[2] ? 255 : 1;
+    const alpha = parts.length > 3 ? parts[3] : 1;
+    if (alpha < 0.9) continue;
+    stops.push(parts.slice(0, 3).map((value) => value * scale));
+  }
+  return stops;
+}
+
 const report = [];
 try {
   const page = await context.newPage({ viewport: { width: 1280, height: 900 } });
@@ -71,6 +87,11 @@ try {
       await page.evaluate(() => window.scoreSenseTheme.set("dark"));
       const darkResults = await page.evaluate(measureScript(), { minTarget: width === 390 ? 44 : 32, numericRe: NUMERIC_RE.source, barControlSelector: BAR_CONTROL_SELECTOR, tableDeadZonePx: TABLE_DEAD_ZONE_PX, columnPackRatio: COLUMN_PACK_RATIO, gutterSelectors: GUTTER_EDGE_SELECTORS });
       await page.evaluate(() => window.scoreSenseTheme.set("light"));
+      for (const surface of route === "/hub/roster" || route === "/hub/game" ? await page.locator(ROOM_LIGHT_SURFACES).evaluateAll((elements, all) => elements.filter((el) => el.getBoundingClientRect().height > 0).slice(0, all).map((el) => ({ name: el.className, paint: getComputedStyle(el).backgroundImage + " " + getComputedStyle(el).backgroundColor })), 24) : []) {
+        for (const stop of opaqueStops(surface.paint)) {
+          assert.ok(stop.reduce((sum, value) => sum + value, 0) / 3 > 170, `${surface.name} keeps a dark background in light mode: ${surface.paint}`);
+        }
+      }
       report.push({ route, width, url: page.url(), results, darkResults });
       console.log(route, width, results.filter((r) => !r.ok).map((r) => r.rule + ": " + r.detail).join("; ") || "PASS");
     }
