@@ -24,6 +24,13 @@ test("My team copy names the decision and skips Draft Hub / permission voice", (
   assert.match(MY_TEAM_COPY.cutConfirm("$4", "$4"), /\$4 in dead cap/);
 });
 
+test("no-money My team copy describes roster work without contract or cap language", () => {
+  assert.match(MY_TEAM_COPY.noMoneyPurpose, /manage your roster/i);
+  assert.doesNotMatch(MY_TEAM_COPY.noMoneyPurpose, /contract|cap|salary/i);
+  assert.equal(MY_TEAM_COPY.playerDetails, "Player details");
+  assert.equal(MY_TEAM_COPY.rosteredStatus, "Rostered");
+});
+
 test("cut status chip says Cut, not Cut before draft", () => {
   const cut = rosterStatusInfo(
     { roster_status: "cut_before_draft", contract: { years_remaining: 3 } },

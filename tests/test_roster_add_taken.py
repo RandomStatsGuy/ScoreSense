@@ -395,3 +395,47 @@ def test_metadata_noop_prefers_occupying_over_cut(hub_db):
     assert slot["roster_status"] == "active"
     assert slot["team_id"] == dest["id"]
     assert slot["salary"] == 12
+
+
+def test_member_cannot_add_gsis_when_sleeper_id_is_already_rostered(hub_db, monkeypatch):
+    """Jeanty on a Sleeper-imported row must not be addable from the GSIS pool row."""
+    rules = LeagueRules(draft_type="snake", salary_cap=0)
+    league = storage.create_league("comm-jeanty", "Tessa Memorial", 2026, rules, team_count=8)
+    _open_fa(monkeypatch, league)
+    owner = storage.join_league("owner-jeanty", league["room_code"], "Owner Team")
+    storage.join_league("member-jeanty", league["room_code"], "Member Team")
+    ws_id = storage.roster_workspace_for_league(league)
+    storage.add_roster_slot(
+        ws_id,
+        {
+            "player_id": "sleeper-12527",
+            "player_name": "Ashton Jeanty",
+            "team": "LV",
+            "position": "RB",
+            "salary": 0,
+            "contract_years": 1,
+        },
+        team_id=owner["id"],
+    )
+
+    client = _client_for("member-jeanty")
+    try:
+        res = client.post(
+            "/api/hub/roster",
+            json={
+                "player_id": "00-0040122",
+                "player_name": "Ashton Jeanty",
+                "team": "LV",
+                "position": "RB",
+                "salary": 0,
+                "contract_years": 1,
+            },
+        )
+        assert res.status_code == 409
+        assert "Owner Team" in res.json()["detail"]
+        assert "already on" in res.json()["detail"].lower()
+        ids = {str(s["player_id"]) for s in storage.list_league_roster(ws_id)}
+        assert "sleeper-12527" in ids
+        assert "00-0040122" not in ids
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

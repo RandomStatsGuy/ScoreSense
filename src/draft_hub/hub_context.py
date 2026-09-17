@@ -6,7 +6,9 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.acquisition_window import attach_acquisition_window
+from src.draft_hub.league_capabilities import league_capabilities
 from src.draft_hub.schemas import LeagueRules
+from src.draft_hub.sleeper_sync_mode import sleeper_sync_state
 
 _MAX_TEAM_ROSTER_BEFORE_RECONCILE = 28
 
@@ -124,6 +126,7 @@ def _context_from_league_team(
 
     attach_owner_names_to_teams(str(league["id"]), [team], season_year=league.get("season"))
     session = storage.get_draft_session(str(league["id"])) or {}
+    sync_state = sleeper_sync_state(league)
     return _with_permissions({
         "mode": "league",
         "hub_focus": hub_focus,
@@ -149,6 +152,8 @@ def _context_from_league_team(
         "rules": rules.model_dump(),
         "season": int(league["season"]),
         "sleeper_league_id": league.get("sleeper_league_id"),
+        "sleeper_sync_mode": sync_state["mode"],
+        "sleeper_sync_paused": sync_state["paused"],
         "sleeper_roster_id": team.get("sleeper_roster_id"),
         "sleeper_team_name": team.get("sleeper_team_name"),
         "atmosphere": (ws.get("prefs") or {}).get("atmosphere") or "none",
@@ -199,7 +204,9 @@ def resolve_hub_context(user_sub: str) -> dict[str, Any]:
 def _with_permissions(ctx: dict[str, Any]) -> dict[str, Any]:
     is_comm = bool(ctx.get("is_commissioner"))
     in_league = ctx.get("mode") == "league"
-    ctx["can_edit_salaries"] = (not in_league) or is_comm
+    capabilities = league_capabilities(ctx.get("rules") or {})
+    ctx["capabilities"] = capabilities
+    ctx["can_edit_salaries"] = capabilities["uses_salaries"] and ((not in_league) or is_comm)
     ctx["can_edit_rules"] = (not in_league) or is_comm
     ctx["can_import_league_sheet"] = (not in_league) or is_comm
     ctx["can_invite_members"] = in_league and is_comm
@@ -222,6 +229,13 @@ def list_roster_for_context(
     ws_id = str(ctx["workspace_id"])
     _ws_id, team_id = roster_scope(ctx)
     roster = storage.list_roster(ws_id, team_id)
+
+    if live_sleeper and ctx.get("mode") == "league" and ctx.get("league_id"):
+        from src.draft_hub.sleeper_sync_mode import sleeper_sync_paused
+
+        # A paused league shows the saved roster, not a live Sleeper composition.
+        if sleeper_sync_paused(str(ctx["league_id"])):
+            live_sleeper = False
 
     if (
         live_sleeper

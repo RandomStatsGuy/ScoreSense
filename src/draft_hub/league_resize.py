@@ -15,6 +15,7 @@ import json
 from typing import Any
 
 from src.draft_hub import storage
+from src.draft_hub.league_capabilities import uses_salaries
 from src.draft_hub.pre_draft_cap import is_active_for_pre_draft
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.trade_proposals import cancel_proposal
@@ -50,13 +51,17 @@ def next_count_on_remove(configured: int, actual: int) -> int:
 
 
 def _phase_blocker(league: dict[str, Any], session: dict[str, Any] | None) -> str | None:
+    # A pick-draft league has no auction to name. The uses_salaries gate further
+    # down only covers the consequences list, so this copy has to ask too.
+    money = uses_salaries(league.get("rules") or {})
+    draft_word = "auction" if money else "draft"
     status = str((session or {}).get("status") or "").lower()
     if status in LIVE_SESSION or str(league.get("status") or "").lower() == "live":
-        return "The auction is live. Finish or reset the draft first."
+        return f"The {draft_word} is live. Finish or reset the draft first."
     if league.get("draft_completed"):
         return (
             "This season is already drafted. Advance the year, then add or remove "
-            "a franchise before the next auction."
+            f"a franchise before the next {draft_word}."
         )
     return None
 
@@ -141,13 +146,21 @@ def preview_add_franchise(league_id: str, name: str | None = None) -> dict[str, 
         taken = {str(t.get("name") or "").strip().lower() for t in teams}
         if clean.lower() in taken:
             blocker = blocker or f"{clean} is already a franchise in this league."
-    consequences = [
-        f"League becomes {next_count} teams.",
-        f"New club starts at ${cap:g} with no keepers.",
-        "Existing contracts stay on their current clubs.",
-        "Strategy prices move — more seats, more relevant players.",
-        "Invite the manager after the seat exists.",
-    ]
+    if uses_salaries(rules):
+        consequences = [
+            f"League becomes {next_count} teams.",
+            f"New club starts at ${cap:g} with no keepers.",
+            "Existing contracts stay on their current clubs.",
+            "Strategy prices move — more seats, more relevant players.",
+            "Invite the manager after the seat exists.",
+        ]
+    else:
+        consequences = [
+            f"League becomes {next_count} teams.",
+            "New club starts empty.",
+            "Existing rosters stay on their current clubs.",
+            "Invite the manager after the seat exists.",
+        ]
     if league.get("sleeper_league_id"):
         consequences.append("Sleeper is separate. Add the roster there, then map it under Access.")
     return {

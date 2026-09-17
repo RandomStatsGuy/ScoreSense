@@ -52,6 +52,7 @@ import {
   shouldShowScoringTables,
 } from "./insightsEmptyStates";
 import { fmtSal } from "./rosterFormat";
+import { leagueCapabilitiesFromContext } from "./leagueCapabilities";
 import { formatCount } from "../formatCount";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 
@@ -83,7 +84,7 @@ function historySeasonLabel(mode, year) {
   return "Current roster";
 }
 
-function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label = "View", className = "" }) {
+function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label = "View", className = "", usesSalaries = true }) {
   const options = [{ id: "current", label: "Current roster" }];
   if (historic?.available) {
     (seasons || []).slice().sort((a, b) => b - a).forEach((yr) => {
@@ -106,7 +107,7 @@ function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label
           </HubFilterChip>
         ))}
       </HubFilterScroll>
-      {historic?.available && historic?.league_avg_contract != null && value !== "current" && (
+      {usesSalaries && historic?.available && historic?.league_avg_contract != null && value !== "current" && (
         <span className="hub-insights-season-meta">
           League avg contract {fmtSal(historic.league_avg_contract)}
         </span>
@@ -197,7 +198,7 @@ function PlayerHistoryStat({ label, value, hint }) {
   );
 }
 
-function PlayerHistoryTimeline({ events }) {
+function PlayerHistoryTimeline({ events, usesSalaries = true }) {
   if (!events.length) {
     return <p className="chart-note">No ownership history recorded for this view.</p>;
   }
@@ -209,19 +210,23 @@ function PlayerHistoryTimeline({ events }) {
         let detail = ev.team_name || "—";
         if (type === "contract") {
           title = `${ev.season} contract`;
-          detail = `${ev.team_name} · ${fmtSal(ev.amount)}`;
+          detail = usesSalaries ? `${ev.team_name} · ${fmtSal(ev.amount)}` : ev.team_name || "—";
           if (ev.contract_phase) detail += ` · ${ev.contract_phase}`;
         } else if (type === "season_roster") {
           title = `${ev.season} season`;
         } else if (type === "roster") {
           title = "On roster";
-          detail = `${ev.team_name}${ev.amount != null && ev.amount > 0 ? ` · ${fmtSal(ev.amount)}/yr` : ""}`;
+          detail = usesSalaries && ev.amount != null && ev.amount > 0
+            ? `${ev.team_name} · ${fmtSal(ev.amount)}/yr`
+            : ev.team_name || "—";
         } else if (type === "acquired") {
-          title = "Won at auction";
-          detail = `${ev.team_name} for ${fmtSal(ev.amount)}`;
+          title = usesSalaries ? "Won at auction" : "Drafted";
+          detail = usesSalaries ? `${ev.team_name} for ${fmtSal(ev.amount)}` : ev.team_name || "—";
         } else if (type === "cut") {
           title = "Dropped";
-          detail = `${ev.team_name}${ev.refund != null ? ` · refund ${fmtSal(ev.refund)}` : ""}`;
+          detail = usesSalaries && ev.refund != null
+            ? `${ev.team_name} · refund ${fmtSal(ev.refund)}`
+            : ev.team_name || "—";
         }
         return (
           <li key={idx} className={`hub-player-history-event hub-player-history-event--${type}`}>
@@ -357,18 +362,20 @@ export default function LeagueInsights({
   }, [activeTabProp]);
 
   const isCommissioner = Boolean(hubContext?.is_commissioner);
+  const capabilities = leagueCapabilitiesFromContext(hubContext);
+  const usesSalaries = capabilities.uses_salaries;
   const insightsTabs = useMemo(
-    () => visibleInsightsTabs(isCommissioner),
-    [isCommissioner],
+    () => visibleInsightsTabs(isCommissioner, capabilities),
+    [isCommissioner, capabilities],
   );
 
   useEffect(() => {
-    if (!isInsightTabAllowed(activeTab, isCommissioner)) {
-      const fallback = defaultInsightTab(isCommissioner);
+    if (!isInsightTabAllowed(activeTab, isCommissioner, capabilities)) {
+      const fallback = defaultInsightTab(isCommissioner, capabilities);
       setActiveTabLocal(fallback);
       onActiveTabChange?.(fallback);
     }
-  }, [activeTab, isCommissioner, onActiveTabChange]);
+  }, [activeTab, isCommissioner, capabilities, onActiveTabChange]);
 
   const [spendMetric, setSpendMetric] = useState("dollars");
   const [visiblePositions, setVisiblePositions] = useState(() => new Set());
@@ -970,6 +977,7 @@ export default function LeagueInsights({
 
           <div className="hub-insights-toolbar">
             <InsightsSeasonBar
+              usesSalaries={usesSalaries}
               value={capSeason}
               seasons={historic.seasons}
               historic={historic}
@@ -1217,6 +1225,7 @@ export default function LeagueInsights({
           {data?.scoring?.available && (data?.scoring?.available_seasons || scoringSeasonOptions).length > 0 && (
             <div className="hub-insights-season-bar hub-insights-season-bar--scoring">
               <InsightsSeasonBar
+                usesSalaries={usesSalaries}
                 value={scoringSeason}
                 seasons={(data?.scoring?.available_seasons || scoringSeasonOptions)
                   .map((s) => Number(s))
@@ -1536,6 +1545,7 @@ export default function LeagueInsights({
           />
           {insightsNav}
           <InsightsSeasonBar
+            usesSalaries={usesSalaries}
             value={historySeason}
             seasons={historic.seasons}
             historic={historic}
@@ -1690,7 +1700,7 @@ export default function LeagueInsights({
                   )}
                   <div className="hub-player-history-timeline-wrap">
                     <span className="hub-filter-label">Timeline · {historyLabel}</span>
-                    <PlayerHistoryTimeline events={selectedPlayer.timeline || []} />
+                    <PlayerHistoryTimeline events={selectedPlayer.timeline || []} usesSalaries={usesSalaries} />
                   </div>
                 </div>
               )}

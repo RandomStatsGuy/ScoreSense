@@ -4,7 +4,7 @@ import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../fo
 import useMobileLayout from "../useMobileLayout";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
-import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY } from "./leagueAccessCopy";
+import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY, SLEEPER_SYNC_PAUSE_COPY } from "./leagueAccessCopy";
 import {
   getFreshnessCache,
   invalidateFreshnessCache,
@@ -22,6 +22,7 @@ import {
   leagueRoleLabel,
 } from "./leagueAttention";
 import { useLeagueChrome } from "./leagueChromeContext";
+import { leagueUsesSalaries } from "./leagueCapabilities";
 
 function ageShort(at) {
   if (!at) return null;
@@ -216,6 +217,7 @@ export default function LeagueContextBanner({
     droppingCount: dropping.length,
     capSheetsStale,
     isCommish,
+    usesSalaries: leagueUsesSalaries(hubContext),
   }).map((item) => {
     const withTone = { ...item, tone: "attention" };
     if (item.action === "projections") {
@@ -292,6 +294,7 @@ export default function LeagueContextBanner({
   const sleeperLinked = Boolean(
     freshness?.sleeper?.linked || hubContext?.sleeper_league_id,
   );
+  const rosterSyncPaused = Boolean(hubContext?.sleeper_sync_paused);
 
   const showSwitcher = Boolean((hasLeagues || inLeague) && onLeagueSwitch);
   const identityLine = (
@@ -367,18 +370,20 @@ export default function LeagueContextBanner({
               <span>
                 {freshnessLoading && !freshness
                   ? "Checking…"
-                  : sourceStatusLabel({
-                    at: freshness?.sleeper?.synced_at,
-                    missing: freshness && !sleeperLinked,
-                  })}
+                  : sleeperLinked && rosterSyncPaused
+                    ? SLEEPER_SYNC_PAUSE_COPY.stripStatus
+                    : sourceStatusLabel({
+                      at: freshness?.sleeper?.synced_at,
+                      missing: freshness && !sleeperLinked,
+                    })}
               </span>
             </div>
             <button
               type="button"
-              className="btn-primary btn-sm"
+              className={rosterSyncPaused ? "btn-ghost btn-sm" : "btn-primary btn-sm"}
               onClick={runSleeperSync}
               disabled={busy || !sleeperLinked}
-              title="Sync rosters from Sleeper"
+              title={rosterSyncPaused ? SLEEPER_SYNC_PAUSE_COPY.stripTitle : "Sync rosters from Sleeper"}
             >
               {syncing ? "Syncing…" : "Sync"}
             </button>

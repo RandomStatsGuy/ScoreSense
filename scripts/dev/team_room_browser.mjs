@@ -22,7 +22,7 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   const url = "http://127.0.0.1:5173/test-fixtures/team-room.html";
   await page.setViewportSize({ width: 1536, height: 1000 });
-  await page.goto(url);
+  await page.goto(url, { waitUntil: "domcontentloaded" });
   await page
     .getByRole("button", { name: "Open Malik Nabers's locker", exact: true })
     .click();
@@ -81,7 +81,7 @@ try {
   for (const width of [1536, 1280, 1024, 390])
     for (const state of ["pregame", "live", "final"]) {
       await page.setViewportSize({ width, height: 1000 });
-      await page.goto(`${url}?state=${state}`);
+      await page.goto(`${url}?state=${state}`, { waitUntil: "domcontentloaded" });
       await page
         .getByRole("button", {
           name: "Open Malik Nabers's locker",
@@ -112,7 +112,23 @@ try {
         reports.push({ width, failures: report.filter((r) => !r.ok) });
       }
     }
-  await page.goto(`${url}?readonly=1`);
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page.locator(".matchup-banner-art img").waitFor();
+    await page.screenshot({ path: `outputs/my-team-room-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Manage roster", exact: true }).click();
+    assert.equal(await page.locator(".hub-stadium-hero-banner").count(), 0);
+    await page.getByRole("button", { name: "Customize team appearance", exact: true }).waitFor();
+    await page.screenshot({ path: `outputs/my-team-manage-${width}.png`, fullPage: true });
+    const report = await page.evaluate(measureScript(), {
+      minTarget: width === 390 ? 44 : 32, numericRe: NUMERIC_RE.source,
+      barControlSelector: BAR_CONTROL_SELECTOR, tableDeadZonePx: TABLE_DEAD_ZONE_PX,
+      columnPackRatio: COLUMN_PACK_RATIO, gutterSelectors: GUTTER_EDGE_SELECTORS,
+    });
+    reports.push({ width, view: "manage", failures: report.filter((r) => !r.ok) });
+  }
+  await page.goto(`${url}?readonly=1`, { waitUntil: "domcontentloaded" });
   await page
     .getByRole("button", { name: "Open Malik Nabers's locker", exact: true })
     .click();
@@ -127,9 +143,9 @@ try {
     0,
   );
   assert.equal(await page.getByLabel("Player nickname").count(), 0);
-  await page.goto(`${url}?empty=1`);
+  await page.goto(`${url}?empty=1`, { waitUntil: "domcontentloaded" });
   await page.getByText("Your lockers are ready.", { exact: false }).waitFor();
-  await page.goto(`${url}?error=1`);
+  await page.goto(`${url}?error=1`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Try again", exact: true }).waitFor();
   fs.writeFileSync(
     "outputs/team-room-audit.json",

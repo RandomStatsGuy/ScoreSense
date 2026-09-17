@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   commissionerIntro,
+  officeBoundaryNote,
   sheetsDefaultHint,
   sheetsGuideCopy,
   shouldAutoOpenSheetsGuide,
@@ -18,6 +19,17 @@ test("commissionerIntro marks admin boundary for staff", () => {
 test("commissionerIntro keeps the member framing read-only", () => {
   const member = commissionerIntro(false);
   assert.match(member.purpose, /Only commissioners can edit/i);
+});
+
+test("officeBoundaryNote drops Cap when salaries are off", () => {
+  assert.match(officeBoundaryNote(true), /My team and Cap/);
+  assert.doesNotMatch(officeBoundaryNote(false), /Cap/);
+});
+
+test("commissionerIntro drops contract language for no-money leagues", () => {
+  const staff = commissionerIntro(true, { usesContracts: false });
+  assert.match(staff.purpose, /roster assignments, members, and league access/i);
+  assert.doesNotMatch(staff.purpose, /salary sheets/i);
 });
 
 test("sheetsGuideCopy keeps caveat out of default hint", () => {

@@ -4,6 +4,7 @@ import React, { useId, useState } from "react";
  * Mobile projection card.
  * Header expands details unless `selecting` is on, then it toggles compare.
  * Optional `aside` stays outside that button so Details stays reachable.
+ * Actions stay visible below the summary when there are no expandable details.
  */
 export default function MobilePlayerCard({
   name,
@@ -88,9 +89,9 @@ export default function MobilePlayerCard({
         </button>
         {aside ? <div className="mobile-player-card-aside">{aside}</div> : null}
       </div>
-      {hasExpand && open ? (
-        <div className="mobile-player-card-body" id={detailsId}>
-          {expanded}
+      {(hasExpand && open) || (!hasExpand && actions) ? (
+        <div className="mobile-player-card-body" id={hasExpand ? detailsId : undefined}>
+          {hasExpand ? expanded : null}
           {actions ? <div className="mobile-player-card-actions">{actions}</div> : null}
         </div>
       ) : null}

@@ -7,10 +7,14 @@ import { fmtSal, formatStatusLabel, tierChipClass } from "./valueSheetUtils";
 import RaavBidCell from "./RaavBidCell";
 import { riskBand, riskBandTooltip, suggestedBidCaption } from "./draftLiveConsole";
 import ContractHistoryLink from "./ContractHistoryLink";
+import { rulesUseContracts } from "./leagueCapabilities";
 import {
+  CLAIM_QUEUE_COPY,
   PLAYERS_TAB_COPY,
   playersTabAddDisabledReason,
   playersTabAddLabel,
+  playersTabBusyLabel,
+  playersTabClaimedLabel,
   playersTabStarCopy,
 } from "./acquisitionWindow";
 import { faWalkawayChip } from "./faBidPresentation";
@@ -29,6 +33,8 @@ function ValueSheetPlayerRow({
   rules = null,
   inRoster,
   isAdding,
+  isClaimed = false,
+  isProtected = false,
   isSelected,
   isCommissioner = false,
   onSelectPlayer,
@@ -97,12 +103,16 @@ function ValueSheetPlayerRow({
   const statusLabel = formatStatusLabel(row.status);
   const taken = row.status === "taken";
   const locked = addMode === "locked";
-  const addLabel = isAdding
-    ? (addMode === "bid" ? "Bidding…" : "Adding…")
+  const addLabel = isClaimed
+    ? playersTabClaimedLabel()
+    : isAdding
+    ? playersTabBusyLabel(addMode)
     : playersTabAddLabel(addMode, { taken, isCommissioner });
   const addReason = locked
     ? playersTabAddDisabledReason(addMode)
-    : (taken && !isCommissioner && addMode !== "bid" ? "Already on another roster" : undefined);
+    : isProtected
+    ? CLAIM_QUEUE_COPY.protected
+    : (taken && !isCommissioner && !["bid", "claim"].includes(addMode) ? "Already on another roster" : undefined);
   const watching = (watchIds || []).map(String).includes(String(row.player_id));
   const starLabel = playersTabStarCopy(watching);
   const spreadLabel = useMemo(
@@ -291,14 +301,14 @@ function ValueSheetPlayerRow({
           <button
             type="button"
             className="btn-ghost btn-sm"
-            disabled={actionsDisabled || isAdding || locked}
+            disabled={actionsDisabled || isAdding || isClaimed || isProtected || locked}
             title={addReason}
             onClick={locked ? undefined : handleAddClick}
           >
             {addLabel}
           </button>
         )}
-        {onOpenContractHistory && row.player_id ? (
+        {onOpenContractHistory && row.player_id && rulesUseContracts(rules) ? (
           <ContractHistoryLink
             playerId={row.player_id}
             playerName={row.player || row.player_name}
@@ -331,6 +341,8 @@ function propsAreEqual(prev, next) {
     && prev.rules === next.rules
     && prev.inRoster === next.inRoster
     && prev.isAdding === next.isAdding
+    && prev.isClaimed === next.isClaimed
+    && prev.isProtected === next.isProtected
     && prev.isSelected === next.isSelected
     && prev.isCommissioner === next.isCommissioner
     && prev.onSelectPlayer === next.onSelectPlayer

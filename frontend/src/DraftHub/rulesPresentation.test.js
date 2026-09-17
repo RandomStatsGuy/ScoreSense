@@ -235,6 +235,19 @@ test("scoring defaults, validation, and dirty state include custom weights", () 
     assert.ok(validateLeagueSettings({ ...base, rules })["scoring.receptions"]);
   }
   assert.match(SCORING_COPY.sleeperHelp, /Sleeper controls scoring rules/);
+  assert.match(SCORING_COPY.nativeHelp, /still in progress/);
+  assert.match(SCORING_COPY.supported, /unavailable data blocks scoring/);
   assert.match(SCORING_COPY.effect, /Recalculate/);
   assert.match(SCORING_COPY.projections, /PPR-based/);
+});
+
+test("native specialist weights remain editable, validated, and part of saved state", () => {
+  const form = { name: "Native", season: 2026, rules: mergeLeagueRules({ scoring: {
+    fg_made_50_59: 6, def_sacks: 2, passing_2pt_conversions: 3, bonus_rushing_100: 5,
+  } }) };
+  assert.deepEqual(validateLeagueSettings(form), {});
+  assert.equal(form.rules.scoring.fg_made_50_59, 6);
+  assert.notEqual(snapshotRulesForm(form), snapshotRulesForm({ ...form, rules: mergeLeagueRules({}) }));
+  form.rules.scoring.def_sacks = Infinity;
+  assert.ok(validateLeagueSettings(form)["scoring.def_sacks"]);
 });

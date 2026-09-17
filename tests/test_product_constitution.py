@@ -26,7 +26,7 @@ FANTASY_LABELS = [
 
 TOP_LEVEL = ["Projections", "Fantasy", "Tools"]
 
-ROSTER_MGMT_PANES = ["Contracts", "Salary sheets", "Members", "Access & imports"]
+ROSTER_MGMT_PANES = ["Contracts", "Roster moves", "Salary sheets", "Corrections", "Members", "Access & imports"]
 
 RULE_FILES = (
     "frontend-craft.mdc",
@@ -82,10 +82,10 @@ def test_constitution_covers_shipped_top_level_nav() -> None:
 
 def test_constitution_covers_shipped_fantasy_tabs() -> None:
     product = _read("docs", "PRODUCT.md")
-    hub_subnav = _read("frontend", "src", "DraftHub", "HubSubnav.jsx")
+    hub_subnav = _read("frontend", "src", "DraftHub", "hubSubnav.js")
     for label in FANTASY_LABELS:
         assert label in product, f"{label} missing from docs/PRODUCT.md"
-        assert f'label: "{label}"' in hub_subnav, f"{label} missing from HubSubnav.jsx"
+        assert f'label: "{label}"' in hub_subnav, f"{label} missing from hubSubnav.js"
 
 
 def test_constitution_covers_roster_management_panes() -> None:
@@ -177,6 +177,17 @@ def test_non_salary_leagues_use_roster_language() -> None:
         assert "Non-salary leagues never show salary, cap, contract" in text
         assert "roster space" in text
         assert "positional impact" in text
+
+
+def test_constitution_covers_league_capabilities() -> None:
+    product = _read("docs", "PRODUCT.md")
+    core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
+    assert "uses_salaries" in product
+    assert "acquisition_mode" in product
+    assert "priority claims" in product
+    assert "uses_salaries" in core_rule
+    assert "priority claims" in core_rule
+    assert "legacy salary" in product.lower() or "Legacy salary" in product
 
 
 def test_constitution_covers_phone_chrome() -> None:

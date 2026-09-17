@@ -5,19 +5,29 @@
 
 export const SHEETS_GUIDE_STORAGE_KEY = "hub.commissioner.sheetsGuide.dismissed";
 
-export function commissionerIntro(isCommissioner) {
+export function commissionerIntro(isCommissioner, { usesContracts = true } = {}) {
   if (isCommissioner) {
     return {
       title: "Roster management",
-      purpose: "Manage team contracts, salary sheets, and league access.",
+      purpose: usesContracts
+        ? "Manage team contracts, salary sheets, and league access."
+        : "Manage roster assignments, members, and league access.",
       audience: "Commissioners and co-commissioners",
     };
   }
   return {
     title: "Roster management",
-    purpose: "Only commissioners can edit contracts and team access here.",
+    purpose: usesContracts
+      ? "Only commissioners can edit contracts and team access here."
+      : "Only commissioners can edit rosters, members, and access here.",
     audience: null,
   };
+}
+
+export function officeBoundaryNote(usesSalaries = true) {
+  return usesSalaries
+    ? "Changes here apply league-wide. Day-to-day roster and cap decisions stay on My team and Cap."
+    : "Changes here apply league-wide. Day-to-day roster decisions stay on My team.";
 }
 
 export function sheetsDefaultHint() {

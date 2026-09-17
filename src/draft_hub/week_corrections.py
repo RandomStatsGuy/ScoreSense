@@ -76,9 +76,21 @@ def correction_context(league_id, season, week, actor):
         state = _state(conn, league_id, season, week)
         _authorize(state, actor)
     rules = LeagueRules.model_validate(json.loads(state["league"]["rules_json"]))
+    from src.draft_hub.owner_display import attach_owner_names_to_teams
+    teams = attach_owner_names_to_teams(league_id, [dict(team) for team in state["teams"]], season_year=season)
+    current_rosters = storage.list_league_rosters_by_team(league_id)
     return {"league_id": league_id, "season": season, "week": week,
-            "teams": [{"id": team["id"], "name": team["name"]} for team in state["teams"]],
+            "teams": [{"id": team["id"], "name": team["name"], "owner_name": team.get("owner_name")} for team in teams],
             "lineups": state["lineups"], "slots": hub_scoring._starter_capacity(rules),
+            "current_roster_candidates": {
+                team_id: [{"player_id": row["player_id"], "player_name": row.get("player_name") or "",
+                           "position": normalize_position(row.get("position")),
+                           "nfl_team": row.get("nfl_team") or row.get("team") or ""}
+                          for row in rows if storage.roster_row_occupies(row)]
+                for team_id, rows in current_rosters.items()},
+            "slot_positions": {slot: [position for position in ("QB", "RB", "WR", "TE", "K", "DEF")
+                                      if hub_scoring.slot_accepts_position(f"{slot}1", position, rules)]
+                               for slot in hub_scoring._starter_capacity(rules)},
             "incomplete_team_ids": [team["id"] for team in state["teams"]
                                     if not any(row["team_id"] == team["id"] for row in state["lineups"])],
             "revision": _digest(state), "standings": _standings(state, state["scores"])}
@@ -105,13 +117,17 @@ def _validate_lineups(state, changes, acknowledge_empty):
         for player in players:
             player_id = str(player.get("player_id") or "").strip()
             position = normalize_position(player.get("position"))
-            slot = str(player.get("slot") or "BN").upper()
+            slot = str(player.get("slot") or "BN").strip().upper()
+            # Normal weekly lineups use unnumbered singleton slots (QB, TE,
+            # FLEX, K, DEF). Corrections use indexed slots; accept both forms.
+            if capacity.get(slot) == 1:
+                slot = f"{slot}1"
             if not player_id or player_id in ownership:
                 raise CorrectionError("A player can belong to only one team in the selected week")
             ownership.add(player_id)
             positions[position] += 1
             if slot != "BN":
-                if position not in {"QB", "RB", "WR", "TE"}:
+                if position not in {"QB", "RB", "WR", "TE", "K", "DEF"}:
                     raise CorrectionError("Native scoring does not support this starter position")
                 if slot not in allowed_slots or slot in slots or not hub_scoring.slot_accepts_position(slot, position, rules):
                     raise CorrectionError("Starter slots must be distinct and position-eligible")
@@ -155,11 +171,16 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
     totals = {team["id"]: 0.0 for team in state["teams"]}
     player_scores = []
     for entry in entries:
-        raw = stats.get(entry["player_id"])
+        raw = hub_scoring.stats_for_lineup_row(stats, entry)
         points = 0.0
-        if entry["lineup_role"] == "starter" and (not raw or not any(key in raw for key in hub_scoring.FANTASY_SCORING)):
+        if entry["lineup_role"] == "starter":
+            try:
+                hub_scoring.require_position_stats(entry["position"], raw or {}, scoring)
+            except hub_scoring.LineupError as exc:
+                blockers.append(str(exc))
+        if entry["lineup_role"] == "starter" and (not raw or not any(key in raw for key in hub_scoring.NATIVE_STAT_FIELDS)):
             blockers.append(f"Actual scoring statistics unavailable for {entry['player_name']}")
-        if raw and any(key in raw for key in hub_scoring.FANTASY_SCORING):
+        if raw and any(key in raw for key in hub_scoring.NATIVE_STAT_FIELDS):
             points = hub_scoring.fantasy_points_from_stats(raw, scoring)
             if not math.isfinite(points):
                 raise CorrectionError("Player statistics contain an invalid score")
@@ -238,7 +259,12 @@ def publish_correction(league_id, season, week, actor, preview_id, revision, rea
         conn.executemany("""INSERT INTO league_team_week_score
             (league_id,season,week,team_id,matchup_id,points,scored_at) VALUES (?,?,?,?,?,?,?)""",
             [(*key, row["team_id"], row["matchup_id"], row["points"], stamp) for row in preview["after"]["scores"]])
-        conn.execute("INSERT OR REPLACE INTO league_week_scoring_run VALUES (?,?,?,?,?)", (*key, json.dumps(preview["scoring"]), stamp))
+        conn.execute(
+            """INSERT OR REPLACE INTO league_week_scoring_run
+               (league_id, season, week, scoring_json, scored_at, final)
+               VALUES (?,?,?,?,?,1)""",
+            (*key, json.dumps(preview["scoring"]), stamp),
+        )
         conn.execute("UPDATE league_week_correction SET published_at=?,idempotency_key=? WHERE id=?", (stamp, idempotency_key, preview_id))
         conn.execute("INSERT INTO draft_event (league_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
                      (league_id, "week_correction", json.dumps({"correction_id": preview_id, "week": week, "season": season,

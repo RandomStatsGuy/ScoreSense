@@ -7,6 +7,7 @@ import math
 import urllib.parse
 from contextlib import asynccontextmanager
 from pathlib import Path
+from functools import partial
 from typing import Any, Optional
 
 import pandas as pd
@@ -74,7 +75,7 @@ from src.jobs.accuracy_rebuild import (
     run_full_accuracy_rebuild,
     start_full_accuracy_rebuild,
 )
-from src.config import FRONTEND_DIST, TWA_PACKAGE_NAME, TWA_SHA256_FINGERPRINT
+from src.config import FRONTEND_DIST, FRONTEND_ASSET_ARCHIVE, TWA_PACKAGE_NAME, TWA_SHA256_FINGERPRINT
 from src.auth import user_store
 from src.integrations.sleeper import get_nfl_state, injured_players
 from src.integrations.injury_snapshot import injured_players_from_disk
@@ -86,7 +87,7 @@ from src.integrations.injury_poll import (
 )
 from src.jobs.weekly_refresh import (
     REFRESH_STATUS, get_refresh_status, mark_refresh_started,
-    public_refresh_status, record_refresh_failure, run_weekly_refresh,
+    public_refresh_status, record_refresh_failure, record_refresh_job_result, run_weekly_refresh,
 )
 from src.jobs.refresh_lock import refresh_lock, RefreshBusy
 from src.projections.predict import get_model_metrics, predict_upcoming_week
@@ -1242,7 +1243,8 @@ async def refresh(
                 if age < 120:
                     return current
             started = mark_refresh_started(retrain=retrain, draft_only=draft_only)
-        submit_cpu_job(run_weekly_refresh, retrain, None, draft_only, started["started_at"])
+        future = submit_cpu_job(run_weekly_refresh, retrain, None, draft_only, started["started_at"])
+        future.add_done_callback(partial(record_refresh_job_result, started_at=started["started_at"]))
         return started
     except RefreshBusy:
         return get_refresh_status()
@@ -2280,10 +2282,22 @@ class LegacyFantasyAssetStaticFiles(ImmutableStaticFiles):
     the app suspended at its loading shell.
     """
 
+    def __init__(self, *args, archive_directory=FRONTEND_ASSET_ARCHIVE, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.archive = ImmutableStaticFiles(directory=archive_directory, check_dir=False)
+
     async def get_response(self, path: str, scope: dict[str, Any]) -> Response:
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
+            if exc.status_code == 404 and Path(self.archive.directory).is_dir():
+                try:
+                    # Serve the exact old bytes under their original hash. StaticFiles
+                    # retains its path traversal/symlink checks for this directory.
+                    return await self.archive.get_response(path, scope)
+                except StarletteHTTPException as archive_exc:
+                    if archive_exc.status_code != 404:
+                        raise
             if exc.status_code != 404 or "/" in path or not (
                 path.startswith("fantasy-") and path.endswith(".css")
             ):

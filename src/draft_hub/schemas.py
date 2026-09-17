@@ -44,14 +44,47 @@ class ScoringRules(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     passing_yards: float = Field(default=0.04, ge=-100, le=100)
-    passing_tds: float = Field(default=4.0, ge=-100, le=100)
-    interceptions: float = Field(default=-2.0, ge=-100, le=100)
+    passing_tds: float = Field(default=4, ge=-100, le=100)
+    interceptions: float = Field(default=-2, ge=-100, le=100)
     rushing_yards: float = Field(default=0.1, ge=-100, le=100)
-    rushing_tds: float = Field(default=6.0, ge=-100, le=100)
-    receptions: float = Field(default=1.0, ge=-100, le=100)
+    rushing_tds: float = Field(default=6, ge=-100, le=100)
+    receptions: float = Field(default=1, ge=-100, le=100)
     receiving_yards: float = Field(default=0.1, ge=-100, le=100)
-    receiving_tds: float = Field(default=6.0, ge=-100, le=100)
-    fumbles_lost: float = Field(default=-2.0, ge=-100, le=100)
+    receiving_tds: float = Field(default=6, ge=-100, le=100)
+    fumbles_lost: float = Field(default=-2, ge=-100, le=100)
+    passing_2pt_conversions: float = Field(default=2, ge=-100, le=100)
+    rushing_2pt_conversions: float = Field(default=2, ge=-100, le=100)
+    receiving_2pt_conversions: float = Field(default=2, ge=-100, le=100)
+    special_teams_tds: float = Field(default=6, ge=-100, le=100)
+    pat_made: float = Field(default=1, ge=-100, le=100)
+    pat_missed: float = Field(default=-1, ge=-100, le=100)
+    fg_made_0_19: float = Field(default=3, ge=-100, le=100)
+    fg_made_20_29: float = Field(default=3, ge=-100, le=100)
+    fg_made_30_39: float = Field(default=3, ge=-100, le=100)
+    fg_made_40_49: float = Field(default=4, ge=-100, le=100)
+    fg_made_50_59: float = Field(default=5, ge=-100, le=100)
+    fg_made_60_plus: float = Field(default=5, ge=-100, le=100)
+    fg_missed: float = Field(default=-1, ge=-100, le=100)
+    def_sacks: float = Field(default=1, ge=-100, le=100)
+    def_interceptions: float = Field(default=2, ge=-100, le=100)
+    def_fumble_recoveries: float = Field(default=2, ge=-100, le=100)
+    def_touchdowns: float = Field(default=6, ge=-100, le=100)
+    def_safeties: float = Field(default=2, ge=-100, le=100)
+    def_blocked_kicks: float = Field(default=2, ge=-100, le=100)
+    def_2pt_returns: float = Field(default=2, ge=-100, le=100)
+    def_points_allowed_0: float = Field(default=10, ge=-100, le=100)
+    def_points_allowed_1_6: float = Field(default=7, ge=-100, le=100)
+    def_points_allowed_7_13: float = Field(default=4, ge=-100, le=100)
+    def_points_allowed_14_20: float = Field(default=1, ge=-100, le=100)
+    def_points_allowed_21_27: float = Field(default=0, ge=-100, le=100)
+    def_points_allowed_28_34: float = Field(default=-1, ge=-100, le=100)
+    def_points_allowed_35_plus: float = Field(default=-4, ge=-100, le=100)
+    bonus_passing_300: float = Field(default=0, ge=-100, le=100)
+    bonus_passing_400: float = Field(default=0, ge=-100, le=100)
+    bonus_rushing_100: float = Field(default=0, ge=-100, le=100)
+    bonus_rushing_200: float = Field(default=0, ge=-100, le=100)
+    bonus_receiving_100: float = Field(default=0, ge=-100, le=100)
+    bonus_receiving_200: float = Field(default=0, ge=-100, le=100)
 
 
 class LeagueRules(BaseModel):
@@ -436,8 +469,20 @@ class SleeperLeagueConnectRequest(BaseModel):
     commissioner_sleeper_roster_id: Optional[str] = None
 
 
+class SleeperLeagueDisconnectRequest(BaseModel):
+    """Unlink Sleeper and hand lineups + scoring back to ScoreSense."""
+
+    clear_sleeper_roster: bool = True
+
+
 class SleeperSyncRequest(BaseModel):
     import_to_hub: bool = False
+
+
+class SleeperSyncModeRequest(BaseModel):
+    """Pause (``off``) or resume (``live``) Sleeper-driven roster writes for one league."""
+
+    mode: Literal["live", "off"]
 
 
 class LineupStarterEntry(BaseModel):
@@ -490,6 +535,22 @@ class FaBidRequest(BaseModel):
     team: str = ""
     position: str = ""
     bid_amount: float
+
+
+class WaiverClaimItem(BaseModel):
+    player_id: str
+    player_name: str
+    team: str = ""
+    position: str = ""
+    drop_player_id: Optional[str] = None
+
+
+class WaiverClaimsRequest(BaseModel):
+    claims: list[WaiverClaimItem] = Field(default_factory=list)
+
+
+class WaiverPriorityRequest(BaseModel):
+    team_ids: list[str]
 
 
 class AtmospherePrefsUpdate(BaseModel):

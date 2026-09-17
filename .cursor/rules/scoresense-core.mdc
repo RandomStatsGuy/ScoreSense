@@ -36,15 +36,15 @@ Use these labels. Keep internal ids if they already exist.
 | Roster management | `office` | Office, Commissioner |
 | Model accuracy | `model` | Accuracy tab |
 
-Roster management panes: Contracts, Salary sheets, Members, Access & imports. A seat is the slot; a manager is the person. Chat is not a pane or a Fantasy destination.
+Roster management panes: Contracts, Salary sheets, Corrections, Members, Access & imports. A seat is the slot; a manager is the person. Chat is not a pane or a Fantasy destination.
 
-Source: `frontend/src/DraftHub/HubSubnav.jsx`, `frontend/src/appNavigation.js`.
+Source: `frontend/src/DraftHub/hubSubnav.js`, `frontend/src/appNavigation.js`.
 
 ## Design
 
 Priority: fun → easy → clear → selective → respectful. Fun is consequence and rhythm, not decoration.
 
-- Dark, matte, editorial, layered. No neon-terminal chrome. No casino glow.
+- Dark or approved soft-canvas light mode, matte, editorial, layered. Shared color-theme tokens; desktop sun/moon and phone More switches persist per browser. Keep team/matchup artwork navy. No neon-terminal chrome. No casino glow.
 - Tokens only: `frontend/src/styles/tokens.css`, `product-hierarchy.css`, `product-rhythm.css`, `fantasy-phone.css`.
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking, plus the live auction clock under 5s. Gold = awards only — never the live high-bid figure.
@@ -57,12 +57,14 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 ## Product rules you may not bypass
 
 - Non-salary leagues never show salary, cap, contract, dead-cap, or points-per-dollar concepts. Use roster space, roster limits, and positional impact instead.
+- Only native-scoring leagues use automatic calculation; linked Sleeper leagues keep their scoring host. Expose native scoring weights in Rules for commissioners. Refresh native league scores frequently during games and finalize automatically after the week's last game ends (normally Monday night); live updates must not lock unstarted players or finalize standings, and missing inputs must surface as failures. See the implementation status in docs/PRODUCT.md.
 - League policy changes apply to **new contracts only**. Say that once, next to Save.
 - Rules Save writes the league on the form, not hub focus. Do not apply a late save that belongs to another league.
 - Opening a Fantasy page does not change the saved league. Practice rooms never become strip focus. Only Switch league, or joining/creating a live league, writes focus.
 - Switching Projections, Fantasy, or Tools returns you to the last destination you used in that area. Tapping the already-selected top-level tab reopens that area’s destination picker on phone.
 - Applying a league template confirms, names what changes, and fills the form. It does not save. Offer undo until the next edit.
-- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not.
+- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`). Staff Roster management may override; Players-tab adds may not. Pick-draft waivers use priority claims; auction waivers still bid.
+- League capabilities (`uses_salaries`, `uses_contracts`, `acquisition_mode`) come from `draft_type`. Auction is salary-cap + bid. Snake and linear are no-money + priority claims. Legacy salary fields have no effect when `uses_salaries` is false. Hide Cap, Contracts, and Salary sheets in those leagues.
 - Do not invent a parallel rules or contract model. Merge/validate via `rulesPresentation.js`. Backend is authoritative.
 - Fantasy lists people by **owner name**. Team nicknames may sit underneath or after a middot.
 - One `<main id="main-content">` plus a skip link; do not nest a second main.
@@ -71,6 +73,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - One-year expirees that cannot extend use Expiring — never Expires — FA. They enter the draft pool; undrafted names become free agents after the draft.
 - Contract types shown to users are Rookie deal, Vet deal, and Extension — never Rookie Extension or Veteran Deal. Rookie deals and vet deals stay flat for the first term; the step-up starts on an Extension. Rules shows Keep vet deals flat and Allow vet deal extensions as their own toggles. Final-year rookie deals and vet deals may take one extension when their Rules toggle is on.
 - A nomination queue stays on that manager's board only. Do not put another team's queue on room state.
+- After the draft, Game center refreshes native week scores when weekly stats are available. A calculate after the slate ends locks that week's lineups. Kicker and defense starters stay at 0 and do not block the week.
 
 ## Living surfaces
 

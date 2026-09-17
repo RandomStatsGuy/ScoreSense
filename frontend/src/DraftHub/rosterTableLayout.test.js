@@ -45,7 +45,7 @@ test("My Team roster columns declare a shared header/body layout", () => {
     assert.match(rosterBuilder, new RegExp(`<SortTh[^>]*className="${cls}"`));
     assert.match(rosterBuilder, new RegExp(`<td[^>]*className="${cls}"`));
   }
-  assert.match(rosterBuilder, /<th className="hub-roster-actions">Contract<\/th>/);
+  assert.match(rosterBuilder, /<th className="hub-roster-actions">\{usesSalaries \? "Contract" : "Details"\}<\/th>/);
 });
 
 // League Rosters now has a different approved layout. Its filtering and missing-data

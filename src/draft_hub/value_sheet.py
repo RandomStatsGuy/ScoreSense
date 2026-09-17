@@ -10,6 +10,13 @@ import pandas as pd
 
 from src.draft_hub.auction_values import build_player_values
 from src.draft_hub.draft_pool_cache import load_draft_pool
+from src.draft_hub.league_capabilities import uses_contracts
+from src.draft_hub.roster_identity_match import (
+    find_matching_roster_slot,
+    identity_token_set,
+    overlay_identity_from_pool_row,
+    roster_identity_tokens,
+)
 from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.tier_generator import generate_tiers
@@ -52,6 +59,8 @@ def _player_status(
     my_team_id: str | None,
     on_sleeper: bool,
     is_target: bool,
+    on_league_sleeper: bool = False,
+    sleeper_counts_as_owned: bool = False,
 ) -> tuple[str, bool, float | None]:
     """Return status, is_available, roster_salary."""
     if league_row:
@@ -63,6 +72,10 @@ def _player_status(
         if on_my_team:
             return "rostered", False, roster_sal
         return "taken", False, roster_sal
+    if sleeper_counts_as_owned and on_sleeper:
+        return "rostered", False, None
+    if sleeper_counts_as_owned and on_league_sleeper:
+        return "taken", False, None
     if on_sleeper:
         return "sleeper", True, None
     if is_target:
@@ -227,43 +240,66 @@ def build_value_overlay(
     my_team_id: str | None = None,
     targets: set[str] | None = None,
     sleeper_player_ids: set[str] | None = None,
+    league_sleeper_player_ids: set[str] | None = None,
     draft_completed: bool = False,
 ) -> dict[str, Any]:
     """Apply roster / league availability overlay to a pre-built pool payload."""
-    from src.draft_hub.pre_draft_cap import retained_through_draft
+    from src.draft_hub.pre_draft_cap import is_active_for_pre_draft, retained_through_draft
 
-    def _kept(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        out: dict[str, dict[str, Any]] = {}
-        for row in rows:
-            pid = str(row.get("player_id") or "")
-            if not pid:
-                continue
-            if not retained_through_draft(row, draft_completed=draft_completed):
-                continue
-            out[pid] = row
-        return out
+    keeps_contracts = uses_contracts(rules)
+    sleeper_counts_as_owned = (not keeps_contracts) or bool(draft_completed)
 
-    roster_map = _kept(roster)
-    league_map = _kept(league_roster if league_roster is not None else roster)
+    def _owns(row: dict[str, Any]) -> bool:
+        """Is this player on someone's roster, for availability purposes?
+
+        A league with no contracts has no keeper question, so an active roster
+        row on a team is ownership. retained_through_draft() answers a
+        cap/keeper question instead, and its pre-draft fallback is
+        is_current_auction_award() — never true in a pick draft, which left
+        every rostered player showing as a free agent.
+        """
+        if not keeps_contracts:
+            return is_active_for_pre_draft(row)
+        return retained_through_draft(row, draft_completed=draft_completed)
+
+    owned_mine = [row for row in roster if _owns(row)]
+    owned_league = [
+        row for row in (league_roster if league_roster is not None else roster) if _owns(row)
+    ]
     targets = targets or set()
-    sleeper_ids = sleeper_player_ids or set()
+    my_sleeper_tokens = identity_token_set(sleeper_player_ids)
+    league_sleeper_tokens = identity_token_set(league_sleeper_player_ids)
 
     rows: list[dict[str, Any]] = []
     for base in pool_payload.get("rows") or []:
         pid = str(base.get("player_id") or "")
+        identity = overlay_identity_from_pool_row(base)
+        pool_tokens = roster_identity_tokens(identity)
         fair_value = base.get("fair_value")
-        on_sleeper = pid in sleeper_ids
-        league_row = league_map.get(pid)
+        on_sleeper = bool(pool_tokens & my_sleeper_tokens)
+        on_league_sleeper = bool(pool_tokens & league_sleeper_tokens)
+        league_row = find_matching_roster_slot(
+            owned_league,
+            identity,
+            occupying_only=False,
+        )
+        mine_row = find_matching_roster_slot(
+            owned_mine,
+            identity,
+            occupying_only=False,
+        )
         status, is_available, roster_sal = _player_status(
             pid,
             league_row=league_row,
             my_team_id=my_team_id,
             on_sleeper=on_sleeper,
             is_target=pid in targets,
+            on_league_sleeper=on_league_sleeper,
+            sleeper_counts_as_owned=sleeper_counts_as_owned,
         )
-        on_roster = pid in roster_map or league_row is not None
-        if roster_sal is None and pid in roster_map:
-            roster_sal = float(roster_map[pid]["salary"])
+        on_roster = mine_row is not None or league_row is not None
+        if roster_sal is None and mine_row is not None:
+            roster_sal = float(mine_row["salary"])
         value_delta = (
             round(roster_sal - fair_value, 2)
             if roster_sal is not None and fair_value is not None
@@ -310,6 +346,7 @@ def build_value_overlay_sheet(
     my_team_id: str | None = None,
     targets: set[str] | None = None,
     sleeper_player_ids: set[str] | None = None,
+    league_sleeper_player_ids: set[str] | None = None,
     team_count: int = 12,
     pool_payload: dict[str, Any] | None = None,
     draft_completed: bool = False,
@@ -328,6 +365,7 @@ def build_value_overlay_sheet(
         my_team_id=my_team_id,
         targets=targets,
         sleeper_player_ids=sleeper_player_ids,
+        league_sleeper_player_ids=league_sleeper_player_ids,
         draft_completed=draft_completed,
     )
 
@@ -342,6 +380,7 @@ def build_value_sheet(
     my_team_id: str | None = None,
     targets: set[str] | None = None,
     sleeper_player_ids: set[str] | None = None,
+    league_sleeper_player_ids: set[str] | None = None,
     team_count: int = 12,
     draft_completed: bool = False,
 ) -> dict[str, Any]:
@@ -356,5 +395,6 @@ def build_value_sheet(
         my_team_id=my_team_id,
         targets=targets,
         sleeper_player_ids=sleeper_player_ids,
+        league_sleeper_player_ids=league_sleeper_player_ids,
         draft_completed=draft_completed,
     )

@@ -19,6 +19,7 @@ export const WEEK_BOARD_COPY = {
   emptySlot: (slot) => `Find ${slot}`,
   emptySlotName: "Empty",
   lineupSource: "Lineup suggestions use model projections. Your Vibes ratings only affect Vibes-adjusted projections.",
+  projectionDefaults: "Initial starters use available weekly projections, not salaries. Saved choices stay unchanged. Review empty slots and starters before kickoff.",
   ptsUnit: "proj pts",
   emptySlotHint: "Open Free agents",
   noProjection: "No projection",
@@ -26,6 +27,7 @@ export const WEEK_BOARD_COPY = {
   startInSleeper: "Opens Sleeper to set this start.",
   startExternal: "Set this start in your league app.",
   lineupLocked: "Lineup is locked.",
+  staffLineupOpen: "Games have started. You can still set this lineup until the week is calculated.",
   refreshProjections: "Refresh projections",
   refreshing: "Refreshing…",
   rosterFresh: "Roster",
@@ -479,8 +481,13 @@ export function canEditHubLineup({
   mode,
   lineupSource,
   lineupLocked,
+  weekScored = false,
+  isCommissioner = false,
 } = {}) {
-  return mode === "league" && lineupSource === "hub" && !lineupLocked;
+  if (mode !== "league" || lineupSource !== "hub") return false;
+  if (weekScored) return false;
+  if (!lineupLocked) return true;
+  return Boolean(isCommissioner);
 }
 
 export function decisionSwapIds(decision) {

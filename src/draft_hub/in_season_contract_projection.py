@@ -256,6 +256,9 @@ def materialize_sleeper_moves(
     edited_by_sub: str = "system:sleeper",
 ) -> dict[str, Any]:
     """Write effective projection deltas into DB as manual rows."""
+    from src.draft_hub.sleeper_sync_mode import require_sleeper_roster_writes
+
+    require_sleeper_roster_writes(league_id)
     diff = diff_effective_vs_db(league_id, season_year)
     created = 0
     updated = 0

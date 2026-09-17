@@ -63,6 +63,16 @@ def test_missing_stats_block_publication(recovery, monkeypatch):
         publish(recovery[0], result)
 
 
+def test_correction_resolves_saved_player_name_when_provider_id_differs(recovery, monkeypatch):
+    recovery[3][0]["players"][0]["player_name"] = "Drake Maye"
+    name_key = hub_scoring.name_pos_key({"player_name": "Drake Maye", "position": "QB"})
+    monkeypatch.setattr(hub_scoring, "load_week_stat_index", lambda *args: {
+        name_key: {"passing_yards": 300}, "other-qb": {"passing_yards": 200}})
+    result = preview(recovery)
+    assert result["can_publish"]
+    assert next(row for row in result["player_scores"] if row["player_id"] == "past-qb")["points"] == 12
+
+
 def test_only_commissioner_can_repair(recovery):
     with pytest.raises(PermissionError):
         corrections.correction_context(recovery[0], 2026, 1, "manager")
@@ -117,3 +127,46 @@ def test_historical_view_preserves_departed_players(recovery):
     assert [row["player_id"] for row in starters] == ["past-qb"]
     assert not bench
     assert meta["lineup_locked"]
+    assert meta["week_scored"]
+
+
+def test_context_exposes_required_slots_and_position_eligibility(recovery):
+    result = corrections.correction_context(recovery[0], 2026, 1, "commissioner")
+    assert result["slots"]["QB"] == 1
+    assert result["slot_positions"]["QB"] == ["QB"]
+    assert result["lineups"] == []
+
+
+def test_manager_display_enrichment_does_not_change_revision(recovery, monkeypatch):
+    def enrich(_league_id, teams, **kwargs):
+        for team in teams:
+            team["owner_name"] = "Display manager"
+        return teams
+    monkeypatch.setattr("src.draft_hub.owner_display.attach_owner_names_to_teams", enrich)
+    assert preview(recovery)["can_publish"]
+
+
+@pytest.mark.parametrize("slot", ["QB", " qb ", "QB1"])
+def test_native_singleton_slots_can_be_previewed(recovery, slot):
+    recovery[3][0]["players"][0]["slot"] = slot
+    result = preview(recovery)
+    assert result["can_publish"]
+    assert all(row["slot"] == "QB1" for row in result["player_scores"])
+
+
+def test_mixed_slot_aliases_still_reject_duplicate_starters(recovery):
+    recovery[3][0]["players"].append({"player_id":"duplicate", "position":"QB", "slot":"QB"})
+    with pytest.raises(corrections.CorrectionError, match="distinct"):
+        preview(recovery)
+
+
+def test_current_players_are_suggestions_not_historical_lineups(recovery, monkeypatch):
+    league_id, home, away, _ = recovery
+    monkeypatch.setattr(storage, "list_league_rosters_by_team", lambda _: {
+        home:[{"player_id":"current", "player_name":"Current QB", "position":"QB", "team":"NE"},
+              {"player_id":"cut", "position":"QB", "roster_status":"cut"}], away:[]})
+    context = corrections.correction_context(league_id,2026,1,"commissioner")
+    assert [row["player_id"] for row in context["current_roster_candidates"][home]] == ["current"]
+    assert context["lineups"] == []
+    assert storage.list_week_lineups(league_id,2026,1) == []
+    assert preview(recovery)["can_publish"]  # suggestions never change revision

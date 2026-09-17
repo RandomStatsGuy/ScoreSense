@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
     },
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "pwa-192.png", "pwa-512.png"],
+      includeAssets: ["theme-init.js", "favicon.ico", "apple-touch-icon.png", "pwa-192.png", "pwa-512.png"],
       manifest: {
         name: "ScoreSense",
         short_name: "ScoreSense",

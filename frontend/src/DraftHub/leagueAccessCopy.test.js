@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import {
   CREATE_LEAGUE_VALUE,
   LEAGUE_CREATE_COPY,
+  SLEEPER_SYNC_PAUSE_COPY,
+  SLEEPER_UNLINK_COPY,
+  sleeperSyncPaused,
+  sleeperUnlinkSummary,
   SOLO_VALUE,
   interpretLeagueSwitcherValue,
   draftInviteLabel,
@@ -229,7 +233,60 @@ test("size preview explains explicit removal and open capacity", () => {
   assert.match(LEAGUE_SIZE_COPY.preview(7, 8), /Remove 1 team below/);
   assert.match(LEAGUE_SIZE_COPY.preview(14, 8), /6 unassigned seats/);
   assert.match(addFranchiseSupport({ nextCount: 12, currentCount: 12, cap: 200 }), /Uses one open seat/);
+  assert.match(addFranchiseSupport({ nextCount: 12, currentCount: 12, cap: 200, usesSalaries: false }), /starts empty/);
+  assert.doesNotMatch(addFranchiseSupport({ nextCount: 12, currentCount: 12, cap: 200, usesSalaries: false }), /\$200|keepers/);
+  assert.match(LEAGUE_SIZE_COPY.preview(14, 8, false), /Existing teams stay/);
+  assert.doesNotMatch(LEAGUE_SIZE_COPY.preview(14, 8, false), /contracts/);
   assert.equal(addFranchiseLabel({ configured: 12, actual: 8 }), "Add team to open seat");
   assert.equal(canAddSeat({ configured: 20, actual: 20 }), false);
   assert.match(removeFranchiseConfirm("Alex", { consequences: ["League becomes 7 teams."] }), /Remove Alex.*7 teams/);
+});
+
+test("sleeper sync pause reads the league row before hub context", () => {
+  assert.equal(sleeperSyncPaused({ overview: { league: { sleeper_sync_mode: "off" } } }), true);
+  assert.equal(
+    sleeperSyncPaused({
+      overview: { league: { sleeper_sync_mode: "live" } },
+      hubContext: { sleeper_sync_paused: true },
+    }),
+    false,
+  );
+  assert.equal(sleeperSyncPaused({ hubContext: { sleeper_sync_paused: true } }), true);
+  assert.equal(sleeperSyncPaused({}), false);
+});
+
+test("sleeper sync pause copy names the effect, not a permission", () => {
+  assert.match(SLEEPER_SYNC_PAUSE_COPY.pausedSupport, /stay exactly as they are/);
+  assert.match(SLEEPER_SYNC_PAUSE_COPY.liveSupport, /move contracts between teams/);
+  assert.doesNotMatch(Object.values(SLEEPER_SYNC_PAUSE_COPY).join(" "), /permission|Submit/);
+});
+
+test("sleeper unlink copy says ScoreSense takes over lineups", () => {
+  assert.match(SLEEPER_UNLINK_COPY.support, /ScoreSense takes them over/);
+  assert.match(SLEEPER_UNLINK_COPY.rosterWarning(1), /^1 roster player came from Sleeper/);
+  assert.match(SLEEPER_UNLINK_COPY.rosterWarning(4), /^4 roster players came from Sleeper/);
+});
+
+test("sleeper unlink summary counts mappings and only warns on roster rows when clearing", () => {
+  assert.equal(
+    sleeperUnlinkSummary({ teamsLinked: 1, rosterRows: 0, clearRoster: true }),
+    "Clears 1 team mapping.",
+  );
+  assert.equal(
+    sleeperUnlinkSummary({ teamsLinked: 10, rosterRows: 152, clearRoster: true }),
+    "Clears 10 team mappings and 152 Sleeper roster rows.",
+  );
+  assert.equal(
+    sleeperUnlinkSummary({ teamsLinked: 10, rosterRows: 152, clearRoster: false }),
+    "Clears 10 team mappings.",
+  );
+});
+
+test("lobby hero copy drops auction language for a pick draft", () => {
+  const full = { locked: true, roomFull: true };
+  assert.match(draftLobbyHeroSupport({ ...full, usesContracts: true }), /auction writes keepers/i);
+  assert.doesNotMatch(draftLobbyHeroSupport({ ...full, usesContracts: false }), /auction|contract/i);
+  assert.match(draftLobbyHeroSupport({ ...full, usesContracts: false }), /every pick lands on a roster/i);
+  // Default stays the salary-league wording.
+  assert.match(draftLobbyHeroSupport(full), /auction writes keepers/i);
 });

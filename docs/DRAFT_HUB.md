@@ -2,7 +2,7 @@
 
 Salary-cap and pick-draft league tooling. **Users see this as Fantasy**, not “Draft Hub.” Names, chrome, and copy: [PRODUCT.md](./PRODUCT.md). Contract cases: [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md).
 
-This file is the **API and storage** map. Do not add user-facing destinations here without updating `HubSubnav.jsx` and `PRODUCT.md`.
+This file is the **API and storage** map. Do not add user-facing destinations here without updating `hubSubnav.js` and `PRODUCT.md`.
 
 Shipped: solo prep, live auction / snake / linear rooms, contracts, cap planner, Sleeper import, trades, Rules, Roster management, Insights, persistent league chat.
 
@@ -84,8 +84,23 @@ Once linked, Fantasy:
 | GET/PUT/DELETE | `/api/hub/sleeper/link` | Read / save / clear link |
 | GET | `/api/hub/sleeper/roster` | Live Sleeper roster snapshot |
 | POST | `/api/hub/sleeper/sync` | Refresh cached player ids (+ optional hub import) |
+| POST | `/api/hub/league/{id}/sleeper/connect` | Link a Sleeper league, map teams, import rosters (commissioner) |
+| GET | `/api/hub/league/{id}/sleeper/disconnect` | What an unlink would clear — mappings and Sleeper roster rows (commissioner) |
+| POST | `/api/hub/league/{id}/sleeper/disconnect` | Unlink Sleeper; ScoreSense hosts lineups and scoring (commissioner) |
 
 Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when available.
+
+### Who hosts lineups and scoring
+
+A league with a `sleeper_league_id` is **Sleeper-hosted**: `resolve_week_lineup`
+returns advice-only starters and the `/lineup` routes answer `409`. Unlinking
+clears the id and sets `league.sleeper_hosting_disabled`, which is sticky — it
+stops `resolve_sleeper_league_id` from re-attaching a member's personal Sleeper
+link. Connecting a Sleeper league again lifts the flag.
+
+Note that `create_league` still copies the commissioner's personal
+`sleeper_league_id` onto a new league, so a league can start out Sleeper-hosted
+without anyone connecting one. Unlink is the escape hatch.
 
 ## API (all require patron when `AUTH_REQUIRED=true`)
 
@@ -118,7 +133,7 @@ Player IDs are mapped via Sleeper `gsis_id` → ScoreSense `player_id` when avai
 | POST | `/api/hub/league/{id}/delete-request/approve` | Agree to a pending delete |
 | POST | `/api/hub/league/{id}/delete-request/cancel` | Withdraw a pending delete |
 
-Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). Linked Sleeper leagues keep inferred (advice-only) starters on This Week; lineup writes and `score-week` return 409. Game center still reads Sleeper matchups.
+Hub-only leagues persist start/sit on **This Week** and score weeks with standard PPR (`FANTASY_SCORING`). After the draft, Game center `live-scoring` refresh applies the current nflverse snapshot until that week is final. Linked Sleeper leagues keep inferred (advice-only) starters on This Week; lineup writes and `score-week` return 409. Game center still reads Sleeper matchups.
 
 ## Site admin
 

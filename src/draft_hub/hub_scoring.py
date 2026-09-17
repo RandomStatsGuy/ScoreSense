@@ -7,6 +7,7 @@ Sleeper as the scoring host.
 
 from __future__ import annotations
 
+import time
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
@@ -17,16 +18,24 @@ from src.config import FANTASY_SCORING
 from src.core.features import calc_fantasy_points_ppr
 from src.core.team_codes import normalize_team_to_mlready
 from src.draft_hub import storage
+from src.draft_hub.league_capabilities import uses_salaries
 from src.draft_hub.league_live_scoring import (
     attach_matchup_analytics,
     pair_placeholder_teams,
     starting_slots_from_rules,
     week_picker_meta,
 )
+from src.draft_hub.roster_identity_match import is_gsis_player_id, name_pos_key
 from src.draft_hub.rules_engine import normalize_position, roster_limits
 from src.draft_hub.schemas import LeagueRules, ScoringRules
 
+_STAT_INDEX_CACHE: dict[tuple[int, int], tuple[float, dict[str, dict[str, Any]]]] = {}
+_STAT_INDEX_TTL_S = 60.0
+
 ACTIVE_ROSTER = "active"
+NATIVE_STAT_FIELDS = frozenset(ScoringRules.model_fields) | {"def_points_allowed"}
+KICKER_STAT_FIELDS = frozenset(key for key in NATIVE_STAT_FIELDS if key.startswith(("fg_", "pat_")))
+DEFENSE_STAT_FIELDS = frozenset(key for key in NATIVE_STAT_FIELDS if key.startswith("def_"))
 
 
 class LineupError(ValueError):
@@ -265,6 +274,16 @@ def _persist_cards(
     return storage.replace_team_lineup(league_id, team_id, season, week, entries)
 
 
+def week_is_scored(league_id: str, season: int, week: int) -> bool:
+    return bool(storage.get_week_scoring_run(league_id, season, week))
+
+
+def week_is_final(league_id: str, season: int, week: int) -> bool:
+    """True after a calculate that locked the completed NFL slate."""
+    run = storage.get_week_scoring_run(league_id, season, week)
+    return bool(run and run.get("final"))
+
+
 def ensure_team_lineup(
     league_id: str,
     team_id: str,
@@ -273,15 +292,23 @@ def ensure_team_lineup(
     *,
     rules: LeagueRules | None = None,
     roster: list[dict[str, Any]] | None = None,
+    fill_missing: bool = False,
 ) -> list[dict[str, Any]]:
-    """Create a salary-fill lineup if none exists; reconcile roster adds/drops."""
+    """Create an initial lineup if none exists; reconcile roster adds/drops.
+
+    After the NFL slate ends, a missing lineup stays empty so Corrections can
+    repair historical weeks. Calculate may pass ``fill_missing`` to infer from
+    the current roster for a late draft that never opened This Week.
+    """
     league = storage.get_league(league_id)
     if not league:
         raise LineupError("League not found")
     if not isinstance(rules, LeagueRules):
         rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     existing = storage.list_team_lineup(league_id, team_id, season, week)
-    if storage.get_week_scoring_run(league_id, season, week) or nfl_week_slate_complete(season, week):
+    if week_is_final(league_id, season, week):
+        return existing
+    if nfl_week_slate_complete(season, week) and (existing or not fill_missing):
         return existing
     ws = storage.roster_workspace_for_league(league)
     roster = roster if roster is not None else _active_roster(ws, team_id)
@@ -296,7 +323,16 @@ def ensure_team_lineup(
     if not existing:
         from src.draft_hub.weekly_command_center import infer_starters_and_bench
 
-        starters, bench = infer_starters_and_bench(cards, rules)
+        if uses_salaries(rules):
+            starters, bench = infer_starters_and_bench(cards, rules)
+        else:
+            if nfl_week_slate_complete(season, week):
+                return []
+            from src.draft_hub.weekly_command_center import projected_default_lineup
+
+            starters, bench = projected_default_lineup(roster, rules, season=season, week=week)
+            if not starters:
+                return []
         return _persist_cards(league_id, team_id, season, week, starters, bench)
 
     roster_ids = {card["player_id"] for card in cards}
@@ -388,16 +424,25 @@ def resolve_week_lineup(
         from src.draft_hub.weekly_command_center import infer_starters_and_bench
 
         starters, bench = infer_starters_and_bench(players, rules)
-        return starters, bench, {"lineup_source": "inferred", "lineup_locked": False}
+        return starters, bench, {
+            "lineup_source": "inferred",
+            "lineup_locked": False,
+            "week_scored": False,
+        }
     league = storage.get_league(league_id)
     if sleeper_hosts_scoring(league, ctx):
         from src.draft_hub.weekly_command_center import infer_starters_and_bench
 
         starters, bench = infer_starters_and_bench(players, rules)
-        return starters, bench, {"lineup_source": "inferred", "lineup_locked": False}
+        return starters, bench, {
+            "lineup_source": "inferred",
+            "lineup_locked": False,
+            "week_scored": False,
+        }
 
     saved = ensure_team_lineup(league_id, team_id, season, week, rules=rules)
-    historical = bool(storage.get_week_scoring_run(league_id, season, week)) or nfl_week_slate_complete(season, week)
+    final = week_is_final(league_id, season, week)
+    historical = final or nfl_week_slate_complete(season, week)
     if historical:
         by_id = {str(player.get("player_id")): player for player in players}
         players = [{**by_id.get(row["player_id"], {}), **row, "team": row.get("nfl_team") or ""} for row in saved]
@@ -405,8 +450,11 @@ def resolve_week_lineup(
     locked = historical or any(row.get("locked") for row in saved)
     return starters, bench, {
         "lineup_source": "hub",
+        "lineup_default_policy": "salary" if uses_salaries(rules) else "weekly_projections",
         "lineup_locked": locked,
-        "lineup_persisted": True,
+        "lineup_persisted": bool(saved),
+        "week_scored": final,
+        "week_final": final,
     }
 
 
@@ -420,9 +468,12 @@ def set_team_starters(
     rules: LeagueRules | None = None,
     now: datetime | None = None,
     game_started: Callable[[str], bool] | None = None,
+    staff_edit: bool = False,
 ) -> list[dict[str, Any]]:
     """Replace the week's starters. Remaining roster players go to the bench."""
-    if storage.get_week_scoring_run(league_id, season, week) or nfl_week_slate_complete(season, week, now=now):
+    if week_is_final(league_id, season, week):
+        raise LineupError("Past-week lineups require a commissioner correction")
+    if nfl_week_slate_complete(season, week, now=now) and not staff_edit:
         raise LineupError("Past-week lineups require a commissioner correction")
     league = storage.get_league(league_id)
     if not league:
@@ -458,7 +509,7 @@ def set_team_starters(
         if not slot_accepts_position(slot, card["position"], rules):
             raise LineupError(f"{card['position']} cannot start at {slot}")
         prior = existing_by_id.get(pid) or {}
-        if _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
+        if not staff_edit and _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
             if str(prior.get("lineup_role")) != "starter" or str(prior.get("slot") or "") != slot:
                 raise LineupError("That player's game has started")
         starters.append({**card, "slot": slot, "lineup_role": "starter"})
@@ -479,7 +530,7 @@ def set_team_starters(
         if pid in seen:
             continue
         prior = existing_by_id.get(pid) or {}
-        if _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
+        if not staff_edit and _lineup_row_locked(prior or card, season, week, now=now, game_started=game_started):
             if str(prior.get("lineup_role")) == "starter":
                 raise LineupError("That player's game has started")
             # Already-started bench players stay on the bench.
@@ -500,9 +551,12 @@ def swap_lineup_players(
     rules: LeagueRules | None = None,
     now: datetime | None = None,
     game_started: Callable[[str], bool] | None = None,
+    staff_edit: bool = False,
 ) -> list[dict[str, Any]]:
     """Swap a starter with a bench player when the bench is eligible for that slot."""
-    if storage.get_week_scoring_run(league_id, season, week) or nfl_week_slate_complete(season, week, now=now):
+    if week_is_final(league_id, season, week):
+        raise LineupError("Past-week lineups require a commissioner correction")
+    if nfl_week_slate_complete(season, week, now=now) and not staff_edit:
         raise LineupError("Past-week lineups require a commissioner correction")
     league = storage.get_league(league_id)
     if not league:
@@ -524,9 +578,9 @@ def swap_lineup_players(
     slot = str(starter.get("slot") or "")
     if not slot_accepts_position(slot, bench.get("position") or "", rules):
         raise LineupError(f"{bench.get('position')} cannot start at {slot}")
-    if _lineup_row_locked(starter, season, week, now=now, game_started=game_started):
+    if not staff_edit and _lineup_row_locked(starter, season, week, now=now, game_started=game_started):
         raise LineupError("The starter's game has started")
-    if _lineup_row_locked(bench, season, week, now=now, game_started=game_started):
+    if not staff_edit and _lineup_row_locked(bench, season, week, now=now, game_started=game_started):
         raise LineupError("The bench player's game has started")
 
     new_starter = {**bench, "slot": slot, "lineup_role": "starter"}
@@ -542,7 +596,20 @@ def swap_lineup_players(
 
 def fantasy_points_from_stats(stats: dict[str, Any] | None, scoring: ScoringRules | None = None) -> float:
     total = 0.0
-    blob = stats or {}
+    blob = dict(stats or {})
+    # Derive mutually exclusive bands from actual values, never from a missing
+    # value (in particular, an absent defense score is not a shutout).
+    for stat, lower, upper in (("passing", 300, 400), ("rushing", 100, 200), ("receiving", 100, 200)):
+        if f"{stat}_yards" in blob:
+            yards = float(blob[f"{stat}_yards"] or 0)
+            blob[f"bonus_{stat}_{lower}"] = int(lower <= yards < upper)
+            blob[f"bonus_{stat}_{upper}"] = int(yards >= upper)
+    if blob.get("def_points_allowed") is not None:
+        allowed = float(blob["def_points_allowed"])
+        for low, high, suffix in ((0, 0, "0"), (1, 6, "1_6"), (7, 13, "7_13"),
+                                  (14, 20, "14_20"), (21, 27, "21_27"),
+                                  (28, 34, "28_34"), (35, float("inf"), "35_plus")):
+            blob[f"def_points_allowed_{suffix}"] = int(low <= allowed <= high)
     for key, weight in (scoring or ScoringRules()).model_dump().items():
         try:
             total += float(blob.get(key) or 0) * float(weight)
@@ -551,21 +618,124 @@ def fantasy_points_from_stats(stats: dict[str, Any] | None, scoring: ScoringRule
     return round(total, 2)
 
 
+def _lineup_stat_keys(row: dict[str, Any]) -> list[str]:
+    keys: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: Any) -> None:
+        key = str(value or "").strip()
+        if key and key not in seen:
+            seen.add(key)
+            keys.append(key)
+
+    pid = str(row.get("player_id") or "").strip()
+    add(pid)
+    if pid.startswith("sleeper-"):
+        add(pid[8:])
+    elif pid.isdigit():
+        add(f"sleeper-{pid}")
+    add(row.get("sleeper_player_id"))
+    add(name_pos_key(row))
+    return keys
+
+
+def stats_for_lineup_row(
+    lookup: dict[str, dict[str, Any]] | None,
+    row: dict[str, Any],
+) -> dict[str, Any]:
+    """Resolve nflverse stats for a lineup row across GSIS, Sleeper, and name keys."""
+    if not lookup:
+        return {}
+    for key in _lineup_stat_keys(row):
+        stats = lookup.get(key)
+        if stats:
+            return stats
+    return {}
+
+
+def _alias_week_stat_index(
+    index: dict[str, dict[str, Any]],
+    week_df: pd.DataFrame,
+) -> dict[str, dict[str, Any]]:
+    """Index the same stat row under Sleeper ids and name|pos keys."""
+    aliased = dict(index)
+    name_col = next(
+        (col for col in ("player_display_name", "player_name", "player") if col in week_df.columns),
+        None,
+    )
+    if name_col and "position" in week_df.columns:
+        for _, row in week_df.iterrows():
+            pid = str(row.get("player_id") or "").strip()
+            stats = aliased.get(pid)
+            if not stats:
+                continue
+            key = name_pos_key({"player_name": row.get(name_col), "position": row.get("position")})
+            if key:
+                aliased.setdefault(key, stats)
+    try:
+        from src.draft_hub.draft_enrichment import _sleeper_lookup_tables
+
+        _df, by_gsis, _by_sleeper_id, _by_name_team, _by_name = _sleeper_lookup_tables()
+    except Exception:
+        return aliased
+    for gsis, stats in index.items():
+        if not is_gsis_player_id(gsis):
+            continue
+        sleeper_row = by_gsis.get(gsis)
+        if sleeper_row is None:
+            continue
+        sid = str(sleeper_row.get("sleeper_id") or "").strip()
+        if not sid:
+            continue
+        aliased.setdefault(sid, stats)
+        aliased.setdefault(f"sleeper-{sid}", stats)
+    return aliased
+
+
+def require_position_stats(position: str, stats: dict[str, Any], scoring: ScoringRules) -> None:
+    """Never score unsupported specialist feeds as zero or as a shutout."""
+    position = normalize_position(position)
+    keys = KICKER_STAT_FIELDS if position == "K" else DEFENSE_STAT_FIELDS if position == "DEF" else ()
+    required = {key for key in keys if getattr(scoring, key, 0) != 0}
+    if position == "DEF" and any(key.startswith("def_points_allowed_") for key in required):
+        required = {key for key in required if not key.startswith("def_points_allowed_")}
+        required.add("def_points_allowed")
+    if any(key not in stats or stats[key] is None for key in required):
+        raise LineupError(f"Actual {position} scoring statistics are incomplete; no results were saved.")
+
+
 def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
     """player_id → stat dict + fantasy_points for one NFL week (nflverse)."""
+    from src.config import is_testing
+
+    cache_key = (int(season), int(week))
+    if not is_testing():
+        cached = _STAT_INDEX_CACHE.get(cache_key)
+        if cached and (time.monotonic() - cached[0]) < _STAT_INDEX_TTL_S:
+            return cached[1]
+    def _store(payload: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        if not is_testing():
+            _STAT_INDEX_CACHE[cache_key] = (time.monotonic(), payload)
+        return payload
+
     try:
         from src.etl.nflverse_etl import load_weekly_player_stats
 
         frame = load_weekly_player_stats([int(season)])
     except Exception:
-        return {}
+        return _store({})
     if frame is None or getattr(frame, "empty", True):
-        return {}
+        return _store({})
     if "week" not in frame.columns or "player_id" not in frame.columns:
-        return {}
-    week_df = frame.loc[pd.to_numeric(frame["week"], errors="coerce") == int(week)].copy()
+        return _store({})
+    selected = pd.to_numeric(frame["week"], errors="coerce") == int(week)
+    if "season" in frame:
+        selected &= pd.to_numeric(frame["season"], errors="coerce") == int(season)
+    if "season_type" in frame:
+        selected &= frame["season_type"].astype(str).str.upper() == "REG"
+    week_df = frame.loc[selected].copy()
     if week_df.empty:
-        return {}
+        return _store({})
     if "interceptions" not in week_df and "passing_interceptions" in week_df:
         week_df["interceptions"] = week_df["passing_interceptions"]
     if "fumbles_lost" not in week_df:
@@ -573,6 +743,8 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
             pd.to_numeric(week_df.get(key, pd.Series(0, index=week_df.index)), errors="coerce").fillna(0)
             for key in ("sack_fumbles_lost", "rushing_fumbles_lost", "receiving_fumbles_lost")
         )
+    from src.draft_hub.native_specialist_stats import normalize_kicking_stats, load_defense_stat_index
+
     week_df["fantasy_points"] = calc_fantasy_points_ppr(week_df)
     index: dict[str, dict[str, Any]] = {}
     for _, row in week_df.iterrows():
@@ -583,13 +755,34 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
             key: float(row[key]) if key in row and pd.notna(row[key]) else 0.0
             for key in FANTASY_SCORING
         }
+        stats.update({key: float(row[key]) for key in NATIVE_STAT_FIELDS
+                      if key in row and pd.notna(row[key])})
+        stats.update(normalize_kicking_stats(row))
         try:
             pts = float(row["fantasy_points"])
         except (TypeError, ValueError):
             pts = fantasy_points_from_stats(stats)
         stats["fantasy_points"] = round(pts, 2)
         index[pid] = stats
-    return index
+    result = _alias_week_stat_index(index, week_df)
+    result.update(load_defense_stat_index(int(season), int(week)))
+    return _store(result)
+
+
+def native_week_needs_score_refresh(
+    league: dict[str, Any] | None,
+    scoring_run: dict[str, Any] | None,
+    *,
+    refresh: bool,
+) -> bool:
+    """True when Game Center should persist the current nflverse snapshot."""
+    if not league or not league.get("draft_completed"):
+        return False
+    if sleeper_hosts_scoring(league):
+        return False
+    if scoring_run and scoring_run.get("final"):
+        return False
+    return bool(refresh or scoring_run is None)
 
 
 def apply_week_scores(
@@ -613,7 +806,14 @@ def apply_week_scores(
     teams = storage.list_league_teams(league_id)
     ws = storage.roster_workspace_for_league(league)
     for team in teams:
-        ensure_team_lineup(league_id, str(team["id"]), season, week, rules=rules)
+        ensure_team_lineup(
+            league_id,
+            str(team["id"]),
+            season,
+            week,
+            rules=rules,
+            fill_missing=True,
+        )
 
     lookup = stat_index
     if lookup is None:
@@ -629,24 +829,25 @@ def apply_week_scores(
         }
     if slate_complete is None:
         slate_complete = nfl_week_slate_complete(int(season), int(week), now=now)
-    if not slate_complete:
-        return {
-            "scored": False,
-            "reason": "week_in_progress",
-            "season": int(season),
-            "week": int(week),
-            "source": "hub_ppr",
-        }
 
     lineups = storage.list_week_lineups(league_id, season, week)
     matchups = storage.list_week_matchups(league_id, season, week)
-    recorded_teams = {row["team_id"] for row in lineups}
-    if any(str(team["id"]) not in recorded_teams for team in teams):
+    recorded_teams = {str(row["team_id"]) for row in lineups}
+    if not lineups:
         return {"scored": False, "reason": "incomplete_historical_lineups", "season": int(season), "week": int(week)}
+    missing_with_roster = [
+        team
+        for team in teams
+        if str(team["id"]) not in recorded_teams and _active_roster(ws, str(team["id"]))
+    ]
+    if missing_with_roster:
+        return {"scored": False, "reason": "incomplete_historical_lineups", "season": int(season), "week": int(week)}
+
+
     unsupported = [row for row in lineups if str(row.get("lineup_role")) == "starter"
-                   and normalize_position(row.get("position")) not in {"QB", "RB", "WR", "TE"}]
+                   and normalize_position(row.get("position")) not in {"QB", "RB", "WR", "TE", "K", "DEF"}]
     if unsupported:
-        raise LineupError("Native scoring currently supports QB, RB, WR and TE only. Kicker and defense starters require a supported scoring feed; use Sleeper for those leagues.")
+        raise LineupError("Native scoring does not support this starter position")
     team_matchup = {}
     for row in matchups:
         team_matchup[str(row["home_team_id"])] = row["matchup_id"]
@@ -659,10 +860,12 @@ def apply_week_scores(
     for row in lineups:
         pid = str(row["player_id"])
         tid = str(row["team_id"])
-        stats = lookup.get(pid) or {}
+        stats = stats_for_lineup_row(lookup, row)
+        if str(row.get("lineup_role")) == "starter":
+            require_position_stats(row.get("position"), stats, rules.scoring)
         if stats:
             with_stats += 1
-            if any(key in stats for key in FANTASY_SCORING):
+            if any(key in stats for key in NATIVE_STAT_FIELDS):
                 points = fantasy_points_from_stats(stats, rules.scoring)
             elif rules.scoring == ScoringRules() and "fantasy_points" in stats:
                 points = float(stats["fantasy_points"])
@@ -679,7 +882,7 @@ def apply_week_scores(
                 "slot": row.get("slot"),
                 "lineup_role": row.get("lineup_role"),
                 "points": round(points, 2),
-                "stats": {k: stats[k] for k in FANTASY_SCORING if k in stats},
+                "stats": {k: stats[k] for k in NATIVE_STAT_FIELDS if k in stats},
             }
         )
 
@@ -692,11 +895,20 @@ def apply_week_scores(
         for tid, pts in team_points.items()
     ]
     try:
-        storage.save_native_week_scores(league_id, season, week, player_rows, team_rows, rules.scoring.model_dump())
+        storage.save_native_week_scores(
+            league_id,
+            season,
+            week,
+            player_rows,
+            team_rows,
+            rules.scoring.model_dump(),
+            final=bool(slate_complete),
+        )
     except ValueError as exc:
         raise LineupError(str(exc)) from exc
     return {
         "scored": True,
+        "live": not bool(slate_complete),
         "reason": None,
         "season": int(season),
         "week": int(week),
@@ -844,6 +1056,15 @@ def build_hub_live_week(
             ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules)
         lineups = storage.list_week_lineups(league_id, season_n, resolved_week)
 
+    scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
+    if native_week_needs_score_refresh(league, scoring_run, refresh=refresh):
+        try:
+            apply_week_scores(league_id, season_n, resolved_week)
+        except LineupError:
+            pass
+        scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
+        lineups = storage.list_week_lineups(league_id, season_n, resolved_week)
+
     team_scores = {
         str(row["team_id"]): float(row.get("points") or 0)
         for row in storage.list_team_week_scores(league_id, season_n, resolved_week)
@@ -938,13 +1159,18 @@ def build_hub_live_week(
     if proj_index:
         attach_matchup_analytics(matchup_payloads, proj_index)
 
-    scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
+    slate_done = nfl_week_slate_complete(season_n, resolved_week)
+    run_final = bool(scoring_run and scoring_run.get("final"))
+    live = bool(scored and not run_final)
     payload = {
         "scoring_control": {
             "host": "native",
             "scored": scored,
+            "live": live,
+            "final": run_final,
+            "slate_complete": slate_done,
             "run": scoring_run,
-            "settings_changed": bool(scoring_run and scoring_run["scoring"] != rules.scoring.model_dump()),
+            "settings_changed": bool(scoring_run and ScoringRules.model_validate(scoring_run["scoring"]) != rules.scoring),
             "settings": rules.scoring.model_dump(),
         },
         "available": True,
@@ -952,9 +1178,11 @@ def build_hub_live_week(
         "placeholder": not scored,
         "reason": "hub" if scored else "hub_unscored",
         "hint": (
-            "Week scored with saved ScoreSense league rules."
+            "Live scores. Recalculate as more games finish."
+            if live
+            else "Week scored with saved ScoreSense league rules."
             if scored
-            else "Scores fill after this week is scored."
+            else "Scores update as weekly NFL stats arrive."
         ),
         "season": str(season_n),
         "week": int(resolved_week),

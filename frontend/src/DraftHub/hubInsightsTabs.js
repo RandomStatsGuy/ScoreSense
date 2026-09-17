@@ -2,7 +2,7 @@
 
 export const INSIGHTS_TABS = [
   { id: "overview", label: "Overview", roles: ["owner", "commissioner"] },
-  { id: "cap", label: "Spend", roles: ["owner", "commissioner"] },
+  { id: "cap", label: "Spend", roles: ["owner", "commissioner"], salaryOnly: true },
   { id: "scoring", label: "Scoring", roles: ["owner", "commissioner"] },
   { id: "ownership", label: "History", roles: ["owner", "commissioner"] },
 ];
@@ -18,17 +18,30 @@ export function normalizeInsightTab(tabId) {
   return INSIGHT_TAB_ALIASES[tabId] || tabId;
 }
 
-export function isInsightTabAllowed(tabId, isCommissioner) {
+/** Mirrors officeUsesContracts in hubOfficeTabs.js — unknown means salary league. */
+function insightsUseSalaries(capabilities) {
+  if (!capabilities) return true;
+  return capabilities.uses_salaries !== false;
+}
+
+export function isInsightTabAllowed(tabId, isCommissioner, capabilities) {
   const id = normalizeInsightTab(tabId);
   if (!id) return false;
-  return INSIGHTS_TABS.some((t) => t.id === id);
+  const tab = INSIGHTS_TABS.find((t) => t.id === id);
+  if (!tab) return false;
+  if (tab.salaryOnly && !insightsUseSalaries(capabilities)) return false;
+  return true;
 }
 
-export function visibleInsightsTabs(isCommissioner) {
+export function visibleInsightsTabs(isCommissioner, capabilities) {
   const role = isCommissioner ? "commissioner" : "owner";
-  return INSIGHTS_TABS.filter((t) => t.roles.includes(role));
+  return INSIGHTS_TABS.filter((t) => {
+    if (!t.roles.includes(role)) return false;
+    if (t.salaryOnly && !insightsUseSalaries(capabilities)) return false;
+    return true;
+  });
 }
 
-export function defaultInsightTab(isCommissioner) {
-  return visibleInsightsTabs(isCommissioner)[0]?.id || "overview";
+export function defaultInsightTab(isCommissioner, capabilities) {
+  return visibleInsightsTabs(isCommissioner, capabilities)[0]?.id || "overview";
 }

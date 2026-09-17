@@ -18,13 +18,15 @@ export const CHROME = Object.freeze([
 ]);
 
 export const SHARED = Object.freeze({
-  desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/ProductSubnav.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
+    desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/ProductSubnav.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/hubSubnav.js", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
   tokens: [
     "frontend/src/styles/tokens.css",
+    "frontend/src/styles/color-theme.css",
     "frontend/src/styles/product-hierarchy.css",
     "frontend/src/styles/product-rhythm.css",
     "frontend/src/styles/fantasy-phone.css",
   ],
+  theme: ["frontend/public/theme-init.js", "frontend/src/layout/ThemeToggle.jsx", "frontend/src/themePresentation.js"],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
@@ -76,7 +78,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/faBidPresentation.js",
       "frontend/src/DraftHub/faWalkaway.js",
     ],
-    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Rows always show Bid or Add; when locked, disable with Adds open after the draft — do not omit the action. Star is Star for draft with a visible starred state. Hide Vs cost until a contract cost exists. Fold tier into the player cell. Desktop virtualizes on page scroll — no nested table scroller. Season pts use a number plus text range. How adds work lives in the acquisition banner. Mobile still shows the disabled Add beside the muted SUGGESTED bid. Walk-away is a personal local ceiling — hide it when Bid is locked. Place bid stays the only primary; amber means suggested bid is above your ceiling.",
+    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Pick drafts use an ordered Claim queue with optional conditional drops; auctions keep Bid. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Rows always show Claim, Bid, or Add; when locked, disable with Adds open after the draft — do not omit the action. Star is Star for draft with a visible starred state. Hide Vs cost until a contract cost exists. Fold tier into the player cell. Desktop virtualizes on page scroll — no nested table scroller. Season pts use a number plus text range. How adds work lives in the acquisition banner. Walk-away is a personal local ceiling for bids only. Place bid stays the only auction primary; amber means suggested bid is above your ceiling.",
   }),
   "hub.room": S({
     label: "Draft",
@@ -146,7 +148,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/GameCenter.jsx",
     also: ["frontend/src/DraftHub/GameCenterMatchup.jsx", "frontend/src/styles/game-center-room.css"],
     copy: "frontend/src/DraftHub/gameCenterPresentation.js",
-    doNot: "Native scoring is commissioner-triggered for completed weeks; confirm recalculation and show changed scoring settings. Sleeper owns linked results and lineup edits. Keep scoring controls compact. Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Approved B: compact heading, personalized split-banner scoreboard, selected jersey duel, all starters below, details/league rail. Reuse each team’s uploaded banner through authenticated media and saved crop; navy fallback. Separate Bench and League views. Do not restore an experience hero or win-probability bar. Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Brass room material extends My team’s approved artwork exception; award gold remains for trophies. Trophy summary is one flex row, title and value on one baseline. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
+    doNot: "Game center refreshes native scores during the week when stats are available. Calculate after the slate ends locks leftover lineup edits. Kicker and defense starters stay at 0 and do not block the week. Confirm recalculation and show changed scoring settings. Sleeper owns linked results and lineup edits. Keep scoring controls compact. Game center is a matchup board, not an editorial settings page. Live renders only inside a game window. Approved B: compact heading, personalized split-banner scoreboard, selected jersey duel, all starters below, details/league rail. Reuse each team’s uploaded banner through authenticated media and saved crop; navy fallback. Separate Bench and League views. Do not restore an experience hero or win-probability bar. Pre-draft empty copy is one draft-night sentence to Open draft room — not Link Sleeper or a kickoff wait. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Include the viewer on mobile. Brass room material extends My team’s approved artwork exception; award gold remains for trophies. Trophy summary is one flex row, title and value on one baseline. Unscored placeholder chip is No scores yet — never Waiting. Loading uses a skeleton or Loading chip.",
   }),
   "hub.roster": S({
     label: "My team",
@@ -155,15 +157,16 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/RosterBuilder.jsx",
     copy: "frontend/src/DraftHub/rosterPresentation.js",
     also: ["frontend/src/DraftHub/rosterFormat.js", "frontend/src/DraftHub/TeamRoom.jsx", "frontend/src/styles/team-room.css"],
-    doNot: "Leftover is auction leftover — same number as Cap. Expiring 1-year keepers are not committed. The approved immersive Room is the default league view; Manage roster preserves contract controls. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Pack non-player columns to min-content so header and value share an edge. The player-count line sits under the stadium banner, not mid-band. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. After draft, the owner Cut lives here and writes immediately; dead cap is this season only and floors to the lower dollar. Adding a player does not remove that dead cap. Undo cut only if they are not active on any team. Staff-only Drop is gated, confirmed, no dead cap, and separated from Queue extension. Undo extension is ghost on a queued deal. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. The room shows weekly starters together, with Bench access, owner atmosphere, and in-place locker details. Contracts open from a locker into Manage roster. Shared rooms are read-only and omit contract controls. Player names are the last column to truncate. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid.",
+    doNot: "Leftover is auction leftover — same number as Cap. Expiring 1-year keepers are not committed. The approved immersive Room is the default league view; Manage roster preserves contract controls in a compact identity/cap summary without a stadium banner. The Room scoreboard reuses Game center’s faded saved team artwork and light brass frame. List people by owner name. At zero players hide search and position chips and show the shared empty-state. One Contract control per row — history lives in the drawer. Dead cap and if-undone room use rosterFormat.js and never repeat their field labels. The roster table uses page scroll, not an inner max-height. Pack non-player columns to min-content so header and value share an edge. The player count sits with the compact team identity. Cap card leads with leftover for draft. Dead cap is a tooltip or inline · $N dead. After draft, the owner Cut lives here and writes immediately; dead cap is this season only and floors to the lower dollar. Adding a player does not remove that dead cap. Undo cut only if they are not active on any team. Staff-only Drop is gated, confirmed, no dead cap, and separated from Queue extension. Undo extension is ghost on a queued deal. Contract dialog moves focus to the heading. Filter chips show counts and disable zeros. Extension eligible vs Expiring use different hues. The room shows weekly starters together, with Bench access, owner atmosphere, and in-place locker details. Contracts open from a locker into Manage roster. Shared rooms are read-only and omit contract controls. Player names are the last column to truncate. Mobile cards do not expand a repeated POS/CAP/YRS/STATUS grid. Snake and linear leagues show Player details without contract or cap fields; keep that mobile action visible below the card summary.",
   }),
   "hub.rosters": S({
     label: "Rosters",
     chrome: "table",
     route: "/hub/rosters",
     page: "frontend/src/DraftHub/LeagueRostersBrowser.jsx",
+    also: ["frontend/src/DraftHub/RosterTeamDirectory.jsx"],
     copy: "frontend/src/DraftHub/leagueRostersPresentation.js",
-    doNot: "Match the approved September 10 table/details mockup. Compact title and actions; no hero band, At a glance, manager rail, or repeated row actions. Contract values and Team rosters tabs; searchable manager picker, player/position/value filters, eight-row pagination. Salary, estimated value, and text delta stay adjacent. Selected-player panel owns Propose trade and contract history. Teal below/coral above estimates with explicit text; neutral rows. Responsive details below at laptop widths, inline on phone. Cap room uses backend auction leftover. Preserve trade eligibility, owner identity, export, and refresh scope; never invent missing estimates. Download Excel is ghost beside Refresh league. Dedicated layout CSS is approved.",
+    doNot: "Match the approved September 10 table/details mockup. Compact title and actions; no hero band, At a glance, manager rail, or repeated row actions. Contract values retains its searchable manager picker, player/position/value filters and eight-row pagination. Team rosters starts with a searchable manager directory, then the chosen team's full active roster and cap summary without pagination or value exclusions. Never select the first player automatically; only an explicit player selection opens details. Salary, estimated value, and text delta stay adjacent. Selected-player panel owns Propose trade and contract history. Teal below/coral above estimates with explicit text; neutral rows. Responsive details below at laptop widths, inline on phone. Cap room uses backend auction leftover. Non-salary leagues open Team rosters directly, retain every active player, and hide salary comparisons, cap figures, and salary sorting. Gate contract fields and history on contract capability. Preserve trade eligibility, owner identity, export, and refresh scope; never invent missing estimates. Download Excel is ghost beside Refresh league. Dedicated layout CSS is approved.",
   }),
   "hub.planner": S({
     label: "Cap",
@@ -171,7 +174,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/cap",
     page: "frontend/src/DraftHub/CapPlanner.jsx",
     copy: "frontend/src/DraftHub/capPlannerPresentation.js",
-    doNot: "Extend CapPlanner and HubExperience*. Do not start a new cap aesthetic. Leftover is auction leftover on Cap, Rosters, and My team. Expiring 1-year keepers are not committed. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. Cut dead cap floors to the lower dollar. Adding a player does not remove that dead cap. Undo cut only if they are not active on any team. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is leftover / open the room unless a Cap sheet row is selected — then Cut and open bid (or Cut / Cut and add) is the one primary and Keep is ghost. Do not POST a bid from Cap. Selecting a row rewrites the rail with dead after cut, leftover after cut, and This cut funds. Undo cut and Undo extension are ghost — never a second blue fill. League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expiring uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut, queued-extension, and expiring bullets get Undo cut / Undo extension / Contract. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
+    doNot: "Follow the approved Cap option B contract workbench: sheet first on desktop, cut/bid preview above the summary in the rail; phone preview precedes dense contract rows. Extend CapPlanner and HubExperience*. Keep current room separate from hypothetical room. Label the selected player dead-cap charge explicitly, and explain that a possible bid affects this season only. Hide Cap in pick-draft nav; a direct URL explains that salaries do not apply. Leftover is auction leftover on Cap, Rosters, and My team. Expiring 1-year keepers are not committed. Every leftover, against-cap, and roster figure names what it counts; against-cap is salary plus dead cap and leftover plus against-cap equals the cap. Cut dead cap floors to the lower dollar. Adding a player does not remove that dead cap. Undo cut only if they are not active on any team. The move leftover (before/after) sits next to the cut and bid controls — do not leave the consequence in the rail only. The summary-rail primary is leftover / open the room unless a Cap sheet row is selected — then Cut and open bid (or Cut / Cut and add) is the one primary and Keep is ghost. Do not POST a bid from Cap. Selecting a row rewrites the rail with dead after cut, leftover after cut, and This cut funds. Undo cut and Undo extension are ghost — never a second blue fill. League spend is a text link. Hero and At a glance keep the current leftover (drop the hero leftover on phone). Do not use native select; use HubFilterMenu. Roster-min needs are one sentence and one Free agents CTA, not six attention rows. Expiring uses amber; extend-to-keep uses the blue option chip. Hide empty future-year columns; do not duplicate next year in a Schedule column. Pending-cut, queued-extension, and expiring bullets get Undo cut / Undo extension / Contract. Phone spend and sheet are dense vertical rows — no contract carousels. Need-N-more links carry the POS filter to Free agents.",
   }),
   "hub.trades": S({
     label: "Trades",
@@ -191,7 +194,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/rules",
     page: "frontend/src/DraftHub/RulesWizard.jsx",
     copy: "frontend/src/DraftHub/rulesPresentation.js",
-    doNot: "Native scoring weights live in LeagueRules; Sleeper-linked scoring is read-only with a link to Sleeper. Templates preserve scoring weights. Saving weights does not rewrite scored weeks. Label PPR estimates separately from actual scoring. Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Save writes the league on the form, not hub focus. Draft behavior stays an open section. At a glance names saved vs preview. Hero chips are status, not the page primary. Do not put You can edit where Save belongs. Keep vet deals flat and Allow vet deal extensions are their own toggles — do not hide vet policy inside one Allow extensions switch.",
+    doNot: "Native offense, kicker, defense/special teams, two-point, and yardage-bonus scoring weights live in LeagueRules and are commissioner-editable; Sleeper-linked scoring is read-only with a link to Sleeper. Templates preserve scoring weights. Saving weights does not rewrite scored weeks. Label PPR estimates separately from actual scoring. Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Save writes the league on the form, not hub focus. Draft behavior stays an open section. At a glance names saved vs preview. Hero chips are status, not the page primary. Do not put You can edit where Save belongs. Keep vet deals flat and Allow vet deal extensions are their own toggles — do not hide vet policy inside one Allow extensions switch.",
   }),
   "hub.office": S({
     label: "Roster management",
@@ -202,7 +205,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/hubOfficeTabs.js",
       "frontend/src/DraftHub/insights/AwardTitlesEditor.jsx",
     ],
-    doNot: "Chat is FantasyChatDock plus the Home thread. Not an office pane. Do not add a Chat tab.",
+    doNot: "Chat is FantasyChatDock plus the Home thread. Not an office pane. Do not add a Chat tab. Hide Contracts and Salary sheets when the league does not use contracts.",
   }),
   "hub.office.current": S({
     label: "Contracts",
@@ -212,6 +215,15 @@ export const LIVING_SURFACES = Object.freeze({
     copy: "frontend/src/DraftHub/officeContractsPresentation.js",
     also: ["frontend/src/DraftHub/insights/AwardTitlesEditor.jsx"],
     doNot: "Staff may override. Players-tab adds may not. Mark draft complete is a red confirm here — not an unlabeled Setup checkbox. After that confirm, show After draft — not live-auction chrome, and not keepers. After draft leftover matches Rosters (Yrs-0 / expired do not occupy). Pre-draft writes accumulate in a pending-changes tray; Drop executes on save. After draft, Drop, Cut, and field edits write immediately — no tray. Add records Auction or FA lottery bids. Drop is no dead cap and sits next to Cut; Cut is the penalty path and dead cap hits only the cut season and floors to the lower dollar. Adding a player does not remove that dead cap. Undo cut only if they are not active on any team. Extend to keep is teal, Expiring is amber, Cut is red. Live-contracts callout is a disclosure like How cap years work — do not nest a second hub-page. Cap / Sheets is a labeled Related pair. Award names is a Roster management control, not an Insights disclosure.",
+  }),
+  "hub.office.rosters": S({
+    label: "Roster moves",
+    chrome: "office",
+    route: "/hub/roster-management/rosters",
+    page: "frontend/src/DraftHub/LeagueOffice.jsx",
+    copy: "frontend/src/DraftHub/officeContractsPresentation.js",
+    also: ["frontend/src/DraftHub/CommissionerLeagueRosters.jsx"],
+    doNot: "Only for leagues with no contracts — Contracts stays auction-only and the two never show together. Same roster editor, money columns off: no Type, salary, Yrs, Schedule, committed, dead cap, or free. Drop confirms and writes immediately in every phase; keep it visible on mobile without expanding contract fields. Legacy years never hide roster rows or reduce counts. Do not add a salary field here, and do not rename this to Rosters — that is the league-wide destination.",
   }),
   "hub.office.historic": S({
     label: "Salary sheets",
@@ -226,7 +238,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/roster-management/corrections",
     page: "frontend/src/DraftHub/WeekCorrections.jsx",
     copy: "frontend/src/DraftHub/weekCorrectionsPresentation.js",
-    doNot: "Historical edits require preview and audited publication. Never infer past ownership from the current roster or overwrite later lineups.",
+    doNot: "Always show every required starter slot, including empty slots, from league rules. Use the approved A team-scoped editor with player-name search. Historical edits require preview and audited publication. Offer current-roster players in the historical bench picker only as labeled, opt-in suggestions. Never infer past ownership from the current roster or overwrite later lineups.",
   }),
   "hub.office.members": S({
     label: "Members",
@@ -243,7 +255,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
     also: ["frontend/src/DraftHub/OfficeLeagueLifecycle.jsx"],
-    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link, email-assign, league workbook, and delete. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked. Delete requires every commissioner to type the league name and agree.",
+    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link (with the roster sync pause), email-assign, league workbook, and delete. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked. Delete requires every commissioner to type the league name and agree.",
   }),
   "hub.insights": S({
     label: "Insights",
@@ -482,6 +494,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "salary sheets": "hub.office.historic",
   "roster management": "hub.office",
   "access & imports": "hub.office.access",
+  "roster moves": "hub.office.rosters",
+  "no-money roster editor": "hub.office.rosters",
   "delete league": "hub.office.access",
   "delete this league": "hub.office.access",
   "download excel": "hub.rosters",

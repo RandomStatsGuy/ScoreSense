@@ -100,7 +100,9 @@ from src.draft_hub.schemas import (
     HistoricCorrectionRequest,
     SleeperImportRequest,
     SleeperLeagueConnectRequest,
+    SleeperLeagueDisconnectRequest,
     SleeperLinkRequest,
+    SleeperSyncModeRequest,
     SleeperSyncRequest,
     DraftContractsRequest,
     MockDraftStartRequest,
@@ -115,6 +117,8 @@ from src.draft_hub.schemas import (
     TeamCoCommissionerRequest,
     WorkspaceUpdate,
     FaBidRequest,
+    WaiverClaimsRequest,
+    WaiverPriorityRequest,
     AtmospherePrefsUpdate,
     TeamIdentityUpdate,
     WeekPollVoteRequest,
@@ -145,12 +149,23 @@ from src.draft_hub.fa_market import (
     process_due_windows,
     process_window,
 )
+from src.draft_hub.priority_waivers import (
+    confirm_waiver_priority,
+    list_claims,
+    list_protected_player_ids,
+    process_claims,
+    process_due_claim_windows,
+    replace_claims,
+    waiver_protection,
+    waiver_priority,
+)
 from src.draft_hub.league_permissions import (
     can_edit_roster,
     require_commissioner,
     require_league_member,
     require_primary_commissioner,
 )
+from src.draft_hub.league_capabilities import league_capabilities
 from src.draft_hub.league_resize import (
     LeagueResizeError,
     apply_add_franchise,
@@ -167,7 +182,11 @@ from src.draft_hub.league_claim import (
     staff_claim_payload,
 )
 from src.draft_hub.draft_availability import build_availability_payload, save_availability
-from src.draft_hub.league_sleeper_sync import connect_sleeper_league
+from src.draft_hub.league_sleeper_sync import (
+    connect_sleeper_league,
+    disconnect_sleeper_league,
+    sleeper_roster_slot_count,
+)
 from src.draft_hub.league_sheet_import import parse_league_sheet_csv
 from src.draft_hub.mock_draft import start_mock_draft
 from src.draft_hub.draft_expire_preview import build_draft_expire_preview
@@ -188,6 +207,7 @@ from src.draft_hub.trade_proposals import (
     respond_to_proposal,
     validate_trade_package,
 )
+from src.draft_hub.roster_identity_match import find_matching_roster_slot, identities_overlap
 from src.draft_hub.roster_overview_enrich import enrich_league_roster_overview
 from src.draft_hub.trade_insights import build_trade_insights
 from src.draft_hub.league_efficiency import build_cap_efficiency
@@ -337,14 +357,20 @@ def _ctx_for_league(sub: str, league_id: str) -> dict[str, Any]:
 def _value_overlay_inputs(
     ctx: dict,
     sub: str,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None, str | None, set[str]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None, str | None, set[str], set[str]]:
     ws_id, team_id = roster_scope(ctx)
     roster = list_roster_for_context(ctx, live_sleeper=False)
     league_roster = None
+    league_sleeper_ids: set[str] = set()
     if ctx.get("mode") == "league" and ws_id:
         league_roster = storage.list_league_roster(ws_id)
+        if ctx.get("league_id"):
+            for team in storage.list_league_teams(str(ctx["league_id"])):
+                for pid in team.get("sleeper_player_ids") or []:
+                    if pid:
+                        league_sleeper_ids.add(str(pid))
     sleeper_ids = sleeper_player_id_set(sub)
-    return roster, league_roster, team_id, sleeper_ids
+    return roster, league_roster, team_id, sleeper_ids, league_sleeper_ids
 
 
 @router.get("/context")
@@ -579,7 +605,7 @@ def hub_value_overlay(
                     detail="Draft pool cache is cold. Request GET /api/hub/draft-pool first.",
                 )
         with timer.phase("overlay_inputs"):
-            roster, league_roster, team_id, sleeper_ids = _value_overlay_inputs(ctx, sub)
+            roster, league_roster, team_id, sleeper_ids, league_sleeper_ids = _value_overlay_inputs(ctx, sub)
         with timer.phase("overlay_build"):
             sheet = build_value_overlay_sheet(
                 target_season,
@@ -589,6 +615,7 @@ def hub_value_overlay(
                 league_roster=league_roster,
                 my_team_id=team_id,
                 sleeper_player_ids=sleeper_ids,
+                league_sleeper_player_ids=league_sleeper_ids,
                 team_count=team_count,
                 pool_payload=pool_payload,
                 draft_completed=bool(ctx.get("draft_completed")),
@@ -613,7 +640,7 @@ def hub_value_sheet(
             rules = LeagueRules.model_validate(ctx["rules"])
             ranges = storage.list_salary_ranges(ctx.get("personal_workspace_id") or ctx["workspace_id"])
             team_count = _team_count_for_ctx(ctx)
-            roster, league_roster, team_id, sleeper_ids = _value_overlay_inputs(ctx, sub)
+            roster, league_roster, team_id, sleeper_ids, league_sleeper_ids = _value_overlay_inputs(ctx, sub)
         with timer.phase("build"):
             if overlay_only:
                 pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count)
@@ -628,6 +655,7 @@ def hub_value_sheet(
                     league_roster=league_roster,
                     my_team_id=team_id,
                     sleeper_player_ids=sleeper_ids,
+                    league_sleeper_player_ids=league_sleeper_ids,
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
             else:
@@ -639,6 +667,7 @@ def hub_value_sheet(
                     league_roster=league_roster,
                     my_team_id=team_id,
                     sleeper_player_ids=sleeper_ids,
+                    league_sleeper_player_ids=league_sleeper_ids,
                     team_count=team_count,
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
@@ -1002,6 +1031,7 @@ def hub_set_lineup(
             resolved_week,
             [item.model_dump() for item in body.starters],
             rules=rules,
+            staff_edit=bool(ctx.get("is_commissioner")),
         )
     except LineupError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1038,6 +1068,7 @@ def hub_swap_lineup(
             starter_player_id=body.starter_player_id,
             bench_player_id=body.bench_player_id,
             rules=rules,
+            staff_edit=bool(ctx.get("is_commissioner")),
         )
     except LineupError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1474,6 +1505,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
         lid = str(ctx.get("league_id") or "")
         if lid:
             process_due_windows(lid, window.get("window_id"))
+            process_due_claim_windows(lid, window.get("window_id") if window.get("add_mode") == "claim" else None)
         staff_edit = bool(body.staff_edit)
         if staff_edit and not ctx.get("is_commissioner"):
             raise HTTPException(status_code=403, detail="Only commissioners can make roster-management edits")
@@ -1482,11 +1514,30 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
                 status_code=403,
                 detail=window.get("message") or "Adding players is not open right now",
             )
+        if not staff_edit and waiver_protection(lid, body.player_id):
+            raise HTTPException(status_code=409, detail="Player remains on waivers until the next claim period")
     ws_id, _own_team_id = roster_scope(ctx)
     team_id, dest_label = _resolve_roster_add_team(ctx, body.team_id)
     dest_key = str(team_id) if team_id else ""
-    slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
-    occupying = [s for s in slots if storage.roster_row_occupies(s)]
+    sleeper_id = str(body.sleeper_player_id or "").strip() or None
+    if not sleeper_id and str(body.player_id).isdigit():
+        sleeper_id = str(body.player_id)
+    incoming = {
+        "player_id": body.player_id,
+        "player_name": body.player_name,
+        "position": body.position,
+        "sleeper_player_id": sleeper_id,
+    }
+    if ctx.get("mode") == "league" and ws_id:
+        match = find_matching_roster_slot(
+            storage.list_league_roster(ws_id),
+            incoming,
+            occupying_only=True,
+        )
+        occupying = [match] if match else []
+    else:
+        slots = storage.list_roster_slots_for_player(ws_id, body.player_id)
+        occupying = [s for s in slots if storage.roster_row_occupies(s)]
     dest_occupying = next(
         (s for s in occupying if str(s.get("team_id") or "") == dest_key),
         None,
@@ -1522,16 +1573,21 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
                 ),
             )
     rules = LeagueRules.model_validate(ctx["rules"])
+    capabilities = ctx.get("capabilities") or league_capabilities(rules)
     ctype = str(body.contract_type or "").strip().lower() or None
     if ctype and ctype not in CONTRACT_TYPES:
         raise HTTPException(
             status_code=400,
             detail="contract_type must be rookie, veteran, or extension",
         )
+    if not capabilities["uses_contracts"]:
+        ctype = None
+    effective_salary = float(body.salary) if capabilities["uses_salaries"] else 0.0
+    effective_years = int(body.contract_years or 1) if capabilities["uses_contracts"] else 1
     contract = build_contract_from_roster_edit(
         rules,
-        current_salary=float(body.salary),
-        years_remaining=int(body.contract_years or 1),
+        current_salary=effective_salary,
+        years_remaining=effective_years,
         contract_type=ctype,
     )
     if ctype:
@@ -1552,9 +1608,6 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
         acq_type = "post_draft_fa"
     if acq_type:
         contract["acquisition_type"] = acq_type
-    sleeper_id = str(body.sleeper_player_id or "").strip() or None
-    if not sleeper_id and str(body.player_id).isdigit():
-        sleeper_id = str(body.player_id)
     dest_roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
     preview_slot = {
         "player_id": body.player_id,
@@ -1567,10 +1620,7 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     preview = [
         r
         for r in dest_roster
-        if not (
-            storage.roster_row_occupies(r)
-            and str(r.get("player_id")) == str(body.player_id)
-        )
+        if not (storage.roster_row_occupies(r) and identities_overlap(r, incoming))
     ]
     preview.append(preview_slot)
     staff_override = bool(body.staff_edit) and bool(ctx.get("is_commissioner"))
@@ -1578,7 +1628,11 @@ def hub_add_roster(body: RosterAddRequest, _user=Depends(require_hub_user)) -> d
     if blocking and not staff_override:
         raise HTTPException(status_code=400, detail=blocking[0])
     if other_occupying and body.force:
-        moved = storage.move_roster_player(ws_id, body.player_id, dest_key)
+        moved = storage.move_roster_player(
+            ws_id,
+            str(other_occupying.get("player_id") or body.player_id),
+            dest_key,
+        )
         if not moved:
             raise HTTPException(status_code=404, detail="Player not on roster")
         roster = storage.list_roster(ws_id, team_id) if team_id else list_roster_for_context(ctx)
@@ -1621,8 +1675,6 @@ def _resolve_roster_write_row(
     existing = storage.get_roster_slot(workspace_id, player_id, team_id=team_id)
     if existing:
         return existing
-    from src.draft_hub.roster_identity_match import find_matching_roster_slot
-
     return find_matching_roster_slot(
         storage.list_workspace_roster_slots(workspace_id),
         {"player_id": player_id},
@@ -1675,13 +1727,62 @@ def hub_fa_market(_user=Depends(require_hub_user)) -> dict:
     window = ctx.get("acquisition_window") or {}
     lid = str(ctx["league_id"])
     processed = process_due_windows(lid, window.get("window_id"))
+    claim_processing = process_due_claim_windows(
+        lid,
+        window.get("window_id") if window.get("add_mode") == "claim" else None,
+    )
     market = list_market(lid, window_id=window.get("window_id"), team_id=ctx.get("team_id"))
+    capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
+    if window.get("add_mode") == "claim" or capabilities.get("acquisition_mode") == "priority":
+        market["protected_player_ids"] = list_protected_player_ids(lid)
+    if window.get("add_mode") == "claim":
+        market["my_claims"] = list_claims(lid, str(window["window_id"]), str(ctx.get("team_id") or ""))
+        market["waiver_priority"] = waiver_priority(lid)
+        market["waiver_priority"]["current_team_id"] = str(ctx.get("team_id") or "")
     return {
         "window": window,
         "market": market,
         "processed": processed,
+        "claim_processing": claim_processing,
         "hub_context": ctx,
     }
+
+
+@router.put("/fa-market/claims")
+def hub_fa_market_claims(body: WaiverClaimsRequest, _user=Depends(require_hub_user)) -> dict:
+    sub = _sub(_user)
+    ctx = _ctx(sub)
+    window = ctx.get("acquisition_window") or {}
+    if ctx.get("mode") != "league" or not ctx.get("league_id") or not ctx.get("team_id"):
+        raise HTTPException(status_code=403, detail="Join a league team to submit claims")
+    if window.get("add_mode") != "claim" or not window.get("window_id"):
+        raise HTTPException(status_code=400, detail=window.get("message") or "Claims are not open")
+    try:
+        claims = replace_claims(
+            league_id=str(ctx["league_id"]),
+            team_id=str(ctx["team_id"]),
+            window_id=str(window["window_id"]),
+            claims=[claim.model_dump() for claim in body.claims],
+            user_sub=sub,
+        )
+        priority = waiver_priority(str(ctx["league_id"]))
+        priority["current_team_id"] = str(ctx["team_id"])
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"claims": claims, "priority": priority, "window": window, "hub_context": ctx}
+
+
+@router.put("/fa-market/priority")
+def hub_fa_market_priority(body: WaiverPriorityRequest, _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx(_sub(_user))
+    require_commissioner(ctx)
+    if ctx.get("mode") != "league" or not ctx.get("league_id"):
+        raise HTTPException(status_code=400, detail="Join a league first")
+    try:
+        priority = confirm_waiver_priority(str(ctx["league_id"]), body.team_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"priority": priority, "hub_context": ctx}
 
 
 @router.post("/fa-market/bid")
@@ -1721,9 +1822,13 @@ def hub_fa_market_process(_user=Depends(require_hub_user)) -> dict:
     wid = window.get("window_id")
     if not wid:
         processed = process_due_windows(str(ctx["league_id"]), None)
-        return {"processed": processed, "window": window, "hub_context": ctx}
+        claims = process_due_claim_windows(str(ctx["league_id"]), None)
+        return {"processed": processed, "claim_processing": claims, "window": window, "hub_context": ctx}
     try:
-        result = process_window(str(ctx["league_id"]), str(wid))
+        if window.get("add_mode") == "claim":
+            raise ValueError("Priority claims process Wednesday at 10 a.m. Eastern")
+        else:
+            result = process_window(str(ctx["league_id"]), str(wid))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _invalidate_league_rosters_from_ctx(ctx)
@@ -1735,6 +1840,8 @@ def hub_set_roster_contract_type(body: ContractTypeUpdateRequest, _user=Depends(
     """Dedicated contract-type writer — avoids general roster PATCH field-drop issues."""
     sub = _sub(_user)
     ctx = _ctx(sub)
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     ctype = str(body.contract_type or "").strip().lower()
     if ctype not in CONTRACT_TYPES:
@@ -1803,6 +1910,11 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     salary_fields = body.salary is not None or body.contract_years is not None or body.salary_schedule is not None
     type_field = body.contract_type is not None
     status_field = body.roster_status is not None
+    capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
+    if salary_fields and not capabilities["uses_salaries"]:
+        raise HTTPException(status_code=400, detail="Salaries do not apply to this league")
+    if type_field and not capabilities["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     if salary_fields and ctx.get("mode") == "league" and not ctx.get("can_edit_salaries"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can update salaries")
     if type_field and ctx.get("mode") == "league" and not (
@@ -2371,7 +2483,7 @@ def hub_league_rosters(
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
         with timer.phase("enrich"):
-            from src.draft_hub.insights_cache import build_and_store_fair_values, read_fair_values
+            from src.draft_hub.insights_cache import build_and_store_fair_values, read_fair_values, read_fair_values_built_at
 
             league_meta = overview.get("league") or {}
             season_int = int(league_meta.get("season") or 0)
@@ -2380,6 +2492,9 @@ def hub_league_rosters(
                 with timer.phase("fair-warm"):
                     fair_map = build_and_store_fair_values(league_id, overview, season_int)
             overview = enrich_league_roster_overview(overview, fair_map=fair_map or {})
+            overview["estimate_context"]["built_at"] = (
+                read_fair_values_built_at(league_id, season_int) if fair_map and season_int else None
+            )
 
     payload = {
         **overview,
@@ -2531,9 +2646,10 @@ def _league_award_titles(league: dict | None) -> dict[str, str]:
 
 
 def _with_award_titles(awards: list | None, league: dict | None) -> list:
-    from src.draft_hub.insight_awards import apply_award_titles
+    from src.draft_hub.insight_awards import apply_award_titles, drop_money_awards
 
-    return apply_award_titles(awards or [], _league_award_titles(league))
+    scoped = drop_money_awards(awards or [], (league or {}).get("rules") or {})
+    return apply_award_titles(scoped, _league_award_titles(league))
 
 
 def _parse_insights_sections(value: str | None) -> set[str] | None:
@@ -3188,7 +3304,11 @@ def hub_league_insights(
             or ctx.get("sleeper_league_id")
             or ""
         )
-        if sleeper_lid and not league.get("sleeper_league_id"):
+        if (
+            sleeper_lid
+            and not league.get("sleeper_league_id")
+            and not league.get("sleeper_hosting_disabled")
+        ):
             storage.update_league_sleeper_id(league_id, str(sleeper_lid))
         if _insights_section(wanted_sections, "scoring"):
             with timer.phase("scoring"):
@@ -5340,6 +5460,8 @@ def _hub_rookie_extend(
 
     Client salaries are ignored. Terms activate after the draft-complete tick.
     """
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     rules = LeagueRules.model_validate(ctx["rules"])
     draft_completed = bool(ctx.get("draft_completed"))
@@ -5406,6 +5528,8 @@ def hub_rookie_extend(body: RookieExtendRequest, _user=Depends(require_hub_user)
 
 def _hub_cancel_rookie_extend(*, player_id: str, ctx: dict[str, Any]) -> dict:
     """Undo a queued manager extension. Own-team only, same as queue."""
+    if not (ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {}))["uses_contracts"]:
+        raise HTTPException(status_code=400, detail="Contracts do not apply to this league")
     ws_id, team_id = roster_scope(ctx)
     rules = LeagueRules.model_validate(ctx["rules"])
     draft_completed = bool(ctx.get("draft_completed"))
@@ -6261,11 +6385,89 @@ def hub_connect_sleeper_league(
     return {**result, "hub_context": _ctx(sub)}
 
 
+@router.get("/league/{league_id}/sleeper/disconnect")
+def hub_disconnect_sleeper_league_preview(
+    league_id: str,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """What an unlink would remove — the confirm step reads this first."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    league = storage.get_league(league_id) or {}
+    teams = storage.list_league_teams(league_id)
+    return {
+        "league_id": league_id,
+        "sleeper_league_id": league.get("sleeper_league_id"),
+        "linked": bool(league.get("sleeper_league_id")),
+        "teams_linked": sum(1 for t in teams if t.get("sleeper_roster_id")),
+        "sleeper_roster_rows": sleeper_roster_slot_count(league_id),
+    }
+
+
+@router.post("/league/{league_id}/sleeper/disconnect")
+def hub_disconnect_sleeper_league(
+    league_id: str,
+    body: SleeperLeagueDisconnectRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Unlink Sleeper so ScoreSense hosts lineups and scoring for this league."""
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        result = disconnect_sleeper_league(
+            league_id,
+            clear_sleeper_roster=body.clear_sleeper_roster,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _clear_league_rosters_cache(league_id)
+    return {**result, "hub_context": _ctx(sub)}
+
+
+@router.put("/league/{league_id}/sleeper/sync-mode")
+def hub_league_sleeper_sync_mode(
+    league_id: str,
+    body: SleeperSyncModeRequest,
+    _user=Depends(require_hub_user),
+) -> dict:
+    """Pause or resume Sleeper-driven roster writes. Commissioner-only; writes nothing else."""
+    from src.draft_hub.sleeper_sync_mode import set_sleeper_sync_mode
+
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
+    require_commissioner(ctx)
+    try:
+        state = set_sleeper_sync_mode(league_id, body.mode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _clear_league_rosters_cache(league_id)
+    return {
+        "league_id": league_id,
+        "sleeper_sync": state,
+        "hub_context": _ctx(sub),
+    }
+
+
 @router.post("/league/{league_id}/sleeper/sync")
 def hub_league_sleeper_sync(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.sleeper_sync_mode import SCORING_ONLY_MESSAGE, SleeperSyncPaused
+
     sub = _sub(_user)
     try:
         result = sync_league_sleeper(league_id, sub)
+    except SleeperSyncPaused:
+        # Rosters stay as they are. Scoring is read-only Sleeper data, so keep it fresh.
+        _refresh_scoring_cache_for_league(league_id)
+        return {
+            "league_id": league_id,
+            "sleeper_sync_paused": True,
+            "teams_synced": 0,
+            "trade_count": 0,
+            "message": SCORING_ONLY_MESSAGE,
+            "hub_context": _ctx(sub),
+        }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

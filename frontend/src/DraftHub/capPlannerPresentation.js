@@ -10,21 +10,23 @@ function rowIsAvailable(row) {
 
 export const CAP_MOVE_COPY = {
   title: "Preview a roster move",
-  hint: "Choose a player to cut or enter a bid to preview your remaining cap room. This calculator does not change your roster.",
-  cutLabel: "Cut",
-  bidLabel: "Bid",
+  hint: "Select a contract or enter a possible bid. Previewing does not cut a player or place a bid.",
+  cutLabel: "Player to cut",
+  bidLabel: "Possible bid",
   none: "No cut",
-  reset: "Reset",
-  now: "Now",
-  after: "After",
+  reset: "Clear preview",
+  now: "Current",
+  after: "After this preview",
   leftoverWord: "cap room",
   over: (amount) => `This bid puts you ${amount} over. Cut more or bid less.`,
+  bySeason: "Cap room after the preview, by season",
+  futureHint: "The possible bid counts this season only. Future seasons include the cut, but no new contract.",
 };
 
 export const CAP_EXTEND_COPY = {
   title: "Extend contract",
   playerLabel: "Player",
-  yearsLabel: "Years",
+  yearsLabel: "Extension years",
   selectPlayer: "Select player",
   queue: "Queue extension",
   undo: "Undo extension",
@@ -50,14 +52,22 @@ export const CAP_FIGURE_COPY = {
   againstCapHint: "Salary plus dead cap",
   salary: "Salary",
   deadCap: "Dead cap",
-  keepPastDraft: "Keep past this draft",
-  onThisSheet: "Contract records",
+  keepPastDraft: "Players kept after this draft",
+  onThisSheet: "Contracts on this sheet",
   rulesHeading: "League rules",
   stepUp: "Annual salary increase",
   cutRefund: "Cut refund",
   leagueSpend: "League spend",
   seasonAgainst: "cap used",
   seasonLeftover: "cap room",
+};
+
+export const CAP_UNAVAILABLE_COPY = {
+  eyebrow: "Cap",
+  heading: "Salaries do not apply",
+  support: "This league does not use a salary cap.",
+  body: "Cap leftover, cuts, and bid previews stay on salary-cap leagues. Use Free agents for claims and adds.",
+  cta: "Open Free agents",
 };
 
 export const CAP_NEED_COPY = {
@@ -67,6 +77,8 @@ export const CAP_NEED_COPY = {
 export const CAP_MODEL_COPY = {
   years: "Years left include this season and drop when the draft is marked complete.",
   summary: "How cap years work",
+  contractReview: "Contracts before the draft",
+  contractReviewHint: "Review saved cuts, queued extensions, and players returning to the draft pool.",
   expireBeforeDraftTitle: "Expire before draft",
   expireBeforeDraft:
     "Final-year deals enter the draft pool unless you extend. If they are not drafted, they become free agents.",
@@ -100,11 +112,14 @@ export const CAP_STATUS_COPY = {
 export const CAP_DRAFT_COPY = {
   markComplete: "Mark draft complete",
   markCompleteRest: "on Roster management · Contracts when the auction ends.",
+  markCompleteRestNoMoney: "on Roster management · Roster moves when the draft ends.",
 };
 
 export const CAP_SHEET_COPY = {
   title: "Cap sheet",
-  hint: "Cap hit by season. Seasons with no cap charges are hidden.",
+  hint: "Select a player to preview a cut. Each season shows the contract’s charge against your cap.",
+  years: "Years left",
+  spend: "Spend by position",
 };
 
 export function leftoverAfterMove({ remaining = 0, cutSalary = 0, cutRefundPct = 0.5, bid = 0 } = {}) {
@@ -354,26 +369,26 @@ export function capHeroCopy({ empty = false, preDraft = false } = {}) {
   if (empty) {
     return {
       eyebrow: "Cap",
-      heading: "Plan your salary cap",
+      heading: "Review contracts and salary cap room",
       support: "No contracts yet. Add players on My team to see their cap impact.",
     };
   }
   return {
     eyebrow: "Cap",
-    heading: "Plan your salary cap",
+    heading: "Review contracts and salary cap room",
     support: preDraft
-      ? "Review expiring contracts and extension costs before the draft."
-      : "Your cap usage includes active salaries and dead cap. Cap room may need to cover multiple open roster spots.",
+      ? "Compare contracts by season. Preview a cut or bid, then review expiring contracts and extension costs below."
+      : "Cap used includes active salaries and dead cap. Select a contract to see how a cut changes your remaining room.",
   };
 }
 
 export const CAP_CUT_COPY = {
-  heading: "This cut",
-  thisCutFunds: "This cut funds",
-  deadAfter: "Dead cap after cut",
-  leftoverAfter: "Cap room after cut",
+  heading: "If you cut this player",
+  thisCutFunds: "Within your room after the cut",
+  deadAfter: "Dead-cap charge for this player",
+  leftoverAfter: "Room after cut, before a bid",
   noneFit: "No available players fit this cap room at their suggested bid.",
-  keep: "Keep",
+  keep: "Keep player",
   cut: "Cut",
   cutAndBid: "Cut and open bid",
   cutAndAdd: "Cut and add",

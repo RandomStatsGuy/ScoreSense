@@ -15,6 +15,7 @@ import {
   gameStateLabel,
   interpretStandings,
   scoresArePlaceholder,
+  shouldPollGameCenter,
   matchupTeams,
   shouldShowNextWeek,
   shouldShowPrevWeek,
@@ -75,26 +76,28 @@ export default function GameCenter({
     setLoading(true);
     setData(null);
     const ctrl = new AbortController();
-    load(ctrl.signal);
+    const native = !hubContext?.sleeper_league_id;
+    load(ctrl.signal, {
+      refresh: Boolean(hubContext?.draft_completed && native),
+    });
     return () => ctrl.abort();
-  }, [load]);
+  }, [load, hubContext?.draft_completed, hubContext?.sleeper_league_id]);
 
-  const isLiveWeek = Boolean(data?.available && !scoresArePlaceholder(data, hubContext)
-    && !data.preseason && Number(data.week) === Number(data.current_week));
+  const pollScores = shouldPollGameCenter(data, hubContext);
 
-  /** Live weeks re-pull on the server cache cadence while the tab is visible. */
+  /** Current NFL weeks re-pull stats while the tab is visible. */
   useEffect(() => {
-    if (!isLiveWeek) return undefined;
+    if (!pollScores) return undefined;
     const ctrl = new AbortController();
     const tick = () => {
-      if (document.visibilityState === "visible") load(ctrl.signal);
+      if (document.visibilityState === "visible") load(ctrl.signal, { refresh: true });
     };
     const id = window.setInterval(tick, REFRESH_MS);
     return () => {
       window.clearInterval(id);
       ctrl.abort();
     };
-  }, [isLiveWeek, load]);
+  }, [pollScores, load]);
 
   const matchup = useMemo(
     () => findViewerMatchup(data, requestedTeam),

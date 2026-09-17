@@ -7,6 +7,7 @@ from typing import Any
 from src.draft_hub import storage
 from src.draft_hub.contracts import build_veteran_contract
 from src.draft_hub.hub_context import resolve_hub_context, roster_scope
+from src.draft_hub.sleeper_sync_mode import sleeper_sync_paused
 from src.draft_hub.league_sleeper_sync import (
     connect_sleeper_league,
     merge_sleeper_team_roster,
@@ -65,7 +66,8 @@ def link_sleeper_team(
         trades = 0
         teams_synced = 0
         full_league_import = False
-        if import_to_hub:
+        sync_paused = sleeper_sync_paused(league_id)
+        if import_to_hub and not sync_paused:
             if ctx.get("is_commissioner"):
                 sl_meta = list_league_teams(str(sleeper_league_id))
                 sleeper_team_count = len(sl_meta.get("teams") or [])
@@ -95,6 +97,7 @@ def link_sleeper_team(
             "trade_count": trades,
             "teams_synced": teams_synced,
             "full_league_import": full_league_import,
+            "sleeper_sync_paused": sync_paused,
             "snapshot": snapshot,
             "hub_context": resolve_hub_context(user_sub),
         }

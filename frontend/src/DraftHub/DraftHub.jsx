@@ -19,6 +19,7 @@ import LeagueCreateJoinDialog from "./LeagueCreateJoinDialog";
 import FantasyChatDock from "./FantasyChatDock";
 import { hideFantasyChatDock } from "./fantasyChatPresentation";
 import { defaultInsightTab, isInsightTabAllowed } from "./hubInsightsTabs";
+import { leagueCapabilitiesFromContext } from "./leagueCapabilities";
 import { defaultOfficeTab, isOfficeTabAllowed } from "./hubOfficeTabs";
 import {
   clearHubDataCache,
@@ -59,11 +60,11 @@ const LeagueHome = lazy(() => import("./LeagueHome"));
 const EMPTY_VALUE_ROWS = [];
 
 /** Tabs that need the heavy value-sheet / draft-pool payload. */
-const TABS_NEED_VALUE_SHEET = new Set(["value", "available", "room", "rosters", "trades", "planner"]);
+const TABS_NEED_VALUE_SHEET = new Set(["value", "available", "room", "planner"]);
 /** Tabs that need cap-sheet (also hits roster on the server). */
 const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 /** Tabs that read the hub roster ("value" marks my players via rosterIds). */
-const TABS_NEED_ROSTER = new Set(["home", "setup", "value", "available", "roster", "rosters", "planner", "room", "trades", "rules"]);
+const TABS_NEED_ROSTER = new Set(["setup", "value", "available", "roster", "planner", "room", "rules"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory, active = true }) {
   const [searchParams] = useSearchParams();
@@ -621,8 +622,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   useEffect(() => {
     if (subView !== "insights" || !effectiveCtx) return;
     const isCommish = Boolean(effectiveCtx.is_commissioner);
-    if (!isInsightTabAllowed(insightTab, isCommish)) {
-      onInsightTabChange?.(defaultInsightTab(isCommish));
+    const caps = leagueCapabilitiesFromContext(effectiveCtx);
+    if (!isInsightTabAllowed(insightTab, isCommish, caps)) {
+      onInsightTabChange?.(defaultInsightTab(isCommish, caps));
     }
   }, [subView, insightTab, effectiveCtx, onInsightTabChange]);
 
@@ -633,8 +635,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       setSubView("rules");
       return;
     }
-    if (!isOfficeTabAllowed(officeTab, isCommish)) {
-      onOfficeTabChange?.(defaultOfficeTab(isCommish));
+    if (!isOfficeTabAllowed(officeTab, isCommish, effectiveCtx.capabilities)) {
+      onOfficeTabChange?.(defaultOfficeTab(isCommish, effectiveCtx.capabilities));
     }
   }, [subView, officeTab, effectiveCtx, onOfficeTabChange, setSubView]);
 
@@ -815,6 +817,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           season={valueSheet?.season || workspace?.season}
           onAddToRoster={onRosterChanged}
           rosterIds={rosterIds}
+          roster={roster}
           sleeper={valueSleeper}
           loading={valueSheetLoading}
           isCommissioner={Boolean(effectiveCtx?.is_commissioner)}
@@ -915,6 +918,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       {subView === "rosters" && (
         effectiveCtx?.mode === "league" && effectiveCtx?.league_id ? (
           <LeagueRostersBrowser
+            key={`${user?.sub || "local"}:${effectiveCtx.league_id}`}
+            cacheScope={user?.sub || (!authenticated ? "local" : null)}
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
             onNavigateTrade={() => setSubView("trades")}
@@ -936,6 +941,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
       {subView === "trades" && effectiveCtx?.mode === "league" && (
         <LeagueTrades
+          key={`${user?.sub || "local"}:${effectiveCtx.league_id}:${effectiveCtx.team_id}`}
+          cacheScope={user?.sub || (!authenticated ? "local" : null)}
           leagueId={effectiveCtx.league_id}
           hubContext={effectiveCtx}
           onNavigate={(view) => {

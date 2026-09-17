@@ -456,7 +456,7 @@ def test_health_feature_flag_vibe_rankings():
     assert res.json()["features"]["vibe_rankings"] is True
 
 
-def test_set_team_starters_helper_still_accepts_vibe_starters(hub_db, monkeypatch):
+def test_set_team_starters_helper_still_accepts_vibe_starters(hub_db, monkeypatch, before_nfl_week_one):
     monkeypatch.setattr(
         "src.draft_hub.hub_scoring.nfl_game_started",
         lambda *_a, **_k: False,

@@ -21,6 +21,11 @@ _CAP_SKILL_POSITIONS = frozenset({"QB", "RB", "WR", "TE", "REC"})
 # Stored in hub_workspace.active_league_id when user explicitly chose solo prep.
 HUB_FOCUS_SOLO = "__solo__"
 
+# Per-league Sleeper roster sync mode (see sleeper_sync_mode.py). NULL means live.
+SLEEPER_SYNC_LIVE = "live"
+SLEEPER_SYNC_OFF = "off"
+SLEEPER_SYNC_MODES = frozenset({SLEEPER_SYNC_LIVE, SLEEPER_SYNC_OFF})
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS hub_workspace (
     id TEXT PRIMARY KEY,
@@ -257,6 +262,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
     _safe_add_column(conn, "league", "historic_snapshot_revision", "INTEGER NOT NULL DEFAULT 0")
     _safe_add_column(conn, "league", "sandbox_baseline_json", "TEXT")
     _safe_add_column(conn, "league", "mock_saved", "INTEGER NOT NULL DEFAULT 0")
+    # Commissioner unlinked Sleeper on purpose: ScoreSense hosts lineups and
+    # scoring, and link inference must not silently re-attach a personal link.
+    _safe_add_column(conn, "league", "sleeper_hosting_disabled", "INTEGER NOT NULL DEFAULT 0")
+    _migrate_league_sleeper_sync_mode(conn)
 
     roster_cols = {row[1] for row in conn.execute("PRAGMA table_info(roster_slot)").fetchall()}
     if "roster_status" not in roster_cols:
@@ -668,6 +677,61 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_fa_bid_window ON fa_bid(league_id, window_id, status)"
     )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_priority (
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            team_id TEXT NOT NULL,
+            priority INTEGER NOT NULL,
+            confirmed INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, season, team_id),
+            UNIQUE (league_id, season, priority)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_claim (
+            id TEXT PRIMARY KEY,
+            league_id TEXT NOT NULL,
+            season INTEGER NOT NULL,
+            window_id TEXT NOT NULL,
+            team_id TEXT NOT NULL,
+            player_id TEXT NOT NULL,
+            player_name TEXT,
+            nfl_team TEXT,
+            position TEXT,
+            claim_rank INTEGER NOT NULL,
+            drop_player_id TEXT,
+            status TEXT NOT NULL DEFAULT 'open',
+            outcome_reason TEXT,
+            user_sub TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            CHECK (claim_rank > 0)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_waiver_claim_window ON waiver_claim(league_id, window_id, status)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_protection (
+            league_id TEXT NOT NULL,
+            player_id TEXT NOT NULL,
+            dropped_by_team_id TEXT NOT NULL,
+            eligible_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, player_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS waiver_process (
+            league_id TEXT NOT NULL,
+            window_id TEXT NOT NULL,
+            result_json TEXT NOT NULL,
+            processed_at TEXT NOT NULL,
+            PRIMARY KEY (league_id, window_id)
+        )"""
+    )
     _safe_add_column(conn, "hub_workspace", "prefs_json", "TEXT")
     _safe_add_column(conn, "team", "identity_json", "TEXT")
     conn.execute(
@@ -816,9 +880,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         """CREATE TABLE IF NOT EXISTS league_week_scoring_run (
             league_id TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
             scoring_json TEXT NOT NULL, scored_at TEXT NOT NULL,
+            final INTEGER NOT NULL DEFAULT 1,
             PRIMARY KEY (league_id, season, week)
         )"""
     )
+    _safe_add_column(conn, "league_week_scoring_run", "final", "INTEGER NOT NULL DEFAULT 1")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_delete_request (
             id TEXT PRIMARY KEY,
@@ -856,6 +922,36 @@ def _migrate(conn: sqlite3.Connection) -> None:
     _ensure_dedicated_league_workspaces(conn)
     _migrate_roster_slot_cut_coexistence(conn)
     _ensure_occupying_unique_index(conn)
+
+
+def _migrate_league_sleeper_sync_mode(conn: sqlite3.Connection) -> None:
+    """Add ``league.sleeper_sync_mode`` and pause existing Sleeper-linked contract leagues.
+
+    Runs the backfill only when the column is first added, so a commissioner who
+    later turns sync back on is never paused again by a restart. Leagues created
+    afterwards stay NULL (live).
+    """
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(league)").fetchall()}
+    if "sleeper_sync_mode" in cols:
+        return
+    _safe_add_column(conn, "league", "sleeper_sync_mode", "TEXT")
+    from src.draft_hub.league_capabilities import uses_contracts
+
+    rows = conn.execute(
+        "SELECT id, rules_json FROM league "
+        "WHERE sleeper_league_id IS NOT NULL AND TRIM(sleeper_league_id) != ''"
+    ).fetchall()
+    for row in rows:
+        try:
+            contracts = uses_contracts(_rules_from_json(row["rules_json"]))
+        except Exception:
+            # Unreadable rules: pause rather than risk a sync rewriting contracts.
+            contracts = True
+        if contracts:
+            conn.execute(
+                "UPDATE league SET sleeper_sync_mode = ? WHERE id = ?",
+                (SLEEPER_SYNC_OFF, row["id"]),
+            )
 
 
 def _roster_slot_allows_cut_and_active(conn: sqlite3.Connection) -> bool:
@@ -3535,6 +3631,75 @@ def update_league_sleeper_id(league_id: str, sleeper_league_id: str) -> None:
         )
 
 
+def clear_league_sleeper_id(league_id: str, *, disable_hosting: bool = True) -> None:
+    """Drop the league's Sleeper link so ScoreSense hosts lineups and scoring.
+
+    ``disable_hosting`` also sets the sticky flag that keeps
+    ``resolve_sleeper_league_id`` from re-attaching a member's personal link.
+    """
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET sleeper_league_id = NULL, sleeper_hosting_disabled = ?"
+            " WHERE id = ?",
+            (1 if disable_hosting else 0, league_id),
+        )
+
+
+def set_league_sleeper_sync_mode(league_id: str, mode: str) -> None:
+    if mode not in SLEEPER_SYNC_MODES:
+        raise ValueError(f"Unknown Sleeper sync mode: {mode}")
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET sleeper_sync_mode = ? WHERE id = ?",
+            (mode, league_id),
+        )
+
+
+def _sleeper_sync_mode_paused(raw: Any) -> bool:
+    return str(raw or "").strip().lower() == SLEEPER_SYNC_OFF
+
+
+def league_sleeper_sync_paused(league_id: str) -> bool:
+    """True when Sleeper must not write this league's rosters."""
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT sleeper_sync_mode FROM league WHERE id = ?",
+            (league_id,),
+        ).fetchone()
+    return bool(row) and _sleeper_sync_mode_paused(row["sleeper_sync_mode"])
+
+
+def workspace_sleeper_sync_paused(workspace_id: str) -> bool:
+    """True when any league that uses this roster workspace is paused."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT sleeper_sync_mode FROM league WHERE workspace_id = ?",
+            (workspace_id,),
+        ).fetchall()
+    return any(_sleeper_sync_mode_paused(r["sleeper_sync_mode"]) for r in rows)
+
+
+def team_sleeper_sync_paused(team_id: str) -> bool:
+    with get_conn() as conn:
+        return _team_sleeper_sync_paused_conn(conn, team_id)
+
+
+def _team_sleeper_sync_paused_conn(conn: sqlite3.Connection, team_id: str) -> bool:
+    row = conn.execute(
+        "SELECT l.sleeper_sync_mode FROM team t JOIN league l ON l.id = t.league_id WHERE t.id = ?",
+        (team_id,),
+    ).fetchone()
+    return bool(row) and _sleeper_sync_mode_paused(row["sleeper_sync_mode"])
+
+
+def set_league_sleeper_hosting_disabled(league_id: str, disabled: bool) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE league SET sleeper_hosting_disabled = ? WHERE id = ?",
+            (1 if disabled else 0, league_id),
+        )
+
+
 def set_league_workspace_id(league_id: str, workspace_id: str) -> None:
     with get_conn() as conn:
         conn.execute(
@@ -3568,6 +3733,10 @@ def update_team_sleeper_link(
             if sleeper_team_name is not None:
                 updates.append("sleeper_team_name = ?")
                 params.append(sleeper_team_name)
+            # Stored membership decides which Sleeper-sourced rows a team shows and
+            # counts, so a paused league keeps the membership it had.
+            if sleeper_player_ids is not None and _team_sleeper_sync_paused_conn(conn, team_id):
+                sleeper_player_ids = None
             if sleeper_player_ids is not None:
                 updates.append("sleeper_player_ids_json = ?")
                 params.append(json.dumps(sleeper_player_ids))
@@ -3881,6 +4050,10 @@ def _league_dict(row: sqlite3.Row) -> dict[str, Any]:
         "team_count": row["team_count"],
         "test_mode": bool(row["test_mode"]) if "test_mode" in keys else False,
         "sleeper_league_id": row["sleeper_league_id"] if "sleeper_league_id" in keys else None,
+        "sleeper_hosting_disabled": bool(row["sleeper_hosting_disabled"])
+        if "sleeper_hosting_disabled" in keys
+        else False,
+        "sleeper_sync_mode": row["sleeper_sync_mode"] if "sleeper_sync_mode" in keys else None,
         "lock_team_claims": bool(row["lock_team_claims"]) if "lock_team_claims" in keys else True,
         "draft_completed": bool(row["draft_completed"]) if "draft_completed" in keys else False,
         "draft_starts_at": row["draft_starts_at"] if "draft_starts_at" in keys else None,
@@ -5182,6 +5355,19 @@ def get_insights_fair_values(
     return {str(r["player_id"]): float(r["fair_value"]) for r in rows}
 
 
+def get_insights_fair_values_built_at(
+    league_id: str, season: int, pool_fingerprint: str,
+) -> str | None:
+    """Oldest calculation time in the matching saved estimate snapshot."""
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT MIN(built_at) AS built_at FROM insights_fair_values
+               WHERE league_id = ? AND season = ? AND pool_fingerprint = ?""",
+            (str(league_id), int(season), str(pool_fingerprint)),
+        ).fetchone()
+    return row["built_at"] if row else None
+
+
 def upsert_insights_fair_values(
     league_id: str,
     season: int,
@@ -5694,6 +5880,10 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_invite",
             "league_chat_channel",
             "fa_bid",
+            "waiver_claim",
+            "waiver_priority",
+            "waiver_protection",
+            "waiver_process",
             "week_poll",
             "matchup_emote",
             "league_week_matchup",
@@ -6712,11 +6902,16 @@ def get_week_scoring_run(league_id: str, season: int, week: int) -> dict[str, An
         return None
     result = dict(row)
     result["scoring"] = json.loads(result.pop("scoring_json"))
+    result["final"] = bool(int(result["final"])) if result.get("final") is not None else True
     return result
 
 
-def save_native_week_scores(league_id, season, week, player_rows, team_rows, scoring):
-    """Publish a complete calculation and its rules snapshot atomically."""
+def save_native_week_scores(league_id, season, week, player_rows, team_rows, scoring, *, final=True):
+    """Publish a calculation and its rules snapshot atomically.
+
+    A live in-week snapshot keeps leftover lineup edits open. A final
+    calculate after the NFL slate ends locks that week's lineups.
+    """
     from src.draft_hub.schemas import LeagueRules
     now = _utcnow()
     key = (league_id, int(season), int(week))
@@ -6744,6 +6939,11 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
             (league_id,season,week,team_id,matchup_id,points,scored_at) VALUES (?,?,?,?,?,?,?)""",
             [(*key, str(row["team_id"]), row.get("matchup_id"), float(row["points"]), now) for row in team_rows],
         )
-        conn.execute("UPDATE league_week_lineup SET locked=1 WHERE league_id=? AND season=? AND week=?", key)
-        conn.execute("INSERT OR REPLACE INTO league_week_scoring_run VALUES (?,?,?,?,?)",
-                     (*key, json.dumps(scoring, sort_keys=True), now))
+        if final:
+            conn.execute("UPDATE league_week_lineup SET locked=1 WHERE league_id=? AND season=? AND week=?", key)
+        conn.execute(
+            """INSERT OR REPLACE INTO league_week_scoring_run
+               (league_id, season, week, scoring_json, scored_at, final)
+               VALUES (?,?,?,?,?,?)""",
+            (*key, json.dumps(scoring, sort_keys=True), now, 1 if final else 0),
+        )

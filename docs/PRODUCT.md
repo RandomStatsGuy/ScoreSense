@@ -81,7 +81,7 @@ Do not add a fourth top-level item. Do not rename Fantasy to League.
 
 ### Fantasy destinations
 
-Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
+Source of truth: `frontend/src/DraftHub/hubSubnav.js`.
 
 | Label | Internal id | Purpose |
 |-------|-------------|---------|
@@ -93,32 +93,36 @@ Source of truth: `frontend/src/DraftHub/HubSubnav.jsx`.
 | Vibes | `vibes` | Rate each roster player once a day (swipe on phone, Sit/Start on desktop). Desktop keeps the card left and Vibe ranking plus VA-projections in view on the right. Front card is week-vs-vibe; Bio opens the latest note. VA-projections are vibe-scaled research and do not drive This Week lineup calls. |
 | Game center | `game` | Your matchup live, league scoreboard, week trophies. The hero names the job: empty lineup consequence pre-kickoff, the score line once live. One empty message — draft night plus when scores start — and Open draft room. Standings share Home's last-season records and stay unranked until a game is played. Do not play last year's Sleeper week as this week's scores. Gold marks a claimed week trophy. |
 
-| My team | `roster` | Immersive team room; Manage roster for contracts and cap |
-| Free agents | `available` | Add / bid / locked by calendar. Rows always show Bid or Add; when locked, disable with Adds open after the draft. Hide Vs cost until a contract cost exists. Desktop virtualizes on page scroll. Season pts use a number plus text range. How adds work lives in the acquisition banner. |
-| Rosters | `rosters` | Table-first league contract comparison, matching the approved September 10 mockup. Compact title/actions, Contract values and Team rosters tabs, searchable manager picker, player/position/value filters, eight-row pagination, and a selected-player details panel. No hero band, At a glance card, tall manager rail, or repeated row actions. Salary, estimated value, and difference sit side by side. |
-| Cap | `planner` | Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. The rail primary is leftover / open the room. Undo cut and Undo extension are ghost. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expiring uses amber; extend-to-keep uses blue. |
+| My team | `roster` | Immersive team room; Manage roster for contracts and cap in auction leagues, or Player details in snake and linear leagues |
+| Free agents | `available` | Add / claim / bid / locked by calendar. Pick-draft leagues order priority claims with optional conditional drops; auction leagues bid. Rows always show the current action; when locked, disable with Adds open after the draft. Hide Vs cost until a contract cost exists. Desktop virtualizes on page scroll. Season pts use a number plus text range. How adds work lives in the acquisition banner. |
+| Rosters | `rosters` | Contract values stays a table-first league comparison with manager/player/position/value filters and eight-row pagination. Team rosters is team-first: choose a manager from a searchable directory, then see that team's full active roster and cap summary without pagination or value exclusions. Keep the compact title/actions; no hero band or tall manager rail. Contract details open only after a player is explicitly selected, never by falling back to the first result. Returning from Trade/History may restore that explicit choice. Salary, estimated value, and difference stay adjacent. Non-salary leagues open directly in Team rosters and show every active player, with no cap figures, salary comparisons, or salary sorting. Contract details and history appear only when the league supports contracts. |
+| Cap | `planner` | Salary-cap leagues only. Cap leftover after a cut or bid. The move input sits above the fold and shows leftover after the move next to the controls. Hero and At a glance keep the current leftover. Every figure names what it counts; leftover plus against-cap (salary + dead) equals the cap. The rail primary is leftover / open the room. Undo cut and Undo extension are ghost. Roster counts say on this sheet vs keep past this draft. Roster-min needs are one sentence and one Free agents CTA. Expiring uses amber; extend-to-keep uses blue. Pick-draft leagues hide Cap; a direct URL explains that salaries do not apply. |
 | Trades | `trades` | Propose and accept. Experience hero names the cap-bust cost. Rosters franchise headers deep-link here with the partner preselected. Zero partners → Invite managers on Members. Continue (or Propose on the last step) is the only primary; Accept and Load into builder are ghost. Cap line is **current roster** salary (active contracts this season, including expiring). My team **{season} committed** is draft-surviving salary — same $200 cap, different base; do not use one word for both. Auto-check every package change and gate Propose on a pass. The verdict is a colored live status banner next to the primary, not grey chart-note. Ideas need chips mark starter-thin positions only — a 6-RB roster is extra depth, not a need. |
 | Rules | `rules` | League model (read for members, edit for staff) |
-| Roster management | `office` | Staff-only contracts, sheets, members, access |
+| Roster management | `office` | Staff-only members and access. Contracts and Salary sheets appear only when the league uses contracts; leagues without them get **Roster moves** instead. |
 | Insights | `insights` | League history and awards. Overview is a dynasty plaque, championship years, records, and career scoring — not Spend. Rank bars share a fixed track and start near the field (or show the gap from first). Career lists show every manager by the name that persists; team nicknames sit underneath — never as the only label. Award names are a Roster management control. The tab strip stays live; skeleton the plaque and boards. |
 
 Desktop Fantasy navigation is one readable row from Home through Trades, followed by a League dropdown containing Rules, Roster management (commissioners only), and Insights. Do not restore Draft/Team/League overlines or vertical group dividers. Phone destination sheets retain their useful grouping.
 
-If you add or rename a Fantasy destination, update `HubSubnav.jsx`, `appNavigation.js` subtitles, routes, `frontend/src/livingSurfaces.js`, this table, and tests in the same change.
+If you add or rename a Fantasy destination, update `hubSubnav.js`, `appNavigation.js` subtitles, routes, `frontend/src/livingSurfaces.js`, this table, and tests in the same change.
 
 ### Roster management panes
 
 Source of truth: `frontend/src/DraftHub/hubOfficeTabs.js`.
 
-Contracts · Salary sheets · Corrections · Members · Access & imports.
+Contracts · Salary sheets · Corrections · Members · Access & imports. A league with no contracts shows **Roster moves** in place of Contracts, and no Salary sheets. Corrections stays available so staff can repair native weekly lineups.
 
-Corrections repairs native historical-week rosters and starters through a reasoned preview and audited publication. Past ownership is not inferred from today's roster. Corrected results use the week's scoring snapshot and actual statistics; missing statistics block publication. Current rosters and later lineups remain unchanged. The initial recovery editor uses explicit player IDs; draft-record and current-roster repairs are separate workflows, not implied by publishing a weekly correction.
+Corrections repairs native historical-week rosters and starters through a reasoned preview and audited publication. Past ownership is not inferred from today's roster. Corrected results use the week's scoring snapshot and actual statistics; missing statistics block publication. Current rosters and later lineups remain unchanged. The approved A correction editor works on one manager’s historical lineup at a time, searches by player name, and keeps raw IDs under Advanced player details. Always render every starter slot required by the league rules, including repeated positions and FLEX, with a Fill action for empty slots. Filling an occupied slot moves its previous player to the bench. Empty display slots never create fake player records. Current-roster players are offered in the historical bench as explicitly labeled suggestions; only commissioner selection adds them to that week, never viewing the week. Accept both native singleton slot names and indexed correction names; draft-record and current-roster repairs are separate workflows, not implied by publishing a weekly correction.
+
+Roster moves is the no-contract pane. It is the same staff roster editor as Contracts with the money off: no Type, salary, Yrs, Schedule, committed, dead cap, or free. Staff assign a player to a team and drop one; there is no salary to set and no cap to bust. Drops write immediately before or after the draft, with a simple roster-removal confirmation. Legacy salary and years fields never hide players or reduce their counts. It never appears beside Contracts — a league has one or the other. Do not call it Rosters; that is the league-wide destination.
 
 The pane switcher uses pane pills only. Do not inline group labels with the pills.
 
 Members is where staff expand or shrink the seat count. A seat is the slot; a manager is the person. Do not say club, franchise, or team for that object. Members shows league capacity, created teams, and claimed managers separately. The league-size picker offers every integer from 6 through 14; existing legacy sizes remain readable. Saving changes unassigned capacity only and never deletes a team. Add team uses an open seat first and expands capacity when full. Remove team previews the resulting size and consequences before confirming. Draft owns the invite link. New-league and mock-draft size pickers also offer 6–14. Access & imports assigns a named email to one seat; it does not copy the Draft invite link. Commissioners download the league workbook and start a delete here. Every commissioner must type the league name and agree; the last confirm erases the room. Members download that same workbook on Rosters.
 
 Sleeper: Access & imports is the one link. The league strip's Sync league is the one sync. Every other "Sync Sleeper" / "League settings" / "Import Sleeper" control deep-links to those. The sync confirm names what it overwrites. Collapse the Sleeper league ID form once the league is linked. A re-import on Contracts is secondary and names that it overwrites staff edits.
+
+Sleeper roster sync can be paused per league in Access & imports. Paused means nothing from Sleeper writes rosters, contracts, or team membership: Sync league refreshes scoring only and says rosters stayed as they are, Sleeper re-import buttons are hidden, and unlink keeps every player. Sleeper scoring, lineups and team names keep flowing. Sleeper-linked contract leagues that existed before the pause shipped start paused; new leagues start with sync on. Turning sync back on does not sync by itself.
 
 Mark draft complete lives on Contracts as a red confirm. It burns one year on every contract and cannot be undone. It also ends a leftover live room and moves the league in-season. Setup shows the status only. After that, Roster management is After draft — not live-auction chrome, and not keepers. After-draft leftover matches Rosters: live contracts occupy cap; Yrs-0 expirees do not. Staff Drop and field edits write immediately. Add records an Auction or FA lottery winning bid.
 
@@ -134,7 +138,15 @@ Fantasy lists people by **owner name**. A team nickname may sit underneath or af
 
 ## Visual language
 
-Dark mode only. Matte, editorial, layered. Sports-product energy without casino chrome.
+### Approved Cap contract workbench — September 16, 2026
+
+Cap follows the selected option B: keep the experience hero, lead the desktop main column with the contract sheet, and place the cut/bid preview above the current-cap summary in the right rail. Phone shows the preview before dense contract rows. Extensions, saved cuts, and spending details remain below the sheet. Use existing experience components and tokens.
+
+Say current cap room versus room after the preview. Selecting a contract and entering a possible bid never saves a cut or places a bid. The cut action still confirms. Label the selected player's penalty “Dead-cap charge for this player,” not total dead cap after the cut. Future-season previews include the cut but do not assume a new contract for the entered bid. Years left includes the current season. Keep saved extension and cut controls separate from the unsaved calculator.
+
+Dark and light modes. Matte, editorial, layered. Sports-product energy without casino chrome.
+
+Light mode follows the approved soft-canvas B concept: pale neutral canvas, white surfaces, navy text, blue current context, and teal healthy states. A sun/moon control beside the desktop account menu and a labeled switch in phone More change modes immediately. Account settings offers the same switch. Dark remains the first-visit default; the choice persists per browser, applies before first paint, and stays separate from Fantasy atmosphere. My team and Game center retain their navy artwork and local readable palette. Theme changes do not change page layout or league state.
 
 | Role | Token / value | Use |
 |------|----------------|-----|
@@ -296,6 +308,8 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 
 ## League rules features must respect
 
+Native snake and linear leagues initialize an unsaved current/future lineup using available weekly model projections and eligible slots, never salary. Players without a projection, on bye, ruled out, or already playing stay on the bench. If no eligible projections exist, no default is saved; managers can still set their lineup. Saved choices are never re-ranked when projections refresh. This Week explains the initial default and asks managers to review it before kickoff. Historical recovery remains separate.
+
 Do not invent a parallel rules model. Canonical merge/validate/preview: `frontend/src/DraftHub/rulesPresentation.js`. Backend remains authoritative for eligibility and materialized contracts.
 
 - Policy changes apply to **new contracts only**. Say that once, next to Save. Do not mention a migration unless a control exists on the page.
@@ -304,8 +318,9 @@ Do not invent a parallel rules model. Canonical merge/validate/preview: `fronten
 - Contract types shown to users are **Rookie deal**, **Vet deal**, and **Extension**. Never “Rookie Extension” or “Veteran Deal”.
 - Static rookie deals and vet deals stay flat for the first term. The configured step-up starts on an **Extension**. Rules shows **Keep vet deals flat** and **Allow vet deal extensions** as their own toggles.
 - Final-year rookie deals may take one extension when **Allow rookie deal extensions** is on. Final-year vet deals may take one when **Allow vet deal extensions** is on. An extension cannot be extended again.
-- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; FAAB bid post-draft / waivers; instant add after waivers; offseason trades only for contracts that survive the next draft.
-- ScoreSense-only leagues persist weekly lineups on This Week and score completed weeks with configurable ScoreSense scoring (full PPR by default) (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
+- Players-tab adds follow the acquisition calendar (`acquisitionWindow.js`): locked pre-draft and in-season off-window; **priority claims** during waivers in pick-draft leagues (FAAB bid in auction leagues); instant add after waivers; offseason trades stay open in pick-draft leagues and are limited to surviving contracts in auction leagues.
+- League capabilities (`uses_salaries`, `uses_contracts`, `acquisition_mode`) come from `draft_type`, not leftover salary fields. Auction leagues are salary-cap + bid. Snake and linear leagues are no-money + priority claims. Legacy salary / years / cap numbers have no effect when `uses_salaries` is false.
+- ScoreSense-only leagues persist weekly lineups on This Week and score weeks with configurable ScoreSense PPR (full PPR by default) (nflverse; internal id `hub_ppr` — the string "Hub PPR" never reaches UI). After the draft, Game center refreshes native week scores when weekly stats are available. A calculate after the slate ends locks that week's lineups. Linked Sleeper leagues still set and score lineups in Sleeper; Game center reads Sleeper.
 - Staff edits in Roster management may override; Players-tab adds never do.
 - Headshots: mock boards, nominee cards, and rails use the same photos as rosters. Hub media and remote photos request the size they paint (`?w=48` / `96` / `256`); do not ship the studio original on every page.
 
@@ -340,7 +355,7 @@ Contract-type playbook for imports and keepers: [CONTRACT_SCENARIOS.md](./CONTRA
 | Experience CSS | `frontend/src/styles/product-hierarchy.css` |
 | Spacing rhythm | `frontend/src/styles/product-rhythm.css` |
 | Fantasy phone | `frontend/src/styles/fantasy-phone.css` |
-| Nav source | `frontend/src/appNavigation.js`, `DraftHub/HubSubnav.jsx` |
+| Nav source | `frontend/src/appNavigation.js`, `DraftHub/hubSubnav.js` |
 | Living page to match | `frontend/src/livingSurfaces.js` |
 | Redesign / first-design options | [mockups/](./mockups/) · `.cursor/skills/fast-ui-mock/SKILL.md` |
 | Cloud Agent runtime | `.cursor/environment.json` |
@@ -354,6 +369,8 @@ Projections and Tools share the same flat product-navigation row and destination
 ## Approved My team room — September 10, 2026
 
 My team defaults to Room for league teams. The approved curved locker-room concepts supersede the experience hero, featured-player wall, and decoration restrictions on this view. Keep a physical room, detailed jerseys, owner Account atmosphere, integrated matchup scoreboard, weekly starters together, Bench access, and a locker that expands in place. Texture, material lighting, team colors, and artwork dimensions are intentional exceptions to flat-card/token-only artwork rules; functional controls retain readable type, focus, and touch targets. At phone widths the room reflows into a browsable locker grid without horizontal page scroll. Reduced motion disables drawer animation.
+
+My team’s Room scoreboard reuses Game center’s faded saved team artwork and light brass frame. Manage roster uses a compact identity/cap summary without the stadium banner, keeping appearance editing and contract controls accessible.
 
 Manage roster is a separate local tab preserving contracts, cap, cuts, extensions, and appearance editing. Room opening and visiting another team never change saved league focus. Members may visit other rooms. Only the owner may edit nicknames or opt into a public, revocable `/team-room/:token` link. The public payload contains the room presentation only, not salary, contracts, owner account IDs, or league rules. Visitors see the owner's theme. Sleeper nicknames are used when provider metadata exposes them; local overrides can be reset. Historical projection differences require a pregame capture; never backfill them with an in-game projection. An unknown score remains a dash, not zero, and live state is not inferred from a zero score.
 
@@ -373,6 +390,8 @@ Game center labels current forecasts separately from the pregame baselines froze
 
 ### Refresh behavior
 
+An interrupted projection refresh is a persisted failure, not a permanent running marker. Admins can Retry refresh directly from the shared status banner in any product area. Retry uses the existing no-retrain pipeline and preserves the last successful data timestamp until completion; it does not deploy or change league state.
+
 Weekly's notes chip rebuilds notes from existing weekly artifacts and reports missing projections promptly. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.
 
 Open pages check refresh status periodically and on returning to the app. Completed rebuilds update projection boards and Best ball, and invalidate Fantasy projection caches without remounting its workspace. DFS offers Update player pool explicitly: it clears the current unsaved build, preserves user settings/imported estimates, and leaves saved build snapshots unchanged. Do not silently replace an active DFS build after a background refresh.
@@ -380,8 +399,14 @@ Open pages check refresh status periodically and on returning to the app. Comple
 
 ### League scoring ownership
 
-Rules identifies the scoring and lineup host. Native leagues save validated points-per-stat weights inside LeagueRules, defaulting to full PPR for existing leagues. Supported native stats currently cover QB/RB/WR/TE yardage, touchdowns, receptions, interceptions, and lost fumbles. Kicker, defense, bonuses, and two-point scoring are explicitly unsupported; calculations reject unsupported starters instead of publishing misleading totals. Projection and Strategy estimates remain PPR-based and must be labeled separately from configurable recorded scores.
+Rules identifies the scoring and lineup host. Native leagues save validated points-per-stat weights inside LeagueRules, defaulting to full PPR for existing leagues. Native rules also cover kicker, defense, bonuses, and two-point scoring. Calculations require the actual statistics used by enabled specialist rules; missing inputs block publication instead of assigning zero. Projection and Strategy estimates remain PPR-based and must be labeled separately from configurable recorded scores.
 
-Game center gives native commissioners Calculate week / Recalculate week controls after the draft. Calculations require a finished NFL slate and available stats, save player/team totals, locked lineups and a scoring-rules snapshot atomically, and update standings. Recalculation confirms that it replaces the selected week's totals using current saved rules. Saving scoring settings alone never rewrites results; Game center flags an older rules snapshot. Native scoring is weekly, not a live feed.
+After the draft, Game center refreshes native week scores when weekly NFL stats are available, including while games are still in progress. It saves current player/team totals and a scoring-rules snapshot, updates standings, and leaves leftover lineup edits open until a calculate after the last game. Commissioners still have Calculate week / Recalculate week for a fresh snapshot. Recalculation confirms that it replaces the selected week's totals using current saved rules. Saving scoring settings alone never rewrites results; Game center flags an older rules snapshot. Sleeper-linked leagues are not scored locally.
+
+Native scoring rules are commissioner-editable in Rules: offense, two-point conversions, player return touchdowns, kicker makes by distance and misses, defense/special teams events and points-allowed bands, and optional exclusive yardage bonuses. Members may read them; linked Sleeper leagues edit scoring in Sleeper. Saved changes do not rewrite past results. Specialist scoring requires complete actual statistics for enabled rules.
+
+Native specialist statistics come from nflverse weekly player and team box scores. Blocked kicks count toward missed-kick penalties. Defense points allowed starts with the opponent scoreboard total and excludes opponent defensive touchdowns, safeties, and defensive two-point returns; extra points and special-teams return touchdowns still count. Missing opponent totals or required event fields remain unavailable, never a shutout. This weekly feed does not provide a real-time update guarantee.
+
+Required automation applies only to native-scoring leagues; Sleeper-linked leagues retain Sleeper as their scoring host. Refresh native league scores frequently during games and finalize automatically after the week's last game ends (normally Monday night), without a commissioner action. The implementation target is a shared stats refresh every 60 seconds while games are active, covering Thursday, weekend, Monday, and rescheduled games; use confirmed game completion rather than a fixed clock deadline. Live scores are provisional and must not finalize standings or lock players whose games have not started. Retry delayed statistics and surface unavailable statistics, unsupported scoring, or missing historical lineups as failures rather than silently publishing incomplete results. The current request-driven weekly-stat refresh does not implement this background cadence; a live feed and scheduler are still required.
 
 Sleeper-linked leagues use Sleeper's rules, lineups, live points and corrections. Rules shows this ownership instead of editable native scoring fields, and Game center links to Sleeper without offering local calculation controls. Backend writes reject scoring-rule changes for linked leagues. ScoreSense contract, cap and draft tools remain local. League templates preserve scoring settings; old clients that omit scoring preserve the saved weights.

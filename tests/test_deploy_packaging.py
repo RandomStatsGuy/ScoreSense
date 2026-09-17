@@ -19,5 +19,6 @@ def test_deploy_skips_auth_and_league_runtime_state():
     assert skip(Path("data/auth/users.db-wal"))
     assert skip(Path("data/draft_hub/draft_hub.db"))
     assert skip(Path("users.db"))
+    assert skip(Path("artifacts/frontend_assets/DraftHub-old.js"))
     assert not skip(Path("src/auth/user_store.py"))
     assert not skip(Path("src/draft_hub/storage.py"))

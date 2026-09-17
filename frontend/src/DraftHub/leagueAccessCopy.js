@@ -44,12 +44,19 @@ export function draftLobbyHeroHeading({ testMode = false, locked = false, roomFu
   return "Lock a night, then start the draft.";
 }
 
-export function draftLobbyHeroSupport({ testMode = false, locked = false, roomFull = false } = {}) {
+export function draftLobbyHeroSupport({
+  testMode = false,
+  locked = false,
+  roomFull = false,
+  usesContracts = true,
+} = {}) {
   if (testMode) {
     return "Send the practice link. Friends sit down with a name — no ScoreSense account. This room does not write real contracts.";
   }
   if (locked && roomFull) {
-    return "Every seat is claimed. Start the draft so the auction writes keepers and contracts.";
+    return usesContracts
+      ? "Every seat is claimed. Start the draft so the auction writes keepers and contracts."
+      : "Every seat is claimed. Start the draft so every pick lands on a roster.";
   }
   if (locked) {
     return "Share the room so claimed seats fill. Miss the night and you draft late or not at all.";
@@ -240,12 +247,15 @@ export function addFranchiseLabel({ configured, actual } = {}) {
   return Number(actual) < Number(configured) ? "Add team to open seat" : "Add team";
 }
 
-export function addFranchiseSupport({ nextCount, currentCount, cap } = {}) {
+export function addFranchiseSupport({ nextCount, currentCount, cap, usesSalaries = true } = {}) {
   const seats = Number(nextCount);
   const salary = Number(cap);
   const seatBit = seats === Number(currentCount)
     ? `Uses one open seat. League stays at ${seats} teams.`
     : Number.isFinite(seats) && seats > 0 ? `League becomes ${seats} seats.` : "Adds one seat.";
+  if (usesSalaries === false) {
+    return `${seatBit} The new seat starts empty.`;
+  }
   const capBit = Number.isFinite(salary) && salary > 0
     ? ` The new seat starts at $${salary} with no keepers.`
     : " The new seat starts with a full cap and no keepers.";
@@ -280,9 +290,11 @@ export const LEAGUE_SIZE_COPY = {
   saved: (n) => `League size saved: ${n} teams.`,
   added: (name) => `${name} added. Invite a manager to claim the team.`,
   removed: (name, n) => `${name} removed. League size: ${n} teams.`,
-  preview: (n, actual) => n < actual
+  preview: (n, actual, usesSalaries = true) => n < actual
     ? `Remove ${actual - n} ${actual - n === 1 ? "team" : "teams"} below before saving a ${n}-team league. Existing teams are never removed automatically.`
-    : `Room for ${n} teams, with ${n - actual} unassigned ${n - actual === 1 ? "seat" : "seats"}. Existing teams and contracts stay.`,
+    : usesSalaries === false
+      ? `Room for ${n} teams, with ${n - actual} unassigned ${n - actual === 1 ? "seat" : "seats"}. Existing teams stay.`
+      : `Room for ${n} teams, with ${n - actual} unassigned ${n - actual === 1 ? "seat" : "seats"}. Existing teams and contracts stay.`,
 };
 
 export function removeFranchiseBlocked(reason) {
@@ -343,6 +355,59 @@ export const LEAGUE_WORKBOOK_COPY = {
   exportSupport: "Every roster, salary, and history row. Opens in Excel.",
 };
 
+export const SLEEPER_UNLINK_COPY = {
+  title: "Unlink Sleeper",
+  support:
+    "Sleeper hosts lineups and scoring while a league is linked. Unlink and ScoreSense takes them over — you set lineups here.",
+  start: "Unlink Sleeper",
+  confirm: "Unlink and host here",
+  cancel: "Keep Sleeper",
+  busy: "Unlinking…",
+  keepRosters: "Keep players that came from Sleeper",
+  rosterWarning: (n) =>
+    n === 1
+      ? "1 roster player came from Sleeper and will be removed."
+      : `${n} roster players came from Sleeper and will be removed.`,
+  rosterKept: "Rosters stay exactly as they are.",
+  done: "Sleeper unlinked. ScoreSense hosts lineups and scoring for this league.",
+  relinkHint: "You can connect Sleeper again later — that hands lineups back.",
+};
+
+export const SLEEPER_SYNC_PAUSE_COPY = {
+  title: "Sleeper roster sync",
+  pausedPill: "Roster sync paused",
+  pausedSupport:
+    "Rosters and contracts stay exactly as they are here. Sync league still refreshes scoring from Sleeper.",
+  liveSupport:
+    "Sync league copies Sleeper rosters into ScoreSense and can move contracts between teams.",
+  pause: "Pause roster sync",
+  resume: "Turn roster sync back on",
+  busy: "Saving…",
+  pausedDone: "Roster sync paused. Rosters stay as they are.",
+  resumedDone: "Roster sync is on. The next Sync league copies Sleeper rosters again.",
+  stripStatus: "Rosters paused",
+  stripTitle: "Refresh scoring from Sleeper. Roster sync is paused in Access & imports.",
+  importPaused: "Roster sync is paused, so importing Sleeper rosters is off.",
+  unlinkKeepsRosters: "Roster sync is paused, so unlinking keeps every player.",
+};
+
+/** True when Sleeper must not write this league's rosters. */
+export function sleeperSyncPaused({ overview, hubContext } = {}) {
+  const mode = overview?.league?.sleeper_sync_mode;
+  if (mode) return mode === "off";
+  return Boolean(hubContext?.sleeper_sync_paused);
+}
+
+export function sleeperUnlinkSummary({ teamsLinked = 0, rosterRows = 0, clearRoster = true } = {}) {
+  const teams = Number(teamsLinked) || 0;
+  const rows = Number(rosterRows) || 0;
+  const bits = [teams === 1 ? "1 team mapping" : `${teams} team mappings`];
+  if (clearRoster && rows > 0) {
+    bits.push(rows === 1 ? "1 Sleeper roster row" : `${rows} Sleeper roster rows`);
+  }
+  return `Clears ${bits.join(" and ")}.`;
+}
+
 export const LEAGUE_DELETE_COPY = {
   title: "Delete this league",
   support:
@@ -375,3 +440,8 @@ export function leagueDeletePendingLine({ approved = 0, required = 0, waiting = 
 }
 
 export const FANTASY_HEADER_COPY = { league: "League", leagueNavigation: "League navigation", yourTeam: "Your team:", searchLeagues: "Search leagues", noLeagues: "No leagues match your search.", sync: "Sync league" };
+
+export const SLEEPER_LINK_COPY = {
+  importSupport: "Import rosters for every team in this Sleeper league.",
+  movedPlayers: (count) => `${count} roster move${Number(count) === 1 ? "" : "s"}`,
+};

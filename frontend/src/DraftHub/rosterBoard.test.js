@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rosterBoardRows, rosterDifference, rosterDifferenceLabel, rosterMoney } from "./leagueRostersPresentation.js";
+import { rosterBoardRows, rosterCoverage, rosterDifference, rosterDifferenceLabel, rosterMoney } from "./leagueRostersPresentation.js";
 const blocks = [{
   team: {
     id: 'a'
@@ -85,4 +85,11 @@ test('salary sorting and name sorting are independent of difference sorting', ()
   assert.deepEqual(rosterBoardRows(blocks, {
     sort: 'name'
   }).map(r => r.player_id), ['1', '2']);
+});
+
+test('coverage accounts for equal and missing comparisons within the active filters', () => {
+  assert.deepEqual(rosterCoverage(blocks), { total: 4, atEstimate: 1, minimumBid: 0, unavailable: 1 });
+  assert.deepEqual(rosterCoverage(blocks, { teamId: 'b', value: 'above' }), { total: 2, atEstimate: 1, minimumBid: 0, unavailable: 1 });
+  assert.deepEqual(rosterCoverage(blocks, { query: 'Missing' }), { total: 1, atEstimate: 0, minimumBid: 0, unavailable: 1 });
+  assert.deepEqual(rosterCoverage(blocks, { position: 'QB' }), { total: 1, atEstimate: 0, minimumBid: 0, unavailable: 0 });
 });

@@ -229,6 +229,11 @@ export function managerPickerOptions(teamBlocks, dealRows) {
 }
 
 export const ROSTER_BOARD_COPY = {
+  playerSupport: "Browse every team and find players to trade for.",
+  choosePlayerTeamHelp: "Choose a manager to see their full roster.",
+  playerFilterHelp: "Filter this roster or select a player to view details and trade actions.",
+  playerDetails: (name) => `View ${name} details`,
+  noPlayerResults: "No players match these filters.",
   tabs: [{ id: "deals", label: "Contract values" }, { id: "teams", label: "Team rosters" }],
   filters: [{ id: "all", label: "All" }, { id: "below", label: "Below estimate" }, { id: "above", label: "Above estimate" }],
   sorts: [{ id: "difference", label: "Largest difference" }, { id: "salary", label: "Highest salary" }, { id: "name", label: "Player name" }],
@@ -236,17 +241,39 @@ export const ROSTER_BOARD_COPY = {
   positions: "All positions", explanation: "Difference compares annual salary with ScoreSense estimated value.",
   refresh: "Refresh", refreshing: "Refreshing…", history: "View contract history",
   noLeague: "Choose a league to compare rosters.", noResults: "No contracts match these filters.",
+  showAll: "Browse full team rosters",
+  chooseTeam: "Choose a team", chooseTeamHelp: "Start with a manager to see their full roster and cap summary.",
+  yourTeam: "Your team", teamRoster: "Team roster", viewRoster: "View roster", changeTeam: "Change team",
+  noMatchingTeams: "No teams match this search.", noTeams: "No teams in this league yet.", committed: "Committed",
+  openTeam: (name) => `View ${name} roster`, playerCount: (n) => `${n} player${n === 1 ? "" : "s"}`,
+  fullRoster: "Players", teamFilterHelp: "Filter this roster or select a player to view their contract.",
+  coverage: ({ total, atEstimate, minimumBid, unavailable }) => `${total} active contract${total === 1 ? " matches" : "s match"} your team, player, and position filters. Excluded from Contract values: ${atEstimate} at estimate, ${minimumBid} at minimum bid, and ${unavailable} without enough data to compare.`,
   reset: "Reset filters", select: "Select a player to view their contract.",
+  aboutEstimates: "How estimates are calculated",
+  minimumBid: "Minimum bid",
+  estimateBasis: "Estimates use season projection ranks, league roster rules, team count, and salary cap. They are not trade prices. Refresh reloads the saved estimates.",
+  minimumBidHelp: "This value is at the league minimum bid. It is not a market comparison, so no above/below grade is shown.",
+  missingEstimateHelp: "No usable estimate is available for this player. Their salary is still included in the roster.",
   unavailable: "Estimate unavailable", estimate: "Est. value", salary: "Salary", difference: "Difference",
   contract: "Contract", player: "Player", manager: "Manager", close: "Close player details",
   managedBy: "Managed by", remaining: "remaining", capRoom: "Cap room", deadCap: "Dead cap",
   unknownContract: "Contract not recorded", readonly: "Trade actions are unavailable in this view.",
-  noId: "This contract needs a matched player before it can be traded.",
+  noId: "This player needs a matched ID before they can be traded.",
   resultCount: (n) => `${n} contract${n === 1 ? "" : "s"}`,
   pagination: (start, end, total) => `Showing ${start}–${end} of ${total} contracts`,
   below: (n) => `${n} below estimate`, above: (n) => `${n} above estimate`,
   selectPlayer: (name) => `View ${name} contract`,
 };
+
+export function rosterCoverage(blocks, filters = {}) {
+  const all = rosterBoardRows(blocks, { ...filters, view: "teams", value: "all" });
+  return {
+    total: all.length,
+    atEstimate: all.filter(row => rosterDifference(row) === 0).length,
+    minimumBid: all.filter(row => row.estimate_status === "minimum_bid").length,
+    unavailable: all.filter(row => rosterDifference(row) === null && row.estimate_status !== "minimum_bid").length,
+  };
+}
 
 export function rosterMoney(value) {
   return value == null || value === "" || !Number.isFinite(Number(value)) ? "—" : fmtSal(Number(value));
@@ -254,12 +281,14 @@ export function rosterMoney(value) {
 
 // Use the API estimate, never infer it from a grade or convert missing values to zero.
 export function rosterDifference(row) {
+  if (row?.estimate_status === "minimum_bid") return null;
   if (rosterMoney(row?.salary) === "—" || rosterMoney(row?.fair_value) === "—") return null;
   return Number(row.salary) - Number(row.fair_value);
 }
 
 export function rosterDifferenceLabel(row) {
   const delta = rosterDifference(row);
+  if (row?.estimate_status === "minimum_bid") return ROSTER_BOARD_COPY.minimumBid;
   if (delta == null) return ROSTER_BOARD_COPY.unavailable;
   if (delta === 0) return "At estimate";
   return `${fmtSal(Math.abs(delta))} ${delta < 0 ? "below" : "above"}`;
@@ -294,4 +323,24 @@ export function rosterBoardRows(blocks, { view = "deals", teamId = "", query = "
     const bv = sort === "salary" ? (rosterMoney(b.salary) === "—" ? -Infinity : Number(b.salary)) : (rosterDifference(b) == null ? -Infinity : Math.abs(rosterDifference(b)));
     return (av === bv ? 0 : av > bv ? -1 : 1) || String(a.player_name).localeCompare(String(b.player_name));
   });
+}
+
+export function rosterEstimateContext(context) {
+  const season = Number(context?.season);
+  const seasonLabel = Number.isInteger(season) && season > 2000 ? `${season} season estimates` : "Season not provided";
+  const raw = context?.built_at;
+  const date = typeof raw === "string" && raw.trim() ? new Date(raw) : null;
+  const updated = date && Number.isFinite(date.getTime())
+    ? `Calculated ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(date)} UTC`
+    : "Estimate calculation time unavailable";
+  return `${seasonLabel} · ${updated}.`;
+}
+
+export function rosterVisibleRows(rows, view, page) {
+  return view === "teams" ? rows : rows.slice(page * 8, page * 8 + 8);
+}
+
+export function rosterSelection(rows, selectedKey, closed) {
+  if (closed || !selectedKey) return null;
+  return rows.find(row => rosterRowKey(row) === selectedKey) || null;
 }

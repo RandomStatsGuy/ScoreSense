@@ -20,6 +20,7 @@ from src.draft_hub.rules_engine import (
     roster_limits,
 )
 from src.draft_hub.schemas import LeagueRules
+from src.draft_hub.league_capabilities import league_capabilities, uses_contracts, uses_salaries
 
 
 def _trade_event_summary(league_id: str, parties: list[dict[str, Any]]) -> dict[str, Any]:
@@ -226,11 +227,15 @@ def validate_simulated_trade(
                     f"{label}: {count - lim['max']} too many {pos_key} (max {lim['max']})"
                 )
 
-        for row in scoped:
-            yrs = int(row.get("contract_years") or 1)
-            if yrs < 1 or yrs > max_years:
-                name = row.get("player_name") or row.get("player_id")
-                errors.append(f"{label}: {name} contract years must be 1–{max_years}")
+        if uses_contracts(rules):
+            for row in scoped:
+                yrs = int(row.get("contract_years") or 1)
+                if yrs < 1 or yrs > max_years:
+                    name = row.get("player_name") or row.get("player_id")
+                    errors.append(f"{label}: {name} contract years must be 1–{max_years}")
+
+        if not uses_salaries(rules):
+            continue
 
         spent = sum(float(cap_hit(r, 0) or 0) for r in scoped)
         if draft_completed:
@@ -278,8 +283,13 @@ def validate_trade_package(
     if not league:
         raise ValueError("League not found")
     rules = LeagueRules.model_validate(league["rules"])
+    capabilities = league_capabilities(rules)
     norm, assignments = normalize_parties(parties, dead_cap_assignments=dead_cap_assignments)
-    assignments = enrich_dead_cap_amounts(rules, league_id, norm, assignments)
+    assignments = (
+        enrich_dead_cap_amounts(rules, league_id, norm, assignments)
+        if capabilities["uses_salaries"]
+        else [{**assignment, "amount": 0.0} for assignment in assignments]
+    )
 
     # Basic integrity: no player in both send and drop; unique players
     seen: set[str] = set()
@@ -336,11 +346,11 @@ def validate_trade_package(
     for tid, rows in sim.items():
         active = [r for r in rows if is_active_for_pre_draft(r)]
         scoped = cap_relevant_roster(rules, active)
-        spent = sum(float(cap_hit(r, 0) or 0) for r in scoped)
+        spent = sum(float(cap_hit(r, 0) or 0) for r in scoped) if capabilities["uses_salaries"] else 0.0
         cuts = [r for r in rows if str(r.get("roster_status")) == ROSTER_CUT_BEFORE_DRAFT]
         dead = (
             0.0
-            if league.get("draft_completed")
+            if league.get("draft_completed") or not capabilities["uses_salaries"]
             else total_pre_draft_dead_cap(rules, cuts, year_offset=0)
         )
         by_pos: dict[str, int] = {}
@@ -351,9 +361,9 @@ def validate_trade_package(
             "team_name": team_names.get(str(tid), str(tid)),
             "active_count": len(active),
             "cut_count": len(cuts),
-            "committed": round(spent, 2),
-            "dead_cap": round(dead, 2),
-            "unspent": round(float(rules.salary_cap) - spent - dead, 2),
+            "committed": round(spent, 2) if capabilities["uses_salaries"] else None,
+            "dead_cap": round(dead, 2) if capabilities["uses_salaries"] else None,
+            "unspent": round(float(rules.salary_cap) - spent - dead, 2) if capabilities["uses_salaries"] else None,
             "by_position_count": by_pos,
         }
     return {
@@ -362,7 +372,8 @@ def validate_trade_package(
         "parties": norm,
         "dead_cap_assignments": assignments,
         "preview": preview,
-        "salary_cap": float(rules.salary_cap),
+        "salary_cap": float(rules.salary_cap) if capabilities["uses_salaries"] else None,
+        "capabilities": capabilities,
     }
 
 
@@ -436,7 +447,11 @@ def execute_multiparty_trade(
     )
 
     session = storage.get_draft_session(league_id) or {}
-    if session.get("status") in ("nominating", "bidding", "picking") and not league.get("draft_completed"):
+    if (
+        uses_salaries(rules)
+        and session.get("status") in ("nominating", "bidding", "picking")
+        and not league.get("draft_completed")
+    ):
         from src.draft_hub.draft_budgets import sync_league_auction_budgets
 
         sync_league_auction_budgets(league_id)
