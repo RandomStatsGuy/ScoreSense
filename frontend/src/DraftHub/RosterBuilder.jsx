@@ -880,7 +880,7 @@ export default function RosterBuilder({
         identity={teamIdentity}
         meta={`${roster.length} player${roster.length === 1 ? "" : "s"}${
           roster.filter(isSleeperPlayer).length > 0
-            ? ` · ${roster.filter(isSleeperPlayer).length} from Sleeper`
+            ? ` · ${roster.filter(isSleeperPlayer).length} imported from Sleeper`
             : ""
         }`}
         onEdit={

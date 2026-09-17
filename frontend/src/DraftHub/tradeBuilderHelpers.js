@@ -23,7 +23,7 @@ export function packageFingerprint(parties, deadCapAssignments) {
 }
 
 /** Partner card line: "$22 free · thin at TE". */
-export function partnerCardMeta({ stats, insight, byPos } = {}) {
+export function partnerCardMeta({ stats, insight, byPos, includeCap = true } = {}) {
   const free = stats?.unspent ?? insight?.cap_remaining;
   const needs = (insight?.their_need || []).filter(Boolean);
   const counts = byPos || stats?.by_position_count || {};
@@ -35,7 +35,7 @@ export function partnerCardMeta({ stats, insight, byPos } = {}) {
       return n < starter;
     }).slice(0, 2);
   const parts = [];
-  if (free != null && Number.isFinite(Number(free))) {
+  if (includeCap && free != null && Number.isFinite(Number(free))) {
     parts.push(`${fmtSal(free)} free`);
   }
   if (thin.length) parts.push(`thin at ${thin.join(" / ")}`);
@@ -55,8 +55,8 @@ export function sendGetCopy({ isYours, playerName, destName, srcName }) {
   };
 }
 
-export function packageLegFlow(leg, teamName) {
-  if (leg.drop) return TRADES_COPY.dropFlow(teamName(leg.from));
+export function packageLegFlow(leg, teamName, dropVerb = TRADES_COPY.cutVerb) {
+  if (leg.drop) return `${dropVerb} from ${teamName(leg.from)}`;
   return TRADES_COPY.sendFlow(teamName(leg.from), teamName(leg.to));
 }
 

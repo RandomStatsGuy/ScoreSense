@@ -56,8 +56,8 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 
 ## Product rules you may not bypass
 
+- Non-salary leagues never show salary, cap, contract, dead-cap, or points-per-dollar concepts. Use roster space, roster limits, and positional impact instead.
 - Only native-scoring leagues use automatic calculation; linked Sleeper leagues keep their scoring host. Expose native scoring weights in Rules for commissioners. Refresh native league scores frequently during games and finalize automatically after the week's last game ends (normally Monday night); live updates must not lock unstarted players or finalize standings, and missing inputs must surface as failures. See the implementation status in docs/PRODUCT.md.
-
 - League policy changes apply to **new contracts only**. Say that once, next to Save.
 - Rules Save writes the league on the form, not hub focus. Do not apply a late save that belongs to another league.
 - Opening a Fantasy page does not change the saved league. Practice rooms never become strip focus. Only Switch league, or joining/creating a live league, writes focus.

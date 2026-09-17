@@ -12,6 +12,7 @@ import {
   RULES_COPY,
   SCORING_COPY,
   rulesFormWarnings,
+  rulesCopyForFormat,
   rulesSaveDisabledReason,
   rulesSummary,
   shouldApplyWorkspaceSave,
@@ -36,6 +37,12 @@ test("mergeLeagueRules adds new contract policy defaults without losing roster r
   assert.equal(merged.contracts.veteran_salary_static, true);
   assert.equal(merged.contracts.allow_veteran_renewal, true);
   assert.equal(merged.contracts.one_renewal_after_rookie, true);
+});
+
+test("pick draft rules copy omits salary and contract language", () => {
+  const copy = rulesCopyForFormat(true);
+  assert.match(copy.support, /scoring, roster, and draft/i);
+  assert.doesNotMatch(`${copy.support} ${copy.saveFootnote}`, /salary|contract/i);
 });
 
 test("validateLeagueSettings catches conflicting contract and roster limits", () => {

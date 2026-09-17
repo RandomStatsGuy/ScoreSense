@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { expireChipLabel, stepBlockedReason, TRADES_COPY, tradesFreeLabel } from "./leagueTradesPresentation.js";
+import { expireChipLabel, stepBlockedReason, TRADES_COPY, tradesCopyForFormat, tradesFreeLabel } from "./leagueTradesPresentation.js";
 
 test("trades copy names the cap-bust cost and skips banned verbs", () => {
   assert.match(TRADES_COPY.heading, /trade/i);
@@ -8,6 +8,14 @@ test("trades copy names the cap-bust cost and skips banned verbs", () => {
   assert.doesNotMatch(TRADES_COPY.inviteManagers, /Submit|Draft Hub|permission/i);
   assert.doesNotMatch(TRADES_COPY.valid, /constraint/i);
   assert.doesNotMatch(TRADES_COPY.ideasEmptyHeading, /import salaries/i);
+});
+
+test("pick draft trades use roster language and omit salary concepts", () => {
+  const copy = tradesCopyForFormat(true);
+  const visible = [copy.support, copy.pickPartnerSupport, copy.choosePlayersSupport, copy.playerMetaKey, copy.reviewTitle, copy.reviewSupport, copy.valid].join(" ");
+  assert.match(visible, /roster/i);
+  assert.doesNotMatch(visible, /cap|salary|contract|dead|points per dollar/i);
+  assert.equal(copy.cutVerb, "Drop");
 });
 
 test("step blockers explain partner vs package", () => {
