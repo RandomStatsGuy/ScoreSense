@@ -87,8 +87,8 @@ export function buildEntryCsv(
     );
     if (!csv.ok) throw new Error(csv.reason);
     const cells = parseDfsCsv(csv.lines[1])[0];
-    // Each site writes its own cell shape — "Name (ID)", "ID:Name", or a bare
-    // Showdown ID — so read the ID back with that site's own reader.
+    // Each site writes its own cell shape — "Name (ID)" or "ID:Name" — so
+    // read the ID back with that site's own reader.
     const cellId = siteExportConfig(template.site)?.cellId;
     if (
       template.eligibleIds.size &&
