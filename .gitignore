@@ -35,3 +35,6 @@ ssh
 
 # Personal DFS ledger and SQLite journals
 data/dfs/*.db*
+
+# Generated lineup QA bundle
+/frontend/qa-dist/
