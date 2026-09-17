@@ -208,6 +208,7 @@ export default function LeagueHome({
   const primaryCta = phase.primary_cta || null;
   const actions = data?.actions || [];
   const cap = data?.cap || {};
+  const salaryLeague = cap.salary_cap != null;
   const weekSummary = data?.week_summary || {};
   const freshness = data?.freshness || {};
   const focus = resolveLeagueHomeFocus({
@@ -342,11 +343,19 @@ export default function LeagueHome({
             }) || "Your team"}</span>
           </div>
           <dl className="hub-home-snapshot-list">
-            <div>
-              <dt>Cap room</dt>
-              <dd className={Number(cap.remaining) < 0 ? "is-danger" : ""}>{fmtCap(cap.remaining)}</dd>
-              <span>{cap.salary_cap != null ? `${fmtCap(cap.spent)} committed` : "No cap loaded"}</span>
-            </div>
+            {salaryLeague ? (
+              <div>
+                <dt>Cap room</dt>
+                <dd className={Number(cap.remaining) < 0 ? "is-danger" : ""}>{fmtCap(cap.remaining)}</dd>
+                <span>{fmtCap(cap.spent)} committed</span>
+              </div>
+            ) : (
+              <div>
+                <dt>Roster space</dt>
+                <dd>{data?.counts?.roster ?? cap.roster_size ?? 0} players</dd>
+                <span>Position limits apply</span>
+              </div>
+            )}
             <div>
               <dt>{weekSummary.available ? `Week ${weekSummary.week}` : "Draft night"}</dt>
               <dd>

@@ -621,7 +621,7 @@ export default function ValueSheetTable({
   }, [addMode, claimQueue, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer, protectedIds, updateClaims]);
 
   const panelTitle = title || (isAvailableView ? "Free agents" : "Strategy");
-  const panelSub = subtitle || (
+  const panelSub = loading && !rows?.length ? "Loading players…" : subtitle || (
     isAvailableView
       ? `${sorted.length} available${totalAvailable !== sorted.length ? ` of ${totalAvailable}` : ""}`
       : statusFilter === "TAKEN"

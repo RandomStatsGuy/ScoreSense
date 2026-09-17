@@ -70,6 +70,29 @@ export const TRADES_COPY = {
   expiring: "Expiring",
 };
 
+export function tradesCopyForFormat(pickDraft) {
+  if (!pickDraft) return TRADES_COPY;
+  return {
+    ...TRADES_COPY,
+    support: "Check each team's roster and positional impact before proposing a trade.",
+    purpose: "Choose players, review roster impact, and send a trade proposal.",
+    pickPartnerSupport: "Compare each team's roster size and positional needs.",
+    choosePlayersSupport: "Send moves a player to the other side. Drop opens a roster spot.",
+    playerMetaKey: "Each player shows position and projected production.",
+    cutVerb: "Drop",
+    cutHint: "Drop for roster space.",
+    reviewTitle: "Review roster impact",
+    reviewSupport: "Review roster counts and positional balance after the trade.",
+    proposeSupport: "Partners see it in Inbox. Rosters stay put until every team involved accepts.",
+    checking: "Checking roster limits…",
+    valid: "Trade looks valid — roster limits pass.",
+    invalidFallback: "This package does not pass roster limits.",
+    notifyLine: (names) => names.length
+      ? `${names.join(", ")} will see this in Inbox. Nothing moves until every team involved accepts.`
+      : "Every team in the deal must accept before rosters change.",
+  };
+}
+
 export function expireChipLabel(chip) {
   if (chip === "extend") return TRADES_COPY.extendable;
   if (chip === "fa") return TRADES_COPY.expiring;

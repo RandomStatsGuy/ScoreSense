@@ -26,6 +26,17 @@ test("partnerCardMeta shows free cap and thin spots", () => {
   );
 });
 
+test("partnerCardMeta omits cap for pick leagues", () => {
+  assert.equal(
+    partnerCardMeta({
+      stats: { unspent: -200, by_position_count: { QB: 1, RB: 2, WR: 2, TE: 0 } },
+      insight: { their_need: ["TE"] },
+      includeCap: false,
+    }),
+    "thin at TE",
+  );
+});
+
 test("sendGetCopy is directional and names the player", () => {
   const yours = sendGetCopy({
     isYours: true,

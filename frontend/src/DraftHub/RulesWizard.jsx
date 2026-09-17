@@ -25,6 +25,7 @@ import {
   SCORING_COPY,
   rulesFormWarnings,
   rulesSaveDisabledReason,
+  rulesCopyForFormat,
   rulesSummary,
   snapshotRulesForm,
   templateConfirmMessage,
@@ -95,6 +96,7 @@ export default function RulesWizard({
   const [name, setName] = useState("");
   const [season, setSeason] = useState(new Date().getFullYear());
   const [rules, setRules] = useState(() => mergeLeagueRules(workspace?.rules || DEFAULT_RULES));
+  const formatCopy = rulesCopyForFormat(isPickDraft(rules));
   const [savedSnapshot, setSavedSnapshot] = useState(() => snapshotRulesForm({
     name: "",
     season: new Date().getFullYear(),
@@ -307,7 +309,7 @@ export default function RulesWizard({
 
   const saveControls = !readOnlyRules && (
     <>
-      <p className="hub-rules-summary-note">{RULES_COPY.saveFootnote}</p>
+      <p className="hub-rules-summary-note">{formatCopy.saveFootnote}</p>
       <button
         type="button"
         className="btn-primary hub-rules-save"
@@ -327,7 +329,7 @@ export default function RulesWizard({
         <div>
           <span className="hub-rules-eyebrow">{RULES_COPY.eyebrow}</span>
           <h2>{RULES_COPY.heading}</h2>
-          <p>{RULES_COPY.support}</p>
+          <p>{formatCopy.support}</p>
         </div>
         {readOnlyRules ? (
           <span className="hub-rules-access is-readonly">{RULES_COPY.commissionerManaged}</span>
