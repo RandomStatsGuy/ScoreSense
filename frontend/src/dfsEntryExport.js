@@ -87,11 +87,13 @@ export function buildEntryCsv(
     );
     if (!csv.ok) throw new Error(csv.reason);
     const cells = parseDfsCsv(csv.lines[1])[0];
+    // Each site writes its own cell shape — "Name (ID)", "ID:Name", or a bare
+    // Showdown ID — so read the ID back with that site's own reader.
+    const cellId = siteExportConfig(template.site)?.cellId;
     if (
       template.eligibleIds.size &&
-      cells.some(
-        (cell) => !template.eligibleIds.has(cell.match(/\((\d+)\)$/)?.[1]),
-      )
+      cellId &&
+      cells.some((cell) => !template.eligibleIds.has(cellId(cell)))
     ) {
       throw new Error(
         "A player ID is not in this template's eligible-player list. Check the slate and Captain slots.",

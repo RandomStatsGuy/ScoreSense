@@ -8,6 +8,7 @@ import {
   buildSiteLineupCsv,
   siteExportDisabledReason,
 } from "./dfsExport.js";
+import { buildEntryCsv, readEntryTemplate } from "./dfsEntryExport.js";
 
 function classicLineup({ withIds = true } = {}) {
   const id = (n) => (withIds ? String(n) : "");
@@ -170,4 +171,68 @@ test("DraftKings upload limit is 500 and CSV quotes names correctly", () => {
   const entry = classicLineup();
   entry.lineup[0].player = 'One, "QB"';
   assert.match(buildSiteLineupCsv("draftkings", [entry]).lines[1], /^"One, ""QB"" \(1\)"/);
+});
+
+
+/**
+ * Reserved-entry editing. Each site writes a different cell shape, so the
+ * eligibility guard has to read the ID back the same way it was written.
+ * Showdown writes bare IDs; reading them as classic "Name (ID)" rejected
+ * every correct lineup.
+ */
+function showdownEntryTemplate() {
+  return [
+    "Entry ID,Contest Name,Contest ID,Entry Fee,CPT,FLEX,FLEX,FLEX,FLEX,FLEX,,Position,Name + ID,Name,ID,Roster Position,Salary,TeamAbbrev",
+    "4830001,NFL $5 Showdown,177777777,$5,,,,,,,,QB,QB Home (101),QB Home,101,CPT,15000,SEA",
+    ",,,,,,,,,,,RB,RB Home (103),RB Home,103,FLEX,8400,SEA",
+    ",,,,,,,,,,,RB,RB Away (104),RB Away,104,FLEX,8200,NE",
+    ",,,,,,,,,,,WR,WR Home (105),WR Home,105,FLEX,6000,SEA",
+    ",,,,,,,,,,,WR,WR Away (106),WR Away,106,FLEX,7000,NE",
+    ",,,,,,,,,,,TE,TE Home (107),TE Home,107,FLEX,5200,SEA",
+  ].join("\n");
+}
+
+test("showdown reserved entries accept a lineup whose bare IDs are all eligible", () => {
+  const template = readEntryTemplate(showdownEntryTemplate(), "draftkings_showdown");
+  assert.equal(template.entries.length, 1);
+  assert.ok(template.eligibleIds.size > 0);
+  const result = buildEntryCsv(template, [showdownLineup()], { 4830001: 0 });
+  assert.equal(result.changed, 1);
+  const row = result.lines[1].split(",").map((cell) => cell.replace(/^"|"$/g, ""));
+  assert.deepEqual(row.slice(template.start, template.start + 6), [
+    "101",
+    "105",
+    "103",
+    "104",
+    "106",
+    "107",
+  ]);
+});
+
+test("showdown reserved entries still reject an ID that is not on the slate", () => {
+  const template = readEntryTemplate(showdownEntryTemplate(), "draftkings_showdown");
+  const entry = showdownLineup();
+  entry.lineup[0].dfs_id = "99999";
+  assert.throws(
+    () => buildEntryCsv(template, [entry], { 4830001: 0 }),
+    /eligible-player list/,
+  );
+});
+
+test("classic reserved entries still read IDs out of Name (ID) cells", () => {
+  const header =
+    "Entry ID,Contest Name,Contest ID,Entry Fee,QB,RB,RB,WR,WR,WR,TE,FLEX,DST,,Position,Name + ID,Name,ID,Roster Position,Salary,TeamAbbrev";
+  const players = classicLineup().lineup.map(
+    (row) =>
+      `,,,,,,,,,,,,,,${row.position},${row.player} (${row.dfs_id}),${row.player},${row.dfs_id},${row.slot},${row.salary},${row.team}`,
+  );
+  const text = [
+    header,
+    "4830002,NFL $5 Classic,177777778,$5,,,,,,,,,,,,,,,,,",
+    ...players,
+  ].join("\n");
+  const template = readEntryTemplate(text, "draftkings");
+  const result = buildEntryCsv(template, [classicLineup()], { 4830002: 0 });
+  assert.equal(result.changed, 1);
+  assert.match(result.lines[1], /"QB One \(1\)"/);
 });
