@@ -138,6 +138,10 @@ Fantasy lists people by **owner name**. A team nickname may sit underneath or af
 
 ## Visual language
 
+### Approved guided-focus league administration — September 16, 2026
+
+Salary sheets, League rules, Access & imports, and the Insights overview follow the selected option A system. Each page leads with one clear choice before exposing dense controls. Salary sheets start with a manager and keep league totals collapsed. Rules provide a persistent category index and one save surface. Access & imports leads with the live connection state, separates one-time imports, and places manager assignments behind a disclosure. Insights opens with three factual league stories that link into the existing scoring views. Salary-sheet field edits stay staged until Review & publish. Completed corrections are saved individually; cancelled or failed edits remain staged. Historical salary corrections retain their reason and preview gates. CSV selection requires explicit confirmation; salary workbooks retain their matching preview. Consequential writes retain their existing confirmation and permission gates.
+
 ### Approved Cap contract workbench — September 16, 2026
 
 Cap follows the selected option B: keep the experience hero, lead the desktop main column with the contract sheet, and place the cut/bid preview above the current-cap summary in the right rail. Phone shows the preview before dense contract rows. Extensions, saved cuts, and spending details remain below the sheet. Use existing experience components and tokens.

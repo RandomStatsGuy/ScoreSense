@@ -195,7 +195,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/rules",
     page: "frontend/src/DraftHub/RulesWizard.jsx",
     copy: "frontend/src/DraftHub/rulesPresentation.js",
-    doNot: "Native offense, kicker, defense/special teams, two-point, and yardage-bonus scoring weights live in LeagueRules and are commissioner-editable; Sleeper-linked scoring is read-only with a link to Sleeper. Templates preserve scoring weights. Saving weights does not rewrite scored weeks. Label PPR estimates separately from actual scoring. Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Save writes the league on the form, not hub focus. Draft behavior stays an open section. At a glance names saved vs preview. Hero chips are status, not the page primary. Do not put You can edit where Save belongs. Keep vet deals flat and Allow vet deal extensions are their own toggles — do not hide vet policy inside one Allow extensions switch.",
+    doNot: "Native offense, kicker, defense/special teams, two-point, and yardage-bonus scoring weights live in LeagueRules and are commissioner-editable; Sleeper-linked scoring is read-only with a link to Sleeper. Templates preserve scoring weights. Saving weights does not rewrite scored weeks. Label PPR estimates separately from actual scoring. Do not invent a parallel rules model. Merge via rulesPresentation.js. Templates confirm and fill the form — they do not save. Save writes the league on the form, not hub focus. Follow approved September 16 A guided focus: category navigation shows one section at a time and retains edits. Hide salary categories in pick leagues. Use one persistent Save/Discard surface. Draft behavior is a category. At a glance names saved vs preview. Hero chips are status, not the page primary. Do not put You can edit where Save belongs. Keep vet deals flat and Allow vet deal extensions are their own toggles — do not hide vet policy inside one Allow extensions switch.",
   }),
   "hub.office": S({
     label: "Roster management",
@@ -231,7 +231,7 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "office",
     route: "/hub/roster-management/sheets",
     page: "frontend/src/DraftHub/TeamSalarySheets.jsx",
-    doNot: "Keep sheets inside Roster management. Do not add a top-level destination.",
+    doNot: "Follow approved September 16 A: manager directory and one selected roster first; league totals are a disclosure. Stage field edits in a review tray before explicit publication; preserve historical salary reason, preview, and audit gates. Cancelled or failed edits remain staged; completed corrections are saved individually. Phone rows open a labeled editor. Keep sheets inside Roster management.",
   }),
   "hub.office.corrections": S({
     label: "Corrections",
@@ -256,7 +256,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueOffice.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
     also: ["frontend/src/DraftHub/OfficeLeagueLifecycle.jsx"],
-    doNot: "Do not invent a second invite or import chrome. Access & imports is the Sleeper link (with the roster sync pause), email-assign, league workbook, and delete. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked. Delete requires every commissioner to type the league name and agree.",
+    doNot: "Follow approved September 16 A: connection status first, imports and manager assignments in disclosures. Show one import type at a time and hide salary workbook in pick leagues. CSV selection never writes until confirmation; workbook retains its preview gate. Distinguish imported snapshots from live links. Do not invent a second invite or import chrome. Access & imports is the Sleeper link (with the roster sync pause), email-assign, league workbook, and delete. It does not copy the Draft invite link. The strip owns Sync league. Collapse the Sleeper league ID form once the league is linked. Delete requires every commissioner to type the league name and agree.",
   }),
   "hub.insights": S({
     label: "Insights",
@@ -265,7 +265,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueInsights.jsx",
     copy: "frontend/src/DraftHub/insights/insightsPresentation.js",
     also: ["frontend/src/DraftHub/insights/InsightsOverview.jsx"],
-    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Scoring gaps from first; the leader reads Leader. Season counts are meta, not chips. Keep the tab strip live and below the hero band — never above it. Skeleton the plaque, year ribbon, and two boards — no think scrim. Award names live on Roster management. Overview is a dynasty plaque, championship years, and two boards; do not stretch unequal panels to a shared bottom. List every manager by the name that persists across seasons; team nicknames sit under or after a middot — never as the only label.",
+    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Scoring gaps from first; the leader reads Leader. Season counts are meta, not chips. Keep the tab strip live and below the hero band — never above it. Skeleton the plaque, year ribbon, and two boards — no think scrim. Award names live on Roster management. Follow approved September 16 A: three factual recorded-leader stories precede scoring; title history and career records are disclosures. Use only available data, with neutral empty states. Overview retains dynasty plaque, championship years, and two boards; do not stretch unequal panels to a shared bottom. List every manager by the name that persists across seasons; team nicknames sit under or after a middot — never as the only label.",
   }),
   "hub.setup": S({
     label: "Setup",

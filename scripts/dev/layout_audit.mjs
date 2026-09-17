@@ -384,7 +384,15 @@ export function measureScript() {
     });
     const tables = [...htmlTables, ...roleTables, ...gridTables];
     tables.forEach((table, ti) => {
-      const rows = table.rows.filter((row) => rowCells(row).length);
+      // Closed disclosures and hidden rule categories do not expose table columns.
+      if (table.el.closest("[hidden]")) return;
+      for (let ancestor = table.el.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        if (ancestor.tagName === "DETAILS" && !ancestor.open) return;
+      }
+      if (!table.el.getClientRects().length) return;
+      // Phone card layouts have no shared column track to measure.
+      if (table.el.tagName === "TABLE" && getComputedStyle(table.el).display !== "table") return;
+      const rows = table.rows.filter((row) => rowCells(row).length && !row.closest("tfoot"));
       if (!rows.length) return;
       const colCount = Math.max(...rows.map((row) => rowCells(row).length));
       const expectAligns = [];

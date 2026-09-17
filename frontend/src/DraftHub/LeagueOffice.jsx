@@ -15,6 +15,7 @@ import CapSheetImport from "./CapSheetImport";
 import { hubTeamLabel } from "./hubTeamLabel";
 import {
   LEAGUE_SIZE_COPY,
+  ACCESS_GUIDED_COPY,
   addFranchiseLabel,
   addFranchiseSupport,
   canAddSeat,
@@ -402,6 +403,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
 }
 
 function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }) {
+  const [importType, setImportType] = useState("csv");
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -433,25 +435,34 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }
     }),
     [teams, hubContext?.sleeper_league_id],
   );
+  const sleeperLinked = Boolean(hubContext?.sleeper_league_id);
 
   return (
     <div className="hub-office-access">
-      <section className="hub-office-access-section">
-        <header className="hub-section-head">
-          <h3 className="hub-section-title">Invites</h3>
+      <header className="hub-office-access-intro">
+        <div>
+          <span className="hub-section-kicker">{ACCESS_GUIDED_COPY.connections}</span>
+          <h3>{ACCESS_GUIDED_COPY.title}</h3>
+          <p>{ACCESS_GUIDED_COPY.support}</p>
+        </div>
+        <span className={`status-chip ${sleeperLinked ? "is-ok" : "is-caution"}`}>
+          {sleeperLinked ? ACCESS_GUIDED_COPY.linked : ACCESS_GUIDED_COPY.disconnected}
+        </span>
+      </header>
 
-        </header>
-        <LeagueInvites
-          leagueId={leagueId}
-          hubContext={hubContext}
-          onChanged={onChanged}
-        />
-      </section>
-
-      <section className="hub-office-access-section">
+      <section className="hub-office-access-section hub-office-connection-card">
         <header className="hub-section-head">
-          <h3 className="hub-section-title">Sleeper team connections</h3>
-          <p className="hub-section-hint">Connect each team to its Sleeper roster.</p>
+          <div>
+            <h3 className="hub-section-title">{ACCESS_GUIDED_COPY.sleeper}</h3>
+            <p className="hub-section-hint">
+              {sleeperLinked
+                ? ACCESS_GUIDED_COPY.linkedSupport
+                : ACCESS_GUIDED_COPY.linkSupport}
+            </p>
+          </div>
+          <span className={`hub-office-connection-state ${sleeperLinked ? "is-linked" : ""}`}>
+            {sleeperLinked ? ACCESS_GUIDED_COPY.linkedState : ACCESS_GUIDED_COPY.disconnectedState}
+          </span>
         </header>
         {error && <div className="error">{error}</div>}
         {loading && <p className="chart-note">Loading teams…</p>}
@@ -468,19 +479,24 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }
         )}
       </section>
 
-      <section className="hub-office-access-section">
-        <header className="hub-section-head">
-          <h3 className="hub-section-title">Imports</h3>
-          <p className="hub-section-hint">Bring in league or cap sheets from CSV / Excel.</p>
-        </header>
-        <LeagueSheetImport
-          season={workspace?.season || hubContext?.season}
-          onImported={onChanged}
-          embedded
-          commissionerMode
-        />
-        <CapSheetImport onImported={onChanged} embedded />
-      </section>
+      <details className="hub-office-access-section hub-office-access-disclosure">
+        <summary><span><strong>{ACCESS_GUIDED_COPY.imports}</strong><small>{ACCESS_GUIDED_COPY.importsSupport}</small></span></summary>
+        <div className="hub-toolbar" role="group" aria-label={ACCESS_GUIDED_COPY.imports}>
+          <button type="button" className="hub-filter-chip" aria-pressed={importType === "csv"} onClick={() => setImportType("csv")}>{ACCESS_GUIDED_COPY.csv}</button>
+          {leagueUsesSalaries(hubContext) && <button type="button" className="hub-filter-chip" aria-pressed={importType === "workbook"} onClick={() => setImportType("workbook")}>{ACCESS_GUIDED_COPY.workbook}</button>}
+        </div>
+        {importType === "workbook" && leagueUsesSalaries(hubContext)
+          ? <CapSheetImport onImported={onChanged} embedded />
+          : <LeagueSheetImport leagueId={leagueId} season={workspace?.season || hubContext?.season} onImported={onChanged} embedded commissionerMode />}
+      </details>
+
+      <details className="hub-office-access-section hub-office-access-disclosure">
+        <summary>
+          <span><strong>{ACCESS_GUIDED_COPY.assignments}</strong><small>{ACCESS_GUIDED_COPY.assignmentsSupport}</small></span>
+          <span>{ACCESS_GUIDED_COPY.open}</span>
+        </summary>
+        <LeagueInvites leagueId={leagueId} hubContext={hubContext} onChanged={onChanged} />
+      </details>
 
       <OfficeLeagueLifecycle
         leagueId={leagueId}

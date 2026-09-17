@@ -12,6 +12,26 @@ import {
   rosterSlotKey,
 } from "./rosterFormat.js";
 
+export const SHEETS_GUIDED_COPY = {
+  reviewTitle: "Review changes",
+  maintenance: "Sheet maintenance",
+  filters: "Filters & display",
+  editContract: "Edit contract",
+  closeEditor: "Close editor",
+  leaveTitle: "Staged sheet edits",
+  leaveHelp: "These edits have not been published. Discard them before leaving, or keep editing this sheet.",
+  keepEditing: "Keep editing",
+  reviewHelp: "Edits stay here until published. Salary corrections still require a reason and preview. Each completed correction is saved separately; cancelled or failed edits remain here.",
+  editCount: (count) => `${count} staged edit${count === 1 ? "" : "s"}`,
+  publish: "Review & publish",
+  publishing: "Publishing…",
+  discard: "Discard edits",
+  remove: "Remove",
+  wrongSeason: "Publish or discard the staged edits before changing the sheet season.",
+  invalidSalary: "Enter a non-negative dollar amount before staging the edit.",
+  fields: { cap_hit: "Salary", prior_salary: "Prior salary", position: "Position", roster_status: "Roster status", acquisition_type: "Acquisition" },
+};
+
 export const OFFICE_CONTRACTS_COPY = {
   save: "Save",
   discard: "Discard",

@@ -1,13 +1,17 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
+import { SHEET_IMPORT_COPY } from "./leagueAccessCopy";
 
-export default function LeagueSheetImport({ season, onImported, embedded = false, commissionerMode = false }) {
+export default function LeagueSheetImport({ season, leagueId, onImported, embedded = false, commissionerMode = false }) {
   const fileRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [managerTeam, setManagerTeam] = useState("");
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+
+  useEffect(() => { setSelectedFile(null); setResult(null); setError(""); if (fileRef.current) fileRef.current.value = ""; }, [leagueId, season]);
 
   const importSheet = async (file) => {
     if (!file) return;
@@ -22,6 +26,7 @@ export default function LeagueSheetImport({ season, onImported, embedded = false
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
       setResult(data);
+      setSelectedFile(null);
       onImported?.();
     } catch (e) {
       setError(e.message || "Import failed");
@@ -47,11 +52,20 @@ export default function LeagueSheetImport({ season, onImported, embedded = false
       </div>
       )}
       <div className="hub-toolbar">
-        <input ref={fileRef} type="file" accept=".csv" className="hub-file-input" onChange={(e) => importSheet(e.target.files?.[0])} />
-        <button type="button" className="btn-primary" disabled={importing} onClick={() => fileRef.current?.click()}>
-          {importing ? "Importing…" : "Upload league CSV"}
+        <input ref={fileRef} type="file" accept=".csv" className="hub-file-input" onChange={(e) => { setSelectedFile(e.target.files?.[0] || null); setResult(null); setError(""); }} />
+        <button type="button" className={selectedFile ? "btn-ghost" : "btn-primary"} disabled={importing} onClick={() => fileRef.current?.click()}>
+          {SHEET_IMPORT_COPY.choose}
         </button>
       </div>
+      {selectedFile && <div className="hub-sheet-import-confirm" role="region" aria-label={SHEET_IMPORT_COPY.review}>
+        <h3>{SHEET_IMPORT_COPY.review}</h3>
+        <p>{selectedFile.name} · {season}</p>
+        <p className="chart-note">{SHEET_IMPORT_COPY.support} {SHEET_IMPORT_COPY.replaceWarning}</p>
+        <div className="hub-toolbar">
+          <button type="button" className="btn-ghost" disabled={importing} onClick={() => { setSelectedFile(null); if (fileRef.current) fileRef.current.value = ""; }}>{SHEET_IMPORT_COPY.cancel}</button>
+          <button type="button" className="btn-primary" disabled={importing} onClick={() => importSheet(selectedFile)}>{importing ? SHEET_IMPORT_COPY.busy : SHEET_IMPORT_COPY.apply}</button>
+        </div>
+      </div>}
       {result && (
         <p className="chart-note">
           Imported {result.imported} players · matched {result.stats?.matched ?? result.imported}

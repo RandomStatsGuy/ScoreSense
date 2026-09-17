@@ -10,6 +10,9 @@ import { historicCorrectionDialog } from "./HistoricCorrectionDialog";
 import { salaryFieldUpdates } from "./historicCorrections";
 import { fmtSal, seasonCapYearHint } from "./rosterFormat";
 import { sheetsDefaultHint } from "./commissionerSections";
+import { SHEETS_GUIDED_COPY } from "./officeContractsPresentation";
+import { setUnsavedNavigationBlocker } from "../unsavedNavigation";
+import useMobileLayout from "../useMobileLayout";
 
 async function resolveHistoricRowId(leagueId, seasonYear, row, ownerLabel) {
   const direct = row?.row_id ?? row?.id;
@@ -571,7 +574,7 @@ function PositionEditCell({
   }
 
   return (
-    <td className="hub-salary-pos-cell">
+    <td className="hub-salary-pos-cell" data-label="Position">
       <HubFilterMenu
         label="Pos"
         value={selectValue}
@@ -605,7 +608,7 @@ function StatusEditCell({
   }
 
   return (
-    <td className="hub-salary-meta-cell">
+    <td className="hub-salary-meta-cell" data-label="Status">
       <HubFilterMenu
         label="Status"
         value={selectValue}
@@ -638,7 +641,7 @@ function AcquisitionEditCell({
   }
 
   return (
-    <td className="hub-salary-meta-cell">
+    <td className="hub-salary-meta-cell" data-label="Acquired">
       <HubFilterMenu
         label="Acquired"
         value={selectValue}
@@ -679,7 +682,7 @@ function SalaryEditCell({
 
   if (isEditing) {
     return (
-      <td className="num hub-salary-edit-cell">
+      <td className="num hub-salary-edit-cell" data-label={field === "prior" ? "Prior salary" : "Current salary"}>
         <input
           type="number"
           className="search-input hub-salary-cap-input"
@@ -700,7 +703,7 @@ function SalaryEditCell({
   }
 
   return (
-    <td className="num hub-salary-edit-cell">
+    <td className="num hub-salary-edit-cell" data-label={field === "prior" ? "Prior salary" : "Current salary"}>
       <button
         type="button"
         className="btn-link hub-salary-cap-btn"
@@ -834,6 +837,8 @@ function RosterTable({
   onStartSalaryEdit,
   onMapName,
 }) {
+  const mobileLayout = useMobileLayout();
+  const [expandedRow, setExpandedRow] = useState("");
   const hasPrior = priorSeason != null;
   const rows = useMemo(() => {
     let list = sheet.rows || [];
@@ -848,7 +853,7 @@ function RosterTable({
   const labelCols = hasPrior ? (showDelta ? 6 : 5) : 4;
 
   return (
-    <div className="table-wrap table-sticky">
+    <div className="hub-salary-table-container">
       <table className="data-table compact hub-salary-sheet-table">
         <thead>
           <tr>
@@ -859,7 +864,7 @@ function RosterTable({
             <th>Acquired</th>
             {showDelta && hasPrior && <th className="num">Δ</th>}
             <th className="num" title={seasonCapYearHint(seasonYear)}>{seasonYear} $</th>
-            {isCommissioner && <th />}
+            {isCommissioner && <th className="actions" aria-label="Actions" />}
           </tr>
         </thead>
         <tbody>
@@ -873,6 +878,7 @@ function RosterTable({
               <tr
                 key={rowKey}
                 className={row.roster_status === "cut" ? "hub-salary-sheet-row--cut" : ""}
+                data-editing={expandedRow === rowKey ? "true" : undefined}
               >
                 <PositionEditCell
                   value={row.position}
@@ -884,6 +890,8 @@ function RosterTable({
                 <td className="col-player">
                   {playerNameCell(row, { isCommissioner, onMapName })}
                   {badge ? <span className="hub-salary-src-badge">{badge}</span> : null}
+                  {mobileLayout && <span className="hub-salary-mobile-summary">{row.position} · {fmtSal(row.cap_hit)}</span>}
+                  {mobileLayout && isCommissioner ? <button type="button" className="btn-ghost hub-salary-mobile-edit" aria-expanded={expandedRow === rowKey} onClick={() => setExpandedRow(expandedRow === rowKey ? "" : rowKey)}>{expandedRow === rowKey ? SHEETS_GUIDED_COPY.closeEditor : SHEETS_GUIDED_COPY.editContract}</button> : null}
                 </td>
                 {hasPrior && (
                   <SalaryEditCell
@@ -1062,6 +1070,24 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
   const [week1Report, setWeek1Report] = useState(null);
   const [preDraftBusy, setPreDraftBusy] = useState(false);
   const [preDraftReport, setPreDraftReport] = useState(null);
+  const [pendingEdits, setPendingEdits] = useState([]);
+  const [publishingEdits, setPublishingEdits] = useState(false);
+  const publishingRef = useRef(false);
+  const leagueScopeRef = useRef(leagueId);
+  leagueScopeRef.current = leagueId;
+  useEffect(() => { setPendingEdits([]); }, [leagueId]);
+  useEffect(() => {
+    if (!pendingEdits.length) return undefined;
+    const onUnload = (event) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", onUnload);
+    setUnsavedNavigationBlocker(async () => {
+      if (publishingRef.current) return false;
+      const discard = await confirmDialog({ title: SHEETS_GUIDED_COPY.leaveTitle, message: SHEETS_GUIDED_COPY.leaveHelp, confirmLabel: SHEETS_GUIDED_COPY.discard, cancelLabel: SHEETS_GUIDED_COPY.keepEditing });
+      if (discard) setPendingEdits([]);
+      return discard;
+    });
+    return () => { window.removeEventListener("beforeunload", onUnload); setUnsavedNavigationBlocker(null); };
+  }, [pendingEdits.length]);
   const sheetRefs = useRef(new Map());
   const dataRef = useRef(null);
   const capSavingRef = useRef(null);
@@ -1171,7 +1197,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
     if (sheetViewRef.current === sheetView) return;
     sheetViewRef.current = sheetView;
     const yr = parentSeason || seasonRef.current;
-    loadRef.current(yr || undefined, { silent: true });
+    loadRef.current(yr || undefined, { silent: true }).catch((e) => setError(connectionErrorMessage(e)));
   }, [leagueId, sheetView, parentSeason]);
 
   /** Background refresh — no loading banner / no full-page flash. */
@@ -1190,10 +1216,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
   useEffect(() => {
     if (parentSeason) {
       setSeason(parentSeason);
-      loadRef.current(parentSeason, { silent: Boolean(dataRef.current) });
+      loadRef.current(parentSeason, { silent: Boolean(dataRef.current) }).catch((e) => setError(connectionErrorMessage(e)));
       return;
     }
-    loadRef.current(undefined, { silent: Boolean(dataRef.current) });
+    loadRef.current(undefined, { silent: Boolean(dataRef.current) }).catch((e) => setError(connectionErrorMessage(e)));
   }, [leagueId, parentSeason, reloadNonce]);
 
   const seasons = data?.seasons || [];
@@ -1353,7 +1379,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
           playerName: row.player_name,
           seasonYear: Number(yr),
         });
-        if (!result) return;
+        if (!result) return false;
       } else {
         // File-only line with no published DB row yet — still require a reason.
         const note = await promptDialog({
@@ -1369,7 +1395,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
             after: parsed == null ? "—" : fmtSal(parsed),
           },
         });
-        if (note == null) return;
+        if (note == null) return false;
         const cap = field === "cap_hit"
           ? (parsed ?? row.cap_hit ?? 1)
           : (row.cap_hit ?? 1);
@@ -1395,6 +1421,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         if (!res.ok) throw new Error(await parseApiError(res));
       }
       await refreshSilent(yr);
+      return true;
     } catch (e) {
       setActionError(connectionErrorMessage(e));
     } finally {
@@ -1414,26 +1441,6 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
 
     setBusyRowKey(`${rowKey}-pos`);
     setActionError("");
-    // Optimistic: update local sheet so the row doesn't snap back while we save.
-    setData((prev) => {
-      if (!prev?.team_sheets) return prev;
-      return {
-        ...prev,
-        team_sheets: prev.team_sheets.map((sheet) => {
-          if (sheet.owner_label !== ownerLabel) return sheet;
-          return {
-            ...sheet,
-            rows: (sheet.rows || []).map((r) => (
-              r.player_name === row.player_name
-              && String(r.position || "") === String(row.position || "")
-              && Number(r.cap_hit) === Number(row.cap_hit)
-                ? { ...r, position: pos }
-                : r
-            )),
-          };
-        }),
-      };
-    });
     try {
       if (row.row_id) {
         const res = await apiFetch(`/api/hub/league/${leagueId}/contract-history/${row.row_id}`, {
@@ -1462,9 +1469,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         if (!res.ok) throw new Error(await parseApiError(res));
       }
       await refreshSilent(yr);
+      return true;
     } catch (e) {
       setActionError(connectionErrorMessage(e));
-      try { await refreshSilent(yr); } catch { /* keep optimistic until next load */ }
+      try { await refreshSilent(yr); } catch { /* retain last loaded values */ }
     } finally {
       setBusyRowKey("");
     }
@@ -1475,33 +1483,11 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
     if (!isCommissioner || !yr || !ownerLabel) return;
     setBusyRowKey(`${rowKey}-${busySuffix}`);
     setActionError("");
-    setData((prev) => {
-      if (!prev?.team_sheets) return prev;
-      return {
-        ...prev,
-        team_sheets: prev.team_sheets.map((sheet) => {
-          if (sheet.owner_label !== ownerLabel) return sheet;
-          return {
-            ...sheet,
-            rows: (sheet.rows || []).map((r) => (
-              r.player_name === row.player_name
-              && String(r.position || "") === String(row.position || "")
-              && Number(r.cap_hit) === Number(row.cap_hit)
-                ? {
-                  ...r,
-                  ...fields,
-                  status: fields.roster_status === "cut"
-                    ? (fields.status_note || "CUT")
-                    : (fields.roster_status === "active" ? "" : r.status),
-                }
-                : r
-            )),
-          };
-        }),
-      };
-    });
     try {
-      if (row.row_id) {
+      if (row.row_id && (fields.cap_hit !== undefined || fields.base_salary !== undefined)) {
+        const result = await historicCorrectionDialog({ leagueId, rowId: Number(row.row_id), updates: fields, playerName: row.player_name, seasonYear: Number(yr) });
+        if (!result) return false;
+      } else if (row.row_id) {
         const res = await apiFetch(`/api/hub/league/${leagueId}/contract-history/${row.row_id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -1536,9 +1522,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         if (!res.ok) throw new Error(await parseApiError(res));
       }
       await refreshSilent(yr);
+      return true;
     } catch (e) {
       setActionError(connectionErrorMessage(e));
-      try { await refreshSilent(yr); } catch { /* keep optimistic */ }
+      try { await refreshSilent(yr); } catch { /* retain last loaded values */ }
     } finally {
       setBusyRowKey("");
     }
@@ -1552,7 +1539,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
       status_note: status === "cut" ? "CUT" : "",
     };
     // Turning a pre-draft expired drop into a rostered player: leave Acquired for the user to set.
-    await patchSheetRow(row, rowKey, ownerLabel, fields, "status");
+    return patchSheetRow(row, rowKey, ownerLabel, fields, "status");
   }, [patchSheetRow]);
 
   const saveAcquisition = useCallback(async (row, nextAcq, rowKey, ownerLabel) => {
@@ -1567,8 +1554,59 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         status_note: row.status_note || "FA contract — $1, expires before draft",
       }
       : { acquisition_type: acq };
-    await patchSheetRow(row, rowKey, ownerLabel, fields, "acq");
+    return patchSheetRow(row, rowKey, ownerLabel, fields, "acq");
   }, [patchSheetRow]);
+
+  const stageEdit = (kind, row, value, rowKey, ownerLabel, field = kind) => {
+    if (publishingEdits) return;
+    setEditingSalaryKey("");
+    const current = row[field] ?? "";
+    const key = `${ownerLabel}:${rowKey}:${field}`;
+    if (String(current) === String(value).trim()) {
+      setPendingEdits((edits) => edits.filter((edit) => edit.key !== key));
+      return;
+    }
+    if (kind === "salary" && (String(value).trim() === "" || !Number.isFinite(Number(value)) || Number(value) < 0)) {
+      setActionError(SHEETS_GUIDED_COPY.invalidSalary);
+      return;
+    }
+    setActionError("");
+    setPendingEdits((edits) => [...edits.filter((edit) => edit.key !== key), {
+      key, kind, row, value, rowKey, ownerLabel, field,
+      season: String(seasonRef.current || dataRef.current?.season_year || ""),
+    }]);
+  };
+  const publishEdits = async () => {
+    if (publishingRef.current) return;
+    publishingRef.current = true;
+    const publishingLeague = leagueId;
+    setPublishingEdits(true);
+    try {
+      for (const edit of pendingEdits) {
+        if (publishingLeague !== leagueScopeRef.current || edit.season !== String(seasonRef.current || dataRef.current?.season_year || "")) {
+          setActionError(SHEETS_GUIDED_COPY.wrongSeason);
+          break;
+        }
+        const currentRow = dataRef.current?.team_sheets?.find((sheet) => sheet.owner_label === edit.ownerLabel)?.rows?.find((row) => row.player_name === edit.row.player_name) || edit.row;
+        const rowId = await resolveHistoricRowId(publishingLeague, edit.season, currentRow, edit.ownerLabel);
+        if (publishingLeague !== leagueScopeRef.current || edit.season !== String(seasonRef.current || dataRef.current?.season_year || "")) {
+          setActionError(SHEETS_GUIDED_COPY.wrongSeason);
+          break;
+        }
+        const publishedRow = rowId == null ? currentRow : { ...currentRow, row_id: rowId };
+        if (String(publishedRow[edit.field] ?? "") === String(edit.value).trim()) {
+          setPendingEdits((edits) => edits.filter((item) => item.key !== edit.key));
+          continue;
+        }
+        const args = [publishedRow, edit.value, edit.rowKey, edit.ownerLabel];
+        const saved = edit.kind === "salary"
+          ? await saveSalary(publishedRow, edit.field, edit.value, edit.rowKey, edit.ownerLabel)
+          : await ({ position: savePosition, roster_status: saveStatus, acquisition_type: saveAcquisition })[edit.kind](...args);
+        if (!saved) break;
+        setPendingEdits((edits) => edits.filter((item) => item.key !== edit.key));
+      }
+    } finally { publishingRef.current = false; setPublishingEdits(false); }
+  };
 
   const saveSeasonCap = useCallback(async (year, draftValue) => {
     const yr = String(year);
@@ -1777,9 +1815,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
   }, [viewMode]);
 
   const onSeasonChange = (next) => {
+    if (pendingEdits.length || publishingEdits) { setActionError(SHEETS_GUIDED_COPY.wrongSeason); return; }
     setSeason(next);
     setShowAddPlayer(false);
-    load(next, { silent: Boolean(dataRef.current) });
+    load(next, { silent: Boolean(dataRef.current) }).catch((e) => setError(connectionErrorMessage(e)));
   };
 
   const runSyncSheets = useCallback(async () => {
@@ -1984,7 +2023,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
           {data.sync_status?.stale && isCommissioner && (
             <div className="error-banner hub-sync-banner" role="status">
               Excel cap sheets are newer than the last import — Insights may be stale until you sync.
-              <button type="button" className="btn-primary btn-sm" onClick={runSyncSheets} disabled={syncBusy}>
+              <button type="button" className="btn-primary btn-sm" onClick={runSyncSheets} disabled={syncBusy || pendingEdits.length > 0 || publishingEdits}>
                 {syncBusy ? "Syncing…" : "Sync sheets"}
               </button>
             </div>
@@ -2049,15 +2088,15 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
             </div>
           )}
           {isCommissioner && (
-            <div className="hub-salary-toolbar-actions">
-              <button type="button" className="btn-ghost btn-sm" onClick={runSyncSheets} disabled={syncBusy}>
+            <details className="hub-salary-maintenance"><summary>{SHEETS_GUIDED_COPY.maintenance}</summary><div className="hub-salary-toolbar-actions">
+              <button type="button" className="btn-ghost btn-sm" onClick={runSyncSheets} disabled={syncBusy || pendingEdits.length > 0 || publishingEdits}>
                 {syncBusy ? "Syncing…" : "Sync sheets"}
               </button>
               <button
                 type="button"
                 className="btn-ghost btn-sm"
                 onClick={runBuildPreDraft}
-                disabled={preDraftBusy}
+                disabled={preDraftBusy || pendingEdits.length > 0 || publishingEdits}
                 title="Seed this season from current Sleeper rosters (works before the draft)"
               >
                 {preDraftBusy ? "Building…" : "Build pre-draft sheet"}
@@ -2066,7 +2105,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                 type="button"
                 className="btn-ghost btn-sm"
                 onClick={runBuildWeek1}
-                disabled={week1Busy}
+                disabled={week1Busy || pendingEdits.length > 0 || publishingEdits}
                 title="Replace this season's year sheet with Sleeper week-1 rosters"
               >
                 {week1Busy ? "Building…" : "Build week-1 sheet"}
@@ -2082,19 +2121,22 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                 type="button"
                 className="btn-ghost btn-sm"
                 onClick={runApplySleeperMoves}
-                disabled={applySleeperBusy}
+                disabled={applySleeperBusy || pendingEdits.length > 0 || publishingEdits}
               >
                 {applySleeperBusy ? "Applying…" : "Apply Sleeper transactions"}
               </button>
-            </div>
+            </div></details>
           )}
-          <section className="hub-salary-matrix panel">
-            <div className="hub-section-head hub-section-head--row">
-              <h3 className="hub-live-section-title">League totals by season</h3>
+          <details className="hub-salary-matrix hub-salary-matrix--guided panel">
+            <summary>
+              <span>
+                <strong>League totals by season</strong>
+                <small>Compare every team or change the cap limit.</small>
+              </span>
               <span className="table-meta" title={isCommissioner ? "Click a year to switch sheets. Edit Cap limit in the matrix." : "Click a year to switch sheets."}>
                 {seasonYear ? `${fmtSal(capForSeason(seasonYear))} cap` : "Cap by season"}
               </span>
-            </div>
+            </summary>
             <div className="table-wrap hub-salary-matrix-wrap">
               <table className="data-table compact hub-salary-matrix-table">
                 <thead>
@@ -2217,10 +2259,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                 </tbody>
               </table>
             </div>
-          </section>
+          </details>
 
           <section className="hub-salary-rosters">
-            <div className="hub-salary-toolbar">
+            <details className="hub-salary-filters"><summary>{SHEETS_GUIDED_COPY.filters}</summary><div className="hub-salary-toolbar">
               <div className="hub-salary-toolbar-group">
                 <span className="hub-filter-label">View</span>
                 <div className="hub-filter-scroll">
@@ -2276,7 +2318,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                   </>
                 )}
               </div>
-            </div>
+            </div></details>
 
             {showNameMaps && isCommissioner && (
               <PlayerNameAliasPanel
@@ -2305,7 +2347,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
               />
             </div>
 
-            <div className="hub-salary-team-chips">
+            <div className="hub-salary-team-chips hub-salary-manager-directory" aria-label="Managers">
               <HubFilterScroll>
                 {filteredSheets.map((s) => (
                   <HubFilterChip
@@ -2409,10 +2451,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                   showCuts={showCuts}
                   isCommissioner={isCommissioner}
                   onDrop={(row) => dropPlayer(row, focusSheet.owner_label)}
-                  onSaveSalary={(row, field, draft, rowKey) => saveSalary(row, field, draft, rowKey, focusSheet.owner_label)}
-                  onSavePosition={(row, nextPos, rowKey) => savePosition(row, nextPos, rowKey, focusSheet.owner_label)}
-                  onSaveStatus={(row, next, rowKey) => saveStatus(row, next, rowKey, focusSheet.owner_label)}
-                  onSaveAcquisition={(row, next, rowKey) => saveAcquisition(row, next, rowKey, focusSheet.owner_label)}
+                  onSaveSalary={(row, field, draft, rowKey) => stageEdit("salary", row, draft, rowKey, focusSheet.owner_label, field)}
+                  onSavePosition={(row, nextPos, rowKey) => stageEdit("position", row, nextPos, rowKey, focusSheet.owner_label)}
+                  onSaveStatus={(row, next, rowKey) => stageEdit("roster_status", row, next, rowKey, focusSheet.owner_label)}
+                  onSaveAcquisition={(row, next, rowKey) => stageEdit("acquisition_type", row, next, rowKey, focusSheet.owner_label)}
                   busyRowKey={busyRowKey}
                   editingSalaryKey={editingSalaryKey}
                   onStartSalaryEdit={setEditingSalaryKey}
@@ -2449,10 +2491,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
                     }}
                     isCommissioner={isCommissioner}
                     onDrop={(row) => dropPlayer(row, sheet.owner_label)}
-                    onSaveSalary={(row, field, draft, rowKey) => saveSalary(row, field, draft, rowKey, sheet.owner_label)}
-                    onSavePosition={(row, nextPos, rowKey) => savePosition(row, nextPos, rowKey, sheet.owner_label)}
-                    onSaveStatus={(row, next, rowKey) => saveStatus(row, next, rowKey, sheet.owner_label)}
-                    onSaveAcquisition={(row, next, rowKey) => saveAcquisition(row, next, rowKey, sheet.owner_label)}
+                    onSaveSalary={(row, field, draft, rowKey) => stageEdit("salary", row, draft, rowKey, sheet.owner_label, field)}
+                    onSavePosition={(row, nextPos, rowKey) => stageEdit("position", row, nextPos, rowKey, sheet.owner_label)}
+                    onSaveStatus={(row, next, rowKey) => stageEdit("roster_status", row, next, rowKey, sheet.owner_label)}
+                    onSaveAcquisition={(row, next, rowKey) => stageEdit("acquisition_type", row, next, rowKey, sheet.owner_label)}
                     busyRowKey={busyRowKey}
                     editingSalaryKey={editingSalaryKey}
                     onStartSalaryEdit={setEditingSalaryKey}
@@ -2467,6 +2509,16 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
             )}
           </section>
         </>
+      )}
+      {pendingEdits.length > 0 && (
+        <aside className="hub-salary-review-tray" aria-label={SHEETS_GUIDED_COPY.reviewTitle}>
+          <header><strong>{SHEETS_GUIDED_COPY.reviewTitle}</strong><span>{SHEETS_GUIDED_COPY.editCount(pendingEdits.length)}</span></header>
+          <p>{SHEETS_GUIDED_COPY.reviewHelp}</p>
+          <ul>{pendingEdits.map((edit) => (
+            <li key={edit.key}><span><strong>{edit.row.player_name}</strong> · {edit.ownerLabel}<br />{SHEETS_GUIDED_COPY.fields[edit.field]}: {String(edit.row[edit.field] ?? "—")} → {String(edit.value)}</span><button type="button" className="btn-ghost btn-sm" disabled={publishingEdits} aria-label={`${SHEETS_GUIDED_COPY.remove} ${edit.row.player_name} ${edit.field}`} onClick={() => setPendingEdits((edits) => edits.filter((item) => item.key !== edit.key))}>{SHEETS_GUIDED_COPY.remove}</button></li>
+          ))}</ul>
+          <div className="hub-salary-review-actions"><button type="button" className="btn-ghost" disabled={publishingEdits} onClick={() => setPendingEdits([])}>{SHEETS_GUIDED_COPY.discard}</button><button type="button" className="btn-primary" disabled={publishingEdits} onClick={publishEdits}>{publishingEdits ? SHEETS_GUIDED_COPY.publishing : SHEETS_GUIDED_COPY.publish}</button></div>
+        </aside>
       )}
     </Wrapper>
   );
