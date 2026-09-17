@@ -181,3 +181,88 @@ def test_team_alias_does_not_append_a_duplicate_missing_player():
     merged, _ = attach_salaries_to_pool(pool, salaries)
     assert len(merged) == 1
     assert merged.iloc[0]["dfs_id"] == "123"
+
+
+SUFFIX_SAMPLE = """Position,Name + ID,Name,ID,Roster Position,Salary,Game Info,TeamAbbrev,AvgPointsPerGame
+RB,James Cook III (10001),James Cook III,10001,FLEX,9400,DET@BUF,BUF,15.0
+WR,Joshua Palmer (10002),Joshua Palmer,10002,FLEX,3200,DET@BUF,BUF,8.5
+WR,Trent Sherfield Sr. (10003),Trent Sherfield Sr.,10003,FLEX,200,DET@BUF,BUF,0.9
+QB,Josh Allen (10004),Josh Allen,10004,FLEX,11400,DET@BUF,BUF,17.9
+"""
+
+
+def _pool_row(name, team, position, proj=10.0):
+    return {
+        "player_id": name,
+        "Player": name,
+        "Team": team,
+        "Position": position,
+        "Projected Points": proj,
+        "Low (P10)": proj / 2,
+        "High (P90)": proj * 2,
+    }
+
+
+def test_attach_salaries_recovers_suffix_and_first_name_variants():
+    """DraftKings writes "James Cook III"; the pool has "James Cook"."""
+    pool = pd.DataFrame(
+        [
+            _pool_row("James Cook", "BUF", "RB", 15.01),
+            _pool_row("Josh Palmer", "BUF", "WR", 8.56),
+            _pool_row("Trent Sherfield", "BUF", "WR", 0.92),
+            _pool_row("Josh Allen", "BUF", "QB", 17.88),
+        ]
+    )
+    merged, stats = attach_salaries_to_pool(pool, parse_salary_csv(SUFFIX_SAMPLE.encode()))
+    by_name = merged.set_index("Player")["salary"]
+    assert by_name["James Cook"] == 9400
+    assert by_name["Josh Palmer"] == 3200
+    assert by_name["Trent Sherfield"] == 200
+    assert by_name["Josh Allen"] == 11400
+    assert stats["alias_matched"] == 3
+    assert stats["unmatched_slate"] == 0
+    assert "Missing projection" not in set(merged["projection_source"])
+
+
+AMBIGUOUS_SAMPLE = """Position,Name + ID,Name,ID,Roster Position,Salary,Game Info,TeamAbbrev,AvgPointsPerGame
+RB,Michael Carter (20001),Michael Carter,20001,FLEX,5000,NYJ@BUF,NYJ,9.0
+RB,Michael Carter II (20002),Michael Carter II,20002,FLEX,4000,NYJ@BUF,NYJ,3.0
+"""
+
+
+def test_attach_salaries_refuses_an_ambiguous_suffix_match():
+    """Two slate rows share one roster key, so neither may claim the pool row."""
+    pool = pd.DataFrame([_pool_row("Michael Carter", "NYJ", "RB", 9.0)])
+    merged, stats = attach_salaries_to_pool(pool, parse_salary_csv(AMBIGUOUS_SAMPLE.encode()))
+    carter = merged[merged["Player"] == "Michael Carter"].iloc[0]
+    # The exact key still wins outright; the alias pass adds nothing.
+    assert carter["salary"] == 5000
+    assert stats["alias_matched"] == 0
+
+
+CROWDED_SAMPLE = """Position,Name + ID,Name,ID,Roster Position,Salary,Game Info,TeamAbbrev,AvgPointsPerGame
+WR,Joshua Palmer (30001),Joshua Palmer,30001,FLEX,3200,DET@BUF,BUF,8.5
+WR,Treyvon Palmer (30002),Treyvon Palmer,30002,FLEX,2000,DET@BUF,BUF,4.0
+"""
+
+
+def test_attach_salaries_refuses_when_two_players_share_a_last_name():
+    """A crowded position group fills nothing rather than pairing them wrongly."""
+    pool = pd.DataFrame(
+        [_pool_row("Josh Palmer", "BUF", "WR", 8.5), _pool_row("Trey Palmer", "BUF", "WR", 4.0)]
+    )
+    merged, stats = attach_salaries_to_pool(pool, parse_salary_csv(CROWDED_SAMPLE.encode()))
+    assert stats["alias_matched"] == 0
+    assert merged[merged["Player"] == "Josh Palmer"].iloc[0]["salary"] != 2000
+    assert merged[merged["Player"] == "Trey Palmer"].iloc[0]["salary"] != 3200
+
+
+def test_attach_salaries_does_not_match_a_different_player_at_the_same_position():
+    pool = pd.DataFrame([_pool_row("Tyler Conklin", "DET", "TE", 6.0)])
+    salaries = parse_salary_csv(
+        "Position,Name + ID,Name,ID,Roster Position,Salary,Game Info,TeamAbbrev,AvgPointsPerGame\n"
+        "TE,Tyler Higbee (40001),Tyler Higbee,40001,FLEX,3000,DET@BUF,DET,5.0\n".encode()
+    )
+    merged, stats = attach_salaries_to_pool(pool, salaries)
+    assert stats["alias_matched"] == 0
+    assert pd.isna(merged[merged["Player"] == "Tyler Conklin"].iloc[0]["salary"])

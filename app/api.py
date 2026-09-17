@@ -1887,6 +1887,10 @@ def _lineup_salary_response(
         f"Matched {stats.get('matched', 0)} players to ScoreSense projections. "
         f"{stats.get('pool_without_salary', 0)} pool players lack a slate salary."
     )
+    # Name-alias matches are visible, so a wrong one can be spotted.
+    alias_matched = stats.get("alias_matched", 0)
+    if alias_matched:
+        note += f" {alias_matched} matched on a name spelling the slate writes differently."
     if slate and slate.get("offseason_placeholder"):
         note += " Offseason placeholder slate — NFL main slates appear in season."
     return {
