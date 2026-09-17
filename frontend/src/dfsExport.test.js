@@ -68,25 +68,27 @@ test("multi-lineup export writes one row per lineup", () => {
   assert.equal(result.lines.length, 3);
 });
 
-test("showdown export writes bare unquoted draftable IDs under CPT/FLEX", () => {
+test("showdown export matches the DraftKings CPT plus five FLEX upload shape", () => {
   const result = buildSiteLineupCsv("draftkings_showdown", [showdownLineup()]);
   assert.equal(result.ok, true);
-  // Matches a file DraftKings accepted: no quotes, no names, CPT first.
-  assert.equal(result.lines[0], "CPT,FLEX,FLEX,FLEX,FLEX,FLEX");
-  assert.equal(result.lines[1], "101,105,103,104,106,107");
+  assert.equal(result.lines[0], '"CPT","FLEX","FLEX","FLEX","FLEX","FLEX"');
+  assert.equal(
+    result.lines[1],
+    '"QB Home (101)","WR Home (105)","RB Home (103)","RB Away (104)","WR Away (106)","TE Home (107)"',
+  );
   assert.equal(result.lines.length, 2);
 
   const single = buildSiteLineupCsv("fanduel_single", [showdownLineup()]);
   assert.equal(single.ok, false); // MVP slot label differs from CPT
 });
 
-test("showdown export stays bare across multiple lineups", () => {
+test("showdown export keeps the CPT plus five FLEX shape across multiple lineups", () => {
   const result = buildSiteLineupCsv("draftkings_showdown", [showdownLineup(), showdownLineup()]);
   assert.equal(result.ok, true);
   assert.equal(result.lines.length, 3);
   for (const line of result.lines.slice(1)) {
-    assert.doesNotMatch(line, /"/);
-    assert.match(line, /^\d+(,\d+){5}$/);
+    assert.match(line, /^"QB Home \(101\)","WR Home \(105\)"/);
+    assert.equal(line.split('","').length, 6);
   }
 });
 
@@ -192,7 +194,7 @@ function showdownEntryTemplate() {
   ].join("\n");
 }
 
-test("showdown reserved entries accept a lineup whose bare IDs are all eligible", () => {
+test("showdown reserved entries accept a lineup whose Name (ID) cells are all eligible", () => {
   const template = readEntryTemplate(showdownEntryTemplate(), "draftkings_showdown");
   assert.equal(template.entries.length, 1);
   assert.ok(template.eligibleIds.size > 0);
@@ -200,12 +202,12 @@ test("showdown reserved entries accept a lineup whose bare IDs are all eligible"
   assert.equal(result.changed, 1);
   const row = result.lines[1].split(",").map((cell) => cell.replace(/^"|"$/g, ""));
   assert.deepEqual(row.slice(template.start, template.start + 6), [
-    "101",
-    "105",
-    "103",
-    "104",
-    "106",
-    "107",
+    "QB Home (101)",
+    "WR Home (105)",
+    "RB Home (103)",
+    "RB Away (104)",
+    "WR Away (106)",
+    "TE Home (107)",
   ]);
 });
 
