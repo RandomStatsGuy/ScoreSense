@@ -11,6 +11,7 @@ import pandas as pd
 
 from src.integrations.external_projections import _normalize_name
 from src.core.team_codes import normalize_team_for_match
+from src.draft_hub.player_name_match import names_likely_same, roster_name_key
 
 _SALARY_COLS = ("salary", "Salary")
 _NAME_COLS = ("Name", "Nickname", "name", "player_name")
@@ -228,6 +229,87 @@ def collapse_captain_rows(salaries: pd.DataFrame) -> pd.DataFrame:
     return collapsed.drop(columns=["roster_position"], errors="ignore").reset_index(drop=True)
 
 
+_SALARY_FILL_COLS = ("salary", "dfs_id", "cpt_salary", "cpt_dfs_id")
+
+
+def _apply_salary_row(merged: pd.DataFrame, idx, row) -> None:
+    """Copy one slate row's salary columns onto an unmatched pool row."""
+    for col in _SALARY_FILL_COLS:
+        merged.at[idx, col] = row.get(col, "" if col.endswith("id") else np.nan)
+
+
+def _one_to_one_fill(merged: pd.DataFrame, candidates: pd.DataFrame, key_fn) -> int:
+    """Fill unmatched pool rows from slate rows whose key matches one-to-one.
+
+    A key is used only when exactly one pool row and exactly one slate row
+    carry it, so an ambiguous key fills nothing rather than guessing.
+    """
+    missing = merged["salary"].isna()
+    if not missing.any() or candidates.empty:
+        return 0
+    pool_keys: dict[str, list] = {}
+    for idx in merged.index[missing]:
+        key = key_fn(merged.at[idx, "Player"], merged.at[idx, "team_upper"])
+        if key:
+            pool_keys.setdefault(key, []).append(idx)
+    slate_keys: dict[str, list] = {}
+    for _, row in candidates.iterrows():
+        key = key_fn(row["player_name"], row["team_upper"])
+        if key:
+            slate_keys.setdefault(key, []).append(row)
+    filled = 0
+    for key, idxs in pool_keys.items():
+        rows = slate_keys.get(key, [])
+        if len(idxs) != 1 or len(rows) != 1:
+            continue
+        _apply_salary_row(merged, idxs[0], rows[0])
+        filled += 1
+    return filled
+
+
+def _fuzzy_fill(merged: pd.DataFrame, candidates: pd.DataFrame) -> int:
+    """Last resort: same team and position, and the names agree both ways.
+
+    Catches first-name variants DraftKings and the projection pool spell
+    differently ("Joshua Palmer" against "Josh Palmer"). Requires a single
+    candidate in each direction, so a crowded position group fills nothing.
+    """
+    missing = merged["salary"].isna()
+    if not missing.any() or candidates.empty:
+        return 0
+    open_rows = [
+        (idx, merged.at[idx, "Player"], merged.at[idx, "team_upper"], str(merged.at[idx, "Position"]))
+        for idx in merged.index[missing]
+    ]
+    filled = 0
+    for idx, name, team, position in open_rows:
+        if merged.at[idx, "salary"] == merged.at[idx, "salary"]:  # filled by an earlier pass
+            continue
+        group = candidates[
+            (candidates["team_upper"] == team) & (candidates["position"] == position)
+        ]
+        hits = [
+            row
+            for _, row in group.iterrows()
+            if names_likely_same(name, row["player_name"], position=position, pos_b=row["position"])
+        ]
+        if len(hits) != 1:
+            continue
+        # And the slate row must not look like more than one open pool player.
+        back = [
+            other_name
+            for other_idx, other_name, other_team, other_pos in open_rows
+            if other_team == team
+            and other_pos == position
+            and names_likely_same(hits[0]["player_name"], other_name, position=other_pos, pos_b=position)
+        ]
+        if len(back) != 1:
+            continue
+        _apply_salary_row(merged, idx, hits[0])
+        filled += 1
+    return filled
+
+
 def attach_salaries_to_pool(
     pool: pd.DataFrame,
     salaries: pd.DataFrame,
@@ -256,6 +338,20 @@ def attach_salaries_to_pool(
         on=["name_key", "team_upper"],
         how="left",
     )
+    # DraftKings writes "James Cook III" where the projection pool has "James
+    # Cook", so an exact key drops the player from every lineup. Recover those
+    # with the roster key the hub already uses, then with a name comparison
+    # scoped to one team and position. Both fill only one-to-one matches.
+    unmatched_slate_rows = skill_positions[
+        ~skill_positions["dfs_id"].astype(str).isin(
+            {str(v) for v in merged.loc[merged["salary"].notna(), "dfs_id"].dropna()}
+        )
+    ].copy()
+    alias_matched = _one_to_one_fill(
+        merged, unmatched_slate_rows, lambda name, team: f"{roster_name_key(name)}|{team}"
+    )
+    alias_matched += _fuzzy_fill(merged, unmatched_slate_rows)
+
     missing = merged["salary"].isna()
     if missing.any():
         name_only = skill_positions.drop_duplicates(subset=["name_key"], keep="last")
@@ -339,6 +435,7 @@ def attach_salaries_to_pool(
 
     stats = {
         "matched": max(matched, 0),
+        "alias_matched": alias_matched,
         "unmatched_slate": max(unmatched_slate, 0),
         "dst_added": dst_added,
         "pool_without_salary": without,
