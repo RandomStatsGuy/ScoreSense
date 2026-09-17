@@ -1,6 +1,22 @@
 /** User-facing copy for creating leagues and inviting managers. */
 
 export const CREATE_LEAGUE_VALUE = "__create__";
+export const ACCESS_GUIDED_COPY = {
+  connections: "Connections", title: "Know what is linked and what can write.",
+  support: "Live connections refresh through Sync league. Imports are one-time snapshots that change when you apply another file.",
+  linked: "Sleeper linked", disconnected: "No live connection", sleeper: "Sleeper league",
+  linkedSupport: "Scoring and lineup data can stay current. Team roster connections are managed separately below.",
+  linkSupport: "Link a league to keep scoring and lineup data current.",
+  linkedState: "Linked", disconnectedState: "Not connected", imports: "Imports",
+  importsSupport: "Choose a one-time roster CSV or preview a salary workbook.",
+  csv: "Roster CSV", workbook: "Salary workbook", assignments: "Manager assignments",
+  assignmentsSupport: "Assign a named email to a league seat.", open: "Open",
+};
+export const SHEET_IMPORT_COPY = {
+  choose: "Choose league CSV", apply: "Apply CSV import", busy: "Importing…", cancel: "Cancel",
+  review: "Confirm CSV import", support: "This applies the selected file immediately after confirmation. Matching results appear after import.",
+  replaceWarning: "Existing imported roster rows in the selected team scope are replaced.",
+};
 export const SOLO_VALUE = "__solo__";
 
 /** Create/join remains an action, placed in the compact league picker footer. */

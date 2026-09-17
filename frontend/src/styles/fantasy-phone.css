@@ -7,7 +7,16 @@
    Bottom nav says Projections. Idle Draft and Mock share DraftSeat. */
 
 .hub-rules-sticky-save {
-  display: none;
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
 }
 
 @media (max-width: 768px) {

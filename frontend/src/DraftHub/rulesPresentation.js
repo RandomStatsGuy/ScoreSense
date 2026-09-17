@@ -2,6 +2,17 @@ import { isPickDraft } from "./draftEntryStatus.js";
 import { normalizeHubPosition } from "./hubPositions.js";
 
 export const RULES_COPY = {
+  categoryErrors: (count) => `${count} to fix`,
+  categoryTitle: "Rule categories",
+  unsavedChanges: "Unsaved league changes",
+  discard: "Discard",
+  categories: [
+    { id: "scoring", label: "Scoring" },
+    { id: "foundation", label: "League format" },
+    { id: "contracts", label: "Contracts", salaryOnly: true },
+    { id: "roster", label: "Roster limits" },
+    { id: "draft", label: "Draft behavior", salaryOnly: true },
+  ],
   eyebrow: "League rules",
   heading: "League rules",
   support: "Set scoring, salary, contract, roster, and draft rules for your league.",

@@ -161,7 +161,8 @@ export default function OfficeLeagueLifecycle({
         </div>
       </section>
 
-      <section className="hub-office-access-section hub-league-lifecycle">
+      <details className="hub-office-access-section hub-league-lifecycle hub-office-access-disclosure" open={pending || Boolean(error)}>
+        <summary><strong>{LEAGUE_DELETE_COPY.title}</strong></summary>
         <header className="hub-section-head">
           <h3 className="hub-section-title">{LEAGUE_DELETE_COPY.title}</h3>
           <p className="hub-section-hint">{LEAGUE_DELETE_COPY.support}</p>
@@ -242,7 +243,7 @@ export default function OfficeLeagueLifecycle({
             </button>
           ) : null}
         </div>
-      </section>
+      </details>
     </>
   );
 }
