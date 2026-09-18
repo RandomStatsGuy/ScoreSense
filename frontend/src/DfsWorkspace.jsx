@@ -14,6 +14,34 @@ import { jsonRequest } from "./useDfsBuilder";
 const num = (n) =>
   n == null || !Number.isFinite(Number(n)) ? "—" : Number(n).toFixed(1);
 const options = (values) => values.map((v) => ({ id: v, label: String(v) }));
+/** Surname only, so a row of six names still fits. Team defenses keep their name. */
+function shortName(name) {
+  const parts = String(name || "").trim().split(/\s+/);
+  if (parts.length < 2) return parts[0] || "";
+  const tail = parts[parts.length - 1].replace(/[.,]/g, "");
+  if (["Jr", "Sr", "II", "III", "IV", "V"].includes(tail)) return parts.slice(-2).join(" ");
+  // "St. Brown", "Van Jefferson" — the particle belongs to the surname.
+  const prior = parts[parts.length - 2] || "";
+  const particle = prior.endsWith(".") || ["Van", "Von", "De", "Del", "La", "St"].includes(prior);
+  return particle ? parts.slice(-2).join(" ") : parts[parts.length - 1];
+}
+
+/** The captain, named by slot so it reads as a role rather than a stray name. */
+function lineupHeadline(entry) {
+  const lead = (entry.lineup || []).find((p) => ["CPT", "MVP", "QB"].includes(p.slot));
+  if (!lead) return "";
+  return `${lead.slot} ${lead.player}`;
+}
+
+/** Everyone else, which is the only thing that distinguishes one lineup from another. */
+function lineupSupporting(entry) {
+  const lead = (entry.lineup || []).find((p) => ["CPT", "MVP", "QB"].includes(p.slot));
+  return (entry.lineup || [])
+    .filter((p) => p !== lead)
+    .map((p) => shortName(p.player))
+    .join(" · ");
+}
+
 export function DfsFile({ label, onFile, disabled = false, accept = ".csv,text/csv" }) {
   return (
     <label className={`dfw-file-button${disabled ? " is-disabled" : ""}`}>
@@ -594,17 +622,11 @@ export default function DfsWorkspace({ b }) {
                   >
                     <span>{String(i + 1).padStart(2, "0")}</span>
                     <span>
-                      {
-                        entry.lineup.find((p) =>
-                          ["CPT", "MVP", "QB"].includes(p.slot),
-                        )?.player
-                      }
+                      {lineupHeadline(entry)}
                       <small>
-                        {entry.lineup
-                          .map((p) => p.team)
-                          .filter((v, i, a) => a.indexOf(v) === i)
-                          .join(" · ")}{" "}
-                        · {formatSalary(entry.total_salary)}
+                        {/* The rest of the roster is what actually differs
+                            between lineups; the teams never do. */}
+                        {lineupSupporting(entry)} · {formatSalary(entry.total_salary)}
                       </small>
                     </span>
                     <span>
@@ -674,9 +696,14 @@ export default function DfsWorkspace({ b }) {
             {b.building ? C.building : lineup.length ? C.rebuild : C.build}
           </button>
           {!!lineup.length && (
-            <button disabled={Boolean(b.savedBuild)} onClick={b.save}>
-              {b.savedBuild ? C.saved : C.save}
-            </button>
+            <>
+              <button disabled={Boolean(b.savedBuild)} onClick={b.save}>
+                {b.savedBuild ? C.saved : C.save}
+              </button>
+              <p className="dfw-note">
+                {b.savedBuild ? C.savedHelp : C.saveHelp}
+              </p>
+            </>
           )}
           <p className="dfw-note">
             {
