@@ -12,6 +12,14 @@ export const ADMIN_COPY = Object.freeze({
     unavailable: "—",
     failed: "Could not change verification",
   }),
+  tempPassword: Object.freeze({
+    column: "Password",
+    placeholder: "Temporary password",
+    action: "Set temp password",
+    hint: "They must choose their own at next sign-in.",
+    tooShort: "Use at least 8 characters.",
+    failed: "Could not set the password",
+  }),
   linkExisting: Object.freeze({
     title: "Link existing account",
     hint: "They already have a ScoreSense login. Attach them to an open franchise so Fantasy opens their team.",
@@ -49,4 +57,12 @@ export function adminVerifySuccess({ email, verified } = {}) {
   return verified
     ? `${who} is verified. They can open Fantasy now.`
     : `${who} is no longer verified. Fantasy stays closed to them until they verify again.`;
+}
+
+export function adminTempPasswordSuccess({ email, notified } = {}) {
+  const who = String(email || "").trim() || "that account";
+  const note = notified
+    ? "They were emailed that an admin reset it."
+    : "No email went out — pass it on yourself.";
+  return `Temporary password set for ${who}. Signed out everywhere; they must choose a new one at next sign-in. ${note}`;
 }

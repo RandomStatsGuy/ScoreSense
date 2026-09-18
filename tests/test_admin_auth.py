@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import pytest
 from unittest.mock import Mock
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app.auth import _hash_password, create_access_token, register_native_user
+from app.auth import (
+    _hash_password,
+    authenticate_native_user,
+    change_native_password,
+    create_access_token,
+    register_native_user,
+)
 from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.schemas import LeagueRules
@@ -425,3 +432,69 @@ def test_admin_verification_forbidden_for_non_allowlisted(admin_client):
     )
     assert res.status_code == 403
     assert user_store.is_email_verified(user_store.get_user_by_id(player["id"])) is False
+
+
+def _set_temp_password(client, user_id: str, password: str, admin_email: str = "admin@example.com"):
+    return client.post(
+        f"/api/admin/users/{user_id}/temp-password",
+        json={"password": password},
+        headers=_auth_headers(admin_email),
+    )
+
+
+def test_admin_temp_password_forces_a_change_and_never_echoes_it(admin_client):
+    player = register_native_user("reset.me@mail.com", "longpassword1", "Reset", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+
+    res = _set_temp_password(admin_client, player["id"], "TempPass!2026")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["must_change_password"] is True
+    # The password must not come back in any form.
+    assert "TempPass!2026" not in res.text
+    assert set(body) == {"user_id", "email", "must_change_password", "notified"}
+
+    # The temp password works for signing in...
+    assert authenticate_native_user("reset.me@mail.com", "TempPass!2026")["id"] == player["id"]
+    # ...and the old one does not.
+    with pytest.raises(HTTPException) as exc:
+        authenticate_native_user("reset.me@mail.com", "longpassword1")
+    assert exc.value.status_code == 401
+
+
+def test_temp_password_closes_draft_hub_until_the_holder_picks_their_own(admin_client):
+    player = register_native_user("forced.change@mail.com", "longpassword1", "Forced", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+
+    assert _set_temp_password(admin_client, player["id"], "TempPass!2026").status_code == 200
+
+    # A session issued after the reset still cannot use the Hub.
+    token = create_access_token(user_store.get_user_by_id(player["id"]), auth_type="native")
+    headers = {"Authorization": f"Bearer {token}"}
+    assert admin_client.get("/api/hub/memberships", headers=headers).status_code == 403
+
+    change_native_password(player["id"], "TempPass!2026", "TheirOwnPass!9")
+    assert user_store.must_change_password(user_store.get_user_by_id(player["id"])) is False
+
+    token = create_access_token(user_store.get_user_by_id(player["id"]), auth_type="native")
+    headers = {"Authorization": f"Bearer {token}"}
+    assert admin_client.get("/api/hub/memberships", headers=headers).status_code != 403
+
+
+def test_admin_temp_password_rejects_a_short_password(admin_client):
+    player = register_native_user("short.pw@mail.com", "longpassword1", "Short", accept_terms=True)
+    res = _set_temp_password(admin_client, player["id"], "short")
+    assert res.status_code == 422
+    assert user_store.must_change_password(user_store.get_user_by_id(player["id"])) is False
+
+
+def test_admin_temp_password_unknown_user_is_404(admin_client):
+    assert _set_temp_password(admin_client, "not-a-real-id", "TempPass!2026").status_code == 404
+
+
+def test_admin_temp_password_forbidden_for_non_allowlisted(admin_client):
+    player = register_native_user("pw.victim@mail.com", "longpassword1", "Victim", accept_terms=True)
+    res = _set_temp_password(admin_client, player["id"], "TempPass!2026", admin_email="other@example.com")
+    assert res.status_code == 403
+    # The password was not changed.
+    assert authenticate_native_user("pw.victim@mail.com", "longpassword1")["id"] == player["id"]

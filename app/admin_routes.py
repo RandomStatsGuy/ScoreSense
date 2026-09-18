@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.auth import is_native_sub, native_user_sub, require_admin
+from app.auth import admin_set_temp_password, is_native_sub, native_user_sub, require_admin
 from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.hub_context import resolve_hub_context
@@ -85,6 +85,10 @@ class AdminLinkTeamRequest(BaseModel):
 
 class AdminEmailVerifiedRequest(BaseModel):
     verified: bool
+
+
+class AdminTempPasswordRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=200)
 
 
 class AdminLeagueCreateRequest(BaseModel):
@@ -203,6 +207,19 @@ def admin_set_email_verified(
         "email_verified": user_store.is_email_verified(updated),
         "email_verified_at": updated.get("email_verified_at"),
     }
+
+
+@router.post("/users/{user_id}/temp-password")
+def admin_temp_password(
+    user_id: str,
+    body: AdminTempPasswordRequest,
+    _admin=Depends(require_admin),
+) -> dict:
+    """Set a temporary password the account holder must replace at next sign-in.
+
+    The password is never echoed back, logged, or stored anywhere but the hash.
+    """
+    return admin_set_temp_password(user_id, body.password)
 
 
 @router.get("/leagues")

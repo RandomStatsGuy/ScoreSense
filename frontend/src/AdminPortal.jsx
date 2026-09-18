@@ -10,6 +10,7 @@ import {
   ADMIN_COPY,
   adminLinkAccountRef,
   adminLinkSuccess,
+  adminTempPasswordSuccess,
   adminVerifySuccess,
   openAdminFranchises,
 } from "./adminPresentation";
@@ -163,6 +164,10 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
   const [actionMsg, setActionMsg] = useState("");
   const [actionErr, setActionErr] = useState("");
   const [verifyingId, setVerifyingId] = useState("");
+  // Keyed by account id and cleared on success — a typed password never
+  // outlives the request it was typed for.
+  const [tempPasswords, setTempPasswords] = useState({});
+  const [passwordBusyId, setPasswordBusyId] = useState("");
 
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -298,6 +303,62 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
     );
   };
 
+  const handleSetTempPassword = async (row) => {
+    const password = tempPasswords[row.id] || "";
+    setActionMsg("");
+    setActionErr("");
+    if (password.length < 8) {
+      setActionErr(ADMIN_COPY.tempPassword.tooShort);
+      return;
+    }
+    setPasswordBusyId(row.id);
+    try {
+      const res = await apiFetch(`/api/admin/users/${row.id}/temp-password`, {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const saved = await res.json();
+      setTempPasswords((prev) => ({ ...prev, [row.id]: "" }));
+      setActionMsg(
+        adminTempPasswordSuccess({
+          email: saved.email || row.email || row.user_sub,
+          notified: saved.notified,
+        }),
+      );
+    } catch (err) {
+      setActionErr(err.message || ADMIN_COPY.tempPassword.failed);
+    } finally {
+      setPasswordBusyId("");
+    }
+  };
+
+  const renderPasswordCell = (row) => {
+    if (!row.id) return <span className="admin-muted">{ADMIN_COPY.verification.unavailable}</span>;
+    return (
+      <div className="admin-password-cell">
+        <input
+          type="password"
+          className="admin-temp-password"
+          autoComplete="new-password"
+          placeholder={ADMIN_COPY.tempPassword.placeholder}
+          value={tempPasswords[row.id] || ""}
+          onChange={(e) =>
+            setTempPasswords((prev) => ({ ...prev, [row.id]: e.target.value }))
+          }
+        />
+        <button
+          type="button"
+          className="btn-ghost"
+          disabled={passwordBusyId === row.id || (tempPasswords[row.id] || "").length < 8}
+          onClick={() => handleSetTempPassword(row)}
+        >
+          {ADMIN_COPY.tempPassword.action}
+        </button>
+      </div>
+    );
+  };
+
   const renderUserRow = (row) => (
     <tr key={row.user_sub}>
       <td>
@@ -326,6 +387,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
         />
       </td>
       <td>{renderVerifiedCell(row)}</td>
+      <td>{renderPasswordCell(row)}</td>
     </tr>
   );
 
@@ -587,13 +649,14 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                   <th>Workspace</th>
                   <th>League memberships</th>
                   <th>{ADMIN_COPY.verification.column}</th>
+                  <th>{ADMIN_COPY.tempPassword.column}</th>
                 </tr>
               </thead>
               <tbody>
                 {accountRows.map(renderUserRow)}
                 {!accountRows.length && (
                   <tr>
-                    <td colSpan={5} className="admin-muted">
+                    <td colSpan={6} className="admin-muted">
                       No registered accounts match the current filters.
                     </td>
                   </tr>
@@ -622,6 +685,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                         }
                       />
                       {renderVerifiedCell(row)}
+                      {renderPasswordCell(row)}
                     </>
                   )}
                 />
@@ -640,6 +704,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                       <th>Workspace</th>
                       <th>League memberships</th>
                       <th>{ADMIN_COPY.verification.column}</th>
+                      <th>{ADMIN_COPY.tempPassword.column}</th>
                     </tr>
                   </thead>
                   <tbody>{systemRows.map(renderUserRow)}</tbody>
