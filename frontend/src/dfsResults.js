@@ -29,6 +29,32 @@ export function draftKingsUsername(name = "") {
     .toLowerCase();
 }
 
+/** DraftKings appends a whole-contest player table after the blank column. */
+function standingsPlayerRows(rows, separator) {
+  const head = (rows[0] || []).slice(separator + 1).map(headerKey);
+  const col = (name) => head.indexOf(name);
+  const iName = col("player");
+  const iPos = col("rosterposition");
+  const iOwn = col("drafted");
+  const iPts = col("fpts");
+  if (iName < 0) return [];
+  const out = [];
+  for (const row of rows.slice(1)) {
+    const cells = row.slice(separator + 1);
+    const player = String(cells[iName] ?? "").trim();
+    if (!player) continue;
+    const owned = String(cells[iOwn] ?? "").replace("%", "").trim();
+    const pts = String(cells[iPts] ?? "").trim();
+    out.push({
+      player,
+      roster_position: iPos >= 0 ? String(cells[iPos] ?? "").trim() : "",
+      drafted_pct: owned === "" ? null : Number(owned),
+      fpts: pts === "" ? null : Number(pts),
+    });
+  }
+  return out;
+}
+
 export function inspectResultsCsv(text, { filename = "" } = {}) {
   const rows = parseDfsCsv(text, { maxChars: 100_000_000, maxRows: 250_001 });
   if (rows.length < 2) throw new Error("The CSV has no entry rows.");
@@ -63,6 +89,9 @@ export function inspectResultsCsv(text, { filename = "" } = {}) {
     mapping,
     isStandings,
     contestId: contestIdFromFilename(filename),
+    // The right-hand table, kept for contest analysis. The import path still
+    // reads only the left half; these rows have their own row count.
+    players: separator >= 0 ? standingsPlayerRows(rows, separator) : [],
   };
 }
 
