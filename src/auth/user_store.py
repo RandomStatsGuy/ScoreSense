@@ -82,6 +82,8 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE app_user ADD COLUMN phone TEXT")
     if not _column_exists(conn, "app_user", "sms_opted_in_at"):
         conn.execute("ALTER TABLE app_user ADD COLUMN sms_opted_in_at TEXT")
+    if not _column_exists(conn, "app_user", "must_change_password_at"):
+        conn.execute("ALTER TABLE app_user ADD COLUMN must_change_password_at TEXT")
     if not _column_exists(conn, "app_user", "session_version"):
         conn.execute("ALTER TABLE app_user ADD COLUMN session_version INTEGER NOT NULL DEFAULT 1")
     conn.execute(
@@ -122,6 +124,7 @@ def _user_dict(row: sqlite3.Row) -> dict[str, Any]:
         "has_password": bool(row["has_password"]) if "has_password" in row.keys() else True,
         "phone": row["phone"] if "phone" in row.keys() else None,
         "sms_opted_in_at": row["sms_opted_in_at"] if "sms_opted_in_at" in row.keys() else None,
+        "must_change_password_at": row["must_change_password_at"] if "must_change_password_at" in row.keys() else None,
         "session_version": int(row["session_version"]) if "session_version" in row.keys() and row["session_version"] is not None else 1,
     }
 
@@ -167,15 +170,24 @@ def create_user(
         return _user_dict(row)
 
 
-def mark_email_verified(user_id: str) -> dict[str, Any] | None:
+def set_email_verified(user_id: str, verified: bool) -> dict[str, Any] | None:
+    """Stamp or clear the verification time.
+
+    Clearing re-gates Draft Hub on the account's next request: the gate in
+    require_hub_user reads this row live rather than trusting the session.
+    """
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
             "UPDATE app_user SET email_verified_at = ?, updated_at = ? WHERE id = ?",
-            (now, now, user_id),
+            (now if verified else None, now, user_id),
         )
         row = conn.execute("SELECT * FROM app_user WHERE id = ?", (user_id,)).fetchone()
         return _user_dict(row) if row else None
+
+
+def mark_email_verified(user_id: str) -> dict[str, Any] | None:
+    return set_email_verified(user_id, True)
 
 
 def bump_session_version(user_id: str) -> int:
@@ -191,16 +203,29 @@ def bump_session_version(user_id: str) -> int:
     return int(row["session_version"]) if row and row["session_version"] is not None else 1
 
 
-def update_password(user_id: str, password_hash: str) -> None:
+def must_change_password(user: dict[str, Any] | None) -> bool:
+    if not user:
+        return False
+    return bool(user.get("must_change_password_at"))
+
+
+def update_password(user_id: str, password_hash: str, *, must_change: bool = False) -> None:
+    """Write a new password hash.
+
+    Always stamps must_change_password_at, so a password the account holder
+    chooses themselves clears a flag an admin set. Bumping session_version
+    signs out every session that was open under the old password.
+    """
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
             """UPDATE app_user
                SET password_hash = ?, has_password = 1,
+                   must_change_password_at = ?,
                    session_version = COALESCE(session_version, 1) + 1,
                    updated_at = ?
                WHERE id = ?""",
-            (password_hash, now, user_id),
+            (password_hash, now if must_change else None, now, user_id),
         )
 
 

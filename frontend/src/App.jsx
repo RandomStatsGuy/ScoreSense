@@ -59,6 +59,7 @@ const InviteAccept = lazy(() => import("./InviteAccept"));
 const ClaimAccept = lazy(() => import("./ClaimAccept"));
 import DeferredAccessFlow from "./DeferredAccessFlow";
 import VerifyEmailBanner from "./VerifyEmailBanner";
+import ChangePasswordBanner from "./ChangePasswordBanner";
 import InstallPrompt from "./InstallPrompt";
 import TermsReacceptBanner from "./TermsReacceptBanner";
 import LegalLinks from "./LegalLinks";
@@ -1447,6 +1448,12 @@ export default function App() {
           && user?.auth_type === "native"
           && view !== "hub" && (
           <VerifyEmailBanner user={user} onVerified={refreshAuth} />
+        )}
+        {authenticated && (
+          <ChangePasswordBanner
+            user={user}
+            onGoToAccount={() => routerNavigate("/account")}
+          />
         )}
         {authenticated && (
           <TermsReacceptBanner
