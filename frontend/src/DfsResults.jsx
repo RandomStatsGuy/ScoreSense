@@ -21,6 +21,7 @@ import {
 } from "./dfsResults.js";
 import { jsonRequest } from "./useDfsBuilder";
 import { importResultsBatches } from "./dfsResultsImport.js";
+import DfsContestReport from "./DfsContestReport";
 
 export default function DfsResults() {
   const worker = useRef(null);
@@ -733,6 +734,7 @@ export default function DfsResults() {
           </details>
         </aside>
       </div>
+      <DfsContestReport />
     </>
   );
 }

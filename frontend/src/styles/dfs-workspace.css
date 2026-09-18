@@ -490,3 +490,42 @@
     min-height: var(--control-h-lg, 44px);
   }
 }
+
+/* Contest report — one imported standings file, read two ways. */
+.dfs-prize-input {
+  width: 100%;
+  min-height: 5rem;
+  padding: var(--inset-cell);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+}
+.dfs-contest-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin: var(--space-4) 0;
+}
+.dfs-contest-stats div { min-width: 0; }
+.dfs-contest-stats dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.dfs-contest-stats dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+}
+.dfs-contest-views {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.dfs-contest-views [aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
