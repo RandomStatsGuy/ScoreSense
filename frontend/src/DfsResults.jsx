@@ -217,6 +217,7 @@ export default function DfsResults() {
           {progress}
         </p>
       )}
+      <DfsContestReport importedFile={file} />
       {file && (
         <section className="dfw-panel">
           <div className="dfw-panel-head">
@@ -734,7 +735,6 @@ export default function DfsResults() {
           </details>
         </aside>
       </div>
-      <DfsContestReport />
     </>
   );
 }

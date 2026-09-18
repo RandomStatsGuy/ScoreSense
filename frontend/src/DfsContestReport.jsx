@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { DfsField, DfsFile } from "./DfsWorkspace";
 import { DFS_RESULTS_COPY } from "./dfsToolPresentation";
 import { readResultsFile } from "./dfsResultsFile.js";
@@ -31,8 +31,14 @@ function pct(value) {
  * review of the viewer's own entries or as a post-mortem of the whole field.
  * Nothing here is saved — it reads the file and reports.
  */
-export default function DfsContestReport() {
+export default function DfsContestReport({ importedFile = null }) {
   const [file, setFile] = useState(null);
+
+  // The page above may already have a standings file open. Adopt it so the
+  // same file is never imported twice, and keep it after that import clears.
+  useEffect(() => {
+    if (importedFile?.isStandings) setFile(importedFile);
+  }, [importedFile]);
   const [error, setError] = useState("");
   const [username, setUsername] = useState("");
   const [prizeText, setPrizeText] = useState("");
