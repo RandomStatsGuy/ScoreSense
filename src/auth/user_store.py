@@ -167,15 +167,24 @@ def create_user(
         return _user_dict(row)
 
 
-def mark_email_verified(user_id: str) -> dict[str, Any] | None:
+def set_email_verified(user_id: str, verified: bool) -> dict[str, Any] | None:
+    """Stamp or clear the verification time.
+
+    Clearing re-gates Draft Hub on the account's next request: the gate in
+    require_hub_user reads this row live rather than trusting the session.
+    """
     now = _utcnow()
     with get_conn() as conn:
         conn.execute(
             "UPDATE app_user SET email_verified_at = ?, updated_at = ? WHERE id = ?",
-            (now, now, user_id),
+            (now if verified else None, now, user_id),
         )
         row = conn.execute("SELECT * FROM app_user WHERE id = ?", (user_id,)).fetchone()
         return _user_dict(row) if row else None
+
+
+def mark_email_verified(user_id: str) -> dict[str, Any] | None:
+    return set_email_verified(user_id, True)
 
 
 def bump_session_version(user_id: str) -> int:

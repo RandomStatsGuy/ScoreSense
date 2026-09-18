@@ -350,3 +350,78 @@ def test_auth_me_includes_is_admin(admin_client):
 
     other = admin_client.get("/api/auth/me", headers=_auth_headers("other@example.com"))
     assert other.json()["user"]["is_admin"] is False
+
+
+def _verified_state(client, headers, user_id: str) -> bool:
+    res = client.get("/api/admin/users", headers=headers)
+    assert res.status_code == 200
+    row = next(r for r in res.json()["accounts"] if r["id"] == user_id)
+    return bool(row["email_verified_at"])
+
+
+def test_admin_can_take_verification_away_and_give_it_back(admin_client):
+    headers = _auth_headers()
+    player = register_native_user("toggle.me@mail.com", "longpassword1", "Toggle", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+    assert _verified_state(admin_client, headers, player["id"]) is True
+
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": False},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["email_verified"] is False
+    assert res.json()["email_verified_at"] is None
+    assert _verified_state(admin_client, headers, player["id"]) is False
+
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": True},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["email_verified"] is True
+    assert _verified_state(admin_client, headers, player["id"]) is True
+
+
+def test_removing_verification_closes_draft_hub_for_that_account(admin_client):
+    """The point of the toggle: the gate reads the row live, not the session."""
+    player = register_native_user("gated.user@mail.com", "longpassword1", "Gated", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+    token = create_access_token(player, auth_type="native")
+    player_headers = {"Authorization": f"Bearer {token}"}
+
+    before = admin_client.get("/api/hub/memberships", headers=player_headers)
+    assert before.status_code != 403
+
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": False},
+        headers=_auth_headers(),
+    )
+    assert res.status_code == 200
+
+    # Same token, already issued — the gate still closes.
+    after = admin_client.get("/api/hub/memberships", headers=player_headers)
+    assert after.status_code == 403
+
+
+def test_admin_verification_unknown_user_is_404(admin_client):
+    res = admin_client.post(
+        "/api/admin/users/not-a-real-id/email-verified",
+        json={"verified": True},
+        headers=_auth_headers(),
+    )
+    assert res.status_code == 404
+
+
+def test_admin_verification_forbidden_for_non_allowlisted(admin_client):
+    player = register_native_user("victim@mail.com", "longpassword1", "Victim", accept_terms=True)
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": True},
+        headers=_auth_headers("other@example.com"),
+    )
+    assert res.status_code == 403
+    assert user_store.is_email_verified(user_store.get_user_by_id(player["id"])) is False

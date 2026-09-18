@@ -83,6 +83,10 @@ class AdminLinkTeamRequest(BaseModel):
     user_sub: Optional[str] = None
 
 
+class AdminEmailVerifiedRequest(BaseModel):
+    verified: bool
+
+
 class AdminLeagueCreateRequest(BaseModel):
     name: str
     season: int = Field(ge=2015, le=2035)
@@ -172,6 +176,32 @@ def admin_list_users(
         "accounts": rows,
         "system_subs": system_subs,
         "count": len(rows),
+    }
+
+
+@router.post("/users/{user_id}/email-verified")
+def admin_set_email_verified(
+    user_id: str,
+    body: AdminEmailVerifiedRequest,
+    _admin=Depends(require_admin),
+) -> dict:
+    """Mark one account verified, or take verification away.
+
+    Clearing it locks that account out of Draft Hub until they verify or an
+    admin restores it, so the response reports the state that was written
+    rather than the state that was asked for.
+    """
+    user = user_store.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="No account with that id")
+    updated = user_store.set_email_verified(user_id, body.verified)
+    if not updated:
+        raise HTTPException(status_code=404, detail="No account with that id")
+    return {
+        "user_id": user_id,
+        "email": updated.get("email"),
+        "email_verified": user_store.is_email_verified(updated),
+        "email_verified_at": updated.get("email_verified_at"),
     }
 
 

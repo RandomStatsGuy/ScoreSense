@@ -10,6 +10,7 @@ import {
   ADMIN_COPY,
   adminLinkAccountRef,
   adminLinkSuccess,
+  adminVerifySuccess,
   openAdminFranchises,
 } from "./adminPresentation";
 
@@ -161,6 +162,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
   const [actionErr, setActionErr] = useState("");
+  const [verifyingId, setVerifyingId] = useState("");
 
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -249,6 +251,53 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
     loadLeagueDetail(leagueId);
   };
 
+  // Verification is stored per native account, so system/dev subs have nothing
+  // to toggle. Clearing it closes Fantasy for that account on their next request.
+  const handleSetVerified = async (row, verified) => {
+    setActionMsg("");
+    setActionErr("");
+    setVerifyingId(row.id);
+    try {
+      const res = await apiFetch(`/api/admin/users/${row.id}/email-verified`, {
+        method: "POST",
+        body: JSON.stringify({ verified }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const saved = await res.json();
+      setActionMsg(
+        adminVerifySuccess({
+          email: saved.email || row.email || row.user_sub,
+          verified: saved.email_verified,
+        }),
+      );
+      await loadUsers();
+    } catch (err) {
+      setActionErr(err.message || ADMIN_COPY.verification.failed);
+    } finally {
+      setVerifyingId("");
+    }
+  };
+
+  const renderVerifiedCell = (row) => {
+    if (!row.id) return <span className="admin-muted">{ADMIN_COPY.verification.unavailable}</span>;
+    const verified = Boolean(row.email_verified_at);
+    return (
+      <div className="admin-verify-cell">
+        <span className={verified ? "admin-verified" : "admin-muted"}>
+          {verified ? ADMIN_COPY.verification.yes : ADMIN_COPY.verification.no}
+        </span>
+        <button
+          type="button"
+          className="btn-ghost"
+          disabled={verifyingId === row.id}
+          onClick={() => handleSetVerified(row, !verified)}
+        >
+          {verified ? ADMIN_COPY.verification.unverify : ADMIN_COPY.verification.verify}
+        </button>
+      </div>
+    );
+  };
+
   const renderUserRow = (row) => (
     <tr key={row.user_sub}>
       <td>
@@ -276,6 +325,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
           }
         />
       </td>
+      <td>{renderVerifiedCell(row)}</td>
     </tr>
   );
 
@@ -536,13 +586,14 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                   <th>Auth</th>
                   <th>Workspace</th>
                   <th>League memberships</th>
+                  <th>{ADMIN_COPY.verification.column}</th>
                 </tr>
               </thead>
               <tbody>
                 {accountRows.map(renderUserRow)}
                 {!accountRows.length && (
                   <tr>
-                    <td colSpan={4} className="admin-muted">
+                    <td colSpan={5} className="admin-muted">
                       No registered accounts match the current filters.
                     </td>
                   </tr>
@@ -560,15 +611,18 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                   heroValue={(row.memberships || []).length}
                   heroLabel="leagues"
                   expanded={(
-                    <MembershipList
-                      memberships={row.memberships}
-                      testHidden={
-                        showTestMemberships
-                          ? 0
-                          : row.test_membership_count ??
-                            (row.memberships || []).filter((m) => isTestMembership(m)).length
-                      }
-                    />
+                    <>
+                      <MembershipList
+                        memberships={row.memberships}
+                        testHidden={
+                          showTestMemberships
+                            ? 0
+                            : row.test_membership_count ??
+                              (row.memberships || []).filter((m) => isTestMembership(m)).length
+                        }
+                      />
+                      {renderVerifiedCell(row)}
+                    </>
                   )}
                 />
               ))}
@@ -585,6 +639,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                       <th>Auth</th>
                       <th>Workspace</th>
                       <th>League memberships</th>
+                      <th>{ADMIN_COPY.verification.column}</th>
                     </tr>
                   </thead>
                   <tbody>{systemRows.map(renderUserRow)}</tbody>

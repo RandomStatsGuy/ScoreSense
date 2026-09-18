@@ -3,6 +3,15 @@
 export const ADMIN_COPY = Object.freeze({
   unlinkSuccess: "Team unlinked from account",
   unlinkFailed: "Unlink failed",
+  verification: Object.freeze({
+    column: "Verified",
+    yes: "Verified",
+    no: "Not verified",
+    verify: "Mark verified",
+    unverify: "Remove verification",
+    unavailable: "—",
+    failed: "Could not change verification",
+  }),
   linkExisting: Object.freeze({
     title: "Link existing account",
     hint: "They already have a ScoreSense login. Attach them to an open franchise so Fantasy opens their team.",
@@ -33,4 +42,11 @@ export function adminLinkAccountRef(value) {
 
 export function openAdminFranchises(teams) {
   return (teams || []).filter((t) => t && !t.user_sub && !t.is_bot);
+}
+
+export function adminVerifySuccess({ email, verified } = {}) {
+  const who = String(email || "").trim() || "that account";
+  return verified
+    ? `${who} is verified. They can open Fantasy now.`
+    : `${who} is no longer verified. Fantasy stays closed to them until they verify again.`;
 }
