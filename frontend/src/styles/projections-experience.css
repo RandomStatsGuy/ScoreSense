@@ -4,6 +4,10 @@
 .projections-board {
   display: flex;
   flex-direction: column;
+  /* Phone adds .grid (align-items: start). In a flex column that sizes each
+     panel to its content, so one wide row pushed the Weekly board past the
+     screen. Panels always take the board's width. */
+  align-items: stretch;
   gap: 0.85rem;
 }
 
@@ -561,6 +565,10 @@
 
   .proj-board-head-copy {
     display: none;
+  }
+
+  .proj-board-surface {
+    padding-inline: var(--space-2);
   }
 
   .proj-board-surface > .proj-disclosure {
