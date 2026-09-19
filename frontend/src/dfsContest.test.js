@@ -5,10 +5,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   contestSummary,
+  winnersComposition,
   lineupKey,
   parseLineupSlots,
   parsePrizeStructure,
   payoutsByRank,
+  spacedLabels,
   prizeForPosition,
 } from "./dfsContest.js";
 import { inspectResultsCsv } from "./dfsResults.js";
@@ -124,4 +126,113 @@ test("without a prize structure nothing invents money", () => {
   });
   assert.equal(summary.mine[0].payout_cents, null);
   assert.equal(summary.field.paid_entries, null);
+});
+
+test("the winners group keeps whole ties and reports the size it actually used", () => {
+  // 200 entries, ranks 1..200, each rostering a captain and one flex.
+  const rows = [];
+  for (let i = 1; i <= 200; i += 1) {
+    rows.push({
+      rank: i,
+      slots: [
+        { slot: "CPT", player: i <= 2 ? "Rare Captain" : "Chalk Captain" },
+        { slot: "FLEX", player: i % 2 ? "Even Flex" : "Odd Flex" },
+      ],
+    });
+  }
+  const top = winnersComposition(rows, { topPct: 1, minEntries: 0 });
+  assert.equal(top.cutoff_rank, 2);
+  assert.equal(top.entries, 2);
+  const captain = top.players.find((p) => p.slot === "CPT");
+  assert.equal(captain.player, "Rare Captain");
+  assert.equal(captain.pct, 100);
+
+  // A floor keeps one lucky lineup from defining "the winners".
+  const floored = winnersComposition(rows, { topPct: 1, minEntries: 20 });
+  assert.equal(floored.entries, 20);
+  assert.equal(floored.cutoff_rank, 20);
+
+  // Eight entries tied on the cutoff rank all stay in — a tie is never split.
+  const tied = rows.map((r, i) => ({ ...r, rank: i < 10 ? 1 : r.rank }));
+  const group = winnersComposition(tied, { topPct: 1, minEntries: 0 });
+  assert.equal(group.cutoff_rank, 1);
+  assert.equal(group.entries, 10);
+
+  assert.deepEqual(winnersComposition([]), {
+    top_pct: 1,
+    cutoff_rank: null,
+    entries: 0,
+    players: [],
+  });
+});
+
+test("a small field makes the winners group the whole field, and says so", () => {
+  const file = inspectResultsCsv(STANDINGS, { filename: "contest-standings-1.csv" });
+  const entries = file.rows.map((r) => ({
+    entry_id: r[1],
+    entry_name: r[2],
+    rank: r[0],
+    points: r[4],
+    lineup: r[5],
+  }));
+  const summary = contestSummary({ entries, players: file.players, mine: ["0003"] });
+  assert.equal(summary.winners.entries, 3);
+  assert.equal(summary.winners.whole_field, true);
+});
+
+test("ownership carries what the winners played beside what the field played", () => {
+  // Two ranks of entries: the leader captained Purdy, the rest captained Robinson.
+  const entries = [];
+  for (let i = 1; i <= 100; i += 1) {
+    entries.push({
+      entry_id: String(i),
+      entry_name: `player${i}`,
+      rank: i,
+      points: 200 - i,
+      lineup:
+        i <= 5
+          ? "CPT Brock Purdy FLEX Christian McCaffrey"
+          : "CPT Demarcus Robinson FLEX Christian McCaffrey",
+    });
+  }
+  const players = [
+    { player: "Brock Purdy", roster_position: "CPT", drafted_pct: 5, fpts: 33.15 },
+    { player: "Demarcus Robinson", roster_position: "CPT", drafted_pct: 95, fpts: 40.5 },
+    { player: "Christian McCaffrey", roster_position: "FLEX", drafted_pct: 100, fpts: 13.8 },
+    { player: "Never Rostered", roster_position: "FLEX", drafted_pct: 0, fpts: 2 },
+  ];
+  const summary = contestSummary({ entries, players, mine: [], topPct: 5 });
+
+  assert.equal(summary.winners.entries, 20); // the 20-entry floor, not 5
+  assert.equal(summary.winners.whole_field, false);
+
+  const purdy = summary.ownership.find((o) => o.player === "Brock Purdy");
+  assert.equal(purdy.winners_count, 5);
+  assert.equal(purdy.winners_pct, 25); // 5 of the top 20
+  assert.equal(purdy.winners_edge, 20); // 25% of winners against 5% of the field
+
+  const robinson = summary.ownership.find((o) => o.player === "Demarcus Robinson");
+  assert.equal(robinson.winners_pct, 75);
+
+  // A player nobody rostered reads as zero, not as missing.
+  const absent = summary.ownership.find((o) => o.player === "Never Rostered");
+  assert.equal(absent.winners_count, 0);
+  assert.equal(absent.winners_pct, 0);
+});
+
+test("scatter labels go to the heaviest points and skip anything crowding them", () => {
+  const points = [
+    { key: "star", x: 10, y: 100, weight: 100 },
+    { key: "twin", x: 11, y: 99, weight: 99 }, // all but on top of star
+    { key: "far", x: 90, y: 60, weight: 60 },
+    { key: "low", x: 50, y: 10, weight: 10 },
+  ];
+  assert.deepEqual(spacedLabels(points, { limit: 4, minGap: 0.1 }), ["star", "far", "low"]);
+  // The limit still binds once nothing is crowded.
+  assert.deepEqual(spacedLabels(points, { limit: 2, minGap: 0.1 }), ["star", "far"]);
+  // A gap of zero labels everything, in weight order.
+  assert.deepEqual(spacedLabels(points, { limit: 4, minGap: 0 }), ["star", "twin", "far", "low"]);
+  // Points with no usable coordinates never get a label.
+  assert.deepEqual(spacedLabels([{ key: "a", x: null, y: 3 }]), []);
+  assert.deepEqual(spacedLabels([]), []);
 });

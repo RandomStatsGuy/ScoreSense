@@ -529,3 +529,61 @@
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+/* Contest charts — one accent hue; fill, size and labels carry the rest. */
+.dfs-chart {
+  margin: var(--space-5) 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.dfs-chart h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-md);
+}
+.dfs-chart .recharts-wrapper {
+  margin-top: var(--space-3);
+}
+.dfs-chart-lead {
+  margin: var(--space-2) 0 0;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+.dfs-chart-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+.dfs-chart-key li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.dfs-chart-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+}
+.dfs-chart-swatch--filled {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-elevated);
+}
+.dfs-chart-swatch--hollow {
+  border: 1.5px solid var(--text-muted);
+}
+.dfs-chart-swatch--outline {
+  width: 16px;
+  height: 12px;
+  border: 2px solid var(--text-muted);
+  border-radius: 3px;
+}
+@media (max-width: 750px) {
+  .dfs-chart-key {
+    gap: var(--space-3);
+  }
+}

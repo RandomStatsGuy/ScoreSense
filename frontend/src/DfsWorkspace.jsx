@@ -15,7 +15,7 @@ const num = (n) =>
   n == null || !Number.isFinite(Number(n)) ? "—" : Number(n).toFixed(1);
 const options = (values) => values.map((v) => ({ id: v, label: String(v) }));
 /** Surname only, so a row of six names still fits. Team defenses keep their name. */
-function shortName(name) {
+export function shortName(name) {
   const parts = String(name || "").trim().split(/\s+/);
   if (parts.length < 2) return parts[0] || "";
   const tail = parts[parts.length - 1].replace(/[.,]/g, "");

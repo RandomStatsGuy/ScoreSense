@@ -595,6 +595,7 @@ export default function DfsResults() {
       <div className="dfw-results-grid">
         <section className="dfw-panel">
           <h2>{C.review}</h2>
+          <p className="dfw-note">{C.reviewHelp}</p>
           <div className="dfw-entry-list">
             {entries.slice(entryPage * 50, (entryPage + 1) * 50).map((e) => (
               <button
@@ -629,6 +630,7 @@ export default function DfsResults() {
               </button>
             </div>
           )}
+          {!entry && <p className="dfw-note">{C.reviewPick}</p>}
           {entry && (
             <>
               <div className="dfw-review-row">

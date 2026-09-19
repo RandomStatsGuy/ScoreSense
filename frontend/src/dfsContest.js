@@ -98,6 +98,87 @@ export function payoutsByRank(ranks = [], tiers = []) {
   return out;
 }
 
+/** Exposure is keyed per roster slot so a captain is never mixed with a flex. */
+const exposureKey = (player, captain) =>
+  `${String(player).toLowerCase()}|${captain ? "CPT" : "FLEX"}`;
+
+const isCaptain = (slot) => slot === "CPT" || slot === "MVP";
+
+/**
+ * What the top of the leaderboard actually rostered.
+ *
+ * `topPct` is a share of the field, so 1 means the top 1%. Everyone tied on the
+ * cutoff rank is kept — a tie is never split — so the group can be larger than
+ * the share asked for. Its real size and cutoff are reported rather than
+ * assumed, because on a duplicated showdown slate they often differ a lot.
+ *
+ * `minEntries` keeps the group from being one lucky lineup on a small field.
+ * When the field is smaller than that, the group is the whole field and says so.
+ */
+export function winnersComposition(rows = [], { topPct = 1, minEntries = 20 } = {}) {
+  const ranked = rows
+    .filter((r) => Number.isFinite(r.rank))
+    .sort((a, b) => a.rank - b.rank);
+  if (!ranked.length) {
+    return { top_pct: topPct, cutoff_rank: null, entries: 0, players: [] };
+  }
+  const want = Math.min(
+    ranked.length,
+    Math.max(minEntries, Math.ceil((ranked.length * topPct) / 100)),
+  );
+  const cutoff = ranked[want - 1].rank;
+  const group = ranked.filter((r) => r.rank <= cutoff);
+
+  const counts = new Map();
+  for (const row of group) {
+    for (const slot of row.slots || []) {
+      const key = exposureKey(slot.player, isCaptain(slot.slot));
+      const seen = counts.get(key);
+      if (seen) seen.count += 1;
+      else counts.set(key, { player: slot.player, slot: isCaptain(slot.slot) ? "CPT" : "FLEX", count: 1 });
+    }
+  }
+  const players = [...counts.values()]
+    .map((row) => ({ ...row, pct: (row.count / group.length) * 100 }))
+    .sort((a, b) => b.count - a.count || a.player.localeCompare(b.player));
+
+  return { top_pct: topPct, cutoff_rank: cutoff, entries: group.length, players };
+}
+
+/**
+ * Choose which points on a scatter get a name printed beside them.
+ *
+ * Charting libraries do not move one label out of another's way, so a label on
+ * every point — or on two points that landed on top of each other — is
+ * unreadable. Heaviest first, and a point is skipped when an already-chosen
+ * label sits within `minGap` of it once both axes are scaled to 0..1.
+ */
+export function spacedLabels(points = [], { limit = 6, minGap = 0.1 } = {}) {
+  const usable = points.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+  if (!usable.length) return [];
+  const span = (values) => {
+    const lo = Math.min(...values);
+    const hi = Math.max(...values);
+    return hi - lo || 1;
+  };
+  const xs = usable.map((p) => p.x);
+  const ys = usable.map((p) => p.y);
+  const x0 = Math.min(...xs);
+  const y0 = Math.min(...ys);
+  const dx = span(xs);
+  const dy = span(ys);
+
+  const picked = [];
+  for (const point of [...usable].sort((a, b) => (b.weight ?? b.y) - (a.weight ?? a.y))) {
+    if (picked.length >= limit) break;
+    const nx = (point.x - x0) / dx;
+    const ny = (point.y - y0) / dy;
+    const crowded = picked.some((q) => Math.hypot(nx - q.nx, ny - q.ny) < minGap);
+    if (!crowded) picked.push({ key: point.key, nx, ny });
+  }
+  return picked.map((p) => p.key);
+}
+
 function median(sorted) {
   if (!sorted.length) return null;
   const mid = Math.floor(sorted.length / 2);
@@ -111,7 +192,7 @@ function median(sorted) {
  * `mine` is a set of entry IDs. Everything else describes the whole field, so
  * the same result serves both the personal review and the contest post-mortem.
  */
-export function contestSummary({ entries = [], players = [], mine = [], tiers = [] } = {}) {
+export function contestSummary({ entries = [], players = [], mine = [], tiers = [], topPct = 1 } = {}) {
   const mineIds = new Set(mine.map(String));
   const rows = entries
     .map((e) => ({
@@ -134,22 +215,34 @@ export function contestSummary({ entries = [], players = [], mine = [], tiers = 
   const mineExposure = new Map();
   for (const row of mineRows) {
     for (const slot of row.slots) {
-      const captain = slot.slot === "CPT" || slot.slot === "MVP";
-      const key = `${slot.player.toLowerCase()}|${captain ? "CPT" : "FLEX"}`;
+      const key = exposureKey(slot.player, isCaptain(slot.slot));
       mineExposure.set(key, (mineExposure.get(key) || 0) + 1);
     }
   }
 
+  const winners = winnersComposition(rows, { topPct });
+  const winnersByKey = new Map(
+    winners.players.map((w) => [exposureKey(w.player, w.slot === "CPT"), w]),
+  );
+
   const ownership = players.map((p) => {
     const captain = String(p.roster_position || "").toUpperCase() === "CPT";
-    const used = mineExposure.get(`${p.player.toLowerCase()}|${captain ? "CPT" : "FLEX"}`) || 0;
+    const key = exposureKey(p.player, captain);
+    const used = mineExposure.get(key) || 0;
     const minePct = mineRows.length ? (used / mineRows.length) * 100 : null;
+    const won = winnersByKey.get(key);
+    const winnersPct = winners.entries ? won?.pct ?? 0 : null;
     return {
       ...p,
       mine_count: used,
       mine_pct: minePct,
       // Positive means more exposure than the field had.
       leverage: minePct == null || p.drafted_pct == null ? null : minePct - p.drafted_pct,
+      winners_count: won?.count ?? 0,
+      winners_pct: winnersPct,
+      // Positive means the top of the leaderboard was on this more than the field.
+      winners_edge:
+        winnersPct == null || p.drafted_pct == null ? null : winnersPct - p.drafted_pct,
     };
   });
 
@@ -168,6 +261,12 @@ export function contestSummary({ entries = [], players = [], mine = [], tiers = 
         : null,
     },
     ownership,
+    winners: {
+      top_pct: winners.top_pct,
+      cutoff_rank: winners.cutoff_rank,
+      entries: winners.entries,
+      whole_field: winners.entries >= rows.length,
+    },
     mine: mineRows.map((r) => ({
       entry_id: r.entry_id,
       entry_name: r.entry_name,
