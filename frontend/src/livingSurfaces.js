@@ -281,9 +281,15 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "table",
     route: "/tools/dfs",
     page: "frontend/src/LineupOptimizer.jsx",
-    also: ["frontend/src/DfsWorkspace.jsx", "frontend/src/DfsResults.jsx", "frontend/src/useDfsBuilder.js"],
+    also: [
+      "frontend/src/DfsWorkspace.jsx",
+      "frontend/src/DfsResults.jsx",
+      "frontend/src/DfsContestReport.jsx",
+      "frontend/src/DfsContestCharts.jsx",
+      "frontend/src/useDfsBuilder.js",
+    ],
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Match approved September 11 option A and shared Results dashboard: compact title/slate bar, settings/pool/lineup columns and paginated player table. No experience hero or full-page Vegas board. Account owns backgrounds. Keep Captain exposure distinct from total exposure, retain build-time inputs, and label missing/fixed/imported estimates. Imports preview before saving; My Lineups CSV and Edit Entries CSV are distinct. Never invent probabilities, ownership or payouts. Results use account-scoped cash records and show completeness/sample size. Follow docs/PRODUCT.md.",
+    doNot: "Match approved September 11 option A and shared Results dashboard: compact title/slate bar, settings/pool/lineup columns and paginated player table. No experience hero or full-page Vegas board. Account owns backgrounds. Keep Captain exposure distinct from total exposure, retain build-time inputs, and label missing/fixed/imported estimates. Imports preview before saving; My Lineups CSV and Edit Entries CSV are distinct. Never invent probabilities, ownership or payouts. Results use account-scoped cash records and show completeness/sample size. Contest charts carry one accent hue: a second series is told apart by fill, size and direct labels, never a second colour, and never two y-scales. Follow docs/PRODUCT.md.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",

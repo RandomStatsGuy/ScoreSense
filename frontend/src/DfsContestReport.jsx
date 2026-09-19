@@ -4,6 +4,7 @@ import { DFS_RESULTS_COPY } from "./dfsToolPresentation";
 import { readResultsFile } from "./dfsResultsFile.js";
 import { draftKingsUsername, dollars, inspectResultsCsv } from "./dfsResults.js";
 import { contestSummary, parsePrizeStructure } from "./dfsContest.js";
+import { OwnershipScatter, WinnersBoard } from "./DfsContestCharts";
 
 const C = DFS_RESULTS_COPY.contestReport;
 
@@ -26,9 +27,20 @@ function pct(value) {
   return value == null || Number.isNaN(value) ? "—" : `${value.toFixed(1)}%`;
 }
 
+function Stat({ label, value }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
 /**
- * Read one DraftKings contest-standings export and describe it, either as a
- * review of the viewer's own entries or as a post-mortem of the whole field.
+ * Read one DraftKings contest-standings export and describe it: how the field
+ * scored, what it owned against what it produced, what the top of the
+ * leaderboard rostered, and where the viewer's own entries landed.
+ *
  * Nothing here is saved — it reads the file and reports.
  */
 export default function DfsContestReport({ importedFile = null }) {
@@ -77,6 +89,18 @@ export default function DfsContestReport({ importedFile = null }) {
 
   const hasPrizes = parsePrizeStructure(prizeText).length > 0;
 
+  // Totals over the viewer's own entries, so the money reads without arithmetic.
+  const myTotals = useMemo(() => {
+    const rows = summary?.mine || [];
+    if (!rows.length) return null;
+    const paid = rows.filter((r) => r.payout_cents != null);
+    return {
+      count: rows.length,
+      cents: paid.length ? paid.reduce((sum, r) => sum + r.payout_cents, 0) : null,
+      best: Math.min(...rows.map((r) => r.rank)),
+    };
+  }, [summary]);
+
   return (
     <section className="dfw-panel">
       <div className="dfw-panel-head">
@@ -114,19 +138,51 @@ export default function DfsContestReport({ importedFile = null }) {
           <p className="dfw-note">{C.prizesHelp}</p>
 
           <dl className="dfs-contest-stats">
-            <div><dt>{C.entries}</dt><dd>{summary.field.entries.toLocaleString()}</dd></div>
-            <div><dt>{C.unique}</dt><dd>{summary.field.unique_lineups.toLocaleString()}</dd></div>
-            <div>
-              <dt>{C.scoreRange}</dt>
-              <dd>{summary.field.score_min} – {summary.field.score_max}</dd>
-            </div>
-            <div><dt>{C.scoreMedian}</dt><dd>{summary.field.score_median}</dd></div>
-            <div>
-              <dt>{C.paid}</dt>
-              <dd>{summary.field.paid_entries == null ? C.noPrizes : summary.field.paid_entries.toLocaleString()}</dd>
-            </div>
+            <Stat label={C.entries} value={summary.field.entries.toLocaleString()} />
+            <Stat label={C.unique} value={summary.field.unique_lineups.toLocaleString()} />
+            <Stat
+              label={C.duplication}
+              value={
+                summary.field.entries
+                  ? pct(
+                      ((summary.field.entries - summary.field.unique_lineups) /
+                        summary.field.entries) *
+                        100,
+                    )
+                  : "—"
+              }
+            />
+            <Stat
+              label={C.scoreRange}
+              value={`${summary.field.score_min} – ${summary.field.score_max}`}
+            />
+            <Stat label={C.scoreMedian} value={summary.field.score_median} />
+            <Stat
+              label={C.paid}
+              value={
+                summary.field.paid_entries == null
+                  ? "—"
+                  : summary.field.paid_entries.toLocaleString()
+              }
+            />
+            {myTotals && (
+              <>
+                <Stat label={C.yourEntries} value={myTotals.count.toLocaleString()} />
+                <Stat
+                  label={C.yourPayout}
+                  value={myTotals.cents == null ? "—" : dollars(myTotals.cents)}
+                />
+                <Stat label={C.bestFinish} value={myTotals.best.toLocaleString()} />
+              </>
+            )}
           </dl>
+          {!hasPrizes && <p className="dfw-note">{C.noPrizes}</p>}
 
+          <OwnershipScatter ownership={summary.ownership} />
+          <WinnersBoard ownership={summary.ownership} winners={summary.winners} />
+
+          <h3>{C.tablesTitle}</h3>
+          <p className="dfw-note">{C.tablesHelp}</p>
           <div role="group" className="dfs-contest-views">
             <button aria-pressed={view === "mine"} onClick={() => setView("mine")}>{C.viewMine}</button>
             <button aria-pressed={view === "field"} onClick={() => setView("field")}>{C.viewField}</button>
@@ -173,6 +229,7 @@ export default function DfsContestReport({ importedFile = null }) {
                     <th>{C.player}</th>
                     <th>{C.slot}</th>
                     <th className="num">{C.fieldOwn}</th>
+                    <th className="num">{C.winnersOwn}</th>
                     <th className="num">{C.mineOwn}</th>
                     <th className="num">{C.leverage}</th>
                     <th className="num">{C.fpts}</th>
@@ -186,6 +243,7 @@ export default function DfsContestReport({ importedFile = null }) {
                         <td>{row.player}</td>
                         <td>{row.roster_position}</td>
                         <td className="num">{pct(row.drafted_pct)}</td>
+                        <td className="num">{pct(row.winners_pct)}</td>
                         <td className="num">{pct(row.mine_pct)}</td>
                         <td className={`num${row.leverage > 0 ? " positive" : ""}`}>
                           {row.leverage == null ? "—" : `${row.leverage > 0 ? "+" : ""}${row.leverage.toFixed(1)}`}
@@ -198,7 +256,6 @@ export default function DfsContestReport({ importedFile = null }) {
               <p className="dfw-note">{C.leverageNote}</p>
             </>
           )}
-          {!hasPrizes && <p className="dfw-note">{C.noPrizes}</p>}
         </>
       )}
     </section>
