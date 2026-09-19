@@ -32,13 +32,15 @@ export default function MobilePlayerCard({
   const [open, setOpen] = useState(defaultOpen);
   const detailsId = useId();
   const hasExpand = Boolean(expanded);
+  // While selecting, a tap on a selectable row picks it instead of expanding.
+  const tapSelects = selecting && Boolean(onSelect);
 
   const toggle = () => {
     if (hasExpand) setOpen((v) => !v);
   };
 
   const handleHeaderClick = () => {
-    if (selecting && onSelect) {
+    if (tapSelects) {
       onSelect();
       return;
     }
@@ -56,8 +58,9 @@ export default function MobilePlayerCard({
           type="button"
           className="mobile-player-card-header"
           onClick={handleHeaderClick}
-          aria-expanded={hasExpand ? open : undefined}
-          aria-controls={hasExpand ? detailsId : undefined}
+          aria-expanded={hasExpand && !tapSelects ? open : undefined}
+          aria-controls={hasExpand && !tapSelects ? detailsId : undefined}
+          aria-pressed={tapSelects ? selected : undefined}
           disabled={!hasExpand && !onSelect}
         >
           <div className="mobile-player-card-main">
@@ -69,7 +72,7 @@ export default function MobilePlayerCard({
               ) : null}
               {titleNode || <span className="mobile-player-card-name">{name}</span>}
               {badge}
-              {hasExpand ? (
+              {hasExpand && !tapSelects ? (
                 <span className="mobile-player-card-chevron" aria-hidden="true">
                   {open ? "▴" : "▾"}
                 </span>

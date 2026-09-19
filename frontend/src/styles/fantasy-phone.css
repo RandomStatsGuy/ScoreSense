@@ -122,16 +122,30 @@
     align-items: center;
   }
 
+  /* Value and label share a line; the sub (floor–ceiling, movement, per game)
+     sits under them. One row put all three side by side and squeezed names. */
   .mobile-player-card-hero {
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
     align-items: baseline;
-    gap: 0.35rem;
+    gap: var(--space-1) 0;
+  }
+
+  .mobile-player-card-hero-value {
+    justify-self: end;
   }
 
   .mobile-player-card-hero-label {
+    margin-left: var(--space-1);
     text-transform: none;
     letter-spacing: 0;
     font-weight: 600;
+  }
+
+  .mobile-player-card-hero-sub {
+    grid-column: 1 / -1;
+    justify-self: end;
   }
 
   .mobile-player-card-chevron {
