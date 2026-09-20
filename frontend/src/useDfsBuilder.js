@@ -1,6 +1,7 @@
 import useDataRevision from "./useDataRevision";
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "./auth";
+import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
   defaultSlateCategory,
@@ -10,14 +11,7 @@ import { parseDfsCsv, headerKey } from "./dfsCsv";
 
 async function jsonRequest(url, options) {
   const response = await apiFetch(url, options);
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(
-      typeof data.detail === "string"
-        ? data.detail
-        : "The request could not be completed.",
-    );
-  return data;
+  return readJsonResponse(response, url);
 }
 export { jsonRequest };
 
