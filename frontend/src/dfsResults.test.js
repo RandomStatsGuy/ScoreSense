@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseDfsCsv, moneyCents } from "./dfsCsv.js";
 import {
+  dollars,
   inspectResultsCsv,
   parseResultsRows,
-  resultTotals,
   resultGroups,
+  resultTotals,
+  signedDollars,
 } from "./dfsResults.js";
 import { readEntryTemplate, buildEntryCsv } from "./dfsEntryExport.js";
 import { importResultsBatches } from "./dfsResultsImport.js";
@@ -227,4 +229,42 @@ test("stack groups describe the saved QB and pass catchers", () => {
     },
   ];
   assert.equal(resultGroups(entries, builds, "stack")[0].label, "One + 1");
+});
+
+test("totals describe the sample the headline is about to claim", () => {
+  const rows = [
+    { site: "draftkings", contest_id: "1", entry_id: "a", status: "settled", fee_cents: 300, payout_cents: 1250, date: "2026-09-18", rank: 412 },
+    { site: "draftkings", contest_id: "1", entry_id: "b", status: "settled", fee_cents: 300, payout_cents: 0, date: "2026-09-18", rank: 4021 },
+    { site: "draftkings", contest_id: "2", entry_id: "c", status: "settled", fee_cents: 300, payout_cents: 300, date: "2026-09-04", rank: 900 },
+    // Unsettled: outside every total, and its rank is not a "best finish".
+    { site: "draftkings", contest_id: "3", entry_id: "d", status: "unsettled", rank: 1 },
+  ];
+  const totals = resultTotals(rows);
+  assert.equal(totals.complete, 3);
+  assert.equal(totals.contests, 2);
+  // Returning the fee exactly is still a cash.
+  assert.equal(totals.paid, 2);
+  assert.equal(totals.first, "2026-09-04");
+  assert.equal(totals.last, "2026-09-18");
+  assert.equal(totals.unsettled, 1);
+  // The unsettled rank-1 entry is not the best finish: every stat in the headline
+  // describes the same settled rows the money does.
+  assert.equal(totals.best, 412);
+
+  const empty = resultTotals([]);
+  assert.equal(empty.best, null);
+  assert.equal(empty.first, null);
+  assert.equal(empty.contests, 0);
+  assert.equal(empty.paid, 0);
+});
+
+test("net money is signed so a gain and a loss differ by more than colour", () => {
+  assert.equal(signedDollars(2600), "+$26.00");
+  assert.equal(signedDollars(-300), "-$3.00");
+  // Breaking even is neither, so it takes no sign.
+  assert.equal(signedDollars(0), "$0.00");
+  assert.equal(signedDollars(null), "—");
+  assert.equal(signedDollars(undefined), "—");
+  // The plain formatter is unchanged for amounts that are not a direction.
+  assert.equal(dollars(2600), "$26.00");
 });

@@ -364,8 +364,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-4);
 }
-.dfw-assignment-list,
-.dfw-entry-list {
+.dfw-assignment-list {
   max-height: 360px;
   overflow-y: auto;
   display: grid;
@@ -399,17 +398,6 @@
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
 }
-.dfw-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-.dfw-metrics strong {
-  font-size: 36px;
-  font-weight: 500;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-}
 .dfw-positive {
   color: var(--tone-positive);
 }
@@ -439,10 +427,6 @@
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: var(--space-4);
 }
-.dfw-entry-list > button {
-  justify-content: space-between;
-  text-align: left;
-}
 .dfw-chart {
   width: 100%;
   min-width: 0;
@@ -462,9 +446,6 @@
   .dfw-transfer,
   .dfw-results-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .dfw-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .dfw button,
   .dfw-file-button,
@@ -637,4 +618,119 @@
   display: flex;
   gap: var(--space-2);
   flex: none;
+}
+
+/* Results page — the verdict leads, the raw tables sit underneath. */
+.dfw-verdict {
+  gap: var(--space-4);
+}
+.dfw-verdict-lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4) var(--space-7, 2.5rem);
+}
+.dfw-verdict-lead > div:first-child small {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-2);
+}
+.dfw-verdict-lead > div:first-child strong {
+  font-size: 52px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.dfw-verdict-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-6, 2rem);
+  margin: 0;
+}
+.dfw-verdict-stats dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.dfw-verdict-stats dd {
+  margin: var(--space-1) 0 0;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.dfw-group-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.dfw-group-pills [aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.dfw-entry-table tbody tr {
+  cursor: pointer;
+}
+.dfw-entry-table tbody tr:hover,
+.dfw-entry-table tbody tr:focus-visible {
+  background: var(--row-hover-bg, var(--bg-subtle));
+}
+.dfw-entry-table tbody tr[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+.dfw-utility {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.dfw-coverage h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-md);
+}
+
+@media (max-width: 750px) {
+  .dfw-verdict-lead > div:first-child strong {
+    font-size: 40px;
+  }
+  /* Wide tables become stacked cards rather than scrolling sideways. */
+  .dfw-card-table,
+  .dfw-card-table thead,
+  .dfw-card-table tbody,
+  .dfw-card-table tr,
+  .dfw-card-table td {
+    display: block;
+    width: auto;
+  }
+  .dfw-card-table thead {
+    display: none;
+  }
+  .dfw-card-table tbody tr {
+    padding: var(--space-3);
+    margin-bottom: var(--space-2);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .dfw-card-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-1) 0;
+    border: 0;
+    text-align: left;
+  }
+  .dfw-card-table td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    flex: none;
+  }
+  /* The contest name is the card's heading, so it keeps no label of its own. */
+  .dfw-card-table td:first-child {
+    display: block;
+    font-size: var(--text-md);
+    margin-bottom: var(--space-2);
+  }
+  .dfw-card-table td:first-child::before {
+    content: none;
+  }
 }

@@ -229,6 +229,11 @@ export function resultTotals(entries = []) {
       fees: (cumulativeFees += r.fees) / 100,
       payouts: (cumulativePayouts += r.payouts) / 100,
     }));
+  // What the headline claims about the sample, so the page never has to imply it.
+  const dated = complete.filter((e) => e.date).map((e) => e.date).sort();
+  // Ranks come from the same rows the money does. A best finish drawn from an
+  // unsettled entry would describe a different sample than the stats beside it.
+  const ranks = complete.map((e) => Number(e.rank)).filter((r) => Number.isFinite(r) && r > 0);
   return {
     fees,
     payouts,
@@ -239,6 +244,12 @@ export function resultTotals(entries = []) {
     unsettled: entries.filter((e) => e.status !== "settled").length,
     chart,
     undated: complete.filter((e) => !e.date).length,
+    // Cashes, not wins: an entry that returned its fee exactly still cashed.
+    paid: complete.filter((e) => e.payout_cents > 0).length,
+    best: ranks.length ? Math.min(...ranks) : null,
+    contests: new Set(complete.map((e) => `${e.site}|${e.contest_id}`)).size,
+    first: dated[0] || null,
+    last: dated[dated.length - 1] || null,
   };
 }
 
@@ -315,6 +326,15 @@ export function resultGroups(entries, builds, group = "captain") {
     }))
     .sort((a, b) => b.net - a.net);
 }
+
+/**
+ * Money where the direction is the point — a net, a profit, a swing.
+ *
+ * Positive gets an explicit "+", so a gain and a loss are told apart by the
+ * glyph rather than by the colour alone.
+ */
+export const signedDollars = (cents) =>
+  Number.isFinite(cents) ? `${cents > 0 ? "+" : ""}${dollars(cents)}` : "—";
 
 export const dollars = (cents) =>
   Number.isFinite(cents)
