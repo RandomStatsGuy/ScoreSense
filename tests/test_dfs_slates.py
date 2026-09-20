@@ -1,6 +1,15 @@
 """Tests for live DFS slate parsing."""
 
-from src.integrations.dfs_slates import parse_dk_draftables, parse_dk_lobby_slates, parse_fd_players
+import requests
+
+import src.integrations.dfs_slates as dfs_slates
+
+from src.integrations.dfs_slates import (
+    parse_dk_available_players,
+    parse_dk_draftables,
+    parse_dk_lobby_slates,
+    parse_fd_players,
+)
 
 
 DK_DRAFTABLES_SAMPLE = {
@@ -57,6 +66,82 @@ def test_global_player_id_cannot_replace_draftable_id():
     entry = {**DK_DRAFTABLES_SAMPLE["draftables"][0], "playerDkId": 123, "playerId": 456}
     entry.pop("draftableId")
     assert parse_dk_draftables({"draftables": [entry]}).iloc[0]["dfs_id"] == ""
+
+
+def test_parse_dk_available_players_keeps_usable_salary_and_team():
+    payload = {
+        "playerList": [
+            {
+                "fn": "Puka",
+                "ln": "Nacua",
+                "pn": "WR",
+                "s": 11400,
+                "tid": 343,
+                "htid": 343,
+                "htabbr": "LAR",
+                "atabbr": "NYG",
+            },
+            {
+                "fn": "Unavailable",
+                "ln": "Player",
+                "pn": "QB",
+                "s": 9000,
+                "tid": 1,
+                "htid": 1,
+                "htabbr": "KC",
+                "atabbr": "DEN",
+                "IsDisabledFromDrafting": True,
+            },
+        ]
+    }
+
+    df = parse_dk_available_players(payload)
+
+    assert len(df) == 1
+    row = df.iloc[0]
+    assert row["team"] == "LAR"
+    assert row["dfs_id"] == ""
+    assert int(row["salary"]) == 11400
+    assert int(row["cpt_salary"]) == 17100
+
+
+def test_dk_salary_fetch_falls_back_when_draftables_is_forbidden(monkeypatch, tmp_path):
+    forbidden = requests.Response()
+    forbidden.status_code = 403
+    calls = []
+
+    def fake_get(url, params=None):
+        calls.append((url, params))
+        if url == dfs_slates.DK_DRAFTABLES_URL.format(draft_group_id="123"):
+            error = requests.HTTPError("forbidden")
+            error.response = forbidden
+            raise error
+        return {
+            "playerList": [
+                {
+                    "fn": "Puka",
+                    "ln": "Nacua",
+                    "pn": "WR",
+                    "s": 11400,
+                    "tid": 343,
+                    "htid": 343,
+                    "htabbr": "LAR",
+                    "atabbr": "NYG",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(dfs_slates, "_dk_get", fake_get)
+    monkeypatch.setattr(dfs_slates, "_cache_path", lambda *_: tmp_path / "salary.parquet")
+    monkeypatch.setattr(dfs_slates, "_cache_meta_path", lambda *_: tmp_path / "meta.json")
+
+    salaries = dfs_slates.fetch_dk_salaries("123", use_cache=False)
+
+    assert len(salaries) == 1
+    assert calls[1] == (
+        dfs_slates.DK_AVAILABLE_PLAYERS_URL,
+        {"draftGroupId": "123"},
+    )
 
 
 def test_parse_fd_players():
