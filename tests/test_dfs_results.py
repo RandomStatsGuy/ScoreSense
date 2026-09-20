@@ -2,7 +2,8 @@ import pytest
 from pydantic import ValidationError
 from fastapi import HTTPException
 from src.products import dfs_results
-from app.dfs_results_routes import owner, Entry, EntryImport, import_results, get_results, Build, save_build
+from app.dfs_results_routes import (owner, Entry, EntryImport, import_results, get_results, Build, save_build,
+                                    Contest, ContestKey, get_contests, save_contest, remove_contest)
 
 
 @pytest.fixture(autouse=True)
@@ -101,3 +102,59 @@ def test_standings_entry_name_preserves_cash_history_and_account_scope():
     assert result["fee_cents"] == 500
     assert result["points"] == 105.8
     assert get_results("b")["entries"] == []
+
+
+def contest(contest_id="195390867", **over):
+    base = dict(contest_id=contest_id, contest_name="NFL Showdown", entries=83234,
+                unique_lineups=16742, my_entries=18, my_payout_cents=750, my_fee_cents=5400,
+                summary={"field": {"entries": 83234}, "ownership": [{"player": "A", "drafted_pct": 51.9}],
+                         "winners": {"entries": 837, "cutoff_rank": 412}, "mine": [{"entry_id": "1"}]},
+                tiers=[{"from": 1, "to": 1, "cents": 100000}])
+    return Contest(**{**base, **over})
+
+
+def test_saved_contests_are_owner_scoped_and_list_without_the_breakdown():
+    save_contest(contest(), "a")
+    listed = get_contests(account="a")["contests"]
+    assert len(listed) == 1
+    assert listed[0]["contest_id"] == "195390867"
+    assert listed[0]["my_payout_cents"] == 750
+    # The list must never carry a whole slate's ownership table.
+    assert "summary" not in listed[0] and "tiers" not in listed[0]
+    assert get_contests(account="b")["contests"] == []
+    with pytest.raises(HTTPException) as error:
+        get_contests(site="draftkings", contest_id="195390867", account="b")
+    assert error.value.status_code == 404
+
+
+def test_reopening_returns_the_whole_breakdown_and_resaving_replaces_it():
+    save_contest(contest(), "a")
+    save_contest(contest("222"), "a")
+    save_contest(contest(my_entries=20, my_payout_cents=125000), "a")
+    listed = get_contests(account="a")["contests"]
+    assert [c["contest_id"] for c in listed] == ["195390867", "222"]  # newest save first
+    assert listed[0]["my_entries"] == 20
+
+    full = get_contests(site="draftkings", contest_id="195390867", account="a")
+    assert full["summary"]["winners"]["cutoff_rank"] == 412
+    assert full["tiers"][0]["cents"] == 100000
+    assert full["saved_at"]
+
+
+def test_contest_removal_is_owner_and_site_scoped():
+    save_contest(contest(), "a")
+    save_contest(contest(site="fanduel"), "a")
+    remove_contest(ContestKey(contest_id="195390867"), "b")
+    assert len(get_contests(account="a")["contests"]) == 2
+    remove_contest(ContestKey(contest_id="195390867"), "a")
+    assert [c["site"] for c in get_contests(account="a")["contests"]] == ["fanduel"]
+
+
+def test_contest_money_is_nonnegative_integers_and_nonfinite_is_refused():
+    for cents in (-1, 2.5, "5"):
+        with pytest.raises(ValidationError):
+            contest(my_payout_cents=cents)
+    with pytest.raises(HTTPException) as error:
+        save_contest(contest(summary={"field": {"score_median": float("inf")}}), "a")
+    assert error.value.status_code == 400
+    assert get_contests(account="a")["contests"] == []

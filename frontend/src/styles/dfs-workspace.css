@@ -587,3 +587,54 @@
     gap: var(--space-3);
   }
 }
+
+/* Saving a contest, and the list of ones already kept. */
+.dfs-contest-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+.dfs-contest-save .dfw-note {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+.dfs-saved-contests {
+  margin: var(--space-4) 0;
+}
+.dfs-saved-contests h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-md);
+}
+.dfs-saved-contests ul {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+}
+.dfs-saved-contests li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--inset-cell);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.dfs-saved-contests li > span:first-child {
+  display: grid;
+  min-width: 0;
+}
+.dfs-saved-contests small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.dfs-saved-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex: none;
+}
