@@ -18,6 +18,10 @@ from src.integrations.external_projections import _normalize_name
 DFS_CACHE_DIR = CACHE_DIR / "dfs"
 DK_LOBBY_URL = "https://www.draftkings.com/lobby/getcontests"
 DK_DRAFTABLES_URL = "https://api.draftkings.com/draftgroups/v1/draftgroups/{draft_group_id}/draftables"
+# The draftables API is occasionally blocked by DraftKings' edge network even
+# while its first-party lineup catalog remains available.  Keep this as a
+# fallback so a transient provider policy change does not take down DFS builds.
+DK_AVAILABLE_PLAYERS_URL = "https://www.draftkings.com/lineup/getavailableplayers"
 FD_FIXTURE_LISTS_URL = "https://api.fanduel.com/fixture-lists"
 FD_PLAYERS_URL = "https://api.fanduel.com/fixture-lists/{fixture_id}/players"
 
@@ -298,6 +302,54 @@ def parse_dk_draftables(payload: dict, site: str = "draftkings") -> pd.DataFrame
     return pd.DataFrame(rows)
 
 
+def parse_dk_available_players(payload: dict, site: str = "draftkings") -> pd.DataFrame:
+    """Normalize DraftKings' lineup catalog when the draftables API is blocked.
+
+    The catalog intentionally omits slate-specific upload IDs.  Those rows can
+    build lineups, but the frontend correctly requires a salary CSV before it
+    permits an export to DraftKings.
+    """
+    rows: list[dict] = []
+    for entry in payload.get("playerList") or []:
+        if not isinstance(entry, dict) or entry.get("IsDisabledFromDrafting"):
+            continue
+        try:
+            salary = int(entry.get("s"))
+        except (TypeError, ValueError):
+            continue
+        if salary <= 0:
+            continue
+
+        name = " ".join(
+            part.strip() for part in (str(entry.get("fn") or ""), str(entry.get("ln") or "")) if part.strip()
+        )
+        position = _normalize_dfs_position(str(entry.get("pn") or ""))
+        team_id = entry.get("tid")
+        team = (
+            entry.get("htabbr")
+            if str(team_id) == str(entry.get("htid"))
+            else entry.get("atabbr")
+        ) or ""
+        if not name or not position or not team:
+            continue
+        rows.append(
+            {
+                "dfs_id": "",
+                "player_name": name,
+                "name_key": _normalize_name(name),
+                "position": position,
+                "team": str(team).upper(),
+                "salary": salary,
+                "site": site.lower(),
+                # This source gives the FLEX salary only.  DK showdown uses a
+                # 1.5x captain salary, and uploads remain disabled without IDs.
+                "cpt_salary": int(round(salary * 1.5)),
+                "cpt_dfs_id": "",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def parse_fd_players(payload: dict, site: str = "fanduel") -> pd.DataFrame:
     """Normalize FanDuel fixture players JSON to salary frame."""
     rows: list[dict] = []
@@ -431,8 +483,18 @@ def fetch_dk_salaries(
         if not cached.empty:
             return cached
 
-    payload = _dk_get(DK_DRAFTABLES_URL.format(draft_group_id=draft_group_id))
-    salaries = parse_dk_draftables(payload, site="draftkings")
+    try:
+        payload = _dk_get(DK_DRAFTABLES_URL.format(draft_group_id=draft_group_id))
+        salaries = parse_dk_draftables(payload, site="draftkings")
+    except requests.HTTPError as exc:
+        response = exc.response
+        if response is None or response.status_code not in (403, 404):
+            raise
+        payload = _dk_get(
+            DK_AVAILABLE_PLAYERS_URL,
+            params={"draftGroupId": str(draft_group_id)},
+        )
+        salaries = parse_dk_available_players(payload, site="draftkings")
     if not salaries.empty:
         salaries.to_parquet(cache, index=False)
         _cache_meta_path("draftkings", draft_group_id).write_text(
