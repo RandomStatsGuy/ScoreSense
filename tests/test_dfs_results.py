@@ -156,10 +156,21 @@ def test_contest_money_is_nonnegative_integers_and_nonfinite_is_refused():
     for cents in (-1, 2.5, "5"):
         with pytest.raises(ValidationError):
             contest(my_payout_cents=cents)
-    with pytest.raises(HTTPException) as error:
-        save_contest(contest(summary={"field": {"score_median": float("inf")}}), "a")
-    assert error.value.status_code == 400
+    # A non-finite value inside the free-form breakdown must be refused, not
+    # quietly rewritten to null and stored as though the number were unknown.
+    for bad in (float("inf"), float("-inf"), float("nan")):
+        with pytest.raises(HTTPException) as error:
+            save_contest(contest(summary={"field": {"score_median": bad}}), "a")
+        assert error.value.status_code == 400
+    with pytest.raises(HTTPException):
+        save_contest(contest(tiers=[{"from": 1, "to": 1, "cents": float("nan")}]), "a")
     assert get_contests(account="a")["contests"] == []
+
+    # The same shape with a real number saves, and keeps the number.
+    save_contest(contest(summary={"field": {"score_median": 59.6}}), "a")
+    saved = get_contests(site="draftkings", contest_id="195390867", account="a")
+    assert saved["summary"]["field"]["score_median"] == 59.6
+    assert saved["contest_date"] == "2026-09-18"
 
 
 def test_a_contest_without_a_date_saves_rather_than_inventing_one():
