@@ -220,8 +220,8 @@ export default function DfsResults() {
       <DfsContestReport
         importedFile={file}
         onSaveEntries={updateEntries}
-        contestNameFor={(forSite, id) =>
-          data.entries.find((e) => e.site === forSite && e.contest_id === id)?.contest_name || ""
+        knownContest={(forSite, id) =>
+          data.entries.find((e) => e.site === forSite && e.contest_id === id) || null
         }
       />
       {file && (

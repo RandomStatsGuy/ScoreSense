@@ -97,6 +97,8 @@ export const DFS_RESULTS_COPY = {
     fee:"Entry fee",
     feePlaceholder:"$3.00",
     feeHelp:"What one entry cost. The standings file carries no fee, so without this your net profit and ROI stay blank.",
+    date:"Contest date",
+    dateHelp:"The standings file carries no date either, and undated money cannot be plotted \u2014 this is what puts the contest on the spend-against-payouts chart. It starts on the date already on record for this contest, or today.",
     save:"Save to my results",
     saving:"Saving…",
     saveHelp:(entries)=>entries?`Writes the payout, rank and score onto your ${entries.toLocaleString()} ${entries===1?"entry":"entries"} in Results, and keeps this breakdown so you can reopen it without the CSV.`:"Keeps this breakdown so you can reopen it without the CSV. No entries of yours matched, so nothing is written to your results ledger.",

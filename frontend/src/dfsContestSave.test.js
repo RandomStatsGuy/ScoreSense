@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { contestEntryRows, contestSnapshot, myContestTotals } from "./dfsContestSave.js";
+import { contestEntryRows, contestSnapshot, localDateString, myContestTotals } from "./dfsContestSave.js";
 import { contestSummary, parseMoneyCents, parsePrizeStructure } from "./dfsContest.js";
 
 const MINE = [
@@ -31,6 +31,7 @@ test("entry rows carry the contest key and only what the file knows", () => {
     contestId: "195390867",
     contestName: "NFL Showdown",
     feeCents: 300,
+    date: "2026-09-18",
   });
   assert.equal(rows.length, 2);
   assert.deepEqual(rows[0], {
@@ -38,6 +39,7 @@ test("entry rows carry the contest key and only what the file knows", () => {
     contest_id: "195390867",
     entry_id: "0001",
     contest_name: "NFL Showdown",
+    date: "2026-09-18",
     entry_name: "asmit25290 (1/20)",
     rank: 3,
     points: 104.45,
@@ -143,4 +145,29 @@ test("the lineup a saved entry carries is the one the file gave", () => {
   assert.equal(summary.mine[0].lineup_text, "CPT A One FLEX B Two");
   const [row] = contestEntryRows({ mine: summary.mine, contestId: "9" });
   assert.equal(row.lineup_text, "CPT A One FLEX B Two");
+});
+
+test("a contest date is written only when there is one, and never from UTC", () => {
+  const [undated] = contestEntryRows({ mine: MINE, contestId: "9" });
+  assert.equal("date" in undated, false);
+  const [dated] = contestEntryRows({ mine: MINE, contestId: "9", date: "2026-01-02" });
+  assert.equal(dated.date, "2026-01-02");
+
+  // 9pm on the 18th in UTC-07:00 is the 19th in UTC. The ledger must say the 18th.
+  const evening = new Date(2026, 8, 18, 21, 30);
+  assert.equal(localDateString(evening), "2026-09-18");
+  assert.equal(localDateString(new Date(2026, 0, 5, 0, 5)), "2026-01-05");
+  assert.equal(localDateString(new Date("nonsense")), "");
+});
+
+test("the snapshot keeps the contest date so a reopened breakdown still knows when it was", () => {
+  const summary = contestSummary({
+    entries: [{ entry_id: "1", rank: 1, points: 100, lineup: "CPT A FLEX B" }],
+    mine: ["1"],
+  });
+  assert.equal(
+    contestSnapshot({ summary, contestId: "9", date: "2026-09-18" }).contest_date,
+    "2026-09-18",
+  );
+  assert.equal(contestSnapshot({ summary, contestId: "9" }).contest_date, null);
 });

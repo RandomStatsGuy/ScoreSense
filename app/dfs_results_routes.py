@@ -56,6 +56,7 @@ class Contest(ContestKey):
     """
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     contest_name: str | None = Field(default=None, max_length=300)
+    contest_date: CalendarDate | None = None
     entries: int = Field(ge=0, le=10_000_000)
     unique_lineups: int = Field(ge=0, le=10_000_000)
     my_entries: int = Field(default=0, ge=0, le=10_000)
@@ -126,12 +127,18 @@ def get_contests(site: Literal["draftkings", "fanduel"] | None = None,
 
 @router.post("/contests")
 def save_contest(request: Contest, account=Depends(owner)):
-    payload = request.model_dump(mode="json")
+    # The finite check runs on Python values, not on the JSON dump. `summary`
+    # and `tiers` are free-form dicts, so a non-finite float inside them never
+    # meets a float field and its bounds, and model_dump(mode="json") rewrites
+    # it to null on the way out — which would store corrupt input as "unknown"
+    # instead of refusing it. `default=str` is only so a date cannot raise
+    # TypeError before an out-of-range float raises ValueError.
     try:
-        serialized = json.dumps(payload, allow_nan=False)
+        json.dumps(request.model_dump(), allow_nan=False, default=str)
     except ValueError:
         raise HTTPException(400, "Contest values must be finite numbers.")
-    if len(serialized) > 2_000_000:
+    payload = request.model_dump(mode="json")
+    if len(json.dumps(payload)) > 2_000_000:
         raise HTTPException(413, "That contest breakdown is too large to save.")
     payload["saved_at"] = datetime.now(timezone.utc).isoformat()
     return dfs_results.save_contest(account, payload)

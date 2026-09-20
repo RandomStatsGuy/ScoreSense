@@ -4,7 +4,7 @@ import { DFS_RESULTS_COPY } from "./dfsToolPresentation";
 import { readResultsFile } from "./dfsResultsFile.js";
 import { draftKingsUsername, dollars, inspectResultsCsv } from "./dfsResults.js";
 import { contestSummary, parseMoneyCents, parsePrizeStructure } from "./dfsContest.js";
-import { contestEntryRows, contestSnapshot } from "./dfsContestSave.js";
+import { contestEntryRows, contestSnapshot, localDateString } from "./dfsContestSave.js";
 import { OwnershipScatter, WinnersBoard } from "./DfsContestCharts";
 import { jsonRequest } from "./useDfsBuilder";
 
@@ -48,7 +48,7 @@ function Stat({ label, value }) {
  * Results add up, and the breakdown itself is kept so it reopens without the
  * CSV. Neither happens until asked.
  */
-export default function DfsContestReport({ importedFile = null, onSaveEntries = null, contestNameFor = null }) {
+export default function DfsContestReport({ importedFile = null, onSaveEntries = null, knownContest = null }) {
   const [file, setFile] = useState(null);
   const [opened, setOpened] = useState(null);
 
@@ -66,6 +66,7 @@ export default function DfsContestReport({ importedFile = null, onSaveEntries = 
   const [username, setUsername] = useState("");
   const [prizeText, setPrizeText] = useState("");
   const [feeText, setFeeText] = useState("");
+  const [dateText, setDateText] = useState("");
   const [view, setView] = useState("mine");
   const [saved, setSaved] = useState([]);
 
@@ -113,11 +114,18 @@ export default function DfsContestReport({ importedFile = null, onSaveEntries = 
   const summary = file ? computed : opened?.summary || null;
   const contestId = file ? file.contestId : opened?.contest_id || "";
   const site = opened?.site || "draftkings";
-  const contestName =
-    opened?.contest_name ||
-    (contestId && contestNameFor ? contestNameFor(site, contestId) : "") ||
-    file?.name ||
-    "";
+  // What the ledger already knows about this contest, if it was imported before.
+  const known = (contestId && knownContest ? knownContest(site, contestId) : null) || {};
+  const contestName = opened?.contest_name || known.contest_name || file?.name || "";
+
+  // A date already on record wins over today's, so re-saving a contest from
+  // last week never restamps those entries with the date it was reviewed.
+  useEffect(() => {
+    if (!file || !contestId) return;
+    setDateText(known.date || localDateString());
+    // The contest the file describes is what this follows; `known` is derived.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, contestId, known.date]);
 
   // Totals over the viewer's own entries, so the money reads without arithmetic.
   const myTotals = useMemo(() => {
@@ -143,9 +151,12 @@ export default function DfsContestReport({ importedFile = null, onSaveEntries = 
         contestId,
         contestName,
         feeCents,
+        date: dateText,
       });
       if (rows.length && onSaveEntries && !(await onSaveEntries(rows))) return;
-      const body = contestSnapshot({ summary, site, contestId, contestName, feeCents, tiers });
+      const body = contestSnapshot({
+        summary, site, contestId, contestName, feeCents, date: dateText, tiers,
+      });
       const next = await jsonRequest("/api/lineup/contests", {
         method: "POST",
         body: JSON.stringify(body),
@@ -171,6 +182,7 @@ export default function DfsContestReport({ importedFile = null, onSaveEntries = 
       setOpened(found);
       setPrizeText("");
       setFeeText("");
+      setDateText("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -219,6 +231,7 @@ export default function DfsContestReport({ importedFile = null, onSaveEntries = 
                 <span>
                   {row.contest_name || row.contest_id}
                   <small>
+                    {row.contest_date ? `${row.contest_date} · ` : ""}
                     {(row.entries ?? 0).toLocaleString()} {C.entries.toLowerCase()}
                     {row.my_entries ? ` · ${row.my_entries} ${DFS_RESULTS_COPY.entry.toLowerCase()}` : ""}
                     {row.my_payout_cents == null ? "" : ` · ${dollars(row.my_payout_cents)}`}
@@ -258,6 +271,13 @@ export default function DfsContestReport({ importedFile = null, onSaveEntries = 
                     onChange={(e) => setFeeText(e.target.value)}
                   />
                 </DfsField>
+                <DfsField label={C.date}>
+                  <input
+                    type="date"
+                    value={dateText}
+                    onChange={(e) => setDateText(e.target.value)}
+                  />
+                </DfsField>
                 <DfsField label={C.prizes}>
                   <textarea
                     className="dfs-prize-input"
@@ -270,6 +290,7 @@ export default function DfsContestReport({ importedFile = null, onSaveEntries = 
               </div>
               <p className="dfw-note">{C.usernameHelp}</p>
               <p className="dfw-note">{C.feeHelp}</p>
+              <p className="dfw-note">{C.dateHelp}</p>
               <p className="dfw-note">{C.prizesHelp}</p>
             </>
           ) : (

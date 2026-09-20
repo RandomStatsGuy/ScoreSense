@@ -55,6 +55,7 @@ CONTEST_SUMMARY_FIELDS = (
     "site",
     "contest_id",
     "contest_name",
+    "contest_date",
     "saved_at",
     "entries",
     "unique_lineups",
