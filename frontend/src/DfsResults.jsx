@@ -57,6 +57,10 @@ export default function DfsResults() {
       });
     return () => abort.abort();
   }, []);
+  useEffect(() => {
+    if (!username && data.profile?.draftkings_username)
+      setUsername(data.profile.draftkings_username);
+  }, [data.profile?.draftkings_username, username]);
   const entries = data.entries.filter(
     (e) => filter === "all" || e.site === filter,
   );
@@ -147,6 +151,22 @@ export default function DfsResults() {
         /* Keep the import available for an idempotent retry. */
       }
       return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const saveUsername = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const profile = await jsonRequest("/api/lineup/results/profile", {
+        method: "PUT",
+        body: JSON.stringify({ draftkings_username: username.trim() }),
+      });
+      setData((current) => ({ ...current, profile }));
+      setProgress(C.usernameSaved);
+    } catch (e) {
+      setError(e.message);
     } finally {
       setBusy(false);
     }
@@ -279,15 +299,20 @@ export default function DfsResults() {
             </DfsField>
             {file.isStandings && (
               <DfsField label={C.username}>
-                <input
-                  aria-label={C.username}
-                  value={username}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    clearPreview();
-                  }}
-                />
+                <div className="dfw-actions">
+                  <input
+                    aria-label={C.username}
+                    value={username}
+                    autoComplete="off"
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      clearPreview();
+                    }}
+                  />
+                  <button disabled={busy} onClick={saveUsername}>
+                    {C.saveUsername}
+                  </button>
+                </div>
               </DfsField>
             )}
           </div>

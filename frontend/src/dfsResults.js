@@ -2,13 +2,17 @@ import { parseDfsCsv, headerKey, moneyCents } from "./dfsCsv.js";
 import { DFS_RESULTS_COPY as C } from "./dfsToolPresentation.js";
 
 export const RESULT_FIELDS = [
-  ["entry_id", "Entry ID", ["entryid"]],
-  ["entry_name", "Entry name", ["entryname"]],
-  ["contest_id", "Contest ID", ["contestid"]],
+  ["entry_id", "Entry ID", ["entryid", "entrykey"]],
+  ["entry_name", "Entry name", ["entryname", "entry"]],
+  ["contest_id", "Contest ID", ["contestid", "contestkey"]],
   ["contest_name", "Contest name", ["contestname", "contest"]],
-  ["date", "Date", ["date", "contestdate", "startdate"]],
+  ["date", "Date", ["date", "contestdate", "contestdateest", "startdate"]],
+  ["format", "Game type", ["format", "gametype"]],
+  ["contest_entries", "Contest entries", ["contestentries", "entries"]],
   ["fee_cents", "Entry fee", ["entryfee", "fee"]],
-  ["payout_cents", "Payout", ["payout", "winnings", "prize", "amountwon"]],
+  ["prize_pool_cents", "Prize pool", ["prizepool"]],
+  ["places_paid", "Places paid", ["placespaid"]],
+  ["payout_cents", "Payout", ["payout", "winnings", "winningsnonticket", "prize", "amountwon"]],
   ["points", "Actual points", ["points", "fantasypoints", "fpts"]],
   ["rank", "Rank", ["rank", "place"]],
   ["lineup_text", "Lineup", ["lineup"]],
@@ -29,18 +33,27 @@ export function draftKingsUsername(name = "") {
     .toLowerCase();
 }
 
+export function entryMatchesUsername(entryName = "", username = "") {
+  const selected = draftKingsUsername(username);
+  const candidate = draftKingsUsername(entryName);
+  if (!selected) return false;
+  if (candidate === selected) return true;
+  const escaped = selected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\bvs\\.?\\s+${escaped}(?:\\s|$)`, "i").test(candidate);
+}
+
 export function inspectResultsCsv(text, { filename = "" } = {}) {
   const rows = parseDfsCsv(text, { maxChars: 100_000_000, maxRows: 250_001 });
   if (rows.length < 2) throw new Error("The CSV has no entry rows.");
   let headers = rows[0];
   let keys = headers.map(headerKey);
-  const isStandings = [
-    "entryid",
-    "entryname",
-    "rank",
-    "points",
-    "lineup",
-  ].every((key) => keys.includes(key));
+  const indexFor = (field) => {
+    const [, , aliases] = RESULT_FIELDS.find(([id]) => id === field);
+    return keys.findIndex((key) => aliases.includes(key));
+  };
+  const isStandings = ["entry_id", "entry_name", "rank", "points", "lineup_text"].every(
+    (field) => indexFor(field) >= 0,
+  );
   // DraftKings places a separate player ownership table after the blank column.
   const separator = isStandings ? keys.indexOf("") : -1;
   if (separator >= 0) {
@@ -98,7 +111,7 @@ export function parseResultsRows(
     .filter(({ row }) => {
       if (!file.isStandings) return true;
       if (selectedUser)
-        return draftKingsUsername(get(row, "entry_name")) === selectedUser;
+        return entryMatchesUsername(get(row, "entry_name"), selectedUser);
       return known.has(
         JSON.stringify([
           get(row, "contest_id") || contestId.trim() || file.contestId,
@@ -122,7 +135,7 @@ export function parseResultsRows(
     if (seen.has(key))
       throw new Error(`Entry ${entry.entry_id} appears twice in this contest.`);
     seen.add(key);
-    for (const k of ["entry_name", "contest_name", "lineup_text"])
+    for (const k of ["entry_name", "contest_name", "format", "lineup_text"])
       if (get(row, k)) entry[k] = get(row, k);
     const date = get(row, "date");
     if (date) {
@@ -149,18 +162,21 @@ export function parseResultsRows(
       else if (payout) entry.payout_cents = moneyCents(payout);
       entry.status = settled ? "settled" : "unsettled";
     }
-    for (const k of ["points", "rank"]) {
+    for (const k of ["points", "rank", "contest_entries", "places_paid"]) {
       const raw = get(row, k).replaceAll(",", "");
       if (raw) {
         const value = Number(raw);
         if (
           !Number.isFinite(value) ||
-          (k === "rank" && (!Number.isInteger(value) || value < 1))
+          ((k === "rank" || k === "contest_entries" || k === "places_paid") &&
+            (!Number.isInteger(value) || value < 1))
         )
           throw new Error(`Invalid ${k} on row ${i + 2}.`);
         entry[k] = value;
       }
     }
+    const prizePool = get(row, "prize_pool_cents");
+    if (prizePool) entry.prize_pool_cents = moneyCents(prizePool);
     if (
       kind === "results" &&
       entry.points == null &&

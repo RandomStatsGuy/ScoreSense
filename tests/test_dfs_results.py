@@ -2,7 +2,10 @@ import pytest
 from pydantic import ValidationError
 from fastapi import HTTPException
 from src.products import dfs_results
-from app.dfs_results_routes import owner, Entry, EntryImport, import_results, get_results, Build, save_build
+from app.dfs_results_routes import (
+    owner, Entry, EntryImport, get_results, import_results, Build, ResultsProfile,
+    save_build, save_results_profile,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -101,3 +104,11 @@ def test_standings_entry_name_preserves_cash_history_and_account_scope():
     assert result["fee_cents"] == 500
     assert result["points"] == 105.8
     assert get_results("b")["entries"] == []
+
+
+def test_results_profile_is_account_scoped():
+    assert save_results_profile(ResultsProfile(draftkings_username="CalebK19"), "a") == {
+        "draftkings_username": "CalebK19"
+    }
+    assert get_results("a")["profile"]["draftkings_username"] == "CalebK19"
+    assert get_results("b")["profile"] == {}

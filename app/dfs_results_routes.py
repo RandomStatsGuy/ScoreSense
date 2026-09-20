@@ -25,6 +25,9 @@ class Entry(BaseModel):
     contest_name: str | None = Field(default=None, max_length=300)
     date: CalendarDate | None = None
     format: str | None = Field(default=None, max_length=50)
+    contest_entries: int | None = Field(default=None, ge=1, le=10_000_000, strict=True)
+    prize_pool_cents: int | None = Field(default=None, ge=0, le=100_000_000_000, strict=True)
+    places_paid: int | None = Field(default=None, ge=1, le=10_000_000, strict=True)
     fee_cents: int | None = Field(default=None, ge=0, le=1_000_000_000, strict=True)
     payout_cents: int | None = Field(default=None, ge=0, le=10_000_000_000, strict=True)
     status: Literal["settled", "unsettled", "void"] | None = None
@@ -40,6 +43,10 @@ class EntryImport(BaseModel):
     entries: list[Entry] = Field(max_length=5000, min_length=1)
 
 
+class ResultsProfile(BaseModel):
+    draftkings_username: str = Field(default="", max_length=100)
+
+
 class Build(BaseModel):
     model_config = ConfigDict(allow_inf_nan=False)
     site: str = Field(max_length=50)
@@ -53,6 +60,15 @@ class Build(BaseModel):
 @router.get("/results")
 def get_results(account=Depends(owner)):
     return dfs_results.read_results(account)
+
+
+@router.put("/results/profile")
+def save_results_profile(request: ResultsProfile, account=Depends(owner)):
+    username = request.draftkings_username.strip()
+    return dfs_results.save_profile(
+        account,
+        {"draftkings_username": username},
+    )
 
 
 @router.post("/results/import")

@@ -13,6 +13,7 @@ def connect():
     with sqlite3.connect(RESULTS_DB, timeout=15) as db:
         db.execute("CREATE TABLE IF NOT EXISTS entries (owner TEXT, site TEXT, contest TEXT, entry TEXT, payload TEXT, PRIMARY KEY(owner,site,contest,entry))")
         db.execute("CREATE TABLE IF NOT EXISTS builds (owner TEXT, id TEXT, payload TEXT, PRIMARY KEY(owner,id))")
+        db.execute("CREATE TABLE IF NOT EXISTS profiles (owner TEXT PRIMARY KEY, payload TEXT)")
         yield db
 
 
@@ -21,7 +22,18 @@ def read_results(owner):
         entries = [json.loads(r[0]) for r in db.execute("SELECT payload FROM entries WHERE owner=?", (owner,))]
         referenced = {entry.get("build_id") for entry in entries}
         builds = [json.loads(row[1]) for i, row in enumerate(db.execute("SELECT id,payload FROM builds WHERE owner=? ORDER BY rowid DESC", (owner,))) if i < 100 or row[0] in referenced]
-    return {"entries": entries, "builds": builds}
+        row = db.execute("SELECT payload FROM profiles WHERE owner=?", (owner,)).fetchone()
+        profile = json.loads(row[0]) if row else {}
+    return {"entries": entries, "builds": builds, "profile": profile}
+
+
+def save_profile(owner, profile):
+    with connect() as db:
+        db.execute(
+            "INSERT OR REPLACE INTO profiles VALUES (?, ?)",
+            (owner, json.dumps(profile, allow_nan=False)),
+        )
+    return profile
 
 
 def import_entries(owner, entries, *, compact=False):

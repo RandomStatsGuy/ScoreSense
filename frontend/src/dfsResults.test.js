@@ -6,6 +6,7 @@ import {
   parseResultsRows,
   resultTotals,
   resultGroups,
+  entryMatchesUsername,
 } from "./dfsResults.js";
 import { readEntryTemplate, buildEntryCsv } from "./dfsEntryExport.js";
 import { importResultsBatches } from "./dfsResultsImport.js";
@@ -100,6 +101,64 @@ test("history parsing keeps IDs, cash amounts and dates; rejects missing payouts
     parseResultsRows(blank, blank.mapping, { settled: false })[0].status,
     "unsettled",
   );
+});
+test("DraftKings history export maps keys, cash winnings, and contest context", () => {
+  const file = inspectResultsCsv(
+    "Sport,Game_Type,Entry_Key,Entry,Contest_Key,Contest_Date_EST,Place,Points,Winnings_Non_Ticket,Contest_Entries,Entry_Fee,Prize_Pool,Places_Paid\nNFL,Classic,2295413622,NFL $1 Example vs. CalebK19,94300405,10/18/2020 13:00,1,142.28,$1.80,2,$1.00,$1.80,1",
+  );
+  const [row] = parseResultsRows(file, file.mapping);
+  assert.deepEqual(
+    {
+      entry_id: row.entry_id,
+      contest_id: row.contest_id,
+      date: row.date,
+      format: row.format,
+      rank: row.rank,
+      fee_cents: row.fee_cents,
+      payout_cents: row.payout_cents,
+      prize_pool_cents: row.prize_pool_cents,
+      contest_entries: row.contest_entries,
+      places_paid: row.places_paid,
+    },
+    {
+      entry_id: "2295413622",
+      contest_id: "94300405",
+      date: "2020-10-18",
+      format: "Classic",
+      rank: 1,
+      fee_cents: 100,
+      payout_cents: 180,
+      prize_pool_cents: 180,
+      contest_entries: 2,
+      places_paid: 1,
+    },
+  );
+});
+test("DraftKings lineup export joins with history keys using the saved username", () => {
+  const file = inspectResultsCsv(
+    "Entry_Key,Entry,Place,Points,Lineup\n2295413622,NFL $1 Example vs. CalebK19 (1/2),1,142.28,CPT Player FLEX Other",
+    { filename: "contest-standings-94300405.csv" },
+  );
+  const rows = parseResultsRows(file, file.mapping, {
+    kind: "results",
+    username: "CalebK19",
+  });
+  assert.equal(file.isStandings, true);
+  assert.deepEqual(rows, [
+    {
+      site: "draftkings",
+      entry_id: "2295413622",
+      contest_id: "94300405",
+      entry_name: "NFL $1 Example vs. CalebK19 (1/2)",
+      lineup_text: "CPT Player FLEX Other",
+      points: 142.28,
+      rank: 1,
+    },
+  ]);
+});
+test("username matching supports DraftKings head-to-head entry labels", () => {
+  assert.equal(entryMatchesUsername("NFL $1 RJA1987 vs. Calebk19 (1/2)", "CalebK19"), true);
+  assert.equal(entryMatchesUsername("NFL $1 RJA1987 vs. AnotherUser", "CalebK19"), false);
 });
 test("score-only import never creates zero-dollar financial fields", () => {
   const file = inspectResultsCsv("EntryId,Points,Rank\n01,111.5,3");
