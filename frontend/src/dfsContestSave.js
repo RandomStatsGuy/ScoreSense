@@ -15,6 +15,18 @@
 const MAX_LINEUP_TEXT = 4000;
 
 /**
+ * A calendar date the way the ledger stores it, from local clock parts.
+ *
+ * Never toISOString(): that is UTC, and a contest broken down on a weeknight
+ * evening in the US would be filed under tomorrow.
+ */
+export function localDateString(date = new Date()) {
+  if (Number.isNaN(date?.getTime?.())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
  * Entry rows for POST /api/lineup/results/import.
  *
  * Only the viewer's own entries, and only fields the file actually carries.
@@ -27,6 +39,7 @@ export function contestEntryRows({
   contestId = "",
   contestName = "",
   feeCents = null,
+  date = "",
 } = {}) {
   if (!contestId) return [];
   return mine
@@ -39,6 +52,8 @@ export function contestEntryRows({
         entry_id: String(row.entry_id),
       };
       if (contestName) entry.contest_name = contestName;
+      // Money with no date is money the returns chart cannot plot.
+      if (date) entry.date = date;
       if (row.entry_name) entry.entry_name = row.entry_name;
       if (Number.isFinite(row.rank)) entry.rank = row.rank;
       if (Number.isFinite(row.points)) entry.points = row.points;
@@ -75,6 +90,7 @@ export function contestSnapshot({
   contestId = "",
   contestName = "",
   feeCents = null,
+  date = "",
   tiers = [],
 } = {}) {
   if (!summary || !contestId) return null;
@@ -83,6 +99,7 @@ export function contestSnapshot({
     site,
     contest_id: String(contestId),
     contest_name: contestName || null,
+    contest_date: date || null,
     entries: summary.field?.entries ?? 0,
     unique_lineups: summary.field?.unique_lineups ?? 0,
     ...myContestTotals(mine, feeCents),

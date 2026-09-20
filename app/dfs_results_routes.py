@@ -56,6 +56,7 @@ class Contest(ContestKey):
     """
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     contest_name: str | None = Field(default=None, max_length=300)
+    contest_date: CalendarDate | None = None
     entries: int = Field(ge=0, le=10_000_000)
     unique_lineups: int = Field(ge=0, le=10_000_000)
     my_entries: int = Field(default=0, ge=0, le=10_000)
