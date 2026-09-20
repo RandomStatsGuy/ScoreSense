@@ -1,8 +1,9 @@
 """Personal DFS results. All records are scoped to the authenticated subject."""
 from datetime import date as CalendarDate, datetime, timezone
+import json
 from typing import Literal
 from uuid import uuid4
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, ConfigDict
 from app.auth import require_patron
 from src.products import dfs_results
@@ -40,6 +41,30 @@ class EntryImport(BaseModel):
     entries: list[Entry] = Field(max_length=5000, min_length=1)
 
 
+class ContestKey(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    site: Literal["draftkings", "fanduel"] = "draftkings"
+    contest_id: str = Field(min_length=1, max_length=100)
+
+
+class Contest(ContestKey):
+    """One finished contest, as the standings file described it.
+
+    `summary` and `tiers` are the breakdown itself and are stored as given, the
+    way a Build stores its lineups. The flat counts beside them are what the
+    saved-contest list reads, so drawing the list never loads a whole slate.
+    """
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    contest_name: str | None = Field(default=None, max_length=300)
+    entries: int = Field(ge=0, le=10_000_000)
+    unique_lineups: int = Field(ge=0, le=10_000_000)
+    my_entries: int = Field(default=0, ge=0, le=10_000)
+    my_payout_cents: int | None = Field(default=None, ge=0, le=10_000_000_000, strict=True)
+    my_fee_cents: int | None = Field(default=None, ge=0, le=10_000_000_000, strict=True)
+    summary: dict
+    tiers: list[dict] = Field(default_factory=list, max_length=2000)
+
+
 class Build(BaseModel):
     model_config = ConfigDict(allow_inf_nan=False)
     site: str = Field(max_length=50)
@@ -75,7 +100,6 @@ def import_results(request: EntryImport, account=Depends(owner), compact: bool =
 
 @router.post("/builds")
 def save_build(request: Build, account=Depends(owner)):
-    import json
     payload = request.model_dump()
     try:
         serialized = json.dumps(payload, allow_nan=False)
@@ -85,6 +109,37 @@ def save_build(request: Build, account=Depends(owner)):
         raise HTTPException(413, "Save a smaller lineup set.")
     payload.update(id=str(uuid4()), saved_at=datetime.now(timezone.utc).isoformat())
     return dfs_results.save_build(account, payload)
+
+
+@router.get("/contests")
+def get_contests(site: Literal["draftkings", "fanduel"] | None = None,
+                 contest_id: str | None = Query(default=None, max_length=100),
+                 account=Depends(owner)):
+    """Without both parameters this lists saved contests; with them it returns one."""
+    if site and contest_id:
+        found = dfs_results.read_contest(account, site, contest_id)
+        if not found:
+            raise HTTPException(404, "That contest is not saved to this account.")
+        return found
+    return dfs_results.read_contests(account)
+
+
+@router.post("/contests")
+def save_contest(request: Contest, account=Depends(owner)):
+    payload = request.model_dump(mode="json")
+    try:
+        serialized = json.dumps(payload, allow_nan=False)
+    except ValueError:
+        raise HTTPException(400, "Contest values must be finite numbers.")
+    if len(serialized) > 2_000_000:
+        raise HTTPException(413, "That contest breakdown is too large to save.")
+    payload["saved_at"] = datetime.now(timezone.utc).isoformat()
+    return dfs_results.save_contest(account, payload)
+
+
+@router.post("/contests/remove")
+def remove_contest(request: ContestKey, account=Depends(owner)):
+    return dfs_results.delete_contest(account, request.site, request.contest_id)
 
 
 @router.post("/results/remove")

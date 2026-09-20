@@ -68,6 +68,21 @@ export function parsePrizeStructure(text) {
   return tiers;
 }
 
+/**
+ * Read one money amount typed by hand — an entry fee, say.
+ *
+ * Returns null rather than 0 for anything unreadable, because a fee the app
+ * invented as free is worse than a fee it admits it does not have.
+ */
+export function parseMoneyCents(text) {
+  const raw = String(text ?? "").trim();
+  if (!raw) return null;
+  const found = MONEY_RE.exec(raw);
+  if (!found) return null;
+  const cents = Math.round(Number(found[1].replace(/,/g, "")) * 100);
+  return Number.isFinite(cents) && cents >= 0 ? cents : null;
+}
+
 /** Prize for one finishing position, or 0 when that position is outside the money. */
 export function prizeForPosition(tiers, position) {
   for (const tier of tiers) {
@@ -200,6 +215,9 @@ export function contestSummary({ entries = [], players = [], mine = [], tiers = 
       entry_name: String(e.entry_name ?? ""),
       rank: Number(e.rank),
       points: Number(e.points),
+      // Kept verbatim as well as parsed: saving an entry writes back the
+      // lineup the file gave, not a string reassembled from the slots.
+      lineup_text: String(e.lineup ?? ""),
       slots: parseLineupSlots(e.lineup),
     }))
     .filter((r) => Number.isFinite(r.rank));
@@ -272,6 +290,7 @@ export function contestSummary({ entries = [], players = [], mine = [], tiers = 
       entry_name: r.entry_name,
       rank: r.rank,
       points: r.points,
+      lineup_text: r.lineup_text,
       payout_cents: tiers.length ? payouts.get(r.rank) ?? 0 : null,
       // Share of the field this entry finished ahead of.
       percentile: rows.length ? (worseThan(r.points) / rows.length) * 100 : null,

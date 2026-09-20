@@ -3,8 +3,10 @@ import { DfsField, DfsFile } from "./DfsWorkspace";
 import { DFS_RESULTS_COPY } from "./dfsToolPresentation";
 import { readResultsFile } from "./dfsResultsFile.js";
 import { draftKingsUsername, dollars, inspectResultsCsv } from "./dfsResults.js";
-import { contestSummary, parsePrizeStructure } from "./dfsContest.js";
+import { contestSummary, parseMoneyCents, parsePrizeStructure } from "./dfsContest.js";
+import { contestEntryRows, contestSnapshot } from "./dfsContestSave.js";
 import { OwnershipScatter, WinnersBoard } from "./DfsContestCharts";
+import { jsonRequest } from "./useDfsBuilder";
 
 const C = DFS_RESULTS_COPY.contestReport;
 
@@ -41,28 +43,51 @@ function Stat({ label, value }) {
  * scored, what it owned against what it produced, what the top of the
  * leaderboard rostered, and where the viewer's own entries landed.
  *
- * Nothing here is saved — it reads the file and reports.
+ * Saving does two separate things, because they are read back in two places:
+ * the payouts go onto the account's entries, which is what the money cards on
+ * Results add up, and the breakdown itself is kept so it reopens without the
+ * CSV. Neither happens until asked.
  */
-export default function DfsContestReport({ importedFile = null }) {
+export default function DfsContestReport({ importedFile = null, onSaveEntries = null, contestNameFor = null }) {
   const [file, setFile] = useState(null);
+  const [opened, setOpened] = useState(null);
 
   // The page above may already have a standings file open. Adopt it so the
   // same file is never imported twice, and keep it after that import clears.
   useEffect(() => {
-    if (importedFile?.isStandings) setFile(importedFile);
+    if (importedFile?.isStandings) {
+      setFile(importedFile);
+      setOpened(null);
+    }
   }, [importedFile]);
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
   const [username, setUsername] = useState("");
   const [prizeText, setPrizeText] = useState("");
+  const [feeText, setFeeText] = useState("");
   const [view, setView] = useState("mine");
+  const [saved, setSaved] = useState([]);
+
+  // Saved contests are a convenience, not a dependency: the panel reads a file
+  // and reports whether or not anyone is signed in, so a failure here is quiet.
+  useEffect(() => {
+    const abort = new AbortController();
+    jsonRequest("/api/lineup/contests", { signal: abort.signal })
+      .then((data) => setSaved(data.contests || []))
+      .catch(() => {});
+    return () => abort.abort();
+  }, []);
 
   const pick = async (picked) => {
     if (!picked) return;
     setError("");
+    setNote("");
     try {
       const { text, filename } = await readResultsFile(picked);
       const inspected = inspectResultsCsv(text, { filename });
       if (!inspected.isStandings) throw new Error(C.notStandings);
+      setOpened(null);
       setFile({ ...inspected, name: picked.name });
     } catch (err) {
       setFile(null);
@@ -70,7 +95,10 @@ export default function DfsContestReport({ importedFile = null }) {
     }
   };
 
-  const summary = useMemo(() => {
+  const tiers = useMemo(() => parsePrizeStructure(prizeText), [prizeText]);
+  const feeCents = parseMoneyCents(feeText);
+
+  const computed = useMemo(() => {
     if (!file) return null;
     const entries = entriesFromFile(file);
     const wanted = draftKingsUsername(username);
@@ -79,15 +107,17 @@ export default function DfsContestReport({ importedFile = null }) {
           .filter((e) => draftKingsUsername(e.entry_name) === wanted)
           .map((e) => e.entry_id)
       : [];
-    return contestSummary({
-      entries,
-      players: file.players,
-      mine,
-      tiers: parsePrizeStructure(prizeText),
-    });
-  }, [file, username, prizeText]);
+    return contestSummary({ entries, players: file.players, mine, tiers });
+  }, [file, username, tiers]);
 
-  const hasPrizes = parsePrizeStructure(prizeText).length > 0;
+  const summary = file ? computed : opened?.summary || null;
+  const contestId = file ? file.contestId : opened?.contest_id || "";
+  const site = opened?.site || "draftkings";
+  const contestName =
+    opened?.contest_name ||
+    (contestId && contestNameFor ? contestNameFor(site, contestId) : "") ||
+    file?.name ||
+    "";
 
   // Totals over the viewer's own entries, so the money reads without arithmetic.
   const myTotals = useMemo(() => {
@@ -101,41 +131,150 @@ export default function DfsContestReport({ importedFile = null }) {
     };
   }, [summary]);
 
+  const save = async () => {
+    if (!summary || !contestId) return;
+    setBusy(true);
+    setError("");
+    setNote("");
+    try {
+      const rows = contestEntryRows({
+        mine: summary.mine,
+        site,
+        contestId,
+        contestName,
+        feeCents,
+      });
+      if (rows.length && onSaveEntries && !(await onSaveEntries(rows))) return;
+      const body = contestSnapshot({ summary, site, contestId, contestName, feeCents, tiers });
+      const next = await jsonRequest("/api/lineup/contests", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      setSaved(next.contests || []);
+      setNote(C.savedTo(rows.length));
+    } catch (err) {
+      setError(err.message || C.saveNeedsAccount);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reopen = async (row) => {
+    setBusy(true);
+    setError("");
+    setNote("");
+    try {
+      const found = await jsonRequest(
+        `/api/lineup/contests?site=${encodeURIComponent(row.site)}&contest_id=${encodeURIComponent(row.contest_id)}`,
+      );
+      setFile(null);
+      setOpened(found);
+      setPrizeText("");
+      setFeeText("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const forget = async (row) => {
+    if (!window.confirm(C.forgetConfirm)) return;
+    try {
+      const next = await jsonRequest("/api/lineup/contests/remove", {
+        method: "POST",
+        body: JSON.stringify({ site: row.site, contest_id: row.contest_id }),
+      });
+      setSaved(next.contests || []);
+      if (opened?.contest_id === row.contest_id && opened?.site === row.site) setOpened(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const clear = () => {
+    setFile(null);
+    setOpened(null);
+    setNote("");
+  };
+
   return (
     <section className="dfw-panel">
       <div className="dfw-panel-head">
         <h2>{C.title}</h2>
-        {file && <button onClick={() => setFile(null)}>{C.clear}</button>}
+        {(file || opened) && <button onClick={clear}>{opened ? C.backToImport : C.clear}</button>}
       </div>
       <p className="dfw-note">{C.help}</p>
-      {!file && <DfsFile label={C.pick} accept=".csv,.zip,text/csv" onFile={pick} />}
+      {!file && !opened && <DfsFile label={C.pick} accept=".csv,.zip,text/csv" onFile={pick} />}
       {error && <p className="dfw-note dfw-error" role="alert">{error}</p>}
+      {note && <p className="dfw-note" role="status">{note}</p>}
 
-      {file && summary && (
+      {saved.length > 0 && (
+        <div className="dfs-saved-contests">
+          <h3>{C.savedList}</h3>
+          <p className="dfw-note">{C.savedListHelp}</p>
+          <ul>
+            {saved.map((row) => (
+              <li key={`${row.site}|${row.contest_id}`}>
+                <span>
+                  {row.contest_name || row.contest_id}
+                  <small>
+                    {(row.entries ?? 0).toLocaleString()} {C.entries.toLowerCase()}
+                    {row.my_entries ? ` · ${row.my_entries} ${DFS_RESULTS_COPY.entry.toLowerCase()}` : ""}
+                    {row.my_payout_cents == null ? "" : ` · ${dollars(row.my_payout_cents)}`}
+                  </small>
+                </span>
+                <span className="dfs-saved-actions">
+                  <button disabled={busy} onClick={() => reopen(row)}>{C.open}</button>
+                  <button disabled={busy} onClick={() => forget(row)}>{C.forget}</button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {summary && (
         <>
           <p className="dfw-note">
-            {file.name} · {summary.field.entries.toLocaleString()} {C.entries.toLowerCase()}
+            {contestName} · {summary.field.entries.toLocaleString()} {C.entries.toLowerCase()}
           </p>
-          <div className="dfw-import-grid">
-            <DfsField label={C.username}>
-              <input
-                value={username}
-                placeholder={C.usernamePlaceholder}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </DfsField>
-            <DfsField label={C.prizes}>
-              <textarea
-                className="dfs-prize-input"
-                rows={4}
-                value={prizeText}
-                placeholder={C.prizesPlaceholder}
-                onChange={(e) => setPrizeText(e.target.value)}
-              />
-            </DfsField>
-          </div>
-          <p className="dfw-note">{C.usernameHelp}</p>
-          <p className="dfw-note">{C.prizesHelp}</p>
+
+          {file ? (
+            <>
+              <div className="dfw-import-grid">
+                <DfsField label={C.username}>
+                  <input
+                    value={username}
+                    placeholder={C.usernamePlaceholder}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                </DfsField>
+                <DfsField label={C.fee}>
+                  <input
+                    value={feeText}
+                    placeholder={C.feePlaceholder}
+                    inputMode="decimal"
+                    onChange={(e) => setFeeText(e.target.value)}
+                  />
+                </DfsField>
+                <DfsField label={C.prizes}>
+                  <textarea
+                    className="dfs-prize-input"
+                    rows={4}
+                    value={prizeText}
+                    placeholder={C.prizesPlaceholder}
+                    onChange={(e) => setPrizeText(e.target.value)}
+                  />
+                </DfsField>
+              </div>
+              <p className="dfw-note">{C.usernameHelp}</p>
+              <p className="dfw-note">{C.feeHelp}</p>
+              <p className="dfw-note">{C.prizesHelp}</p>
+            </>
+          ) : (
+            <p className="dfw-note">{C.frozen}</p>
+          )}
 
           <dl className="dfs-contest-stats">
             <Stat label={C.entries} value={summary.field.entries.toLocaleString()} />
@@ -176,7 +315,18 @@ export default function DfsContestReport({ importedFile = null }) {
               </>
             )}
           </dl>
-          {!hasPrizes && <p className="dfw-note">{C.noPrizes}</p>}
+          {file && !tiers.length && <p className="dfw-note">{C.noPrizes}</p>}
+
+          {file && (
+            <div className="dfs-contest-save">
+              <button className="btn-primary" disabled={busy || !contestId} onClick={save}>
+                {busy ? C.saving : C.save}
+              </button>
+              <p className="dfw-note">
+                {contestId ? C.saveHelp(summary.mine.length) : C.saveNeedsId}
+              </p>
+            </div>
+          )}
 
           <OwnershipScatter ownership={summary.ownership} />
           <WinnersBoard ownership={summary.ownership} winners={summary.winners} />

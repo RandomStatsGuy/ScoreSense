@@ -217,7 +217,13 @@ export default function DfsResults() {
           {progress}
         </p>
       )}
-      <DfsContestReport importedFile={file} />
+      <DfsContestReport
+        importedFile={file}
+        onSaveEntries={updateEntries}
+        contestNameFor={(forSite, id) =>
+          data.entries.find((e) => e.site === forSite && e.contest_id === id)?.contest_name || ""
+        }
+      />
       {file && (
         <section className="dfw-panel">
           <div className="dfw-panel-head">
