@@ -16,6 +16,8 @@ export const DFS_WORKSPACE_COPY = {
 };
 
 export const DFS_RESULTS_COPY = {
+  requestFailed: "The request could not be completed.",
+  notJson: (url, status) => `The server returned a page instead of data for ${String(url).split("?")[0]} (${status}). Reload the page; if it keeps happening the API is not answering.`,
   fileLimit: "Import a CSV or ZIP up to 100 MB. The CSV inside a ZIP must also be under 100 MB.",
   invalidZip: "This ZIP could not be read. Download the contest export again or upload the extracted CSV.",
   zipCsvCount: "Choose a ZIP containing one results CSV, or upload the extracted CSV directly.",
