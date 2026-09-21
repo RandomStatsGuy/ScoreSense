@@ -18,6 +18,7 @@ import {
   formatSalary,
   gameStackLabel,
   highestTotalGameId,
+  allocateMatchupWeights,
   isCaptainFormat,
   launchCopy,
   lockedSalaryTotal,
@@ -34,6 +35,7 @@ import {
   stackPlayerIds,
   stackPreviewCopy,
   vegasGameCta,
+  matchupWeightLabel,
   parseSalaryCap,
   pinActionLabel,
   pickSwapTarget,
@@ -237,6 +239,20 @@ test("vegas labels read like a betting board", () => {
     highestTotalGameId([game, { game_id: "g2", total_line: 51.5 }]),
     "g2",
   );
+});
+
+test("matchup weights allocate the requested lineup portfolio", () => {
+  assert.deepEqual(
+    allocateMatchupWeights({ g1: 3, g2: 2, g3: 1, off: 0 }, 12),
+    [
+      { gameId: "g1", weight: 3, count: 6 },
+      { gameId: "g2", weight: 2, count: 4 },
+      { gameId: "g3", weight: 1, count: 2 },
+    ],
+  );
+  assert.equal(matchupWeightLabel(0), "Off");
+  assert.equal(matchupWeightLabel(3), "3×");
+  assert.equal(matchupWeightLabel(99), "4×");
 });
 
 test("teamMatchupHint compresses opponent and implied total", () => {

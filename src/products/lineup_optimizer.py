@@ -888,6 +888,7 @@ def optimize_multiple_lineups(
     randomness: float = 0.0,
     seed: int | None = None,
     captain_exposure_limits: dict[str, float] | None = None,
+    stack_game_weights: list[dict] | None = None,
     **kwargs,
 ) -> dict:
     """Generate diverse lineups with overlap caps, exposure caps, and optional jitter."""
@@ -916,7 +917,8 @@ def optimize_multiple_lineups(
     if exposure_cap == 0:
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
 
-    for _ in range(count):
+    stack_schedule = weighted_stack_schedule(stack_game_weights, count)
+    for lineup_index in range(count):
         noise = None
         if randomness > 0:
             noise = {
@@ -924,6 +926,8 @@ def optimize_multiple_lineups(
                 for p in players
             }
         iteration_kwargs = dict(kwargs)
+        if stack_schedule:
+            iteration_kwargs["stack_teams"] = stack_schedule[lineup_index]
         iteration_kwargs["excluded_captain_ids"] = set(kwargs.get("excluded_captain_ids") or []) | {
             pid for pid, cap in captain_caps.items() if captain_usage.get(pid, 0) >= cap
         }
@@ -1028,6 +1032,7 @@ def optimize_from_pool_dataframe(
     stack_bring_back: bool = False,
     stack_teams: list[str] | None = None,
     stack_qb_ids: list[str] | None = None,
+    stack_game_weights: list[dict] | None = None,
     max_per_team: int | None = None,
     min_salary: int | None = None,
     lineup_count: int = 1,
@@ -1083,8 +1088,12 @@ def optimize_from_pool_dataframe(
             randomness=randomness,
             seed=seed,
             captain_exposure_limits=captain_exposure_limits,
+            stack_game_weights=stack_game_weights,
             **opt_kwargs,
         )
+    stack_schedule = weighted_stack_schedule(stack_game_weights, 1)
+    if stack_schedule:
+        opt_kwargs["stack_teams"] = stack_schedule[0]
     if randomness > 0:
         rng = np.random.default_rng(seed)
         opt_kwargs["objective_noise"] = {
@@ -1092,3 +1101,26 @@ def optimize_from_pool_dataframe(
             for p in players
         }
     return optimize_lineup(players, **opt_kwargs)
+
+
+def weighted_stack_schedule(stack_game_weights: list[dict] | None, count: int) -> list[list[str]]:
+    """Deterministically spread lineup stack sources according to matchup weights."""
+    games = []
+    for raw in stack_game_weights or []:
+        teams = [str(team).strip().upper() for team in raw.get("teams", []) if str(team).strip()]
+        teams = list(dict.fromkeys(teams))
+        weight = max(0, min(4, int(raw.get("weight", 0) or 0)))
+        if len(teams) == 2 and weight:
+            games.append({"teams": teams, "weight": weight, "score": 0})
+    requested = max(0, int(count or 0))
+    if not games or not requested:
+        return []
+    total_weight = sum(game["weight"] for game in games)
+    schedule: list[list[str]] = []
+    for _ in range(requested):
+        for game in games:
+            game["score"] += game["weight"]
+        selected = max(games, key=lambda game: game["score"])
+        selected["score"] -= total_weight
+        schedule.append(list(selected["teams"]))
+    return schedule

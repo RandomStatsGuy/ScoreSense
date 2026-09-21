@@ -1,9 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
+  allocateMatchupWeights,
+  DFS_STEP_COPY,
   DFS_WORKSPACE_COPY as C,
   filterObjectives,
   formatSalary,
+  gameStackLabel,
+  highestTotalGameId,
+  matchupWeightLabel,
+  slateGames,
+  vegasImplied,
+  vegasKickoffLabel,
+  vegasSpreadLabel,
+  vegasTotalLabel,
 } from "./dfsToolPresentation";
 import { buildSiteLineupCsv, buildLineupDetailCsv } from "./dfsExport";
 import { readEntryTemplate, buildEntryCsv } from "./dfsEntryExport";
@@ -64,6 +74,73 @@ export function DfsField({ label, children }) {
       <span>{label}</span>
       {children}
     </div>
+  );
+}
+
+function DfsMatchupBoard({ b }) {
+  const games = useMemo(
+    () => slateGames(b.vegasGames, b.pool),
+    [b.vegasGames, b.pool],
+  );
+  const highestId = highestTotalGameId(games);
+  const allocation = allocateMatchupWeights(b.stackWeights, b.settings.count);
+  if (b.isCaptain) return null;
+  return (
+    <section className="dfw-panel dfw-matchups" aria-labelledby="dfw-matchups-title">
+      <div className="dfw-matchups-head">
+        <div>
+          <h2 id="dfw-matchups-title">{DFS_STEP_COPY.shootoutTitle}</h2>
+          <p className="dfw-note">{DFS_STEP_COPY.shootoutSupport}</p>
+        </div>
+        {!!allocation.length && (
+          <button type="button" onClick={b.clearStackWeights}>
+            {DFS_STEP_COPY.clearGames}
+          </button>
+        )}
+      </div>
+      {!games.length ? (
+        <p className="dfw-note">{DFS_STEP_COPY.shootoutEmpty}</p>
+      ) : (
+        <div className="dfw-matchup-layout">
+          <div className="dfw-matchup-grid">
+            {games.map((game) => {
+              const weight = Number(b.stackWeights[game.game_id]) || 0;
+              return (
+                <article key={game.game_id} className={`dfw-matchup-card${weight ? " is-active" : ""}`}>
+                  <div className="dfw-matchup-kick">
+                    <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
+                    {game.game_id === highestId && <strong>{DFS_STEP_COPY.highestTotal}</strong>}
+                  </div>
+                  <div className="dfw-matchup-teams">
+                    <div><b>{game.away}</b><span>{vegasImplied(game.away_implied)}</span></div>
+                    <div><b>{game.home}</b><span>{vegasImplied(game.home_implied)}</span></div>
+                  </div>
+                  <div className="dfw-matchup-line">
+                    <strong>{vegasTotalLabel(game)}</strong><span>{vegasSpreadLabel(game)}</span>
+                  </div>
+                  <div className="dfw-matchup-weight">
+                    <span>{DFS_STEP_COPY.stackWeight}</span>
+                    <div>
+                      <button type="button" aria-label={`${DFS_STEP_COPY.lowerWeight}: ${gameStackLabel(game)}`} disabled={!weight || b.building} onClick={() => b.changeStackWeight(game.game_id, -1)}>−</button>
+                      <strong aria-live="polite">{matchupWeightLabel(weight)}</strong>
+                      <button type="button" aria-label={`${DFS_STEP_COPY.raiseWeight}: ${gameStackLabel(game)}`} disabled={weight >= 4 || b.building} onClick={() => b.changeStackWeight(game.game_id, 1)}>+</button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <aside className="dfw-matchup-plan">
+            <h3>{DFS_STEP_COPY.lineupPlan}</h3>
+            {!allocation.length ? <p className="dfw-note">{DFS_STEP_COPY.noWeightedGames}</p> : allocation.map((entry) => {
+              const game = games.find((item) => item.game_id === entry.gameId);
+              return game ? <div className="dfw-matchup-plan-row" key={entry.gameId}><span>{gameStackLabel(game)}</span><strong>{DFS_STEP_COPY.lineupAllocation(entry.count)}</strong></div> : null;
+            })}
+            <p className="dfw-note">{DFS_STEP_COPY.weightOnNote}</p>
+          </aside>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -198,6 +275,7 @@ export default function DfsWorkspace({ b }) {
           disabled={!b.isDfs || b.busy || b.building || !b.context.week}
         />
       </div>
+      <DfsMatchupBoard b={b} />
       <div className="dfw-workspace">
         <aside className="dfw-panel dfw-settings">
           <h2>{C.settings}</h2>

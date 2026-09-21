@@ -23,6 +23,7 @@ def test_optimize_request_supports_construction_controls():
         stack_bring_back=True,
         stack_teams=["MIA", "LV"],
         stack_qb_ids=["00-0038128"],
+        stack_game_weights=[{"game_id": "mia-lv", "teams": ["MIA", "LV"], "weight": 3}],
         max_per_team=3,
         min_salary=49000,
         lineup_count=150,
@@ -33,6 +34,7 @@ def test_optimize_request_supports_construction_controls():
     assert request.stack_bring_back is True
     assert request.stack_teams == ["MIA", "LV"]
     assert request.stack_qb_ids == ["00-0038128"]
+    assert request.stack_game_weights[0].weight == 3
     assert request.max_exposure == 0.5
 
     defaults = LineupOptimizeRequest()
