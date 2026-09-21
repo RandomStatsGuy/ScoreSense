@@ -12,9 +12,11 @@ import {
   slateGames,
   vegasImplied,
   vegasKickoffLabel,
+  vegasLineMovement,
   vegasSpreadLabel,
-  vegasTotalLabel,
+  vegasTotalValue,
 } from "./dfsToolPresentation";
+import { nflTeamColors } from "./DraftHub/nflTeamColors";
 import { buildSiteLineupCsv, buildLineupDetailCsv } from "./dfsExport";
 import { readEntryTemplate, buildEntryCsv } from "./dfsEntryExport";
 import { moneyCents } from "./dfsCsv";
@@ -83,6 +85,7 @@ function DfsMatchupBoard({ b }) {
     [b.vegasGames, b.pool],
   );
   const highestId = highestTotalGameId(games);
+  const showsLineMoves = games.some((game) => vegasLineMovement(game).hasBaseline);
   const allocation = allocateMatchupWeights(b.stackWeights, b.settings.count);
   if (b.isCaptain) return null;
   return (
@@ -91,6 +94,7 @@ function DfsMatchupBoard({ b }) {
         <div>
           <h2 id="dfw-matchups-title">{DFS_STEP_COPY.shootoutTitle}</h2>
           <p className="dfw-note">{DFS_STEP_COPY.shootoutSupport}</p>
+          {showsLineMoves && <p className="dfw-note">{DFS_STEP_COPY.lineMoveNote}</p>}
         </div>
         {!!allocation.length && (
           <button type="button" onClick={b.clearStackWeights}>
@@ -105,18 +109,48 @@ function DfsMatchupBoard({ b }) {
           <div className="dfw-matchup-grid">
             {games.map((game) => {
               const weight = Number(b.stackWeights[game.game_id]) || 0;
+              const movement = vegasLineMovement(game);
+              const awayColors = nflTeamColors(game.away);
+              const homeColors = nflTeamColors(game.home);
               return (
-                <article key={game.game_id} className={`dfw-matchup-card${weight ? " is-active" : ""}`}>
+                <article
+                  key={game.game_id}
+                  className={`dfw-matchup-card${weight ? " is-active" : ""}`}
+                  style={{
+                    "--dfw-away-top": awayColors.jersey[0],
+                    "--dfw-away-bottom": awayColors.jersey[1],
+                    "--dfw-away-mark": awayColors.plate,
+                    "--dfw-home-top": homeColors.jersey[0],
+                    "--dfw-home-bottom": homeColors.jersey[1],
+                    "--dfw-home-mark": homeColors.plate,
+                  }}
+                >
                   <div className="dfw-matchup-kick">
                     <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
                     {game.game_id === highestId && <strong>{DFS_STEP_COPY.highestTotal}</strong>}
                   </div>
-                  <div className="dfw-matchup-teams">
-                    <div><b>{game.away}</b><span>{vegasImplied(game.away_implied)}</span></div>
-                    <div><b>{game.home}</b><span>{vegasImplied(game.home_implied)}</span></div>
+                  <div className="dfw-matchup-stage">
+                    <div className="dfw-matchup-team dfw-matchup-team--away">
+                      <b>{game.away}</b>
+                      <span>{vegasImplied(game.away_implied)} implied</span>
+                    </div>
+                    <span className="dfw-matchup-at">at</span>
+                    <div className="dfw-matchup-team dfw-matchup-team--home">
+                      <b>{game.home}</b>
+                      <span>{vegasImplied(game.home_implied)} implied</span>
+                    </div>
                   </div>
-                  <div className="dfw-matchup-line">
-                    <strong>{vegasTotalLabel(game)}</strong><span>{vegasSpreadLabel(game)}</span>
+                  <div className="dfw-matchup-markets" role="group" aria-label={DFS_STEP_COPY.currentLine}>
+                    <div>
+                      <span>Total</span>
+                      <strong>{vegasTotalValue(game)}</strong>
+                      <small className={movement.totalChanged ? "has-moved" : ""}>{movement.total}</small>
+                    </div>
+                    <div>
+                      <span>Spread</span>
+                      <strong>{vegasSpreadLabel(game)}</strong>
+                      <small className={movement.spreadChanged ? "has-moved" : ""}>{movement.spread}</small>
+                    </div>
                   </div>
                   <div className="dfw-matchup-weight">
                     <span>{DFS_STEP_COPY.stackWeight}</span>

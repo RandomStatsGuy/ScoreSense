@@ -283,6 +283,12 @@ export const DFS_STEP_COPY = {
   lineupPlan: "Stack plan",
   noWeightedGames: "No matchup stacks selected.",
   lineupAllocation: (count) => `${count} lineup${count === 1 ? "" : "s"}`,
+  closedSlate: "DraftKings is no longer returning salaries for this slate. It has likely locked or expired. The matchup board is still available; choose another live slate or import its salary CSV to build.",
+  currentLine: "Current line",
+  lineMoveNote: "Line moves compare the current consensus with the first line ScoreSense saw this week.",
+  noMove: "No move",
+  totalMove: (direction, from) => `${direction === "up" ? "Up" : "Down"} from ${from}`,
+  spreadMove: (from) => `From ${from}`,
   stacksTitle: "Stacks from these games",
   stacksSupport: "Build takes a QB from the games you marked. Pin a stack only if you want that quarterback.",
   useStack: "Use this stack",
@@ -982,18 +988,60 @@ function lineNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
-export function vegasSpreadLabel(game = {}) {
-  const spread = lineNumber(game.spread_line);
+function lineValue(value) {
+  const num = lineNumber(value);
+  if (num == null) return "—";
+  return Number.isInteger(num) ? String(num) : num.toFixed(1);
+}
+
+function spreadLabelForValue(game, value) {
+  const spread = lineNumber(value);
   if (spread == null) return "No line";
   if (spread === 0) return "Pick 'em";
   const favorite = spread > 0 ? game.home : game.away;
-  return `${displayNflTeam(favorite)} -${Math.abs(spread)}`;
+  return `${displayNflTeam(favorite)} -${lineValue(Math.abs(spread))}`;
+}
+
+export function vegasSpreadLabel(game = {}) {
+  return spreadLabelForValue(game, game.spread_line);
 }
 
 export function vegasTotalLabel(game = {}) {
   const total = lineNumber(game.total_line);
   if (total == null) return "O/U —";
-  return `O/U ${total}`;
+  return `O/U ${lineValue(total)}`;
+}
+
+export function vegasTotalValue(game = {}) {
+  return lineValue(game.total_line);
+}
+
+/** Movement against the first line ScoreSense saw. Empty text when there is no baseline. */
+export function vegasLineMovement(game = {}) {
+  const currentTotal = lineNumber(game.total_line);
+  const firstTotal = lineNumber(game.first_seen_total_line);
+  const currentSpread = lineNumber(game.spread_line);
+  const firstSpread = lineNumber(game.first_seen_spread_line);
+  const hasTotalBaseline = currentTotal != null && firstTotal != null;
+  const hasSpreadBaseline = currentSpread != null && firstSpread != null;
+  const totalChanged = hasTotalBaseline && currentTotal !== firstTotal;
+  const spreadChanged = hasSpreadBaseline && currentSpread !== firstSpread;
+  let total = "";
+  if (totalChanged) {
+    total = DFS_STEP_COPY.totalMove(currentTotal > firstTotal ? "up" : "down", lineValue(firstTotal));
+  } else if (hasTotalBaseline) {
+    total = DFS_STEP_COPY.noMove;
+  }
+  let spread = "";
+  if (spreadChanged) spread = DFS_STEP_COPY.spreadMove(spreadLabelForValue(game, firstSpread));
+  else if (hasSpreadBaseline) spread = DFS_STEP_COPY.noMove;
+  return {
+    hasBaseline: hasTotalBaseline || hasSpreadBaseline,
+    totalChanged,
+    spreadChanged,
+    total,
+    spread,
+  };
 }
 
 export function vegasImplied(value) {

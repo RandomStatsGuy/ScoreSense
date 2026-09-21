@@ -2,7 +2,14 @@
 
 import pandas as pd
 
-from src.products.vegas_lines import build_vegas_board
+from src.products import vegas_lines
+from src.products.vegas_lines import (
+    LINE_REFRESH_SECONDS,
+    attach_line_history,
+    build_vegas_board,
+    refresh_lines_if_stale,
+    refresh_schedule_season,
+)
 
 
 def _schedule_frame() -> pd.DataFrame:
@@ -120,3 +127,54 @@ def test_vegas_board_handles_missing_lines():
     assert gb_game["home_implied"] is None
     assert gb_game["favorite"] is None
     assert gb_game["kickoff_et"].startswith("2026-09-13T16:25")
+
+
+def test_line_history_keeps_first_seen_consensus(tmp_path):
+    history_path = tmp_path / "2026_w1.json"
+    first = build_vegas_board(2026, 1, schedules=_schedule_frame())
+    attach_line_history(first, history_path)
+
+    moved_frame = _schedule_frame()
+    moved_frame.loc[moved_frame["game_id"] == "2026_01_NE_SEA", "spread_line"] = 5.5
+    moved_frame.loc[moved_frame["game_id"] == "2026_01_NE_SEA", "total_line"] = 46.0
+    moved = build_vegas_board(2026, 1, schedules=moved_frame)
+    attach_line_history(moved, history_path)
+
+    sea_game = moved["games"][0]
+    assert sea_game["first_seen_spread_line"] == 3.5
+    assert sea_game["first_seen_total_line"] == 44.5
+    assert sea_game["spread_line"] == 5.5
+    assert sea_game["total_line"] == 46.0
+
+
+def test_schedule_refresh_replaces_only_that_season(tmp_path):
+    cache = tmp_path / "nfl_schedules.parquet"
+    current = _schedule_frame()
+    older = current.copy()
+    older["season"] = 2025
+    older["game_id"] = older["game_id"].str.replace("2026_", "2025_", regex=False)
+    pd.concat([older, current], ignore_index=True).to_parquet(cache, index=False)
+
+    moved = _schedule_frame()
+    moved.loc[moved["game_id"] == "2026_01_NE_SEA", "total_line"] = 46.0
+    assert refresh_schedule_season(2026, cache, loader=lambda seasons: moved)
+
+    out = pd.read_parquet(cache)
+    assert sorted(out["season"].unique().tolist()) == [2025, 2026]
+    assert len(out) == len(current) * 2
+    assert out.loc[out["game_id"] == "2026_01_NE_SEA", "total_line"].iloc[0] == 46.0
+    assert out.loc[out["game_id"] == "2025_01_NE_SEA", "total_line"].iloc[0] == 44.5
+
+
+def test_stale_lines_start_one_background_refresh(tmp_path):
+    vegas_lines._line_refresh_attempts.pop(2031, None)
+    cache = tmp_path / "nfl_schedules.parquet"
+    _schedule_frame().to_parquet(cache, index=False)
+    written_at = cache.stat().st_mtime
+    started = []
+
+    assert not refresh_lines_if_stale(2031, cache, now=written_at + 60, start=started.append)
+    later = written_at + LINE_REFRESH_SECONDS + 1
+    assert refresh_lines_if_stale(2031, cache, now=later, start=started.append)
+    assert not refresh_lines_if_stale(2031, cache, now=later + 1, start=started.append)
+    assert len(started) == 1
