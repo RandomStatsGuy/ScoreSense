@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
   allocateMatchupWeights,
@@ -94,6 +94,7 @@ function DfsMatchupBoard({ b }) {
         <div>
           <h2 id="dfw-matchups-title">{DFS_STEP_COPY.shootoutTitle}</h2>
           <p className="dfw-note">{DFS_STEP_COPY.shootoutSupport}</p>
+          <p className="dfw-note">{DFS_STEP_COPY.impliedNote}</p>
           {showsLineMoves && <p className="dfw-note">{DFS_STEP_COPY.lineMoveNote}</p>}
         </div>
         {!!allocation.length && (
@@ -105,7 +106,15 @@ function DfsMatchupBoard({ b }) {
       {!games.length ? (
         <p className="dfw-note">{DFS_STEP_COPY.shootoutEmpty}</p>
       ) : (
-        <div className="dfw-matchup-layout">
+        <>
+          <div className="dfw-matchup-plan">
+            <h3>{DFS_STEP_COPY.lineupPlan}</h3>
+            {!allocation.length ? <p className="dfw-note">{DFS_STEP_COPY.noWeightedGames}</p> : allocation.map((entry) => {
+              const game = games.find((item) => item.game_id === entry.gameId);
+              return game ? <div className="dfw-matchup-plan-row" key={entry.gameId}><span>{gameStackLabel(game)}</span><strong>{DFS_STEP_COPY.lineupAllocation(entry.count)}</strong></div> : null;
+            })}
+            <p className="dfw-note">{DFS_STEP_COPY.weightOnNote}</p>
+          </div>
           <div className="dfw-matchup-grid">
             {games.map((game) => {
               const weight = Number(b.stackWeights[game.game_id]) || 0;
@@ -132,12 +141,12 @@ function DfsMatchupBoard({ b }) {
                   <div className="dfw-matchup-stage">
                     <div className="dfw-matchup-team dfw-matchup-team--away">
                       <b>{game.away}</b>
-                      <span>{vegasImplied(game.away_implied)} implied</span>
+                      <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.away_implied)}</span>
                     </div>
                     <span className="dfw-matchup-at">at</span>
                     <div className="dfw-matchup-team dfw-matchup-team--home">
                       <b>{game.home}</b>
-                      <span>{vegasImplied(game.home_implied)} implied</span>
+                      <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.home_implied)}</span>
                     </div>
                   </div>
                   <div className="dfw-matchup-markets" role="group" aria-label={DFS_STEP_COPY.currentLine}>
@@ -152,8 +161,8 @@ function DfsMatchupBoard({ b }) {
                       <small className={movement.spreadChanged ? "has-moved" : ""}>{movement.spread}</small>
                     </div>
                   </div>
-                  <div className="dfw-matchup-weight">
-                    <span>{DFS_STEP_COPY.stackWeight}</span>
+                  <div className="dfw-matchup-weight" role="group" aria-label={`${DFS_STEP_COPY.stackWeight}: ${gameStackLabel(game)}`}>
+                    <span>{DFS_STEP_COPY.weightShort}</span>
                     <div>
                       <button type="button" aria-label={`${DFS_STEP_COPY.lowerWeight}: ${gameStackLabel(game)}`} disabled={!weight || b.building} onClick={() => b.changeStackWeight(game.game_id, -1)}>−</button>
                       <strong aria-live="polite">{matchupWeightLabel(weight)}</strong>
@@ -164,15 +173,7 @@ function DfsMatchupBoard({ b }) {
               );
             })}
           </div>
-          <aside className="dfw-matchup-plan">
-            <h3>{DFS_STEP_COPY.lineupPlan}</h3>
-            {!allocation.length ? <p className="dfw-note">{DFS_STEP_COPY.noWeightedGames}</p> : allocation.map((entry) => {
-              const game = games.find((item) => item.game_id === entry.gameId);
-              return game ? <div className="dfw-matchup-plan-row" key={entry.gameId}><span>{gameStackLabel(game)}</span><strong>{DFS_STEP_COPY.lineupAllocation(entry.count)}</strong></div> : null;
-            })}
-            <p className="dfw-note">{DFS_STEP_COPY.weightOnNote}</p>
-          </aside>
-        </div>
+        </>
       )}
     </section>
   );
@@ -187,6 +188,8 @@ export default function DfsWorkspace({ b }) {
     key: "Projected Points",
     descending: true,
   });
+  const slateRef = useRef(null),
+    lineupsRef = useRef(null);
   const [template, setTemplate] = useState(null),
     [assignments, setAssignments] = useState({}),
     [sameSlate, setSameSlate] = useState(false);
@@ -273,11 +276,18 @@ export default function DfsWorkspace({ b }) {
       b.setError(e.message);
     }
   };
+  const showLineups = () => {
+    const target = lineupsRef.current;
+    if (!target) return;
+    const barHeight = slateRef.current?.offsetHeight || 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - barHeight - 16;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
   const changeSort = (key) =>
     setSort((s) => ({ key, descending: s.key === key ? !s.descending : true }));
   return (
     <>
-      <div className="dfw-slate">
+      <div className="dfw-slate" ref={slateRef}>
         <HubFilterMenu
           label={C.format}
           value={b.context.site}
@@ -308,146 +318,23 @@ export default function DfsWorkspace({ b }) {
           onFile={b.importSalary}
           disabled={!b.isDfs || b.busy || b.building || !b.context.week}
         />
+        <div className="dfw-build">
+          {!!b.lineups.length && !b.building && (
+            <button type="button" onClick={showLineups}>
+              {C.viewLineups(b.lineups.length)}
+            </button>
+          )}
+          <button
+            type="button"
+            className="dfw-primary dfw-build-button"
+            disabled={b.busy || b.building || !b.pool.length}
+            onClick={b.run}
+          >
+            {b.building ? C.building : lineup.length ? C.rebuild : C.build}
+          </button>
+        </div>
       </div>
-      <DfsMatchupBoard b={b} />
       <div className="dfw-workspace">
-        <aside className="dfw-panel dfw-settings">
-          <h2>{C.settings}</h2>
-          <HubFilterMenu
-            label={C.season}
-            value={b.context.season}
-            options={options(
-              b.meta?.seasons || [b.context.season].filter(Boolean),
-            )}
-            onChange={(season) => b.changeContext({ season: Number(season) })}
-            disabled={b.building}
-          />
-          <HubFilterMenu
-            label={C.week}
-            value={b.context.week}
-            options={options(
-              b.meta?.weeks_by_season?.[String(b.context.season)] ||
-                [b.context.week].filter(Boolean),
-            )}
-            onChange={(week) => b.changeContext({ week: Number(week) })}
-            disabled={b.building}
-          />
-          <HubFilterMenu
-            label={C.count}
-            value={b.settings.count}
-            options={options([1, 3, 5, 10, 20, 50, 150])}
-            onChange={(v) => b.changeSetting("count", Number(v))}
-          />
-          <HubFilterMenu
-            label={C.goal}
-            value={b.settings.objective}
-            options={filterObjectives(b.isDfs).map((o) => ({
-              ...o,
-              detail: o.hint,
-            }))}
-            onChange={(v) => b.changeSetting("objective", v)}
-          />
-          {b.isCaptain && (
-            <HubFilterMenu
-              label={C.captain}
-              value={b.settings.lockedCaptain}
-              options={[
-                { id: "", label: C.anyCaptain },
-                ...eligible
-                  .filter((p) => p["Projected Points"] != null)
-                  .map((p) => ({ id: p.player_id, label: p.Player })),
-              ]}
-              onChange={(v) => b.changeSetting("lockedCaptain", v)}
-            />
-          )}
-          <HubFilterMenu
-            label={C.exposure}
-            value={b.settings.exposure}
-            options={[1, 0.8, 0.7, 0.6, 0.5, 0.3, 0.2].map((v) => ({
-              id: v,
-              label: `${v * 100}% · ${Math.floor(v * b.settings.count + 1e-9)} / ${b.settings.count}`,
-            }))}
-            onChange={(v) => b.changeSetting("exposure", Number(v))}
-          />
-          <HubFilterMenu
-            label={C.differences}
-            value={b.settings.differences}
-            options={options([1, 2, 3, 4])}
-            onChange={(v) => b.changeSetting("differences", Number(v))}
-          />
-          {b.isDfs && (
-            <DfsField label={C.salary}>
-              <div className="dfw-range">
-                <input
-                  aria-label={C.min}
-                  type="number"
-                  min="0"
-                  max={cap}
-                  step="100"
-                  value={b.settings.minSalary}
-                  onChange={(e) =>
-                    b.changeSetting("minSalary", Number(e.target.value))
-                  }
-                />
-                <span>–</span>
-                <input
-                  aria-label={C.max}
-                  type="number"
-                  min="0"
-                  max={cap}
-                  step="100"
-                  value={b.settings.maxSalary}
-                  onChange={(e) =>
-                    b.changeSetting("maxSalary", Number(e.target.value))
-                  }
-                />
-              </div>
-            </DfsField>
-          )}
-          <details>
-            <summary>{C.stacks}</summary>
-            <div className="dfw-settings">
-              {!b.isCaptain && (
-                <>
-                  <HubFilterMenu
-                    label={C.qbStack}
-                    value={b.settings.qbStack}
-                    options={options([0, 1, 2, 3])}
-                    onChange={(v) => b.changeSetting("qbStack", Number(v))}
-                  />
-                  <label className="dfw-check">
-                    <input
-                      type="checkbox"
-                      checked={b.settings.bringBack}
-                      onChange={(e) =>
-                        b.changeSetting("bringBack", e.target.checked)
-                      }
-                    />
-                    {C.bringBack}
-                  </label>
-                </>
-              )}
-              <HubFilterMenu
-                label={C.maxTeam}
-                value={b.settings.maxTeam}
-                options={options([0, 2, 3, 4, 5])}
-                onChange={(v) => b.changeSetting("maxTeam", Number(v))}
-              />
-              <HubFilterMenu
-                label={C.jitter}
-                value={b.settings.randomness}
-                options={[0, 0.05, 0.12, 0.25].map((v) => ({
-                  id: v,
-                  label: `${v * 100}%`,
-                }))}
-                onChange={(v) => b.changeSetting("randomness", Number(v))}
-              />
-              <p className="dfw-note">{C.jitterNote}</p>
-            </div>
-          </details>
-          <p className="dfw-note">{C.lockNote}</p>
-          <p className="dfw-note">{C.contestNote}</p>
-        </aside>
         <section className="dfw-center">
           <div className="dfw-panel">
             <nav className="dfw-tabs" aria-label={C.pool}>
@@ -710,13 +597,172 @@ export default function DfsWorkspace({ b }) {
               </DfsField>
             )}
           </div>
-          {!!b.lineups.length && (
-            <section className="dfw-panel">
-              <div className="dfw-panel-head">
-                <h2>
-                  {b.lineups.length} {C.count.toLowerCase()}
-                </h2>
+        </section>
+        <div className="dfw-rail">
+          <section className="dfw-panel dfw-settings" aria-labelledby="dfw-settings-title">
+          <h2 id="dfw-settings-title">{C.settings}</h2>
+          <div className="dfw-settings-grid">
+          <HubFilterMenu
+            label={C.season}
+            value={b.context.season}
+            options={options(
+              b.meta?.seasons || [b.context.season].filter(Boolean),
+            )}
+            onChange={(season) => b.changeContext({ season: Number(season) })}
+            disabled={b.building}
+          />
+          <HubFilterMenu
+            label={C.week}
+            value={b.context.week}
+            options={options(
+              b.meta?.weeks_by_season?.[String(b.context.season)] ||
+                [b.context.week].filter(Boolean),
+            )}
+            onChange={(week) => b.changeContext({ week: Number(week) })}
+            disabled={b.building}
+          />
+          <HubFilterMenu
+            label={C.count}
+            value={b.settings.count}
+            options={options([1, 3, 5, 10, 20, 50, 150])}
+            onChange={(v) => b.changeSetting("count", Number(v))}
+          />
+          <HubFilterMenu
+            label={C.goal}
+            value={b.settings.objective}
+            options={filterObjectives(b.isDfs).map((o) => ({
+              ...o,
+              detail: o.hint,
+            }))}
+            onChange={(v) => b.changeSetting("objective", v)}
+          />
+          {b.isCaptain && (
+            <HubFilterMenu
+              label={C.captain}
+              value={b.settings.lockedCaptain}
+              options={[
+                { id: "", label: C.anyCaptain },
+                ...eligible
+                  .filter((p) => p["Projected Points"] != null)
+                  .map((p) => ({ id: p.player_id, label: p.Player })),
+              ]}
+              onChange={(v) => b.changeSetting("lockedCaptain", v)}
+            />
+          )}
+          <HubFilterMenu
+            label={C.exposure}
+            value={b.settings.exposure}
+            options={[1, 0.8, 0.7, 0.6, 0.5, 0.3, 0.2].map((v) => ({
+              id: v,
+              label: `${v * 100}% · ${Math.floor(v * b.settings.count + 1e-9)} / ${b.settings.count}`,
+            }))}
+            onChange={(v) => b.changeSetting("exposure", Number(v))}
+          />
+          <HubFilterMenu
+            label={C.differences}
+            value={b.settings.differences}
+            options={options([1, 2, 3, 4])}
+            onChange={(v) => b.changeSetting("differences", Number(v))}
+          />
+          </div>
+          {b.isDfs && (
+            <DfsField label={C.salary}>
+              <div className="dfw-range">
+                <input
+                  aria-label={C.min}
+                  type="number"
+                  min="0"
+                  max={cap}
+                  step="100"
+                  value={b.settings.minSalary}
+                  onChange={(e) =>
+                    b.changeSetting("minSalary", Number(e.target.value))
+                  }
+                />
+                <span>–</span>
+                <input
+                  aria-label={C.max}
+                  type="number"
+                  min="0"
+                  max={cap}
+                  step="100"
+                  value={b.settings.maxSalary}
+                  onChange={(e) =>
+                    b.changeSetting("maxSalary", Number(e.target.value))
+                  }
+                />
+              </div>
+            </DfsField>
+          )}
+          <details>
+            <summary>{C.stacks}</summary>
+            <div className="dfw-settings-grid">
+              {!b.isCaptain && (
+                <>
+                  <HubFilterMenu
+                    label={C.qbStack}
+                    value={b.settings.qbStack}
+                    options={options([0, 1, 2, 3])}
+                    onChange={(v) => b.changeSetting("qbStack", Number(v))}
+                  />
+                  <label className="dfw-check">
+                    <input
+                      type="checkbox"
+                      checked={b.settings.bringBack}
+                      onChange={(e) =>
+                        b.changeSetting("bringBack", e.target.checked)
+                      }
+                    />
+                    {C.bringBack}
+                  </label>
+                </>
+              )}
+              <HubFilterMenu
+                label={C.maxTeam}
+                value={b.settings.maxTeam}
+                options={options([0, 2, 3, 4, 5])}
+                onChange={(v) => b.changeSetting("maxTeam", Number(v))}
+              />
+              <HubFilterMenu
+                label={C.jitter}
+                value={b.settings.randomness}
+                options={[0, 0.05, 0.12, 0.25].map((v) => ({
+                  id: v,
+                  label: `${v * 100}%`,
+                }))}
+                onChange={(v) => b.changeSetting("randomness", Number(v))}
+              />
+              <p className="dfw-note">{C.jitterNote}</p>
+            </div>
+          </details>
+          <p className="dfw-note">
+            {
+              filterObjectives(b.isDfs).find(
+                (o) => o.id === b.settings.objective,
+              )?.hint
+            }
+          </p>
+          <p className="dfw-note">{C.lockNote}</p>
+          <p className="dfw-note">{C.contestNote}</p>
+        </section>
+          <DfsMatchupBoard b={b} />
+        </div>
+        <div className="dfw-after">
+          <section
+            ref={lineupsRef}
+            id="dfw-lineups"
+            className="dfw-panel dfw-lineups"
+            aria-labelledby="dfw-lineups-title"
+          >
+            <div className="dfw-panel-head">
+              <h2 id="dfw-lineups-title">
+                {b.lineups.length
+                  ? `${b.lineups.length} ${C.count.toLowerCase()}`
+                  : C.lineupsTitle}
+              </h2>
+              {!!b.lineups.length && (
                 <button
+                  type="button"
                   onClick={() => {
                     b.locked.forEach((id) => b.toggle(id, "lock"));
                     b.excluded.forEach((id) => b.toggle(id, "skip"));
@@ -724,7 +770,12 @@ export default function DfsWorkspace({ b }) {
                 >
                   {C.clear}
                 </button>
-              </div>
+              )}
+            </div>
+            {!b.lineups.length ? (
+              <p className="dfw-note">{C.empty}</p>
+            ) : (
+              <div className="dfw-lineups-body">
               <div className="dfw-portfolio">
                 {b.lineups.map((entry, i) => (
                   <button
@@ -753,19 +804,11 @@ export default function DfsWorkspace({ b }) {
                   </button>
                 ))}
               </div>
-            </section>
-          )}
-        </section>
-        <aside className="dfw-panel dfw-lineup">
-          <div className="dfw-panel-head">
-            <h2>{C.selected}</h2>
-            <small>
-              {b.lineups.length
-                ? `${b.selected + 1} / ${b.lineups.length}`
-                : ""}
-            </small>
-          </div>
-          {!lineup.length && <p className="dfw-note">{C.empty}</p>}
+                <div className="dfw-lineup">
+                  <div className="dfw-panel-head">
+                    <h3>{C.selected}</h3>
+                    <small>{`${b.selected + 1} / ${b.lineups.length}`}</small>
+                  </div>
           {lineup.map((p, i) => (
             <div
               key={p.slot}
@@ -800,13 +843,6 @@ export default function DfsWorkspace({ b }) {
               <meter min="0" max={cap} value={salary} aria-label={C.used} />
             </>
           )}
-          <button
-            className="dfw-primary"
-            disabled={b.busy || b.building || !b.pool.length}
-            onClick={b.run}
-          >
-            {b.building ? C.building : lineup.length ? C.rebuild : C.build}
-          </button>
           {!!lineup.length && (
             <>
               <button disabled={Boolean(b.savedBuild)} onClick={b.save}>
@@ -817,115 +853,112 @@ export default function DfsWorkspace({ b }) {
               </p>
             </>
           )}
-          <p className="dfw-note">
-            {
-              filterObjectives(b.isDfs).find(
-                (o) => o.id === b.settings.objective,
-              )?.hint
-            }
-          </p>
-        </aside>
-      </div>
-      <section className="dfw-transfer">
-        <div className="dfw-panel">
-          <small>{C.newLineups}</small>
-          <h2>{C.upload}</h2>
-          <p className="dfw-note">{C.uploadHelp}</p>
-          <div className="dfw-actions">
-            <button
-              disabled={!exportCheck.ok}
-              onClick={() =>
-                downloadCsv(exportCheck.filename, exportCheck.lines)
-              }
-            >
-              {C.download}
-            </button>
-            <button
-              disabled={!b.lineups.length}
-              onClick={() => {
-                const d = buildLineupDetailCsv(b.lineups, { isDfs: b.isDfs });
-                if (d.ok) downloadCsv(d.filename, d.lines);
-              }}
-            >
-              {C.detail}
-            </button>
-          </div>
-          {b.lineups.length && !exportCheck.ok ? (
-            <p className="dfw-note">{exportCheck.reason}</p>
-          ) : null}
-        </div>
-        <div className="dfw-panel">
-          <small>{C.existing}</small>
-          <h2>{C.edit}</h2>
-          <p className="dfw-note">{C.editHelp}</p>
-          <DfsFile
-            label={C.template}
-            onFile={uploadTemplate}
-            disabled={
-              !b.context.site.startsWith("draftkings") || !b.lineups.length
-            }
-          />
-          <details>
-            <summary>{C.restriction.split(",")[0]}</summary>
-            <p className="dfw-note">{C.restriction}</p>
-          </details>
-        </div>
-      </section>
-      {template && (
-        <section className="dfw-panel">
-          <div className="dfw-panel-head">
-            <h2>{C.assignment}</h2>
-            <button
-              onClick={() =>
-                setAssignments(
-                  Object.fromEntries(
-                    template.entries
-                      .slice(0, b.lineups.length)
-                      .map((e, i) => [e.id, i]),
-                  ),
-                )
-              }
-            >
-              {C.sequential}
-            </button>
-          </div>
-          <div className="dfw-assignment-list">
-            {template.entries.map((e) => (
-              <div className="dfw-assignment" key={e.id}>
-                <span>
-                  {e.contest}
-                  <small>
-                    {e.id} · {e.fee}
-                  </small>
-                </span>
-                <HubFilterMenu
-                  label={C.selected}
-                  value={assignments[e.id] ?? ""}
-                  options={[
-                    { id: "", label: C.keep },
-                    ...b.lineups.map((_, i) => ({
-                      id: i,
-                      label: `${C.selected} ${i + 1}`,
-                    })),
-                  ]}
-                  onChange={(v) => setAssignments((a) => ({ ...a, [e.id]: v }))}
-                />
+                </div>
               </div>
-            ))}
+            )}
+          </section>
+          <section className="dfw-transfer">
+          <div className="dfw-panel">
+            <small>{C.newLineups}</small>
+            <h2>{C.upload}</h2>
+            <p className="dfw-note">{C.uploadHelp}</p>
+            <div className="dfw-actions">
+              <button
+                disabled={!exportCheck.ok}
+                onClick={() =>
+                  downloadCsv(exportCheck.filename, exportCheck.lines)
+                }
+              >
+                {C.download}
+              </button>
+              <button
+                disabled={!b.lineups.length}
+                onClick={() => {
+                  const d = buildLineupDetailCsv(b.lineups, { isDfs: b.isDfs });
+                  if (d.ok) downloadCsv(d.filename, d.lines);
+                }}
+              >
+                {C.detail}
+              </button>
+            </div>
+            {b.lineups.length && !exportCheck.ok ? (
+              <p className="dfw-note">{exportCheck.reason}</p>
+            ) : null}
           </div>
-          <label className="dfw-check">
-            <input
-              type="checkbox"
-              checked={sameSlate}
-              onChange={(e) => setSameSlate(e.target.checked)}
+          <div className="dfw-panel">
+            <small>{C.existing}</small>
+            <h2>{C.edit}</h2>
+            <p className="dfw-note">{C.editHelp}</p>
+            <DfsFile
+              label={C.template}
+              onFile={uploadTemplate}
+              disabled={
+                !b.context.site.startsWith("draftkings") || !b.lineups.length
+              }
             />
-            {C.verifySlate}
-          </label>
-          <button disabled={!sameSlate} onClick={exportEntries}>
-            {C.entryDownload}
-          </button>
+            <details>
+              <summary>{C.restriction.split(",")[0]}</summary>
+              <p className="dfw-note">{C.restriction}</p>
+            </details>
+          </div>
         </section>
-      )}
+        {template && (
+          <section className="dfw-panel">
+            <div className="dfw-panel-head">
+              <h2>{C.assignment}</h2>
+              <button
+                onClick={() =>
+                  setAssignments(
+                    Object.fromEntries(
+                      template.entries
+                        .slice(0, b.lineups.length)
+                        .map((e, i) => [e.id, i]),
+                    ),
+                  )
+                }
+              >
+                {C.sequential}
+              </button>
+            </div>
+            <div className="dfw-assignment-list">
+              {template.entries.map((e) => (
+                <div className="dfw-assignment" key={e.id}>
+                  <span>
+                    {e.contest}
+                    <small>
+                      {e.id} · {e.fee}
+                    </small>
+                  </span>
+                  <HubFilterMenu
+                    label={C.selected}
+                    value={assignments[e.id] ?? ""}
+                    options={[
+                      { id: "", label: C.keep },
+                      ...b.lineups.map((_, i) => ({
+                        id: i,
+                        label: `${C.selected} ${i + 1}`,
+                      })),
+                    ]}
+                    onChange={(v) => setAssignments((a) => ({ ...a, [e.id]: v }))}
+                  />
+                </div>
+              ))}
+            </div>
+            <label className="dfw-check">
+              <input
+                type="checkbox"
+                checked={sameSlate}
+                onChange={(e) => setSameSlate(e.target.checked)}
+              />
+              {C.verifySlate}
+            </label>
+            <button disabled={!sameSlate} onClick={exportEntries}>
+              {C.entryDownload}
+            </button>
+          </section>
+        )}
+        </div>
+      </div>
     </>
   );
 }
