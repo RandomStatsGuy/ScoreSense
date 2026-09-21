@@ -108,6 +108,7 @@ export default function GameCenterMatchup({
   standingsView,
   onNavigate,
   hubContext,
+  scoringControl,
 }) {
   const [section, setSection] = useState("starters");
   const [selectedKey, setSelectedKey] = useState(rows[0]?.key);
@@ -166,6 +167,7 @@ export default function GameCenterMatchup({
           <span>{formatSyncedAgo(data.synced_at)}</span>
         </div>
       </section>
+      {scoringControl}
       <div className="gc-room-toolbar">
         <div
           className="gc-room-segments"

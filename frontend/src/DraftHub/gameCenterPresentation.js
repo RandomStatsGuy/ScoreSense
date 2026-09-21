@@ -474,6 +474,7 @@ export function gameCenterProjection(player) {
 
 export const LEAGUE_SCORING_CONTROL_COPY = {
   title: "League scoring",
+  details: "Scoring details",
   lastCalculated: (when) => `Last calculated ${new Date(when).toLocaleString()}`,
   failed: "Scoring could not be calculated.",
   native: "Scored in ScoreSense",
