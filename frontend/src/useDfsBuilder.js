@@ -5,7 +5,9 @@ import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
   defaultSlateCategory,
+  gameTeamCodes,
   isCaptainFormat,
+  slateGames,
 } from "./dfsToolPresentation";
 import { parseDfsCsv, headerKey } from "./dfsCsv";
 
@@ -39,6 +41,8 @@ export default function useDfsBuilder(projMeta) {
   const [pool, setPool] = useState([]);
   const [salaries, setSalaries] = useState([]);
   const [stats, setStats] = useState(null);
+  const [vegasGames, setVegasGames] = useState([]);
+  const [stackWeights, setStackWeights] = useState({});
   const [slateName, setSlateName] = useState("");
   const [busy, setBusy] = useState(false);
   const [building, setBuilding] = useState(false);
@@ -74,6 +78,25 @@ export default function useDfsBuilder(projMeta) {
   const isCaptain = isCaptainFormat(context.site, formats);
   const changeSetting = (key, value) =>
     setSettings((s) => ({ ...s, [key]: value }));
+  const changeStackWeight = (gameId, delta) => {
+    const id = String(gameId || "");
+    if (!id) return;
+    setStackWeights((current) => {
+      const next = Math.max(0, Math.min(4, (Number(current[id]) || 0) + Number(delta || 0)));
+      if (!next) {
+        const copy = { ...current };
+        delete copy[id];
+        return copy;
+      }
+      return { ...current, [id]: next };
+    });
+    if (Number(delta) > 0) {
+      setSettings((current) => ({
+        ...current,
+        qbStack: Math.max(1, Number(current.qbStack) || 0),
+      }));
+    }
+  };
 
   useEffect(() => {
     const abort = new AbortController();
@@ -113,6 +136,7 @@ export default function useDfsBuilder(projMeta) {
     setPool([]);
     setSalaries([]);
     setStats(null);
+    setStackWeights({});
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
@@ -157,6 +181,26 @@ export default function useDfsBuilder(projMeta) {
       });
     return () => abort.abort();
   }, [context.site, context.source, isDfs]);
+
+  useEffect(() => {
+    if (context.season == null || context.week == null || isCaptain) {
+      setVegasGames([]);
+      setStackWeights({});
+      return;
+    }
+    const abort = new AbortController();
+    jsonRequest(
+      `/api/lineup/vegas?season=${context.season}&week=${context.week}`,
+      { signal: abort.signal },
+    )
+      .then((data) => {
+        if (!abort.signal.aborted) setVegasGames(data.games || []);
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setVegasGames([]);
+      });
+    return () => abort.abort();
+  }, [context.season, context.week, isCaptain]);
 
   const acceptPool = (data, name) => {
     setPool(data.players || []);
@@ -218,6 +262,7 @@ export default function useDfsBuilder(projMeta) {
     setPool([]);
     setSalaries([]);
     setStats(null);
+    setStackWeights({});
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
@@ -339,6 +384,15 @@ export default function useDfsBuilder(projMeta) {
       max_per_team: settings.maxTeam || null,
       qb_stack_count: isCaptain ? 0 : settings.qbStack,
       stack_bring_back: !isCaptain && settings.bringBack,
+      stack_game_weights: !isCaptain
+        ? slateGames(vegasGames, pool)
+            .filter((game) => Number(stackWeights[game.game_id]) > 0)
+            .map((game) => ({
+              game_id: String(game.game_id),
+              teams: gameTeamCodes(game),
+              weight: Number(stackWeights[game.game_id]),
+            }))
+        : [],
       locked_captain_id: isCaptain ? settings.lockedCaptain || null : null,
       captain_exposure_limits: isCaptain ? captainLimits : {},
       projection_overrides: overrides,
@@ -448,6 +502,10 @@ export default function useDfsBuilder(projMeta) {
     pool: visiblePool,
     salaries,
     stats,
+    vegasGames,
+    stackWeights,
+    changeStackWeight,
+    clearStackWeights: () => setStackWeights({}),
     slateName,
     busy,
     building,

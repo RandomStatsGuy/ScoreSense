@@ -269,11 +269,20 @@ export function objectiveLabel(objectiveId, isDfs = true) {
 export const DFS_STEP_COPY = {
   formatTitle: "Choose the format",
   formatSupport: "Cap, captain, or season-long. Pick the one you are entering.",
-  shootoutTitle: "Pick the totals",
-  shootoutSupport: "Tap every high-total game you want stacked. That does not lock a player. Pin a stack if you want that side.",
+  shootoutTitle: "Weight stacks by matchup",
+  shootoutSupport: "Raise the games you want more often. Weight changes stack share — it never locks a player.",
   shootoutEmpty: "No Vegas lines for this week.",
   shootoutCaptain: "Captain mode fills from this game. The CPT slot is 1.5×.",
   clearGames: "Clear games",
+  highestTotal: "Highest total",
+  stackWeight: "Stack weight",
+  lowerWeight: "Lower stack weight",
+  raiseWeight: "Raise stack weight",
+  weightOff: "Off",
+  weightOnNote: "Choosing a weight turns on QB +1 stacking when stacking is off.",
+  lineupPlan: "Stack plan",
+  noWeightedGames: "No matchup stacks selected.",
+  lineupAllocation: (count) => `${count} lineup${count === 1 ? "" : "s"}`,
   stacksTitle: "Stacks from these games",
   stacksSupport: "Build takes a QB from the games you marked. Pin a stack only if you want that quarterback.",
   useStack: "Use this stack",
@@ -504,6 +513,41 @@ export function gamesMarkedCopy(count = 0) {
   const n = Number(count) || 0;
   if (n <= 0) return "";
   return n === 1 ? "1 game in the build" : `${n} games in the build`;
+}
+
+export function matchupWeightLabel(weight = 0) {
+  const value = Math.max(0, Math.min(4, Number(weight) || 0));
+  return value ? `${value}×` : DFS_STEP_COPY.weightOff;
+}
+
+export function allocateMatchupWeights(weights = {}, lineupCount = 0) {
+  const entries = Object.entries(weights)
+    .map(([gameId, weight]) => ({
+      gameId,
+      weight: Math.max(0, Math.min(4, Number(weight) || 0)),
+    }))
+    .filter((entry) => entry.weight > 0);
+  const count = Math.max(0, Math.floor(Number(lineupCount) || 0));
+  if (!entries.length || !count) return [];
+  const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+  const rows = entries.map((entry) => {
+    const exact = (entry.weight / totalWeight) * count;
+    return { ...entry, count: Math.floor(exact), remainder: exact % 1 };
+  });
+  const left = count - rows.reduce((sum, entry) => sum + entry.count, 0);
+  const order = rows
+    .map((entry, index) => ({ index, remainder: entry.remainder }))
+    .sort((leftEntry, rightEntry) => (
+      rightEntry.remainder - leftEntry.remainder || leftEntry.index - rightEntry.index
+    ));
+  for (let index = 0; index < left; index += 1) {
+    rows[order[index % order.length].index].count += 1;
+  }
+  return rows.map(({ gameId, weight, count: allocated }) => ({
+    gameId,
+    weight,
+    count: allocated,
+  }));
 }
 
 export function dfsHeroCopy({
