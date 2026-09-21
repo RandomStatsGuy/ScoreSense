@@ -530,18 +530,46 @@
 
 /* Scoring ownership and completed-week commissioner actions. */
 .league-scoring-control {
+  border-bottom: 1px solid var(--border);
+}
+
+.league-scoring-control summary {
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--text-xs);
+}
+.league-scoring-control__summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-left: var(--space-1);
+}
+.league-scoring-control__summary-row > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.league-scoring-control summary strong { color: var(--text-primary); }
+.league-scoring-control summary small { color: var(--text-secondary); }
+.league-scoring-control__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--inset-section);
+  padding: var(--space-3);
   background: var(--bg-elevated);
   border-radius: var(--radius-md);
 }
-
 .league-scoring-control .chart-note { margin: 0; }
 .league-scoring-control .hub-form-row { align-items: center; gap: var(--space-2); }
 .league-scoring-control .hub-form-row > * { min-height: var(--control-h-sm); }
 
 @media (max-width: 768px) {
+  .league-scoring-control summary {
+    min-height: var(--control-h-lg);
+  }
+  .league-scoring-control summary small { display: none; }
   .league-scoring-control .hub-form-row > * { min-height: var(--control-h-lg); }
 }
