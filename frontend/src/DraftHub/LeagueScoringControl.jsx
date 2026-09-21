@@ -39,25 +39,37 @@ export default function LeagueScoringControl({ leagueId, data, hubContext, onNav
       if (mounted.current) setBusy(false);
     }
   };
+  const lastCalculated = control?.run?.scored_at
+    ? COPY.lastCalculated(control.run.scored_at)
+    : "";
   return (
-    <section className="league-scoring-control" aria-label={COPY.title}>
-      <strong>{linked ? COPY.sleeper : COPY.native}</strong>
-      <p className="chart-note">{linked ? COPY.sleeperHelp : COPY.nativeHelp}</p>
-      <div className="hub-form-row">
-        {linked && sleeperId && <a className="btn-ghost" href={`https://sleeper.com/leagues/${encodeURIComponent(sleeperId)}`} target="_blank" rel="noreferrer">{SCORING_COPY.openSleeper}</a>}
-        {!linked && hubContext?.is_commissioner && <button type="button" className="btn-ghost" disabled={disabled} onClick={calculate}>{busy ? COPY.busy : scored ? COPY.recalculate : COPY.calculate}</button>}
-        <button type="button" className="btn-ghost" onClick={() => onNavigate?.("rules")}>{COPY.rules}</button>
+    <details className="league-scoring-control">
+      <summary>
+        <span className="league-scoring-control__summary-row">
+          <span>
+            <strong>{linked ? COPY.sleeper : COPY.native}</strong>
+            {lastCalculated && <small>{lastCalculated}</small>}
+          </span>
+          <span className="league-scoring-control__label">{COPY.details}</span>
+        </span>
+      </summary>
+      <div className="league-scoring-control__body">
+        <p className="chart-note">{linked ? COPY.sleeperHelp : COPY.nativeHelp}</p>
+        <div className="hub-form-row">
+          {linked && sleeperId && <a className="btn-ghost" href={`https://sleeper.com/leagues/${encodeURIComponent(sleeperId)}`} target="_blank" rel="noreferrer">{SCORING_COPY.openSleeper}</a>}
+          {!linked && hubContext?.is_commissioner && <button type="button" className="btn-ghost" disabled={disabled} onClick={calculate}>{busy ? COPY.busy : scored ? COPY.recalculate : COPY.calculate}</button>}
+          <button type="button" className="btn-ghost" onClick={() => onNavigate?.("rules")}>{COPY.rules}</button>
+        </div>
+        {!linked && <>
+          <p className="chart-note">{SCORING_COPY.supported}</p>
+          {!hubContext?.draft_completed && <p className="chart-note">{COPY.draftFirst}</p>}
+          {!hubContext?.is_commissioner && <p className="chart-note">{COPY.staff}</p>}
+          {control?.settings_changed && <HubAlert variant="warn">{COPY.changed}</HubAlert>}
+        </>}
+        <p className="chart-note">{COPY.projections}</p>
+        {message && <HubAlert variant="info">{message}</HubAlert>}
+        {error && <HubAlert variant="danger">{error}</HubAlert>}
       </div>
-      {!linked && <>
-        <p className="chart-note">{SCORING_COPY.supported}</p>
-        {!hubContext?.draft_completed && <p className="chart-note">{COPY.draftFirst}</p>}
-        {!hubContext?.is_commissioner && <p className="chart-note">{COPY.staff}</p>}
-        {control?.run?.scored_at && <p className="chart-note">{COPY.lastCalculated(control.run.scored_at)}</p>}
-        {control?.settings_changed && <HubAlert variant="warn">{COPY.changed}</HubAlert>}
-      </>}
-      <p className="chart-note">{COPY.projections}</p>
-      {message && <HubAlert variant="info">{message}</HubAlert>}
-      {error && <HubAlert variant="danger">{error}</HubAlert>}
-    </section>
+    </details>
   );
 }

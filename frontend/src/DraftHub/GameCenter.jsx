@@ -209,11 +209,6 @@ export default function GameCenter({
           <a href="/hub/roster">{GAME_CENTER_COPY.backToTeam}</a>
         </div>
       </header>
-      {!loading && data && <LeagueScoringControl
-        key={`${leagueId}-${data.season}-${data.week}`}
-        leagueId={leagueId} data={data} hubContext={hubContext} onNavigate={onNavigate}
-        onScored={() => load()}
-      />}
       {error && (
         <HubAlert variant="warn">
           {error}
@@ -258,6 +253,16 @@ export default function GameCenter({
           standingsView={standingsView}
           onNavigate={onNavigate}
           hubContext={hubContext}
+          scoringControl={(
+            <LeagueScoringControl
+              key={`${leagueId}-${data.season}-${data.week}`}
+              leagueId={leagueId}
+              data={data}
+              hubContext={hubContext}
+              onNavigate={onNavigate}
+              onScored={() => load()}
+            />
+          )}
         />
       )}
     </HubPage>
