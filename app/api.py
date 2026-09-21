@@ -1867,7 +1867,10 @@ def lineup_vegas(
             "note": "Vegas lines are unavailable right now. Lineups still build without them.",
         }
 
-    note = "Lines via nflverse schedules. Implied totals split the game total by the spread."
+    note = (
+        "Lines via nflverse schedules. Implied totals split the game total by the spread. "
+        "Movement compares the current consensus with the first line ScoreSense observed."
+    )
     if board["count"] and not board["with_lines"]:
         note = "Books have not posted lines for this week yet."
     return {

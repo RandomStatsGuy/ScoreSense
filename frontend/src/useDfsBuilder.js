@@ -4,6 +4,7 @@ import { apiFetch } from "./auth";
 import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
+  DFS_STEP_COPY,
   defaultSlateCategory,
   gameTeamCodes,
   isCaptainFormat,
@@ -31,7 +32,7 @@ export default function useDfsBuilder(projMeta) {
   const [meta, setMeta] = useState(projMeta);
   const [formats, setFormats] = useState(DEFAULT_FORMATS);
   const [context, setContext] = useState({
-    site: "draftkings_showdown",
+    site: "draftkings",
     season: null,
     week: null,
     slateId: "",
@@ -239,7 +240,17 @@ export default function useDfsBuilder(projMeta) {
         if (!abort.signal.aborted) acceptPool(d);
       })
       .catch((e) => {
-        if (!abort.signal.aborted) setError(e.message);
+        if (abort.signal.aborted) return;
+        if (/No salaries returned for slate/i.test(e.message)) {
+          setPool([]);
+          setSalaries([]);
+          setStats(null);
+          setLineups([]);
+          setNotice(DFS_STEP_COPY.closedSlate);
+          setError("");
+          return;
+        }
+        setError(e.message);
       })
       .finally(() => {
         if (!abort.signal.aborted) setBusy(false);
