@@ -11,6 +11,8 @@ from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.schemas import LeagueRules
 
 RANK_EXPONENT = 0.42
+VALUE_OVER_REPLACEMENT_EXPONENT = 1.15
+TOP_VALUE_CAP_SHARE = 0.35
 TOP_CAP_SHARE = {"QB": 0.17, "RB": 0.16, "WR": 0.18, "TE": 0.11, "K": 0.04, "DEF": 0.05}
 FLEX_POS_SHARE = {"RB": 0.40, "WR": 0.45, "TE": 0.15}
 MIN_RELEVANT = {"QB": 8, "RB": 14, "WR": 14, "TE": 6, "K": 12, "DEF": 12}
@@ -69,7 +71,7 @@ def _scarcity_multiplier(team_count: int) -> float:
 def _auction_bounds(rules: LeagueRules) -> tuple[float, float]:
     min_bid = float(rules.auction.min_bid)
     cap = float(rules.salary_cap)
-    return min_bid, cap * 0.25
+    return min_bid, cap * TOP_VALUE_CAP_SHARE
 
 
 def clamp_auction_value(value: float, rules: LeagueRules) -> float:
@@ -230,7 +232,12 @@ def build_player_values(
     p50_col: str = "Season P50",
     p90_col: str = "Season P90",
 ) -> dict[str, dict[str, Any]]:
-    """Fair values keyed by player_id (includes SCORE-3 risk_score / RAAV)."""
+    """League-budgeted values keyed by player_id.
+
+    Full projection pools allocate the auction budget from projected points
+    above a position-specific replacement player. Small/custom pools retain the
+    rank curve because they do not contain a visible replacement baseline.
+    """
     out: dict[str, dict[str, Any]] = {}
     if pool.empty:
         return out
@@ -244,18 +251,64 @@ def build_player_values(
     risk_tolerance = float(getattr(rules, "risk_tolerance", 0.0) or 0.0)
     apply_raav = abs(risk_tolerance) >= _RISK_Z_EPS
 
-    for pos, group in df.groupby(df[pos_col].astype(str).str.upper()):
-        pos = normalize_position(str(pos))
-        g = group.sort_values(proj_col, ascending=False).reset_index(drop=True)
+    groups: list[tuple[str, pd.DataFrame, int, float, bool]] = []
+    total_value_weight = 0.0
+    for raw_pos, group in df.groupby(df[pos_col].astype(str).str.upper()):
+        pos = normalize_position(str(raw_pos))
+        g = group.copy()
+        g[proj_col] = pd.to_numeric(g[proj_col], errors="coerce").fillna(0.0)
+        g = g.sort_values(proj_col, ascending=False).reset_index(drop=True)
         n_rel = auction_relevant_count(pos, team_count, rules)
+        if g.empty:
+            continue
+        has_replacement = len(g) > n_rel
+        replacement = (
+            max(0.0, float(g.iloc[n_rel].get(proj_col) or 0.0))
+            if has_replacement
+            else 0.0
+        )
+        groups.append((pos, g, n_rel, replacement, has_replacement))
+        if has_replacement:
+            for i, (_, row) in enumerate(g.iterrows()):
+                if i >= n_rel:
+                    break
+                vorp = max(0.0, float(row.get(proj_col) or 0.0) - replacement)
+                total_value_weight += vorp**VALUE_OVER_REPLACEMENT_EXPONENT
 
+    configured_positions = {pos for pos, *_rest in groups}
+    roster = rules.roster or {}
+    for pos in ("QB", "RB", "WR", "TE", "K", "DEF"):
+        pos_rule = roster.get(pos.lower()) if isinstance(roster, dict) else None
+        if isinstance(pos_rule, dict) and any(
+            int(pos_rule.get(key) or 0) > 0 for key in ("starter", "min", "max")
+        ):
+            configured_positions.add(pos)
+    auction_slots = sum(
+        auction_relevant_count(pos, team_count, rules) for pos in configured_positions
+    )
+    min_bid = float(rules.auction.min_bid)
+    league_budget = float(rules.salary_cap) * max(int(team_count), 2)
+    value_budget = max(0.0, league_budget - auction_slots * min_bid)
+    max_value = float(rules.salary_cap) * TOP_VALUE_CAP_SHARE
+
+    for pos, g, n_rel, replacement, has_replacement in groups:
         rows_meta: list[dict[str, Any]] = []
         cvs: list[float | None] = []
         for i, (_, row) in enumerate(g.iterrows()):
             pid = str(row.get("player_id") or row.get("Player") or "")
             if not pid:
                 continue
-            fair = fair_auction_value(i, n_rel, pos, rules, team_count=team_count)
+            projection = max(0.0, float(row.get(proj_col) or 0.0))
+            vorp = max(0.0, projection - replacement) if i < n_rel else 0.0
+            if has_replacement and total_value_weight > 0 and vorp > 0:
+                fair = min_bid + value_budget * (
+                    vorp**VALUE_OVER_REPLACEMENT_EXPONENT / total_value_weight
+                )
+                fair = round(max(min_bid, min(max_value, fair)), 0)
+            elif not has_replacement:
+                fair = fair_auction_value(i, n_rel, pos, rules, team_count=team_count)
+            else:
+                fair = min_bid
             min_sal, max_sal = salary_band(fair, rules)
             p10 = row.get(p10_col) if p10_col in g.columns else None
             p50 = row.get(p50_col) if p50_col in g.columns else None
@@ -338,6 +391,12 @@ def fair_value_for_row(
 
     if not matched_pid or matched_pid not in ids:
         return None
-    rank = ids.index(matched_pid)
-    n_rel = auction_relevant_count(pos, team_count, rules)
-    return fair_auction_value(rank, n_rel, pos, rules, team_count=team_count)
+    values = build_player_values(
+        pool,
+        rules,
+        team_count=team_count,
+        proj_col=proj_col,
+        pos_col=pos_col,
+    )
+    fair = values.get(matched_pid, {}).get("fair_value")
+    return float(fair) if fair is not None else None

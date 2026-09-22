@@ -77,6 +77,26 @@ def test_build_player_values_from_pool():
     assert values["w1"]["min_sal"] <= values["w1"]["fair_value"] <= values["w1"]["max_sal"]
 
 
+def test_build_player_values_prices_elite_projection_gap_not_rank_alone():
+    rules = _rules()
+    projections = [320, 305, 270] + [250 - i * 5 for i in range(40)]
+    pool = pd.DataFrame(
+        [
+            {
+                "player_id": f"rb{i}",
+                "Player": f"RB {i}",
+                "Position": "RB",
+                "Season Proj": projection,
+            }
+            for i, projection in enumerate(projections)
+        ]
+    )
+
+    values = build_player_values(pool, rules, team_count=10)
+
+    assert values["rb2"]["fair_value"] >= 35
+
+
 def test_fair_value_for_te_falls_back_to_wr_pool():
     from src.draft_hub.auction_values import fair_value_for_row
 
