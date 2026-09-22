@@ -666,12 +666,9 @@ export default function WeeklyTable({
 
   return (
     <>
-      {searchSlot || !mobileLayout ? (
+      {searchSlot ? (
       <div className="table-controls">
         {searchSlot}
-        {!mobileLayout && (
-          <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
-        )}
       </div>
       ) : null}
       {showFilters && !hideMovementFilters ? (
@@ -694,63 +691,70 @@ export default function WeeklyTable({
         </div>
       ) : null}
       <div className={`table-toolbar${mobileLayout ? " table-toolbar--weekly-mobile" : ""}`}>
-        {mobileLayout ? null : <span className="table-meta">{resultLabel}</span>}
-        {metaLine}
-        {showFilters ? (
-          <span className="table-meta table-meta-movement" role="status">
-            {showMovement
-              ? "What changed vs prior refresh"
-              : movementEmptyMessage(movementEmptyReason, movementNote) ||
-                "Movement unavailable for this slate"}
-          </span>
-        ) : null}
-        {!mobileLayout && !playersContext.unavailable && playersContext.meta?.updated_at ? (
-          <span className="table-meta" role="status">
-            {`Injury context · ${(formatRelativeTime(playersContext.meta.updated_at) || "").replace(/^Updated /, "")}`}
-          </span>
-        ) : null}
-        {!mobileLayout && contextNeedsRefresh ? (
-          onRefreshData ? (
+        <div className="table-toolbar-meta">
+          {mobileLayout ? null : <span className="table-meta">{resultLabel}</span>}
+          {metaLine}
+          {showFilters ? (
+            <span className="table-meta table-meta-movement" role="status">
+              {showMovement
+                ? "What changed vs prior refresh"
+                : movementEmptyMessage(movementEmptyReason, movementNote) ||
+                  "Movement unavailable for this slate"}
+            </span>
+          ) : null}
+          {!mobileLayout && !playersContext.unavailable && playersContext.meta?.updated_at ? (
+            <span className="table-meta" role="status">
+              {`Injury context · ${(formatRelativeTime(playersContext.meta.updated_at) || "").replace(/^Updated /, "")}`}
+            </span>
+          ) : null}
+          {!mobileLayout && contextNeedsRefresh ? (
+            onRefreshData ? (
+              <button
+                type="button"
+                className="table-meta table-meta-context-stale table-meta-context-stale--action"
+                onClick={onRefreshData}
+                disabled={dataRefreshLoading}
+              >
+                {staleRefreshLabel({
+                  stale: Boolean(playersContext.meta?.stale),
+                  unavailable: Boolean(playersContext.unavailable),
+                  updatedAt: playersContext.meta?.updated_at,
+                  refreshing: dataRefreshLoading,
+                })}
+              </button>
+            ) : (
+              <span className="table-meta table-meta-context-stale" role="status">
+                {staleRefreshLabel({
+                  stale: Boolean(playersContext.meta?.stale),
+                  unavailable: Boolean(playersContext.unavailable),
+                  updatedAt: playersContext.meta?.updated_at,
+                })}
+              </span>
+            )
+          ) : null}
+          {!mobileLayout ? (
+            <span className="table-meta range-scale-legend range-scale-legend--toolbar" aria-hidden="true">
+              <span>Floor</span>
+              <span>Projection</span>
+              <span>Ceiling</span>
+            </span>
+          ) : null}
+        </div>
+        <div className="table-toolbar-actions">
+          {!mobileLayout ? (
+            <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
+          ) : null}
+          {compareEnabled ? (
             <button
               type="button"
-              className="table-meta table-meta-context-stale table-meta-context-stale--action"
-              onClick={onRefreshData}
-              disabled={dataRefreshLoading}
+              className={`proj-board-filter compare-mode-toggle${compareSelecting ? " is-active" : ""}`}
+              aria-pressed={compareSelecting}
+              onClick={() => setCompareSelecting((on) => !on)}
             >
-              {staleRefreshLabel({
-                stale: Boolean(playersContext.meta?.stale),
-                unavailable: Boolean(playersContext.unavailable),
-                updatedAt: playersContext.meta?.updated_at,
-                refreshing: dataRefreshLoading,
-              })}
+              {compareSelecting ? BOARD_COPY.compareDone : BOARD_COPY.compare}
             </button>
-          ) : (
-            <span className="table-meta table-meta-context-stale" role="status">
-              {staleRefreshLabel({
-                stale: Boolean(playersContext.meta?.stale),
-                unavailable: Boolean(playersContext.unavailable),
-                updatedAt: playersContext.meta?.updated_at,
-              })}
-            </span>
-          )
-        ) : null}
-        {!mobileLayout ? (
-          <span className="table-meta range-scale-legend range-scale-legend--toolbar" aria-hidden="true">
-            <span>Floor</span>
-            <span>Projection</span>
-            <span>Ceiling</span>
-          </span>
-        ) : null}
-        {compareEnabled ? (
-          <button
-            type="button"
-            className={`proj-board-filter compare-mode-toggle${compareSelecting ? " is-active" : ""}`}
-            aria-pressed={compareSelecting}
-            onClick={() => setCompareSelecting((on) => !on)}
-          >
-            {compareSelecting ? BOARD_COPY.compareDone : BOARD_COPY.compare}
-          </button>
-        ) : null}
+          ) : null}
+        </div>
       </div>
       {compareEnabled && compareSelecting ? (
         <p className="compare-mode-hint" role="status">

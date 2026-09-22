@@ -4,18 +4,18 @@
 .projections-board {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: var(--space-3);
 }
 
 .proj-signals {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: var(--space-2);
 }
 
 .proj-signal {
   margin: 0;
-  padding: 0.75rem 0.85rem;
+  padding: var(--space-3);
   border: 0;
   border-radius: var(--radius-md);
   background: var(--experience-surface);
@@ -50,7 +50,7 @@
 }
 
 .proj-signal-name {
-  margin-top: 0.35rem;
+  margin-top: var(--space-1);
   font-size: 0.95rem;
   font-weight: 700;
   line-height: var(--line-tight);
@@ -68,7 +68,7 @@
 }
 
 .proj-signal-value {
-  margin-top: 0.2rem;
+  margin-top: var(--space-1);
   color: var(--text-secondary);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
@@ -87,21 +87,21 @@
 }
 
 .proj-board-surface {
-  padding: 0.85rem 0.95rem 0.55rem;
+  padding: var(--space-4);
   background: var(--experience-surface);
   border-radius: var(--radius-lg);
 }
 
 .proj-board-surface > .table-wrap {
-  margin-top: 0.35rem;
+  margin-top: var(--space-2);
 }
 
 .proj-board-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.85rem;
-  margin-bottom: 0.65rem;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .proj-board-kicker,
@@ -117,13 +117,13 @@
 }
 
 .proj-board-title {
-  margin-top: 0.15rem;
+  margin-top: var(--space-1);
   font-size: 1.15rem;
   font-weight: 700;
 }
 
 .proj-board-support {
-  margin-top: 0.2rem;
+  margin-top: var(--space-1);
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
@@ -131,12 +131,12 @@
 .proj-board-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--space-1);
 }
 
 .proj-board-filter {
-  min-height: 1.85rem;
-  padding: 0.25rem 0.7rem;
+  min-height: var(--control-h-sm);
+  padding: var(--space-1) var(--space-3);
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--bg-subtle);
@@ -177,14 +177,37 @@
 
 .proj-board-surface .table-toolbar {
   align-items: center;
+  margin-bottom: var(--space-2);
 }
 
 .compare-mode-toggle {
-  margin-left: auto;
+  margin-left: 0;
+}
+
+.table-toolbar-meta,
+.table-toolbar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.table-toolbar-meta {
+  min-width: 0;
+}
+
+.table-toolbar-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.proj-board-surface .btn-export-csv,
+.proj-board-surface .compare-mode-toggle {
+  min-height: var(--control-h-sm);
 }
 
 .compare-mode-hint {
-  margin: -0.25rem 0 0.65rem;
+  margin: 0 0 var(--space-2);
   color: var(--text-secondary);
   font-size: 0.78rem;
 }
@@ -556,7 +579,7 @@
   .proj-board-head {
     display: flex;
     align-items: center;
-    margin-bottom: 0.45rem;
+    margin-bottom: var(--space-2);
   }
 
   .proj-board-head-copy {
@@ -573,6 +596,14 @@
 
   .table-toolbar .table-meta-movement {
     display: none;
+  }
+
+  .table-toolbar-actions {
+    margin-left: auto;
+  }
+
+  .proj-board-surface .table-toolbar--weekly-mobile .compare-mode-toggle {
+    min-height: var(--touch-target);
   }
 
   .proj-why-now,
