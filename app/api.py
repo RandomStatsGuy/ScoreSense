@@ -146,16 +146,22 @@ from app.auth import admin_configured
 async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
     from app.draft_ticker import draft_ticker_loop
+    from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
 
     ticker = asyncio.create_task(draft_ticker_loop(), name="draft-ticker")
+    sleeper_ticker = asyncio.create_task(
+        sleeper_sync_ticker_loop(), name="sleeper-roster-sync-ticker"
+    )
     try:
         yield
     finally:
-        ticker.cancel()
-        try:
-            await ticker
-        except asyncio.CancelledError:
-            pass
+        for task in (ticker, sleeper_ticker):
+            task.cancel()
+        for task in (ticker, sleeper_ticker):
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         shutdown_process_executor(wait=False)
 
 
