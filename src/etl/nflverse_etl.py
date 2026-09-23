@@ -87,19 +87,48 @@ def load_schedules(seasons: list[int]) -> pd.DataFrame:
 def load_team_epa(seasons: list[int]) -> pd.DataFrame:
     """Aggregate opponent defensive EPA allowed by season/week/team."""
     nfl = _import_nfl_data_py()
-    pbp = nfl.import_pbp_data(
-        years=seasons,
-        columns=[
-            "season",
-            "week",
-            "defteam",
-            "epa",
-            "play_type",
-            "pass",
-            "rush",
-        ],
-        downcast=True,
-    )
+    columns = [
+        "season",
+        "week",
+        "defteam",
+        "epa",
+        "play_type",
+        "pass",
+        "rush",
+    ]
+    frames: list[pd.DataFrame] = []
+    latest_season = max(seasons) if seasons else None
+    for season in seasons:
+        try:
+            frame = nfl.import_pbp_data(
+                years=[season],
+                columns=columns,
+                downcast=True,
+            )
+        except Exception as exc:
+            # nflverse can publish weekly player stats before the current
+            # season's PBP parquet is available. EPA is optional enrichment,
+            # so keep the current-season refresh moving with neutral values.
+            # Missing historical PBP remains fatal because it affects training.
+            if season != latest_season:
+                raise
+            print(f"Skipping team EPA for {season}: {exc}")
+            continue
+        if frame is not None and not frame.empty:
+            frames.append(frame)
+
+    if not frames:
+        return pd.DataFrame(
+            columns=[
+                "season",
+                "week",
+                "opponent",
+                "opponent_pass_epa_allowed",
+                "opponent_rush_epa_allowed",
+            ]
+        )
+
+    pbp = pd.concat(frames, ignore_index=True)
     pbp = pbp[pbp["play_type"].isin(["pass", "run"])].copy()
 
     pass_epa = (
