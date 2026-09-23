@@ -203,3 +203,109 @@ def test_empty_sleeper_response_never_mass_waives(hub_db, monkeypatch):
     assert result == {"waived": 0, "skipped": "empty_sleeper_rosters"}
     active = storage.get_roster_slot(ws_id, "sleeper-3")
     assert active["roster_status"] == "active"
+
+
+def _add(ws_id: str, team_id: str, **row) -> dict:
+    base = {"team": "PHI", "position": "QB", "salary": 9, "contract_years": 2, "source": "draft"}
+    return storage.add_roster_slot(ws_id, {**base, **row}, team_id=team_id)
+
+
+def test_bare_sleeper_id_row_is_not_waived_when_snapshot_uses_gsis(hub_db, monkeypatch):
+    """Regression: draft rows stored bare "6904" were waived against GSIS / sleeper-<n> snapshots."""
+    league = _linked_league("hourly-idfmt", "sl-idfmt")
+    team = storage.get_team_by_user(league["id"], "hourly-idfmt")
+    ws_id = str(league["workspace_id"])
+    _add(ws_id, team["id"], player_id="6904", sleeper_player_id="6904", player_name="Jalen Hurts")
+    _add(ws_id, team["id"], player_id="8155", sleeper_player_id="8155", player_name="Breece Hall", position="RB")
+    monkeypatch.setattr(
+        league_sleeper_sync,
+        "fetch_all_linked_rosters",
+        lambda _league_id: {
+            "9": {
+                "players": [
+                    {"player_id": "00-0036389", "sleeper_player_id": "6904", "player_name": "Jalen Hurts", "position": "QB"},
+                    {"player_id": "sleeper-8155", "sleeper_player_id": "8155", "player_name": "Breece Hall", "position": "RB"},
+                ]
+            }
+        },
+    )
+
+    result = cap_sheet_import.mark_waived_not_on_sleeper(league["id"])
+
+    assert result["waived"] == 0
+    assert storage.get_roster_slot(ws_id, "6904")["roster_status"] == "active"
+    assert storage.get_roster_slot(ws_id, "8155")["roster_status"] == "active"
+
+
+def test_restore_wrongly_waived_reactivates_only_players_still_on_that_team(hub_db, monkeypatch):
+    league = _linked_league("hourly-restore", "sl-restore")
+    team = storage.get_team_by_user(league["id"], "hourly-restore")
+    storage.update_team_sleeper_link(str(team["id"]), sleeper_roster_id="9")
+    ws_id = str(league["workspace_id"])
+    _add(ws_id, team["id"], player_id="6904", sleeper_player_id="6904", player_name="Jalen Hurts", roster_status="waived")
+    _add(ws_id, team["id"], player_id="1111", sleeper_player_id="1111", player_name="Really Dropped", position="WR", roster_status="waived")
+    monkeypatch.setattr(
+        league_sleeper_sync,
+        "fetch_all_linked_rosters",
+        lambda _league_id: {
+            "9": {"players": [{"player_id": "00-0036389", "sleeper_player_id": "6904", "player_name": "Jalen Hurts", "position": "QB"}]}
+        },
+    )
+
+    dry = cap_sheet_import.restore_wrongly_waived_players(league["id"], dry_run=True)
+    assert dry["restored"] == 1
+    assert storage.get_roster_slot(ws_id, "6904", prefer_occupying=False)["roster_status"] == "waived"
+
+    result = cap_sheet_import.restore_wrongly_waived_players(league["id"])
+
+    assert result["restored"] == 1
+    hurts = storage.get_roster_slot(ws_id, "6904")
+    assert hurts["roster_status"] == "active"
+    assert hurts["salary"] == 9
+    assert hurts["contract_years"] == 2
+    assert storage.get_roster_slot(ws_id, "1111", prefer_occupying=False)["roster_status"] == "waived"
+
+
+def test_readded_pre_draft_cut_player_gets_fresh_active_contract(hub_db):
+    """Regression: re-adding a player whose only row was cut_before_draft left him showing as Cut."""
+    league = _linked_league("hourly-recut", "sl-recut")
+    team = storage.get_team_by_user(league["id"], "hourly-recut")
+    ws_id = str(league["workspace_id"])
+    _add(
+        ws_id,
+        team["id"],
+        player_id="9228",
+        sleeper_player_id="9228",
+        player_name="Bryce Young",
+        team="CAR",
+        salary=2,
+        contract_years=1,
+        roster_status="cut_before_draft",
+    )
+
+    result = merge_sleeper_team_roster(
+        ws_id,
+        team["id"],
+        [
+            {
+                "player_id": "00-0039150",
+                "player_name": "Bryce Young",
+                "team": "CAR",
+                "position": "QB",
+                "sleeper_player_id": "9228",
+                "years_exp": 3,
+            }
+        ],
+        season=2026,
+        draft_completed=True,
+    )
+
+    assert result == {"added": 1, "updated": 0}
+    rows = storage.list_workspace_roster_slots(ws_id)
+    young = [r for r in rows if r.get("player_name") == "Bryce Young"]
+    active = [r for r in young if r["roster_status"] == "active"]
+    cut = [r for r in young if r["roster_status"] == "cut_before_draft"]
+    assert len(active) == 1 and len(cut) == 1
+    assert active[0]["salary"] == 1
+    assert active[0]["contract_years"] == 1
+    assert cut[0]["salary"] == 2

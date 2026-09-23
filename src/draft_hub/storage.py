@@ -1851,6 +1851,18 @@ def remove_roster_slot(
         return True
 
 
+def set_roster_slot_status(workspace_id: str, slot_id: int, roster_status: str) -> bool:
+    """Change one row's roster_status by row id (no player_id row picking)."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "UPDATE roster_slot SET roster_status = ? WHERE workspace_id = ? AND id = ?",
+            (str(roster_status), workspace_id, int(slot_id)),
+        )
+        if cur.rowcount:
+            _bump_live_for_workspace_conn(conn, workspace_id)
+        return bool(cur.rowcount)
+
+
 def delete_roster_slot_ids(workspace_id: str, slot_ids: list[int]) -> int:
     ids = [int(i) for i in slot_ids if i is not None]
     if not ids:

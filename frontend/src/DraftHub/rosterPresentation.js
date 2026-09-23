@@ -98,9 +98,34 @@ export function roomResult(room) {
   return `${verb} ${Math.abs(delta).toFixed(1)}`;
 }
 
+/** Mirrors storage.NON_OCCUPYING_ROSTER_STATUSES — rows that no longer hold a roster spot. */
+export const NON_OCCUPYING_ROSTER_STATUSES = new Set([
+  "cut_before_draft",
+  "cut",
+  "expired",
+  "waived",
+  "traded",
+]);
+
+/** True when the row takes a live roster spot (counts toward size, position limits, and salary). */
+export function rosterRowOccupies(row) {
+  if (!row) return false;
+  if (String(row.player_id || "").startsWith("deadcap:")) return false;
+  return !NON_OCCUPYING_ROSTER_STATUSES.has(String(row.roster_status || "active"));
+}
+
+const INACTIVE_STATUS_LABELS = {
+  cut_before_draft: "Cut",
+  cut: "Cut",
+  waived: "Dropped",
+  expired: "Expired",
+  traded: "Traded",
+};
+
 export function rosterStatusInfo(row, { draftCompleted, ctype, pendingType, pendingExt, rules } = {}) {
-  if (row?.roster_status === "cut_before_draft") {
-    return { label: "Cut", tone: "cut", key: "cut" };
+  const inactiveLabel = INACTIVE_STATUS_LABELS[String(row?.roster_status || "")];
+  if (inactiveLabel) {
+    return { label: inactiveLabel, tone: "cut", key: "cut" };
   }
   if (pendingExt) return { label: "Extension queued", tone: "pending", key: "pending-ext" };
   if (pendingType) return { label: "Pending type", tone: "pending", key: "pending-type" };
