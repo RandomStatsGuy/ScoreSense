@@ -159,13 +159,16 @@ sudo crontab -e
 Add (Tuesdays 10:00 UTC, after Monday Night Football and stat-provider updates):
 
 ```cron
-0 10 * * 2 cd /root/scoresense && docker compose -f deploy/docker-compose.prod.yml --profile cron run --rm refresh >> /var/log/scoresense-refresh.log 2>&1
+0 10 * * 2 cd /root/scoresense && docker compose -f deploy/docker-compose.prod.yml --profile cron run --rm -e FANTASYPROS_API_KEY= refresh >> /var/log/scoresense-refresh.log 2>&1
 ```
 
 The production `refresh` service runs the full weekly pipeline. It rebuilds the
 current-season datasets before training and publishing the next weekly artifacts;
 do not add `--no-retrain` to this scheduled run. The in-app refresh is intentionally
 lighter and only rebuilds artifacts from data already present on the server.
+FantasyPros is disabled for the scheduled run because it is optional enrichment;
+the weekly pipeline must not block current nflverse projections when that provider
+is slow or unavailable.
 
 ---
 
