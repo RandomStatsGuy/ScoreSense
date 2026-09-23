@@ -44,6 +44,8 @@ services:
       - ../artifacts:/app/artifacts
     environment:
       - PYTHONPATH=/app
-    command: python -m src.jobs.weekly_refresh --no-retrain
+    # Tuesday cron must ingest the completed week before rebuilding projections.
+    # The in-app Refresh button remains the lighter artifact-only rebuild.
+    command: python -m src.jobs.weekly_refresh
     profiles:
       - cron
