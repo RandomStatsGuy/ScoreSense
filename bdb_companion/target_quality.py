@@ -26,15 +26,47 @@ def build_pbp_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
     """Fallback target quality from nflverse play-by-play (pre-NGS)."""
     seasons = seasons or DEFAULT_ETL_SEASONS
     nfl = _import_nfl_data_py()
+    columns = [
+        "season", "week", "receiver_player_id", "receiver",
+        "air_yards", "cpoe", "epa", "xyac_epa", "pass_touchdown", "pass",
+    ]
+    frames: list[pd.DataFrame] = []
+    latest_season = max(seasons) if seasons else None
+    for season in seasons:
+        try:
+            frame = nfl.import_pbp_data(
+                years=[season],
+                columns=columns,
+                downcast=True,
+            )
+        except Exception as exc:
+            # Weekly stats can be available before the newest season's PBP
+            # release. Target quality is optional enrichment, so omit that
+            # season until nflverse publishes it while preserving history.
+            if season != latest_season:
+                raise
+            print(f"Skipping target quality for {season}: {exc}")
+            continue
+        if frame is not None and not frame.empty:
+            frames.append(frame)
 
-    pbp = nfl.import_pbp_data(
-        years=seasons,
-        columns=[
-            "season", "week", "receiver_player_id", "receiver",
-            "air_yards", "cpoe", "epa", "xyac_epa", "pass_touchdown", "pass",
-        ],
-        downcast=True,
-    )
+    if not frames:
+        return pd.DataFrame(
+            columns=[
+                "season",
+                "week",
+                "player_id",
+                "receiver",
+                "targets",
+                "avg_air_yards",
+                "avg_cpoe",
+                "target_quality_score",
+                "td_rate",
+                "data_source",
+            ]
+        )
+
+    pbp = pd.concat(frames, ignore_index=True)
     pbp = pbp[pbp["receiver_player_id"].notna() & (pbp["pass"] == 1)].copy()
     pbp["target_quality_raw"] = (
         pbp["air_yards"].fillna(0) * 0.05
