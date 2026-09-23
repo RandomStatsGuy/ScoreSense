@@ -10486,12 +10486,14 @@ td.col-rank.col-rank-top {
 
 /* ===== SCORE-7: Projection movement / What Changed? ===== */
 .table-has-movement {
-  --rank-col-width: 5.75rem;
+  /* Longest labels include two double-digit ranks plus the move amount. */
+  --rank-col-width: 7.5rem;
 }
 
 .table-has-movement th.col-rank,
 .table-has-movement td.col-rank {
-  max-width: none;
+  max-width: var(--rank-col-width);
+  overflow: hidden;
   white-space: normal;
 }
 
@@ -10547,6 +10549,13 @@ td.col-rank.col-rank-top {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+.table-has-movement .col-rank-stack {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+}
+
 .col-rank-move {
   display: block;
   max-width: 100%;
@@ -10557,10 +10566,22 @@ td.col-rank.col-rank-top {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-regular, 400);
 }
+
+.table-has-movement .col-rank-move {
+  width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .col-rank-move .proj-move {
   flex-wrap: nowrap;
   max-width: none;
   font-weight: inherit;
+}
+
+.table-has-movement .col-rank-move .proj-move {
+  display: flex;
+  width: 100%;
 }
 
 .proj-move {
