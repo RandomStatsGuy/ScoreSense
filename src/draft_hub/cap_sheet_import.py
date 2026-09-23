@@ -870,11 +870,14 @@ def mark_waived_not_on_sleeper(league_id: str) -> dict[str, Any]:
             pid = str(player.get("player_id") or "")
             if pid:
                 live_pids.add(pid)
+    # Never turn a transient empty/partial provider response into a league-wide
+    # destructive waiver event. A later hourly tick can safely retry.
+    if not live_pids:
+        return {"waived": 0, "skipped": "empty_sleeper_rosters"}
 
     waived = 0
     for slot in storage.list_league_roster(ws_id):
-        status = str(slot.get("roster_status") or "active")
-        if status in {"cut_before_draft", "waived"}:
+        if not storage.roster_row_occupies(slot):
             continue
         pid = str(slot.get("player_id") or "")
         if pid and pid not in live_pids:
