@@ -190,6 +190,12 @@ class ProjectionRequest(BaseModel):
     ids: Optional[str] = None
 
 
+class StackGameWeight(BaseModel):
+    game_id: str
+    teams: list[str] = Field(default_factory=list, min_length=2, max_length=2)
+    weight: int = Field(default=1, ge=1, le=4)
+
+
 class LineupOptimizeRequest(BaseModel):
     season: Optional[int] = None
     week: Optional[int] = None
@@ -208,6 +214,7 @@ class LineupOptimizeRequest(BaseModel):
     stack_bring_back: bool = False
     stack_teams: Optional[list[str]] = None
     stack_qb_ids: Optional[list[str]] = None
+    stack_game_weights: list[StackGameWeight] = Field(default_factory=list, max_length=32)
     max_per_team: Optional[int] = None
     min_salary: Optional[int] = None
     lineup_count: int = 1
@@ -1860,7 +1867,10 @@ def lineup_vegas(
             "note": "Vegas lines are unavailable right now. Lineups still build without them.",
         }
 
-    note = "Lines via nflverse schedules. Implied totals split the game total by the spread."
+    note = (
+        "Lines via nflverse schedules. Implied totals split the game total by the spread. "
+        "Movement compares the current consensus with the first line ScoreSense observed."
+    )
     if board["count"] and not board["with_lines"]:
         note = "Books have not posted lines for this week yet."
     return {
@@ -2057,6 +2067,7 @@ def lineup_optimize(
     if any(not math.isfinite(v) or not 0 <= v <= 1 for v in request.captain_exposure_limits.values()):
         raise HTTPException(status_code=400, detail="Captain exposure limits must be between 0 and 1.")
     try:
+        weighted_stack_teams = [team for game in request.stack_game_weights for team in game.teams if team]
         keep_player_ids = list(request.locked_player_ids or []) + list(
             request.stack_qb_ids or []
         )
@@ -2068,7 +2079,7 @@ def lineup_optimize(
             week=request.week,
             apply_injury_adjustments=request.apply_injury_adjustments,
             site=site,
-            keep_teams=request.stack_teams,
+            keep_teams=list(request.stack_teams or []) + weighted_stack_teams,
             keep_player_ids=keep_player_ids,
         )
         if request.slate_salaries:
@@ -2095,6 +2106,7 @@ def lineup_optimize(
             stack_bring_back=request.stack_bring_back,
             stack_teams=request.stack_teams,
             stack_qb_ids=request.stack_qb_ids,
+            stack_game_weights=[game.model_dump() for game in request.stack_game_weights],
             max_per_team=(
                 max(1, int(request.max_per_team)) if request.max_per_team else None
             ),

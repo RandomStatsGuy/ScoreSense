@@ -10,12 +10,14 @@ export const DFS_WORKSPACE_COPY = {
   build: "Build lineups", results: "Results", settings: "Build settings", contest: "Contest", contestNote: "Projection-based construction. Contest-return estimates are not available.",
   format: "Format", slate: "Slate", season: "Season", week: "Week", count: "Lineups", goal: "Score to optimize", captain: "Locked Captain", anyCaptain: "Choose from the pool", captainLimit: "Captain max", noCaptain: "No Captain", exposure: "Max player exposure", differences: "Minimum differences", salary: "Salary range", min: "Minimum salary", max: "Maximum salary", stacks: "Stacking & other rules", qbStack: "Pass catchers per QB", bringBack: "Include an opposing receiver", maxTeam: "Max players per team", jitter: "Projection variation", jitterNote: "Variation changes the input scores between builds. It is not a game simulation.", lockNote: "Locked players appear in every lineup. Other limits count toward the requested set; the Exposure tab shows actual usage.",
   pool: "Player pool", exposureTab: "Exposure", notes: "Build notes", search: "Search players…", player: "Player", proj: "Proj.", own: "Own.", actions: "Actions", lock: "Lock", skip: "Skip", clear: "Clear locks and skips", noPlayers: "No players match these filters.", projections: "Import projections & ownership", salaryImport: "Import salary CSV", projectionHelp: "CSV columns: ID, Proj, Floor, Ceiling, optional Ownership (0–100). Use this slate’s FLEX IDs and base points, before Captain multipliers.", missingOwnership: "Ownership not loaded. Duplication and contest-return estimates are unavailable.", missingProjection: "Missing estimates are excluded from builds. Fixed estimates are shown separately from modeled projections.",
-  selected: "Selected lineup", empty: "Load a slate, choose your settings, and build your first lineup.", saved: "Saved with original inputs", save: "Save for postgame review", used: "Salary used", unused: "Unused", rebuild: "Rebuild lineups", building: "Building…", notesLabel: "Your game script and pregame reasoning", notesHelp: "These notes are saved with the build. They do not change the source projections.",
+  selected: "Selected lineup", empty: "Load a slate, choose your settings, and build your first lineup.", saved: "Saved with original inputs", save: "Save build for review", saveHelp: "Freezes tonight's projections and settings. After the game, link an entry to this build in Results to see what you projected against what happened.", savedHelp: "Frozen. Link an entry to it from Results once the game is scored.", used: "Salary used", unused: "Unused", rebuild: "Rebuild lineups", building: "Building…", lineupsTitle: "Your lineups", viewLineups: (n) => `View ${n} lineup${n === 1 ? "" : "s"}`, notesLabel: "Your game script and pregame reasoning", notesHelp: "These notes are saved with the build. They do not change the source projections.",
   newLineups: "New lineups", upload: "Upload to My Lineups", uploadHelp: "A lineup CSV creates lineups. It does not enter a contest or edit reserved entries.", download: "Download lineup CSV", detail: "Download detail CSV", existing: "Reserved entries", edit: "Update existing entries", editHelp: "Import the CSV from DraftKings’ Edit Entries page, then review which lineup goes into each entry.", template: "Import Edit Entries CSV", assignment: "Entry assignments", keep: "Keep current lineup", sequential: "Assign lineups in order", entryDownload: "Download Edit Entries CSV", verifySlate: "I checked that this template is for the same slate and start time.", restriction: "If upload succeeds but entry is blocked, record the exact message, contest ID and time for DraftKings support. Export checks cannot verify account eligibility.",
   imported: "Imported", previous: "Previous", next: "Next", total: "Total", captainCount: "Captain", all: "All", loading: "Loading player pool",
 };
 
 export const DFS_RESULTS_COPY = {
+  requestFailed: "The request could not be completed.",
+  notJson: (url, status) => `The server returned a page instead of data for ${String(url).split("?")[0]} (${status}). Reload the page; if it keeps happening the API is not answering.`,
   fileLimit: "Import a CSV or ZIP up to 100 MB. The CSV inside a ZIP must also be under 100 MB.",
   invalidZip: "This ZIP could not be read. Download the contest export again or upload the extracted CSV.",
   zipCsvCount: "Choose a ZIP containing one results CSV, or upload the extracted CSV directly.",
@@ -38,7 +40,82 @@ export const DFS_RESULTS_COPY = {
   previous: "Previous entries",
   next: "Next entries",
   entryPage: (page, pages) => `Page ${page} of ${pages}`,
-  title:"See what your lineups earned.",support:"Track the money. Review the decisions behind it.",history:"Import contest history",scores:"Import lineup results",fees:"Entry fees",payouts:"Payouts",net:"Net profit",roi:"ROI",chart:"Spend against payouts",cumulative:"Cumulative · settled cash entries",sample:"Returns describe the imported sample. A profitable period alone does not establish a lasting edge.",empty:"Import contest history to see your entry fees and payouts.",coverage:"Import coverage",matched:"Entries with complete finances",undated:"Settled entries without dates",unsettled:"Unsettled or void entries",groups:"Where did the returns come from?",group:"Group by",stack:"QB stacks",captain:"Captain",contest:"Contest",salary:"Salary left",count:"Entries",noGroups:"Import results or link a saved build to see lineup groups.",descriptive:"These groups describe your entries, not the whole field. Counts and fees matter when comparing returns.",review:"Review an entry",entry:"Entry",date:"Date",points:"Actual points",rank:"Rank",saved:"Saved builds",snapshot:"Original build snapshot",link:"Link saved build",none:"No saved build",lineup:"Lineup",saveLink:"Save link",notes:"Postgame notes",saveNote:"Save review note",projection:"Saved projection sum",difference:"Actual minus saved projection",compareHelp:"This compares the actual lineup total with the saved sum of player projections. It does not identify the cause of a miss.",noSnapshot:"Link this entry to a saved pregame build to compare projections and exposure.",before:"At build time",after:"After the game",journal:"Which assumptions held? Was a role change knowable before lock? Keep hindsight separate from the original decision.",importTitle:"Review your import",mapping:"Match CSV columns",unmapped:"Not in this file",site:"Site",kind:"Import type",historyKind:"Fees and payouts",resultsKind:"Scores and lineups",contestOverride:"Contest ID (if absent from the file)",settled:"These entries are settled",payoutHelp:"Payout must be the total credited cash prize, not net profit. Keep tickets, refunded and promotional entries out of this cash import.",preview:"Preview entries",saveImport:"Save imported entries",cancel:"Cancel import",remove:"Remove entry",removeConfirm:"Remove this entry from your results? The original CSV and saved build remain available.",all:"All sites",noChart:"Dated, settled cash entries will appear here.",partial:"Some settled entries have incomplete financial data. Totals cover complete entries only; ROI is unavailable.",
+  contestReport:Object.freeze({
+    title:"Contest breakdowns",
+    help:"The standings file DraftKings gives you after a contest. It holds every entry, every lineup, and what the whole field owned.",
+    pick:"Import contest standings",
+    clear:"Clear",
+    notStandings:"That is not a contest-standings file. Download the standings export from the contest page.",
+    username:"Your DraftKings username",
+    usernamePlaceholder:"username",
+    usernameHelp:"Marks which entries are yours. Leave blank to read the field only.",
+    prizes:"Payout table",
+    prizesPlaceholder:"1st\t$1,000.00\n2nd\t$500.00\n3rd - 5th\t$200.00",
+    prizesHelp:"Paste it from the contest page. Standings files carry no prize money, so without this the payout column stays empty. Ties are pooled and split the way DraftKings does.",
+    viewMine:"My entries",
+    viewField:"Whole field",
+    entries:"Entries",
+    unique:"Unique lineups",
+    scoreRange:"Score range",
+    scoreMedian:"Median score",
+    paid:"Entries in the money",
+    rank:"Rank",
+    points:"Points",
+    payout:"Payout",
+    percentile:"Beat",
+    duplicates:"Shared by",
+    player:"Player",
+    slot:"Slot",
+    fieldOwn:"Field",
+    mineOwn:"Mine",
+    leverage:"Leverage",
+    fpts:"Actual",
+    noPrizes:"Add a payout table to see money.",
+    noneMine:"No entries matched that username.",
+    duplicateNote:"Other entries with this exact lineup.",
+    leverageNote:"Your exposure minus the field\u2019s. Captain and flex are counted separately, the way DraftKings reports them.",
+    winnersOwn:"Winners",
+    chartNoPlayers:"This file has no player table, so there is nothing to chart. Download the standings export again from the contest page.",
+    scatterTitle:"Ownership against what they actually scored",
+    scatterHelp:"Every player on the slate. Both numbers come from the file \u2014 nothing here is a projection.",
+    scatterX:"Rostered by the field",
+    scatterY:"Actual points",
+    keyMine:"In your lineups",
+    keyRest:"Everyone else",
+    scatterRead:"The dashed lines are the field\u2019s median ownership and median points. Top left is where tournaments are won \u2014 players who scored while most of the field was somewhere else. Bottom right is chalk that missed.",
+    winnersTitle:"What the winners played",
+    winnersScope:(entries,rank,topPct)=>`The top ${entries.toLocaleString()} entries \u2014 rank ${rank.toLocaleString()} and better, about the top ${topPct}% of the field.`,
+    winnersWholeField:(entries)=>`This field is only ${entries.toLocaleString()} entries, so the winners group is the whole field. Nothing below separates winners from anyone else.`,
+    winnersCaptain:(player,winnersPct,fieldPct)=>`${player} captained ${winnersPct} of the winners against ${fieldPct} of the field.`,
+    keyWinners:"Winners",
+    keyField:"Whole field",
+    winnersRead:"A filled bar far past its outline is a player the winners were on and the field was not. Captain and flex are separate rows.",
+    duplication:"Lineups played more than once",
+    yourEntries:"Your entries",
+    yourPayout:"Your payouts",
+    bestFinish:"Your best finish",
+    tablesTitle:"The numbers behind the charts",
+    tablesHelp:"Two tables over the same file. Pick which one you want.",
+    fee:"Entry fee",
+    feePlaceholder:"$3.00",
+    feeHelp:"What one entry cost. The standings file carries no fee, so without this your net profit and ROI stay blank.",
+    date:"Contest date",
+    dateHelp:"The standings file carries no date either, and undated money cannot be plotted \u2014 this is what puts the contest on the spend-against-payouts chart. It starts on the date already on record for this contest, or today.",
+    save:"Save to my results",
+    saving:"Saving…",
+    saveHelp:(entries)=>entries?`Writes the payout, rank and score onto your ${entries.toLocaleString()} ${entries===1?"entry":"entries"} in Results, and keeps this breakdown so you can reopen it without the CSV.`:"Keeps this breakdown so you can reopen it without the CSV. No entries of yours matched, so nothing is written to your results ledger.",
+    savedTo:(entries)=>entries?`Saved. ${entries.toLocaleString()} ${entries===1?"entry":"entries"} updated in Results, and the breakdown is under Saved contests.`:"Saved. The breakdown is under Saved contests.",
+    saveNeedsId:"This file has no contest ID in its name, so there is nothing to file it under. Use the standings export straight from DraftKings.",
+    saveNeedsAccount:"Sign in to save a contest to your results.",
+    savedList:"Saved contests",
+    savedListHelp:"Reopen a breakdown without the CSV. The payout table and entry fee are kept with it.",
+    open:"Open",
+    forget:"Forget",
+    forgetConfirm:"Forget this saved breakdown? The entries in your results stay, and the original CSV is untouched.",
+    frozen:"A saved breakdown. Import the standings file again to change the payout table or the fee.",
+    backToImport:"Import a different contest",
+  }),
+  title:"See what your lineups earned.",support:"Track the money. Review the decisions behind it.",history:"Import contest history",scores:"Import lineup results",fees:"Entry fees",payouts:"Payouts",net:"Net profit",roi:"ROI",chart:"Returns over time",cumulative:"Cumulative \u00b7 settled cash entries",sample:"Returns describe the imported sample. A profitable period alone does not establish a lasting edge.",empty:"Import contest history to see your entry fees and payouts, or break down a contest below and save it \u2014 that writes the money onto your entries too.",emptyTitle:"Nothing imported yet",inTheMoney:"In the money",bestFinish:"Best finish",contestCount:(n)=>`${n.toLocaleString()} ${n===1?"contest":"contests"}`,verdictScope:(entries,first,last)=>{const span=first&&last?(first===last?` on ${first}`:` from ${first} to ${last}`):"";return `${entries.toLocaleString()} settled ${entries===1?"entry":"entries"} with a fee and a payout on record${span}.`;},utility:"Import & coverage",fee:"Fee",payout:"Payout",entryNet:"Net",coverage:"Import coverage",matched:"Entries with complete finances",undated:"Settled entries without dates",unsettled:"Unsettled or void entries",groups:"Where did the returns come from?",group:"Group by",stack:"QB stacks",captain:"Captain",contest:"Contest",salary:"Salary left",count:"Entries",noGroups:"Import results or link a saved build to see lineup groups.",descriptive:"These groups describe your entries, not the whole field. Counts and fees matter when comparing returns.",review:"Review an entry",reviewHelp:"Every entry you have imported. Pick one to see how it scored, and link it to the build you saved before lock to compare what you projected with what happened.",reviewPick:"Pick an entry above to open it.",entry:"Entry",date:"Date",points:"Actual points",rank:"Rank",saved:"Saved builds",snapshot:"Original build snapshot",link:"Link saved build",none:"No saved build",lineup:"Lineup",saveLink:"Save link",notes:"Postgame notes",saveNote:"Save review note",projection:"Saved projection sum",difference:"Actual minus saved projection",compareHelp:"This compares the actual lineup total with the saved sum of player projections. It does not identify the cause of a miss.",noSnapshot:"Link this entry to a saved pregame build to compare projections and exposure.",before:"At build time",after:"After the game",journal:"Which assumptions held? Was a role change knowable before lock? Keep hindsight separate from the original decision.",importTitle:"Review your import",mapping:"Match CSV columns",unmapped:"Not in this file",site:"Site",kind:"Import type",historyKind:"Fees and payouts",resultsKind:"Scores and lineups",contestOverride:"Contest ID (if absent from the file)",settled:"These entries are settled",payoutHelp:"Payout must be the total credited cash prize, not net profit. Keep tickets, refunded and promotional entries out of this cash import.",preview:"Preview entries",saveImport:"Save imported entries",cancel:"Cancel import",remove:"Remove entry",removeConfirm:"Remove this entry from your results? The original CSV and saved build remain available.",all:"All sites",noChart:"Dated, settled cash entries will appear here.",partial:"Some settled entries have incomplete financial data. Totals cover complete entries only; ROI is unavailable.",
 };
 
 export const OBJECTIVES = [
@@ -192,11 +269,29 @@ export function objectiveLabel(objectiveId, isDfs = true) {
 export const DFS_STEP_COPY = {
   formatTitle: "Choose the format",
   formatSupport: "Cap, captain, or season-long. Pick the one you are entering.",
-  shootoutTitle: "Pick the totals",
-  shootoutSupport: "Tap every high-total game you want stacked. That does not lock a player. Pin a stack if you want that side.",
+  shootoutTitle: "Weight stacks by matchup",
+  shootoutSupport: "Raise the games you want more often. Weight changes stack share — it never locks a player.",
   shootoutEmpty: "No Vegas lines for this week.",
   shootoutCaptain: "Captain mode fills from this game. The CPT slot is 1.5×.",
   clearGames: "Clear games",
+  highestTotal: "Highest total",
+  stackWeight: "Stack weight",
+  weightShort: "Weight",
+  impliedNote: "Numbers under each team are implied points.",
+  impliedTitle: "Implied points",
+  lowerWeight: "Lower stack weight",
+  raiseWeight: "Raise stack weight",
+  weightOff: "Off",
+  weightOnNote: "Choosing a weight turns on QB +1 stacking when stacking is off.",
+  lineupPlan: "Stack plan",
+  noWeightedGames: "No matchup stacks selected.",
+  lineupAllocation: (count) => `${count} lineup${count === 1 ? "" : "s"}`,
+  closedSlate: "DraftKings is no longer returning salaries for this slate. It has likely locked or expired. The matchup board is still available; choose another live slate or import its salary CSV to build.",
+  currentLine: "Current line",
+  lineMoveNote: "Line moves compare the current consensus with the first line ScoreSense saw this week.",
+  noMove: "No move",
+  totalMove: (direction, from) => `${direction === "up" ? "Up" : "Down"} from ${from}`,
+  spreadMove: (from) => `From ${from}`,
   stacksTitle: "Stacks from these games",
   stacksSupport: "Build takes a QB from the games you marked. Pin a stack only if you want that quarterback.",
   useStack: "Use this stack",
@@ -427,6 +522,41 @@ export function gamesMarkedCopy(count = 0) {
   const n = Number(count) || 0;
   if (n <= 0) return "";
   return n === 1 ? "1 game in the build" : `${n} games in the build`;
+}
+
+export function matchupWeightLabel(weight = 0) {
+  const value = Math.max(0, Math.min(4, Number(weight) || 0));
+  return value ? `${value}×` : DFS_STEP_COPY.weightOff;
+}
+
+export function allocateMatchupWeights(weights = {}, lineupCount = 0) {
+  const entries = Object.entries(weights)
+    .map(([gameId, weight]) => ({
+      gameId,
+      weight: Math.max(0, Math.min(4, Number(weight) || 0)),
+    }))
+    .filter((entry) => entry.weight > 0);
+  const count = Math.max(0, Math.floor(Number(lineupCount) || 0));
+  if (!entries.length || !count) return [];
+  const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+  const rows = entries.map((entry) => {
+    const exact = (entry.weight / totalWeight) * count;
+    return { ...entry, count: Math.floor(exact), remainder: exact % 1 };
+  });
+  const left = count - rows.reduce((sum, entry) => sum + entry.count, 0);
+  const order = rows
+    .map((entry, index) => ({ index, remainder: entry.remainder }))
+    .sort((leftEntry, rightEntry) => (
+      rightEntry.remainder - leftEntry.remainder || leftEntry.index - rightEntry.index
+    ));
+  for (let index = 0; index < left; index += 1) {
+    rows[order[index % order.length].index].count += 1;
+  }
+  return rows.map(({ gameId, weight, count: allocated }) => ({
+    gameId,
+    weight,
+    count: allocated,
+  }));
 }
 
 export function dfsHeroCopy({
@@ -861,18 +991,60 @@ function lineNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
-export function vegasSpreadLabel(game = {}) {
-  const spread = lineNumber(game.spread_line);
+function lineValue(value) {
+  const num = lineNumber(value);
+  if (num == null) return "—";
+  return Number.isInteger(num) ? String(num) : num.toFixed(1);
+}
+
+function spreadLabelForValue(game, value) {
+  const spread = lineNumber(value);
   if (spread == null) return "No line";
   if (spread === 0) return "Pick 'em";
   const favorite = spread > 0 ? game.home : game.away;
-  return `${displayNflTeam(favorite)} -${Math.abs(spread)}`;
+  return `${displayNflTeam(favorite)} -${lineValue(Math.abs(spread))}`;
+}
+
+export function vegasSpreadLabel(game = {}) {
+  return spreadLabelForValue(game, game.spread_line);
 }
 
 export function vegasTotalLabel(game = {}) {
   const total = lineNumber(game.total_line);
   if (total == null) return "O/U —";
-  return `O/U ${total}`;
+  return `O/U ${lineValue(total)}`;
+}
+
+export function vegasTotalValue(game = {}) {
+  return lineValue(game.total_line);
+}
+
+/** Movement against the first line ScoreSense saw. Empty text when there is no baseline. */
+export function vegasLineMovement(game = {}) {
+  const currentTotal = lineNumber(game.total_line);
+  const firstTotal = lineNumber(game.first_seen_total_line);
+  const currentSpread = lineNumber(game.spread_line);
+  const firstSpread = lineNumber(game.first_seen_spread_line);
+  const hasTotalBaseline = currentTotal != null && firstTotal != null;
+  const hasSpreadBaseline = currentSpread != null && firstSpread != null;
+  const totalChanged = hasTotalBaseline && currentTotal !== firstTotal;
+  const spreadChanged = hasSpreadBaseline && currentSpread !== firstSpread;
+  let total = "";
+  if (totalChanged) {
+    total = DFS_STEP_COPY.totalMove(currentTotal > firstTotal ? "up" : "down", lineValue(firstTotal));
+  } else if (hasTotalBaseline) {
+    total = DFS_STEP_COPY.noMove;
+  }
+  let spread = "";
+  if (spreadChanged) spread = DFS_STEP_COPY.spreadMove(spreadLabelForValue(game, firstSpread));
+  else if (hasSpreadBaseline) spread = DFS_STEP_COPY.noMove;
+  return {
+    hasBaseline: hasTotalBaseline || hasSpreadBaseline,
+    totalChanged,
+    spreadChanged,
+    total,
+    spread,
+  };
 }
 
 export function vegasImplied(value) {

@@ -226,6 +226,36 @@ def test_optimize_stack_teams_uses_a_qb_from_the_marked_game():
     assert qb["player_id"] == "willis"
 
 
+def test_weighted_stack_schedule_respects_matchup_share():
+    from src.products.lineup_optimizer import weighted_stack_schedule
+
+    schedule = weighted_stack_schedule(
+        [
+            {"teams": ["BUF", "MIA"], "weight": 3},
+            {"teams": ["WAS", "DAL"], "weight": 2},
+            {"teams": ["MIN", "CHI"], "weight": 1},
+        ],
+        12,
+    )
+    assert schedule.count(["BUF", "MIA"]) == 6
+    assert schedule.count(["WAS", "DAL"]) == 4
+    assert schedule.count(["MIN", "CHI"]) == 2
+
+
+def test_weighted_stack_schedule_skips_off_and_invalid_games():
+    from src.products.lineup_optimizer import weighted_stack_schedule
+
+    schedule = weighted_stack_schedule(
+        [
+            {"teams": ["BUF", "MIA"], "weight": 1},
+            {"teams": ["WAS", "DAL"], "weight": 0},
+            {"teams": ["CHI"], "weight": 4},
+        ],
+        3,
+    )
+    assert schedule == [["BUF", "MIA"]] * 3
+
+
 def test_optimize_bring_back_uses_opponent_player():
     players = [
         LineupPlayer("qb1", "QB One", "AAA", "QB", 22, 15, 28, opponent="ZZZ"),

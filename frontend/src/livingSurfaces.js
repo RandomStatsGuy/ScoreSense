@@ -281,9 +281,16 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "table",
     route: "/tools/dfs",
     page: "frontend/src/LineupOptimizer.jsx",
-    also: ["frontend/src/DfsWorkspace.jsx", "frontend/src/DfsResults.jsx", "frontend/src/useDfsBuilder.js"],
+    also: [
+      "frontend/src/DfsWorkspace.jsx",
+      "frontend/src/DfsResults.jsx",
+      "frontend/src/DfsContestReport.jsx",
+      "frontend/src/DfsContestCharts.jsx",
+      "frontend/src/dfsContestSave.js",
+      "frontend/src/useDfsBuilder.js",
+    ],
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Match approved September 11 option A and shared Results dashboard: compact title/slate bar, settings/pool/lineup columns and paginated player table. No experience hero or full-page Vegas board. Account owns backgrounds. Keep Captain exposure distinct from total exposure, retain build-time inputs, and label missing/fixed/imported estimates. Imports preview before saving; My Lineups CSV and Edit Entries CSV are distinct. Never invent probabilities, ownership or payouts. Results use account-scoped cash records and show completeness/sample size. Follow docs/PRODUCT.md.",
+    doNot: "Match approved September 11 option A and shared Results dashboard: compact title and a slate bar that stays on screen with the one Build lineups action; the paginated player pool is the primary column; build settings and the matchup board sit in the right rail; lineups and CSV transfer sit below the pool. No experience hero or full-page Vegas board. Account owns backgrounds. Keep Captain exposure distinct from total exposure, retain build-time inputs, and label missing/fixed/imported estimates. Imports preview before saving; My Lineups CSV and Edit Entries CSV are distinct. Never invent probabilities, ownership or payouts. Results use account-scoped cash records and show completeness/sample size. A contest breakdown is read-only until saved; saving writes payouts and the typed entry fee onto the account\u2019s own entries and keeps a snapshot, and a reopened snapshot is frozen \u2014 re-import the file to change the payout table or the fee. Contest charts carry one accent hue: a second series is told apart by fill, size and direct labels, never a second colour, and never two y-scales. Follow docs/PRODUCT.md.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",
@@ -331,7 +338,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Rank stays one line; movement is one muted line under it. Desktop virtualizes on page scroll — no nested table scroller. Do not add a header Refresh on Weekly — the stale or missing-notes chip is the refresh. The notes chip rebuilds player-context only — do not start the weekly ETL pipeline. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. Phone weekly: swipeable signals, no body movement chips, sticky position+filter+count, windowed list, stale or missing-notes chip is refresh with relative time when one exists. Filter sheet owns search/what-changed with Apply/Reset. No per-card Floor–Ceiling label. Injury context hides while loading and timestamps when ready.",
+    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Rank stays one line; movement is one muted line under it. Desktop virtualizes on page scroll — no nested table scroller. Do not add a header Refresh on Weekly — the stale or missing-notes chip is the refresh. The notes chip rebuilds player-context only — do not start the weekly ETL pipeline. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. Phone weekly: swipeable signals, no body movement chips, sticky position+filter+count, windowed list, stale or missing-notes chip is refresh with relative time when one exists. Filter sheet owns search/what-changed with Apply/Reset. No per-card Floor–Ceiling label. Injury context hides while loading and timestamps when ready. The phone board never scrolls sideways: panels stretch to the board width. Phone card hero stacks P50 + Proj on one line with floor–ceiling and movement under it — never three across. While picking players to compare, phone rows show P50 only and drop the expand chevron.",
   }),
   "projections.season": S({
     label: "Season",

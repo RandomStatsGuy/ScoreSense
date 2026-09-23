@@ -897,8 +897,8 @@ export default function WeeklyTable({
                 heroValue={leftSlate ? "—" : unavailable ? tag : fmtNum(row["Projected Points"], 1)}
                 heroLabel={leftSlate || unavailable ? "" : "Proj"}
                 hideHeroSubWhenOpen
-                reserveHeroSub
-                heroSub={leftSlate ? (
+                reserveHeroSub={!compareSelecting}
+                heroSub={compareSelecting ? null : leftSlate ? (
                   <span className="mobile-player-card-move-slot">
                     {showMovement || showFilters ? (
                       <span className="mobile-player-card-move">
