@@ -863,16 +863,13 @@ def mark_waived_not_on_sleeper(league_id: str) -> dict[str, Any]:
     if not sleeper_league_id:
         return {"waived": 0, "skipped": "no_sleeper_league"}
 
+    from src.draft_hub.roster_identity_match import roster_identity_tokens
+
     snapshots = fetch_all_linked_rosters(str(sleeper_league_id))
-    live_pids: set[str] = set()
-    for snapshot in snapshots.values():
-        for player in snapshot.get("players") or []:
-            pid = str(player.get("player_id") or "")
-            if pid:
-                live_pids.add(pid)
+    live_tokens = _live_sleeper_identity_tokens(snapshots)
     # Never turn a transient empty/partial provider response into a league-wide
     # destructive waiver event. A later hourly tick can safely retry.
-    if not live_pids:
+    if not live_tokens:
         return {"waived": 0, "skipped": "empty_sleeper_rosters"}
 
     waived = 0
@@ -880,10 +877,93 @@ def mark_waived_not_on_sleeper(league_id: str) -> dict[str, Any]:
         if not storage.roster_row_occupies(slot):
             continue
         pid = str(slot.get("player_id") or "")
-        if pid and pid not in live_pids:
+        if not pid:
+            continue
+        # Hub rows may store GSIS, ``sleeper-<n>``, or a bare Sleeper id while
+        # the snapshot reports GSIS or ``sleeper-<n>``. Compare every identity
+        # token so a format mismatch never reads as a drop.
+        if roster_identity_tokens(slot) & live_tokens:
+            continue
+        if slot.get("id") is not None:
+            storage.set_roster_slot_status(ws_id, int(slot["id"]), "waived")
+        else:
             storage.update_roster_slot(ws_id, pid, roster_status="waived", any_team=True)
-            waived += 1
-    return {"waived": waived, "live_sleeper_players": len(live_pids)}
+        waived += 1
+    live_players = sum(len(snap.get("players") or []) for snap in (snapshots or {}).values())
+    return {"waived": waived, "live_sleeper_players": live_players}
+
+
+def _live_sleeper_identity_tokens(snapshots: dict[str, Any]) -> set[str]:
+    """Every comparable id (GSIS, sleeper-<n>, bare n) for players on Sleeper rosters."""
+    from src.draft_hub.roster_identity_match import identity_token_set, roster_identity_tokens
+
+    tokens: set[str] = set()
+    for snapshot in (snapshots or {}).values():
+        for player in snapshot.get("players") or []:
+            tokens |= roster_identity_tokens(player)
+        tokens |= identity_token_set(str(x) for x in snapshot.get("player_ids") or [] if x)
+        tokens |= identity_token_set(str(x) for x in snapshot.get("sleeper_player_ids") or [] if x)
+    return tokens
+
+
+def restore_wrongly_waived_players(league_id: str, *, dry_run: bool = False) -> dict[str, Any]:
+    """Re-activate ``waived`` rows for players still on the same team's Sleeper roster.
+
+    One-time repair for the hourly-sync bug that waived hub rows whose stored id
+    format (bare Sleeper id) differed from the snapshot (GSIS / sleeper-<n>).
+    A row is restored only when the player is on the Sleeper roster linked to
+    that row's hub team and no occupying row already covers him, so genuine
+    drops, re-claims by other teams, and fresh re-acquisitions are left alone.
+    """
+    from src.draft_hub import storage
+    from src.draft_hub.league_sleeper_sync import fetch_all_linked_rosters, resolve_sleeper_league_id
+    from src.draft_hub.roster_identity_match import roster_identity_tokens
+
+    league = storage.get_league(league_id)
+    if not league:
+        raise ValueError("League not found")
+    sleeper_league_id = resolve_sleeper_league_id(league_id)
+    if not sleeper_league_id:
+        return {"restored": 0, "skipped": "no_sleeper_league"}
+    snapshots = fetch_all_linked_rosters(str(sleeper_league_id))
+    tokens_by_roster = {
+        str(rid): _live_sleeper_identity_tokens({rid: snap}) for rid, snap in (snapshots or {}).items()
+    }
+    if not any(tokens_by_roster.values()):
+        return {"restored": 0, "skipped": "empty_sleeper_rosters"}
+    roster_by_team = {
+        str(t["id"]): str(t.get("sleeper_roster_id") or "")
+        for t in storage.list_league_teams(league_id)
+    }
+
+    ws_id = storage.roster_workspace_for_league(league)
+    rows = storage.list_league_roster(ws_id)
+    occupied: set[str] = set()
+    for row in rows:
+        if storage.roster_row_occupies(row):
+            occupied |= roster_identity_tokens(row)
+
+    restored: list[dict[str, Any]] = []
+    for row in rows:
+        if str(row.get("roster_status") or "") != "waived" or row.get("id") is None:
+            continue
+        rid = roster_by_team.get(str(row.get("team_id") or ""), "")
+        team_tokens = tokens_by_roster.get(rid) or set()
+        tokens = roster_identity_tokens(row)
+        if not (tokens & team_tokens) or (tokens & occupied):
+            continue
+        if not dry_run:
+            storage.set_roster_slot_status(ws_id, int(row["id"]), "active")
+        occupied |= tokens
+        restored.append(
+            {
+                "slot_id": row["id"],
+                "team_id": row.get("team_id"),
+                "player": row.get("player_name") or row.get("player_id"),
+                "salary": row.get("salary"),
+            }
+        )
+    return {"restored": len(restored), "dry_run": dry_run, "players": restored}
 
 
 def sync_league_rosters_and_contracts(
