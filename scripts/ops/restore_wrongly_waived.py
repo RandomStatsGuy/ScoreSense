@@ -8,6 +8,7 @@ waived rows whose player is still on the same team's Sleeper roster.
 
 Run with --dry-run first:
     python scripts/ops/restore_wrongly_waived.py --dry-run
+    python scripts/ops/restore_wrongly_waived.py --replace-sync-duplicates --dry-run
     python scripts/ops/restore_wrongly_waived.py
     python scripts/ops/restore_wrongly_waived.py --league <league_id>
 """
@@ -31,13 +32,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--league", help="Only this league id (default: every live Sleeper league)")
     parser.add_argument("--dry-run", action="store_true", help="Report without writing")
+    parser.add_argument(
+        "--replace-sync-duplicates",
+        action="store_true",
+        help="Also delete the $1 Sleeper pickup rows the buggy sync created and restore the real contract",
+    )
     args = parser.parse_args()
 
     league_ids = [args.league] if args.league else storage.list_live_sleeper_league_ids()
     total = 0
     for league_id in league_ids:
         try:
-            result = restore_wrongly_waived_players(league_id, dry_run=args.dry_run)
+            result = restore_wrongly_waived_players(
+                league_id,
+                dry_run=args.dry_run,
+                replace_sync_duplicates=args.replace_sync_duplicates,
+            )
         except Exception as exc:  # keep going across leagues
             print(json.dumps({"league_id": league_id, "error": str(exc)}))
             continue

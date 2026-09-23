@@ -309,3 +309,72 @@ def test_readded_pre_draft_cut_player_gets_fresh_active_contract(hub_db):
     assert active[0]["salary"] == 1
     assert active[0]["contract_years"] == 1
     assert cut[0]["salary"] == 2
+
+
+def test_unmatched_kicker_and_defense_are_not_waived(hub_db, monkeypatch):
+    """Sleeper ids ScoreSense can't map (K/DEF) land in ``unmatched`` but are still rostered."""
+    league = _linked_league("hourly-kdef", "sl-kdef")
+    team = storage.get_team_by_user(league["id"], "hourly-kdef")
+    ws_id = str(league["workspace_id"])
+    _add(ws_id, team["id"], player_id="GB", sleeper_player_id="GB", player_name="Packers", position="DEF", salary=1, contract_years=1)
+    _add(ws_id, team["id"], player_id="7839", sleeper_player_id="7839", player_name="Evan McPherson", position="K", salary=1, contract_years=1)
+    monkeypatch.setattr(
+        league_sleeper_sync,
+        "fetch_all_linked_rosters",
+        lambda _league_id: {
+            "9": {
+                "players": [{"player_id": "sleeper-1", "sleeper_player_id": "1", "player_name": "Someone", "position": "WR"}],
+                "unmatched": [
+                    {"sleeper_player_id": "GB", "player_name": "GB"},
+                    {"sleeper_player_id": "7839", "player_name": "7839"},
+                ],
+            }
+        },
+    )
+
+    result = cap_sheet_import.mark_waived_not_on_sleeper(league["id"])
+
+    assert result["waived"] == 0
+
+
+def test_restore_replaces_sync_created_dollar_duplicate(hub_db, monkeypatch):
+    league = _linked_league("hourly-dupe", "sl-dupe")
+    team = storage.get_team_by_user(league["id"], "hourly-dupe")
+    storage.update_team_sleeper_link(str(team["id"]), sleeper_roster_id="9")
+    ws_id = str(league["workspace_id"])
+    _add(ws_id, team["id"], player_id="6904", sleeper_player_id="6904", player_name="Jalen Hurts", roster_status="waived")
+    _add(
+        ws_id,
+        team["id"],
+        player_id="sleeper-6904",
+        sleeper_player_id="6904",
+        player_name="Jalen Hurts",
+        salary=1,
+        contract_years=1,
+        source="sleeper",
+    )
+    _add(ws_id, team["id"], player_id="GB", sleeper_player_id="GB", player_name="Packers", position="DEF", salary=1, contract_years=1, roster_status="waived")
+    monkeypatch.setattr(
+        league_sleeper_sync,
+        "fetch_all_linked_rosters",
+        lambda _league_id: {
+            "9": {
+                "players": [{"player_id": "00-0036389", "sleeper_player_id": "6904", "player_name": "Jalen Hurts", "position": "QB"}],
+                "unmatched": [{"sleeper_player_id": "GB", "player_name": "GB"}],
+            }
+        },
+    )
+
+    plain = cap_sheet_import.restore_wrongly_waived_players(league["id"], dry_run=True)
+    assert plain["restored"] == 1  # Packers only; Hurts skipped because a $1 row is active
+    assert [s["player"] for s in plain["skipped"]] == ["Jalen Hurts"]
+
+    result = cap_sheet_import.restore_wrongly_waived_players(league["id"], replace_sync_duplicates=True)
+
+    assert result["restored"] == 2
+    assert result["removed_duplicates"] == 1
+    rows = [r for r in storage.list_workspace_roster_slots(ws_id) if r.get("player_name") == "Jalen Hurts"]
+    assert len(rows) == 1
+    assert rows[0]["roster_status"] == "active"
+    assert rows[0]["salary"] == 9
+    assert storage.get_roster_slot(ws_id, "GB")["roster_status"] == "active"
