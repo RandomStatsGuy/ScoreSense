@@ -32,3 +32,10 @@ test("compare picking hides the weekly phone range and the expand chevron", () =
   const card = read("MobilePlayerCard.jsx");
   assert.match(card, /hasExpand && !tapSelects \?/);
 });
+
+test("movement rank labels stay inside a column wide enough for double-digit changes", () => {
+  const css = read("styles.css");
+  assert.match(rule(css, ".table-has-movement"), /--rank-col-width:\s*7\.5rem/);
+  assert.match(rule(css, ".table-has-movement .col-rank-stack"), /width:\s*100%/);
+  assert.match(rule(css, ".table-has-movement .col-rank-move"), /overflow:\s*visible/);
+});
