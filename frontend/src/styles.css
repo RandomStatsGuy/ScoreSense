@@ -749,8 +749,8 @@ a.app-bottom-nav-item {
   position: sticky;
   top: 0;
   z-index: 40;
-  margin: 0 0 0.65rem;
-  padding: 0.55rem 0.75rem;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -761,7 +761,7 @@ a.app-bottom-nav-item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
 }
 
 .projections-filter-pos-segment {
@@ -780,7 +780,7 @@ a.app-bottom-nav-item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem 0.55rem;
+  gap: var(--space-2);
   flex: 1 1 16rem;
   min-width: 0;
 }
@@ -791,7 +791,17 @@ a.app-bottom-nav-item {
 }
 
 .projections-filter-search .search-input {
-  min-width: 9rem;
+  min-width: 12rem;
+}
+
+.projections-filter-bar .header-context-control,
+.projections-filter-bar .week-step-btn,
+.projections-filter-bar .header-segment-tab {
+  min-height: var(--control-height);
+}
+
+.projections-filter-bar .projections-filter-scoring-note {
+  margin-left: auto;
 }
 
 /* Narrow-desktop range (769–900px): keep filter fields inline instead of the
