@@ -10728,6 +10728,33 @@ td.col-rank.col-rank-top {
   overflow: visible;
 }
 
+.hub-fa-page .hub-table.hub-table--available {
+  min-width: 56rem;
+}
+
+.hub-fa-page .hub-table.hub-table--available .col-player,
+.hub-fa-page .hub-table.hub-table--available thead th.col-player {
+  width: 49%;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-pos {
+  width: 6%;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-proj {
+  width: 18%;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-fv {
+  width: 12%;
+  min-width: 0;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-actions {
+  width: 15%;
+  min-width: 10.5rem;
+}
+
 .hub-fa-board {
   overflow: visible;
   max-height: none;
