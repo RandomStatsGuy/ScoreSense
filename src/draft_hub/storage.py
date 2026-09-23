@@ -2101,20 +2101,6 @@ def list_in_progress_draft_league_ids() -> list[str]:
     return [str(r["league_id"]) for r in rows]
 
 
-def list_live_sleeper_league_ids() -> list[str]:
-    """Linked, non-test leagues that allow Sleeper to write roster state."""
-    with get_conn() as conn:
-        rows = conn.execute(
-            """SELECT id FROM league
-               WHERE NULLIF(TRIM(sleeper_league_id), '') IS NOT NULL
-                 AND COALESCE(NULLIF(TRIM(sleeper_sync_mode), ''), ?) = ?
-                 AND COALESCE(test_mode, 0) = 0
-               ORDER BY created_at, id""",
-            (SLEEPER_SYNC_LIVE, SLEEPER_SYNC_LIVE),
-        ).fetchall()
-    return [str(row["id"]) for row in rows]
-
-
 def _draft_payload_dumps(payload: dict[str, Any] | None) -> str:
     from src.draft_hub.jsonutil import dumps
 

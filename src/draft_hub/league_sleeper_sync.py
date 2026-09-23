@@ -174,11 +174,6 @@ def merge_sleeper_team_roster(
         existing = find_matching_roster_slot(slots, p, team_id=str(team_id), occupying_only=True)
         if existing is None:
             existing = find_matching_roster_slot(slots, p, team_id=str(team_id), occupying_only=False)
-        # A Sleeper drop is retained as non-occupying history. If that player is
-        # later claimed again, create a fresh active acquisition/contract row
-        # instead of reviving the old waived deal.
-        if existing and str(existing.get("roster_status") or "active") == "waived":
-            existing = None
         if existing:
             existing_pid = str(existing.get("player_id") or pid)
             existing_tid = str(existing.get("team_id") or "")
