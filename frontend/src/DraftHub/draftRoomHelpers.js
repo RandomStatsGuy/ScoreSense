@@ -135,7 +135,9 @@ export function canAcquireAtPosition(capacity, position, { relaxLimits } = {}) {
 export function isRetainedThroughDraft(row, draftCompleted = false) {
   if (!row) return false;
   const status = String(row.roster_status || "active");
-  if (status === "cut_before_draft" || status === "expired") return false;
+  // Cut, dropped (waived), traded, and expired rows are history: no roster spot, no salary.
+  if (["cut_before_draft", "cut", "waived", "traded", "expired"].includes(status)) return false;
+  if (String(row.player_id || "").startsWith("deadcap:")) return false;
   const acq = String(
     row.acquisition_type || row.contract?.acquisition_type || "",
   ).toLowerCase();

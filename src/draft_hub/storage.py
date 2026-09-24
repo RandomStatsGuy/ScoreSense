@@ -2964,7 +2964,13 @@ def league_roster_overview(league_id: str) -> dict[str, Any]:
     team_blocks = []
     for team in teams:
         rows = filter_team_sleeper_roster(team, by_team.get(team["id"], []))
-        total = sum(float(r.get("salary") or 0) for r in rows)
+        # Same cap math as everywhere else: live contracts plus dead cap only.
+        # Dropped / traded / expired history rows cost nothing.
+        from src.draft_hub.rules_engine import _row_cap_charge
+        from src.draft_hub.schemas import LeagueRules
+
+        _rules = LeagueRules.model_validate(league["rules"])
+        total = sum(_row_cap_charge(_rules, r)[0] for r in rows)
         team_blocks.append(
             {
                 "team": team,
