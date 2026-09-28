@@ -114,3 +114,11 @@ reporting unresolved and unexamined candidates explicitly. A read-only review
 panel now exposes this comparison in single-game formats while preserving the
 current build. Verified platform scoring/exact-slate source contracts remain
 outstanding.
+
+
+## Follow-up: retained salary-catalog checks
+
+[Retained salary catalogs](DFS_SALARY_CATALOGS.md) now bind authenticated browser
+builds to account-scoped server records, reject altered/mismatched salary inputs,
+and check supplied game labels before Captain/FLEX rows are collapsed. This advances
+slate membership checks without claiming verified site scoring or live lock state.

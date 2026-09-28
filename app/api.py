@@ -234,6 +234,7 @@ class LineupOptimizeRequest(BaseModel):
     locked_captain_id: Optional[str] = None
     include_captain_comparison: bool = False
     slate_id: Optional[str] = Field(default=None, max_length=100)
+    salary_snapshot_id: Optional[str] = Field(default=None, pattern="^[0-9a-f]{64}$")
     projection_overrides: dict[str, dict[str, float]] = Field(default_factory=dict, max_length=500)
 
 
@@ -1917,6 +1918,7 @@ def _lineup_salary_response(
         "count": len(records),
         "players": records,
         "salaries": _json_safe_records(salaries),
+        "salary_snapshot": meta.get("salary_snapshot"),
         "slate": slate,
         "note": note,
     }
@@ -2001,13 +2003,8 @@ def lineup_load_salaries(
             matches = [s for s in list_slates(provider, category="all") if str(s["slate_id"]) == str(slate_id)]
             slate_meta = matches[0] if matches else {"slate_id": slate_id, "site": provider}
 
-        salaries = collapse_captain_rows(
-            fetch_slate_salaries(
-                provider,
-                str(slate_id),
-                force_refresh=force_refresh,
-            )
-        )
+        raw_salaries = fetch_slate_salaries(provider, str(slate_id), force_refresh=force_refresh)
+        salaries = collapse_captain_rows(raw_salaries)
         if salaries.empty:
             raise ValueError(f"No salaries returned for slate {slate_id}.")
 
@@ -2021,6 +2018,10 @@ def lineup_load_salaries(
         meta["slate_id"] = slate_id
         meta["slate_name"] = slate_meta.get("name")
         meta["slate_category"] = slate_meta.get("category")
+        from src.products.dfs_slate_snapshots import capture_salary_snapshot
+        meta["salary_snapshot"] = capture_salary_snapshot(
+            str(_user["sub"]), raw_salaries, site=site, source="provider_catalog", slate=slate_meta,
+        ) if _user and _user.get("sub") else None
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -2044,7 +2045,8 @@ async def lineup_import_salaries(
     provider = _slate_provider(site)
     try:
         raw = await file.read()
-        salaries = collapse_captain_rows(parse_salary_csv(raw, site=provider))
+        raw_salaries = parse_salary_csv(raw, site=provider)
+        salaries = collapse_captain_rows(raw_salaries)
         pool, meta = build_lineup_pool(
             season=season,
             week=week,
@@ -2052,6 +2054,10 @@ async def lineup_import_salaries(
             site=site,
         )
         merged, stats = attach_salaries_to_pool(pool, salaries)
+        from src.products.dfs_slate_snapshots import capture_salary_snapshot
+        meta["salary_snapshot"] = capture_salary_snapshot(
+            str(_user["sub"]), raw_salaries, site=site, source="uploaded_csv",
+        ) if _user and _user.get("sub") else None
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -2090,8 +2096,19 @@ def lineup_optimize(
             keep_teams=list(request.stack_teams or []) + weighted_stack_teams,
             keep_player_ids=keep_player_ids,
         )
-        if request.slate_salaries:
-            sal_df = pd.DataFrame(request.slate_salaries)
+        salary_snapshot = None
+        if request.salary_snapshot_id:
+            if not _user or not _user.get("sub"):
+                raise HTTPException(status_code=401, detail="Sign in to use this salary snapshot.")
+            from src.products.dfs_slate_snapshots import resolve_salary_snapshot
+            sal_df, salary_snapshot = resolve_salary_snapshot(
+                str(_user["sub"]), request.salary_snapshot_id, site=site,
+                slate_id=request.slate_id, supplied_rows=request.slate_salaries,
+                salary_cap=request.salary_cap, max_per_team=request.max_per_team,
+            )
+        else:
+            sal_df = pd.DataFrame(request.slate_salaries) if request.slate_salaries else None
+        if sal_df is not None:
             pool, sal_stats = attach_salaries_to_pool(pool, sal_df)
             meta["salary_import"] = sal_stats
         from src.products.dfs_inputs import apply_projection_overrides
@@ -2140,6 +2157,7 @@ def lineup_optimize(
             snapshot_context={
                 "requested_season": request.season, "requested_week": request.week,
                 "client_slate_id": request.slate_id, "pool_meta": meta,
+                "salary_snapshot": salary_snapshot,
                 "apply_injury_adjustments": request.apply_injury_adjustments,
                 "projection_overrides": request.projection_overrides,
             },
@@ -2152,6 +2170,7 @@ def lineup_optimize(
     return {
         "meta": meta,
         **result,
+        "slate_validation": salary_snapshot or {"scope": "unbound_client_inputs", "scoring_verified": False, "lock_state_verified": False},
     }
 
 

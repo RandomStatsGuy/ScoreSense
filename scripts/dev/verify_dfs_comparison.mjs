@@ -32,6 +32,7 @@ try {
     await page.getByText("1 lineup solved · 2 of 2 Captains evaluated", { exact: false }).waitFor();
     const request = await page.evaluate(() => window.__lastDfsRequest);
     assert.equal(request.include_captain_comparison, true);
+    assert.equal(request.salary_snapshot_id, "a".repeat(64));
     assert.equal(request.lineup_count, 1);
     assert.equal(request.max_exposure, null);
     assert.equal(request.randomness, 0);

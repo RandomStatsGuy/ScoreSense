@@ -14,6 +14,7 @@ def connect():
         db.execute("CREATE TABLE IF NOT EXISTS entries (owner TEXT, site TEXT, contest TEXT, entry TEXT, payload TEXT, PRIMARY KEY(owner,site,contest,entry))")
         db.execute("CREATE TABLE IF NOT EXISTS builds (owner TEXT, id TEXT, payload TEXT, PRIMARY KEY(owner,id))")
         db.execute("CREATE TABLE IF NOT EXISTS contests (owner TEXT, site TEXT, contest TEXT, payload TEXT, PRIMARY KEY(owner,site,contest))")
+        db.execute("CREATE TABLE IF NOT EXISTS salary_snapshots (owner TEXT, id TEXT, payload TEXT, PRIMARY KEY(owner,id))")
         yield db
 
 

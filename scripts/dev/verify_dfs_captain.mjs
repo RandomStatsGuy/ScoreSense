@@ -27,6 +27,7 @@ try {
     await page.getByRole("button", { name: "Build lineups", exact: true }).last().click();
     await page.getByText("Built 20 lineups.", { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => window.__lastDfsRequest.max_overlap), 6);
+    assert.equal(await page.evaluate(() => window.__lastDfsRequest.salary_snapshot_id), "a".repeat(64));
     await page.getByRole("button", { name: DFS_WORKSPACE_COPY.save, exact: true }).click();
     await page.getByText("Build saved with its original projections and settings.", { exact: true }).waitFor();
     const savedSettings = await page.evaluate(() => window.__lastDfsSavedBuild.settings);
@@ -47,6 +48,7 @@ try {
     await page.getByRole("button", { name: "Build lineups", exact: true }).last().click();
     await page.getByText("Built 20 lineups.", { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => window.__lastDfsRequest.max_overlap), 8);
+    assert.equal(await page.evaluate(() => window.__lastDfsRequest.salary_snapshot_id), "b".repeat(64));
     reports.push({ width, results, errors, controls: "passed" });
     console.log(JSON.stringify(reports.at(-1)));
     await page.close();

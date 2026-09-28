@@ -95,6 +95,7 @@ window.fetch = async (url, options = {}) => {
       : respond({
           players: mode === "empty" ? [] : pool,
           salaries,
+          salary_snapshot: { id: (u.includes("draftkings_showdown") ? "a" : "b").repeat(64) },
           slate: { name: "SF at LAR · sample slate" },
           stats: { matched: 8, slate_players: 8 },
         });
