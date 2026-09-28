@@ -847,6 +847,7 @@ def apply_sleeper_roster_overlay(
     sleeper_df: Optional[pd.DataFrame] = None,
     add_rookies: bool = True,
     add_emerging: bool = False,
+    add_missing: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """
     Refresh team assignments from Sleeper for upcoming-season draft rosters.
@@ -946,7 +947,7 @@ def apply_sleeper_roster_overlay(
 
     rookies_added = 0
     emerging_added = 0
-    if (add_rookies or add_emerging) and not out.empty:
+    if (add_rookies or add_emerging or add_missing) and not out.empty:
         allowed = _sleeper_positions_for(position)
         season_val = int(season or out["season"].iloc[0])
         week_val = int(target_week)
@@ -984,6 +985,7 @@ def apply_sleeper_roster_overlay(
                     position=position,
                     medians=medians,
                 )
+                stub["_roster_estimate"] = True
                 if not mark_rookie:
                     stub["_rookie_estimate"] = False
                 extra_rows.append(stub)
@@ -995,7 +997,9 @@ def apply_sleeper_roster_overlay(
 
         if add_rookies:
             _append_candidates(rookie_mask, mark_rookie=True)
-        if add_emerging:
+        if add_missing:
+            _append_candidates(~rookie_mask, mark_rookie=False)
+        elif add_emerging:
             _append_candidates(emerging_mask, mark_rookie=False)
 
         if extra_rows:

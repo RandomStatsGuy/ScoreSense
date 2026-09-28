@@ -35,7 +35,7 @@ const pool = names.map(([Player, Team, Position, salary, proj], i) => ({
   "Projected Points": proj,
   "Low (P10)": proj * 0.5,
   "High (P90)": proj * 1.6,
-  projection_source: Position === "K" ? "Imported" : "ScoreSense",
+  projection_source: Position === "K" ? "Historical estimate" : i === 7 ? "Roster estimate" : "ScoreSense",
 }));
 const salaries = pool.map((p) => ({
   dfs_id: p.dfs_id,

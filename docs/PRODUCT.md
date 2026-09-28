@@ -432,3 +432,7 @@ This Week uses approved option A for manual lineup changes: tap a starter positi
 ### DFS live refresh
 
 The live DFS pool checks every five minutes while visible and idle. Background updates preserve original built/saved lineups and imported estimates; rebuild to use changed inputs. Missing estimates require all three finite inputs and stay excluded. Server refresh failures/overdue projections are identified separately from a successful player-pool fetch. Uploaded catalogs remain frozen. See [DFS projection coverage and refresh](DFS_PROJECTION_FRESHNESS.md) for source and model limitations.
+
+### DFS estimate provenance
+
+DFS labels historical kicking ranges as **Historical estimate** and profiles for players without individual history as **Roster estimate**. Neither counts as a modeled player in coverage. Confirmed unavailable players remain visible without invented zero forecasts. Missing estimates and unresolved feed identities stay excluded until complete inputs are supplied. Refreshing a pool does not imply upstream scoring history is current.

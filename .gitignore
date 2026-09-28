@@ -38,3 +38,5 @@ data/dfs/*.db*
 
 # Generated lineup QA bundle
 /frontend/qa-dist/
+
+artifacts/dfs_predictions/
