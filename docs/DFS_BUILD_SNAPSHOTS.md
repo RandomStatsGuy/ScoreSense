@@ -99,3 +99,11 @@ single-game formats, timeout/deadline reporting and corrupt-solver rejection.
 The browser fixture checks server snapshot retention through Save build, Captain
 rotation and format switching at 1280 and 390. It uses real components with mocked
 responses; it does not verify the authenticated live page or provider data.
+
+
+## Retained salary catalogs
+
+Authenticated loads/imports now bind builds to an account-scoped retained salary
+catalog via `salary_snapshot_id`. See [catalog checks and boundaries](DFS_SALARY_CATALOGS.md).
+The build snapshot embeds the resolved catalog summary in source context. Legacy
+requests remain explicitly unbound; scoring and game-lock certification remain false.

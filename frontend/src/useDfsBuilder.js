@@ -44,6 +44,7 @@ export default function useDfsBuilder(projMeta) {
   const [slates, setSlates] = useState([]);
   const [pool, setPool] = useState([]);
   const [salaries, setSalaries] = useState([]);
+  const [salarySnapshot, setSalarySnapshot] = useState(null);
   const [stats, setStats] = useState(null);
   const [vegasGames, setVegasGames] = useState([]);
   const [stackWeights, setStackWeights] = useState({});
@@ -92,7 +93,7 @@ export default function useDfsBuilder(projMeta) {
     setComparison(null);
     setComparisonError("");
     return () => comparisonAbort.current?.abort();
-  }, [context, settings, locked, excluded, overrides, salaries, pool, config]);
+  }, [context, settings, locked, excluded, overrides, salaries, salarySnapshot, pool, config]);
   const changeSetting = (key, value) =>
     setSettings((s) => ({ ...s, [key]: value }));
   const changeStackWeight = (gameId, delta) => {
@@ -152,6 +153,7 @@ export default function useDfsBuilder(projMeta) {
     setDataUpdateAvailable(false);
     setPool([]);
     setSalaries([]);
+    setSalarySnapshot(null);
     setStats(null);
     setStackWeights({});
     setLineups([]);
@@ -223,6 +225,7 @@ export default function useDfsBuilder(projMeta) {
   const acceptPool = (data, name) => {
     setPool(data.players || []);
     setSalaries(data.salaries || []);
+    setSalarySnapshot(data.salary_snapshot || null);
     setStats(data.stats || null);
     setSlateName(data.slate?.name || name || "");
     setLineups([]);
@@ -261,6 +264,7 @@ export default function useDfsBuilder(projMeta) {
         if (/No salaries returned for slate/i.test(e.message)) {
           setPool([]);
           setSalaries([]);
+          setSalarySnapshot(null);
           setStats(null);
           setLineups([]);
           setNotice(DFS_STEP_COPY.closedSlate);
@@ -289,6 +293,7 @@ export default function useDfsBuilder(projMeta) {
     revision.current++;
     setPool([]);
     setSalaries([]);
+    setSalarySnapshot(null);
     setStats(null);
     setStackWeights({});
     setLineups([]);
@@ -409,6 +414,7 @@ export default function useDfsBuilder(projMeta) {
       season: context.season,
       week: context.week,
       slate_salaries: salaries,
+      salary_snapshot_id: salarySnapshot?.id || null,
       objective: settings.objective,
       salary_cap: cap,
       locked_player_ids: locked,

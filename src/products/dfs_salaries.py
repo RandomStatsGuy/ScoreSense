@@ -30,6 +30,7 @@ _SALARY_FRAME_COLUMNS = [
     "salary",
     "site",
     "roster_position",
+    "game_info",
 ]
 
 # DK Showdown CPT rows and FanDuel Single game MVP rows cost 1.5× base salary.
@@ -88,6 +89,7 @@ def parse_salary_csv(
     team_col = _pick_column(cols, _TEAM_COLS)
     id_col = _pick_column(cols, _ID_COLS)
     roster_pos_col = _pick_column(cols, _ROSTER_POS_COLS)
+    game_col = _pick_column(cols, ("Game Info", "game_info", "Game"))
 
     rows: list[dict] = []
     for _, row in raw.iterrows():
@@ -127,6 +129,7 @@ def parse_salary_csv(
                 "salary": salary,
                 "site": site.lower(),
                 "roster_position": roster_position,
+                "game_info": str(row.get(game_col) or "").strip() if game_col else "",
             }
         )
 
