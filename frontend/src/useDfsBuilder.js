@@ -379,6 +379,7 @@ export default function useDfsBuilder(projMeta) {
       : null;
     const request = {
       site: context.site,
+      slate_id: context.slateId || null,
       season: context.season,
       week: context.week,
       slate_salaries: salaries,
@@ -452,7 +453,8 @@ export default function useDfsBuilder(projMeta) {
             overrides[p.player_id] ? "Imported" : p.projection_source,
           ]),
         ),
-        snapshot_at: new Date().toISOString(),
+        build_snapshot: data.build_snapshot || null,
+        snapshot_at: data.build_snapshot?.captured_at || new Date().toISOString(),
       });
       setNotice(
         built.length < settings.count

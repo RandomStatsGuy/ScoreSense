@@ -104,3 +104,19 @@ def test_captain_and_imported_projections_reach_optimizer(monkeypatch):
     assert seen["locked_captain_id"] == "k1"
     assert seen["captain_exposure_limits"] == {"k1":1}
     assert seen["proj"] == 8
+
+
+def test_build_snapshot_and_comparison_api_integration(monkeypatch):
+    from test_dfs_snapshots import pool
+    import app.api as api
+    monkeypatch.setattr(api, "build_lineup_pool", lambda **kwargs: (pool(), {"season": 2026, "week": 1}))
+    request = api.LineupOptimizeRequest(site="draftkings_showdown", slate_id="test-slate",
+        include_captain_comparison=True, projection_overrides={"p0": {"proj": 22, "floor": 6, "ceiling": 32}})
+    result = api.lineup_optimize(request, {})
+    assert result["ok"]
+    assert result["captain_comparison"]["complete"]
+    snapshot = result["build_snapshot"]
+    assert snapshot["content"]["source_context"]["client_slate_id"] == "test-slate"
+    assert snapshot["content"]["source_context"]["projection_overrides"]["p0"]["proj"] == 22
+    assert snapshot["content"]["eligible_players"][0]["proj"] == 22
+    assert result["captain_comparison"]["snapshot_id"] == snapshot["id"]

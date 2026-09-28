@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
+import { DFS_WORKSPACE_COPY } from "../../frontend/src/dfsToolPresentation.js";
 import { measureScript, minTargetForWidth, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX, COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS } from "./layout_audit.mjs";
 const require = createRequire(new URL("../../frontend/package.json", import.meta.url));
 const { chromium } = require("playwright");
@@ -26,6 +27,11 @@ try {
     await page.getByRole("button", { name: "Build lineups", exact: true }).last().click();
     await page.getByText("Built 20 lineups.", { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => window.__lastDfsRequest.max_overlap), 6);
+    await page.getByRole("button", { name: DFS_WORKSPACE_COPY.save, exact: true }).click();
+    await page.getByText("Build saved with its original projections and settings.", { exact: true }).waitFor();
+    const savedSettings = await page.evaluate(() => window.__lastDfsSavedBuild.settings);
+    assert.equal(savedSettings.build_snapshot.id, "fixture-snapshot");
+    assert.equal(savedSettings.snapshot_at, "2026-09-28T12:00:00Z");
     await page.getByRole("button", { name: /^Minimum differences/ }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${output}/captain-${width}.png`, fullPage: true });
     const results = await page.evaluate(measureScript(), {

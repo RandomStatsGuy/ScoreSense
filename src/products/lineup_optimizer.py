@@ -447,6 +447,7 @@ def optimize_lineup(
     excluded_captain_ids: set[str] | None = None,
     locked_captain_id: str | None = None,
     excluded_captain_lineups: list[tuple[str, tuple[str, ...]]] | None = None,
+    solver_time_limit: float | None = None,
 ) -> dict:
     """Maximize projected points (or value) under roster and optional salary-cap constraints."""
     locked_player_ids = locked_player_ids or set()
@@ -473,6 +474,7 @@ def optimize_lineup(
             excluded_captain_ids=excluded_captain_ids,
             locked_captain_id=locked_captain_id,
             excluded_captain_lineups=excluded_captain_lineups,
+            solver_time_limit=solver_time_limit,
         )
 
     n = len(players)
@@ -644,6 +646,7 @@ def _optimize_captain_lineup(
     excluded_captain_ids: set[str] | None = None,
     locked_captain_id: str | None = None,
     excluded_captain_lineups: list[tuple[str, tuple[str, ...]]] | None = None,
+    solver_time_limit: float | None = None,
 ) -> dict:
     """Single-game captain-mode MILP: one CPT/MVP slot at boosted points/salary + FLEX."""
     locked_player_ids = locked_player_ids or set()
@@ -753,10 +756,12 @@ def _optimize_captain_lineup(
             row[idx[pid]] = 1
         constraints.append(LinearConstraint(row.reshape(1, -1), lb=0, ub=total - 1))
 
-    result = milp(c, integrality=integrality, bounds=bounds, constraints=constraints)
+    options = {"time_limit": solver_time_limit, "mip_rel_gap": 0.0} if solver_time_limit is not None else None
+    result = milp(c, integrality=integrality, bounds=bounds, constraints=constraints, options=options)
     if not result.success:
         return {
             "ok": False,
+            "solver_status": int(result.status),
             "error": (
                 "Could not build a valid single-game lineup. "
                 "Load a single-game slate (two teams) and check locks against the cap."
@@ -1094,7 +1099,20 @@ def optimize_from_pool_dataframe(
     seed: int | None = None,
     captain_exposure_limits: dict[str, float] | None = None,
     locked_captain_id: str | None = None,
+    include_captain_comparison: bool = False,
+    snapshot_context: dict | None = None,
 ) -> dict:
+    site = (site or "seasonal").lower()
+    if include_captain_comparison:
+        if not get_site_config(site)["roster"].get("cpt"):
+            raise ValueError("Captain comparison requires a single-game format.")
+        if (lineup_count != 1 or randomness or max_exposure is not None
+                or captain_exposure_limits or require_qb_stack or qb_stack_count
+                or stack_bring_back or stack_teams or stack_qb_ids or stack_game_weights):
+            raise ValueError("Captain comparison requires one deterministic lineup without portfolio exposure or stack settings.")
+    if randomness > 0 and seed is None:
+        import secrets
+        seed = secrets.randbits(32)
     site_cfg = get_site_config(site)
     cap = salary_cap if salary_cap is not None else site_cfg["salary_cap"]
     require_salary = cap is not None
@@ -1129,6 +1147,22 @@ def optimize_from_pool_dataframe(
         "excluded_captain_ids": {pid for pid, limit in (captain_exposure_limits or {}).items() if math.floor(limit * max(1, lineup_count) + 1e-9) == 0},
         "locked_captain_id": locked_captain_id,
     }
+    from src.products.dfs_snapshots import capture_build_snapshot
+
+    snapshot = capture_build_snapshot(pool, players, site=site, context=snapshot_context, parameters={
+        "objective": objective, "salary_cap": cap, "min_salary": min_salary,
+        "max_per_team": max_per_team, "block_bye_weeks": block_bye_weeks,
+        "locked_player_ids": locked_player_ids or [], "excluded_player_ids": excluded_player_ids or [],
+        "candidate_player_ids": candidate_player_ids,
+        "locked_captain_id": locked_captain_id, "captain_exposure_limits": captain_exposure_limits or {},
+        "require_qb_stack": require_qb_stack, "qb_stack_count": qb_stack_count,
+        "stack_bring_back": stack_bring_back, "stack_teams": stack_teams,
+        "stack_qb_ids": stack_qb_ids, "stack_game_weights": stack_game_weights,
+        "lineup_count": lineup_count, "max_overlap": max_overlap,
+        "max_exposure": max_exposure, "randomness": randomness, "seed": seed,
+        "include_captain_comparison": include_captain_comparison,
+    }).to_dict()
+
     if lineup_count <= 1 and max_exposure is not None and 0 < max_exposure < 1:
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
     if lineup_count > 1:
@@ -1157,11 +1191,17 @@ def optimize_from_pool_dataframe(
 
     from src.products.dfs_validation import validate_generated_lineups
 
-    return validate_generated_lineups(
+    result = validate_generated_lineups(
         result, players, site=site, salary_cap=cap, min_salary=min_salary,
         max_per_team=max_per_team, locked_player_ids=locked_player_ids or (),
         locked_captain_id=locked_captain_id,
     )
+    result["build_snapshot"] = snapshot
+    if include_captain_comparison and result.get("ok"):
+        from src.products.dfs_captain_comparison import compare_captains
+        result["captain_comparison"] = compare_captains(players, site=site, options=opt_kwargs,
+                                                        snapshot_id=snapshot["id"])
+    return result
 
 
 def weighted_stack_schedule(stack_game_weights: list[dict] | None, count: int) -> list[list[str]]:
