@@ -1131,3 +1131,41 @@ export function normalizeLineupDifferences(value, isCaptain) {
   const number = Number(value);
   return Math.min(4, Math.max(isCaptain ? 0 : 1, Number.isFinite(number) ? Math.trunc(number) : 2));
 }
+
+
+export const DFS_CAPTAIN_COMPARISON_COPY = {
+  title: "Captain comparison",
+  action: "Compare Captains",
+  loading: "Comparing complete lineups…",
+  help: "Compare one complete lineup per eligible Captain using your score, salary range, team limit, locks and skipped players. Lineup count, exposure limits, minimum differences and randomness do not apply. Your current build stays in place.",
+  empty: "Load a single-game player pool to compare Captains.",
+  ready: "Run a comparison to see how changing Captain changes the full lineup.",
+  locked: "Your Captain lock limits this comparison to one player. Clear it to compare alternatives.",
+  partial: "Comparison incomplete. The best evaluated lineup may not be the best available; some Captains could not be resolved within the comparison limits.",
+  none: "No validated candidate is available from this comparison.",
+  score: "Objective sum",
+  gap: "Behind best evaluated",
+  salary: "Salary used",
+  semantics: "Scores are sums of player projection inputs, not expected payouts or lineup outcome probabilities.",
+  failure: "Captain comparison failed. Try again.",
+  mismatch: "The comparison does not match its build inputs. Run it again.",
+  status: {
+    optimal: "Solved",
+    infeasible: "No feasible lineup under these constraints",
+    unresolved: "Solve unfinished",
+    invalid: "Failed lineup validation",
+    not_evaluated: "Not evaluated within comparison limits",
+  },
+};
+
+export function captainComparisonSummary(report) {
+  const rows = Array.isArray(report?.candidates) ? report.candidates : [];
+  const solved = rows.filter(row => row.status === "optimal" && Number.isFinite(row.objective_score) && row.result?.validation?.ok && row.result?.lineup?.length === 6);
+  return {
+    rows, solved,
+    complete: report?.complete === true && rows.length > 0 && rows.length === report.eligible_captains && rows.every(row =>
+      row.status === "infeasible" || solved.includes(row)),
+    count: `${solved.length} ${solved.length === 1 ? "lineup" : "lineups"} solved · ${report?.evaluated_captains ?? 0} of ${report?.eligible_captains ?? 0} Captains evaluated`,
+    objective: { median: "Sum of player P50s", floor: "Sum of player P10s", ceiling: "Sum of player P90s", value: "Sum of player points per $1,000" }[report?.objective] || "Objective sum",
+  };
+}

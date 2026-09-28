@@ -110,5 +110,7 @@ to Classic or season-long restores one changed athlete. Default settings are unc
 legacy roster settings and exact eligible inputs, preserve the effective random
 seed, and retain the record through Save build. An opt-in bounded API comparison
 solves and independently validates a complete lineup for every eligible Captain,
-reporting unresolved and unexamined candidates explicitly. The review UI and
-verified platform scoring/exact-slate source contracts remain outstanding.
+reporting unresolved and unexamined candidates explicitly. A read-only review
+panel now exposes this comparison in single-game formats while preserving the
+current build. Verified platform scoring/exact-slate source contracts remain
+outstanding.

@@ -116,6 +116,26 @@ window.fetch = async (url, options = {}) => {
         ceiling: p["High (P90)"] * mult,
       };
     });
+    if (body.include_captain_comparison) {
+      if (window.__comparisonMode === "readonly") return respond({ detail: "Sign in to compare Captains." }, 401);
+      if (window.__comparisonMode === "error") return respond({ detail: "Comparison service unavailable." }, 503);
+      if (window.__comparisonMode === "slow") await new Promise(resolve => { window.__releaseComparison = resolve; });
+      const partial = window.__comparisonMode === "partial";
+      const none = window.__comparisonMode === "none";
+      return respond({
+        ok: true,
+        build_snapshot: { id: "comparison-fixture", captured_at: "2026-09-28T12:00:00Z" },
+        captain_comparison: {
+          snapshot_id: window.__comparisonMode === "mismatch" ? "wrong" : "comparison-fixture",
+          objective: body.objective, complete: !partial, eligible_captains: 2, evaluated_captains: partial ? 1 : 2,
+          candidates: [
+            { captain_id: "p5", captain_name: "Blake Corum", status: none ? "infeasible" : "optimal", objective_score: 90.95, gap_from_best_evaluated: 0,
+              result: { validation: { ok: true }, lineup: rows, total_salary: 49900 } },
+            { captain_id: "p0", captain_name: "Puka Nacua", status: partial ? "not_evaluated" : "infeasible" },
+          ],
+        },
+      });
+    }
     return respond({
       ok: true,
       build_snapshot: { id: "fixture-snapshot", captured_at: "2026-09-28T12:00:00Z", content: { schema_version: "fixture" } },

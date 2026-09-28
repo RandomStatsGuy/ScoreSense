@@ -55,8 +55,13 @@ Opt in on the existing endpoint:
 
 Use the existing salary and projection inputs for a real slate. The slate label is
 client context only; it does not establish membership. FanDuel single-game also
-uses its current legacy MVP configuration. Comparison is API-only in this release;
-the browser does not request it or display a comparison board yet.
+uses its current legacy MVP configuration. The single-game workspace now offers Compare Captains as a separate read-only
+diagnostic. It explains which constraints apply before running and leaves the
+current portfolio intact. Candidate disclosures show full lineups, salaries,
+objective sums and gaps from the best evaluated candidate. Input changes clear
+the report and cancel/discard late responses. Partial and failed comparisons
+stay explicit. Comparison reports are transient; Save build continues to save
+the original portfolio and its own input snapshot.
 
 The comparison solves a complete lineup under each eligible Captain, retaining
 current locks, exclusions, salary range and team limit. A Captain lock narrows the
