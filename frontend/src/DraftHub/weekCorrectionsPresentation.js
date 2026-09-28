@@ -1,4 +1,9 @@
 export const CORRECTIONS_COPY = {
+  action: "Correction action",
+  saveLineups: "Save corrected lineups",
+  lineupHelp: "Save roster and starter repairs now. Scores update on the next scoring refresh; final results can be published after all games finish.",
+  resultsHelp: "Recalculate scores and standings from the reviewed lineups. All games and required statistics must be complete.",
+  lineupSaved: "Corrected lineups saved. Final results have not been published.",
   currentOptions: count => `${count} current-roster ${count === 1 ? "option" : "options"}`,
   currentRoster: "From current roster", currentRosterHelp: "These players are on this team now. Add one only if they belonged here in the selected week.",
   addToBench: week => `Add to Week ${week} bench`,
@@ -12,7 +17,7 @@ export const CORRECTIONS_COPY = {
   playerName: "Player name", playerId: "Player ID", manual: "Enter player manually", review: "Review your changes",
   noChanges: "No changes yet. Fill an empty slot or move a player to another slot.",
   title: "Corrections",
-  support: "Repair a past week's roster and starters. Current rosters and later lineups stay unchanged.",
+  support: "Repair this week's or a past week's roster and starters. Current rosters and later lineups stay unchanged.",
   missing: "No historical roster recorded. Assign the players who belonged to this team that week.",
   reason: "Reason for correction",
   empty: "I reviewed all teams and acknowledge that unfilled starter slots score zero.",

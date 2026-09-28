@@ -80,6 +80,7 @@ def correction_context(league_id, season, week, actor):
     teams = attach_owner_names_to_teams(league_id, [dict(team) for team in state["teams"]], season_year=season)
     current_rosters = storage.list_league_rosters_by_team(league_id)
     return {"league_id": league_id, "season": season, "week": week,
+            "finalized": bool(state["run"] and state["run"].get("final")),
             "teams": [{"id": team["id"], "name": team["name"], "owner_name": team.get("owner_name")} for team in teams],
             "lineups": state["lineups"], "slots": hub_scoring._starter_capacity(rules),
             "current_roster_candidates": {
@@ -145,7 +146,9 @@ def _validate_lineups(state, changes, acknowledge_empty):
     return entries
 
 
-def preview_correction(league_id, season, week, actor, changes, reason, revision, acknowledge_empty=False):
+def preview_correction(league_id, season, week, actor, changes, reason, revision, acknowledge_empty=False, mode="results"):
+    if mode not in {"lineup", "results"}:
+        raise CorrectionError("Choose a lineup repair or corrected results")
     reason = reason.strip()
     if len(reason) < 3:
         raise CorrectionError("Explain why the historical record needs correction")
@@ -155,6 +158,19 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
     if revision != _digest(state):
         raise CorrectionError("League records changed. Reload before previewing")
     entries = _validate_lineups(state, changes, acknowledge_empty)
+    if mode == "lineup":
+        if state["run"] and state["run"].get("final"):
+            raise CorrectionError("This week is finalized. Preview corrected results instead")
+        recorded = {"lineups": state["lineups"],
+                    "scores": [row for row in state["scores"] if row["week"] == week],
+                    "standings": _standings(state, state["scores"])}
+        result = {"id": str(uuid.uuid4()), "league_id": league_id, "season": season, "week": week,
+                  "mode": mode, "revision": revision, "reason": reason, "blockers": [], "can_publish": True,
+                  "before": recorded, "after": {**recorded, "lineups": entries}}
+        with storage.get_conn() as conn:
+            conn.execute("INSERT INTO league_week_correction (id,league_id,season,week,actor_sub,reason,revision,preview_json,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                         (result["id"], league_id, season, week, actor, reason, revision, json.dumps(result), storage._utcnow()))
+        return result
     rules = LeagueRules.model_validate(json.loads(state["league"]["rules_json"]))
     scoring = ScoringRules.model_validate(json.loads(state["run"]["scoring_json"])) if state["run"] else rules.scoring
     blockers = []
@@ -193,7 +209,7 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
                    for team_id, points in totals.items()]
     combined = [row for row in state["scores"] if row["week"] != week] + team_scores
     result = {"id": str(uuid.uuid4()), "league_id": league_id, "season": season, "week": week,
-              "revision": revision, "reason": reason, "blockers": blockers, "can_publish": not blockers,
+              "mode": mode, "revision": revision, "reason": reason, "blockers": blockers, "can_publish": not blockers,
               "before": {"lineups": state["lineups"], "scores": [row for row in state["scores"] if row["week"] == week],
                          "standings": _standings(state, state["scores"])},
               "after": {"lineups": entries, "scores": team_scores, "standings": _standings(state, combined)},
@@ -214,7 +230,16 @@ def publish_correction(league_id, season, week, actor, preview_id, revision, rea
                              (preview_id, league_id, season, week)).fetchone()
         if saved is None or saved["actor_sub"] != actor:
             raise CorrectionError("Preview not found for this commissioner and week")
-    if not saved["published_at"]:
+    preview = json.loads(saved["preview_json"])
+    lineup_only = preview.get("mode") == "lineup"
+    locks = {}
+    if not saved["published_at"] and lineup_only:
+        prior_locks = {(row["team_id"], row["player_id"]): row["locked"] for row in initial["lineups"]}
+        locks = {(row["team_id"], row["player_id"]): int(bool(
+            prior_locks.get((row["team_id"], row["player_id"])) or
+            hub_scoring.nfl_game_started(row["nfl_team"], season, week)))
+            for row in preview["after"]["lineups"]}
+    if not saved["published_at"] and not lineup_only:
         if not hub_scoring.nfl_week_slate_complete(season, week):
             raise CorrectionError("The selected week's games are not complete")
         try:
@@ -247,9 +272,16 @@ def publish_correction(league_id, season, week, actor, preview_id, revision, rea
         conn.execute("DELETE FROM league_week_lineup WHERE league_id=? AND season=? AND week=?", key)
         conn.executemany("""INSERT INTO league_week_lineup
             (league_id,season,week,team_id,player_id,slot,lineup_role,player_name,nfl_team,position,locked,updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,1,?)""",
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             [(*key, row["team_id"], row["player_id"], row["slot"], row["lineup_role"], row["player_name"],
-              row["nfl_team"], row["position"], stamp) for row in preview["after"]["lineups"]])
+              row["nfl_team"], row["position"], locks.get((row["team_id"], row["player_id"]), 1), stamp)
+             for row in preview["after"]["lineups"]])
+        if lineup_only:
+            conn.execute("UPDATE league_week_correction SET published_at=?,idempotency_key=? WHERE id=?", (stamp, idempotency_key, preview_id))
+            conn.execute("INSERT INTO draft_event (league_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                         (league_id, "week_lineup_correction", json.dumps({"correction_id": preview_id,
+                          "week": week, "season": season, "reason": reason, "by": actor}), stamp))
+            return {"id": preview_id, "published_at": stamp, "already_published": False, "mode": "lineup"}
         conn.execute("DELETE FROM league_player_week_score WHERE league_id=? AND season=? AND week=?", key)
         conn.execute("DELETE FROM league_team_week_score WHERE league_id=? AND season=? AND week=?", key)
         conn.executemany("""INSERT INTO league_player_week_score
@@ -277,5 +309,6 @@ def correction_history(league_id, season, week):
         rows = conn.execute("SELECT * FROM league_week_correction WHERE league_id=? AND season=? AND week=? AND published_at IS NOT NULL ORDER BY published_at DESC",
                             (league_id, season, week)).fetchall()
     return [{"id": row["id"], "actor_sub": row["actor_sub"], "reason": row["reason"],
+             "mode": json.loads(row["preview_json"]).get("mode", "results"),
              "published_at": row["published_at"], "before": json.loads(row["preview_json"])["before"],
              "after": json.loads(row["preview_json"])["after"]} for row in rows]

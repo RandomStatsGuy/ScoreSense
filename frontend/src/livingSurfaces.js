@@ -239,7 +239,7 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/roster-management/corrections",
     page: "frontend/src/DraftHub/WeekCorrections.jsx",
     copy: "frontend/src/DraftHub/weekCorrectionsPresentation.js",
-    doNot: "Always show every required starter slot, including empty slots, from league rules. Use the approved A team-scoped editor with player-name search. Historical edits require preview and audited publication. Offer current-roster players in the historical bench picker only as labeled, opt-in suggestions. Never infer past ownership from the current roster or overwrite later lineups.",
+    doNot: "Always show every required starter slot, including empty slots, from league rules. Use the approved A team-scoped editor with player-name search. Edits require preview and audited save. Save corrected lineups before the slate ends without statistics; publish corrected results separately after complete games and statistics. Offer current-roster players in the historical bench picker only as labeled, opt-in suggestions. Never infer past ownership from the current roster or overwrite later lineups.",
   }),
   "hub.office.members": S({
     label: "Members",
