@@ -163,6 +163,7 @@ const lineup = {
     (slot, i) => ({
       slot,
       player: `Player ${i}`,
+      position: "WR",
       dfs_id: String(100 + i),
       salary: 5000,
       team: i % 2 ? "SF" : "LAR",
@@ -202,6 +203,8 @@ test("export compares roster-specific IDs and salaries with the loaded catalog",
     cpt_dfs_id: p.dfs_id,
     salary: 5000,
     cpt_salary: 5000,
+    team: p.team,
+    position: p.position,
   }));
   assert.equal(buildEntryCsv(t, [lineup], { "0001": 0 }, catalog).changed, 1);
   catalog[0].cpt_dfs_id = "999";

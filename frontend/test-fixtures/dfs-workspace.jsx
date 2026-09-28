@@ -7,6 +7,7 @@ import ProductSubnav from "../src/layout/ProductSubnav";
 import { APP_SECTIONS } from "../src/appNavigation";
 import { DEFAULT_FORMATS } from "../src/dfsToolPresentation";
 import "../src/styles.css";
+import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";

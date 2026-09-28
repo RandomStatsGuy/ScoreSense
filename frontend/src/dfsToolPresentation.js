@@ -3,6 +3,7 @@
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
 export const DFS_WORKSPACE_COPY = {
+  captainRotationHelp: "Lineups may use the same six players with a different Captain. Repeated lineups are excluded; exposure limits still apply.",
   dataUpdate: "New projections are available. Updating the live player pool clears the current unsaved build; saved builds and imported estimates keep their original values.",
   updatePool: "Update player pool",
   uploadedUpdate: "New projections are available. Your uploaded player pool keeps its original estimates; choose a live slate to use the update.",
@@ -1118,4 +1119,15 @@ export function launchCopy({
 
 export function dfsRailTitle({ locked = 0, skipped = 0 } = {}) {
   return `Your lineup · ${locked} locked · ${skipped} skipped`;
+}
+
+/** Zero athlete changes still requires a distinct Captain scoring lineup. */
+export function lineupDifferenceOptions(isCaptain) {
+  const options = [1, 2, 3, 4].map(id => ({ id, label: String(id) }));
+  return isCaptain ? [{ id: 0, label: "Captain change only" }, ...options] : options;
+}
+
+export function normalizeLineupDifferences(value, isCaptain) {
+  const number = Number(value);
+  return Math.min(4, Math.max(isCaptain ? 0 : 1, Number.isFinite(number) ? Math.trunc(number) : 2));
 }
