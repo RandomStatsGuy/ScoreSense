@@ -37,9 +37,13 @@ Props are backlog — not top-level nav. Do not add them as a fourth product are
 - `draftkings_showdown` and `fanduel_single` site configs; captain MILP gives every player CPT and FLEX variables (1.5× points at 1.5× salary), enforces one player from each team.
 - Captain rows from salary export `Roster Position` column or the live 1.5× salary pairing.
 
-### Ownership & leverage
-- Ingest projected ownership (manual CSV or third-party).
-- Objectives: max ceiling at &lt;X% cumulative ownership, or GPP leverage score.
+### Contest-aware GPP — shared foundation, integration pending
+- Follow [DFS_GPP_INTEGRATION.md](./DFS_GPP_INTEGRATION.md) for the combined Classic/Showdown plan and verified implementation boundaries.
+- New `dfs_gpp/` primitives cover readiness policy, scoring identity, immutable cash-contest inputs and exact tie/own-entry payout arithmetic. They are not wired to the production solver, API or UI yet.
+- Add a tournament strategy around the existing solver, not a replacement roster format. Primary objective: expected net payout under a supported joint outcome/field model and the actual cash payout curve.
+- Import timestamped ownership and archive full fields; preserve duplicate multiplicities. Ownership caps/leverage scores may be labeled search experiments, not substitutes for payout modeling.
+- Ship exact-slate/scoring/ID readiness and better candidates first. DST distributions block tournament-return claims; Showdown also requires supported kicker outcomes.
+- Keep legacy behavior and exports intact. No fabricated ROI, summed-P90 lineup quantiles, automatic entry submission or spending increases.
 
 ### Live slate API (optional)
 - Poll DK/FD salary endpoints where licensed; cache under `data/cache/dfs/`.
@@ -110,7 +114,7 @@ integrations/odds_*.py  # (future) prop lines
 frontend/src/dfsExport.js   # DK/FD upload CSV builders
 ```
 
-New competition modes should add a **site config** + **objective function** + **data adapter**, reusing the same MILP or simulation shell where possible.
+New roster formats may need a **site config** and **data adapter**. A GPP tournament objective is a separate **strategy**, not a new roster format; reuse the existing solver as a candidate generator and keep contest evaluation separate.
 
 ---
 
@@ -119,5 +123,5 @@ New competition modes should add a **site config** + **objective function** + **
 1. ~~DFS multi-lineup + stacks~~ — shipped (exposure, randomness, bring-backs, captain modes).
 2. ~~Bye-week blocking~~ — shipped.
 3. ~~Best ball board~~ — shipped as a Tools tab; sims and stack tags remain.
-4. **Ownership & leverage** — needs an ownership source; next DFS differentiator.
+4. **Contest-aware GPP** — readiness/scoring/data foundations, joint-score candidates, then calibrated fields, tie-aware payouts and portfolios; see the integration plan. Ownership import and historical snapshots start early.
 5. **Prop scan** — needs odds data partnership; build after FP/salary pipelines stabilize.
