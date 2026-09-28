@@ -529,7 +529,7 @@ export default function DfsWorkspace({ b }) {
                 <div className="dfw-coverage">
                   <small>
                     {
-                      eligible.filter((p) => p["Projected Points"] != null)
+                      eligible.filter((p) => ["Projected Points", "Low (P10)", "High (P90)"].every((key) => p[key] != null && Number.isFinite(Number(p[key]))))
                         .length
                     }{" "}
                     / {eligible.length} with estimates ·{" "}
@@ -645,7 +645,7 @@ export default function DfsWorkspace({ b }) {
               options={[
                 { id: "", label: C.anyCaptain },
                 ...eligible
-                  .filter((p) => p["Projected Points"] != null)
+                  .filter((p) => ["Projected Points", "Low (P10)", "High (P90)"].every((key) => p[key] != null && Number.isFinite(Number(p[key]))))
                   .map((p) => ({ id: p.player_id, label: p.Player })),
               ]}
               onChange={(v) => b.changeSetting("lockedCaptain", v)}

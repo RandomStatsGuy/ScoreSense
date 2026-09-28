@@ -142,6 +142,8 @@ def load_weekly_prediction(
             apply_injury_adjustments=apply_injury_adjustments,
         )
     )
+    if df.empty:
+        raise ValueError(f"Empty {pos} projection output; previous artifact retained")
     save_weekly_artifact(pos, int(season), int(week), apply_injury_adjustments, df)
     # Mirror the artifact timestamp onto the in-process frame for API freshness.
     if "built_at" not in df.attrs:
@@ -197,7 +199,14 @@ def save_weekly_artifact(
             previous_df = None
             previous_meta = None
 
-    df.to_parquet(parquet_path, index=False)
+    import os
+    from uuid import uuid4
+    temp_parquet = parquet_path.with_name(f"{parquet_path.name}.{os.getpid()}.{uuid4().hex}.tmp")
+    try:
+        df.to_parquet(temp_parquet, index=False)
+        temp_parquet.replace(parquet_path)
+    finally:
+        temp_parquet.unlink(missing_ok=True)
     built_at = datetime.now(timezone.utc).isoformat()
     df.attrs["built_at"] = built_at
     fingerprint = weekly_fingerprint()
@@ -215,7 +224,12 @@ def save_weekly_artifact(
             if k in df.attrs
         },
     }
-    meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
+    temp_meta = meta_path.with_name(f"{meta_path.name}.{os.getpid()}.{uuid4().hex}.tmp")
+    try:
+        temp_meta.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
+        temp_meta.replace(meta_path)
+    finally:
+        temp_meta.unlink(missing_ok=True)
     key = _cache_key(position, season, week, apply_injury_adjustments)
     _WEEKLY_CACHE[key] = ((meta["fingerprint"], artifact_revision(parquet_path, meta_path)), df.copy())
 

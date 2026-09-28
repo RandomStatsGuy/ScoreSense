@@ -440,7 +440,9 @@ def attach_salaries_to_pool(
     unmatched_slate = int(max(0, len(slate_skill) - matched))
     without = int((skill_matched["salary"].isna()).sum())
 
+    from src.products.dfs_coverage import projection_coverage
     stats = {
+        "projection_coverage": projection_coverage(skill),
         "matched": max(matched, 0),
         "alias_matched": alias_matched,
         "unmatched_slate": max(unmatched_slate, 0),

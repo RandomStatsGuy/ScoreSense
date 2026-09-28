@@ -17,6 +17,13 @@ try {
     console.log(`Checking ${width}`);
     const errors = [];
     page.on("pageerror", e => { errors.push(e.message); console.log("Page error", e.message); });
+    await page.addInitScript(() => {
+      const original = window.setInterval;
+      window.setInterval = (fn, ms, ...args) => {
+        if (ms === 300000) window.__dfsRefreshTick = fn;
+        return original(fn, ms, ...args);
+      };
+    });
     await page.goto(base, { waitUntil: "domcontentloaded" });
     console.log("Fixture loaded");
     await page.getByRole("button", { name: /^Format/ }).click();
@@ -31,6 +38,15 @@ try {
     await page.getByRole("button", { name: DFS_WORKSPACE_COPY.save, exact: true }).click();
     await page.getByText("Build saved with its original projections and settings.", { exact: true }).waitFor();
     const savedSettings = await page.evaluate(() => window.__lastDfsSavedBuild.settings);
+    await page.evaluate(async () => { window.__dfsProjectionBump = 1; await window.__dfsRefreshTick(); });
+    await page.getByText("Live player pool checked.", { exact: false }).waitFor();
+    assert.deepEqual(await page.evaluate(() => window.__lastDfsSavedBuild.settings), savedSettings);
+    await page.getByText("22.0", { exact: true }).first().waitFor();
+    await page.evaluate(async () => { window.__dfsRefreshFail = true; await window.__dfsRefreshTick(); });
+    await page.getByText("The live player pool could not refresh.", { exact: false }).waitFor();
+    await page.getByText("22.0", { exact: true }).first().waitFor();
+    await page.evaluate(async () => { window.__dfsRefreshFail = false; await window.__dfsRefreshTick(); });
+    assert.equal(await page.getByRole("alert").count(), 0);
     assert.equal(savedSettings.build_snapshot.id, "fixture-snapshot");
     assert.equal(savedSettings.snapshot_at, "2026-09-28T12:00:00Z");
     await page.getByRole("button", { name: /^Minimum differences/ }).scrollIntoViewIfNeeded();

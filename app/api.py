@@ -148,6 +148,8 @@ async def lifespan(app: FastAPI):
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
 
+    from app.dfs_refresh_ticker import dfs_refresh_ticker_loop
+    dfs_ticker = asyncio.create_task(dfs_refresh_ticker_loop(), name="dfs-refresh")
     ticker = asyncio.create_task(draft_ticker_loop(), name="draft-ticker")
     sleeper_ticker = asyncio.create_task(
         sleeper_sync_ticker_loop(), name="sleeper-roster-sync-ticker"
@@ -155,9 +157,9 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        for task in (ticker, sleeper_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker):
             task.cancel()
-        for task in (ticker, sleeper_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker):
             try:
                 await task
             except asyncio.CancelledError:
@@ -2113,6 +2115,8 @@ def lineup_optimize(
             meta["salary_import"] = sal_stats
         from src.products.dfs_inputs import apply_projection_overrides
         pool = apply_projection_overrides(pool, request.projection_overrides)
+        from src.products.dfs_coverage import projection_coverage
+        meta["projection_coverage"] = projection_coverage(pool)
         result = optimize_from_pool_dataframe(
             pool,
             objective=objective,

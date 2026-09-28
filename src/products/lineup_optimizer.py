@@ -140,6 +140,7 @@ def build_lineup_pool(
     season, week = resolve_projection_context(df, season, week)
 
     frames: list[pd.DataFrame] = []
+    projection_sources = {}
     for position in ("qb", "rb", "wr"):
         preds = load_weekly_prediction(
             position,
@@ -147,6 +148,7 @@ def build_lineup_pool(
             week=week,
             apply_injury_adjustments=apply_injury_adjustments,
         )
+        projection_sources[position] = {"built_at": preds.attrs.get("built_at"), "rows": len(preds)}
         if position == "qb":
             preds["Position"] = "QB"
         elif "Position" not in preds.columns:
@@ -183,15 +185,25 @@ def build_lineup_pool(
             .reset_index(drop=True)
         )
 
+    from src.jobs.dfs_refresh import refresh_status
     meta = {
+        "refresh": refresh_status(),
         "season": int(season),
         "week": int(week),
         "count": len(pool),
         "site": site,
+        "projection_sources": projection_sources,
         "roster_format": site_cfg["roster"],
         "salary_cap": site_cfg["salary_cap"],
     }
     return pool, meta
+
+
+def _finite_projection(value):
+    try:
+        return math.isfinite(float(value))
+    except (ValueError, TypeError):
+        return False
 
 
 def _players_from_pool(
@@ -218,7 +230,7 @@ def _players_from_pool(
         pos = _normalize_pos(row.get("Position", ""))
         if pos not in ("QB", "RB", "WR", "TE", "DST", "K"):
             continue
-        if any(pd.isna(row.get(col)) for col in ("Projected Points", "Low (P10)", "High (P90)")):
+        if any(not _finite_projection(row.get(col)) for col in ("Projected Points", "Low (P10)", "High (P90)")):
             continue
 
         salary_raw = row.get("salary")

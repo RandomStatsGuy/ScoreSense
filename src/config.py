@@ -237,6 +237,9 @@ def write_parquet(df, path) -> None:
     """Write a DataFrame to compressed Parquet."""
     df.to_parquet(path, **PARQUET_WRITE_KWARGS)
 
+DFS_REFRESH_SECONDS = 300
+DFS_REFRESH_ENABLED = os.getenv("DFS_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
+
 for path in (
     PROCESSED_DATA_DIR,
     CACHE_DIR,

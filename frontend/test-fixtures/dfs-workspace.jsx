@@ -85,7 +85,7 @@ window.fetch = async (url, options = {}) => {
     });
   if (mode === "loading" && (u.includes("/salaries/") || u.includes("/pool?"))) await new Promise(resolve => setTimeout(resolve, 1200));
   if (u.includes("/salaries/") || u.includes("/pool?"))
-    return mode === "error"
+    return (mode === "error" || window.__dfsRefreshFail)
       ? respond(
           {
             detail: "Sample salary service failure. Import a CSV to continue.",
@@ -93,7 +93,7 @@ window.fetch = async (url, options = {}) => {
           503,
         )
       : respond({
-          players: mode === "empty" ? [] : pool,
+          players: mode === "empty" ? [] : pool.map(p => ({ ...p, "Projected Points": p["Projected Points"] + (window.__dfsProjectionBump || 0) })),
           salaries,
           salary_snapshot: { id: (u.includes("draftkings_showdown") ? "a" : "b").repeat(64) },
           slate: { name: "SF at LAR · sample slate" },

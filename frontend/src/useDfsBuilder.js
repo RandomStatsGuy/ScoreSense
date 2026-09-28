@@ -4,6 +4,7 @@ import { apiFetch } from "./auth";
 import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
+  DFS_WORKSPACE_COPY as C,
   DFS_STEP_COPY,
   defaultSlateCategory,
   gameTeamCodes,
@@ -81,6 +82,8 @@ export default function useDfsBuilder(projMeta) {
     lockedCaptain: "",
     note: "",
   });
+  const activeWork = useRef(false);
+  activeWork.current = building || comparing;
   const generation = useRef(0);
   const revision = useRef(0);
   const config = formats[context.site] || DEFAULT_FORMATS[context.site];
@@ -222,15 +225,20 @@ export default function useDfsBuilder(projMeta) {
     return () => abort.abort();
   }, [context.season, context.week, isCaptain]);
 
-  const acceptPool = (data, name) => {
+  const acceptPool = (data, name, background = false) => {
     setPool(data.players || []);
     setSalaries(data.salaries || []);
     setSalarySnapshot(data.salary_snapshot || null);
     setStats(data.stats || null);
     setSlateName(data.slate?.name || name || "");
+    if (background) {
+      setNotice(data.meta?.refresh?.stale || data.meta?.refresh?.status === "error" ? C.projectionRefreshFailed : C.liveRefreshed);
+      setDataUpdateAvailable(false);
+      return;
+    }
     setLineups([]);
     setSavedBuild(null);
-    setNotice("");
+    setNotice(data.meta?.refresh?.stale || data.meta?.refresh?.status === "error" ? C.projectionRefreshFailed : "");
   };
   useEffect(() => {
     if (
@@ -253,30 +261,45 @@ export default function useDfsBuilder(projMeta) {
           context.week === meta?.default_week,
       ),
     });
-    jsonRequest(`/api/lineup/${isDfs ? "salaries/load" : "pool"}?${params}`, {
-      signal: abort.signal,
-    })
-      .then((d) => {
-        if (!abort.signal.aborted) acceptPool(d);
+    let pending = false;
+    const load = (background = false) => {
+      if (pending || (background && (document.hidden || activeWork.current))) return;
+      pending = true;
+      return jsonRequest(`/api/lineup/${isDfs ? "salaries/load" : "pool"}?${params}`, {
+        signal: abort.signal,
       })
-      .catch((e) => {
-        if (abort.signal.aborted) return;
-        if (/No salaries returned for slate/i.test(e.message)) {
-          setPool([]);
-          setSalaries([]);
-          setSalarySnapshot(null);
-          setStats(null);
-          setLineups([]);
-          setNotice(DFS_STEP_COPY.closedSlate);
-          setError("");
-          return;
-        }
-        setError(e.message);
-      })
-      .finally(() => {
-        if (!abort.signal.aborted) setBusy(false);
-      });
-    return () => abort.abort();
+        .then((d) => {
+          if (!abort.signal.aborted && (!background || !activeWork.current)) {
+            acceptPool(d, undefined, background);
+            setError("");
+          }
+        })
+        .catch((e) => {
+          if (abort.signal.aborted) return;
+          if (background) {
+            setError(C.liveRefreshFailed);
+            return;
+          }
+          if (/No salaries returned for slate/i.test(e.message)) {
+            setPool([]);
+            setSalaries([]);
+            setSalarySnapshot(null);
+            setStats(null);
+            setLineups([]);
+            setNotice(DFS_STEP_COPY.closedSlate);
+            setError("");
+            return;
+          }
+          setError(e.message);
+        })
+        .finally(() => {
+          pending = false;
+          if (!abort.signal.aborted && !background) setBusy(false);
+        });
+    };
+    load();
+    const timer = setInterval(() => load(true), 300000);
+    return () => { clearInterval(timer); abort.abort(); };
   }, [
     context.site,
     context.season,
