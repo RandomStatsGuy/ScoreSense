@@ -232,7 +232,7 @@ def collapse_captain_rows(salaries: pd.DataFrame) -> pd.DataFrame:
     return collapsed.drop(columns=["roster_position"], errors="ignore").reset_index(drop=True)
 
 
-_SALARY_FILL_COLS = ("salary", "dfs_id", "cpt_salary", "cpt_dfs_id")
+_SALARY_FILL_COLS = ("salary", "dfs_id", "cpt_salary", "cpt_dfs_id", "_salary_row_key")
 
 
 def _apply_salary_row(merged: pd.DataFrame, idx, row) -> None:
@@ -313,6 +313,14 @@ def _fuzzy_fill(merged: pd.DataFrame, candidates: pd.DataFrame) -> int:
     return filled
 
 
+def _dfs_alias_key(name, position):
+    key = roster_name_key(name)
+    # Provider nickname; retain the ordinary one-to-one team/position guard.
+    if position == "WR" and key == "hollywoodbrown":
+        return "marquisebrown"
+    return key
+
+
 def attach_salaries_to_pool(
     pool: pd.DataFrame,
     salaries: pd.DataFrame,
@@ -328,12 +336,18 @@ def attach_salaries_to_pool(
         return out, {"matched": 0, "unmatched_slate": 0, "dst_added": 0, "pool_without_salary": len(out)}
 
     pool = pool.copy()
-    pool["projection_source"] = "ScoreSense"
+    defenses = pool[pool["Position"].eq("DST")].copy()
+    pool = pool[~pool["Position"].eq("DST")].copy()
+    if "projection_source" not in pool:
+        pool["projection_source"] = "ScoreSense"
+    else:
+        pool["projection_source"] = pool["projection_source"].fillna("ScoreSense")
     pool["name_key"] = pool["Player"].map(_normalize_name)
     pool["team_upper"] = pool["Team"].map(normalize_team_for_match)
     pool["position_key"] = pool["Position"].map(_normalize_dfs_position)
 
     sal = collapse_captain_rows(salaries)
+    sal["_salary_row_key"] = [str(i) for i in range(len(sal))]
     sal["team_upper"] = sal["team"].map(normalize_team_for_match)
     sal["position_key"] = sal["position"].map(_normalize_dfs_position)
     skill_positions = sal[sal["position"] != "DST"].copy()
@@ -347,7 +361,7 @@ def attach_salaries_to_pool(
         raise ValueError("Projection rows ambiguously identify a player. Resolve duplicate names, teams and positions before building.")
 
     merged = pool.merge(
-        skill_positions[match_keys + ["salary", "dfs_id", "cpt_salary", "cpt_dfs_id"]],
+        skill_positions[match_keys + list(_SALARY_FILL_COLS)],
         on=match_keys,
         how="left",
         validate="one_to_one",
@@ -357,17 +371,17 @@ def attach_salaries_to_pool(
     # with the roster key the hub already uses, then with a name comparison
     # scoped to one team and position. Both fill only one-to-one matches.
     unmatched_slate_rows = skill_positions[
-        ~skill_positions["dfs_id"].astype(str).isin(
-            {str(v) for v in merged.loc[merged["salary"].notna(), "dfs_id"].dropna()}
+        ~skill_positions["_salary_row_key"].isin(
+            set(merged.loc[merged["salary"].notna(), "_salary_row_key"].dropna())
         )
     ].copy()
     alias_matched = _one_to_one_fill(
-        merged, unmatched_slate_rows, lambda name, team, position: (roster_name_key(name), team, position)
+        merged, unmatched_slate_rows, lambda name, team, position: (_dfs_alias_key(name, position), team, position)
     )
     # Do not offer already-claimed salary rows to a second alias pass.
     unmatched_slate_rows = unmatched_slate_rows[
-        ~unmatched_slate_rows["dfs_id"].astype(str).isin(
-            {str(v) for v in merged.loc[merged["salary"].notna(), "dfs_id"].dropna()}
+        ~unmatched_slate_rows["_salary_row_key"].isin(
+            set(merged.loc[merged["salary"].notna(), "_salary_row_key"].dropna())
         )
     ]
     alias_matched += _fuzzy_fill(merged, unmatched_slate_rows)
@@ -380,21 +394,30 @@ def attach_salaries_to_pool(
         dst_frames = []
         for _, row in dst_rows.iterrows():
             team = row["team_upper"] or "DST"
+            candidates = defenses[defenses["Team"].map(normalize_team_for_match).eq(team)]
+            if len(candidates) > 1:
+                raise ValueError("Multiple defense projections identify the same team")
+            prediction = candidates.iloc[0].to_dict() if len(candidates) else {}
+            if not prediction and pool.attrs.get("dfs_base_site") == "fanduel":
+                prediction = {"Projected Points": 7.0, "Low (P10)": 4.0, "High (P90)": 11.0, "projection_source": "Fixed estimate"}
             dst_frames.append(
                 {
                     "player_id": f"dst:{team}",
                     "Player": row["player_name"] or f"{team} DST",
                     "Team": team,
                     "Position": "DST",
-                    "Projected Points": 7.0,
-                    "Low (P10)": 4.0,
-                    "High (P90)": 11.0,
-                    "projection_source": "Fixed estimate",
+                    "Projected Points": prediction.get("Projected Points", np.nan),
+                    "Low (P10)": prediction.get("Low (P10)", np.nan),
+                    "High (P90)": prediction.get("High (P90)", np.nan),
+                    "projection_source": prediction.get("projection_source", "Missing projection"),
+                    "projection_model": prediction.get("projection_model", ""),
+                    "projection_site": prediction.get("projection_site", ""),
                     "Injury Status": "",
                     "salary": row["salary"],
                     "dfs_id": row.get("dfs_id", ""),
                     "cpt_salary": row.get("cpt_salary"),
                     "cpt_dfs_id": row.get("cpt_dfs_id", ""),
+                    "_salary_row_key": row["_salary_row_key"],
                     "name_key": row["name_key"],
                     "team_upper": team,
                     # A slate only lists teams that play, so DSTs are never on bye.
@@ -407,21 +430,25 @@ def attach_salaries_to_pool(
     # Show unmodeled slate players (including kickers) so coverage is visible.
     # They become eligible only after importing all three projection inputs.
     existing = set(zip(skill["name_key"], skill["team_upper"], skill["Position"].map(_normalize_dfs_position)))
-    matched_ids = {str(v) for v in skill["dfs_id"].dropna() if str(v)}
+    claimed_salary_rows = set(skill["_salary_row_key"].dropna())
     repeated_names = sal.loc[sal.duplicated(["name_key", "team_upper"], keep=False)]
     positional_collisions = set(zip(repeated_names["name_key"], repeated_names["team_upper"]))
     missing_rows = []
     for _, row in sal.iterrows():
-        if (row["name_key"], row["team_upper"], row["position_key"]) not in existing and str(row.get("dfs_id", "")) not in matched_ids:
+        if (row["name_key"], row["team_upper"], row["position_key"]) not in existing and row["_salary_row_key"] not in claimed_salary_rows:
             # Preserve existing imported-estimate keys for ordinary slate rows.
             player_id = f"slate:{row['team_upper']}:{row['name_key']}"
             if (row["name_key"], row["team_upper"]) in positional_collisions:
                 player_id += f":{row['position_key']}"
+            same_name = pool[pool["Player"].map(roster_name_key).eq(roster_name_key(row["player_name"]))]
+            reason = "missing_or_invalid_projection"
+            if not same_name.empty:
+                reason = "position_conflict" if same_name["team_upper"].eq(row["team_upper"]).any() else "team_conflict"
             missing_rows.append({
                 "player_id": player_id,
                 "Player": row["player_name"], "Team": row["team_upper"], "Position": row["position"],
                 "Projected Points": np.nan, "Low (P10)": np.nan, "High (P90)": np.nan,
-                "projection_source": "Missing projection", "Injury Status": "", "on_bye": False,
+                "projection_source": "Missing projection", "projection_missing_reason": reason, "Injury Status": "", "on_bye": False,
                 "salary": row["salary"], "dfs_id": row.get("dfs_id", ""),
                 "cpt_salary": row.get("cpt_salary"), "cpt_dfs_id": row.get("cpt_dfs_id", ""),
                 "name_key": row["name_key"], "team_upper": row["team_upper"],
@@ -450,7 +477,7 @@ def attach_salaries_to_pool(
         "pool_without_salary": without,
         "slate_players": len(sal),
     }
-    return skill.drop(columns=["name_key", "team_upper", "position_key"], errors="ignore"), stats
+    return skill.drop(columns=["name_key", "team_upper", "position_key", "_salary_row_key"], errors="ignore"), stats
 
 
 def np_where_salary_value(proj: pd.Series, salary: pd.Series) -> pd.Series:

@@ -139,9 +139,11 @@ def build_lineup_pool(
     df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
     season, week = resolve_projection_context(df, season, week)
 
+    from src.projections.dfs_pool import load_dfs_pool
+    deep_pool = load_dfs_pool(int(season), int(week), apply_injury_adjustments) if site_cfg.get("base_site") else pd.DataFrame()
     frames: list[pd.DataFrame] = []
     projection_sources = {}
-    for position in ("qb", "rb", "wr"):
+    for position in (("qb", "rb", "wr") if deep_pool.empty else ()):
         preds = load_weekly_prediction(
             position,
             season=season,
@@ -155,9 +157,15 @@ def build_lineup_pool(
             preds["Position"] = position.upper()
         frames.append(preds)
 
-    pool = pd.concat(frames, ignore_index=True)
+    pool = deep_pool.copy() if not deep_pool.empty else pd.concat(frames, ignore_index=True)
+    if not deep_pool.empty:
+        projection_sources["dfs"] = {"built_at": deep_pool.attrs.get("built_at"), "rows": len(deep_pool)}
+    if site_cfg.get("base_site") != "draftkings" and "projection_site" in pool:
+        pool = pool[pool["projection_site"].isna() | pool["projection_site"].isin(["", "dk_fd_kicking"])].copy()
     pool["Position"] = pool["Position"].map(_normalize_pos)
     allowed = ["QB", "RB", "WR", "TE"]
+    if "K" in site_cfg["flex_positions"]:
+        allowed.append("K")
     if site_cfg["roster"].get("dst", 0) or "DST" in site_cfg["flex_positions"]:
         allowed.append("DST")
     pool = pool[pool["Position"].isin(allowed)].copy()
@@ -196,6 +204,7 @@ def build_lineup_pool(
         "roster_format": site_cfg["roster"],
         "salary_cap": site_cfg["salary_cap"],
     }
+    pool.attrs["dfs_base_site"] = site_cfg.get("base_site")
     return pool, meta
 
 

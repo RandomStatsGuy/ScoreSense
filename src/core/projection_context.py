@@ -203,7 +203,7 @@ def build_inference_roster(
         "roster_overlay": {"applied": False},
         "depth_mode": depth_mode,
     }
-    if meta["preseason_mode"] and meta["feature_season"] < season:
+    if depth_mode == "dfs" or (meta["preseason_mode"] and meta["feature_season"] < season):
         roster, overlay = apply_sleeper_roster_overlay(
             roster,
             position,
@@ -211,6 +211,7 @@ def build_inference_roster(
             target_week=target_week,
             add_rookies=True,
             add_emerging=depth_mode == "draft",
+            **({"add_missing": True} if depth_mode == "dfs" else {}),
         )
         meta["roster_overlay"] = overlay
 
@@ -224,7 +225,7 @@ def build_inference_roster(
     )
     meta["roster_identity"] = identity
 
-    if meta["preseason_mode"]:
+    if meta["preseason_mode"] and depth_mode != "dfs":
         from src.core.depth_chart import filter_depth_chart_starters
 
         roster, depth_meta = filter_depth_chart_starters(

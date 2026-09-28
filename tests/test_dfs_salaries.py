@@ -139,6 +139,7 @@ def test_attached_dst_rows_are_not_on_bye():
             }
         ]
     )
+    pool = pd.concat([pool, pd.DataFrame([{"player_id": "dst:SF", "Player": "SF DST", "Team": "SF", "Position": "DST", "Projected Points": 6.5, "Low (P10)": 0, "High (P90)": 15}])], ignore_index=True)
     salaries = parse_salary_csv(DK_SAMPLE.encode())
     merged, _stats = attach_salaries_to_pool(pool, salaries)
     dst = merged[merged["Position"] == "DST"].iloc[0]

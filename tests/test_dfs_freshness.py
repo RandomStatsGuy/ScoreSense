@@ -34,6 +34,7 @@ def test_coverage_lists_missing_quantiles_and_does_not_certify_fixed_or_imported
 def test_salary_cache_expires_after_five_minutes(tmp_path, monkeypatch, site):
     cache = tmp_path / "salary.parquet"
     pd.DataFrame([{"player_name": "Old"}]).to_parquet(cache)
+    os.utime(cache, (time.time()-2, time.time()-2))
     monkeypatch.setattr(dfs_slates, "_cache_path", lambda *a: cache)
     monkeypatch.setattr(dfs_slates, "_cache_meta_path", lambda *a: tmp_path / "meta.json")
     monkeypatch.setattr(dfs_slates, "fanduel_auth_configured", lambda: True)
@@ -60,6 +61,7 @@ def refresh_env(tmp_path, monkeypatch):
     monkeypatch.setattr(sleeper, "get_nfl_state", lambda **k: {"season": "2026", "week": 4, "season_type": "regular"})
     monkeypatch.setattr(weekly_cache, "load_weekly_prediction", model)
     monkeypatch.setattr(weekly_cache, "invalidate_weekly_cache", lambda: None)
+    monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", lambda *a: {"rows": 100, "built_at": "test"})
     return poll, model
 
 
@@ -88,7 +90,7 @@ def test_refresh_attempts_other_positions_after_one_fails(refresh_env):
     model.side_effect = [RuntimeError("bad model")] + [pd.DataFrame([{"x": 1}])] * 4
     result = dfs_refresh.run_dfs_refresh()
     assert result["status"] == "error"
-    assert set(result["positions"]) == {"rb", "wr"}
+    assert set(result["positions"]) == {"rb", "wr", "dfs"}
     assert result["last_success_at"] is None
 
 
@@ -115,3 +117,11 @@ def test_status_reports_staleness_and_hides_internal_errors(tmp_path, monkeypatc
     assert result["stale"]
     assert result["status"] == "error"
     assert "error" not in result
+
+
+def test_missing_current_history_cannot_claim_fresh_success(refresh_env, monkeypatch):
+    monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", lambda *a: {"rows": 100, "historical_inputs_only": True})
+    result = dfs_refresh.run_dfs_refresh()
+    assert result["status"] == "error"
+    assert result["last_success_at"] is None
+    assert result["positions"]["dfs"]["rows"] == 100

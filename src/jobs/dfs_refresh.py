@@ -54,6 +54,14 @@ def run_dfs_refresh():
                     except Exception as exc:
                         errors.append(position)
                         logger.exception("DFS refresh failed for %s", position)
+                try:
+                    from src.projections.dfs_pool import refresh_dfs_pool
+                    status["positions"]["dfs"] = refresh_dfs_pool(season, week)
+                    if status["positions"]["dfs"].get("historical_inputs_only"):
+                        errors.append("dfs_current_season_history")
+                except Exception:
+                    errors.append("dfs")
+                    logger.exception("Deep DFS projection refresh failed")
                 if errors:
                     raise RuntimeError("Projection refresh failed: " + ", ".join(errors))
                 status["status"] = "ok"
