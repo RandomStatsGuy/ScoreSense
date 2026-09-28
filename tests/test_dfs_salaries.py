@@ -1,6 +1,7 @@
 """Tests for DFS salary CSV parsing and pool join."""
 
 import pandas as pd
+import pytest
 
 from src.products.dfs_salaries import (
     attach_salaries_to_pool,
@@ -266,3 +267,61 @@ def test_attach_salaries_does_not_match_a_different_player_at_the_same_position(
     merged, stats = attach_salaries_to_pool(pool, salaries)
     assert stats["alias_matched"] == 0
     assert pd.isna(merged[merged["Player"] == "Tyler Conklin"].iloc[0]["salary"])
+
+
+def _identity_pool(team="KC", position="WR"):
+    return pd.DataFrame([{"player_id": "p1", "Player": "Same Name", "Team": team, "Position": position,
+                          "Projected Points": 20, "Low (P10)": 10, "High (P90)": 30}])
+
+
+@pytest.mark.parametrize("team,position", [("SF", "WR"), ("KC", "RB")])
+def test_salary_match_does_not_transfer_forecast_across_team_or_position(team, position):
+    salaries = parse_salary_csv(f"Name,ID,Position,Salary,TeamAbbrev\nSame Name,123,{position},5000,{team}\n")
+    merged, stats = attach_salaries_to_pool(_identity_pool(), salaries)
+    original = merged[merged["player_id"] == "p1"].iloc[0]
+    assert pd.isna(original["salary"])
+    slate = merged[merged["dfs_id"] == "123"].iloc[0]
+    assert pd.isna(slate["Projected Points"])
+    assert slate["projection_source"] == "Missing projection"
+    assert stats["matched"] == 0
+    assert stats["unmatched_slate"] == 1
+
+
+def test_salary_match_rejects_ambiguous_projection_identity():
+    pool = pd.concat([_identity_pool(), _identity_pool().assign(player_id="p2")], ignore_index=True)
+    salaries = parse_salary_csv("Name,ID,Position,Salary,TeamAbbrev\nSame Name,123,WR,5000,KC\n")
+    with pytest.raises(ValueError, match="Projection rows ambiguously"):
+        attach_salaries_to_pool(pool, salaries)
+
+
+def test_salary_match_rejects_conflicting_salary_rows():
+    salaries = parse_salary_csv("Name,ID,Position,Salary,TeamAbbrev\nSame Name,123,WR,5000,KC\nSame Name,456,WR,6000,KC\n")
+    with pytest.raises(ValueError, match="Salary rows ambiguously"):
+        attach_salaries_to_pool(_identity_pool(), salaries)
+
+
+def test_unmatched_slate_player_retains_existing_override_key():
+    salaries = parse_salary_csv("Name,ID,Position,Salary,TeamAbbrev\nSame Name,123,WR,5000,SF\n")
+    merged, _ = attach_salaries_to_pool(_identity_pool(), salaries)
+    assert merged.loc[merged["dfs_id"] == "123", "player_id"].iloc[0] == "slate:SF:same name"
+
+
+def test_same_name_on_two_positions_does_not_hide_unmodeled_slate_player():
+    salaries = parse_salary_csv("Name,ID,Position,Salary,TeamAbbrev\nSame Name,123,WR,5000,KC\nSame Name,456,RB,6000,KC\n")
+    merged, stats = attach_salaries_to_pool(_identity_pool(), salaries)
+    assert len(merged) == 2
+    assert stats["matched"] == 1
+    assert stats["unmatched_slate"] == 1
+    assert merged.loc[merged["dfs_id"] == "456", "Projected Points"].isna().all()
+
+
+def test_alias_match_cannot_reuse_salary_row_in_fuzzy_pass():
+    pool = pd.DataFrame([
+        _pool_row("Josh Palmer", "BUF", "WR"),
+        _pool_row("Joshua Palmer Jr.", "BUF", "WR"),
+    ])
+    salaries = parse_salary_csv("Name,ID,Position,Salary,TeamAbbrev\nJoshua Palmer,123,WR,5000,BUF\n")
+    merged, stats = attach_salaries_to_pool(pool, salaries)
+    assert merged.loc[merged["Player"] == "Joshua Palmer Jr.", "salary"].iloc[0] == 5000
+    assert merged.loc[merged["Player"] == "Josh Palmer", "salary"].isna().all()
+    assert stats["alias_matched"] == 1

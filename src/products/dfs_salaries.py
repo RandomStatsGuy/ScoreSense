@@ -247,14 +247,14 @@ def _one_to_one_fill(merged: pd.DataFrame, candidates: pd.DataFrame, key_fn) -> 
     missing = merged["salary"].isna()
     if not missing.any() or candidates.empty:
         return 0
-    pool_keys: dict[str, list] = {}
+    pool_keys: dict[tuple, list] = {}
     for idx in merged.index[missing]:
-        key = key_fn(merged.at[idx, "Player"], merged.at[idx, "team_upper"])
+        key = key_fn(merged.at[idx, "Player"], merged.at[idx, "team_upper"], merged.at[idx, "position_key"])
         if key:
             pool_keys.setdefault(key, []).append(idx)
-    slate_keys: dict[str, list] = {}
+    slate_keys: dict[tuple, list] = {}
     for _, row in candidates.iterrows():
-        key = key_fn(row["player_name"], row["team_upper"])
+        key = key_fn(row["player_name"], row["team_upper"], row["position_key"])
         if key:
             slate_keys.setdefault(key, []).append(row)
     filled = 0
@@ -328,15 +328,26 @@ def attach_salaries_to_pool(
     pool["projection_source"] = "ScoreSense"
     pool["name_key"] = pool["Player"].map(_normalize_name)
     pool["team_upper"] = pool["Team"].map(normalize_team_for_match)
+    pool["position_key"] = pool["Position"].map(_normalize_dfs_position)
 
     sal = collapse_captain_rows(salaries)
     sal["team_upper"] = sal["team"].map(normalize_team_for_match)
+    sal["position_key"] = sal["position"].map(_normalize_dfs_position)
     skill_positions = sal[sal["position"] != "DST"].copy()
 
+    # Name matching is a fallback identity resolver, not permission to choose
+    # one of several athletes or carry an old-team forecast onto a new slate.
+    match_keys = ["name_key", "team_upper", "position_key"]
+    if skill_positions.duplicated(match_keys, keep=False).any():
+        raise ValueError("Salary rows ambiguously identify a player. Check name, team and position in the slate file.")
+    if pool.duplicated(match_keys, keep=False).any():
+        raise ValueError("Projection rows ambiguously identify a player. Resolve duplicate names, teams and positions before building.")
+
     merged = pool.merge(
-        skill_positions[["name_key", "team_upper", "salary", "dfs_id", "cpt_salary", "cpt_dfs_id"]],
-        on=["name_key", "team_upper"],
+        skill_positions[match_keys + ["salary", "dfs_id", "cpt_salary", "cpt_dfs_id"]],
+        on=match_keys,
         how="left",
+        validate="one_to_one",
     )
     # DraftKings writes "James Cook III" where the projection pool has "James
     # Cook", so an exact key drops the player from every lineup. Recover those
@@ -348,28 +359,15 @@ def attach_salaries_to_pool(
         )
     ].copy()
     alias_matched = _one_to_one_fill(
-        merged, unmatched_slate_rows, lambda name, team: f"{roster_name_key(name)}|{team}"
+        merged, unmatched_slate_rows, lambda name, team, position: (roster_name_key(name), team, position)
     )
-    alias_matched += _fuzzy_fill(merged, unmatched_slate_rows)
-
-    missing = merged["salary"].isna()
-    if missing.any():
-        name_only = skill_positions.drop_duplicates(subset=["name_key"], keep="last")
-        fill = merged.loc[missing, ["name_key"]].merge(
-            name_only[["name_key", "salary", "dfs_id", "cpt_salary", "cpt_dfs_id"]],
-            on="name_key",
-            how="left",
+    # Do not offer already-claimed salary rows to a second alias pass.
+    unmatched_slate_rows = unmatched_slate_rows[
+        ~unmatched_slate_rows["dfs_id"].astype(str).isin(
+            {str(v) for v in merged.loc[merged["salary"].notna(), "dfs_id"].dropna()}
         )
-        for idx in merged.index[missing]:
-            fill_row = fill.loc[fill.index[fill["name_key"] == merged.at[idx, "name_key"]]]
-            if not fill_row.empty and pd.notna(fill_row.iloc[0]["salary"]):
-                merged.at[idx, "salary"] = fill_row.iloc[0]["salary"]
-                if pd.isna(merged.at[idx, "dfs_id"]) or not merged.at[idx, "dfs_id"]:
-                    merged.at[idx, "dfs_id"] = fill_row.iloc[0].get("dfs_id", "")
-                if pd.isna(merged.at[idx, "cpt_salary"]):
-                    merged.at[idx, "cpt_salary"] = fill_row.iloc[0].get("cpt_salary")
-                if pd.isna(merged.at[idx, "cpt_dfs_id"]) or not merged.at[idx, "cpt_dfs_id"]:
-                    merged.at[idx, "cpt_dfs_id"] = fill_row.iloc[0].get("cpt_dfs_id", "")
+    ]
+    alias_matched += _fuzzy_fill(merged, unmatched_slate_rows)
 
     skill = merged
 
@@ -405,13 +403,19 @@ def attach_salaries_to_pool(
 
     # Show unmodeled slate players (including kickers) so coverage is visible.
     # They become eligible only after importing all three projection inputs.
-    existing = set(zip(skill["name_key"], skill["team_upper"]))
+    existing = set(zip(skill["name_key"], skill["team_upper"], skill["Position"].map(_normalize_dfs_position)))
     matched_ids = {str(v) for v in skill["dfs_id"].dropna() if str(v)}
+    repeated_names = sal.loc[sal.duplicated(["name_key", "team_upper"], keep=False)]
+    positional_collisions = set(zip(repeated_names["name_key"], repeated_names["team_upper"]))
     missing_rows = []
     for _, row in sal.iterrows():
-        if (row["name_key"], row["team_upper"]) not in existing and str(row.get("dfs_id", "")) not in matched_ids:
+        if (row["name_key"], row["team_upper"], row["position_key"]) not in existing and str(row.get("dfs_id", "")) not in matched_ids:
+            # Preserve existing imported-estimate keys for ordinary slate rows.
+            player_id = f"slate:{row['team_upper']}:{row['name_key']}"
+            if (row["name_key"], row["team_upper"]) in positional_collisions:
+                player_id += f":{row['position_key']}"
             missing_rows.append({
-                "player_id": f"slate:{row['team_upper']}:{row['name_key']}",
+                "player_id": player_id,
                 "Player": row["player_name"], "Team": row["team_upper"], "Position": row["position"],
                 "Projected Points": np.nan, "Low (P10)": np.nan, "High (P90)": np.nan,
                 "projection_source": "Missing projection", "Injury Status": "", "on_bye": False,
@@ -441,7 +445,7 @@ def attach_salaries_to_pool(
         "pool_without_salary": without,
         "slate_players": len(sal),
     }
-    return skill.drop(columns=["name_key", "team_upper"], errors="ignore"), stats
+    return skill.drop(columns=["name_key", "team_upper", "position_key"], errors="ignore"), stats
 
 
 def np_where_salary_value(proj: pd.Series, salary: pd.Series) -> pd.Series:

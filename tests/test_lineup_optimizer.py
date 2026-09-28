@@ -1,6 +1,7 @@
 """Tests for lineup optimizer."""
 
 import pandas as pd
+import pytest
 
 from src.products.lineup_optimizer import (
     LineupPlayer,
@@ -537,3 +538,88 @@ def test_single_lineup_respects_fractional_captain_limit():
     result = optimize_from_pool_dataframe(pool, site="draftkings_showdown", salary_cap=60000, captain_exposure_limits={"qb1":.25}, lineup_count=1)
     assert result["ok"]
     assert result["lineup"][0]["player_id"] != "qb1"
+
+
+def test_captain_rotations_are_distinct_but_flex_permutations_are_not():
+    # Exactly six athletes: exhaustive search has six scoring lineups, not
+    # one player set and not 6! slot permutations.
+    players = _showdown_pool()[:6]
+    result = optimize_multiple_lineups(
+        players, count=7, max_overlap=6, roster={"cpt": 1, "flex": 5}, salary_cap=100000,
+    )
+    assert result["ok"]
+    assert result["count"] == 6
+    assert result["requested_count"] == 7
+    assert result["complete"] is False
+    assert result["exposure_valid"] is True
+    assert {entry["lineup"][0]["player_id"] for entry in result["lineups"]} == {p.player_id for p in players}
+    expected_scores = sorted((sum(p.proj for p in players) + p.proj * .5 for p in players), reverse=True)
+    assert [entry["total_points"] for entry in result["lineups"]] == expected_scores
+
+
+def test_captain_player_overlap_remains_a_hard_constraint():
+    result = optimize_multiple_lineups(
+        _showdown_pool()[:6], count=2, max_overlap=5,
+        roster={"cpt": 1, "flex": 5}, salary_cap=100000,
+    )
+    assert result["count"] == 1
+    assert result["complete"] is False
+
+
+def test_partial_portfolio_reports_actual_exposure_violations_and_lock_exemption():
+    result = optimize_multiple_lineups(
+        _showdown_pool()[:6], count=4, max_overlap=5, max_exposure=.5,
+        locked_player_ids={"qb1"}, captain_exposure_limits={"qb1": .5},
+        roster={"cpt": 1, "flex": 5}, salary_cap=100000,
+    )
+    assert result["count"] == 1
+    assert result["complete"] is False
+    assert result["exposure_valid"] is False
+    assert result["exposure_basis"] == {"enforced_count": 4, "reported_count": 1, "locks_exempt": ["qb1"]}
+    total = [v for v in result["exposure_violations"] if v["scope"] == "total"]
+    assert len(total) == 5
+    assert all(v["player_id"] != "qb1" and v["maximum_count"] == 0 for v in total)
+    assert {"player_id": "qb1", "scope": "captain", "count": 1, "maximum_count": 0} in result["exposure_violations"]
+    assert "Built 1 of 4" in result["note"]
+
+
+def test_complete_portfolio_reports_satisfied_constraints():
+    result = optimize_multiple_lineups(_sample_pool(), count=2, max_overlap=5)
+    assert result["complete"] is True
+    assert result["exposure_valid"] is True
+    assert result["exposure_violations"] == []
+
+
+def test_duplicate_entity_ids_rejected_before_classic_or_captain_solve():
+    for roster in ({"qb": 1, "rb": 2, "wr": 2, "te": 1, "flex": 1}, {"cpt": 1, "flex": 5}):
+        players = _showdown_pool()
+        result = optimize_lineup(players + [players[0]], roster=roster)
+        assert result["ok"] is False
+        assert "Duplicate player IDs" in result["error"]
+
+
+@pytest.mark.parametrize("site,expected_count", [
+    ("seasonal", 6), ("draftkings", 9), ("fanduel", 9),
+    ("draftkings_showdown", 9), ("fanduel_single", 9),
+])
+def test_dfs_pool_keeps_low_projection_salary_candidates(monkeypatch, tmp_path, site, expected_count):
+    from src.products import lineup_optimizer as optimizer
+
+    pd.DataFrame([{"season": 2026, "week": 1}]).to_csv(tmp_path / "qb_mlready.csv", index=False)
+    monkeypatch.setattr(optimizer, "resolve_projection_context", lambda *_: (2026, 1))
+    monkeypatch.setattr("src.core.schedule_utils.attach_bye_flags", lambda pool, *_: pool)
+
+    def predictions(position, **kwargs):
+        return pd.DataFrame([
+            {"player_id": f"{position}{i}", "Player": f"{position} {i}", "Team": "KC",
+             "Position": position.upper(), "Projected Points": 20 - i,
+             "Low (P10)": 5, "High (P90)": 30 if i != 2 else None}
+            for i in range(3)
+        ])
+
+    monkeypatch.setattr(optimizer, "load_weekly_prediction", predictions)
+    pool, _ = optimizer.build_lineup_pool(data_dir=tmp_path, site=site, top_per_position=2)
+    assert len(pool) == expected_count
+    if site != "seasonal":
+        assert pool.loc[pool["player_id"] == "wr2", "High (P90)"].isna().all()
+        assert "wr2" not in {p.player_id for p in optimizer._players_from_pool(pool)}
