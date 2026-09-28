@@ -19,9 +19,8 @@ not a completed tournament model or evidence of profitable play.
 - Single-game duplicate cuts distinguish Captain plus the unordered FLEX set.
   With `max_overlap=6`, a different Captain with the same six athletes is a
   distinct candidate; FLEX permutations never create additional candidates.
-  Lower overlap settings remain hard player-count restrictions. The current
-  UI's Minimum differences menu still requires at least one changed athlete;
-  Captain-only rotations are available through the optimizer/API at this stage.
+  Lower overlap settings remain hard player-count restrictions. The UI now offers Captain change only in Minimum differences for single-game
+  formats; Classic and season-long still require at least one changed athlete.
 - Multi-lineup responses report `requested_count`, `complete`,
   `exposure_valid`, `exposure_violations`, and `exposure_basis`. Exposure checks
   use the actual returned count, while generation limits use the requested
@@ -83,3 +82,23 @@ The shipped objectives remain sums of P50, P10, P90 or value inputs. P50 is not
 a mean, sums of player quantiles are not lineup quantiles, and projection jitter
 is not a joint simulation. No forecast, ownership or payout metrics are
 fabricated, and no model fitting or new simulation is added to API requests.
+
+
+## Follow-up: independent checks and Captain control
+
+Generated rows now pass an independent roster/pool check before the optimizer
+API returns success. It checks roster slots and positions, source identity and
+slot-specific IDs/salaries, projection multipliers, salary totals and limits,
+locks, team limits, single-game team representation, and scoring-lineup uniqueness.
+Failed validation returns no usable lineup. Missing export IDs remain usable for
+preview but are explicitly reported and continue to block site exports.
+
+Export checks also verify position eligibility and unambiguous catalog identity,
+including canonical player ID when available. Existing file formats and reserved
+entry metadata are preserved. These checks are not certification of game membership,
+site scoring, current lock state, stack policy, or site submission acceptance.
+Versioned rule/slate snapshots and all-Captain candidate comparisons remain next.
+
+The single-game Minimum differences menu exposes Captain change only. It sends
+max_overlap=6 and explains that repeated scoring lineups remain excluded. Switching
+to Classic or season-long restores one changed athlete. Default settings are unchanged.

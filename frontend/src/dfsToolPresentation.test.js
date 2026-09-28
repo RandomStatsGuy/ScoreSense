@@ -5,6 +5,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DEFAULT_FORMATS,
+  lineupDifferenceOptions,
+  normalizeLineupDifferences,
   capMeterTone,
   constructionSummary,
   defaultSlateCategory,
@@ -464,4 +466,14 @@ test("replaceStackLocks swaps the auto-stack without dropping a user lock", () =
   assert.equal(next.has("old-qb"), false);
   assert.equal(next.has("new-qb"), true);
   assert.equal(next.has("new-wr"), true);
+});
+
+
+test("Captain-only rotation is offered only in single-game formats", () => {
+  assert.equal(lineupDifferenceOptions(true)[0].id, 0);
+  assert.equal(lineupDifferenceOptions(true)[0].label, "Captain change only");
+  assert.deepEqual(lineupDifferenceOptions(false).map(o => o.id), [1, 2, 3, 4]);
+  assert.equal(normalizeLineupDifferences(0, true), 0);
+  assert.equal(normalizeLineupDifferences(0, false), 1);
+  assert.equal(normalizeLineupDifferences(NaN, false), 2);
 });

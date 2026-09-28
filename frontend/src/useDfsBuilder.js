@@ -8,6 +8,7 @@ import {
   defaultSlateCategory,
   gameTeamCodes,
   isCaptainFormat,
+  normalizeLineupDifferences,
   slateGames,
 } from "./dfsToolPresentation";
 import { parseDfsCsv, headerKey } from "./dfsCsv";
@@ -141,6 +142,7 @@ export default function useDfsBuilder(projMeta) {
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
+    if (patch.site) setSettings(s => ({ ...s, differences: normalizeLineupDifferences(s.differences, isCaptainFormat(patch.site, formats)) }));
     setLocked([]);
     setExcluded([]);
     setCaptainLimits({});
@@ -387,7 +389,7 @@ export default function useDfsBuilder(projMeta) {
       lineup_count: settings.count,
       max_overlap: Math.max(
         0,
-        (isCaptain ? 6 : isDfs ? 9 : 7) - settings.differences,
+        (isCaptain ? 6 : isDfs ? 9 : 7) - normalizeLineupDifferences(settings.differences, isCaptain),
       ),
       max_exposure: settings.exposure,
       randomness: settings.randomness,

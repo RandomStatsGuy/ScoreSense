@@ -1132,7 +1132,7 @@ def optimize_from_pool_dataframe(
     if lineup_count <= 1 and max_exposure is not None and 0 < max_exposure < 1:
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
     if lineup_count > 1:
-        return optimize_multiple_lineups(
+        result = optimize_multiple_lineups(
             players,
             count=lineup_count,
             max_overlap=max_overlap,
@@ -1143,16 +1143,25 @@ def optimize_from_pool_dataframe(
             stack_game_weights=stack_game_weights,
             **opt_kwargs,
         )
-    stack_schedule = weighted_stack_schedule(stack_game_weights, 1)
-    if stack_schedule:
-        opt_kwargs["stack_teams"] = stack_schedule[0]
-    if randomness > 0:
-        rng = np.random.default_rng(seed)
-        opt_kwargs["objective_noise"] = {
-            p.player_id: float(np.clip(rng.normal(1.0, min(randomness, 1.0)), 0.05, None))
-            for p in players
-        }
-    return optimize_lineup(players, **opt_kwargs)
+    else:
+        stack_schedule = weighted_stack_schedule(stack_game_weights, 1)
+        if stack_schedule:
+            opt_kwargs["stack_teams"] = stack_schedule[0]
+        if randomness > 0:
+            rng = np.random.default_rng(seed)
+            opt_kwargs["objective_noise"] = {
+                p.player_id: float(np.clip(rng.normal(1.0, min(randomness, 1.0)), 0.05, None))
+                for p in players
+            }
+        result = optimize_lineup(players, **opt_kwargs)
+
+    from src.products.dfs_validation import validate_generated_lineups
+
+    return validate_generated_lineups(
+        result, players, site=site, salary_cap=cap, min_salary=min_salary,
+        max_per_team=max_per_team, locked_player_ids=locked_player_ids or (),
+        locked_captain_id=locked_captain_id,
+    )
 
 
 def weighted_stack_schedule(stack_game_weights: list[dict] | None, count: int) -> list[list[str]]:

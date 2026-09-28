@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
   allocateMatchupWeights,
+  lineupDifferenceOptions,
   DFS_STEP_COPY,
   DFS_WORKSPACE_COPY as C,
   filterObjectives,
@@ -661,9 +662,10 @@ export default function DfsWorkspace({ b }) {
           <HubFilterMenu
             label={C.differences}
             value={b.settings.differences}
-            options={options([1, 2, 3, 4])}
+            options={lineupDifferenceOptions(b.isCaptain)}
             onChange={(v) => b.changeSetting("differences", Number(v))}
           />
+          {b.isCaptain && b.settings.differences === 0 && <p className="dfw-note">{C.captainRotationHelp}</p>}
           </div>
           {b.isDfs && (
             <DfsField label={C.salary}>
