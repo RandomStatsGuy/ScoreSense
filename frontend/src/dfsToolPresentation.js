@@ -3,6 +3,9 @@
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
 export const DFS_WORKSPACE_COPY = {
+  projectionRefreshFailed: "The player pool was checked, but the projection refresh is overdue or failed. Existing estimates remain available; review them before building.",
+  liveRefreshed: "Live player pool checked. Built lineups keep their original inputs; rebuild to use the latest pool. Imported estimates stay in place.",
+  liveRefreshFailed: "The live player pool could not refresh. Showing the previous inputs; the next check is in five minutes.",
   captainRotationHelp: "Lineups may use the same six players with a different Captain. Repeated lineups are excluded; exposure limits still apply.",
   dataUpdate: "New projections are available. Updating the live player pool clears the current unsaved build; saved builds and imported estimates keep their original values.",
   updatePool: "Update player pool",

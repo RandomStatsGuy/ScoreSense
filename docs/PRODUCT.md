@@ -428,3 +428,7 @@ Sleeper-linked leagues use Sleeper's rules, lineups, live points and corrections
 ### Approved lineup position picker (September 16)
 
 This Week uses approved option A for manual lineup changes: tap a starter position, choose an eligible bench player, review who moves to Bench and who fills the slot, then confirm Start. Desktop uses a right-side picker; phone uses a bottom sheet. Show headshots, position/team, kickoff, projected points and the signed lineup delta. Missing projections never become zero. Locked players are visibly unavailable; the backend remains authoritative at save. Empty slots use the same preview before filling. Cancel and Escape dismiss without saving, focus returns to the originating position, and successful saves announce the move. Linked Sleeper leagues preview locally and open Sleeper for the edit. Manual position moves use blue for the next action; suggested Ticket calls retain amber. Never apply a move by clicking a roster row.
+
+### DFS live refresh
+
+The live DFS pool checks every five minutes while visible and idle. Background updates preserve original built/saved lineups and imported estimates; rebuild to use changed inputs. Missing estimates require all three finite inputs and stay excluded. Server refresh failures/overdue projections are identified separately from a successful player-pool fetch. Uploaded catalogs remain frozen. See [DFS projection coverage and refresh](DFS_PROJECTION_FRESHNESS.md) for source and model limitations.
