@@ -12,6 +12,8 @@ import {
   slateGames,
 } from "./dfsToolPresentation";
 import { parseDfsCsv, headerKey } from "./dfsCsv";
+import { captainComparisonRequest } from "./dfsCaptainComparisonRequest.js";
+import { DFS_CAPTAIN_COMPARISON_COPY as CC } from "./dfsToolPresentation";
 
 async function jsonRequest(url, options) {
   const response = await apiFetch(url, options);
@@ -48,6 +50,11 @@ export default function useDfsBuilder(projMeta) {
   const [slateName, setSlateName] = useState("");
   const [busy, setBusy] = useState(false);
   const [building, setBuilding] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const [comparison, setComparison] = useState(null);
+  const [comparisonError, setComparisonError] = useState("");
+  const comparisonGeneration = useRef(0);
+  const comparisonAbort = useRef(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [lineups, setLineups] = useState([]);
@@ -78,6 +85,14 @@ export default function useDfsBuilder(projMeta) {
   const config = formats[context.site] || DEFAULT_FORMATS[context.site];
   const isDfs = context.site !== "seasonal";
   const isCaptain = isCaptainFormat(context.site, formats);
+  useEffect(() => {
+    comparisonGeneration.current++;
+    comparisonAbort.current?.abort();
+    setComparing(false);
+    setComparison(null);
+    setComparisonError("");
+    return () => comparisonAbort.current?.abort();
+  }, [context, settings, locked, excluded, overrides, salaries, pool, config]);
   const changeSetting = (key, value) =>
     setSettings((s) => ({ ...s, [key]: value }));
   const changeStackWeight = (gameId, delta) => {
@@ -368,12 +383,23 @@ export default function useDfsBuilder(projMeta) {
     );
     other((list) => list.filter((p) => p !== id));
   };
-  const run = async () => {
+  const run = async (mode) => {
+    const comparingCaptains = mode === "compare";
+    if (comparingCaptains && !isCaptain) return;
+    const comparisonSeq = comparingCaptains ? ++comparisonGeneration.current : null;
     const seq = generation.current;
-    revision.current++;
-    setBuilding(true);
-    setError("");
-    setNotice("");
+    if (comparingCaptains) {
+      comparisonAbort.current?.abort();
+      comparisonAbort.current = new AbortController();
+      setComparing(true);
+      setComparison(null);
+      setComparisonError("");
+    } else {
+      revision.current++;
+      setBuilding(true);
+      setError("");
+      setNotice("");
+    }
     const cap = isDfs
       ? Math.min(Number(settings.maxSalary), Number(config.salary_cap))
       : null;
@@ -428,8 +454,17 @@ export default function useDfsBuilder(projMeta) {
         );
       const data = await jsonRequest("/api/lineup/optimize", {
         method: "POST",
-        body: JSON.stringify(request),
+        body: JSON.stringify(comparingCaptains ? captainComparisonRequest(request) : request),
+        ...(comparingCaptains ? { signal: comparisonAbort.current.signal } : {}),
       });
+      if (comparingCaptains) {
+        if (comparisonSeq !== comparisonGeneration.current) return;
+        if (!data.ok) throw new Error(data.error || CC.failure);
+        if (!data.build_snapshot?.id || data.captain_comparison?.snapshot_id !== data.build_snapshot.id)
+          throw new Error(CC.mismatch);
+        setComparison({ ...data.captain_comparison, captured_at: data.build_snapshot.captured_at });
+        return;
+      }
       if (seq !== generation.current) return;
       if (!data.ok)
         throw new Error(data.error || "No lineup satisfies these settings.");
@@ -462,9 +497,13 @@ export default function useDfsBuilder(projMeta) {
           : `Built ${built.length} lineup${built.length === 1 ? "" : "s"}.`,
       );
     } catch (e) {
-      if (seq === generation.current) setError(e.message);
+      if (comparingCaptains) {
+        if (comparisonSeq === comparisonGeneration.current && e.name !== "AbortError") setComparisonError(e.message || CC.failure);
+      } else if (seq === generation.current) setError(e.message);
     } finally {
-      setBuilding(false);
+      if (comparingCaptains) {
+        if (comparisonSeq === comparisonGeneration.current) setComparing(false);
+      } else setBuilding(false);
     }
   };
   const save = async () => {
@@ -524,6 +563,10 @@ export default function useDfsBuilder(projMeta) {
     slateName,
     busy,
     building,
+    comparing,
+    comparison,
+    comparisonError,
+    compareCaptains: () => run("compare"),
     error,
     setError,
     notice,

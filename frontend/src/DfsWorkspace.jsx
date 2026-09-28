@@ -1,3 +1,4 @@
+import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
@@ -750,6 +751,7 @@ export default function DfsWorkspace({ b }) {
           <DfsMatchupBoard b={b} />
         </div>
         <div className="dfw-after">
+          <DfsCaptainComparison b={b} />
           <section
             ref={lineupsRef}
             id="dfw-lineups"
