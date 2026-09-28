@@ -1,0 +1,19 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import WeekCorrections from "../src/DraftHub/WeekCorrections";
+import "../src/styles.css";
+import "../src/styles/fantasy.css";
+import "../src/styles/product-hierarchy.css";
+import "../src/styles/product-rhythm.css";
+import "../src/styles/fantasy-phone.css";
+const context={teams:[{id:"one",name:"Tessa's Revenge",owner_name:"Tessa"},{id:"two",name:"Opponent",owner_name:"Alex"}],slots:{QB:1},slot_positions:{QB:["QB"]},revision:"initial",lineups:[{team_id:"one",player_id:"qb",player_name:"Jalen Hurts",position:"QB",nfl_team:"PHI",slot:"BN"},{team_id:"two",player_id:"other",player_name:"Josh Allen",position:"QB",nfl_team:"BUF",slot:"QB1"}],history:[]};
+window.qaRequests=[];
+window.fetch=async(url,options={})=>{
+ const body=options.body?JSON.parse(options.body):null;
+ window.qaRequests.push({url:String(url),body});
+ let data=context;
+ if(String(url).endsWith("/preview")) data={id:"preview",mode:body.mode,reason:body.reason,revision:context.revision,can_publish:body.mode==="lineup",blockers:body.mode==="lineup"?[]:["The selected week's games are not complete"],before:{scores:[],standings:[]},after:{lineups:body.teams.flatMap(t=>t.players),scores:[],standings:[]}};
+ if(String(url).endsWith("/publish")) data={id:"preview",published_at:"now"};
+ return new Response(JSON.stringify(data),{status:200,headers:{"Content-Type":"application/json"}});
+};
+createRoot(document.getElementById("root")).render(<div className="draft-hub"><WeekCorrections leagueId="qa" season={2026}/></div>);

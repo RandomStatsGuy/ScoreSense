@@ -6952,7 +6952,8 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
         league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
         if league is None or league["sleeper_league_id"]:
             raise ValueError("Native scoring is unavailable for this league.")
-        if conn.execute("SELECT 1 FROM league_week_correction WHERE league_id=? AND season=? AND week=? AND published_at IS NOT NULL", key).fetchone():
+        if conn.execute("""SELECT 1 FROM league_week_correction WHERE league_id=? AND season=? AND week=?
+                        AND published_at IS NOT NULL AND COALESCE(json_extract(preview_json, '$.mode'), 'results') != 'lineup'""", key).fetchone():
             raise ValueError("This week has a published commissioner correction. Preview a new correction to change its results.")
         current = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
         if current.scoring.model_dump() != scoring:
