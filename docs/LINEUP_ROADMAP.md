@@ -6,6 +6,8 @@ DFS today: **season-long PPR**, **classic** (DraftKings / FanDuel), and **single
 
 Props are backlog — not top-level nav. Do not add them as a fourth product area.
 
+Builder correctness and candidate coverage: [DFS GPP foundation](./DFS_GPP_FOUNDATION.md).
+
 ## Current
 
 | Mode | Roster | Salary | Objectives |

@@ -128,9 +128,9 @@ def build_lineup_pool(
     data_dir = data_dir or PROCESSED_DATA_DIR
     model_dir = model_dir or MODEL_DIR
     site_cfg = get_site_config(site)
-    if site_cfg["roster"].get("cpt"):
-        # Single-game slates draw from two teams — a league-wide top-N cut
-        # would leave almost nobody, so keep the full projection pool.
+    if site_cfg.get("base_site"):
+        # DFS salaries define the slate. A league-wide projection cut before
+        # that join discards affordable players and useful stack partners.
         top_per_position = 0
 
     path = data_dir / "qb_mlready.parquet"
@@ -161,7 +161,7 @@ def build_lineup_pool(
     pool = pool[pool["Position"].isin(allowed)].copy()
 
     for col in ("Projected Points", "Low (P10)", "High (P90)"):
-        pool[col] = pd.to_numeric(pool[col], errors="coerce").fillna(0.0)
+        pool[col] = pd.to_numeric(pool[col], errors="coerce")
 
     from src.core.schedule_utils import attach_bye_flags
 
@@ -446,10 +446,14 @@ def optimize_lineup(
     extra_constraints: list[PlayerConstraint] | None = None,
     excluded_captain_ids: set[str] | None = None,
     locked_captain_id: str | None = None,
+    excluded_captain_lineups: list[tuple[str, tuple[str, ...]]] | None = None,
 ) -> dict:
     """Maximize projected points (or value) under roster and optional salary-cap constraints."""
     locked_player_ids = locked_player_ids or set()
     roster = roster or get_site_config("seasonal")["roster"]
+    ids = [p.player_id for p in players]
+    if len(ids) != len(set(ids)):
+        return {"ok": False, "error": "Duplicate player IDs in the pool. Resolve the slate mapping before building.", "lineup": []}
     stack_count = int(qb_stack_count) if qb_stack_count is not None else (1 if require_qb_stack else 0)
 
     if roster.get("cpt"):
@@ -468,6 +472,7 @@ def optimize_lineup(
             extra_constraints=extra_constraints,
             excluded_captain_ids=excluded_captain_ids,
             locked_captain_id=locked_captain_id,
+            excluded_captain_lineups=excluded_captain_lineups,
         )
 
     n = len(players)
@@ -638,6 +643,7 @@ def _optimize_captain_lineup(
     extra_constraints: list[PlayerConstraint] | None = None,
     excluded_captain_ids: set[str] | None = None,
     locked_captain_id: str | None = None,
+    excluded_captain_lineups: list[tuple[str, tuple[str, ...]]] | None = None,
 ) -> dict:
     """Single-game captain-mode MILP: one CPT/MVP slot at boosted points/salary + FLEX."""
     locked_player_ids = locked_player_ids or set()
@@ -738,6 +744,14 @@ def _optimize_captain_lineup(
     constraints.extend(
         _materialize_player_constraints(players, extra_constraints, n_vars, var_indexes)
     )
+    # Identity includes Captain. FLEX permutations do not change identity,
+    # but promoting a different athlete creates a distinct scoring lineup.
+    for captain_id, flex_ids in excluded_captain_lineups or []:
+        row = np.zeros(n_vars)
+        row[n + idx[captain_id]] = 1
+        for pid in flex_ids:
+            row[idx[pid]] = 1
+        constraints.append(LinearConstraint(row.reshape(1, -1), lb=0, ub=total - 1))
 
     result = milp(c, integrality=integrality, bounds=bounds, constraints=constraints)
     if not result.success:
@@ -895,8 +909,9 @@ def optimize_multiple_lineups(
     count = max(1, min(int(count), MAX_LINEUP_COUNT))
     roster = kwargs.get("roster") or get_site_config("seasonal")["roster"]
     roster_size = sum(int(v) for v in roster.values())
-    # Never allow an exact duplicate of an earlier lineup.
-    max_overlap = max(0, min(int(max_overlap), roster_size - 1))
+    captain_mode = bool(roster.get("cpt"))
+    # In captain modes, six shared athletes can still score differently.
+    max_overlap = max(0, min(int(max_overlap), roster_size if captain_mode else roster_size - 1))
     randomness = max(0.0, min(float(randomness or 0.0), 1.0))
     exposure_cap = None
     if max_exposure is not None and 0 < float(max_exposure) < 1:
@@ -914,6 +929,7 @@ def optimize_multiple_lineups(
     excluded_by_exposure: set[str] = set()
     captain_usage: dict[str, int] = {}
     captain_caps = {pid: math.floor(float(limit) * count + 1e-9) for pid, limit in (captain_exposure_limits or {}).items()}
+    excluded_captain_lineups = list(kwargs.get("excluded_captain_lineups") or [])
     if exposure_cap == 0:
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
 
@@ -926,6 +942,8 @@ def optimize_multiple_lineups(
                 for p in players
             }
         iteration_kwargs = dict(kwargs)
+        if captain_mode:
+            iteration_kwargs["excluded_captain_lineups"] = excluded_captain_lineups
         if stack_schedule:
             iteration_kwargs["stack_teams"] = stack_schedule[lineup_index]
         iteration_kwargs["excluded_captain_ids"] = set(kwargs.get("excluded_captain_ids") or []) | {
@@ -943,6 +961,9 @@ def optimize_multiple_lineups(
                     exposure_cap=exposure_cap,
                     requested=count,
                     randomness=randomness,
+                    locked=locked,
+                    max_exposure=max_exposure,
+                    captain_exposure_limits=captain_exposure_limits,
                 )
             return result
 
@@ -952,6 +973,9 @@ def optimize_multiple_lineups(
                 pid = row["player_id"]
                 captain_usage[pid] = captain_usage.get(pid, 0) + 1
         chosen_ids = [row["player_id"] for row in result["lineup"]]
+        if captain_mode:
+            captain = next(row["player_id"] for row in result["lineup"] if row["slot"] in ("CPT", "MVP"))
+            excluded_captain_lineups.append((captain, tuple(sorted(pid for pid in chosen_ids if pid != captain))))
         extra.append(({pid: 1.0 for pid in chosen_ids}, 0, float(max_overlap)))
         for pid in chosen_ids:
             usage[pid] = usage.get(pid, 0) + 1
@@ -973,6 +997,9 @@ def optimize_multiple_lineups(
         exposure_cap=exposure_cap,
         requested=count,
         randomness=randomness,
+        locked=locked,
+        max_exposure=max_exposure,
+        captain_exposure_limits=captain_exposure_limits,
     )
 
 
@@ -985,6 +1012,9 @@ def _multi_result(
     exposure_cap: int | None,
     requested: int,
     randomness: float,
+    locked: set[str],
+    max_exposure: float | None,
+    captain_exposure_limits: dict[str, float] | None,
 ) -> dict:
     built = len(lineups)
     exposure = []
@@ -1001,6 +1031,19 @@ def _multi_result(
             }
         )
 
+    violations = []
+    if exposure_cap is not None:
+        actual_cap = math.floor(float(max_exposure) * built + 1e-9)
+        violations.extend(
+            {"player_id": pid, "scope": "total", "count": used, "maximum_count": actual_cap}
+            for pid, used in usage.items() if pid not in locked and used > actual_cap
+        )
+    for pid, limit in (captain_exposure_limits or {}).items():
+        used = sum(any(row["player_id"] == pid and row["slot"] in ("CPT", "MVP") for row in entry["lineup"]) for entry in lineups)
+        actual_cap = math.floor(float(limit) * built + 1e-9)
+        if used > actual_cap:
+            violations.append({"player_id": pid, "scope": "captain", "count": used, "maximum_count": actual_cap})
+
     if note is None:
         parts = [f"Generated {built} lineups with max {max_overlap} overlapping players."]
         if exposure_cap is not None:
@@ -1008,11 +1051,20 @@ def _multi_result(
         if randomness > 0:
             parts.append(f"Randomness {round(randomness * 100)}% jitters projections between builds.")
         note = " ".join(parts)
+    if built < requested:
+        note = f"Built {built} of {requested} requested lineups. {note}"
+    if violations:
+        note += " Exposure limits are exceeded in this smaller set; review before exporting."
 
     return {
         "ok": True,
         "lineups": lineups,
         "count": built,
+        "requested_count": requested,
+        "complete": built == requested,
+        "exposure_valid": not violations,
+        "exposure_violations": violations,
+        "exposure_basis": {"enforced_count": requested, "reported_count": built, "locks_exempt": sorted(locked)},
         "note": note,
         "exposure": exposure,
     }
