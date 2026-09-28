@@ -1,8 +1,11 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
+import DfsPoolCoverage, { DfsPoolFreshness, DfsSourceSummary } from "./DfsPoolCoverage.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
   allocateMatchupWeights,
+  dfsPoolCoverage,
+  dfsPlayerStatus,
   lineupDifferenceOptions,
   DFS_STEP_COPY,
   DFS_WORKSPACE_COPY as C,
@@ -143,12 +146,12 @@ function DfsMatchupBoard({ b }) {
                   <div className="dfw-matchup-stage">
                     <div className="dfw-matchup-team dfw-matchup-team--away">
                       <b>{game.away}</b>
-                      <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.away_implied)}</span>
+                      <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.away_implied)} <small>{DFS_STEP_COPY.impliedTitle}</small></span>
                     </div>
                     <span className="dfw-matchup-at">at</span>
                     <div className="dfw-matchup-team dfw-matchup-team--home">
                       <b>{game.home}</b>
-                      <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.home_implied)}</span>
+                      <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.home_implied)} <small>{DFS_STEP_COPY.impliedTitle}</small></span>
                     </div>
                   </div>
                   <div className="dfw-matchup-markets" role="group" aria-label={DFS_STEP_COPY.currentLine}>
@@ -185,25 +188,36 @@ export default function DfsWorkspace({ b }) {
   const [tab, setTab] = useState("pool"),
     [query, setQuery] = useState(""),
     [pos, setPos] = useState("ALL"),
+    [availability, setAvailability] = useState("available"),
     [page, setPage] = useState(0);
   const [sort, setSort] = useState({
     key: "Projected Points",
     descending: true,
   });
   const slateRef = useRef(null),
+    poolScrollRef = useRef(null),
     lineupsRef = useRef(null);
   const [template, setTemplate] = useState(null),
     [assignments, setAssignments] = useState({}),
     [sameSlate, setSameSlate] = useState(false);
   const lineup = b.lineups[b.selected]?.lineup || [];
   const ids = new Set(lineup.map((p) => p.player_id));
-  const eligible = b.pool.filter((p) => !b.isDfs || p.salary != null);
+  const eligible = b.pool.filter((p) => (!b.isDfs || p.salary != null) && (b.isCaptain || p.Position !== "K"));
+  const coverage = dfsPoolCoverage(eligible);
+  const showOwnership = Object.values(b.ownership).some(value => value != null);
+  const poolColumns = 4 + Number(b.isDfs) + Number(b.isCaptain) + Number(showOwnership);
+  useEffect(() => {
+    setAvailability("available");
+    setPos("ALL");
+    if (poolScrollRef.current) poolScrollRef.current.scrollLeft = 0;
+  }, [b.context.site, b.context.slateId, b.context.season, b.context.week]);
   const filtered = useMemo(
     () =>
       eligible
         .filter(
           (p) =>
             (pos === "ALL" || p.Position === pos) &&
+            (availability === "all" || dfsPlayerStatus(p) === availability) &&
             String(p.Player).toLowerCase().includes(query.toLowerCase()),
         )
         .sort((a, z) => {
@@ -216,9 +230,9 @@ export default function DfsWorkspace({ b }) {
             (sort.descending ? -1 : 1)
           );
         }),
-    [b.pool, b.isDfs, pos, query, sort],
+    [b.pool, b.isDfs, b.isCaptain, pos, availability, query, sort],
   );
-  useEffect(() => setPage(0), [query, pos, b.pool, sort]);
+  useEffect(() => setPage(0), [query, pos, availability, b.pool, sort]);
   useEffect(() => {
     setTemplate(null);
     setAssignments({});
@@ -336,7 +350,8 @@ export default function DfsWorkspace({ b }) {
           </button>
         </div>
       </div>
-      <div className="dfw-workspace">
+      <DfsPoolFreshness b={b} />
+      <div className={`dfw-workspace${b.isCaptain ? " is-captain" : ""}`}>
         <section className="dfw-center">
           <div className="dfw-panel">
             <nav className="dfw-tabs" aria-label={C.pool}>
@@ -356,6 +371,11 @@ export default function DfsWorkspace({ b }) {
             </nav>
             {tab === "pool" && (
               <>
+                <DfsPoolCoverage key={`${b.context.site}:${b.context.slateId}:${b.context.week}:${b.context.source}`} coverage={coverage} busy={b.busy} onUnavailable={() => { setAvailability("unavailable"); setPos("ALL"); setQuery(""); }}
+                  importControl={<DfsFile label={C.projections} onFile={b.importProjections} disabled={!b.pool.length || b.busy || b.building} />} />
+                <div className="dfw-pool-tools"><HubFilterMenu label={C.poolStatus} value={availability} options={[
+                  { id: "available", label: C.available }, { id: "all", label: C.allPlayers }, { id: "unavailable", label: C.unavailable }, { id: "missing", label: C.missingInputs },
+                ]} onChange={setAvailability} />
                 <div className="dfw-filters">
                   {[
                     "ALL",
@@ -363,7 +383,8 @@ export default function DfsWorkspace({ b }) {
                     "RB",
                     "WR",
                     "TE",
-                    ...(b.isDfs ? ["K", "DST"] : []),
+                    ...(b.isCaptain ? ["K"] : []),
+                    ...(b.isDfs ? ["DST"] : []),
                   ].map((p) => (
                     <button
                       key={p}
@@ -374,6 +395,7 @@ export default function DfsWorkspace({ b }) {
                     </button>
                   ))}
                 </div>
+                </div>
                 <input
                   className="dfw-search"
                   aria-label={C.search}
@@ -381,8 +403,8 @@ export default function DfsWorkspace({ b }) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
-                <div className="dfw-table-scroll">
-                  <table className="dfw-table">
+                <div className="dfw-table-scroll" ref={poolScrollRef}>
+                  <table className="dfw-table dfw-player-table">
                     <thead>
                       <tr>
                         <th>
@@ -404,7 +426,8 @@ export default function DfsWorkspace({ b }) {
                             {C.proj}
                           </button>
                         </th>
-                        <th className="num">{C.own}</th>
+                        <th className="num dfw-player-range" title={C.rangeHint}>{C.range}</th>
+                        {showOwnership && <th className="num">{C.own}</th>}
                         {b.isCaptain && <th>{C.captainLimit}</th>}
                         <th className="actions">{C.actions}</th>
                       </tr>
@@ -413,7 +436,7 @@ export default function DfsWorkspace({ b }) {
                       {b.busy
                         ? Array.from({ length: 6 }, (_, i) => (
                             <tr key={i}>
-                              <td colSpan={b.isCaptain ? 6 : 5}>
+                              <td colSpan={poolColumns}>
                                 <div
                                   className="dfw-skeleton"
                                   aria-label={C.loading}
@@ -432,13 +455,11 @@ export default function DfsWorkspace({ b }) {
                                 <strong>{p.Player}</strong>
                                 <small>
                                   {p.Team} · {p.Position}
-                                  {p["Injury Status"]
+                                  {p.on_bye ? ` · ${C.bye}` : p["Injury Status"]
                                     ? ` · ${p["Injury Status"]}`
                                     : ""}
                                 </small>
-                                {p.projection_source !== "ScoreSense" && (
-                                  <small>{p.projection_source}</small>
-                                )}
+                                <small className="dfw-projection-source">{p.projection_source || C.sourceDescriptions.Other}</small>
                               </td>
                               {b.isDfs && (
                                 <td className="num">
@@ -448,11 +469,12 @@ export default function DfsWorkspace({ b }) {
                               <td className="num">
                                 {num(p["Projected Points"])}
                               </td>
-                              <td className="num">
+                              <td className="num dfw-player-range">{num(p["Low (P10)"])}–{num(p["High (P90)"])}</td>
+                              {showOwnership && <td className="num">
                                 {b.ownership[p.player_id] == null
                                   ? "—"
                                   : `${b.ownership[p.player_id]}%`}
-                              </td>
+                              </td>}
                               {b.isCaptain && (
                                 <td>
                                   <HubFilterMenu
@@ -478,6 +500,7 @@ export default function DfsWorkspace({ b }) {
                                 <div className="dfw-row-actions">
                                   <button
                                     aria-label={`${C.lock} ${p.Player}`}
+                                    disabled={dfsPlayerStatus(p) !== "available" && !b.locked.includes(p.player_id)}
                                     aria-pressed={b.locked.includes(
                                       p.player_id,
                                     )}
@@ -525,22 +548,6 @@ export default function DfsWorkspace({ b }) {
                   >
                     {C.next}
                   </button>
-                </div>
-                <div className="dfw-coverage">
-                  <small>
-                    {
-                      eligible.filter((p) => ["Projected Points", "Low (P10)", "High (P90)"].every((key) => p[key] != null && Number.isFinite(Number(p[key]))))
-                        .length
-                    }{" "}
-                    / {eligible.length} with estimates ·{" "}
-                    {
-                      eligible.filter(
-                        (p) => p.projection_source === "Fixed estimate",
-                      ).length
-                    }{" "}
-                    fixed
-                  </small>
-                  <p className="dfw-note">{C.missingProjection}</p>
                 </div>
                 {!Object.keys(b.ownership).length && (
                   <p className="dfw-note">{C.missingOwnership}</p>
@@ -749,6 +756,7 @@ export default function DfsWorkspace({ b }) {
           <p className="dfw-note">{C.contestNote}</p>
         </section>
           <DfsMatchupBoard b={b} />
+          <DfsSourceSummary coverage={coverage} />
         </div>
         <div className="dfw-after">
           <DfsCaptainComparison b={b} />

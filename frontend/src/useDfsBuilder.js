@@ -47,6 +47,7 @@ export default function useDfsBuilder(projMeta) {
   const [salaries, setSalaries] = useState([]);
   const [salarySnapshot, setSalarySnapshot] = useState(null);
   const [stats, setStats] = useState(null);
+  const [poolFreshness, setPoolFreshness] = useState({ checkedAt: null, refresh: null, failed: false });
   const [vegasGames, setVegasGames] = useState([]);
   const [stackWeights, setStackWeights] = useState({});
   const [slateName, setSlateName] = useState("");
@@ -158,6 +159,7 @@ export default function useDfsBuilder(projMeta) {
     setSalaries([]);
     setSalarySnapshot(null);
     setStats(null);
+    setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
     setStackWeights({});
     setLineups([]);
     setSavedBuild(null);
@@ -230,6 +232,7 @@ export default function useDfsBuilder(projMeta) {
     setSalaries(data.salaries || []);
     setSalarySnapshot(data.salary_snapshot || null);
     setStats(data.stats || null);
+    setPoolFreshness({ checkedAt: Date.now(), refresh: data.meta?.refresh || null, failed: false });
     setSlateName(data.slate?.name || name || "");
     if (background) {
       setNotice(data.meta?.refresh?.stale || data.meta?.refresh?.status === "error" ? C.projectionRefreshFailed : C.liveRefreshed);
@@ -276,6 +279,7 @@ export default function useDfsBuilder(projMeta) {
         })
         .catch((e) => {
           if (abort.signal.aborted) return;
+          setPoolFreshness(previous => ({ ...previous, failed: true }));
           if (background) {
             setError(C.liveRefreshFailed);
             return;
@@ -285,6 +289,7 @@ export default function useDfsBuilder(projMeta) {
             setSalaries([]);
             setSalarySnapshot(null);
             setStats(null);
+            setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
             setLineups([]);
             setNotice(DFS_STEP_COPY.closedSlate);
             setError("");
@@ -318,6 +323,7 @@ export default function useDfsBuilder(projMeta) {
     setSalaries([]);
     setSalarySnapshot(null);
     setStats(null);
+    setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
     setStackWeights({});
     setLineups([]);
     setSavedBuild(null);
@@ -585,6 +591,7 @@ export default function useDfsBuilder(projMeta) {
     pool: visiblePool,
     salaries,
     stats,
+    poolFreshness,
     vegasGames,
     stackWeights,
     changeStackWeight,

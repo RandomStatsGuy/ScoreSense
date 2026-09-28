@@ -284,6 +284,7 @@ export const LIVING_SURFACES = Object.freeze({
     also: [
       "frontend/src/DfsWorkspace.jsx",
       "frontend/src/DfsCaptainComparison.jsx",
+      "frontend/src/DfsPoolCoverage.jsx",
       "frontend/src/DfsResults.jsx",
       "frontend/src/DfsContestReport.jsx",
       "frontend/src/DfsContestCharts.jsx",
@@ -291,7 +292,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/useDfsBuilder.js",
     ],
     copy: "frontend/src/dfsToolPresentation.js",
-    doNot: "Match approved September 11 option A and shared Results dashboard: compact title and a slate bar that stays on screen with the one Build lineups action; the paginated player pool is the primary column; build settings and the matchup board sit in the right rail; lineups and CSV transfer sit below the pool. No experience hero or full-page Vegas board. Account owns backgrounds. Keep Captain exposure distinct from total exposure, retain build-time inputs, and label missing/fixed/imported estimates. Imports preview before saving; My Lineups CSV and Edit Entries CSV are distinct. Never invent probabilities, ownership or payouts. Results use account-scoped cash records and show completeness/sample size. A contest breakdown is read-only until saved; saving writes payouts and the typed entry fee onto the account\u2019s own entries and keeps a snapshot, and a reopened snapshot is frozen \u2014 re-import the file to change the payout table or the fee. Contest charts carry one accent hue: a second series is told apart by fill, size and direct labels, never a second colour, and never two y-scales. Follow docs/PRODUCT.md.",
+    doNot: "Match approved September 11 option A and shared Results dashboard: compact title and a slate bar that stays on screen with the one Build lineups action; the paginated player pool is the primary column; build settings and the matchup board sit in the right rail; lineups and CSV transfer sit below the pool. September 28 coverage option A keeps available/unavailable/missing groups beside the pool, inline missing-estimate review, source labels/counts and honest refresh status. Classic and season-long retain team graphics, implied points, totals/spreads, first-observed line movement and game weights; Captain controls stay single-game only. No experience hero or full-page Vegas board. Account owns backgrounds. Keep Captain exposure distinct from total exposure, retain build-time inputs, and label missing/fixed/imported estimates. Imports preview before saving; My Lineups CSV and Edit Entries CSV are distinct. Never invent probabilities, ownership or payouts. Results use account-scoped cash records and show completeness/sample size. A contest breakdown is read-only until saved; saving writes payouts and the typed entry fee onto the account\u2019s own entries and keeps a snapshot, and a reopened snapshot is frozen \u2014 re-import the file to change the payout table or the fee. Contest charts carry one accent hue: a second series is told apart by fill, size and direct labels, never a second colour, and never two y-scales. Follow docs/PRODUCT.md.",
   }),
   "tools.mock-draft": S({
     label: "Mock draft",

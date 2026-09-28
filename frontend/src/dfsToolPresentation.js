@@ -3,6 +3,20 @@
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
 export const DFS_WORKSPACE_COPY = {
+  poolStatus: "Player status", available: "Available", allPlayers: "All players", unavailable: "Unavailable", missingInputs: "Needs estimates",
+  availableCount: n => `${n} player${n === 1 ? "" : "s"} available`, unavailableCount: n => `${n} unavailable`, missingCount: n => `${n} ${n === 1 ? "needs" : "need"} estimates`,
+  coverageHelp: "Available players have complete estimates and are not flagged unavailable. Your locks, skips and limits still apply.",
+  missingTitle: "Players needing estimates", missingEmpty: "No players are waiting on estimates.",
+  missingReasons: { team_conflict: "Team differs between salary and roster feeds.", position_conflict: "Position differs between salary and roster feeds.", missing_or_invalid_projection: "A projection, floor or ceiling is missing." },
+  sourceTitle: "Where estimates come from", sourceScope: "Available players in this pool.",
+  sourceDescriptions: { ScoreSense: "Player and defense models", "Roster estimate": "Profile when player history is missing", "Historical estimate": "Past team kicking ranges", "Fixed estimate": "Fixed values, not a player model", Imported: "Your imported values", Other: "Source not identified" },
+  sourcesEmpty: "No available players with complete estimates.", range: "P10–P90", rangeHint: "Player range, not a lineup floor or ceiling",
+  bye: "Bye", freshnessLoadFailed: "Player pool could not load", freshnessLoading: "Checking player pool…", freshnessUnknown: "Refresh status unavailable", freshnessFailed: "Pool update failed · showing previous inputs",
+  freshnessStale: "Projection refresh overdue or failed", freshnessPending: "Player pool not checked yet", freshnessHistorical: "Refresh status is for another week",
+  uploadedPool: "Uploaded pool · original inputs", uploadedPoolHelp: "Choose a live slate to resume automatic checks.",
+  checkedAt: time => `Pool checked ${time}`, projectionsAt: time => `Projections refreshed ${time}`,
+  refreshCadence: minutes => `Checks every ${minutes} min while visible`, originalInputs: "Built and saved lineups keep their original inputs.",
+
   projectionRefreshFailed: "The player pool was checked, but the projection refresh is overdue or failed. Existing estimates remain available; review them before building.",
   liveRefreshed: "Live player pool checked. Built lineups keep their original inputs; rebuild to use the latest pool. Imported estimates stay in place.",
   liveRefreshFailed: "The live player pool could not refresh. Showing the previous inputs; the next check is in five minutes.",
@@ -1171,4 +1185,42 @@ export function captainComparisonSummary(report) {
     count: `${solved.length} ${solved.length === 1 ? "lineup" : "lineups"} solved · ${report?.evaluated_captains ?? 0} of ${report?.eligible_captains ?? 0} Captains evaluated`,
     objective: { median: "Sum of player P50s", floor: "Sum of player P10s", ceiling: "Sum of player P90s", value: "Sum of player points per $1,000" }[report?.objective] || "Objective sum",
   };
+}
+
+
+/** UI partitions must not count unavailable players as ready or missing. */
+export function dfsPlayerStatus(player) {
+  const injury = String(player["Injury Status"] || "").toLowerCase();
+  if (player.on_bye || (player.Position !== "DST" && ["out", "ir", "pup", "inactive", "suspended"].some(s => injury.includes(s)))) return "unavailable";
+  return ["Low (P10)", "Projected Points", "High (P90)"].every(key => player[key] != null && player[key] !== "" && Number.isFinite(Number(player[key]))) ? "available" : "missing";
+}
+
+export function dfsPoolCoverage(players = []) {
+  const groups = { available: [], unavailable: [], missing: [], sources: {} };
+  for (const player of players) {
+    const status = dfsPlayerStatus(player);
+    groups[status].push(player);
+    if (status === "available") {
+      const source = Object.hasOwn(DFS_WORKSPACE_COPY.sourceDescriptions, player.projection_source) ? player.projection_source : "Other";
+      groups.sources[source] = (groups.sources[source] || 0) + 1;
+    }
+  }
+  return groups;
+}
+
+export function dfsPoolFreshness({ source, busy, checkedAt, refresh, failed, season, week, now = Date.now() }) {
+  const c = DFS_WORKSPACE_COPY;
+  if (source === "upload") return { tone: "neutral", label: c.uploadedPool, detail: c.uploadedPoolHelp };
+  if (busy && !checkedAt) return { tone: "neutral", label: c.freshnessLoading, detail: "" };
+  if (failed) return { tone: "warning", label: checkedAt ? c.freshnessFailed : c.freshnessLoadFailed, detail: checkedAt ? c.originalInputs : "" };
+  if (!checkedAt) return { tone: "neutral", label: c.freshnessPending, detail: "" };
+  const interval = Number(refresh?.refresh_interval_seconds) > 0 ? Number(refresh.refresh_interval_seconds) : 300;
+  const timestamp = Date.parse(refresh?.last_success_at);
+  const contextMismatch = (refresh?.season != null && Number(refresh.season) !== Number(season)) || (refresh?.week != null && Number(refresh.week) !== Number(week));
+  const stale = refresh?.stale || refresh?.status === "error" || (Number.isFinite(timestamp) && now - timestamp > interval * 2000) || now - checkedAt > interval * 2000;
+  const time = value => new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (contextMismatch) return { tone: "neutral", label: c.freshnessHistorical, detail: c.checkedAt(time(checkedAt)) };
+  if (stale) return { tone: "warning", label: c.freshnessStale, detail: c.checkedAt(time(checkedAt)) };
+  if (!Number.isFinite(timestamp)) return { tone: "neutral", label: c.freshnessUnknown, detail: c.checkedAt(time(checkedAt)) };
+  return { tone: "good", label: c.checkedAt(time(checkedAt)), detail: `${c.projectionsAt(time(timestamp))} · ${c.refreshCadence(Math.round(interval / 60))}` };
 }

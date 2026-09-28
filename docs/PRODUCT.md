@@ -433,6 +433,12 @@ This Week uses approved option A for manual lineup changes: tap a starter positi
 
 The live DFS pool checks every five minutes while visible and idle. Background updates preserve original built/saved lineups and imported estimates; rebuild to use changed inputs. Missing estimates require all three finite inputs and stay excluded. Server refresh failures/overdue projections are identified separately from a successful player-pool fetch. Uploaded catalogs remain frozen. See [DFS projection coverage and refresh](DFS_PROJECTION_FRESHNESS.md) for source and model limitations.
 
+### Approved DFS coverage UI — September 28, 2026
+
+The user selected option A in [the coverage mockup](mockups/dfs-inputs-a.html). Put coverage beside the pool: available players, unavailable players, and players needing estimates are separate groups. The available filter is the default; make missing identities/reasons and projection import reachable inline. Show source labels on every player and source counts for available players. Distinguish the player-pool check from the server projection refresh; unknown, overdue, failed, historical and uploaded states must stay explicit. Original builds remain frozen.
+
+This layout supports Classic and season-long as well as single-game formats. Keep the Classic/season-long matchup board in the right rail with team graphics, implied points, current totals/spreads, line movement against the first observed line, and stack weighting. Missing line history stays blank. Captain controls and comparison belong only to single-game formats. Keep game graphics legible at phone width and in both themes.
+
 ### DFS estimate provenance
 
 DFS labels historical kicking ranges as **Historical estimate** and profiles for players without individual history as **Roster estimate**. Neither counts as a modeled player in coverage. Confirmed unavailable players remain visible without invented zero forecasts. Missing estimates and unresolved feed identities stay excluded until complete inputs are supplied. Refreshing a pool does not imply upstream scoring history is current.
