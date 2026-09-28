@@ -118,6 +118,7 @@ window.fetch = async (url, options = {}) => {
     });
     return respond({
       ok: true,
+      build_snapshot: { id: "fixture-snapshot", captured_at: "2026-09-28T12:00:00Z", content: { schema_version: "fixture" } },
       lineups: Array.from({ length: body.lineup_count }, () => ({
         lineup: rows,
         total_salary: 49900,
@@ -126,6 +127,7 @@ window.fetch = async (url, options = {}) => {
     });
   }
   if (u.endsWith("/builds")) {
+    window.__lastDfsSavedBuild = body;
     const build = {
       ...body,
       id: `build-${builds.length + 1}`,

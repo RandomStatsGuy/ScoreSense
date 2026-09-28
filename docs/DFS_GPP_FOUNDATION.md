@@ -102,3 +102,13 @@ Versioned rule/slate snapshots and all-Captain candidate comparisons remain next
 The single-game Minimum differences menu exposes Captain change only. It sends
 max_overlap=6 and explains that repeated scoring lineups remain excluded. Switching
 to Classic or season-long restores one changed athlete. Default settings are unchanged.
+
+
+## Follow-up: build records and Captain comparisons
+
+[Build records and API contract](DFS_BUILD_SNAPSHOTS.md) now capture versioned
+legacy roster settings and exact eligible inputs, preserve the effective random
+seed, and retain the record through Save build. An opt-in bounded API comparison
+solves and independently validates a complete lineup for every eligible Captain,
+reporting unresolved and unexamined candidates explicitly. The review UI and
+verified platform scoring/exact-slate source contracts remain outstanding.

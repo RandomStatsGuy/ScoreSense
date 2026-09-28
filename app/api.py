@@ -232,6 +232,8 @@ class LineupOptimizeRequest(BaseModel):
     seed: Optional[int] = None
     captain_exposure_limits: dict[str, float] = Field(default_factory=dict, max_length=500)
     locked_captain_id: Optional[str] = None
+    include_captain_comparison: bool = False
+    slate_id: Optional[str] = Field(default=None, max_length=100)
     projection_overrides: dict[str, dict[str, float]] = Field(default_factory=dict, max_length=500)
 
 
@@ -2134,6 +2136,13 @@ def lineup_optimize(
             seed=request.seed,
             captain_exposure_limits=request.captain_exposure_limits,
             locked_captain_id=request.locked_captain_id,
+            include_captain_comparison=request.include_captain_comparison,
+            snapshot_context={
+                "requested_season": request.season, "requested_week": request.week,
+                "client_slate_id": request.slate_id, "pool_meta": meta,
+                "apply_injury_adjustments": request.apply_injury_adjustments,
+                "projection_overrides": request.projection_overrides,
+            },
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
