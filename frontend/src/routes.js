@@ -318,9 +318,12 @@ export const PROJECTION_ONLY_PARAMS = [
 ];
 
 /** Drop projections-only params (keeps hub params such as `player`). */
-export function stripProjectionParams(searchParams) {
+export function stripProjectionParams(searchParams, { preserveWeek = false } = {}) {
   const params = new URLSearchParams(searchParams || undefined);
-  for (const key of PROJECTION_ONLY_PARAMS) params.delete(key);
+  for (const key of PROJECTION_ONLY_PARAMS) {
+    if (key === "week" && preserveWeek) continue;
+    params.delete(key);
+  }
   return params;
 }
 

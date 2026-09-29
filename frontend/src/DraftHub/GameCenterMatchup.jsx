@@ -113,7 +113,7 @@ export default function GameCenterMatchup({
   weekly = false,
   lineup,
 }) {
-  const [section, setSection] = useState(weekly && lineup && stateLabel !== "Live" && stateLabel !== "Final" ? "lineup" : "starters");
+  const [section, setSection] = useState(weekly && lineup && placeholder ? "lineup" : "starters");
   const [selectedKey, setSelectedKey] = useState(rows[0]?.key);
   const [detailSide, setDetailSide] = useState("home");
   const id = useId().replaceAll(":", "");
@@ -178,8 +178,8 @@ export default function GameCenterMatchup({
       </section>
       {weekly && <section className="hub-week-forecast" aria-label={COPY.projectedTotals}>
         {!pregame && <div><small>{COPY.projectedTotals}</small><strong>{forecast.mine == null ? "—" : forecast.mine.toFixed(1)} <span>vs</span> {forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)}</strong></div>}
-        <div><strong>{forecast.label}</strong><small>{COPY.projectionBasis}</small></div>
-        {lineup && <button type="button" className="btn-primary" onClick={openLineup}>{COPY.setLineup}</button>}
+        <div><strong>{forecast.label}</strong><small>{forecast.estimated ? COPY.projectionBasisEstimated : COPY.projectionBasis}</small></div>
+        {lineup && <button type="button" className="btn-primary" onClick={openLineup}>{stateLabel === "Final" ? COPY.reviewLineup : COPY.setLineup}</button>}
       </section>}
       {!weekly && scoringControl}
       <div className="gc-room-toolbar">

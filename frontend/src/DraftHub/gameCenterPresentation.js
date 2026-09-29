@@ -11,6 +11,7 @@ export const GAME_CENTER_COPY = {
   projectedTotals: "Projected totals · PPR",
   projectionIncomplete: "Matchup projection incomplete",
   projectionBasis: "PPR projections, separate from your league's recorded scoring.",
+  projectionBasisEstimated: "PPR projections include season-based kicker and defense estimates, separate from recorded scoring.",
   eyebrow: "Game center",
   backToTeam: "Back to My team",
   retry: "Try again",
@@ -68,6 +69,7 @@ export const GAME_CENTER_COPY = {
 
 /** A partial set of forecasts cannot establish which team is favored. Empty slots score zero. */
 export function weeklyMatchupForecast(viewer, opponent) {
+  const estimated = [viewer, opponent].some(team => (team?.starters || []).some(player => player.projection_source === "rank_curve"));
   const total = team => {
     const rows = team?.starters;
     if (!Array.isArray(rows) || !rows.length) return null;
@@ -80,9 +82,9 @@ export function weeklyMatchupForecast(viewer, opponent) {
     return value;
   };
   const mine = total(viewer), theirs = total(opponent);
-  if (mine == null || theirs == null) return {mine, theirs, label:GAME_CENTER_COPY.projectionIncomplete};
+  if (mine == null || theirs == null) return {mine, theirs, estimated, label:GAME_CENTER_COPY.projectionIncomplete};
   const margin = Math.round((mine - theirs) * 10) / 10;
-  return {mine, theirs, margin, label:margin === 0 ? "Projected even" : margin > 0
+  return {mine, theirs, margin, estimated, label:margin === 0 ? "Projected even" : margin > 0
     ? `Projected favored by ${margin.toFixed(1)} points` : `Projected behind by ${Math.abs(margin).toFixed(1)} points`};
 }
 
@@ -255,6 +257,12 @@ export function gameStateLabel(payload, hubContext) {
   if (scoresArePlaceholder(payload, hubContext))
     return GAME_CENTER_COPY.unscoredChip;
   if (payload?.preseason) return "Preseason";
+  // Native scoring knows whether the slate is final, including delayed games
+  // that remain in progress after the calendar advances to the next week.
+  const control = payload?.scoring_control;
+  if (control?.host === "native" && control.scored === true) {
+    return control.final === true ? "Final" : "Week in progress";
+  }
   const week = payload?.week;
   const current = payload?.current_week;
   if (week != null && current != null && Number(week) < Number(current))
@@ -507,7 +515,7 @@ export const LEAGUE_SCORING_CONTROL_COPY = {
   failed: "Scoring could not be calculated.",
   native: "Scored in ScoreSense",
   sleeper: "Scored in Sleeper",
-  nativeHelp: "Set lineups in This Week. Game center updates scores as weekly NFL stats arrive. Recalculate if you need a fresh snapshot. Lineups lock when the week is calculated after the last game.",
+  nativeHelp: "Set lineups in This Week. This Week updates scores as weekly NFL stats arrive. Recalculate if you need a fresh snapshot. Lineups lock when the week is calculated after the last game.",
   sleeperHelp: "Sleeper owns scoring settings, lineups, live scores, and corrections. ScoreSense displays those results; local calculations cannot overwrite them.",
   projections: "Forecasts remain PPR-based and are separate from recorded league points.",
   calculate: "Calculate week",

@@ -283,7 +283,7 @@ export function weekHeroCopy({
   if (loading) {
     return {
       heading: "Reading your lineup…",
-      support: "Cap and projections are still landing.",
+      support: "Roster and projections are still landing.",
       chip: weekLabel || "This week",
       chipTone: "readonly",
     };
@@ -498,7 +498,7 @@ export function weekBoardOverlayCopy({
   if (loading && !emptyRoster && !unlinked) {
     return {
       title: "Reading your lineup…",
-      body: "Cap and projections are still landing.",
+      body: "Roster and projections are still landing.",
     };
   }
   return {

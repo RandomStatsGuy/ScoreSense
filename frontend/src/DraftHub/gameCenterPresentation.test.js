@@ -15,6 +15,16 @@ test("weekly matchup forecast requires complete starter projections and preserve
   assert.equal(weeklyMatchupForecast({starters:[]}, team([10])).mine, null);
   assert.equal(weeklyMatchupForecast({starters:[{name:"Empty"},{name:"Player",proj:10}]}, team([8])).mine, 10);
 });
+
+test("forecast labels existing specialist estimates without concealing missing offense", () => {
+  const mine = {starters:[{name:"QB",proj:20}, {name:"K",proj:8.4,projection_source:"rank_curve"}]};
+  const theirs = {starters:[{name:"QB",proj:19}, {name:"K",proj:7.4,projection_source:"rank_curve"}]};
+  assert.equal(weeklyMatchupForecast(mine, theirs).estimated, true);
+  assert.equal(weeklyMatchupForecast(mine, theirs).label, "Projected favored by 2.0 points");
+  mine.starters[0].proj = null;
+  assert.equal(weeklyMatchupForecast(mine, theirs).margin, undefined);
+  assert.match(GAME_CENTER_COPY.projectionBasisEstimated, /season-based kicker and defense estimates/);
+});
 import {
   duelRows,
   findViewerMatchup,
@@ -183,6 +193,14 @@ test("empty duel copy names This Week", () => {
   assert.equal(GAME_CENTER_COPY.emptyLineupHeading, "Your lineup is empty.");
   assert.match(GAME_CENTER_COPY.emptyLineupSupport, /Review your starters/i);
   assert.equal(GAME_CENTER_COPY.openDraft, "Open draft room");
+});
+
+test("native scoring determines final status independently of the calendar", () => {
+  const control = { host: "native", scored: true, final: false, live: true };
+  assert.equal(gameStateLabel({ week: 3, current_week: 4, scoring_control: control }), "Week in progress");
+  assert.equal(gameStateLabel({ week: 4, current_week: 4, scoring_control: { ...control, final: true } }), "Final");
+  assert.equal(gameStateLabel({ week: 4, current_week: 4, scoring_control: control, matchups: [{ teams: [{ points: 0 }] }] }), "Week in progress");
+  assert.equal(gameStateLabel({ placeholder: true, scoring_control: { ...control, scored: false } }), "No scores yet");
 });
 
 test("standings stay unranked until a game is played", () => {

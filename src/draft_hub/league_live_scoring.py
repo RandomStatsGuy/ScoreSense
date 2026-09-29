@@ -292,6 +292,7 @@ def attach_matchup_analytics(
     # Sleeper no longer provides gsis_id for many current players. Reuse the
     # weekly board's guarded name/team resolver rather than guessing identities.
     from src.draft_hub.weekly_command_center import _lookup_projection, name_key
+    from src.draft_hub.k_def_pool_cache import overlay_k_def_week_projections
     by_name_team, by_name, seen = {}, {}, set()
     for entry in index.values():
         identity = (entry.get("player_id"), entry.get("player_name"), entry.get("team"))
@@ -305,12 +306,25 @@ def attach_matchup_analytics(
     for matchup in matchup_payloads:
         teams = matchup.get("teams") or []
         for team in teams:
+            specialist_cards = []
             for starter in (team.get("starters") or []) + (team.get("bench_players") or []):
                 entry = _lookup_projection(
                     {**starter, "player_name": starter.get("name")},
                     index, by_name_team, by_name,
                 )
                 starter["proj"] = entry.get("p50") if entry else None
+                starter.pop("projection_source", None)
+                if starter["proj"] is None and starter.get("position") in {"K", "DEF"}:
+                    specialist_cards.append({
+                        "player_id": str(starter.get("sleeper_player_id") or starter.get("player_id") or "").removeprefix("sleeper-"),
+                        "position": starter["position"],
+                        "starter": starter,
+                    })
+            overlay_k_def_week_projections(specialist_cards)
+            for card in specialist_cards:
+                if card.get("p50") is not None:
+                    card["starter"]["proj"] = card["p50"]
+                    card["starter"]["projection_source"] = "rank_curve"
             estimate_team_final(team)
         if len(teams) == 2:
             prob_a = win_probability(teams[0], teams[1])
