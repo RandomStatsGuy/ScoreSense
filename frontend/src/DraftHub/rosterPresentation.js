@@ -1,9 +1,29 @@
 /** User-facing copy for Fantasy → My team. */
 
+import { displayCapPair, fmtCapMoney } from "./capPlannerPresentation.js";
 import { dealCanTakeExtension } from "./rosterFormat.js";
 
 export const MY_TEAM_COPY = {
   trades: "Trades",
+  contract: "Contract",
+  related: "Related",
+  summaryLabel: "Your team and cap",
+  teamLabel: "Your team",
+  extensionStart: (salary, years) => `${years}-year extension · Starts at ${salary}`,
+  appearance: "Team appearance",
+  all: "All",
+  search: "Search roster",
+  noResults: "No players match these filters.",
+  closeDetails: "Close player details",
+  clearExtensionFilter: "Extension eligible · Clear filter",
+  loading: "Loading roster",
+  capLoading: "Loading cap…",
+  freeAgents: "Free agents",
+  playerCount: (count) => `${count} player${count === 1 ? "" : "s"}`,
+  years: (count) => `${count} ${Number(count) === 1 ? "yr" : "yrs"}`,
+  capRemaining: (draftCompleted) => draftCompleted ? "Available Cap" : "Leftover for draft",
+  openCap: (amount, draftCompleted) => `Open Cap · ${amount || "—"} ${draftCompleted ? "Available Cap" : "Leftover for draft"}`,
+  openPlayer: (name, usesSalaries) => `${usesSalaries ? "Contract" : "Player details"} · ${name}`,
   cap: "Cap",
   lookUploadError: "Choose a JPEG, PNG, or WebP image under 2 MB.",
   lookCropHelp: "Upload an image to adjust its position and zoom.",
@@ -139,4 +159,17 @@ export function rosterStatusInfo(row, { draftCompleted, ctype, pendingType, pend
   }
   if (yrsLeft === 1) return { label: "Final year", tone: "expire", key: "final" };
   return { label: "Active", tone: "ok", key: "ok" };
+}
+
+/** Use the phase-aware server summary shared with Cap; do not re-sum expiring contracts. */
+export function rosterCapSummary(capSheet) {
+  const summary = capSheet?.summary;
+  if (summary?.remaining == null || summary?.salary_cap == null) return null;
+  const pair = displayCapPair({ leftover: summary.remaining, salaryCap: summary.salary_cap });
+  return {
+    leftoverLabel: fmtCapMoney(pair.leftover),
+    committedLabel: fmtCapMoney(pair.against),
+    limitLabel: fmtCapMoney(pair.cap),
+    dead: Number(summary.dead_cap) || 0,
+  };
 }

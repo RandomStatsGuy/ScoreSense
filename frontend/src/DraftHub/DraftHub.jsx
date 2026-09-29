@@ -873,6 +873,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       {subView === "roster" && (
         <RosterBuilder
           roster={roster}
+          loading={rosterLoading}
           onChanged={onRosterChanged}
           valueRows={valueRows}
           sleeper={workspace}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My team · A · Roster list</title>
+  <!-- Keep direct asset links: mobile_mock.py stamps each file independently. -->
+  <link rel="stylesheet" href="mockup-shared.css?v=137de37f253c">
+  <link rel="stylesheet" href="mobile-foundation.css?v=85f2e43c74a2">
+  <!-- Add the page's stylesheet last. Reuse the shared classes below. -->
+  <link rel="stylesheet" href="fantasy-team.css?v=a844c02003b2">
+</head>
+<body data-option="a">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <!-- Preview options/scenario controls belong here, outside app chrome. -->
+  <div class="concept-banner"><strong>My team · A · Roster list</strong><nav class="concept-nav" aria-label="Design options"><a href="fantasy-team-a.html" class="is-on">A</a><a href="fantasy-team-b.html" >B</a></nav></div>
+  <div class="scenario-bar" role="group" aria-label="Preview league"><span class="meta">Preview</span><button data-scenario="salary" aria-pressed="true">Salary</button><button data-scenario="pre" aria-pressed="false">Pre-draft</button><button data-scenario="standard" aria-pressed="false">Standard</button><button data-scenario="empty" aria-pressed="false">Empty</button></div>
+  <div class="mock-viewport">
+    <header class="mock-header">
+      <div class="mock-brand"><div><div class="mock-brand-name">ScoreSense</div><span class="mock-brand-sub">4th Down Labs</span></div><nav class="mock-topnav" aria-label="Product areas"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav></div>
+      <button class="text-action" data-preview="Account">Maya Chen</button>
+    </header>
+    <nav class="mock-subnav" aria-label="Fantasy destinations"><button class="text-action" data-preview="This Week">This Week</button><button class="text-action mock-tab active" aria-current="page">My team</button><button class="text-action" data-preview="Free agents">Free agents</button><button class="text-action" data-preview="League navigation">League</button></nav>
+    <header class="phone-header" data-compact-header>
+      <button class="destination" data-preview="Fantasy · destination picker" aria-label="My team · choose Fantasy destination">
+        <span>My team</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="league-button phone-league" data-preview="Switch league · league actions" aria-label="Bottom to Top · switch league" title="Bottom to Top">
+        <span>Bottom to Top</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="more-control" data-preview="Account · More" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    </header>
+    <div class="mock-league-strip"><button class="league-button" data-preview="Switch league · league actions">Bottom to Top</button></div>
+    <main id="main-content" class="team-page" tabindex="-1"></main>
+    <p class="footnote">Static design preview · sample league · not shipped</p>
+  </div>
+  <nav class="phone-nav" aria-label="Product areas">
+    <a href="#" data-preview="Projections"><span aria-hidden="true">▤</span>Projections</a>
+    <a href="#" aria-current="page" data-preview="Fantasy · destination picker"><span aria-hidden="true">◈</span>Fantasy</a>
+    <a href="#" data-preview="Tools"><span aria-hidden="true">▦</span>Tools</a>
+    <a href="#" data-preview="Account · More"><span aria-hidden="true">•••</span>More</a>
+  </nav>
+  <dialog id="contract-sheet" class="contract-sheet" aria-labelledby="contract-title"></dialog>
+  <div class="preview-toast" id="preview-toast" role="status" hidden></div>
+  <script src="mobile-mock.js?v=ede2a46540ef"></script>
+  <script src="fantasy-team.js?v=01f0e76fac4d"></script>
+</body>
+</html>
