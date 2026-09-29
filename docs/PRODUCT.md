@@ -382,6 +382,8 @@ My team defaults to Room for league teams. The approved curved locker-room conce
 
 My team’s Room uses the selected team banner as the upper-room backdrop. Matchup information stays in Game center; My team keeps only a compact link there. Manage roster uses a compact identity/cap summary without the stadium banner, keeping appearance editing and contract controls accessible.
 
+My team labels remaining cap **Available Cap** after the draft and **Leftover for draft** before it; hide cap amounts in non-salary leagues.
+
 Manage roster is a separate local tab preserving contracts, cap, cuts, extensions, and appearance editing. Room opening and visiting another team never change saved league focus. Members may visit other rooms. Only the owner may edit nicknames or opt into a public, revocable `/team-room/:token` link. The public payload contains the room presentation only, not salary, contracts, owner account IDs, or league rules. Visitors see the owner's theme. Sleeper nicknames are used when provider metadata exposes them; local overrides can be reset. Historical projection differences require a pregame capture; never backfill them with an in-game projection. An unknown score remains a dash, not zero, and live state is not inferred from a zero score.
 
 ## Approved DFS portfolio workspace — September 11, 2026

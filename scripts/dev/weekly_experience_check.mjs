@@ -74,7 +74,7 @@ try {for(const width of [390,1280]) {
   await open(`?state=${state}&member=1`);await flex().waitFor();
   if(state==='specialists') {
    assert.match(await page.locator('.hub-week-forecast').innerText(),/84.4\s+—\s+71.0/);
-   assert.match(await page.locator('.hub-week-forecast').innerText(),/K\/DEF use season estimates/);
+   assert.doesNotMatch(await page.locator('.hub-week-forecast').innerText(),/K\/DEF use season estimates/);
   } else {
    assert.match(await page.locator('.hub-week-forecast').innerText(),state==='final'?/Final/:/Week in progress/);
    assert.equal(await page.getByRole('button',{name:'Lineup',exact:true}).getAttribute('aria-pressed'),'true');
