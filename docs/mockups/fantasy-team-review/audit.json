@@ -1,0 +1,2498 @@
+[
+  {
+    "option": "a",
+    "width": 390,
+    "state": "salary",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "32 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 390,
+    "state": "contract",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "35 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 390,
+    "state": "cut-preview",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "35 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 390,
+    "state": "extension",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "31 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 390,
+    "state": "standard",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "37 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 390,
+    "state": "empty",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "22 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 1280,
+    "state": "salary",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "32 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 1280,
+    "state": "contract",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "35 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 1280,
+    "state": "cut-preview",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "35 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 1280,
+    "state": "extension",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "31 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 1280,
+    "state": "standard",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "37 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 1280,
+    "state": "empty",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "22 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 390,
+    "state": "salary",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "26 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 390,
+    "state": "contract",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "29 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 390,
+    "state": "cut-preview",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "29 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 390,
+    "state": "extension",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "25 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 390,
+    "state": "standard",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "31 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 390,
+    "state": "empty",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "22 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":390,\"width\":390}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 1280,
+    "state": "salary",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "26 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 1280,
+    "state": "contract",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "29 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 1280,
+    "state": "cut-preview",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "29 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 1280,
+    "state": "extension",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "25 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 1280,
+    "state": "standard",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "31 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 1280,
+    "state": "empty",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "22 targets ≥ 32"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "desktop-league",
+        "ok": true,
+        "selector": ".mock-league-strip",
+        "detail": "league switcher 0px from left content edge"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":1280,\"width\":1280}"
+      }
+    ]
+  },
+  {
+    "option": "a",
+    "width": 320,
+    "state": "long-names",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "32 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":320,\"width\":320}"
+      }
+    ]
+  },
+  {
+    "option": "b",
+    "width": 320,
+    "state": "long-names",
+    "results": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "team-summary",
+        "ok": true,
+        "selector": ".team-page",
+        "detail": "summary above full-width roster"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "26 targets ≥ 44"
+      },
+      {
+        "rule": "icons",
+        "ok": true,
+        "selector": "",
+        "detail": "control icons bounded with intrinsic dimensions"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".phone-header",
+        "detail": "61px; single destination/league row"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no draft-hub"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "detail": "{\"scroll\":320,\"width\":320}"
+      }
+    ]
+  }
+]

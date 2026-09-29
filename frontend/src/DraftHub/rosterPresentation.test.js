@@ -91,3 +91,15 @@ test("dropped rows are labeled instead of falling through to Active", async () =
   assert.equal(rosterStatusInfo(row, { draftCompleted: true }).label, "Dropped");
   assert.equal(rosterStatusInfo({ roster_status: "cut_before_draft" }, { draftCompleted: true }).label, "Cut");
 });
+
+test("My team uses server phase totals including dead cap, with honest missing values", async () => {
+  const { rosterCapSummary } = await import("./rosterPresentation.js");
+  assert.equal(rosterCapSummary(null), null);
+  assert.equal(rosterCapSummary({ summary: { salary_cap: 200 } }), null);
+  assert.deepEqual(rosterCapSummary({ summary: { remaining: 42, salary_cap: 200, spent: 152, dead_cap: 6 } }), {
+    leftoverLabel: "$42", committedLabel: "$158", limitLabel: "$200", dead: 6,
+  });
+  assert.equal(rosterCapSummary({ summary: { remaining: -12, salary_cap: 200 } }).leftoverLabel, "-$12");
+  assert.equal(MY_TEAM_COPY.capRemaining(true), "Available Cap");
+  assert.equal(MY_TEAM_COPY.capRemaining(false), "Leftover for draft");
+});
