@@ -270,7 +270,7 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
         }}
       >
         <span className="hub-filter-menu-kind">{label}</span>
-        <span className="hub-filter-menu-value">{display}</span>
+          <span className="hub-filter-menu-value">{selected?.shortLabel ?? display}</span>
         <span className="hub-filter-menu-caret" aria-hidden="true">
           ▾
         </span>

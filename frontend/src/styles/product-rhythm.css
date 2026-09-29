@@ -149,3 +149,11 @@ button.btn-link.hub-league-switcher-create,
 
 /* Board surfaces supply their own section cards without a nested page card. */
 .hub-page.panel.hub-page--frameless { padding:0; border:0; background:transparent; box-shadow:none; }
+
+/* Opt-in filters that fill a responsive toolbar without pushing its icon out. */
+.hub-filter-menu--fluid { min-width: 0; }
+.hub-filter-menu--fluid .hub-filter-menu-trigger { display: flex; width: 100%; min-height: var(--control-h-lg); justify-content: center; gap: var(--space-1); padding: var(--space-2); }
+.hub-filter-menu--fluid .hub-filter-menu-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-filter-menu--fluid .hub-filter-menu-kind, .hub-filter-menu--fluid .hub-filter-menu-caret { flex: none; }
+.hub-filter-menu--fluid .hub-filter-menu-panel { width: max-content; min-width: 100%; max-width: min(18rem, calc(100vw - var(--space-6))); }
+.hub-filter-menu--inline .hub-filter-menu-panel { position: static; width: 100%; max-width: 100%; }

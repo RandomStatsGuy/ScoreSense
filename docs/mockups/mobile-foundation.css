@@ -96,5 +96,5 @@ button:active, summary:active .disclosure-toggle { transform: scale(.97); }
 @media (max-width:768px) {
   .destination { min-width: 0; max-width: 100%; }
   .destination > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .phone-header { grid-template-columns: minmax(0,1fr) minmax(0,1fr) var(--mobile-touch-target); }
+  .phone-header { grid-template-columns: fit-content(55%) minmax(0,1fr) var(--mobile-touch-target); }
 }

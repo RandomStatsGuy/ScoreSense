@@ -7,7 +7,8 @@ export function walkawayStorageKey(leagueId, playerId) {
 export function parseWalkaway(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return null;
-  return Math.round(n);
+  const dollars = Math.round(n);
+  return dollars > 0 ? dollars : null;
 }
 
 export function readWalkaway(leagueId, playerId, storage = globalThis.localStorage) {

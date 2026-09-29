@@ -19,6 +19,7 @@ test("parseWalkaway keeps positive dollars", () => {
   assert.equal(parseWalkaway(12.4), 12);
   assert.equal(parseWalkaway(0), null);
   assert.equal(parseWalkaway(-3), null);
+  assert.equal(parseWalkaway(0.1), null);
 });
 
 test("read and write survive a refresh-style store", () => {
