@@ -3,6 +3,14 @@
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel.js";
 
 export const GAME_CENTER_COPY = {
+  weeklyTitle: "This Week",
+  lineup: "Lineup",
+  matchup: "Matchup",
+  weeklyExtras: "Scoring & weekly extras",
+  ratePlayers: "Rate your players in Vibes",
+  projectedTotals: "Projected totals · PPR",
+  projectionIncomplete: "Matchup projection incomplete",
+  projectionBasis: "PPR projections, separate from your league's recorded scoring.",
   eyebrow: "Game center",
   backToTeam: "Back to My team",
   retry: "Try again",
@@ -57,6 +65,26 @@ export const GAME_CENTER_COPY = {
   trophiesTitle: "Weekly awards",
   trophiesSupport: "See weekly high and low scores in Insights.",
 };
+
+/** A partial set of forecasts cannot establish which team is favored. Empty slots score zero. */
+export function weeklyMatchupForecast(viewer, opponent) {
+  const total = team => {
+    const rows = team?.starters;
+    if (!Array.isArray(rows) || !rows.length) return null;
+    let value = 0;
+    for (const player of rows) {
+      if (!duelSlotFilled(player)) continue;
+      if (player.proj == null || player.proj === "" || !Number.isFinite(Number(player.proj))) return null;
+      value += Number(player.proj);
+    }
+    return value;
+  };
+  const mine = total(viewer), theirs = total(opponent);
+  if (mine == null || theirs == null) return {mine, theirs, label:GAME_CENTER_COPY.projectionIncomplete};
+  const margin = Math.round((mine - theirs) * 10) / 10;
+  return {mine, theirs, margin, label:margin === 0 ? "Projected even" : margin > 0
+    ? `Projected favored by ${margin.toFixed(1)} points` : `Projected behind by ${Math.abs(margin).toFixed(1)} points`};
+}
 
 export function duelSlotFilled(player) {
   return Boolean(player && player.name && player.name !== "Empty");

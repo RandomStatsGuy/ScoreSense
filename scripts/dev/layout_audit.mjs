@@ -691,6 +691,11 @@ export function measureScript() {
       results.push({ rule: "menus", ok: true, selector: "", detail: "no draft-hub" });
     }
 
+    const destinationButton = document.querySelector(".hub-subnav-picker-btn");
+    if (destinationButton && destinationButton.getBoundingClientRect().width > 0) {
+      results.push({rule:"navigation", ok:destinationButton.scrollWidth <= destinationButton.clientWidth + 1,
+        selector:".hub-subnav-picker-btn", detail:"destination label fits its button"});
+    }
     return results;
   };
 }

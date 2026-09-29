@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { HubFilterMenu, HubPage } from "./HubUILayout";
@@ -7,6 +8,7 @@ import "./WeekCorrections.css";
 import { clearHubDataCache } from "./hubDataCache";
 
 export default function WeekCorrections({ leagueId, season, onChanged }) {
+  const [params] = useSearchParams();
   const [selectedTeam, setSelectedTeam] = useState("");
   const [targetSlot, setTargetSlot] = useState("BN");
   const [query, setQuery] = useState("");
@@ -14,7 +16,9 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const searchRef = useRef(null);
-  const [week, setWeek] = useState(1);
+  const [week, setWeek] = useState(() => Math.max(1, Math.min(18, Number(params.get("week")) || 1)));
+  const requestedWeek = params.get("week");
+  useEffect(() => { setWeek(Math.max(1, Math.min(18, Number(requestedWeek) || 1))); }, [requestedWeek]);
   const [context, setContext] = useState(null);
   const [teams, setTeams] = useState([]);
   const [reason, setReason] = useState("");

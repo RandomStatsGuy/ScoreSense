@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { filterHubSubviews } from "./hubSubnav.js";
+import { filterHubSubviews, primaryHubSubviews, secondaryHubSubviews } from "./hubSubnav.js";
 
 test("salary-cap leagues keep Cap in Fantasy nav", () => {
   const ids = filterHubSubviews({
@@ -14,6 +14,24 @@ test("salary-cap leagues keep Cap in Fantasy nav", () => {
     filterHubSubviews({ mode: "league", league_id: "L1" }).find((item) => item.id === "trades")?.hint,
     "Cap-checked deals",
   );
+});
+
+test("both league types share three in-season destinations and retain permitted secondary tools", () => {
+  for (const uses_salaries of [true, false]) {
+    const context = {mode:"league", league_id:"L", draft_completed:true, is_commissioner:false,
+      capabilities:{uses_salaries, uses_contracts:uses_salaries}};
+    assert.deepEqual(primaryHubSubviews(context).map(item => item.id), ["week", "roster", "available"]);
+    const secondary = secondaryHubSubviews(context).map(item => item.id);
+    assert.equal(secondary.includes("planner"), uses_salaries);
+    assert.equal(secondary.includes("office"), false);
+    assert.equal(secondary.includes("game"), false);
+    assert.ok(secondary.includes("rosters") && secondary.includes("trades"));
+  }
+});
+
+test("draft and strategy remain primary before the draft", () => {
+  assert.deepEqual(primaryHubSubviews({mode:"league", league_id:"L", draft_completed:false}).map(item => item.id),
+    ["home", "room", "value", "roster", "available"]);
 });
 
 test("no-money leagues hide Cap and drop financial hints", () => {
