@@ -1,0 +1,147 @@
+{
+  "version": "dk-special-teams-v1",
+  "test_seasons": [
+    2023,
+    2024
+  ],
+  "positions": {
+    "K": {
+      "passed": false,
+      "folds": [
+        {
+          "season": 2023,
+          "rows": 544,
+          "mae": 3.581155810736997,
+          "baseline_mae": 3.582720588235294,
+          "pinball": [
+            0.7065051249451413,
+            1.7905779053684985,
+            0.9121278630632343
+          ],
+          "baseline_pinball": [
+            0.7053308823529413,
+            1.791360294117647,
+            0.9038602941176469
+          ],
+          "coverage": 0.7941176470588235
+        },
+        {
+          "season": 2024,
+          "rows": 544,
+          "mae": 3.799140561357472,
+          "baseline_mae": 3.7628676470588234,
+          "pinball": [
+            0.7105639093767014,
+            1.899570280678736,
+            0.947198383267773
+          ],
+          "baseline_pinball": [
+            0.7167279411764705,
+            1.8814338235294117,
+            0.9420955882352939
+          ],
+          "coverage": 0.7702205882352942
+        }
+      ]
+    },
+    "DST": {
+      "passed": true,
+      "folds": [
+        {
+          "season": 2023,
+          "rows": 544,
+          "mae": 4.299990659431007,
+          "baseline_mae": 4.474264705882353,
+          "pinball": [
+            0.7841918064040283,
+            2.1499953297155034,
+            1.145892484683694
+          ],
+          "baseline_pinball": [
+            0.8029411764705884,
+            2.2371323529411766,
+            1.1797794117647058
+          ],
+          "coverage": 0.8125
+        },
+        {
+          "season": 2024,
+          "rows": 544,
+          "mae": 4.046569394370586,
+          "baseline_mae": 4.1286764705882355,
+          "pinball": [
+            0.785181910612918,
+            2.023284697185293,
+            1.061507562636956
+          ],
+          "baseline_pinball": [
+            0.7981617647058824,
+            2.0643382352941178,
+            1.1128676470588235
+          ],
+          "coverage": 0.8088235294117647
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2018.parquet",
+      "sha256": "88081ade82fd0251eff08d4dff44723b67ac9f93726c3db3d7b0f8b8789292c7"
+    },
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2019.parquet",
+      "sha256": "7c7c5adf9a93f64b4f728e2e3b1903b182278a2cd54b7763a8b32076ca29226b"
+    },
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2020.parquet",
+      "sha256": "4f416464bef262bd420b88c032c67f2751de4f0d94d3b069074b7330d6ed3701"
+    },
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2021.parquet",
+      "sha256": "4b170f64c63a9f9f2baf4aa8f87aa607787016c837f26b50f78fed6a5975b855"
+    },
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2022.parquet",
+      "sha256": "f8df57a9470c8333a67de570c40b4a489e5f9b3aa1ecd4baffc507b2bfe7511a"
+    },
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2023.parquet",
+      "sha256": "452b456c6d315741c40894e47a65bf07b8e035e31a769f55ad1b166808fce4dd"
+    },
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2024.parquet",
+      "sha256": "05e6721876542548c509c7575dfa4ad14d99b86f80319ef951de92fd3c471a1e"
+    },
+    {
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_2025.parquet",
+      "sha256": "51e4bed561b96d0828fb8a1b4909987d883f4093d3cf743d91c48ba370a7aaa0"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+      "sha256": "5c97310d1cea536d4df348aab3181175c57649d90c929cfb1dd3dda71ea82059"
+    }
+  ],
+  "kicker_baseline": [
+    {
+      "season": 2023,
+      "rows": 544,
+      "quantiles": [
+        3.0,
+        8.0,
+        14.0
+      ],
+      "coverage": 0.8069852941176471
+    },
+    {
+      "season": 2024,
+      "rows": 544,
+      "quantiles": [
+        3.0,
+        8.0,
+        14.0
+      ],
+      "coverage": 0.7941176470588235
+    }
+  ]
+}

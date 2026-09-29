@@ -171,6 +171,10 @@
     box-shadow: none;
   }
 
+  .draft-hub > .hub-page.hub-fa-page {
+    padding-top: 0;
+  }
+
   .hub-insights > .hub-page > .hub-section-head--row {
     margin-bottom: 1rem;
     padding-bottom: 0.85rem;

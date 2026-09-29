@@ -74,3 +74,20 @@ test("pre-draft status splits extension eligible from expiring", () => {
   assert.equal(extension.label, "Expiring");
   assert.doesNotMatch(blockedVet.label, /FA|Expires/);
 });
+
+test("inactive roster rows never occupy a spot", async () => {
+  const { rosterRowOccupies } = await import("./rosterPresentation.js");
+  assert.equal(rosterRowOccupies({ player_id: "1", roster_status: "active" }), true);
+  assert.equal(rosterRowOccupies({ player_id: "1" }), true);
+  for (const status of ["cut_before_draft", "cut", "waived", "traded", "expired"]) {
+    assert.equal(rosterRowOccupies({ player_id: "1", roster_status: status }), false, status);
+  }
+  assert.equal(rosterRowOccupies({ player_id: "deadcap:1", roster_status: "active" }), false);
+});
+
+test("dropped rows are labeled instead of falling through to Active", async () => {
+  const { rosterStatusInfo } = await import("./rosterPresentation.js");
+  const row = { roster_status: "waived", contract_years: 2 };
+  assert.equal(rosterStatusInfo(row, { draftCompleted: true }).label, "Dropped");
+  assert.equal(rosterStatusInfo({ roster_status: "cut_before_draft" }, { draftCompleted: true }).label, "Cut");
+});

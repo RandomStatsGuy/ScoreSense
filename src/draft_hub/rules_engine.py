@@ -47,15 +47,35 @@ def cap_relevant_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> lis
     return [r for r in roster if normalize_position(r.get("position")) in allowed]
 
 
+def _row_cap_charge(rules: LeagueRules, row: dict[str, Any]) -> tuple[float, bool]:
+    """(current-season cap charge, counts toward roster/position limits).
+
+    Live rows charge their cap hit and take a roster spot. Dead-cap placeholder
+    rows charge their amount without a spot. Pre-draft cuts charge only their
+    dead cap (floored). Waived / traded / expired history charges nothing.
+    """
+    from src.draft_hub.storage import DEADCAP_PLAYER_PREFIX, roster_row_occupies
+
+    if roster_row_occupies(row):
+        return float(cap_hit(row, 0)), True
+    if str(row.get("player_id") or "").startswith(DEADCAP_PLAYER_PREFIX):
+        return float(cap_hit(row, 0)), False
+    if str(row.get("roster_status") or "") == "cut_before_draft":
+        return float(cut_dead_cap(rules, cap_hit(row, 0))), False
+    return 0.0, False
+
+
 def cap_summary(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[str, Any]:
     roster = cap_relevant_roster(rules, roster)
     cap = float(rules.salary_cap)
-    spent = sum(cap_hit(r, 0) for r in roster)
+    charges = [_row_cap_charge(rules, r) for r in roster]
+    spent = sum(charge for charge, _live in charges)
     remaining = cap - spent
+    live_roster = [r for r, (_charge, live) in zip(roster, charges) if live]
     by_pos: dict[str, float] = {}
     counts: dict[str, int] = {}
     contract_years: dict[str, list[int]] = {}
-    for row in roster:
+    for row in live_roster:
         pos = normalize_position(row.get("position"))
         sal = cap_hit(row, 0)
         by_pos[pos] = by_pos.get(pos, 0.0) + sal
@@ -70,7 +90,7 @@ def cap_summary(rules: LeagueRules, roster: list[dict[str, Any]]) -> dict[str, A
         "by_position_spend": {k: round(v, 2) for k, v in sorted(by_pos.items())},
         "by_position_count": counts,
         "contract_summary": {k: len(v) for k, v in sorted(contract_years.items())},
-        "roster_size": len(roster),
+        "roster_size": len(live_roster),
     }
 
 
@@ -111,8 +131,12 @@ def validate_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[st
             errors.append(f"{count - lim['max']} too many {pos_key} (max {lim['max']})")
 
     if uses_contracts(rules):
+        from src.draft_hub.storage import roster_row_occupies
+
         max_years = int(rules.contracts.max_years)
         for row in roster:
+            if not roster_row_occupies(row):
+                continue
             yrs = int(row.get("contract_years") or 1)
             if yrs < 1 or yrs > max_years:
                 name = row.get("player_name") or row.get("player_id")

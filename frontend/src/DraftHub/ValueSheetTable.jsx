@@ -758,7 +758,7 @@ export default function ValueSheetTable({
               ? "Browse players and check the current acquisition period below."
               : "Compare suggested bids and add players to your draft watchlist."
           ))}
-          compact={compact}
+          compact={compact || isAvailableView}
         />
       )}
       {playersBanner ? (

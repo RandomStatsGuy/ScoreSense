@@ -937,6 +937,7 @@ class WeekCorrectionPreview(BaseModel):
     reason: str
     revision: str
     acknowledge_empty: bool = False
+    mode: str = "results"
 
 
 class WeekCorrectionPublish(BaseModel):
@@ -971,7 +972,7 @@ def hub_week_correction_preview(league_id: str, season: int, week: int, body: We
     from src.draft_hub.week_corrections import preview_correction
     require_commissioner(_ctx_for_league(_sub(_user), league_id))
     return _week_correction_call(preview_correction, league_id, season, week, _sub(_user),
-                                 [team.model_dump() for team in body.teams], body.reason, body.revision, body.acknowledge_empty)
+                                 [team.model_dump() for team in body.teams], body.reason, body.revision, body.acknowledge_empty, body.mode)
 
 
 @router.post("/league/{league_id}/corrections/{season}/{week}/publish")

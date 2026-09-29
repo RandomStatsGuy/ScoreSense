@@ -364,3 +364,20 @@ test("pick-draft roster counts include legacy zero-year rows before and after dr
   }
   assert.equal(teamCapStats(block, 200, { ...RULES, draft_type: "auction" }, true).playerCount, 1);
 });
+
+test("dropped, traded, and expired rows never count toward the office cap", async () => {
+  const { teamCapStats } = await import("./officeContractsPresentation.js");
+  const rules = { contracts: { cut_refund_pct: 0.5 } };
+  const block = {
+    roster: [
+      { player_id: "a", salary: 28, contract_years: 1, roster_status: "active" },
+      { player_id: "kamara", salary: 21, contract_years: 1, roster_status: "waived" },
+      { player_id: "engram", salary: 11, contract_years: 1, roster_status: "waived" },
+      { player_id: "old", salary: 9, contract_years: 1, roster_status: "expired" },
+      { player_id: "conner", salary: 6, contract_years: 1, roster_status: "cut_before_draft" },
+    ],
+  };
+  const stats = teamCapStats(block, 200, rules, true);
+  assert.equal(stats.committed, 28);
+  assert.equal(stats.playerCount, 1);
+});

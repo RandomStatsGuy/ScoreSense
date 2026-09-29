@@ -139,6 +139,10 @@ def predict_from_features(
     if "position" in df.columns:
         result["Position"] = df["position"].astype(str).str.upper().values
 
+    result["projection_source"] = [
+        "Roster estimate" if pd.notna(row.get("_roster_estimate")) and bool(row.get("_roster_estimate", False)) else "ScoreSense"
+        for row in df.to_dict("records")
+    ]
     if apply_injury_adjustments:
         roster = compute_vacated_usage(df)
         name_col = _player_name_col(roster)
@@ -167,6 +171,7 @@ def predict_upcoming_week(
     data_dir: Path | None = None,
     model_dir: Path | None = None,
     apply_injury_adjustments: bool = True,
+    depth_mode: str = "starter",
 ) -> pd.DataFrame:
     """Predict fantasy points for the next week using latest processed data."""
     data_dir = data_dir or PROCESSED_DATA_DIR
@@ -176,7 +181,7 @@ def predict_upcoming_week(
     df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
 
     season, week = resolve_projection_context(df, season, week)
-    subset, inference_meta = build_inference_roster(df, position, season, week)
+    subset, inference_meta = build_inference_roster(df, position, season, week, **({"depth_mode": depth_mode} if depth_mode != "starter" else {}))
     subset = attach_schedule_context(subset, season, week)
     subset["season"] = season
 

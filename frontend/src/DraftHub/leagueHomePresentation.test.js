@@ -21,6 +21,10 @@ import {
 
 const validViews = new Set(["planner", "roster", "room", "week", "value"]);
 
+test("home matchup action names the consolidated weekly destination", () => {
+  assert.equal(HOME_DECK_COPY.openGame, "Open This Week");
+});
+
 test("league home promotes the highest-priority actionable item over the phase CTA", () => {
   const expiring = {
     id: "expiring_contracts",

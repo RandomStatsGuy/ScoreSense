@@ -238,3 +238,39 @@ test("classic reserved entries still read IDs out of Name (ID) cells", () => {
   assert.equal(result.changed, 1);
   assert.match(result.lines[1], /"QB One \(1\)"/);
 });
+
+
+test("export rejects a valid ID assigned to the wrong athlete or position", () => {
+  const entry = classicLineup();
+  entry.lineup.forEach((row, i) => { row.player_id = `p${i}`; });
+  const catalog = entry.lineup.map(row => ({ ...row }));
+  assert.equal(buildSiteLineupCsv("draftkings", [entry], catalog).ok, true);
+  entry.lineup[0].player_id = "someone-else";
+  assert.equal(buildSiteLineupCsv("draftkings", [entry], catalog).ok, false);
+  entry.lineup[0].player_id = "p0";
+  entry.lineup[0].position = "WR";
+  assert.match(buildSiteLineupCsv("draftkings", [entry], catalog).reason, /eligible/);
+});
+
+test("export rejects ambiguous and stale salary catalogs", () => {
+  const entry = classicLineup();
+  const catalog = entry.lineup.map(row => ({ ...row }));
+  assert.equal(buildSiteLineupCsv("draftkings", [entry], [...catalog, catalog[0]]).ok, false);
+  catalog[0].team = "BUF";
+  assert.equal(buildSiteLineupCsv("draftkings", [entry], catalog).ok, false);
+  assert.equal(buildSiteLineupCsv("draftkings", [entry], []).ok, false);
+});
+
+test("Captain exports allow supported specialists and enforce role-specific IDs", () => {
+  const entry = showdownLineup();
+  entry.lineup[0].position = "DST";
+  const catalog = entry.lineup.map((row, i) => ({
+    player_id: `p${i}`, Team: row.team, Position: row.position,
+    dfs_id: i === 0 ? "999" : row.dfs_id, cpt_dfs_id: i === 0 ? row.dfs_id : "",
+    salary: i === 0 ? row.salary / 1.5 : row.salary, cpt_salary: i === 0 ? row.salary : null,
+  }));
+  entry.lineup.forEach((row, i) => { row.player_id = `p${i}`; });
+  assert.equal(buildSiteLineupCsv("draftkings_showdown", [entry], catalog).ok, true);
+  entry.lineup[0].dfs_id = "999";
+  assert.equal(buildSiteLineupCsv("draftkings_showdown", [entry], catalog).ok, false);
+});

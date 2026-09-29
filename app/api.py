@@ -146,16 +146,24 @@ from app.auth import admin_configured
 async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
     from app.draft_ticker import draft_ticker_loop
+    from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
 
+    from app.dfs_refresh_ticker import dfs_refresh_ticker_loop
+    dfs_ticker = asyncio.create_task(dfs_refresh_ticker_loop(), name="dfs-refresh")
     ticker = asyncio.create_task(draft_ticker_loop(), name="draft-ticker")
+    sleeper_ticker = asyncio.create_task(
+        sleeper_sync_ticker_loop(), name="sleeper-roster-sync-ticker"
+    )
     try:
         yield
     finally:
-        ticker.cancel()
-        try:
-            await ticker
-        except asyncio.CancelledError:
-            pass
+        for task in (ticker, sleeper_ticker, dfs_ticker):
+            task.cancel()
+        for task in (ticker, sleeper_ticker, dfs_ticker):
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         shutdown_process_executor(wait=False)
 
 
@@ -190,6 +198,12 @@ class ProjectionRequest(BaseModel):
     ids: Optional[str] = None
 
 
+class StackGameWeight(BaseModel):
+    game_id: str
+    teams: list[str] = Field(default_factory=list, min_length=2, max_length=2)
+    weight: int = Field(default=1, ge=1, le=4)
+
+
 class LineupOptimizeRequest(BaseModel):
     season: Optional[int] = None
     week: Optional[int] = None
@@ -208,6 +222,7 @@ class LineupOptimizeRequest(BaseModel):
     stack_bring_back: bool = False
     stack_teams: Optional[list[str]] = None
     stack_qb_ids: Optional[list[str]] = None
+    stack_game_weights: list[StackGameWeight] = Field(default_factory=list, max_length=32)
     max_per_team: Optional[int] = None
     min_salary: Optional[int] = None
     lineup_count: int = 1
@@ -219,6 +234,9 @@ class LineupOptimizeRequest(BaseModel):
     seed: Optional[int] = None
     captain_exposure_limits: dict[str, float] = Field(default_factory=dict, max_length=500)
     locked_captain_id: Optional[str] = None
+    include_captain_comparison: bool = False
+    slate_id: Optional[str] = Field(default=None, max_length=100)
+    salary_snapshot_id: Optional[str] = Field(default=None, pattern="^[0-9a-f]{64}$")
     projection_overrides: dict[str, dict[str, float]] = Field(default_factory=dict, max_length=500)
 
 
@@ -1860,7 +1878,10 @@ def lineup_vegas(
             "note": "Vegas lines are unavailable right now. Lineups still build without them.",
         }
 
-    note = "Lines via nflverse schedules. Implied totals split the game total by the spread."
+    note = (
+        "Lines via nflverse schedules. Implied totals split the game total by the spread. "
+        "Movement compares the current consensus with the first line ScoreSense observed."
+    )
     if board["count"] and not board["with_lines"]:
         note = "Books have not posted lines for this week yet."
     return {
@@ -1899,6 +1920,7 @@ def _lineup_salary_response(
         "count": len(records),
         "players": records,
         "salaries": _json_safe_records(salaries),
+        "salary_snapshot": meta.get("salary_snapshot"),
         "slate": slate,
         "note": note,
     }
@@ -1983,13 +2005,8 @@ def lineup_load_salaries(
             matches = [s for s in list_slates(provider, category="all") if str(s["slate_id"]) == str(slate_id)]
             slate_meta = matches[0] if matches else {"slate_id": slate_id, "site": provider}
 
-        salaries = collapse_captain_rows(
-            fetch_slate_salaries(
-                provider,
-                str(slate_id),
-                force_refresh=force_refresh,
-            )
-        )
+        raw_salaries = fetch_slate_salaries(provider, str(slate_id), force_refresh=force_refresh)
+        salaries = collapse_captain_rows(raw_salaries)
         if salaries.empty:
             raise ValueError(f"No salaries returned for slate {slate_id}.")
 
@@ -2003,6 +2020,10 @@ def lineup_load_salaries(
         meta["slate_id"] = slate_id
         meta["slate_name"] = slate_meta.get("name")
         meta["slate_category"] = slate_meta.get("category")
+        from src.products.dfs_slate_snapshots import capture_salary_snapshot
+        meta["salary_snapshot"] = capture_salary_snapshot(
+            str(_user["sub"]), raw_salaries, site=site, source="provider_catalog", slate=slate_meta,
+        ) if _user and _user.get("sub") else None
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -2026,7 +2047,8 @@ async def lineup_import_salaries(
     provider = _slate_provider(site)
     try:
         raw = await file.read()
-        salaries = collapse_captain_rows(parse_salary_csv(raw, site=provider))
+        raw_salaries = parse_salary_csv(raw, site=provider)
+        salaries = collapse_captain_rows(raw_salaries)
         pool, meta = build_lineup_pool(
             season=season,
             week=week,
@@ -2034,6 +2056,10 @@ async def lineup_import_salaries(
             site=site,
         )
         merged, stats = attach_salaries_to_pool(pool, salaries)
+        from src.products.dfs_slate_snapshots import capture_salary_snapshot
+        meta["salary_snapshot"] = capture_salary_snapshot(
+            str(_user["sub"]), raw_salaries, site=site, source="uploaded_csv",
+        ) if _user and _user.get("sub") else None
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -2057,6 +2083,7 @@ def lineup_optimize(
     if any(not math.isfinite(v) or not 0 <= v <= 1 for v in request.captain_exposure_limits.values()):
         raise HTTPException(status_code=400, detail="Captain exposure limits must be between 0 and 1.")
     try:
+        weighted_stack_teams = [team for game in request.stack_game_weights for team in game.teams if team]
         keep_player_ids = list(request.locked_player_ids or []) + list(
             request.stack_qb_ids or []
         )
@@ -2068,15 +2095,28 @@ def lineup_optimize(
             week=request.week,
             apply_injury_adjustments=request.apply_injury_adjustments,
             site=site,
-            keep_teams=request.stack_teams,
+            keep_teams=list(request.stack_teams or []) + weighted_stack_teams,
             keep_player_ids=keep_player_ids,
         )
-        if request.slate_salaries:
-            sal_df = pd.DataFrame(request.slate_salaries)
+        salary_snapshot = None
+        if request.salary_snapshot_id:
+            if not _user or not _user.get("sub"):
+                raise HTTPException(status_code=401, detail="Sign in to use this salary snapshot.")
+            from src.products.dfs_slate_snapshots import resolve_salary_snapshot
+            sal_df, salary_snapshot = resolve_salary_snapshot(
+                str(_user["sub"]), request.salary_snapshot_id, site=site,
+                slate_id=request.slate_id, supplied_rows=request.slate_salaries,
+                salary_cap=request.salary_cap, max_per_team=request.max_per_team,
+            )
+        else:
+            sal_df = pd.DataFrame(request.slate_salaries) if request.slate_salaries else None
+        if sal_df is not None:
             pool, sal_stats = attach_salaries_to_pool(pool, sal_df)
             meta["salary_import"] = sal_stats
         from src.products.dfs_inputs import apply_projection_overrides
         pool = apply_projection_overrides(pool, request.projection_overrides)
+        from src.products.dfs_coverage import projection_coverage
+        meta["projection_coverage"] = projection_coverage(pool)
         result = optimize_from_pool_dataframe(
             pool,
             objective=objective,
@@ -2095,6 +2135,7 @@ def lineup_optimize(
             stack_bring_back=request.stack_bring_back,
             stack_teams=request.stack_teams,
             stack_qb_ids=request.stack_qb_ids,
+            stack_game_weights=[game.model_dump() for game in request.stack_game_weights],
             max_per_team=(
                 max(1, int(request.max_per_team)) if request.max_per_team else None
             ),
@@ -2116,6 +2157,14 @@ def lineup_optimize(
             seed=request.seed,
             captain_exposure_limits=request.captain_exposure_limits,
             locked_captain_id=request.locked_captain_id,
+            include_captain_comparison=request.include_captain_comparison,
+            snapshot_context={
+                "requested_season": request.season, "requested_week": request.week,
+                "client_slate_id": request.slate_id, "pool_meta": meta,
+                "salary_snapshot": salary_snapshot,
+                "apply_injury_adjustments": request.apply_injury_adjustments,
+                "projection_overrides": request.projection_overrides,
+            },
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -2125,6 +2174,7 @@ def lineup_optimize(
     return {
         "meta": meta,
         **result,
+        "slate_validation": salary_snapshot or {"scope": "unbound_client_inputs", "scoring_verified": False, "lock_state_verified": False},
     }
 
 

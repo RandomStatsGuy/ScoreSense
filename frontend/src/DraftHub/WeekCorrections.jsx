@@ -24,6 +24,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
   const [reason, setReason] = useState("");
   const [acknowledge, setAcknowledge] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [mode, setMode] = useState("lineup");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -42,6 +43,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
         const data = await response.json();
         if (scope.current !== generation) return;
         setContext(data); setTeams(correctionTeamRows(data)); setSelectedTeam(previous => data.teams.some(team => team.id === previous) ? previous : data.teams[0]?.id || "");
+        setMode(data.finalized ? "results" : "lineup");
       } catch (failure) {
         if (scope.current === generation && failure.name !== "AbortError") setError(failure.message);
       }
@@ -61,7 +63,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
     try {
       const body = publish ? {
         preview_id: preview.id, revision: preview.revision, reason: preview.reason, idempotency_key: preview.id,
-      } : { teams, reason, revision: context.revision, acknowledge_empty: acknowledge };
+      } : { teams, reason, revision: context.revision, acknowledge_empty: acknowledge, mode };
       const response = await apiFetch(`${base}/${publish ? "publish" : "preview"}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
@@ -70,7 +72,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
       if (scope.current !== generation) return;
       if (publish) {
         clearHubDataCache();
-        setNotice(COPY.published); setPreview(null); setReload(value => value + 1); onChanged?.();
+        setNotice(preview.mode === "lineup" ? COPY.lineupSaved : COPY.published); setPreview(null); setReload(value => value + 1); onChanged?.();
       } else {
         setPreview(data);
         requestAnimationFrame(() => resultRef.current?.focus());
@@ -178,6 +180,10 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
         </section>
         <aside className="correction-card">
           <h3>{COPY.review}</h3>
+          <HubFilterMenu label={COPY.action} value={mode} disabled={busy || context.finalized}
+            options={[{id:"lineup",label:COPY.saveLineups}, {id:"results",label:COPY.publish}]}
+            onChange={value => { setMode(value); setPreview(null); }} />
+          <p>{mode === "lineup" ? COPY.lineupHelp : COPY.resultsHelp}</p>
           {changes.length > 0 && <button className="btn-ghost btn-sm" disabled={busy} onClick={() => {setTeams(correctionTeamRows(context));setPreview(null);}}>{COPY.undo}</button>}
           {!changes.length && <p>{COPY.noChanges}</p>}
           {changes.map((change,index) => <p key={index}><strong>{change.name}</strong><br />{teamLabel(context.teams.find(item => item.id === change.team_id))} · {change.before} → {change.after}</p>)}
@@ -188,14 +194,15 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
       </div>
       {preview && <section ref={resultRef} tabIndex={-1} aria-live="polite">
         <h3>Review Week {week}</h3>
+        {preview.mode === "lineup" && <p>{COPY.lineupHelp}</p>}
         {preview.blockers.map(blocker => <p key={blocker} role="alert">{blocker}</p>)}
-        <div className="correction-results"><table><caption>Scores and standings</caption><thead><tr><th>Team</th><th>Score before</th><th>Score after</th><th>Record before</th><th>Record after</th></tr></thead>
+        {preview.mode !== "lineup" && <div className="correction-results"><table><caption>Scores and standings</caption><thead><tr><th>Team</th><th>Score before</th><th>Score after</th><th>Record before</th><th>Record after</th></tr></thead>
           <tbody>{preview.after.standings.map(row => {
             const prior = preview.before.standings.find(item => item.team_id === row.team_id);
             return <tr key={row.team_id}><td>{row.name}</td><td>{preview.before.scores.find(item => item.team_id === row.team_id)?.points ?? "Not recorded"}</td>
               <td>{preview.after.scores.find(item => item.team_id === row.team_id)?.points}</td><td>{prior?.wins}-{prior?.losses}-{prior?.ties}</td><td>{row.wins}-{row.losses}-{row.ties}</td></tr>;
-          })}</tbody></table></div>
-        <button type="button" className="btn-primary btn-sm" disabled={busy || !preview.can_publish} onClick={() => request(true)}>{COPY.publish}</button>
+          })}</tbody></table></div>}
+        <button type="button" className="btn-primary btn-sm" disabled={busy || !preview.can_publish} onClick={() => request(true)}>{preview.mode === "lineup" ? COPY.saveLineups : COPY.publish}</button>
       </section>}
       <h3>{COPY.history}</h3>
       {(context.history || []).map(item => <div key={item.id}><p>{item.published_at} · {item.reason}</p>

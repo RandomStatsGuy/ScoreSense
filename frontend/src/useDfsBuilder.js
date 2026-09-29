@@ -1,23 +1,24 @@
 import useDataRevision from "./useDataRevision";
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "./auth";
+import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
+  DFS_WORKSPACE_COPY as C,
+  DFS_STEP_COPY,
   defaultSlateCategory,
+  gameTeamCodes,
   isCaptainFormat,
+  normalizeLineupDifferences,
+  slateGames,
 } from "./dfsToolPresentation";
 import { parseDfsCsv, headerKey } from "./dfsCsv";
+import { captainComparisonRequest } from "./dfsCaptainComparisonRequest.js";
+import { DFS_CAPTAIN_COMPARISON_COPY as CC } from "./dfsToolPresentation";
 
 async function jsonRequest(url, options) {
   const response = await apiFetch(url, options);
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(
-      typeof data.detail === "string"
-        ? data.detail
-        : "The request could not be completed.",
-    );
-  return data;
+  return readJsonResponse(response, url);
 }
 export { jsonRequest };
 
@@ -35,7 +36,7 @@ export default function useDfsBuilder(projMeta) {
   const [meta, setMeta] = useState(projMeta);
   const [formats, setFormats] = useState(DEFAULT_FORMATS);
   const [context, setContext] = useState({
-    site: "draftkings_showdown",
+    site: "draftkings",
     season: null,
     week: null,
     slateId: "",
@@ -44,10 +45,19 @@ export default function useDfsBuilder(projMeta) {
   const [slates, setSlates] = useState([]);
   const [pool, setPool] = useState([]);
   const [salaries, setSalaries] = useState([]);
+  const [salarySnapshot, setSalarySnapshot] = useState(null);
   const [stats, setStats] = useState(null);
+  const [poolFreshness, setPoolFreshness] = useState({ checkedAt: null, refresh: null, failed: false });
+  const [vegasGames, setVegasGames] = useState([]);
+  const [stackWeights, setStackWeights] = useState({});
   const [slateName, setSlateName] = useState("");
   const [busy, setBusy] = useState(false);
   const [building, setBuilding] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const [comparison, setComparison] = useState(null);
+  const [comparisonError, setComparisonError] = useState("");
+  const comparisonGeneration = useRef(0);
+  const comparisonAbort = useRef(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [lineups, setLineups] = useState([]);
@@ -73,13 +83,42 @@ export default function useDfsBuilder(projMeta) {
     lockedCaptain: "",
     note: "",
   });
+  const activeWork = useRef(false);
+  activeWork.current = building || comparing;
   const generation = useRef(0);
   const revision = useRef(0);
   const config = formats[context.site] || DEFAULT_FORMATS[context.site];
   const isDfs = context.site !== "seasonal";
   const isCaptain = isCaptainFormat(context.site, formats);
+  useEffect(() => {
+    comparisonGeneration.current++;
+    comparisonAbort.current?.abort();
+    setComparing(false);
+    setComparison(null);
+    setComparisonError("");
+    return () => comparisonAbort.current?.abort();
+  }, [context, settings, locked, excluded, overrides, salaries, salarySnapshot, pool, config]);
   const changeSetting = (key, value) =>
     setSettings((s) => ({ ...s, [key]: value }));
+  const changeStackWeight = (gameId, delta) => {
+    const id = String(gameId || "");
+    if (!id) return;
+    setStackWeights((current) => {
+      const next = Math.max(0, Math.min(4, (Number(current[id]) || 0) + Number(delta || 0)));
+      if (!next) {
+        const copy = { ...current };
+        delete copy[id];
+        return copy;
+      }
+      return { ...current, [id]: next };
+    });
+    if (Number(delta) > 0) {
+      setSettings((current) => ({
+        ...current,
+        qbStack: Math.max(1, Number(current.qbStack) || 0),
+      }));
+    }
+  };
 
   useEffect(() => {
     const abort = new AbortController();
@@ -118,10 +157,14 @@ export default function useDfsBuilder(projMeta) {
     setDataUpdateAvailable(false);
     setPool([]);
     setSalaries([]);
+    setSalarySnapshot(null);
     setStats(null);
+    setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
+    setStackWeights({});
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
+    if (patch.site) setSettings(s => ({ ...s, differences: normalizeLineupDifferences(s.differences, isCaptainFormat(patch.site, formats)) }));
     setLocked([]);
     setExcluded([]);
     setCaptainLimits({});
@@ -164,14 +207,41 @@ export default function useDfsBuilder(projMeta) {
     return () => abort.abort();
   }, [context.site, context.source, isDfs]);
 
-  const acceptPool = (data, name) => {
+  useEffect(() => {
+    if (context.season == null || context.week == null || isCaptain) {
+      setVegasGames([]);
+      setStackWeights({});
+      return;
+    }
+    const abort = new AbortController();
+    jsonRequest(
+      `/api/lineup/vegas?season=${context.season}&week=${context.week}`,
+      { signal: abort.signal },
+    )
+      .then((data) => {
+        if (!abort.signal.aborted) setVegasGames(data.games || []);
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setVegasGames([]);
+      });
+    return () => abort.abort();
+  }, [context.season, context.week, isCaptain]);
+
+  const acceptPool = (data, name, background = false) => {
     setPool(data.players || []);
     setSalaries(data.salaries || []);
+    setSalarySnapshot(data.salary_snapshot || null);
     setStats(data.stats || null);
+    setPoolFreshness({ checkedAt: Date.now(), refresh: data.meta?.refresh || null, failed: false });
     setSlateName(data.slate?.name || name || "");
+    if (background) {
+      setNotice(data.meta?.refresh?.stale || data.meta?.refresh?.status === "error" ? C.projectionRefreshFailed : C.liveRefreshed);
+      setDataUpdateAvailable(false);
+      return;
+    }
     setLineups([]);
     setSavedBuild(null);
-    setNotice("");
+    setNotice(data.meta?.refresh?.stale || data.meta?.refresh?.status === "error" ? C.projectionRefreshFailed : "");
   };
   useEffect(() => {
     if (
@@ -194,19 +264,47 @@ export default function useDfsBuilder(projMeta) {
           context.week === meta?.default_week,
       ),
     });
-    jsonRequest(`/api/lineup/${isDfs ? "salaries/load" : "pool"}?${params}`, {
-      signal: abort.signal,
-    })
-      .then((d) => {
-        if (!abort.signal.aborted) acceptPool(d);
+    let pending = false;
+    const load = (background = false) => {
+      if (pending || (background && (document.hidden || activeWork.current))) return;
+      pending = true;
+      return jsonRequest(`/api/lineup/${isDfs ? "salaries/load" : "pool"}?${params}`, {
+        signal: abort.signal,
       })
-      .catch((e) => {
-        if (!abort.signal.aborted) setError(e.message);
-      })
-      .finally(() => {
-        if (!abort.signal.aborted) setBusy(false);
-      });
-    return () => abort.abort();
+        .then((d) => {
+          if (!abort.signal.aborted && (!background || !activeWork.current)) {
+            acceptPool(d, undefined, background);
+            setError("");
+          }
+        })
+        .catch((e) => {
+          if (abort.signal.aborted) return;
+          setPoolFreshness(previous => ({ ...previous, failed: true }));
+          if (background) {
+            setError(C.liveRefreshFailed);
+            return;
+          }
+          if (/No salaries returned for slate/i.test(e.message)) {
+            setPool([]);
+            setSalaries([]);
+            setSalarySnapshot(null);
+            setStats(null);
+            setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
+            setLineups([]);
+            setNotice(DFS_STEP_COPY.closedSlate);
+            setError("");
+            return;
+          }
+          setError(e.message);
+        })
+        .finally(() => {
+          pending = false;
+          if (!abort.signal.aborted && !background) setBusy(false);
+        });
+    };
+    load();
+    const timer = setInterval(() => load(true), 300000);
+    return () => { clearInterval(timer); abort.abort(); };
   }, [
     context.site,
     context.season,
@@ -223,7 +321,10 @@ export default function useDfsBuilder(projMeta) {
     revision.current++;
     setPool([]);
     setSalaries([]);
+    setSalarySnapshot(null);
     setStats(null);
+    setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
+    setStackWeights({});
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
@@ -316,20 +417,33 @@ export default function useDfsBuilder(projMeta) {
     );
     other((list) => list.filter((p) => p !== id));
   };
-  const run = async () => {
+  const run = async (mode) => {
+    const comparingCaptains = mode === "compare";
+    if (comparingCaptains && !isCaptain) return;
+    const comparisonSeq = comparingCaptains ? ++comparisonGeneration.current : null;
     const seq = generation.current;
-    revision.current++;
-    setBuilding(true);
-    setError("");
-    setNotice("");
+    if (comparingCaptains) {
+      comparisonAbort.current?.abort();
+      comparisonAbort.current = new AbortController();
+      setComparing(true);
+      setComparison(null);
+      setComparisonError("");
+    } else {
+      revision.current++;
+      setBuilding(true);
+      setError("");
+      setNotice("");
+    }
     const cap = isDfs
       ? Math.min(Number(settings.maxSalary), Number(config.salary_cap))
       : null;
     const request = {
       site: context.site,
+      slate_id: context.slateId || null,
       season: context.season,
       week: context.week,
       slate_salaries: salaries,
+      salary_snapshot_id: salarySnapshot?.id || null,
       objective: settings.objective,
       salary_cap: cap,
       locked_player_ids: locked,
@@ -337,7 +451,7 @@ export default function useDfsBuilder(projMeta) {
       lineup_count: settings.count,
       max_overlap: Math.max(
         0,
-        (isCaptain ? 6 : isDfs ? 9 : 7) - settings.differences,
+        (isCaptain ? 6 : isDfs ? 9 : 7) - normalizeLineupDifferences(settings.differences, isCaptain),
       ),
       max_exposure: settings.exposure,
       randomness: settings.randomness,
@@ -345,6 +459,15 @@ export default function useDfsBuilder(projMeta) {
       max_per_team: settings.maxTeam || null,
       qb_stack_count: isCaptain ? 0 : settings.qbStack,
       stack_bring_back: !isCaptain && settings.bringBack,
+      stack_game_weights: !isCaptain
+        ? slateGames(vegasGames, pool)
+            .filter((game) => Number(stackWeights[game.game_id]) > 0)
+            .map((game) => ({
+              game_id: String(game.game_id),
+              teams: gameTeamCodes(game),
+              weight: Number(stackWeights[game.game_id]),
+            }))
+        : [],
       locked_captain_id: isCaptain ? settings.lockedCaptain || null : null,
       captain_exposure_limits: isCaptain ? captainLimits : {},
       projection_overrides: overrides,
@@ -366,8 +489,17 @@ export default function useDfsBuilder(projMeta) {
         );
       const data = await jsonRequest("/api/lineup/optimize", {
         method: "POST",
-        body: JSON.stringify(request),
+        body: JSON.stringify(comparingCaptains ? captainComparisonRequest(request) : request),
+        ...(comparingCaptains ? { signal: comparisonAbort.current.signal } : {}),
       });
+      if (comparingCaptains) {
+        if (comparisonSeq !== comparisonGeneration.current) return;
+        if (!data.ok) throw new Error(data.error || CC.failure);
+        if (!data.build_snapshot?.id || data.captain_comparison?.snapshot_id !== data.build_snapshot.id)
+          throw new Error(CC.mismatch);
+        setComparison({ ...data.captain_comparison, captured_at: data.build_snapshot.captured_at });
+        return;
+      }
       if (seq !== generation.current) return;
       if (!data.ok)
         throw new Error(data.error || "No lineup satisfies these settings.");
@@ -391,7 +523,8 @@ export default function useDfsBuilder(projMeta) {
             overrides[p.player_id] ? "Imported" : p.projection_source,
           ]),
         ),
-        snapshot_at: new Date().toISOString(),
+        build_snapshot: data.build_snapshot || null,
+        snapshot_at: data.build_snapshot?.captured_at || new Date().toISOString(),
       });
       setNotice(
         built.length < settings.count
@@ -399,9 +532,13 @@ export default function useDfsBuilder(projMeta) {
           : `Built ${built.length} lineup${built.length === 1 ? "" : "s"}.`,
       );
     } catch (e) {
-      if (seq === generation.current) setError(e.message);
+      if (comparingCaptains) {
+        if (comparisonSeq === comparisonGeneration.current && e.name !== "AbortError") setComparisonError(e.message || CC.failure);
+      } else if (seq === generation.current) setError(e.message);
     } finally {
-      setBuilding(false);
+      if (comparingCaptains) {
+        if (comparisonSeq === comparisonGeneration.current) setComparing(false);
+      } else setBuilding(false);
     }
   };
   const save = async () => {
@@ -454,9 +591,18 @@ export default function useDfsBuilder(projMeta) {
     pool: visiblePool,
     salaries,
     stats,
+    poolFreshness,
+    vegasGames,
+    stackWeights,
+    changeStackWeight,
+    clearStackWeights: () => setStackWeights({}),
     slateName,
     busy,
     building,
+    comparing,
+    comparison,
+    comparisonError,
+    compareCaptains: () => run("compare"),
     error,
     setError,
     notice,

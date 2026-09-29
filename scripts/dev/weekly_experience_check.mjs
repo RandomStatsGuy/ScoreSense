@@ -70,6 +70,22 @@ try {for(const width of [390,1280]) {
   if(state==='live')assert.equal(await page.getByRole('button',{name:'Lineup',exact:true}).getAttribute('aria-pressed'),'true');
   await audit(page,width,state);
  }
+ for(const state of ['native-progress','final','specialists']) {
+  await open(`?state=${state}&member=1`);await flex().waitFor();
+  if(state==='specialists') {
+   assert.match(await page.locator('.hub-week-forecast').innerText(),/84.4\s+—\s+71.0/);
+   assert.match(await page.locator('.hub-week-forecast').innerText(),/K\/DEF use season estimates/);
+  } else {
+   assert.match(await page.locator('.hub-week-forecast').innerText(),state==='final'?/Final/:/Week in progress/);
+   assert.equal(await page.getByRole('button',{name:'Lineup',exact:true}).getAttribute('aria-pressed'),'true');
+   if(state==='final') {
+    await bench().click();await benchSmith().click();
+    assert.equal(await page.getByRole('radio').first().isEnabled(),false);
+    assert.equal((await writes()).length,0);await page.keyboard.press('Escape');
+   }
+  }
+  await audit(page,width,state);
+ }
  await open('?matchupTeam=other');await page.getByRole('button',{name:'Matchup',exact:true}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Lineup',exact:true}).count(),0);assert.equal(await flex().count(),0);assert.equal((await writes()).length,0);
  for(const salary of [false,true]){

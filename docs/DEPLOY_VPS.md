@@ -156,11 +156,16 @@ Replace GitHub Actions or run in addition:
 sudo crontab -e
 ```
 
-Add (Tuesdays 10:00 UTC):
+Add (Tuesdays 10:00 UTC, after Monday Night Football and stat-provider updates):
 
 ```cron
 0 10 * * 2 cd /root/scoresense && docker compose -f deploy/docker-compose.prod.yml --profile cron run --rm refresh >> /var/log/scoresense-refresh.log 2>&1
 ```
+
+The production `refresh` service runs the full weekly pipeline. It rebuilds the
+current-season datasets before training and publishing the next weekly artifacts;
+do not add `--no-retrain` to this scheduled run. The in-app refresh is intentionally
+lighter and only rebuilds artifacts from data already present on the server.
 
 ---
 

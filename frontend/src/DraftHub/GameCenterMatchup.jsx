@@ -176,6 +176,7 @@ export default function GameCenterMatchup({
         <span>{COPY.youVersus(gameCenterTeamParts(opponent).owner || gameCenterTeamLabel(opponent))}</span>
         <strong aria-live="polite">{pregame ? (forecast.mine == null ? "—" : forecast.mine.toFixed(1)) : formatMatchupScore(viewer.points, { placeholder }).score}<small aria-hidden="true">—</small>{pregame ? (forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)) : formatMatchupScore(opponent.points, { placeholder }).score}</strong>
         <span>{pregame ? COPY.projected : stateLabel}</span>
+        {pregame && forecast.estimated && <small className="hub-week-forecast-estimate" title={COPY.projectionBasisEstimated}>K/DEF use season estimates</small>}
       </section>}
       {!weekly && scoringControl}
       <div className="gc-room-toolbar">

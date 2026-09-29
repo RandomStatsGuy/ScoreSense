@@ -178,7 +178,7 @@ export const HOME_DECK_COPY = {
   matchupTitle: "Your matchup",
   standingsTitle: "Standings",
   standingsNote: "Season to date",
-  openGame: "Game center",
+  openGame: "Open This Week",
   linkSleeper: "Link Sleeper to fill scores.",
   opponentTbd: "Opponent TBD",
   lockerKicker: "Chat",

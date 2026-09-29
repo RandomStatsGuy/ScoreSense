@@ -70,3 +70,30 @@ def send_password_reset_email(to_email: str, *, token: str, display_name: str) -
         subject="Reset your ScoreSense password",
         text_body=body,
     )
+
+
+def send_admin_password_reset_email(to_email: str, *, display_name: str) -> bool:
+    """Tell the account holder an admin replaced their password.
+
+    The temporary password is deliberately not in this email: the admin passes
+    it on directly, and mail is not the channel to put a live credential in.
+    """
+    name = display_name or "there"
+    body = "\n".join(
+        [
+            f"Hi {name},",
+            "",
+            "A ScoreSense administrator set a temporary password on your account.",
+            "It was shared with you directly, not in this email.",
+            "",
+            "You will be asked to choose a new password the next time you sign in.",
+            "Any sessions you had open have been signed out.",
+            "",
+            "If you were not expecting this, reply to this email right away.",
+        ]
+    )
+    return send_email(
+        to_email,
+        subject="Your ScoreSense password was reset by an administrator",
+        text_body=body,
+    )

@@ -801,6 +801,43 @@ def test_projection_name_fallback_rejects_wrong_team_and_ambiguous_names():
     assert [p["proj"] for p in players] == [None, None, 23]
 
 
+def test_matchup_uses_lineup_specialist_estimates_and_preserves_zero(monkeypatch):
+    def cached_specialists(*, allow_fetch):
+        assert allow_fetch is False
+        return {
+            "kicker": {"position": "K", "per_game": 8.4},
+            "JAX": {"position": "DEF", "per_game": 7.0},
+            "zero": {"position": "K", "per_game": 9.0},
+        }
+
+    monkeypatch.setattr("src.draft_hub.k_def_pool_cache.k_def_projection_index", cached_specialists)
+    starters = [
+        {"player_id": "sleeper-kicker", "position": "K", "name": "Kicker", "points": 0},
+        {"player_id": "JAX", "position": "DEF", "name": "Jaguars", "points": 0},
+        {"player_id": "zero", "position": "K", "name": "Zero", "points": 0, "projection_source": "rank_curve"},
+        {"player_id": "missing", "position": "WR", "name": "Missing", "points": 0},
+    ]
+    team = {"roster_id": "1", "points": 0, "starters": starters}
+    attach_matchup_analytics([{"teams": [team]}], {"zero": {"p50": 0}})
+    assert [p["proj"] for p in starters] == [8.4, 7.0, 0, None]
+    assert [p.get("projection_source") for p in starters] == ["rank_curve", "rank_curve", None, None]
+    assert starters[0]["player_id"] == "sleeper-kicker"
+    assert team["proj_total"] == 15.4
+
+
+def test_suffix_projection_match_requires_unique_compatible_identity():
+    index = {"fannin": {"player_id": "fannin", "player_name": "Harold Fannin Jr.", "team": "CLE", "position": "TE", "p50": 10.5}}
+    player = {"player_id": "12506", "name": "Harold Fannin", "team": "CLE", "position": "TE"}
+    attach_matchup_analytics([{"teams": [{"starters": [player]}]}], index)
+    assert player["proj"] == 10.5
+    assert player["player_id"] == "12506"
+    player["team"] = "KC"
+    attach_matchup_analytics([{"teams": [{"starters": [player]}]}], index)
+    assert player["proj"] is None
+    player["team"] = ""
+    index["other"] = {"player_id": "other", "player_name": "Harold Fannin Sr.", "team": "KC", "position": "TE", "p50": 5}
+    attach_matchup_analytics([{"teams": [{"starters": [player]}]}], index)
+    assert player["proj"] is None
 @pytest.mark.parametrize("linked", [False, True])
 def test_home_week_passed_to_same_source_for_opponent_and_projections(hub_client, hub_db, monkeypatch, linked):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)

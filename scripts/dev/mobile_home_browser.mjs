@@ -42,7 +42,7 @@ try {
   await page.waitForFunction(()=>window.__requests.some(r=>r.method==='POST'&&r.path.includes('/messages')));
   await page.getByText('Standings',{exact:true}).click();
   assert.equal(await page.locator('.hub-home-standing-list').isVisible(),true);
-  await page.getByRole('button',{name:'Game center',exact:false}).filter({visible:true}).last().click();
+  await page.getByRole('button',{name:/Game center|Open This Week/}).filter({visible:true}).last().click();
   assert.deepEqual(await page.evaluate(()=>window.__navigation),{view:'game',extra:{matchupWeek:4}});
   if(width===390){
    const header=await page.locator('.app-header-mobile-top--league').boundingBox();assert.ok(header.height<=72);

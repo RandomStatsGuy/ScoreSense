@@ -1,0 +1,626 @@
+{
+  "153790": {
+    "site": "draftkings_showdown",
+    "projection_season": 2026,
+    "projection_week": 4,
+    "slate_players": 56,
+    "complete_inputs": 47,
+    "fixed_estimates": 0,
+    "missing_count": 9,
+    "missing_players": [
+      {
+        "player_id": "sleeper-11636",
+        "name": "Johnny Wilson",
+        "team": "PHI",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8177",
+        "name": "Grant Calcaterra",
+        "team": "PHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13349",
+        "name": "Eli Stowers",
+        "team": "PHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8107",
+        "name": "Nikola Kalinic",
+        "team": "CHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8423",
+        "name": "Brittain Brown",
+        "team": "CHI",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13712",
+        "name": "Hayden Large",
+        "team": "CHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "slate:CHI:scotty miller",
+        "name": "Scotty Miller",
+        "team": "CHI",
+        "position": "WR",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:CHI:qadir ismail",
+        "name": "Qadir Ismail",
+        "team": "CHI",
+        "position": "TE",
+        "reason": "position_conflict"
+      },
+      {
+        "player_id": "slate:PHI:rocco underwood",
+        "name": "Rocco Underwood",
+        "team": "PHI",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      }
+    ],
+    "unavailable_count": 9,
+    "historical_estimates": 2,
+    "roster_estimates": 10,
+    "all_available_players_have_inputs": false,
+    "all_players_have_inputs": false,
+    "modeled_players": 35,
+    "all_players_modeled": false
+  },
+  "154078": {
+    "site": "draftkings",
+    "projection_season": 2026,
+    "projection_week": 4,
+    "slate_players": 619,
+    "complete_inputs": 544,
+    "fixed_estimates": 0,
+    "missing_count": 75,
+    "missing_players": [
+      {
+        "player_id": "sleeper-13302",
+        "name": "Adam Randall",
+        "team": "BAL",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8698",
+        "name": "Jake Tonges",
+        "team": "SF",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-11636",
+        "name": "Johnny Wilson",
+        "team": "PHI",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13898",
+        "name": "Corey Rucker",
+        "team": "LV",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13438",
+        "name": "DeaMonte Trayanum",
+        "team": "NYJ",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13342",
+        "name": "John Michael Gyllenborg",
+        "team": "KC",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-11589",
+        "name": "Trey Benson",
+        "team": "ARI",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13173",
+        "name": "Jimmy Holiday",
+        "team": "KC",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-10867",
+        "name": "Jake Bobo",
+        "team": "SEA",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "00-0032775",
+        "name": "Demarcus Robinson",
+        "team": "SF",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8177",
+        "name": "Grant Calcaterra",
+        "team": "PHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8125",
+        "name": "Calvin Austin",
+        "team": "NYG",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13422",
+        "name": "Jaren Kanak",
+        "team": "TEN",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13964",
+        "name": "Myles Montgomery",
+        "team": "NE",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13349",
+        "name": "Eli Stowers",
+        "team": "PHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "00-0033553",
+        "name": "James Conner",
+        "team": "ARI",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-11638",
+        "name": "Ricky Pearsall",
+        "team": "SF",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8408",
+        "name": "Jordan Mason",
+        "team": "MIN",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12735",
+        "name": "Caleb Lohner",
+        "team": "DEN",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8206",
+        "name": "Skylar Thompson",
+        "team": "BAL",
+        "position": "QB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8107",
+        "name": "Nikola Kalinic",
+        "team": "CHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12482",
+        "name": "Savion Williams",
+        "team": "GB",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8861",
+        "name": "Irv Charles",
+        "team": "SEA",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "00-0033375",
+        "name": "Tim Patrick",
+        "team": "NYJ",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12656",
+        "name": "Robbie Ouzts",
+        "team": "SEA",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-10226",
+        "name": "Andrei Iosivas",
+        "team": "CIN",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13417",
+        "name": "De'Zhaun Stribling",
+        "team": "SF",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": " 00-0035676",
+        "name": "A.J. Brown",
+        "team": "NE",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": " 00-0035645",
+        "name": "Gunner Olszewski",
+        "team": "NYG",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12508",
+        "name": "Jaxson Dart",
+        "team": "NYG",
+        "position": "QB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13392",
+        "name": "Jeff Caldwell",
+        "team": "KC",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-9226",
+        "name": "De'Von Achane",
+        "team": "MIA",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12113",
+        "name": "Thomas Yassmin",
+        "team": "GB",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13355",
+        "name": "DJ Rogers",
+        "team": "DAL",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-11371",
+        "name": "Julian Hill",
+        "team": "NE",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12483",
+        "name": "Jack Bech",
+        "team": "LV",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12539",
+        "name": "Arian Smith",
+        "team": "NYJ",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8423",
+        "name": "Brittain Brown",
+        "team": "CHI",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12541",
+        "name": "Dont'e Thornton",
+        "team": "LV",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13124",
+        "name": "Jeremiah Webb",
+        "team": "NE",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13276",
+        "name": "Omar Cooper",
+        "team": "NYJ",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13121",
+        "name": "Ben Yurosek",
+        "team": "MIN",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8195",
+        "name": "Ronnie Rivers",
+        "team": "LA",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13597",
+        "name": "Matthew Caldwell",
+        "team": "LA",
+        "position": "QB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "00-0034775",
+        "name": "Christian Kirk",
+        "team": "SF",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": " 00-0035359",
+        "name": "David Sills",
+        "team": "TB",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12705",
+        "name": "Graham Mertz",
+        "team": "HOU",
+        "position": "QB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-9489",
+        "name": "Justin Shorter",
+        "team": "LV",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12484",
+        "name": "Jayden Higgins",
+        "team": "HOU",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13712",
+        "name": "Hayden Large",
+        "team": "CHI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13345",
+        "name": "Jonah Coleman",
+        "team": "DEN",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13293",
+        "name": "Ja'Kobi Lane",
+        "team": "BAL",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13122",
+        "name": "Carter Runyon",
+        "team": "LV",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-11508",
+        "name": "Princeton Fant",
+        "team": "DAL",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8127",
+        "name": "Charlie Kolar",
+        "team": "LAC",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8800",
+        "name": "Malik Davis",
+        "team": "DAL",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-9502",
+        "name": "Tank Dell",
+        "team": "HOU",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-8214",
+        "name": "Cole Turner",
+        "team": "MIA",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-11963",
+        "name": "Chris Collier",
+        "team": "LV",
+        "position": "RB",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-12670",
+        "name": "KeAndre Lambert-Smith",
+        "team": "LAC",
+        "position": "WR",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "00-0033885",
+        "name": "David Njoku",
+        "team": "LAC",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "sleeper-13879",
+        "name": "Jameson Geers",
+        "team": "ARI",
+        "position": "TE",
+        "reason": "unavailable"
+      },
+      {
+        "player_id": "slate:MIA:dj herman",
+        "name": "DJ Herman",
+        "team": "MIA",
+        "position": "RB",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:SEA:velus jones jr",
+        "name": "Velus Jones Jr.",
+        "team": "SEA",
+        "position": "RB",
+        "reason": "position_conflict"
+      },
+      {
+        "player_id": "slate:LAC:scott matlock",
+        "name": "Scott Matlock",
+        "team": "LAC",
+        "position": "RB",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:TB:garrett greene",
+        "name": "Garrett Greene",
+        "team": "TB",
+        "position": "WR",
+        "reason": "position_conflict"
+      },
+      {
+        "player_id": "slate:ARI:ihmir smithmarsette",
+        "name": "Ihmir Smith-Marsette",
+        "team": "ARI",
+        "position": "WR",
+        "reason": "team_conflict"
+      },
+      {
+        "player_id": "slate:CIN:william wagner",
+        "name": "William Wagner",
+        "team": "CIN",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:TB:evan deckers",
+        "name": "Evan Deckers",
+        "team": "TB",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:PHI:rocco underwood",
+        "name": "Rocco Underwood",
+        "team": "PHI",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:NYG:ben mann",
+        "name": "Ben Mann",
+        "team": "NYG",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:MIN:andrew depaola",
+        "name": "Andrew DePaola",
+        "team": "MIN",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:DEN:mitchell fraboni",
+        "name": "Mitchell Fraboni",
+        "team": "DEN",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      },
+      {
+        "player_id": "slate:CHI:qadir ismail",
+        "name": "Qadir Ismail",
+        "team": "CHI",
+        "position": "TE",
+        "reason": "position_conflict"
+      },
+      {
+        "player_id": "slate:KC:james winchester",
+        "name": "James Winchester",
+        "team": "KC",
+        "position": "TE",
+        "reason": "missing_or_invalid_projection"
+      }
+    ],
+    "unavailable_count": 112,
+    "historical_estimates": 0,
+    "roster_estimates": 162,
+    "all_available_players_have_inputs": false,
+    "all_players_have_inputs": false,
+    "modeled_players": 382,
+    "all_players_modeled": false
+  }
+}

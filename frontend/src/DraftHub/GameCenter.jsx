@@ -185,7 +185,7 @@ export default function GameCenter({
           <p>
             {weekNumber
               ? `Week ${weekNumber} · ${data?.season || ""}`
-              : GAME_CENTER_COPY.eyebrow}
+              : weekly ? GAME_CENTER_COPY.weeklyTitle : GAME_CENTER_COPY.eyebrow}
           </p>
           <h1>{weekly ? GAME_CENTER_COPY.weeklyTitle : GAME_CENTER_COPY.eyebrow}</h1>
         </div>

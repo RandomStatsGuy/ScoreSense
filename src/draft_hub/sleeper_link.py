@@ -257,7 +257,11 @@ def sync_league_sleeper(league_id: str, user_sub: str) -> dict[str, Any]:
     team = storage.get_team_by_user(league_id, user_sub)
     if not team:
         raise ValueError("You are not in this league")
-    return sync_league_from_sleeper(league_id)
+    from src.draft_hub.cap_sheet_import import sync_league_rosters_and_contracts
+
+    result = sync_league_rosters_and_contracts(league_id, None, None)
+    # Keep the established response shape while including the drop result.
+    return {**result["sleeper"], "waived": result["waived"]}
 
 
 def sleeper_player_id_set(user_sub: str) -> set[str]:

@@ -170,3 +170,69 @@ def test_current_players_are_suggestions_not_historical_lineups(recovery, monkey
     assert context["lineups"] == []
     assert storage.list_week_lineups(league_id,2026,1) == []
     assert preview(recovery)["can_publish"]  # suggestions never change revision
+
+
+def lineup_preview(recovery):
+    context = corrections.correction_context(recovery[0], 2026, 1, "commissioner")
+    return corrections.preview_correction(recovery[0], 2026, 1, "commissioner", recovery[3],
+                                          "Repair starters during games", context["revision"], mode="lineup")
+
+
+def test_lineup_repair_before_slate_ends_without_statistics(recovery, monkeypatch):
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "load_week_stat_index", lambda *args: pytest.fail("Lineup repair must not load stats"))
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda team, *args: team == "NE")
+    recovery[3][0]["players"][0]["nfl_team"] = "NE"
+    recovery[3][1]["players"][0]["nfl_team"] = "DAL"
+    storage.replace_team_lineup(recovery[0], recovery[1], 2026, 2,
+                                [{"player_id": "later", "position": "QB", "slot": "QB1"}])
+    later = storage.list_week_lineups(recovery[0], 2026, 2)
+    result = lineup_preview(recovery)
+    assert result["can_publish"] and result["mode"] == "lineup"
+    assert result["before"]["scores"] == result["after"]["scores"]
+    assert result["before"]["standings"] == result["after"]["standings"]
+    assert storage.list_week_lineups(recovery[0], 2026, 1) == []
+    publish(recovery[0], result)
+    saved = storage.list_week_lineups(recovery[0], 2026, 1)
+    assert {row["player_id"]: row["locked"] for row in saved} == {"past-qb": 1, "other-qb": 0}
+    assert storage.list_week_lineups(recovery[0], 2026, 2) == later
+    assert storage.list_team_week_scores(recovery[0], 2026, 1) == []
+    assert storage.get_week_scoring_run(recovery[0], 2026, 1) is None
+    assert corrections.correction_history(recovery[0], 2026, 1)[0]["mode"] == "lineup"
+    assert publish(recovery[0], result)["already_published"]
+
+
+def test_lineup_only_audit_allows_subsequent_scoring_and_final_correction(recovery, monkeypatch):
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args: False)
+    result = lineup_preview(recovery)
+    publish(recovery[0], result)
+    scoring = storage.get_league(recovery[0])["rules"]["scoring"]
+    storage.save_native_week_scores(recovery[0], 2026, 1, [], [], scoring, final=False)
+    storage.save_native_week_scores(recovery[0], 2026, 1, [], [], scoring, final=True)
+    with pytest.raises(corrections.CorrectionError, match="finalized"):
+        lineup_preview(recovery)
+    completed = preview(recovery)
+    publish(recovery[0], completed, key="final-results")
+    assert storage.get_week_scoring_run(recovery[0], 2026, 1)["final"]
+    with pytest.raises(ValueError, match="commissioner correction"):
+        storage.save_native_week_scores(recovery[0], 2026, 1, [], [], scoring)
+
+
+def test_lineup_only_repair_rejects_stale_preview_and_unauthorized_actor(recovery, monkeypatch):
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args: False)
+    result = lineup_preview(recovery)
+    with pytest.raises(PermissionError):
+        corrections.publish_correction(recovery[0], 2026, 1, "manager", result["id"],
+                                       result["revision"], result["reason"], "unauthorized")
+    storage.replace_team_lineup(recovery[0], recovery[1], 2026, 1, [{"player_id":"changed", "slot":"BN", "position":"QB"}])
+    with pytest.raises(corrections.CorrectionError, match="changed"):
+        publish(recovery[0], result)
+    assert corrections.correction_history(recovery[0], 2026, 1) == []
+
+
+def test_final_results_still_require_completed_slate(recovery, monkeypatch):
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args: False)
+    result = preview(recovery)
+    assert not result["can_publish"]
+    with pytest.raises(corrections.CorrectionError, match="not complete"):
+        publish(recovery[0], result)

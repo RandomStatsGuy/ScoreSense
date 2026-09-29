@@ -174,6 +174,12 @@ def merge_sleeper_team_roster(
         existing = find_matching_roster_slot(slots, p, team_id=str(team_id), occupying_only=True)
         if existing is None:
             existing = find_matching_roster_slot(slots, p, team_id=str(team_id), occupying_only=False)
+        # Waived, cut, expired, and traded rows are non-occupying history (and
+        # cut rows carry dead cap). If that player is on a Sleeper roster again,
+        # create a fresh active acquisition/contract row instead of attaching
+        # him to the old deal, which would leave him showing as "Cut".
+        if existing and not storage.roster_row_occupies(existing):
+            existing = None
         if existing:
             existing_pid = str(existing.get("player_id") or pid)
             existing_tid = str(existing.get("team_id") or "")

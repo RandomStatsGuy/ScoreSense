@@ -22,6 +22,7 @@ import "../src/styles/color-theme.css";
 
 const params = new URLSearchParams(location.search);
 const state = params.get("state") || "ready";
+const recorded = ["live", "native-progress", "final"].includes(state);
 const player = (id, name, position, team, p50, slot = "BN") => ({
   player_id: id, player_name: name, position, team, p50, slot,
   kickoff_et: "2030-09-22T13:00:00-04:00", p10: 6, p90: 28,
@@ -32,7 +33,7 @@ const context = { mode: "league", league_id: "fixture", team_id: "mine", team_na
   draft_completed: !params.has("preseason") && state !== "no-roster", is_commissioner:!params.has("member"), capabilities:{uses_salaries:params.has("salary"), uses_contracts:params.has("salary")}, rules, ...(state === "linked" ? { sleeper_league_id: "fixture" } : {}) };
 const data = {
   hub_context: context,
-  meta: { season: 2026, week: 2, lineup_source: state === "linked" ? "sleeper" : "hub", lineup_locked: state === "readonly", week_scored: state === "readonly", projections_built_at: new Date().toISOString() },
+  meta: { season: 2026, week: 2, lineup_source: state === "linked" ? "sleeper" : "hub", lineup_locked: ["readonly", "final"].includes(state), week_scored: ["readonly", "final"].includes(state), projections_built_at: new Date().toISOString() },
   status: {}, sync: {}, counts: { roster: 7, missing_projections: 0 }, decisions: [],
   roster: { starters: [player("hurts", "Jalen Hurts", "QB", "PHI", 22.4, "QB"),
     player("bijan", "Bijan Robinson", "RB", "ATL", 19.8, "RB"),
@@ -56,11 +57,13 @@ window.fetch = async (input, options = {}) => {
   if (path.includes("live-scoring")) {
     if(state === "score-error") return Response.json({detail:"Matchup unavailable"},{status:503});
     const week = Number(new URL(path, location.origin).searchParams.get("week") || 2);
-    const mine={roster_id:"1",hub_team_id:"mine",owner_name:"Tessa",team_name:"Tessa's Revenge",is_viewer:true,points:state === "live" ? 42.3 : 0,
+    const mine={roster_id:"1",hub_team_id:"mine",owner_name:"Tessa",team_name:"Tessa's Revenge",is_viewer:true,points:recorded ? 42.3 : 0,
       starters:data.roster.starters.map(p=>({player_id:p.player_id,name:p.player_name,position:p.position,team:p.team,proj:state === "missing" ? null : p.p50,points:0})),bench_players:[]};
-    const other={roster_id:"2",hub_team_id:"other",owner_name:"Alex",team_name:"Sunday Rivals",points:state === "live" ? 37.8 : 0,
+    if (state === "specialists") mine.starters.push({name:"Kicker",position:"K",proj:8.4,projection_source:"rank_curve"});
+    const other={roster_id:"2",hub_team_id:"other",owner_name:"Alex",team_name:"Sunday Rivals",points:recorded ? 37.8 : 0,
       starters:[{name:"Josh Allen",position:"QB",team:"BUF",proj:21,points:10},{name:"Saquon Barkley",position:"RB",team:"PHI",proj:20,points:5},{name:"Justin Jefferson",position:"WR",team:"MIN",proj:18,points:0},{name:"Trey McBride",position:"TE",team:"ARI",proj:12,points:0}],bench_players:[]};
-    return Response.json({available:true,source:"hub",reason:"hub",placeholder:state!=="live",live:state==="live",week_complete:state==="final",season:2026,week,current_week:2,max_week:18,
+    return Response.json({available:true,source:"hub",reason:"hub",placeholder:!recorded,live:state==="live",week_complete:state==="final",season:2026,week,current_week:state === "native-progress" ? week + 1 : 2,max_week:18,
+      ...(["native-progress", "final"].includes(state) ? {scoring_control:{host:"native",scored:true,final:state === "final",live:state !== "final",slate_complete:state === "final"}} : {}),
       viewer_matchup_id:"one",starting_slots:["QB","RB","WR","FLEX"],matchups:[{matchup_id:"one",teams:[mine,other]},{matchup_id:"two",teams:[{roster_id:"3",owner_name:"Sam",points:60},{roster_id:"4",owner_name:"Jamie",points:52}]}],standings:[]});
   }
   if (path.includes("freshness")) return Response.json({sleeper:{linked:state === "linked"},projections:{available:true}});

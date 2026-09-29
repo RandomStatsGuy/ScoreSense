@@ -20,7 +20,12 @@ import requests
 from fastapi import HTTPException, Request
 
 from src.auth import user_store
-from src.auth.email_flow import send_password_reset_email, send_verification_email, send_welcome_email
+from src.auth.email_flow import (
+    send_admin_password_reset_email,
+    send_password_reset_email,
+    send_verification_email,
+    send_welcome_email,
+)
 from src.config import (
     AUTH_REQUIRED,
     FRONTEND_URL,
@@ -222,6 +227,38 @@ def change_native_password(user_id: str, current_password: str, new_password: st
     return user_store.get_user_by_id(user_id) or user
 
 
+def admin_set_temp_password(user_id: str, new_password: str) -> dict[str, Any]:
+    """Replace an account's password with one an admin chose.
+
+    The account holder must pick their own before using Fantasy again, so the
+    password the admin knows stops working at their next sign-in. Existing
+    sessions end immediately via the session_version bump in update_password.
+    """
+    user = user_store.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Account not found")
+    try:
+        user_store.validate_password(new_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    user_store.update_password(user_id, _hash_password(new_password), must_change=True)
+    emailed = False
+    if user.get("email"):
+        try:
+            emailed = send_admin_password_reset_email(
+                user["email"], display_name=user.get("display_name") or ""
+            )
+        except Exception:  # noqa: BLE001 - a failed notice must not hide the reset
+            emailed = False
+    updated = user_store.get_user_by_id(user_id) or user
+    return {
+        "user_id": user_id,
+        "email": updated.get("email"),
+        "must_change_password": user_store.must_change_password(updated),
+        "notified": bool(emailed),
+    }
+
+
 def update_native_profile(user_id: str, display_name: str) -> dict[str, Any]:
     try:
         updated = user_store.update_display_name(user_id, display_name)
@@ -309,6 +346,14 @@ def native_account_row(jwt_user: dict[str, Any] | None) -> dict[str, Any] | None
     if email:
         return user_store.get_user_by_email(str(email))
     return None
+
+
+def native_must_change_password(jwt_user: dict[str, Any]) -> bool:
+    """True while an admin-set password is still in place. Read live, like verification."""
+    if jwt_user.get("auth_type") != "native":
+        return False
+    row = native_account_row(jwt_user)
+    return user_store.must_change_password(row) if row else False
 
 
 def native_email_verified(jwt_user: dict[str, Any]) -> bool:
@@ -808,6 +853,11 @@ def require_hub_user(request: Request) -> dict[str, Any]:
             status_code=403,
             detail="Verify your email before using Draft Hub. Check your inbox or resend from account settings.",
         )
+    if user.get("auth_type") == "native" and native_must_change_password(user):
+        raise HTTPException(
+            status_code=403,
+            detail="Choose a new password before using Draft Hub. Update it in account settings.",
+        )
     return user
 
 
@@ -831,6 +881,7 @@ def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
         "terms_current": terms_current,
         "terms_version": terms_version,
         "has_password": user_store.has_usable_password(native_row) if native_row else False,
+        "must_change_password": user_store.must_change_password(native_row) if native_row else False,
         "google_linked": bool(native_row.get("google_sub")) if native_row else False,
         "phone": native_row.get("phone") if native_row else None,
         "sms_opted_in": bool(native_row.get("sms_opted_in_at")) if native_row else False,

@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import pytest
 from unittest.mock import Mock
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app.auth import _hash_password, create_access_token, register_native_user
+from app.auth import (
+    _hash_password,
+    authenticate_native_user,
+    change_native_password,
+    create_access_token,
+    register_native_user,
+)
 from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.schemas import LeagueRules
@@ -350,3 +357,144 @@ def test_auth_me_includes_is_admin(admin_client):
 
     other = admin_client.get("/api/auth/me", headers=_auth_headers("other@example.com"))
     assert other.json()["user"]["is_admin"] is False
+
+
+def _verified_state(client, headers, user_id: str) -> bool:
+    res = client.get("/api/admin/users", headers=headers)
+    assert res.status_code == 200
+    row = next(r for r in res.json()["accounts"] if r["id"] == user_id)
+    return bool(row["email_verified_at"])
+
+
+def test_admin_can_take_verification_away_and_give_it_back(admin_client):
+    headers = _auth_headers()
+    player = register_native_user("toggle.me@mail.com", "longpassword1", "Toggle", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+    assert _verified_state(admin_client, headers, player["id"]) is True
+
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": False},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["email_verified"] is False
+    assert res.json()["email_verified_at"] is None
+    assert _verified_state(admin_client, headers, player["id"]) is False
+
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": True},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["email_verified"] is True
+    assert _verified_state(admin_client, headers, player["id"]) is True
+
+
+def test_removing_verification_closes_draft_hub_for_that_account(admin_client):
+    """The point of the toggle: the gate reads the row live, not the session."""
+    player = register_native_user("gated.user@mail.com", "longpassword1", "Gated", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+    token = create_access_token(player, auth_type="native")
+    player_headers = {"Authorization": f"Bearer {token}"}
+
+    before = admin_client.get("/api/hub/memberships", headers=player_headers)
+    assert before.status_code != 403
+
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": False},
+        headers=_auth_headers(),
+    )
+    assert res.status_code == 200
+
+    # Same token, already issued — the gate still closes.
+    after = admin_client.get("/api/hub/memberships", headers=player_headers)
+    assert after.status_code == 403
+
+
+def test_admin_verification_unknown_user_is_404(admin_client):
+    res = admin_client.post(
+        "/api/admin/users/not-a-real-id/email-verified",
+        json={"verified": True},
+        headers=_auth_headers(),
+    )
+    assert res.status_code == 404
+
+
+def test_admin_verification_forbidden_for_non_allowlisted(admin_client):
+    player = register_native_user("victim@mail.com", "longpassword1", "Victim", accept_terms=True)
+    res = admin_client.post(
+        f"/api/admin/users/{player['id']}/email-verified",
+        json={"verified": True},
+        headers=_auth_headers("other@example.com"),
+    )
+    assert res.status_code == 403
+    assert user_store.is_email_verified(user_store.get_user_by_id(player["id"])) is False
+
+
+def _set_temp_password(client, user_id: str, password: str, admin_email: str = "admin@example.com"):
+    return client.post(
+        f"/api/admin/users/{user_id}/temp-password",
+        json={"password": password},
+        headers=_auth_headers(admin_email),
+    )
+
+
+def test_admin_temp_password_forces_a_change_and_never_echoes_it(admin_client):
+    player = register_native_user("reset.me@mail.com", "longpassword1", "Reset", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+
+    res = _set_temp_password(admin_client, player["id"], "TempPass!2026")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["must_change_password"] is True
+    # The password must not come back in any form.
+    assert "TempPass!2026" not in res.text
+    assert set(body) == {"user_id", "email", "must_change_password", "notified"}
+
+    # The temp password works for signing in...
+    assert authenticate_native_user("reset.me@mail.com", "TempPass!2026")["id"] == player["id"]
+    # ...and the old one does not.
+    with pytest.raises(HTTPException) as exc:
+        authenticate_native_user("reset.me@mail.com", "longpassword1")
+    assert exc.value.status_code == 401
+
+
+def test_temp_password_closes_draft_hub_until_the_holder_picks_their_own(admin_client):
+    player = register_native_user("forced.change@mail.com", "longpassword1", "Forced", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+
+    assert _set_temp_password(admin_client, player["id"], "TempPass!2026").status_code == 200
+
+    # A session issued after the reset still cannot use the Hub.
+    token = create_access_token(user_store.get_user_by_id(player["id"]), auth_type="native")
+    headers = {"Authorization": f"Bearer {token}"}
+    assert admin_client.get("/api/hub/memberships", headers=headers).status_code == 403
+
+    change_native_password(player["id"], "TempPass!2026", "TheirOwnPass!9")
+    assert user_store.must_change_password(user_store.get_user_by_id(player["id"])) is False
+
+    token = create_access_token(user_store.get_user_by_id(player["id"]), auth_type="native")
+    headers = {"Authorization": f"Bearer {token}"}
+    assert admin_client.get("/api/hub/memberships", headers=headers).status_code != 403
+
+
+def test_admin_temp_password_rejects_a_short_password(admin_client):
+    player = register_native_user("short.pw@mail.com", "longpassword1", "Short", accept_terms=True)
+    res = _set_temp_password(admin_client, player["id"], "short")
+    assert res.status_code == 422
+    assert user_store.must_change_password(user_store.get_user_by_id(player["id"])) is False
+
+
+def test_admin_temp_password_unknown_user_is_404(admin_client):
+    assert _set_temp_password(admin_client, "not-a-real-id", "TempPass!2026").status_code == 404
+
+
+def test_admin_temp_password_forbidden_for_non_allowlisted(admin_client):
+    player = register_native_user("pw.victim@mail.com", "longpassword1", "Victim", accept_terms=True)
+    res = _set_temp_password(admin_client, player["id"], "TempPass!2026", admin_email="other@example.com")
+    assert res.status_code == 403
+    # The password was not changed.
+    assert authenticate_native_user("pw.victim@mail.com", "longpassword1")["id"] == player["id"]

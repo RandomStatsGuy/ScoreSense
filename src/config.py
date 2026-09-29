@@ -112,6 +112,7 @@ LEGACY_PREDICTIONS_DIR = PROJECT_ROOT / "legacy" / "data" / "Predictions"
 PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "predictions"
 DRAFT_POOL_DIR = PROJECT_ROOT / "artifacts" / "draft_pool"
 WEEKLY_PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "weekly_predictions"
+DFS_PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "dfs_predictions"
 WEEKLY_PROJECTION_CHANGES_DIR = PROJECT_ROOT / "artifacts" / "weekly_projection_changes"
 ROS_PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "ros_predictions"
 PLAYER_CONTEXT_DIR = PROJECT_ROOT / "artifacts" / "player_context"
@@ -188,7 +189,7 @@ FANTASY_SCORING = {
 
 # Seasons used for default training/backtest
 DEFAULT_TRAIN_SEASONS = list(range(2018, 2025))
-DEFAULT_TEST_SEASONS = [2025]
+DEFAULT_TEST_SEASONS = [2025, 2026]
 DEFAULT_ETL_SEASONS = DEFAULT_TRAIN_SEASONS + DEFAULT_TEST_SEASONS
 DEFAULT_ACCURACY_SEASONS = list(range(2019, 2026))
 DEFAULT_FP_ARCHIVE_SEASONS = list(range(2019, 2026))
@@ -236,6 +237,9 @@ PARQUET_WRITE_KWARGS = {"index": False, "compression": "zstd"}
 def write_parquet(df, path) -> None:
     """Write a DataFrame to compressed Parquet."""
     df.to_parquet(path, **PARQUET_WRITE_KWARGS)
+
+DFS_REFRESH_SECONDS = 300
+DFS_REFRESH_ENABLED = os.getenv("DFS_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 
 for path in (
     PROCESSED_DATA_DIR,

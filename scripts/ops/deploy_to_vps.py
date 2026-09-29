@@ -54,6 +54,7 @@ EXCLUDE_PREFIXES = (
     "artifacts/backtest/",
     "artifacts/draft_pool/",
     "artifacts/weekly_predictions/",
+    "artifacts/dfs_predictions/",
     "artifacts/ros_predictions/",
     "artifacts/player_context/",
     "artifacts/injury_overlays/",

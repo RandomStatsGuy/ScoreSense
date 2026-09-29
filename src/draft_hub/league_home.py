@@ -347,7 +347,7 @@ def _build_actions(
                 )
             )
 
-    if not sleeper_linked and phase_id != PHASE_LIVE_DRAFT:
+    if not sleeper_linked and phase_id != PHASE_LIVE_DRAFT and not (league_id and phase_id == PHASE_IN_SEASON):
         actions.append(
             _action(
                 "sync_league",

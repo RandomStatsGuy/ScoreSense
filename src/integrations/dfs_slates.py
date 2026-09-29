@@ -11,7 +11,7 @@ from typing import Any
 import pandas as pd
 import requests
 
-from src.config import CACHE_DIR
+from src.config import CACHE_DIR, DFS_REFRESH_SECONDS
 from src.products.dfs_salaries import _normalize_dfs_position
 from src.integrations.external_projections import _normalize_name
 
@@ -478,7 +478,7 @@ def fetch_dk_salaries(
     force_refresh: bool = False,
 ) -> pd.DataFrame:
     cache = _cache_path("draftkings", draft_group_id)
-    if use_cache and cache.exists() and not force_refresh:
+    if use_cache and cache.exists() and not force_refresh and 0 <= time.time() - cache.stat().st_mtime < DFS_REFRESH_SECONDS:
         cached = pd.read_parquet(cache)
         if not cached.empty:
             return cached
@@ -523,7 +523,7 @@ def fetch_fd_salaries(
         )
 
     cache = _cache_path("fanduel", fixture_id)
-    if use_cache and cache.exists() and not force_refresh:
+    if use_cache and cache.exists() and not force_refresh and 0 <= time.time() - cache.stat().st_mtime < DFS_REFRESH_SECONDS:
         cached = pd.read_parquet(cache)
         if not cached.empty:
             return cached

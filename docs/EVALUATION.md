@@ -113,3 +113,8 @@ The QB model shows the strongest lift over baseline (23.9% MAE improvement), dri
 - Does not model in-week injuries or snap count changes after publication
 - Early-season predictions have higher variance (limited rolling history)
 - WR/TE grouped together; TE-specific modeling could improve TE accuracy
+
+
+## DFS special teams (September 2026)
+
+The separate DFS defense head uses full-game DraftKings scoring and strictly lagged team/opponent features. The 2023 and 2024 expanding-season evaluations beat the unconditional median and mean quantile-loss baselines in both folds, with 81.25% and 80.88% P10-P90 coverage. The kicker candidate failed the gate; production uses labeled empirical kicking ranges instead. This is an initial marginal forecast gate, not joint-outcome or GPP-return validation. [Complete metrics and source hashes](../artifacts/models/v2/dfs_special_teams.evaluation.json), [scope and refresh details](DFS_PLAYER_ESTIMATES.md).

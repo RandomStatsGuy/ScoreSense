@@ -102,7 +102,7 @@ export function isExpiredToFaRow(row) {
 
 export function isLiveOfficeRow(row) {
   if (!row) return false;
-  if (String(row.roster_status || "active") === "cut_before_draft") return false;
+  if (["cut_before_draft", "cut", "waived", "traded"].includes(String(row.roster_status || "active"))) return false;
   return !isExpiredToFaRow(row);
 }
 
@@ -116,6 +116,8 @@ export function partitionOfficeRoster(roster = []) {
       cuts.push(row);
       continue;
     }
+    // Dropped (waived) and traded rows no longer belong to this team's roster or cap.
+    if (["waived", "traded", "cut"].includes(status)) continue;
     if (isExpiredToFaRow(row)) expired.push(row);
     else live.push(row);
   }
@@ -255,7 +257,9 @@ export function salaryInputMax({ remaining, currentSalary, isCut }) {
 }
 
 function activeRoster(roster) {
-  return (roster || []).filter((r) => r.roster_status !== "cut_before_draft");
+  return (roster || []).filter(
+    (r) => !["cut_before_draft", "cut", "waived", "traded", "expired"].includes(String(r.roster_status || "active")),
+  );
 }
 
 export function teamCapStats(block, salaryCap, rules, draftCompleted = false) {

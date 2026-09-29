@@ -14,6 +14,8 @@
  * must not be presented as files for editing existing contest entries.
  */
 
+import { normalizeDfsTeam } from "./dfsToolPresentation.js";
+
 import { csvQuote } from "./table/csv.js";
 
 const CLASSIC_SLOT_ORDER = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
@@ -109,15 +111,30 @@ export function buildSiteLineupCsv(site, lineups = [], salaryCatalog = null) {
       (isDraftKings && !/^[1-9]\d*$/.test(String(row.dfs_id))))) {
       return { ok: false, reason: "A player name or upload ID is invalid. Reload the site's salary file; keep IDs as text when editing CSVs." };
     }
+    const captainMode = site === "draftkings_showdown" || site === "fanduel_single";
+    const positionKey = value => String(value || "").toUpperCase().replace(/^(DEF|D)$/, "DST");
+    if (ordered.some(row => {
+      const pos = positionKey(row.position);
+      if (captainMode) return !["QB", "RB", "WR", "TE", "DST", "K"].includes(pos);
+      const slot = String(row.slot).replace(/\d+$/, "");
+      return slot === "FLEX" ? !["RB", "WR", "TE"].includes(pos) : pos !== slot;
+    })) return { ok: false, reason: "A player is not eligible for their roster slot. Rebuild before exporting." };
     if (salaryCatalog) {
-      const catalogMatches = ordered.every(row => salaryCatalog.some(player => {
-        const captain = row.slot === "CPT";
-        const expectedId = captain ? player.cpt_dfs_id : row.slot === "MVP" ? (player.cpt_dfs_id || player.dfs_id) : player.dfs_id;
-        const expectedSalary = captain ? player.cpt_salary : row.slot === "MVP" ? (player.cpt_salary ?? player.salary) : player.salary;
-        return expectedId != null && String(expectedId) === String(row.dfs_id)
-          && Number(expectedSalary) === Number(row.salary);
-      }));
-      if (!catalogMatches) return { ok: false, reason: "A player ID, roster slot or salary does not match the loaded slate. Reload salaries and rebuild before exporting." };
+      const catalogMatches = Array.isArray(salaryCatalog) && ordered.every(row => {
+        const matches = salaryCatalog.filter(player => {
+          const captain = row.slot === "CPT";
+          const expectedId = captain ? player.cpt_dfs_id : row.slot === "MVP" ? (player.cpt_dfs_id || player.dfs_id) : player.dfs_id;
+          return expectedId != null && String(expectedId) === String(row.dfs_id);
+        });
+        if (matches.length !== 1) return false;
+        const player = matches[0];
+        const expectedSalary = row.slot === "CPT" ? player.cpt_salary : row.slot === "MVP" ? (player.cpt_salary ?? Number(player.salary) * 1.5) : player.salary;
+        return Number(expectedSalary) === Number(row.salary)
+          && (!player.player_id || String(player.player_id) === String(row.player_id))
+          && positionKey(player.Position ?? player.position) === positionKey(row.position)
+          && normalizeDfsTeam(player.Team ?? player.team) === normalizeDfsTeam(row.team);
+      });
+      if (!catalogMatches) return { ok: false, reason: "A player, upload ID, position or salary does not match the loaded slate. Reload salaries and rebuild before exporting." };
     }
     const ids = new Set();
     const athletes = new Set();

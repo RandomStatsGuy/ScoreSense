@@ -5,6 +5,8 @@ from __future__ import annotations
 from itertools import combinations
 from typing import Any
 
+import pandas as pd
+
 from src.draft_hub.auction_values import build_player_values, fair_value_for_row
 from src.draft_hub.league_analytics import build_league_analytics
 from src.draft_hub.pre_draft_cap import is_active_for_pre_draft
@@ -128,7 +130,34 @@ def _player_fair_values(
     rules: LeagueRules,
     team_count: int,
 ) -> dict[str, float]:
-    values = build_player_values(pool, rules, team_count=team_count)
+    valuation_pool = pool.copy()
+    try:
+        from src.draft_hub.k_def_pool_cache import k_def_projection_index
+
+        specialists = []
+        for pid, hit in k_def_projection_index(allow_fetch=False).items():
+            pos = normalize_position(hit.get("position"))
+            if pos not in {"K", "DEF"}:
+                continue
+            specialists.append(
+                {
+                    "player_id": str(pid),
+                    "Player": hit.get("player_name"),
+                    "Position": pos,
+                    "Season Proj": hit.get("season_proj") or hit.get("p50") or 0.0,
+                    "Season P10": hit.get("p10"),
+                    "Season P50": hit.get("p50"),
+                    "Season P90": hit.get("p90"),
+                }
+            )
+        if specialists:
+            valuation_pool = pd.concat(
+                [valuation_pool, pd.DataFrame(specialists)], ignore_index=True
+            ).drop_duplicates(subset=["player_id"], keep="first")
+    except Exception:
+        pass
+
+    values = build_player_values(valuation_pool, rules, team_count=team_count)
     out: dict[str, float] = {}
     for row in roster:
         pid = str(row.get("player_id") or "")
@@ -136,7 +165,7 @@ def _player_fair_values(
             continue
         fv = values.get(pid, {}).get("fair_value")
         if fv is None:
-            fv = fair_value_for_row(row, pool, rules, team_count=team_count)
+            fv = fair_value_for_row(row, valuation_pool, rules, team_count=team_count)
         if fv is not None and float(fv) > 0:
             out[pid] = float(fv)
     return out

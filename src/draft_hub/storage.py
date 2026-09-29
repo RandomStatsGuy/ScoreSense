@@ -1851,6 +1851,18 @@ def remove_roster_slot(
         return True
 
 
+def set_roster_slot_status(workspace_id: str, slot_id: int, roster_status: str) -> bool:
+    """Change one row's roster_status by row id (no player_id row picking)."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "UPDATE roster_slot SET roster_status = ? WHERE workspace_id = ? AND id = ?",
+            (str(roster_status), workspace_id, int(slot_id)),
+        )
+        if cur.rowcount:
+            _bump_live_for_workspace_conn(conn, workspace_id)
+        return bool(cur.rowcount)
+
+
 def delete_roster_slot_ids(workspace_id: str, slot_ids: list[int]) -> int:
     ids = [int(i) for i in slot_ids if i is not None]
     if not ids:
@@ -2099,6 +2111,20 @@ def list_in_progress_draft_league_ids() -> list[str]:
                  AND COALESCE(conduct, 'live') != 'offline'"""
         ).fetchall()
     return [str(r["league_id"]) for r in rows]
+
+
+def list_live_sleeper_league_ids() -> list[str]:
+    """Linked, non-test leagues that allow Sleeper to write roster state."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT id FROM league
+               WHERE NULLIF(TRIM(sleeper_league_id), '') IS NOT NULL
+                 AND COALESCE(NULLIF(TRIM(sleeper_sync_mode), ''), ?) = ?
+                 AND COALESCE(test_mode, 0) = 0
+               ORDER BY created_at, id""",
+            (SLEEPER_SYNC_LIVE, SLEEPER_SYNC_LIVE),
+        ).fetchall()
+    return [str(row["id"]) for row in rows]
 
 
 def _draft_payload_dumps(payload: dict[str, Any] | None) -> str:
@@ -2938,7 +2964,13 @@ def league_roster_overview(league_id: str) -> dict[str, Any]:
     team_blocks = []
     for team in teams:
         rows = filter_team_sleeper_roster(team, by_team.get(team["id"], []))
-        total = sum(float(r.get("salary") or 0) for r in rows)
+        # Same cap math as everywhere else: live contracts plus dead cap only.
+        # Dropped / traded / expired history rows cost nothing.
+        from src.draft_hub.rules_engine import _row_cap_charge
+        from src.draft_hub.schemas import LeagueRules
+
+        _rules = LeagueRules.model_validate(league["rules"])
+        total = sum(_row_cap_charge(_rules, r)[0] for r in rows)
         team_blocks.append(
             {
                 "team": team,
@@ -6920,7 +6952,8 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
         league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
         if league is None or league["sleeper_league_id"]:
             raise ValueError("Native scoring is unavailable for this league.")
-        if conn.execute("SELECT 1 FROM league_week_correction WHERE league_id=? AND season=? AND week=? AND published_at IS NOT NULL", key).fetchone():
+        if conn.execute("""SELECT 1 FROM league_week_correction WHERE league_id=? AND season=? AND week=?
+                        AND published_at IS NOT NULL AND COALESCE(json_extract(preview_json, '$.mode'), 'results') != 'lineup'""", key).fetchone():
             raise ValueError("This week has a published commissioner correction. Preview a new correction to change its results.")
         current = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
         if current.scoring.model_dump() != scoring:

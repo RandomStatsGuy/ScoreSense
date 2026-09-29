@@ -65,3 +65,15 @@ def test_weekly_fingerprint_includes_pool_policy(monkeypatch, tmp_path):
     fp = wc.weekly_fingerprint()
     assert len(fp) == 16
     assert wc.WEEKLY_POOL_POLICY == "v3-unlisted-backup"
+
+
+def test_empty_refresh_preserves_previous_artifact(monkeypatch, tmp_path):
+    monkeypatch.setattr(wc, "WEEKLY_PREDICTIONS_DIR", tmp_path)
+    monkeypatch.setattr(wc, "weekly_fingerprint", lambda: "test")
+    wc.save_weekly_artifact("qb", 2026, 4, True, _sample_frame())
+    path, meta = wc._artifact_paths("qb", 2026, 4, True)
+    before = (path.read_bytes(), meta.read_bytes())
+    monkeypatch.setattr(wc, "predict_upcoming_week", lambda *a, **k: pd.DataFrame())
+    with pytest.raises(ValueError, match="Empty"):
+        wc.load_weekly_prediction("qb", 2026, 4, force=True)
+    assert (path.read_bytes(), meta.read_bytes()) == before

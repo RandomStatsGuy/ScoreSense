@@ -749,8 +749,8 @@ a.app-bottom-nav-item {
   position: sticky;
   top: 0;
   z-index: 40;
-  margin: 0 0 0.65rem;
-  padding: 0.55rem 0.75rem;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
@@ -761,7 +761,7 @@ a.app-bottom-nav-item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem 0.75rem;
+  gap: var(--space-2) var(--space-3);
 }
 
 .projections-filter-pos-segment {
@@ -780,7 +780,7 @@ a.app-bottom-nav-item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem 0.55rem;
+  gap: var(--space-2);
   flex: 1 1 16rem;
   min-width: 0;
 }
@@ -791,7 +791,17 @@ a.app-bottom-nav-item {
 }
 
 .projections-filter-search .search-input {
-  min-width: 9rem;
+  min-width: 12rem;
+}
+
+.projections-filter-bar .header-context-control,
+.projections-filter-bar .week-step-btn,
+.projections-filter-bar .header-segment-tab {
+  min-height: var(--control-height);
+}
+
+.projections-filter-bar .projections-filter-scoring-note {
+  margin-left: auto;
 }
 
 /* Narrow-desktop range (769–900px): keep filter fields inline instead of the
@@ -10477,12 +10487,14 @@ td.col-rank.col-rank-top {
 
 /* ===== SCORE-7: Projection movement / What Changed? ===== */
 .table-has-movement {
-  --rank-col-width: 5.75rem;
+  /* Longest labels include two double-digit ranks plus the move amount. */
+  --rank-col-width: 7.5rem;
 }
 
 .table-has-movement th.col-rank,
 .table-has-movement td.col-rank {
-  max-width: none;
+  max-width: var(--rank-col-width);
+  overflow: hidden;
   white-space: normal;
 }
 
@@ -10538,6 +10550,13 @@ td.col-rank.col-rank-top {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+.table-has-movement .col-rank-stack {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+}
+
 .col-rank-move {
   display: block;
   max-width: 100%;
@@ -10548,10 +10567,22 @@ td.col-rank.col-rank-top {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-regular, 400);
 }
+
+.table-has-movement .col-rank-move {
+  width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .col-rank-move .proj-move {
   flex-wrap: nowrap;
   max-width: none;
   font-weight: inherit;
+}
+
+.table-has-movement .col-rank-move .proj-move {
+  display: flex;
+  width: 100%;
 }
 
 .proj-move {
@@ -10696,6 +10727,33 @@ td.col-rank.col-rank-top {
 
 .hub-fa-page .hub-table-card {
   overflow: visible;
+}
+
+.hub-fa-page .hub-table.hub-table--available {
+  min-width: 56rem;
+}
+
+.hub-fa-page .hub-table.hub-table--available .col-player,
+.hub-fa-page .hub-table.hub-table--available thead th.col-player {
+  width: 49%;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-pos {
+  width: 6%;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-proj {
+  width: 18%;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-fv {
+  width: 12%;
+  min-width: 0;
+}
+
+.hub-fa-page .hub-table.hub-table--available .hub-col-actions {
+  width: 15%;
+  min-width: 10.5rem;
 }
 
 .hub-fa-board {

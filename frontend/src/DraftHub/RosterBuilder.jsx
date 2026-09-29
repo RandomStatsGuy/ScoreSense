@@ -7,7 +7,7 @@ import MobilePlayerCard from "../MobilePlayerCard";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 import confirmDialog from "../ui/confirm";
 import HoverTip from "../HoverTip";
-import { MY_TEAM_COPY, rosterStatusInfo } from "./rosterPresentation";
+import { MY_TEAM_COPY, rosterRowOccupies, rosterStatusInfo } from "./rosterPresentation";
 import { HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky, HubTableCard, SortTh } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
@@ -125,7 +125,7 @@ function ContractSidePanelBody({
   onOpenContractHistory,
   rules,
 }) {
-  const isCut = r.roster_status === "cut_before_draft";
+  const isCut = !rosterRowOccupies(r);
   const deadStory = contractDeadCapStory(r, rules);
 
   return (
@@ -417,20 +417,30 @@ export default function RosterBuilder({
     });
   }, [search, posFilter, statusFocus, sortedRoster, draftCompleted, workspace?.rules, usesSalaries]);
 
+  // Cut / dropped / traded / expired rows stay visible as history but never
+  // count toward roster size, position limits, or committed salary.
+  const liveRoster = useMemo(() => (roster || []).filter(rosterRowOccupies), [roster]);
+
   const posCounts = useMemo(() => {
     const counts = { ALL: (roster || []).length };
-    for (const row of roster || []) {
+    for (const row of liveRoster) {
       const pos = normalizeHubPosition(row.position);
       if (!pos) continue;
       counts[pos] = (counts[pos] || 0) + 1;
     }
     return counts;
-  }, [roster]);
+  }, [roster, liveRoster]);
 
-  const totalSalary = useMemo(() => {
+  const deadCap = Number(capSheet?.summary?.dead_cap) || 0;
+
+  /** Live contracts only — the cap bar draws dead cap as its own segment. */
+  const liveSalary = useMemo(() => {
     if (preDraft) return preDraft.season_committed;
-    return (roster || []).reduce((sum, r) => sum + Number(r.salary || 0), 0);
-  }, [preDraft, roster]);
+    return liveRoster.reduce((sum, r) => sum + Number(r.salary || 0), 0);
+  }, [preDraft, liveRoster]);
+
+  /** Headline cap used: live contracts plus dead cap. */
+  const totalSalary = preDraft ? liveSalary : liveSalary + deadCap;
 
   const selectedRow = useMemo(
     () => (selectedSlotKey ? (roster || []).find((r) => rosterSlotKey(r) === selectedSlotKey) : null),
@@ -878,9 +888,9 @@ export default function RosterBuilder({
         compact
         team={{ id: hubContext?.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
         identity={teamIdentity}
-        meta={`${roster.length} player${roster.length === 1 ? "" : "s"}${
-          roster.filter(isSleeperPlayer).length > 0
-            ? ` · ${roster.filter(isSleeperPlayer).length} imported from Sleeper`
+        meta={`${liveRoster.length} player${liveRoster.length === 1 ? "" : "s"}${
+          liveRoster.filter(isSleeperPlayer).length > 0
+            ? ` · ${liveRoster.filter(isSleeperPlayer).length} imported from Sleeper`
             : ""
         }`}
         onEdit={
@@ -905,7 +915,7 @@ export default function RosterBuilder({
               <span
                 className="hub-stadium-cap-bar"
                 role="img"
-                aria-label={`${MY_TEAM_COPY.capCommitted(fmtSal(totalSalary), fmtSal(salaryCap))}${
+                aria-label={`${MY_TEAM_COPY.capCommitted(fmtSal(liveSalary), fmtSal(salaryCap))}${
                   Number(capSheet?.summary?.dead_cap) > 0
                     ? `, ${MY_TEAM_COPY.deadCapInline(fmtSal(Number(capSheet.summary.dead_cap)))}`
                     : ""
@@ -913,7 +923,7 @@ export default function RosterBuilder({
               >
                 <span
                   className="hub-stadium-cap-bar-committed"
-                  style={{ width: `${Math.min(100, Math.max(0, (totalSalary / salaryCap) * 100))}%` }}
+                  style={{ width: `${Math.min(100, Math.max(0, (liveSalary / salaryCap) * 100))}%` }}
                 />
                 {Number(capSheet?.summary?.dead_cap) > 0 && (
                   <span
@@ -1089,7 +1099,7 @@ export default function RosterBuilder({
               return (
                 <MobilePlayerCard
                   key={rosterSlotKey(r)}
-                  className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${r.roster_status === "cut_before_draft" ? " hub-cut-row" : ""}`.trim()}
+                  className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${!rosterRowOccupies(r) ? " hub-cut-row" : ""}`.trim()}
                   name={r.player_name}
                   meta={[r.team, normalizeHubPosition(r.position)].filter(Boolean).join(" · ") || "—"}
                   heroValue={usesSalaries ? fmtSal(vm.edit.salary) : (normalizeHubPosition(r.position) || "—")}
@@ -1157,7 +1167,7 @@ export default function RosterBuilder({
               const logo = paintMediaUrl(media.team_logo_url, PAINT_WIDTH.avatar) || teamLogoUrl(r.team, { width: PAINT_WIDTH.avatar });
               const thumb = paintMediaUrl(media.headshot_url, PAINT_WIDTH.avatar) || logo;
               const vm = rowViewModel(r);
-              const isCut = r.roster_status === "cut_before_draft";
+              const isCut = !rosterRowOccupies(r);
               const selected = selectedSlotKey === rosterSlotKey(r);
               return (
                 <tr

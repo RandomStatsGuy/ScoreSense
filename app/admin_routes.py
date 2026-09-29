@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.auth import is_native_sub, native_user_sub, require_admin
+from app.auth import admin_set_temp_password, is_native_sub, native_user_sub, require_admin
 from src.auth import user_store
 from src.draft_hub import storage
 from src.draft_hub.hub_context import resolve_hub_context
@@ -81,6 +81,14 @@ class AdminLeagueInviteRequest(BaseModel):
 class AdminLinkTeamRequest(BaseModel):
     email: Optional[str] = None
     user_sub: Optional[str] = None
+
+
+class AdminEmailVerifiedRequest(BaseModel):
+    verified: bool
+
+
+class AdminTempPasswordRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=200)
 
 
 class AdminLeagueCreateRequest(BaseModel):
@@ -173,6 +181,45 @@ def admin_list_users(
         "system_subs": system_subs,
         "count": len(rows),
     }
+
+
+@router.post("/users/{user_id}/email-verified")
+def admin_set_email_verified(
+    user_id: str,
+    body: AdminEmailVerifiedRequest,
+    _admin=Depends(require_admin),
+) -> dict:
+    """Mark one account verified, or take verification away.
+
+    Clearing it locks that account out of Draft Hub until they verify or an
+    admin restores it, so the response reports the state that was written
+    rather than the state that was asked for.
+    """
+    user = user_store.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="No account with that id")
+    updated = user_store.set_email_verified(user_id, body.verified)
+    if not updated:
+        raise HTTPException(status_code=404, detail="No account with that id")
+    return {
+        "user_id": user_id,
+        "email": updated.get("email"),
+        "email_verified": user_store.is_email_verified(updated),
+        "email_verified_at": updated.get("email_verified_at"),
+    }
+
+
+@router.post("/users/{user_id}/temp-password")
+def admin_temp_password(
+    user_id: str,
+    body: AdminTempPasswordRequest,
+    _admin=Depends(require_admin),
+) -> dict:
+    """Set a temporary password the account holder must replace at next sign-in.
+
+    The password is never echoed back, logged, or stored anywhere but the hash.
+    """
+    return admin_set_temp_password(user_id, body.password)
 
 
 @router.get("/leagues")

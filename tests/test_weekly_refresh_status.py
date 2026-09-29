@@ -8,6 +8,10 @@ from unittest.mock import patch
 from src.jobs import weekly_refresh as wr
 
 
+def test_default_weekly_refresh_includes_active_2026_season():
+    assert 2026 in wr.DEFAULT_TEST_SEASONS
+
+
 def test_mark_refresh_started_writes_running(tmp_path, monkeypatch):
     status_path = tmp_path / "last_refresh.json"
     monkeypatch.setattr(wr, "REFRESH_STATUS", status_path)
