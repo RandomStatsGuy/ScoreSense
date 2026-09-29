@@ -20,6 +20,7 @@ import {
   shouldShowNextWeek,
   shouldShowPrevWeek,
 } from "./gameCenterPresentation";
+import { WEEK_BOARD_COPY } from "./weekBoard";
 import LeagueScoringControl from "./LeagueScoringControl";
 import GameCenterMatchup from "./GameCenterMatchup";
 import "../styles/game-center-room.css";
@@ -32,9 +33,13 @@ export default function GameCenter({
   onNavigate,
   requestedWeek,
   requestedTeam,
+  reloadToken,
+  weekly = false,
+  renderLineup,
 }) {
   const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
+  const [lineupSummary, setLineupSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [week, setWeek] = useState(() => gameCenterWeek(requestedWeek)); // null = current NFL week
@@ -75,13 +80,14 @@ export default function GameCenter({
   useEffect(() => {
     setLoading(true);
     setData(null);
+    setLineupSummary(null);
     const ctrl = new AbortController();
     const native = !hubContext?.sleeper_league_id;
     load(ctrl.signal, {
       refresh: Boolean(hubContext?.draft_completed && native),
     });
     return () => ctrl.abort();
-  }, [load, hubContext?.draft_completed, hubContext?.sleeper_league_id]);
+  }, [load, hubContext?.draft_completed, hubContext?.sleeper_league_id, reloadToken]);
 
   const pollScores = shouldPollGameCenter(data, hubContext);
 
@@ -134,7 +140,8 @@ export default function GameCenter({
       }),
     [standingsView.standings, hubContext?.team_id],
   );
-  const weekNumber = data?.week;
+  const lineupWeek = data?.week ?? week;
+  const weekNumber = lineupWeek ?? lineupSummary?.week;
   const currentWeek = data?.current_week;
   const maxWeek = data?.max_week || 18;
   const stateLabel =
@@ -172,15 +179,15 @@ export default function GameCenter({
   };
 
   return (
-    <HubPage className="hub-game-room">
+    <HubPage frameless={weekly} className={`hub-game-room${weekly ? " hub-week-room" : ""}`}>
       <header className="gc-room-heading">
-        <div>
+        <div className="gc-room-page-title">
           <p>
             {weekNumber
               ? `Week ${weekNumber} · ${data?.season || ""}`
               : GAME_CENTER_COPY.eyebrow}
           </p>
-          <h1>{GAME_CENTER_COPY.eyebrow}</h1>
+          <h1>{weekly ? GAME_CENTER_COPY.weeklyTitle : GAME_CENTER_COPY.eyebrow}</h1>
         </div>
         <div className="gc-room-week" role="group" aria-label="Week">
           {showPrev && (
@@ -206,8 +213,9 @@ export default function GameCenter({
               →
             </button>
           )}
-          <a href="/hub/roster">{GAME_CENTER_COPY.backToTeam}</a>
+          {!weekly && <a href="/hub/roster">{GAME_CENTER_COPY.backToTeam}</a>}
         </div>
+        {weekly && lineupSummary && lineupSummary.week === weekNumber && <span className="hub-week-call-count" role="status">{WEEK_BOARD_COPY.compactCalls(lineupSummary.calls)}</span>}
       </header>
       {error && (
         <HubAlert variant="warn">
@@ -253,6 +261,8 @@ export default function GameCenter({
           standingsView={standingsView}
           onNavigate={onNavigate}
           hubContext={hubContext}
+          weekly={weekly}
+          lineup={renderLineup?.({week:lineupWeek, onChanged:() => load(undefined, {refresh:true}), onSummary:setLineupSummary})}
           scoringControl={(
             <LeagueScoringControl
               key={`${leagueId}-${data.season}-${data.week}`}
@@ -265,6 +275,7 @@ export default function GameCenter({
           )}
         />
       )}
+      {weekly && renderLineup && (!matchup || !viewer || !opponent) && renderLineup({week:lineupWeek, onChanged:() => load(undefined, {refresh:true}), onSummary:setLineupSummary})}
     </HubPage>
   );
 }

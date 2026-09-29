@@ -11,8 +11,8 @@ export const HUB_SLUG_TO_ID = {
   week: "week",
   vibes: "vibes",
   "vibe-rankings": "vibes",
-  game: "game",
-  "game-center": "game",
+  game: "week",
+  "game-center": "week",
   roster: "roster",
   "my-team": "roster",
   rosters: "rosters",
@@ -33,7 +33,7 @@ export const HUB_ID_TO_SLUG = {
   available: "free-agents",
   week: "week",
   vibes: "vibes",
-  game: "game",
+  game: "week",
   roster: "roster",
   rosters: "rosters",
   room: "draft",
@@ -171,14 +171,14 @@ export function parseAppPath(pathname) {
     }
     const slug = parts[1] || "home";
     if (slug === "live") {
-      // Legacy live-scoring URL → Game center owns the matchup now.
+      // Legacy live-scoring URL → the combined weekly experience.
       return {
         view: "hub",
         projectionsTab: null,
         projectionsMobilePanel: null,
         seasonMode: null,
         toolsTab: null,
-        hubSubView: "game",
+        hubSubView: "week",
         insightTab: null,
         officeTab: null,
       };
@@ -490,6 +490,7 @@ export function buildFilterSearchParams({
 export function hubSubViewFilterUpdates(subView, extra) {
   const updates = {};
   if (extra && typeof extra === "object") {
+    if (Number.isInteger(Number(extra.week)) && Number(extra.week) >= 1 && Number(extra.week) <= 18) updates.week = Number(extra.week);
     if (extra.pos) updates.needPos = String(extra.pos).toUpperCase();
     const playerId = extra.player ?? extra.player_id ?? extra.playerId;
     if (playerId !== undefined) updates.player = String(playerId || "");

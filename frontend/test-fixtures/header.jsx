@@ -8,6 +8,7 @@ import HubSubnav, { HUB_SUBVIEWS } from '../src/DraftHub/HubSubnav.jsx';
 import LeagueContextBanner from '../src/DraftHub/LeagueContextBanner';
 import useMobileLayout from '../src/useMobileLayout';
 import '../src/styles.css';
+import '../src/styles/fantasy.css';
 import '../src/styles/product-hierarchy.css';
 import '../src/styles/product-rhythm.css';
 import '../src/styles/fantasy-phone.css';
@@ -33,7 +34,7 @@ function Preview() {
   return <div className="app"><header className={`app-header ${product === 'hub' ? 'app-header--hub' : ''}`}><div className="app-header-shell">
     <DesktopPrimaryHeader productName="ScoreSense" studioName="4th Down Labs" sections={[{ id: 'projections', label: 'Projections' }, { id: 'hub', label: 'Fantasy' }, { id: 'tools', label: 'Tools' }]} view={product} pathForSection={id => `/${id}`} onNavigate={setProduct}><UserMenu authReady authenticated user={{ name: 'Kheylub' }} view={product} /></DesktopPrimaryHeader>
     {mobile && <MobileHeader title={title} hasMenu menuOpen={open} onTitleClick={() => setOpen(true)} />}
-    <HubSubnav subView={view} hubContext={context} onNavigate={setView} mobileLayout={mobile} pickerOnly={mobile} pickerOpen={open} onPickerOpenChange={setOpen} />
+    <HubSubnav subView={view} hubContext={context} onNavigate={setView} mobileLayout={mobile} pickerOpen={mobile ? open : undefined} onPickerOpenChange={mobile ? setOpen : undefined} />
   </div></header><main id="main-content"><div className="draft-hub"><LeagueContextBanner hubContext={context} memberships={memberships} onLeagueSwitch={choice => { window.__switched = choice; }} onCreateLeague={() => { window.__created = true; }} onLeagueSync={() => { window.__synced = true; }} showAttention={false} currentView={view} /><section style={{ padding: '32px 12px' }}><h1>{title === 'Rosters' ? 'League rosters' : title}</h1><p>Compare salaries, contract years, and estimated player values across teams.</p></section></div></main></div>;
 }
 createRoot(document.getElementById('root')).render(<Preview />);

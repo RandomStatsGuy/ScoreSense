@@ -27,6 +27,7 @@ import {
   WEEK_BOARD_COPY,
   LINEUP_PICKER_COPY,
   eligibleLineupReplacements,
+  sleeperLineupUrl,
   callSheetPlayers,
   weekHeroCopy,
   weekPrimaryAction,
@@ -42,6 +43,10 @@ export default function WeeklyCommandCenter({
   onNavigateSetup,
   onNavigate,
   reloadToken,
+  requestedWeek,
+  embedded = false,
+  onLineupChanged,
+  onSummary,
 }) {
   const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
   const [dataState, setDataState] = useState({ key: "", payload: null });
@@ -51,7 +56,7 @@ export default function WeeklyCommandCenter({
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
-  const [weekOverride, setWeekOverride] = useState("");
+  const [weekOverride, setWeekOverride] = useState(requestedWeek == null ? "" : String(requestedWeek));
   const mutationScope = `${contextKey}:${weekOverride}`;
   const mutationScopeRef = useRef(mutationScope);
   mutationScopeRef.current = mutationScope;
@@ -150,7 +155,7 @@ export default function WeeklyCommandCenter({
 
   const syncedLabel = sync.sleeper_synced_at
     ? formatRelativeTime(sync.sleeper_synced_at)
-    : (sync.linked ? "Synced — time unknown" : "Not linked");
+    : (sync.linked ? "Synced — time unknown" : data?.meta?.lineup_source === "hub" ? WEEK_BOARD_COPY.savedLineup : "Not linked");
 
   const weekLabel = meta.week != null ? `Week ${meta.week}` : "This week";
   const teamLabel = data?.hub_context?.team_name || hubContext?.team_name;
@@ -161,6 +166,9 @@ export default function WeeklyCommandCenter({
   const draftCompleted = Boolean(hubContext?.draft_completed || data?.hub_context?.draft_completed);
   const canSync = Boolean(sync.sync_endpoint) && Boolean(sync.linked);
   const poorCoverage = Boolean(data) && isPoorProjectionCoverage({ counts, status });
+  useEffect(() => {
+    onSummary?.(data ? { week: meta.week, calls: poorCoverage ? 0 : decisions.length } : null);
+  }, [onSummary, data, meta.week, poorCoverage, decisions.length]);
   const rosterCount = Number(counts.roster) || 0;
   const missingCount = Number(counts.missing_projections) || 0;
   const coveredCount = Math.max(0, rosterCount - missingCount);
@@ -292,6 +300,7 @@ export default function WeeklyCommandCenter({
       if (mutationScopeRef.current !== mutationScope) return false;
       setPickerSlot(null);
       await load();
+      onLineupChanged?.();
       return true;
     } catch (e) {
       if (mutationScopeRef.current !== mutationScope) return false;
@@ -300,7 +309,7 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope]);
+  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope, onLineupChanged]);
 
   const applySwap = useCallback(async (starterId, benchId) => {
     if (!leagueId || !starterId || !benchId) return;
@@ -321,6 +330,7 @@ export default function WeeklyCommandCenter({
       setPickerSlot(null);
       setOpenCall(null);
       await load();
+      onLineupChanged?.();
       return true;
     } catch (e) {
       if (mutationScopeRef.current !== mutationScope) return false;
@@ -329,7 +339,7 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, weekOverride, mutationScope]);
+  }, [leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged]);
 
   const runPrimary = () => {
     if (primary.kind === "sync" || primary.kind === "strip-sync") return undefined;
@@ -408,6 +418,7 @@ export default function WeeklyCommandCenter({
   );
 
   const boardProps = {
+    compact: embedded,
     weekLabel,
     slots,
     bench,
@@ -461,9 +472,11 @@ export default function WeeklyCommandCenter({
     media,
   };
 
+  const Page = embedded ? "section" : HubPage;
+  const Layout = embedded ? React.Fragment : HubExperienceLayout;
   return (
-    <HubPage className={`hub-wcc hub-experience-page${openCall || pickerSlot ? " is-call-open" : ""}`}>
-      <HubExperienceHero
+    <Page className={`hub-wcc${embedded ? " hub-week-lineup" : " hub-experience-page"}${openCall || pickerSlot ? " is-call-open" : ""}`}>
+      {!embedded && <HubExperienceHero
         eyebrow="This week"
         heading={hero.heading}
         support={hero.support}
@@ -473,11 +486,12 @@ export default function WeeklyCommandCenter({
         {decisions.length > 0 && !poorCoverage ? (
           <a href="#hub-wcc-calls" className="btn-link">{WEEK_BOARD_COPY.seeCalls}</a>
         ) : null}
-      </HubExperienceHero>
+      </HubExperienceHero>}
 
-      <HubExperienceLayout
-        summaryLabel="This week snapshot"
-        summary={(
+      {embedded && <h2 id="hub-week-lineup-heading" tabIndex={-1} className="sr-only">{WEEK_BOARD_COPY.lineupTitle}</h2>}
+      <Layout {...(embedded ? {} : {
+        summaryLabel:"This week snapshot",
+        summary:(
           <HubExperienceSummary
             title={teamLabel || leagueLabel || "Your team"}
             subtitle={weekLabel + (meta.season != null ? ` · ${meta.season}` : "")}
@@ -499,27 +513,32 @@ export default function WeeklyCommandCenter({
               <p className="hub-experience-summary-note">{WEEK_BOARD_COPY.gameCenterSupport}</p>
             ) : null}
           />
-        )}
-        footer={!emptyRoster && bench.length > 0 ? (
+        ),
+        footer:!emptyRoster && bench.length > 0 ? (
           <WeekLineupBoard {...boardProps} includeChrome={false} includeStarters={false} />
-        ) : null}
-      >
+        ) : null,
+      })}>
         {error && <div className="error">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
         {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
         {lineupError && !pickerSlot && <div className="error" role="alert">{lineupError}</div>}
         {lineupMessage && <p className="hub-wcc-lineup-saved" role="status">{lineupMessage}</p>}
-        {meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
+        {!embedded && meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
           <p className="chart-note">{WEEK_BOARD_COPY.projectionDefaults}</p>
         )}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
-        <WeekLineupBoard {...boardProps} includeBench={false} />
+        <WeekLineupBoard {...boardProps} includeBench={embedded} showWeekStepper={!embedded} />
+        {embedded && !loading && data && <footer className="hub-week-lineup-footer">
+          {sleeperLeagueId ? <a className="btn-link" href={sleeperLineupUrl(sleeperLeagueId)} target="_blank" rel="noreferrer">{WEEK_BOARD_COPY.manageSleeper} ↗</a>
+            : !canEdit ? <p>{LINEUP_PICKER_COPY.readonly}</p> : null}
+          {meta.week && hubContext?.is_commissioner && !sleeperLeagueId && <button type="button" className="btn-link" onClick={() => onNavigate?.("office-corrections", {week:meta.week})}>{WEEK_BOARD_COPY.correctLineup}</button>}
+        </footer>}
 
-      </HubExperienceLayout>
+      </Layout>
       {pickerSlot && <WeekLineupPicker
         key={`${contextKey}:${meta.week}:${pickerSlot.key || pickerSlot.slot}`}
-        slot={pickerSlot} bench={bench} rules={hubContext?.rules || data?.hub_context?.rules}
+        slot={pickerSlot} benchPlayer={pickerSlot.slot === "BN" ? pickerSlot.player : null} slots={slots} bench={bench} rules={hubContext?.rules || data?.hub_context?.rules}
         media={media} canEdit={canEdit} lineupLocked={Boolean(meta.lineup_locked)}
         staffOverride={Boolean(hubContext?.is_commissioner || data?.hub_context?.is_commissioner)}
         sleeperLeagueId={sleeperLeagueId} busy={lineupBusy} error={lineupError}
@@ -550,6 +569,6 @@ export default function WeeklyCommandCenter({
           }}
         />
       ) : null}
-    </HubPage>
+    </Page>
   );
 }

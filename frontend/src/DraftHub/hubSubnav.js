@@ -33,6 +33,7 @@ export function filterHubSubviews(hubContext) {
   const inLeague = hubContext?.mode === "league" || Boolean(hubContext?.league_id);
   const usesSalaries = leagueUsesSalaries(hubContext);
   return HUB_SUBVIEWS.filter((v) => {
+    if (v.id === "game") return false; // Compatibility URL is served by This Week.
     if (v.commissionerOnly && !hubContext?.is_commissioner) return false;
     if (v.leagueOnly && !inLeague) return false;
     if (v.salaryOnly && !usesSalaries) return false;
@@ -52,4 +53,16 @@ export function hubDestinationGroups(hubContext) {
     group.items.push(item);
   });
   return out;
+}
+
+export function primaryHubSubviews(hubContext) {
+  const visible = filterHubSubviews(hubContext);
+  const inSeason = hubContext?.mode === "league" && Boolean(hubContext?.draft_completed);
+  const ids = inSeason ? ["week", "roster", "available"] : ["home", "room", "value", "roster", "available"];
+  return ids.map(id => visible.find(item => item.id === id)).filter(Boolean);
+}
+
+export function secondaryHubSubviews(hubContext) {
+  const primary = new Set(primaryHubSubviews(hubContext).map(item => item.id));
+  return filterHubSubviews(hubContext).filter(item => !primary.has(item.id) && item.id !== "game");
 }

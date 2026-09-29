@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { HubFilterMenu } from "./HubUILayout";
+import { HubFilterMenu, HubSection, HubLoadingSkeleton } from "./HubUILayout";
 import { fmtNum, formatRelativeTime } from "../format";
 import { formatP50Move } from "../projectionMovement";
 import {
@@ -12,6 +12,7 @@ import {
 } from "./draftMedia";
 import {
   boardFreshnessLine,
+  formatKickoffFact,
   boardTitle,
   clampWeek,
   decisionForStarter,
@@ -39,6 +40,7 @@ function fmtPts(value) {
 
 export function RowFace({ player, slot, media }) {
   const [shotIndex, setShotIndex] = useState(0);
+  const [logoFailed, setLogoFailed] = useState(false);
   const row = lookupPlayerMedia(media, player?.player_id);
   const shots = headshotCandidates(row, [], { width: PAINT_WIDTH.avatar });
   const headshot = shots[shotIndex] || null;
@@ -48,6 +50,7 @@ export function RowFace({ player, slot, media }) {
 
   useEffect(() => {
     setShotIndex(0);
+    setLogoFailed(false);
   }, [player?.player_id, row?.headshot_url, row?.espn_headshot_url]);
 
   if (headshot) {
@@ -60,8 +63,8 @@ export function RowFace({ player, slot, media }) {
       />
     );
   }
-  if (logo) {
-    return <img className="hub-wcc-row-face" src={logo} alt="" />;
+  if (logo && !logoFailed) {
+    return <img className="hub-wcc-row-face" src={logo} alt="" onError={() => setLogoFailed(true)} />;
   }
   return (
     <span className="hub-wcc-row-face is-fallback" aria-hidden="true">
@@ -92,7 +95,7 @@ function PlayerFlags({ player }) {
   );
 }
 
-function SlotAction({ decision, onOpenCall }) {
+function SlotAction({ decision, onOpenCall, compact }) {
   if (!decision) {
     return <div className="hub-wcc-row-action" aria-hidden="true" />;
   }
@@ -105,7 +108,7 @@ function SlotAction({ decision, onOpenCall }) {
   return (
     <div className="hub-wcc-row-action">
       <div className="hub-wcc-call-pills">
-        <button
+        {!compact && <button
           type="button"
           className="hub-wcc-call-pill is-sit"
           aria-label={sitLabel}
@@ -113,7 +116,7 @@ function SlotAction({ decision, onOpenCall }) {
           onClick={open}
         >
           {WEEK_BOARD_COPY.sitRole}
-        </button>
+        </button>}
         <button
           type="button"
           className="hub-wcc-call-pill is-start"
@@ -135,6 +138,7 @@ function SlateRow({
   slot,
   decision,
   highlighted = false,
+  compact = false,
   wide,
   movement,
   vibePts,
@@ -179,13 +183,13 @@ function SlateRow({
       }
       aria-label={label}
     >
-      {onOpenSlot && slot.slot !== "BN" ? (
+      {onOpenSlot ? (
         <button type="button" className="hub-wcc-position-button"
           aria-label={LINEUP_PICKER_COPY.move(player?.player_name || player?.player_id, slot.slot)}
           aria-haspopup="dialog" aria-expanded={Boolean(selected)}
-          onClick={() => onOpenSlot(slot)}>{slot.slot}</button>
+          onClick={() => onOpenSlot(slot)}>{slot.slot === "BN" ? player?.position || "BN" : slot.slot}</button>
       ) : <span className="hub-wcc-row-pos">{slot.slot}</span>}
-      <RowFace player={player} slot={slot.slot} media={media} />
+      {!compact && <RowFace player={player} slot={slot.slot} media={media} />}
       {empty ? (
         <div className="hub-wcc-row-who">
           <strong>{WEEK_BOARD_COPY.emptySlotName}</strong>
@@ -194,7 +198,9 @@ function SlateRow({
       ) : (
         <div className="hub-wcc-row-who">
           <strong>{player.player_name || player.player_id}</strong>
-          <span>{slatePlayerMeta(player)}</span>
+          <span>{compact ? <>{decision && <em className="hub-wcc-sit-mark">{WEEK_BOARD_COPY.sitRole} · </em>}{[player.team, player.on_bye ? "BYE" : formatKickoffFact(player)].filter(Boolean).join(" · ")}</> : slatePlayerMeta(player)}</span>
+          {compact && <PlayerFlags player={player} />}
+          {compact && wide && !missing && <span className="hub-wcc-range-mark" title={marks.join(" · ")}>{WEEK_BOARD_COPY.legendWide}</span>}
         </div>
       )}
       <div className={`hub-wcc-row-pts${missing ? " is-quiet" : ""}`}>
@@ -203,11 +209,11 @@ function SlateRow({
         ) : (
           <>
             {fmtPts(player.p50)}
-            <small>{WEEK_BOARD_COPY.ptsUnit}</small>
+            {!compact && <small>{WEEK_BOARD_COPY.ptsUnit}</small>}
           </>
         )}
       </div>
-      <div className="hub-wcc-row-mark">
+      {!compact && <div className="hub-wcc-row-mark">
         {marks.length ? (
           <span
             className={wide && !missing ? "is-wide" : undefined}
@@ -217,7 +223,7 @@ function SlateRow({
           </span>
         ) : null}
         <PlayerFlags player={player} />
-      </div>
+      </div>}
       {empty && onFillSlot ? (
         <div className="hub-wcc-row-action">
           <button type="button" className="btn-link hub-wcc-slot-fill" onClick={onFillSlot}>
@@ -225,7 +231,7 @@ function SlateRow({
           </button>
         </div>
       ) : (
-        <SlotAction decision={decision} onOpenCall={onOpenCall} />
+        <SlotAction decision={decision} onOpenCall={onOpenCall} compact={compact} />
       )}
     </article>
   );
@@ -285,6 +291,7 @@ export default function WeekLineupBoard({
   weekValue,
   weekPlaceholder,
   onWeekChange,
+  showWeekStepper = true,
   overlayActions = null,
   coverageActions = null,
   refreshAction = null,
@@ -302,6 +309,7 @@ export default function WeekLineupBoard({
   includeChrome = true,
   includeStarters = true,
   includeBench = true,
+  compact = false,
 }) {
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
@@ -329,6 +337,7 @@ export default function WeekLineupBoard({
         slot={slot}
         decision={showCall ? decisionForStarter(slot, decisions) : null}
         highlighted={highlighted}
+        compact={compact}
         wide={pid ? wideById.get(String(pid)) : null}
         movement={pid ? moveById.get(String(pid)) : null}
         vibePts={pid ? vibeById[String(pid)] : null}
@@ -342,9 +351,10 @@ export default function WeekLineupBoard({
     );
   };
 
+  const Bench = compact ? HubSection : "div";
   const benchBlock = !emptyRoster && bench.length > 0 ? (
-    <div className="hub-wcc-bench">
-      <h4>Bench</h4>
+    <Bench className="hub-wcc-bench" {...(compact ? {disclosure:true, title:WEEK_BOARD_COPY.benchTitle, hint:WEEK_BOARD_COPY.benchCount(bench.length), icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 12h14M5 18h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>} : {})}>
+      {!compact && <h4>{WEEK_BOARD_COPY.benchTitle}</h4>}
       <div className="hub-wcc-slate hub-wcc-bench-slate">
         {bench.filter((player) => player?.player_id).map((player) => (
           renderRow(
@@ -355,22 +365,24 @@ export default function WeekLineupBoard({
               player,
             },
             {
+              selected: selectedSlotKey === `bn-${player.player_id}`,
               highlighted: swapBenchIds.has(String(player.player_id)),
               showCall: false,
             },
           )
         ))}
       </div>
-    </div>
+    </Bench>
   ) : null;
 
   if (!includeChrome && !includeStarters) {
     return benchBlock;
   }
 
+  if (compact && loading) return <HubLoadingSkeleton label="Loading lineup" rows={4} />;
   return (
-    <section className="hub-wcc-board" aria-label={boardTitle(weekLabel)}>
-      {includeChrome ? (
+    <section className={`hub-wcc-board${compact ? " hub-wcc-board--compact" : ""}`} aria-label={boardTitle(weekLabel)}>
+      {includeChrome && !compact ? (
         <>
           <header className="hub-wcc-board-head">
             <div>
@@ -395,11 +407,11 @@ export default function WeekLineupBoard({
                 ) : null}
               </p>
             </div>
-            <WeekStepper
+            {showWeekStepper && <WeekStepper
               weekValue={weekValue}
               weekPlaceholder={weekPlaceholder}
               onWeekChange={onWeekChange}
-            />
+            />}
           </header>
 
           <p className="hub-wcc-legend" aria-label="Board states">
@@ -426,8 +438,10 @@ export default function WeekLineupBoard({
         </>
       ) : null}
 
+      {compact && poorCoverage && !hideSlots && <div className="hub-wcc-coverage-block" role="status"><h3>{coverageCopy?.title}</h3><p>{coverageCopy?.body}</p>{coverageActions}</div>}
       {includeStarters ? (
         <div className="hub-wcc-board-stage">
+          {compact && !hideSlots && <header className="hub-week-starters-heading"><h3>{WEEK_BOARD_COPY.startersTitle}</h3><span>{WEEK_BOARD_COPY.projected}</span></header>}
           <div className="hub-wcc-slate" id="hub-wcc-calls">
             {hideSlots ? null : slots.map((slot) => renderRow(slot, {
               selected: selectedSlotKey === (slot.key || slot.slot),
@@ -446,6 +460,10 @@ export default function WeekLineupBoard({
       ) : null}
 
       {includeBench ? benchBlock : null}
+      {compact && !hideSlots && <div className="hub-week-freshness">
+        <span>{freshness.weekBoard || freshness.roster}</span>
+        {refreshAction && <button type="button" className="btn-link" onClick={refreshAction} disabled={refreshing}>{refreshing ? WEEK_BOARD_COPY.refreshing : WEEK_BOARD_COPY.refreshProjections}</button>}
+      </div>}
     </section>
   );
 }

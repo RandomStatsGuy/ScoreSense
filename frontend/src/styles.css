@@ -9369,8 +9369,9 @@ td.col-rank.col-rank-top {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.75rem;
-  min-height: 2.75rem;
+  min-width: var(--control-h-lg);
+  min-height: var(--control-h-lg);
+  padding-inline: var(--space-3);
   margin: 0;
   border: none;
   border-left: 1px solid var(--border);

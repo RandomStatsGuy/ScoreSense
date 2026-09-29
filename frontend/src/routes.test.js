@@ -61,15 +61,15 @@ test("Vibes routes round-trip including the long slug", () => {
   assert.equal(buildAppPath({ view: "hub", hubSubView: "vibes" }), "/hub/vibes");
 });
 
-test("Game center routes round-trip and legacy live URL redirects there", () => {
-  assert.equal(parseAppPath("/hub/game").hubSubView, "game");
-  assert.equal(parseAppPath("/hub/game-center").hubSubView, "game");
+test("Game center aliases resolve to the combined weekly experience", () => {
+  assert.equal(parseAppPath("/hub/game").hubSubView, "week");
+  assert.equal(parseAppPath("/hub/game-center").hubSubView, "week");
   assert.equal(
     buildAppPath({ view: "hub", hubSubView: "game" }),
-    "/hub/game",
+    "/hub/week",
   );
   const legacy = parseAppPath("/hub/live");
-  assert.equal(legacy.hubSubView, "game");
+  assert.equal(legacy.hubSubView, "week");
   assert.equal(legacy.insightTab, null);
 });
 
@@ -157,7 +157,12 @@ test("strategy and free-agent hub tabs round-trip, with legacy players alias", (
 
 test("my-team and game-center aliases resolve, unknown hub paths go Home", () => {
   assert.equal(parseAppPath("/hub/my-team").hubSubView, "roster");
-  assert.equal(parseAppPath("/hub/game-center").hubSubView, "game");
+  assert.equal(parseAppPath("/hub/game-center").hubSubView, "week");
   assert.equal(parseAppPath("/hub/not-a-real-tab").hubSubView, "home");
   assert.equal(buildAppPath({ view: "hub", hubSubView: "unknown" }), "/hub/home");
+});
+
+test("corrections keep the selected league week", () => {
+  assert.deepEqual(hubSubViewFilterUpdates("office", { officeTab: "corrections", week: 3 }), { week: 3 });
+  assert.equal(hubSubViewFilterUpdates("office", { officeTab: "corrections", week: 99 }), null);
 });

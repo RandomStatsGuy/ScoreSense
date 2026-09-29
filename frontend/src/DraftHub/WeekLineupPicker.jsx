@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { fmtNum } from "../format";
 import { RowFace } from "./WeekLineupBoard";
 import {
-  eligibleLineupReplacements, formatKickoffFact, LINEUP_PICKER_COPY as COPY,
+  eligibleLineupReplacements, eligibleStarterSlots, formatKickoffFact, LINEUP_PICKER_COPY as COPY,
   lineupPlayerLocked, lineupReplacementDelta, slatePlayerMeta, sleeperLineupUrl, WEEK_BOARD_COPY,
 } from "./weekBoard";
 import "../styles/lineup-picker.css";
@@ -19,18 +19,24 @@ function MovePlayer({ player, label, media }) {
   </div>;
 }
 
-export default function WeekLineupPicker({ slot, bench, rules, media, canEdit, lineupLocked,
+export default function WeekLineupPicker({ slot, bench, benchPlayer = null, slots = [], rules, media, canEdit, lineupLocked,
   staffOverride = false, sleeperLeagueId, busy, error, onClose, onApply, onNavigate }) {
   const [selectedId, setSelectedId] = useState("");
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
-  const candidates = eligibleLineupReplacements(slot, bench, rules);
-  const selected = candidates.find((p) => String(p.player_id) === selectedId);
-  const delta = selected ? lineupReplacementDelta(slot, selected) : null;
-  const starterLocked = lineupPlayerLocked(slot.player, { staffOverride });
+  const candidates = benchPlayer
+    ? eligibleStarterSlots(benchPlayer, slots, rules).map(target => ({ id:target.key || target.slot, slot:target, player:target.player }))
+    : eligibleLineupReplacements(slot, bench, rules).map(player => ({ id:String(player.player_id), slot, player }));
+  const choice = candidates.find(candidate => candidate.id === selectedId);
+  const targetSlot = benchPlayer ? choice?.slot : slot;
+  const selected = choice ? (benchPlayer || choice.player) : null;
+  const delta = selected ? lineupReplacementDelta(targetSlot, selected) : null;
+  const starterLocked = lineupPlayerLocked(benchPlayer || slot.player, { staffOverride });
+  const chooseLabel = benchPlayer ? COPY.chooseSlot : COPY.choose;
+  const selectLabel = benchPlayer ? COPY.selectSlot : COPY.select;
   const locked = (lineupLocked && !canEdit) || starterLocked;
   const href = sleeperLineupUrl(sleeperLeagueId);
-  const applyAllowed = canEdit && !locked && selected && !lineupPlayerLocked(selected, { staffOverride });
+  const applyAllowed = canEdit && !locked && selected && !lineupPlayerLocked(selected, { staffOverride }) && !lineupPlayerLocked(targetSlot?.player, { staffOverride });
 
   useEffect(() => {
     const previous = document.activeElement;
@@ -61,16 +67,16 @@ export default function WeekLineupPicker({ slot, bench, rules, media, canEdit, l
     <section ref={dialogRef} className="lineup-picker" role="dialog" aria-modal="true"
       aria-labelledby="lineup-picker-title" onKeyDown={onKeyDown} aria-busy={busy}>
       <header className="lineup-picker-head">
-        <div><p className="lineup-picker-role">{slot.slot} · {COPY.lineup}</p><h2 id="lineup-picker-title">{COPY.title(slot.slot)}</h2></div>
+        <div><p className="lineup-picker-role">{slot.slot} · {COPY.lineup}</p><h2 id="lineup-picker-title">{benchPlayer ? COPY.benchTitle(benchPlayer.player_name || benchPlayer.player_id) : COPY.title(slot.slot)}</h2></div>
         <button ref={closeRef} type="button" className="btn-ghost lineup-picker-close" aria-label={COPY.close}
           disabled={busy} onClick={onClose}>×</button>
       </header>
       <div className="lineup-picker-body">
         {slot.player && <div className="lineup-picker-current"><RowFace player={slot.player} media={media} />
-          <div><span className="lineup-picker-role">{COPY.current}</span><strong>{slot.player.player_name || slot.player.player_id}</strong>
+          <div><span className="lineup-picker-role">{benchPlayer ? COPY.onBench : COPY.current}</span><strong>{slot.player.player_name || slot.player.player_id}</strong>
             <span>{slatePlayerMeta(slot.player)}</span></div><b>{pts(slot.player)}</b></div>}
-        <p className="lineup-picker-hint">{COPY.choose}</p>
-        <div className="lineup-picker-options" role="radiogroup" aria-label={COPY.choose}
+        <p className="lineup-picker-hint">{chooseLabel}</p>
+        <div className="lineup-picker-options" role="radiogroup" aria-label={chooseLabel}
           onKeyDown={(event) => {
             if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
             const options = [...event.currentTarget.querySelectorAll("button:not(:disabled)")];
@@ -81,16 +87,19 @@ export default function WeekLineupPicker({ slot, bench, rules, media, canEdit, l
               : (index + (["ArrowUp", "ArrowLeft"].includes(event.key) ? -1 : 1) + options.length) % options.length;
             options[next].click(); options[next].focus();
           }}>
-          {candidates.map((player) => {
+          {candidates.map((candidate) => {
+            const player = candidate.player;
             const playerLocked = lineupPlayerLocked(player, { staffOverride });
-            const picked = selectedId === String(player.player_id);
-            const change = lineupReplacementDelta(slot, player);
+            const picked = selectedId === candidate.id;
+            const change = lineupReplacementDelta(candidate.slot, benchPlayer || player);
+            const name = player?.player_name || player?.player_id || WEEK_BOARD_COPY.emptySlotName;
+            const label = benchPlayer ? `${candidate.slot.slot}: ${name}` : name;
             return <button type="button" role="radio" aria-checked={picked}
-              aria-label={`${player.player_name || player.player_id}${playerLocked ? `, ${COPY.locked}` : ""}`}
-              className={`lineup-picker-option${picked ? " is-selected" : ""}`} key={player.player_id}
-              disabled={busy || locked || playerLocked} onClick={() => setSelectedId(String(player.player_id))}>
+              aria-label={`${label}${playerLocked ? `, ${COPY.locked}` : ""}`}
+              className={`lineup-picker-option${picked ? " is-selected" : ""}`} key={candidate.id}
+              disabled={busy || locked || playerLocked} onClick={() => setSelectedId(candidate.id)}>
               <RowFace player={player} media={media} /><span className="lineup-picker-identity">
-                <strong>{player.player_name || player.player_id}</strong><span>{slatePlayerMeta(player)}</span>
+                <strong>{label}</strong><span>{slatePlayerMeta(player)}</span>
                 <span>{playerLocked ? COPY.locked : formatKickoffFact(player)}</span>
                 {change != null && <span className={change >= 0 ? "is-positive" : "is-negative"}>
                   {change > 0 ? "+" : ""}{fmtNum(change, 1)} pts</span>}
@@ -99,24 +108,24 @@ export default function WeekLineupPicker({ slot, bench, rules, media, canEdit, l
             </button>;
           })}
         </div>
-        {!candidates.length && <div className="lineup-picker-empty"><p>{COPY.empty}</p>
-          {onNavigate && <button type="button" className="btn-ghost" onClick={() => {
+        {!candidates.length && <div className="lineup-picker-empty"><p>{benchPlayer ? COPY.noSlots : COPY.empty}</p>
+          {onNavigate && !benchPlayer && <button type="button" className="btn-ghost" onClick={() => {
             onClose(); onNavigate("available", { pos: slot.position || slot.slot });
           }}>{COPY.find(slot.position || slot.slot)}</button>}</div>}
         {selected ? <><div className="lineup-picker-preview">
-          <MovePlayer player={slot.player} label={slot.player ? COPY.toBench : COPY.emptySlot} media={media} />
-          <span aria-hidden="true">⇄</span><MovePlayer player={selected} label={COPY.toSlot(slot.slot)} media={media} />
+          <MovePlayer player={targetSlot.player} label={targetSlot.player ? COPY.toBench : COPY.emptySlot} media={media} />
+          <span aria-hidden="true">⇄</span><MovePlayer player={selected} label={COPY.toSlot(targetSlot.slot)} media={media} />
         </div><p className={`lineup-picker-delta${delta != null && delta < 0 ? " is-negative" : ""}`} role="status">
           {delta == null ? COPY.missing : <><strong>{delta > 0 ? "+" : ""}{fmtNum(delta, 1)}</strong> {COPY.delta}</>}
-        </p></> : <p className="lineup-picker-hint" role="status">{COPY.select}</p>}
+        </p></> : <p className="lineup-picker-hint" role="status">{selectLabel}</p>}
         {error && <p className="error" role="alert">{error}</p>}
       </div>
       <footer className="lineup-picker-footer">
         <p>{locked ? (starterLocked ? COPY.locked : COPY.lineupLocked) : href && !canEdit ? COPY.linked : !canEdit ? COPY.readonly : COPY.lockNote}</p>
         <div><button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>{COPY.cancel}</button>
           {href && !canEdit && !locked ? <a href={href} target="_blank" rel="noreferrer" className="btn-primary">{COPY.openSleeper}</a>
-            : <button type="button" className="btn-primary" disabled={!applyAllowed || busy} onClick={() => onApply(slot, selected)}>
-              {busy ? COPY.saving : selected ? COPY.start(selected.player_name || selected.player_id, slot.slot) : COPY.select}
+            : <button type="button" className="btn-primary" disabled={!applyAllowed || busy} onClick={() => onApply(targetSlot, selected)}>
+              {busy ? COPY.saving : selected ? COPY.start(selected.player_name || selected.player_id, targetSlot.slot) : selectLabel}
             </button>}
         </div>
       </footer>
