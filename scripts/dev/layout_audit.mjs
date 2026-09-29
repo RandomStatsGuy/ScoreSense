@@ -284,6 +284,16 @@ export function measureScript() {
         detail: readable ? "matchup labels fit within two lines" : "compressed matchup labels exceed two lines"});
     });
 
+    // Approved My team A keeps the short summary above the full roster, never in an empty sidebar.
+    document.querySelectorAll(".my-team-page").forEach((page) => {
+      const summary = page.querySelector(".my-team-overview");
+      const roster = page.querySelector(".my-team-main");
+      if (!summary || !roster || !summary.getClientRects().length || !roster.getClientRects().length) return;
+      const a = summary.getBoundingClientRect(), b = roster.getBoundingClientRect();
+      const ok = a.bottom <= b.top + 1 && Math.abs(a.left - b.left) <= 1 && Math.abs(a.width - b.width) <= 1;
+      results.push({rule: "team-summary", ok, selector: ".my-team-page", detail: ok ? "Summary spans the roster above its controls" : "Summary must span the roster above its controls"});
+    });
+
     // Block-level siblings only. Inline runs in one paragraph (Now $114 leftover)
     // are supposed to sit adjacent — do not compare every text node on the page.
     const isBlockDisplay = (display) => {

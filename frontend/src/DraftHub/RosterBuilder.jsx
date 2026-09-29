@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
-import useMobileLayout from "../useMobileLayout";
-import MobileDataList from "../MobileDataList";
-import MobilePlayerCard from "../MobilePlayerCard";
-import MobileBottomSheet from "../layout/MobileBottomSheet";
+import { createPortal } from "react-dom";
+import useModalFocus from "../ui/useModalFocus";
+import "../styles/my-team.css";
 import confirmDialog from "../ui/confirm";
-import HoverTip from "../HoverTip";
-import { MY_TEAM_COPY, rosterRowOccupies, rosterStatusInfo } from "./rosterPresentation";
-import { HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky, HubTableCard, SortTh } from "./HubUILayout";
+import { MY_TEAM_COPY, rosterCapSummary, rosterRowOccupies, rosterStatusInfo } from "./rosterPresentation";
+import { HubFilterChip, HubFilterMenu, HubFilterScroll, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import {
   CONTRACT_TYPE_OPTIONS,
   contractDeadCapStory,
@@ -38,16 +36,33 @@ import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import TeamRoom from "./TeamRoom";
 import TeamIdentityStudio from "./TeamIdentityStudio";
-import TeamStadiumHero from "./TeamStadiumHero";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel } from "./hubTeamLabel";
-import { PAINT_WIDTH, paintMediaUrl, teamLogoUrl } from "./draftMedia";
 import { sendRosterWrite } from "./rosterWrite";
 
 function posSortKey(position) {
   const pos = normalizeHubPosition(position);
   const idx = HUB_POS_ORDER.indexOf(pos);
   return idx >= 0 ? idx : HUB_POS_ORDER.length;
+}
+
+function ContractPanel({ title, onClose, children }) {
+  const panelRef = useRef(null);
+  const titleRef = useRef(null);
+  useModalFocus(true, panelRef, onClose, titleRef);
+  return createPortal(
+    <div className="my-team-panel-overlay" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <section ref={panelRef} className="my-team-panel" role="dialog" aria-modal="true" aria-labelledby="my-team-contract-title">
+        <header className="my-team-panel-head">
+          <h2 ref={titleRef} tabIndex={-1} id="my-team-contract-title">{title}</h2>
+          <button className="my-team-icon" type="button" aria-label={MY_TEAM_COPY.closeDetails} onClick={onClose}>×</button>
+        </header>
+        <div className="my-team-panel-body">{children}</div>
+      </section>
+    </div>, document.body,
+  );
 }
 
 function ContractRulesDisclosure({
@@ -63,7 +78,7 @@ function ContractRulesDisclosure({
 }) {
   return (
     <details className="hub-roster-contract-rules">
-      <summary>Contract rules</summary>
+      <summary>{MY_TEAM_COPY.learnMoreLabel}</summary>
       <div className="hub-roster-contract-rules-body chart-note">
         {contractsReadOnly && isLeague ? (
           <>
@@ -252,6 +267,7 @@ function ContractSidePanelBody({
       <div className="hub-roster-contract-panel-actions">
         {usesSalaries && extendEligible && (
           <div className="hub-roster-contract-panel-primary">
+            <p className="my-team-extension-preview">{MY_TEAM_COPY.extensionStart(fmtSal(extendStart), extendYearsFor(r))}</p>
             <HubFilterMenu
               label="Extension years"
               value={extendYearsFor(r)}
@@ -335,6 +351,7 @@ export default function RosterBuilder({
   hubContext,
   capSheet,
   readOnly = false,
+  loading = false,
   showManagerTeam = false,
   onEditInOffice,
   onOpenContractHistory,
@@ -353,32 +370,30 @@ export default function RosterBuilder({
   const [search, setSearch] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [statusFocus, setStatusFocus] = useState(null);
-  const [sortKey, setSortKey] = useState(null);
-  const [sortDir, setSortDir] = useState("desc");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef(null);
   const [selectedSlotKey, setSelectedSlotKey] = useState(null);
   const [lookOpen, setLookOpen] = useState(false);
   const [roomTab, setRoomTab] = useState("room");
   const manageTabRef = useRef(null);
-  useEffect(() => { setRoomTab(focusFilter ? "manage" : "room"); }, [hubContext?.league_id, hubContext?.team_id, focusFilter]);
-  const panelTitleRef = useRef(null);
+  useEffect(() => { setRoomTab("room"); setSelectedSlotKey(null); setSearch(""); setSearchOpen(false); setPosFilter("ALL"); }, [hubContext?.league_id, hubContext?.team_id]);
   const restoreFocusRef = useRef(null);
 
   const [typeOverrides, setTypeOverrides] = useState({});
   const [extendYearsById, setExtendYearsById] = useState({});
 
   const { identities, setIdentities } = useTeamIdentities();
-  const mobileLayout = useMobileLayout();
   const maxYears = Math.max(1, Number(workspace?.rules?.contracts?.max_years ?? 3) || 3);
   const defaultStepUp = leagueStepUp(workspace?.rules);
-  const salaryCap = Number(workspace?.rules?.salary_cap ?? 200);
   const usesSalaries = leagueUsesSalaries(hubContext);
   const season = workspace?.season ?? new Date().getFullYear();
   const draftCompleted = Boolean(hubContext?.draft_completed);
-  const preDraft = !draftCompleted ? capSheet?.pre_draft : null;
+  const cap = usesSalaries ? rosterCapSummary(capSheet) : null;
   const teamName = hubTeamLabel({
     name: hubContext?.team_name,
     sleeper_team_name: sleeper?.sleeper_team_name || hubContext?.sleeper_team_name,
   }) || sleeper?.sleeper_team_name || hubContext?.team_name;
+  const ownerName = hubTeamLabel({ owner_name: hubContext?.owner_name, name: teamName }, { includeTeam: false }) || MY_TEAM_COPY.title;
   const teamIdentity = identityFor(identities, {
     id: hubContext?.team_id,
     identity: hubContext?.team_identity,
@@ -390,7 +405,6 @@ export default function RosterBuilder({
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
   const canRemove = !isLeague || isCommissioner;
-  const isSleeperPlayer = (r) => r.source === "sleeper" || Boolean(r.sleeper_player_id);
   const lookup = valueRows?.find((r) => r.player_id === playerId);
 
   const sortedRoster = useMemo(
@@ -430,17 +444,6 @@ export default function RosterBuilder({
     }
     return counts;
   }, [roster, liveRoster]);
-
-  const deadCap = Number(capSheet?.summary?.dead_cap) || 0;
-
-  /** Live contracts only — the cap bar draws dead cap as its own segment. */
-  const liveSalary = useMemo(() => {
-    if (preDraft) return preDraft.season_committed;
-    return liveRoster.reduce((sum, r) => sum + Number(r.salary || 0), 0);
-  }, [preDraft, liveRoster]);
-
-  /** Headline cap used: live contracts plus dead cap. */
-  const totalSalary = preDraft ? liveSalary : liveSalary + deadCap;
 
   const selectedRow = useMemo(
     () => (selectedSlotKey ? (roster || []).find((r) => rosterSlotKey(r) === selectedSlotKey) : null),
@@ -496,7 +499,7 @@ export default function RosterBuilder({
   }, [onChanged, draftCompleted, workspace?.rules]);
 
   useEffect(() => {
-    if (!roster?.length) {
+    if (!lookOpen || !roster?.length) {
       setMediaById({});
       return;
     }
@@ -524,7 +527,7 @@ export default function RosterBuilder({
       }
     })();
     return () => { cancelled = true; };
-  }, [roster, workspace?.season]);
+  }, [lookOpen, roster, workspace?.season]);
 
   useEffect(() => {
     setDraftEdits({});
@@ -538,18 +541,11 @@ export default function RosterBuilder({
     }
   }, [roster, selectedSlotKey]);
 
-  useEffect(() => {
-    if (!selectedRow || mobileLayout) return undefined;
-    panelTitleRef.current?.focus();
-    const onKey = (event) => {
-      if (event.key === "Escape") closeContractPanel();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [selectedRow, mobileLayout, closeContractPanel]);
+  useEffect(() => { if (searchOpen) searchRef.current?.focus(); }, [searchOpen]);
 
   useEffect(() => {
     if (focusFilter === "extend") {
+      setRoomTab("manage");
       setStatusFocus("extend");
       setPosFilter("ALL");
       onFocusConsumed?.();
@@ -744,47 +740,7 @@ export default function RosterBuilder({
     </button>
   ) : null;
 
-  const onSort = (col) => {
-    if (sortKey === col) {
-      setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
-      return;
-    }
-    setSortKey(col);
-    setSortDir(col === "years" ? "asc" : "desc");
-  };
-
-  const displayedRoster = useMemo(() => {
-    if (!sortKey || !usesSalaries) return filteredRoster;
-    const dir = sortDir === "asc" ? 1 : -1;
-    return [...filteredRoster].sort((a, b) => {
-      if (sortKey === "cap") {
-        return (Number(a.salary || 0) - Number(b.salary || 0)) * dir;
-      }
-      if (sortKey === "years") {
-        const ya = Number(a.contract?.years_remaining ?? a.contract_years ?? 1);
-        const yb = Number(b.contract?.years_remaining ?? b.contract_years ?? 1);
-        return (ya - yb) * dir;
-      }
-      if (sortKey === "status") {
-        const sa = rosterStatusInfo(a, {
-          draftCompleted,
-          ctype: String(a.contract?.contract_type || "veteran"),
-          pendingType: a.contract?.pending_type,
-          pendingExt: hasPendingExtension(a),
-          rules: workspace?.rules,
-        });
-        const sb = rosterStatusInfo(b, {
-          draftCompleted,
-          ctype: String(b.contract?.contract_type || "veteran"),
-          pendingType: b.contract?.pending_type,
-          pendingExt: hasPendingExtension(b),
-          rules: workspace?.rules,
-        });
-        return sa.label.localeCompare(sb.label) * dir;
-      }
-      return 0;
-    });
-  }, [filteredRoster, sortKey, sortDir, draftCompleted, workspace?.rules, usesSalaries]);
+  const displayedRoster = filteredRoster;
 
   const rowViewModel = useCallback((r) => {
     const edit = getEdit(r);
@@ -836,9 +792,6 @@ export default function RosterBuilder({
     savedId,
   ]);
 
-  // Cap hit, Years, and contract Status are hidden when the league has no money.
-  const colSpan = (showManagerTeam ? 7 : 6) - (usesSalaries ? 0 : 3);
-
   const panelProps = selectedRow ? (() => {
     const vm = rowViewModel(selectedRow);
     return {
@@ -876,88 +829,20 @@ export default function RosterBuilder({
   })() : null;
 
   const rosterPage = (
-    <HubPage className="hub-roster-builder hub-experience-page">
-      <HubExperienceHero
-        eyebrow="My team"
-        heading={MY_TEAM_COPY.title}
-        support={usesSalaries ? MY_TEAM_COPY.purpose : MY_TEAM_COPY.noMoneyPurpose}
-        compact
-      />
-
-      <TeamStadiumHero
-        compact
-        team={{ id: hubContext?.team_id, name: teamName, sleeper_team_name: sleeper?.sleeper_team_name }}
-        identity={teamIdentity}
-        meta={`${liveRoster.length} player${liveRoster.length === 1 ? "" : "s"}${
-          liveRoster.filter(isSleeperPlayer).length > 0
-            ? ` · ${liveRoster.filter(isSleeperPlayer).length} imported from Sleeper`
-            : ""
-        }`}
-        onEdit={
-          isLeague && hubContext?.league_id && hubContext?.team_id
-            ? () => setLookOpen(true)
-            : null
-        }
-        cap={!usesSalaries ? null : (
-          <div className="hub-stat-card hub-stat-card--accent hub-stadium-cap-card">
-            <span className="hub-stat-label">{preDraft ? MY_TEAM_COPY.capForDraft : `Cap (${season})`}</span>
-            <strong className="hub-stat-value">
-              {preDraft
-                ? fmtSal(preDraft.draft_budget_available)
-                : (
-                  <>
-                    ${totalSalary.toFixed(0)}
-                    <span className="hub-stat-value-note"> / ${salaryCap}</span>
-                  </>
-                )}
-            </strong>
-            {salaryCap > 0 && (
-              <span
-                className="hub-stadium-cap-bar"
-                role="img"
-                aria-label={`${MY_TEAM_COPY.capCommitted(fmtSal(liveSalary), fmtSal(salaryCap))}${
-                  Number(capSheet?.summary?.dead_cap) > 0
-                    ? `, ${MY_TEAM_COPY.deadCapInline(fmtSal(Number(capSheet.summary.dead_cap)))}`
-                    : ""
-                }`}
-              >
-                <span
-                  className="hub-stadium-cap-bar-committed"
-                  style={{ width: `${Math.min(100, Math.max(0, (liveSalary / salaryCap) * 100))}%` }}
-                />
-                {Number(capSheet?.summary?.dead_cap) > 0 && (
-                  <span
-                    className="hub-stadium-cap-bar-dead"
-                    style={{ width: `${Math.min(100, (Number(capSheet.summary.dead_cap) / salaryCap) * 100)}%` }}
-                  />
-                )}
-              </span>
-            )}
-            <span className="hub-stat-sub">
-              {preDraft
-                ? MY_TEAM_COPY.capCommitted(fmtSal(totalSalary), fmtSal(salaryCap))
-                : null}
-              {Number(capSheet?.summary?.dead_cap) > 0 ? (
-                <>
-                  {preDraft ? " · " : null}
-                  <HoverTip content={MY_TEAM_COPY.deadCapLegend}>
-                    <span className="hub-stadium-cap-dead">{MY_TEAM_COPY.deadCapInline(fmtSal(Number(capSheet.summary.dead_cap)))}</span>
-                  </HoverTip>
-                </>
-              ) : null}
-            </span>
-          </div>
-        )}
-        chips={(
-          <div className="hub-chip-row">
-            {HUB_POS_ORDER.map((pos) => (
-              <span key={pos} className="hub-pos-chip">
-                {pos} <strong>{posCounts[pos] || 0}</strong>
-              </span>
-            ))}
-          </div>
-        )}
-      />
+    <HubPage frameless className="my-team-page">
+      <section className={`my-team-overview${usesSalaries ? "" : " is-standard"}`} aria-label={usesSalaries ? MY_TEAM_COPY.summaryLabel : MY_TEAM_COPY.teamLabel}>
+        <div className="my-team-identity">
+          <h1>{ownerName}</h1>
+          <p>{[teamName !== ownerName ? teamName : "", MY_TEAM_COPY.playerCount(liveRoster.length)].filter(Boolean).join(" · ")}</p>
+        </div>
+        {usesSalaries && <>
+          <button type="button" className="my-team-budget" disabled={!onNavigate} onClick={() => onNavigate?.("planner")} aria-label={MY_TEAM_COPY.openCap(cap?.leftoverLabel, draftCompleted)}>
+            <span>{MY_TEAM_COPY.capRemaining(draftCompleted)}</span>
+            <strong>{cap?.leftoverLabel || "—"} <span aria-hidden="true">↗</span></strong>
+          </button>
+          <p className="my-team-budget-facts">{cap ? <>{MY_TEAM_COPY.capCommitted(cap.committedLabel, cap.limitLabel)}{cap.dead > 0 ? ` · ${MY_TEAM_COPY.deadCapInline(fmtSal(cap.dead))}` : ""}</> : MY_TEAM_COPY.capLoading}</p>
+        </>}
+      </section>
 
       {isLeague && hubContext?.league_id && hubContext?.team_id && (
         <TeamIdentityStudio
@@ -974,18 +859,6 @@ export default function RosterBuilder({
           }}
         />
       )}
-
-      {usesSalaries && <ContractRulesDisclosure
-        contractsReadOnly={contractsReadOnly}
-        isLeague={isLeague}
-        isCommissioner={isCommissioner}
-        officeLink={officeLink}
-        defaultStepUp={defaultStepUp}
-        maxYears={maxYears}
-        rules={workspace?.rules}
-        season={season}
-        draftCompleted={draftCompleted}
-      />}
 
       {!contractsReadOnly && (
       <details className="hub-roster-add">
@@ -1016,7 +889,7 @@ export default function RosterBuilder({
       </details>
       )}
 
-      {contractsReadOnly && !isLeague && !mobileLayout && (
+      {contractsReadOnly && !isLeague && (
         <p className="chart-note">Salaries set by commish. Sync Sleeper after trades.</p>
       )}
 
@@ -1026,291 +899,82 @@ export default function RosterBuilder({
         </div>
       )}
 
-      {!sortedRoster.length ? (
-        <div className="hub-roster-empty-block" role="status">
-          <h3>{usesSalaries ? MY_TEAM_COPY.emptyHeading : MY_TEAM_COPY.noMoneyEmptyHeading}</h3>
-          <p className="chart-note">{MY_TEAM_COPY.emptySupport}</p>
-          {onNavigate ? (
-            <div className="hub-toolbar">
-              {!draftCompleted ? (
-                <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("room")}>
-                  {MY_TEAM_COPY.emptyAction}
-                </button>
-              ) : (
-                <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("office-access")}>
-                  {MY_TEAM_COPY.emptyActionLink}
-                </button>
-              )}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-      <>
-      <HubPageSticky>
-      <div className="hub-filter-bar hub-roster-pos-bar">
-        <input
-          type="search"
-          className={`search-input hub-filter-search${mobileLayout ? " hub-roster-mobile-search" : ""}`}
-          placeholder="Search roster…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search roster"
-        />
-        <p className="hub-roster-result-count" role="status">
-          {MY_TEAM_COPY.showingCount(displayedRoster.length, sortedRoster.length)}
-          {usesSalaries && statusFocus === "extend" ? ` · ${MY_TEAM_COPY.statusExtend}` : ""}
-        </p>
-        <HubFilterScroll>
-          {HUB_POSITION_FILTERS.map((p) => {
-            const count = p === "ALL" ? (posCounts.ALL || 0) : (posCounts[p] || 0);
-            return (
-              <HubFilterChip
-                key={p}
-                active={posFilter === p}
-                disabled={p !== "ALL" && count === 0}
-                onClick={() => {
-                  setPosFilter(p);
-                  if (p !== "ALL") setStatusFocus(null);
-                }}
-              >
-                {p === "ALL" ? "All" : p}
-                <span className="hub-filter-count">{count}</span>
-              </HubFilterChip>
-            );
-          })}
-        </HubFilterScroll>
-      </div>
-      </HubPageSticky>
-
-      <HubTableCard className="hub-roster-table-wrap">
-        <h3 className="hub-roster-section-title">{MY_TEAM_COPY.rosterHeading}</h3>
-        {mobileLayout ? (
-          <MobileDataList
-            emptyMessage={
-              !displayedRoster.length
-                ? (sortedRoster.length
-                  ? "No players match these filters."
-                  : "No players. Link Sleeper or add from Free agents.")
-                : null
-            }
-          >
-            {displayedRoster.map((r) => {
-              const vm = rowViewModel(r);
-              return (
-                <MobilePlayerCard
-                  key={rosterSlotKey(r)}
-                  className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${!rosterRowOccupies(r) ? " hub-cut-row" : ""}`.trim()}
-                  name={r.player_name}
-                  meta={[r.team, normalizeHubPosition(r.position)].filter(Boolean).join(" · ") || "—"}
-                  heroValue={usesSalaries ? fmtSal(vm.edit.salary) : (normalizeHubPosition(r.position) || "—")}
-                  heroLabel={usesSalaries ? "cap" : "position"}
-                  badge={usesSalaries ? (
-                    <span className={`hub-roster-status hub-roster-status--${vm.status.tone}`}>
-                      {vm.status.label}
-                    </span>
-                  ) : null}
-                  actions={(
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={(event) => openContractPanel(r, event.currentTarget)}
-                    >
-                      {usesSalaries ? "Contract" : MY_TEAM_COPY.playerDetails}
-                    </button>
-                  )}
-                />
-              );
-            })}
-          </MobileDataList>
-        ) : (
-        <div className="table-wrap">
-          <table className="data-table hub-table hub-roster-table">
-          <thead>
-            <tr>
-              <th className="hub-roster-col-player">Player</th>
-              {showManagerTeam && <th className="hub-roster-col-manager">Manager</th>}
-              <th className="hub-roster-col-pos">Pos</th>
-              {usesSalaries && (
-                <>
-                <SortTh
-                  label={`Cap hit (${season})`}
-                  col="cap"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  className="num hub-roster-col-cap"
-                />
-                <SortTh
-                  label="Years"
-                  col="years"
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={onSort}
-                  className="num hub-roster-col-years"
-                />
-                </>
-              )}
-              {usesSalaries && <SortTh
-                label="Status"
-                col="status"
-                sortKey={sortKey}
-                sortDir={sortDir}
-                onSort={onSort}
-                className="hub-roster-col-status"
-              />}
-              <th className="hub-roster-actions">{usesSalaries ? "Contract" : "Details"}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedRoster.map((r) => {
-              const media = mediaById[r.player_id] || {};
-              const logo = paintMediaUrl(media.team_logo_url, PAINT_WIDTH.avatar) || teamLogoUrl(r.team, { width: PAINT_WIDTH.avatar });
-              const thumb = paintMediaUrl(media.headshot_url, PAINT_WIDTH.avatar) || logo;
-              const vm = rowViewModel(r);
-              const isCut = !rosterRowOccupies(r);
-              const selected = selectedSlotKey === rosterSlotKey(r);
-              return (
-                <tr
-                  key={rosterSlotKey(r)}
-                  className={`${isSleeperPlayer(r) ? "hub-sleeper-row" : ""}${isCut ? " hub-cut-row" : ""}${selected ? " hub-roster-row--selected" : ""}`}
-                >
-                  <td className="hub-roster-col-player">
-                    <button
-                      type="button"
-                      className="hub-roster-player-open"
-                      onClick={(event) => openContractPanel(r, event.currentTarget)}
-                    >
-                      <div className="hub-roster-player-cell">
-                        {thumb ? (
-                          <img
-                            className="hub-roster-player-thumb"
-                            src={thumb}
-                            alt=""
-                            onError={(e) => {
-                              if (logo && e.currentTarget.src !== logo) e.currentTarget.src = logo;
-                              else e.currentTarget.style.visibility = "hidden";
-                            }}
-                          />
-                        ) : (
-                          <span className="hub-roster-player-thumb hub-roster-player-thumb-empty" />
-                        )}
-                        <div className="hub-roster-player-text">
-                          <span className="hub-roster-player-name">{r.player_name}</span>
-                          <span className="hub-roster-player-team">
-                            {logo && (
-                              <img className="hub-roster-inline-logo" src={logo} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                            )}
-                            {r.team || "—"}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  </td>
-                  {showManagerTeam && <td className="hub-roster-col-manager">{r.manager_team || "—"}</td>}
-                  <td className="hub-roster-col-pos"><span className="hub-roster-pos-tag">{normalizeHubPosition(r.position) || r.position || "—"}</span></td>
-                  {usesSalaries && (
-                    <>
-                    <td className="num hub-roster-col-cap">{fmtSal(vm.edit.salary)}</td>
-                    <td className="num hub-roster-col-years">{vm.edit.years}</td>
-                    </>
-                  )}
-                  {usesSalaries && <td className="hub-roster-col-status">
-                    <span className={`hub-roster-status hub-roster-status--${vm.status.tone}`}>
-                      {vm.status.label}
-                    </span>
-                  </td>}
-                  <td className="hub-roster-actions">
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={(event) => openContractPanel(r, event.currentTarget)}
-                    >
-                      {usesSalaries ? "Contract" : MY_TEAM_COPY.playerDetails}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-            {!sortedRoster.length && (
-              <tr>
-                <td colSpan={colSpan} className="chart-note hub-roster-empty">
-                  No players yet. Link Sleeper in Setup or add from Free agents.
-                </td>
-              </tr>
-            )}
-            {Boolean(sortedRoster.length) && !displayedRoster.length && (
-              <tr>
-                <td colSpan={colSpan} className="chart-note hub-roster-empty">
-                  No players match these filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        </div>
-        )}
-      </HubTableCard>
-      </>
-      )}
-
-      {panelProps && mobileLayout && (
-        <MobileBottomSheet
-          open
-          onClose={closeContractPanel}
-          title={`${usesSalaries ? "Contract" : MY_TEAM_COPY.playerDetails} · ${selectedRow.player_name}`}
-          className="app-mobile-sheet-contract-edit"
-        >
-          <div className="app-mobile-sheet-body">
-            <ContractSidePanelBody {...panelProps} />
+      {loading ? <HubLoadingSkeleton label={MY_TEAM_COPY.loading} rows={5} /> : !sortedRoster.length ? (
+        <section className="my-team-empty" role="status">
+          <h2>{MY_TEAM_COPY.noMoneyEmptyHeading}</h2>
+          {onNavigate && <button className="btn-primary" type="button" onClick={() => onNavigate(draftCompleted ? "available" : "room")}>
+            {draftCompleted ? MY_TEAM_COPY.freeAgents : MY_TEAM_COPY.emptyAction}
+          </button>}
+        </section>
+      ) : <div className="my-team-main">
+        <div className="my-team-controls">
+          <div className="my-team-control-line">
+            <HubFilterScroll className="my-team-positions">
+              {HUB_POSITION_FILTERS.filter((pos) => pos === "ALL" || posCounts[pos] || pos === posFilter).map((pos) => (
+                <HubFilterChip key={pos} active={posFilter === pos} disabled={pos !== "ALL" && !posCounts[pos]} onClick={() => {
+                  setPosFilter(pos); setStatusFocus(null);
+                }}>
+                  {pos === "ALL" ? MY_TEAM_COPY.all : pos}<span className="hub-filter-count">{posCounts[pos] || 0}</span>
+                </HubFilterChip>
+              ))}
+            </HubFilterScroll>
+            <button type="button" className="my-team-icon" aria-label={MY_TEAM_COPY.search} aria-expanded={searchOpen} aria-controls="my-team-search" onClick={() => {
+              setSearchOpen(!searchOpen); if (searchOpen) setSearch("");
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
+            </button>
           </div>
-        </MobileBottomSheet>
-      )}
-
-      {panelProps && !mobileLayout && (
-        <div
-          className="hub-roster-side-panel-overlay"
-          role="presentation"
-          onClick={closeContractPanel}
-        >
-          <aside
-            className="hub-roster-side-panel panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="hub-roster-contract-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="hub-roster-side-panel-head">
-              <h3
-                id="hub-roster-contract-title"
-                className="hub-roster-side-panel-title"
-                tabIndex={-1}
-                ref={panelTitleRef}
-              >
-                {usesSalaries ? "Contract" : MY_TEAM_COPY.playerDetails}
-              </h3>
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                onClick={closeContractPanel}
-                aria-label={`Close ${usesSalaries ? "contract" : "player details"} panel`}
-              >
-                Close
-              </button>
-            </div>
-            <ContractSidePanelBody {...panelProps} />
-          </aside>
+          {searchOpen && <input id="my-team-search" ref={searchRef} className="my-team-search" type="search" placeholder={MY_TEAM_COPY.search} aria-label={MY_TEAM_COPY.search} value={search} onChange={(event) => setSearch(event.target.value)} />}
+          {statusFocus === "extend" && <button type="button" className="btn-ghost" onClick={() => setStatusFocus(null)}>{MY_TEAM_COPY.clearExtensionFilter}</button>}
+          <span className="sr-only" role="status">{MY_TEAM_COPY.showingCount(displayedRoster.length, sortedRoster.length)}</span>
         </div>
-      )}
+        <section className="my-team-roster" aria-label={MY_TEAM_COPY.rosterHeading}>
+          {displayedRoster.map((row) => {
+            const vm = rowViewModel(row);
+            const secondary = [normalizeHubPosition(row.position), row.team, usesSalaries ? contractTypeLabel(vm.ctype) : "", showManagerTeam ? row.manager_team : ""].filter(Boolean).join(" · ");
+            return <button key={rosterSlotKey(row)} type="button" className="my-team-player" onClick={(event) => openContractPanel(row, event.currentTarget)} aria-label={MY_TEAM_COPY.openPlayer(row.player_name, usesSalaries)}>
+              <span className="my-team-player-identity">
+                <strong>{row.player_name}</strong><span>{secondary}</span>
+                {((usesSalaries && vm.status.key !== "ok") || !rosterRowOccupies(row)) && <span className={`my-team-player-status is-${vm.status.tone}`}>{vm.status.label}</span>}
+              </span>
+              {usesSalaries && <span className="my-team-term"><strong>{fmtSal(vm.edit.salary)}</strong><span>{MY_TEAM_COPY.years(vm.edit.years)}</span></span>}
+              <span className="my-team-arrow" aria-hidden="true">↗</span>
+            </button>;
+          })}
+          {!displayedRoster.length && <p className="my-team-no-results" role="status">{MY_TEAM_COPY.noResults}</p>}
+        </section>
+      </div>}
+
+      <footer className="my-team-footer">
+        <nav aria-label={MY_TEAM_COPY.related}>
+          {onNavigate && <button type="button" className="my-team-footer-action" onClick={() => onNavigate("trades")}>{MY_TEAM_COPY.trades} <span aria-hidden="true">↗</span></button>}
+          {isLeague && hubContext?.league_id && hubContext?.team_id && <button type="button" className="my-team-footer-action" onClick={() => setLookOpen(true)}>{MY_TEAM_COPY.appearance} <span aria-hidden="true">↗</span></button>}
+        </nav>
+      {usesSalaries && <ContractRulesDisclosure
+        contractsReadOnly={contractsReadOnly}
+        isLeague={isLeague}
+        isCommissioner={isCommissioner}
+        officeLink={officeLink}
+        defaultStepUp={defaultStepUp}
+        maxYears={maxYears}
+        rules={workspace?.rules}
+        season={season}
+        draftCompleted={draftCompleted}
+      />}
+
+      </footer>
+      {panelProps && <ContractPanel title={usesSalaries ? MY_TEAM_COPY.contract : MY_TEAM_COPY.playerDetails} onClose={closeContractPanel}>
+        {error && <div className={isRookieExtendSuccessMessage(error) ? "hub-msg" : "error"} role="status">{error}</div>}
+        <ContractSidePanelBody {...panelProps} />
+      </ContractPanel>}
     </HubPage>
   );
 
   if (!isLeague || !hubContext?.team_id) return rosterPage;
   return <>
-    <div className="team-room-page-tabs" role="group" aria-label="My team view">
+    <div className="my-team-tabs" role="group" aria-label="My team view">
       <button type="button" aria-pressed={roomTab === "room"} onClick={() => setRoomTab("room")}>{MY_TEAM_COPY.room}</button>
       <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{usesSalaries ? MY_TEAM_COPY.manage : MY_TEAM_COPY.playerDetails}</button>
-      <button type="button" onClick={() => onNavigate?.("trades")}>{MY_TEAM_COPY.trades}</button>
-      {usesSalaries && <button type="button" onClick={() => onNavigate?.("planner")}>{MY_TEAM_COPY.cap}</button>}
     </div>
     {roomTab === "room" ? <TeamRoom leagueId={hubContext.league_id} teamId={hubContext.team_id}
       onContract={usesSalaries ? (pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); } : null}
