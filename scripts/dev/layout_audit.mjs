@@ -567,6 +567,26 @@ export function measureScript() {
       });
     }
 
+    // Both entry directions on the compact slate keep the same square control.
+    document.querySelectorAll(".hub-wcc-board--compact .hub-wcc-row").forEach(row => {
+      if (!row.getBoundingClientRect().height) return;
+      const button = row.querySelector(".hub-wcc-position-button");
+      const rect = button?.getBoundingClientRect();
+      results.push({ rule:"lineup-controls", ok:Boolean(rect && rect.width >= minTarget && rect.height >= minTarget && Math.abs(rect.width-rect.height) <= 1), selector:".hub-wcc-position-button", detail:rect ? `${px(rect.width)}×${px(rect.height)}px` : "missing starter/bench control" });
+      const call = row.querySelector(".hub-wcc-call-pill.is-start");
+      if (call) {
+        const bounds = call.getBoundingClientRect();
+        const fits = [...call.children].every(child => { const r = child.getBoundingClientRect(); return r.left >= bounds.left && r.right <= bounds.right && r.top >= bounds.top && r.bottom <= bounds.bottom; });
+        results.push({rule:"lineup-controls",ok:fits,selector:".hub-wcc-call-pill.is-start",detail:fits ? "label and delta fit" : "call text exceeds button"});
+      }
+    });
+    document.querySelectorAll(".app-header-mobile-top[data-compact-header]").forEach(header => {
+      const rect=header.getBoundingClientRect();
+      if (!rect.height || !rect.width) return;
+      const duplicate=[...document.querySelectorAll(".hub-league-context-bar:not(.is-header-slot)")].some(el=>el.getBoundingClientRect().height > 0);
+      results.push({rule:"phone-chrome",ok:rect.height <= 72 && !duplicate,selector:".app-header-mobile-top",detail:`${px(rect.height)}px; ${duplicate ? "duplicate league strip" : "single header"}`});
+    });
+
     const primaries = [...document.querySelectorAll(".btn-primary, button.btn-primary")].filter((el) => {
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;

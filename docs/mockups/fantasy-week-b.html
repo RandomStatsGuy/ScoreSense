@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>This Week · B</title>
+  <!-- Keep direct asset links: mobile_mock.py stamps each file independently. -->
+  <link rel="stylesheet" href="mockup-shared.css?v=137de37f253c">
+  <link rel="stylesheet" href="mobile-foundation.css?v=85f2e43c74a2">
+  <link rel="stylesheet" href="fantasy-week.css?v=fd78c40eea9a">
+</head>
+<body data-option="b">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <!-- Preview options/scenario controls belong here, outside app chrome. -->
+  <div class="week-preview"><strong>This Week · B · Matchup first</strong><nav aria-label="Design options"><a href="fantasy-week-a.html" >A</a><a href="fantasy-week-b.html" aria-current=page>B</a></nav></div><div class="scenario-bar" aria-label="Preview scenario"><span class="meta">Preview</span><button data-mode="native" aria-pressed="true">Native</button><button data-mode="linked" aria-pressed="false">Sleeper</button><button data-mode="empty" aria-pressed="false">Pre-draft</button></div>
+  <div class="mock-viewport">
+    <header class="mock-header">
+      <div class="mock-brand"><div><div class="mock-brand-name">ScoreSense</div><span class="mock-brand-sub">4th Down Labs</span></div><nav class="mock-topnav" aria-label="Product areas"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav></div>
+      <button class="text-action" data-preview="Account">Maya Chen</button>
+    </header>
+    <nav class="mock-subnav" aria-label="Fantasy destinations"><button class="text-action" aria-current="page" data-preview="This Week">This Week</button><button class="text-action" data-preview="My team">My team</button><button class="text-action" data-preview="Free agents">Free agents</button><button class="text-action" data-preview="League">League</button></nav>
+    <header class="phone-header" data-compact-header>
+      <button class="destination" data-preview="Fantasy · destination picker" aria-label="This Week · choose Fantasy destination">
+        <span>This Week</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="league-button phone-league" data-preview="Switch league · league actions" aria-label="Bottom to Top · switch league" title="Bottom to Top">
+        <span>Bottom to Top</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="more-control" data-preview="Account · More" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    </header>
+    <div class="mock-league-strip"><button class="league-button" data-preview="Switch league · league actions">Bottom to Top</button></div>
+    <!-- Replace sample body with the living page's real decisions/states. The two-column
+         mobile-layout helper is optional; board/room/table surfaces keep their structure. -->
+    <main id="main-content" class="week-shell" tabindex="-1"></main>
+    <p class="footnote">Static design preview · sample league · not shipped</p>
+  </div>
+  <nav class="phone-nav" aria-label="Product areas">
+    <a href="#" data-preview="Projections"><span aria-hidden="true">▤</span>Projections</a>
+    <a href="#" aria-current="page" data-preview="Fantasy · destination picker"><span aria-hidden="true">◈</span>Fantasy</a>
+    <a href="#" data-preview="Tools"><span aria-hidden="true">▦</span>Tools</a>
+    <a href="#" data-preview="Account · More"><span aria-hidden="true">•••</span>More</a>
+  </nav>
+  <div class="preview-toast" id="preview-toast" role="status" hidden></div>
+  <script src="fantasy-week.js?v=b947fde4d229"></script>
+  <script src="mobile-mock.js?v=ede2a46540ef"></script>
+</body>
+</html>

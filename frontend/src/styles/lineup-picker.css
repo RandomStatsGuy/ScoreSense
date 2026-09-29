@@ -44,7 +44,7 @@
 .lineup-picker-identity strong, .lineup-picker-identity > span { display: block; }
 .lineup-picker-identity > span { margin-top: var(--space-1); color: var(--text-secondary); font-size: var(--text-xs); }
 .lineup-picker .is-positive, .lineup-picker-delta { color: var(--tone-positive); }
-.lineup-picker .is-negative { color: var(--tone-negative); }
+.lineup-picker .is-negative { color: var(--text-secondary); }
 .lineup-picker-points { text-align: right; font-size: var(--text-lg); font-weight: 700; }
 .lineup-picker-points small { display: block; color: var(--text-muted); font-size: var(--text-xs); font-weight: 500; }
 .lineup-picker-radio { width: 1.25rem; height: 1.25rem; flex: none; display: grid; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; color: var(--accent-muted); font-size: var(--text-xs); }

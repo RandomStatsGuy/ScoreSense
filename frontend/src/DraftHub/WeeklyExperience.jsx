@@ -11,8 +11,8 @@ export default function WeeklyExperience({ hubContext, requestedWeek, requestedT
   const ownTeam = !requestedTeam || String(requestedTeam) === String(hubContext.team_id);
   return <GameCenter key={`${hubContext.league_id}:${requestedTeam || hubContext.team_id}`} leagueId={hubContext.league_id} hubContext={hubContext}
     requestedWeek={requestedWeek} requestedTeam={requestedTeam} reloadToken={reloadToken} onNavigate={onNavigate} weekly
-    renderLineup={ownTeam ? ({week, onChanged}) => <WeeklyCommandCenter
+    renderLineup={ownTeam ? ({week, onChanged, onSummary}) => <WeeklyCommandCenter
       key={`${hubContext.league_id}:${hubContext.team_id}:${week || "auto"}`}
       {...{hubContext, reloadToken, onNavigate, onSynced, onNavigateSetup}}
-      requestedWeek={week} embedded onLineupChanged={onChanged} /> : null} />;
+      requestedWeek={week} embedded onLineupChanged={onChanged} onSummary={onSummary} /> : null} />;
 }

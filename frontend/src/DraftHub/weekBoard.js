@@ -16,6 +16,13 @@ export const BOARD_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 
 export const WEEK_BOARD_COPY = {
   lineupTitle: "Your lineup",
+  startersTitle: "Your starters",
+  projected: "Projected",
+  benchTitle: "Bench",
+  benchCount: (count) => `${count} ${count === 1 ? "player" : "players"}`,
+  compactCalls: (count) => count ? `${count} lineup ${count === 1 ? "call" : "calls"}` : "",
+  manageSleeper: "Manage in Sleeper",
+  compactHint: "Tap a position to review a move.",
   savedLineup: "Saved lineup",
   lineupStatus: (empty, calls) => `${empty ? `${empty} empty starter ${empty === 1 ? "slot" : "slots"}` : "All starter slots filled"}${calls ? ` · ${calls} suggested ${calls === 1 ? "change" : "changes"}` : ""}`,
   lineupHelp: "Choose a starter slot to review eligible replacements. Confirm Start to save the move.",
@@ -80,10 +87,15 @@ export const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 
 export const LINEUP_PICKER_COPY = {
   lineup: "Lineup",
+  benchTitle: (name) => `Where should ${name} start?`,
+  chooseSlot: "Choose an eligible starter slot.",
+  selectSlot: "Choose a slot to preview the move.",
+  noSlots: "No eligible starter slots for this player.",
+  onBench: "On your bench",
   emptySlot: "Empty slot",
   title: (slot) => `Who starts at ${slot}?`,
   choose: "Choose an eligible bench player.",
-  move: (name, slot) => `Change ${slot}: ${name || "Empty"}`,
+  move: (name, slot) => slot === "BN" ? `Start ${name}: choose a slot` : `Change ${slot}: ${name || "Empty"}`,
   current: "Currently starting",
   toBench: "To bench",
   toSlot: (slot) => `To ${slot}`,
@@ -104,6 +116,12 @@ export const LINEUP_PICKER_COPY = {
   missing: "Projection unavailable",
   saved: (name, slot) => `Lineup updated. ${name} starts at ${slot}.`,
 };
+
+/** Bench entry uses the same eligibility policy as the starter picker. */
+export function eligibleStarterSlots(player, slots = [], rules) {
+  if (!player?.player_id) return [];
+  return slots.filter(slot => eligibleLineupReplacements(slot, [player], rules).length > 0);
+}
 
 /** Kickoff checks are a preview; the write endpoint enforces the current lock. */
 export function lineupPlayerLocked(player, { staffOverride = false, now = Date.now() } = {}) {

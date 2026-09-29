@@ -27,6 +27,7 @@ import {
   WEEK_BOARD_COPY,
   LINEUP_PICKER_COPY,
   eligibleLineupReplacements,
+  sleeperLineupUrl,
   callSheetPlayers,
   weekHeroCopy,
   weekPrimaryAction,
@@ -45,6 +46,7 @@ export default function WeeklyCommandCenter({
   requestedWeek,
   embedded = false,
   onLineupChanged,
+  onSummary,
 }) {
   const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
   const [dataState, setDataState] = useState({ key: "", payload: null });
@@ -164,6 +166,9 @@ export default function WeeklyCommandCenter({
   const draftCompleted = Boolean(hubContext?.draft_completed || data?.hub_context?.draft_completed);
   const canSync = Boolean(sync.sync_endpoint) && Boolean(sync.linked);
   const poorCoverage = Boolean(data) && isPoorProjectionCoverage({ counts, status });
+  useEffect(() => {
+    onSummary?.(data ? { week: meta.week, calls: poorCoverage ? 0 : decisions.length } : null);
+  }, [onSummary, data, meta.week, poorCoverage, decisions.length]);
   const rosterCount = Number(counts.roster) || 0;
   const missingCount = Number(counts.missing_projections) || 0;
   const coveredCount = Math.max(0, rosterCount - missingCount);
@@ -413,6 +418,7 @@ export default function WeeklyCommandCenter({
   );
 
   const boardProps = {
+    compact: embedded,
     weekLabel,
     slots,
     bench,
@@ -482,11 +488,7 @@ export default function WeeklyCommandCenter({
         ) : null}
       </HubExperienceHero>}
 
-      {embedded && <header id="hub-week-lineup-heading" tabIndex={-1} className="hub-week-lineup-heading"><h2>{WEEK_BOARD_COPY.lineupTitle}</h2>
-        {!loading && data && <p role="status">{WEEK_BOARD_COPY.lineupStatus(slots.filter(slot => !slot.player).length, decisions.length)}</p>}
-        {!loading && data && <p>{canEdit ? WEEK_BOARD_COPY.lineupHelp : sleeperLeagueId ? LINEUP_PICKER_COPY.linked : LINEUP_PICKER_COPY.readonly}</p>}
-        {!loading && meta.week && hubContext?.is_commissioner && !sleeperLeagueId && <button type="button" className="btn-link" onClick={() => onNavigate?.("office-corrections", {week:meta.week})}>{WEEK_BOARD_COPY.correctLineup}</button>}
-      </header>}
+      {embedded && <h2 id="hub-week-lineup-heading" tabIndex={-1} className="sr-only">{WEEK_BOARD_COPY.lineupTitle}</h2>}
       <Layout {...(embedded ? {} : {
         summaryLabel:"This week snapshot",
         summary:(
@@ -521,17 +523,22 @@ export default function WeeklyCommandCenter({
         {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
         {lineupError && !pickerSlot && <div className="error" role="alert">{lineupError}</div>}
         {lineupMessage && <p className="hub-wcc-lineup-saved" role="status">{lineupMessage}</p>}
-        {meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
+        {!embedded && meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
           <p className="chart-note">{WEEK_BOARD_COPY.projectionDefaults}</p>
         )}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
         <WeekLineupBoard {...boardProps} includeBench={embedded} showWeekStepper={!embedded} />
+        {embedded && !loading && data && <footer className="hub-week-lineup-footer">
+          {sleeperLeagueId ? <a className="btn-link" href={sleeperLineupUrl(sleeperLeagueId)} target="_blank" rel="noreferrer">{WEEK_BOARD_COPY.manageSleeper} ↗</a>
+            : !canEdit ? <p>{LINEUP_PICKER_COPY.readonly}</p> : null}
+          {meta.week && hubContext?.is_commissioner && !sleeperLeagueId && <button type="button" className="btn-link" onClick={() => onNavigate?.("office-corrections", {week:meta.week})}>{WEEK_BOARD_COPY.correctLineup}</button>}
+        </footer>}
 
       </Layout>
       {pickerSlot && <WeekLineupPicker
         key={`${contextKey}:${meta.week}:${pickerSlot.key || pickerSlot.slot}`}
-        slot={pickerSlot} bench={bench} rules={hubContext?.rules || data?.hub_context?.rules}
+        slot={pickerSlot} benchPlayer={pickerSlot.slot === "BN" ? pickerSlot.player : null} slots={slots} bench={bench} rules={hubContext?.rules || data?.hub_context?.rules}
         media={media} canEdit={canEdit} lineupLocked={Boolean(meta.lineup_locked)}
         staffOverride={Boolean(hubContext?.is_commissioner || data?.hub_context?.is_commissioner)}
         sleeperLeagueId={sleeperLeagueId} busy={lineupBusy} error={lineupError}
