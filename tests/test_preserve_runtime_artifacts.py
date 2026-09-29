@@ -78,3 +78,30 @@ def test_backup_skips_missing_runtime_dirs(tmp_path):
     dest = tmp_path / "backup"
     assert backup(root, dest) == []
     assert restore(root, dest) == []
+
+
+def test_refreshed_models_bdb_and_sentiment_survive_reset(tmp_path):
+    root = tmp_path / "repo"
+    files = {
+        "artifacts/models/v2/qb/model.pkl": b"fresh-model\x00\xff",
+        "artifacts/models/v2/qb/features.json": b'{"features":["fresh"]}',
+        "artifacts/bdb/features.parquet": b"fresh-bdb\x00\xff",
+        "data/candidates/sentiment_features.parquet": b"fresh-sentiment\x00\xff",
+    }
+    for rel, payload in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+
+    dest = tmp_path / "backup"
+    assert set(backup(root, dest)) == set(files)
+    # Both overwritten and reset-deleted runtime files must be restored exactly.
+    for index, rel in enumerate(files):
+        path = root / rel
+        if index % 2:
+            path.unlink()
+        else:
+            path.write_bytes(b"stale-repository-copy")
+    assert set(restore(root, dest)) == set(files)
+    for rel, payload in files.items():
+        assert (root / rel).read_bytes() == payload

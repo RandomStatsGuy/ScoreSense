@@ -24,9 +24,12 @@ RUNTIME_DIRS = (
     "artifacts/injury_overlays",
     "artifacts/weekly_projection_changes",
     "artifacts/predictions",
+    "artifacts/models/v2",
+    "artifacts/bdb",
 )
 
 RUNTIME_FILES = (
+    "data/candidates/sentiment_features.parquet",
     "data/processed/qb_mlready.parquet",
     "data/processed/rb_mlready.parquet",
     "data/processed/wr_mlready.parquet",
