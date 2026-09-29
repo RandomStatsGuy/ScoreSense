@@ -59,10 +59,13 @@ EXCLUDE_PREFIXES = (
     "artifacts/injury_overlays/",
     "artifacts/weekly_projection_changes/",
     "artifacts/predictions/",
+    "artifacts/models/v2/",
+    "artifacts/bdb/",
+    "data/candidates/sentiment_features.parquet",
     "league_contract_history/",
 )
 EXCLUDE_FILES = {".env", "users.db", "users.db-wal", "users.db-shm"}
-# Models stay in the tarball (bootstrap). Live refresh outputs stay on the VPS.
+# Bootstrap assets may ship; refreshed v2 models, BDB and sentiment stay on the VPS.
 
 
 def _env(name: str, default: str = "") -> str:
