@@ -359,3 +359,11 @@ def test_strategy_is_deliberate_hero_band_exception() -> None:
     assert "only Fantasy destination without a `HubExperienceHero` band" in product
     assert "Do not add `HubExperienceHero` to Strategy" in product
     assert "Strategy is the board-first exception" in core_rule
+
+
+def test_my_team_cap_label_follows_draft_phase() -> None:
+    for parts in (("docs", "PRODUCT.md"), (".cursor", "rules", "scoresense-core.mdc"),
+                  ("frontend", "src", "livingSurfaces.js")):
+        text = _read(*parts)
+        assert "Available Cap" in text
+        assert "Leftover for draft" in text
