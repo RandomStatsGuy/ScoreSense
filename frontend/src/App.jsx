@@ -1416,7 +1416,7 @@ export default function App() {
     <LeagueChromeProvider>
     <MobileShell
       section={view}
-      className={view === "hub" && ["home", "week", "game", "roster"].includes(hubSubView) ? "app--compact-league" : ""}
+      className={view === "hub" && ["home", "week", "game", "roster", "available"].includes(hubSubView) ? "app--compact-league" : ""}
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
       hrefForSection={pathForSection}
@@ -1465,11 +1465,11 @@ export default function App() {
           />
         )}
         <InstallPrompt />
-        <header className={`app-header${APP_SECTIONS.some(section => section.id === view) ? " app-header--product" : ""}${view === "hub" ? " app-header--hub" : ""}${view === "hub" && ["home", "week", "game", "roster"].includes(hubSubView) ? " app-header--compact-league" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
+        <header className={`app-header${APP_SECTIONS.some(section => section.id === view) ? " app-header--product" : ""}${view === "hub" ? " app-header--hub" : ""}${view === "hub" && ["home", "week", "game", "roster", "available"].includes(hubSubView) ? " app-header--compact-league" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
           <div className={`app-header-shell${view === "hub" ? " app-header-shell--hub" : ""}`}>
             <MobileHeader
               title={mobileDestination.title}
-              compactLeague={view === "hub" && ["home", "week", "game", "roster"].includes(hubSubView) && !hubNeedsSignIn && hubContext?.mode === "league"}
+              compactLeague={view === "hub" && ["home", "week", "game", "roster", "available"].includes(hubSubView) && !hubNeedsSignIn && hubContext?.mode === "league"}
               onMoreOpen={() => setMobileMenuOpen(true)}
               hasMenu={Boolean(mobileDestination.picker)}
               menuOpen={mobileDestOpen}
@@ -1520,7 +1520,7 @@ export default function App() {
                 hubContext={hubContext}
                 onNavigate={setHubSubView}
                 mobileLayout={mobileLayout}
-                pickerOnly={mobileLayout && ["home", "week", "game", "roster"].includes(hubSubView)}
+                pickerOnly={mobileLayout && ["home", "week", "game", "roster", "available"].includes(hubSubView)}
                 pickerOpen={mobileLayout ? mobileDestOpen : undefined}
                 onPickerOpenChange={mobileLayout ? setMobileDestOpen : undefined}
               />
