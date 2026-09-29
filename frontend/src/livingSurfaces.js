@@ -70,15 +70,17 @@ export const LIVING_SURFACES = Object.freeze({
   }),
   "hub.available": S({
     label: "Free agents",
-    chrome: "table",
+    chrome: "board",
     route: "/hub/free-agents",
     page: "frontend/src/DraftHub/ValueSheetTable.jsx",
     copy: "frontend/src/DraftHub/acquisitionWindow.js",
     also: [
+      "frontend/src/DraftHub/FreeAgentsBoard.jsx",
+      "frontend/src/DraftHub/FreeAgentsBoard.css",
       "frontend/src/DraftHub/faBidPresentation.js",
       "frontend/src/DraftHub/faWalkaway.js",
     ],
-    doNot: "Do not add a second pickup board. Players-tab adds follow the calendar. Pick drafts use an ordered Claim queue with optional conditional drops; auctions keep Bid. Suggested bid names scoring and Rules risk posture. Never show Hub in user copy. Rows always show Claim, Bid, or Add; when locked, disable with Adds open after the draft — do not omit the action. Star is Star for draft with a visible starred state. Hide Vs cost until a contract cost exists. Fold tier into the player cell. Desktop virtualizes on page scroll — no nested table scroller. Season pts use a number plus text range. How adds work lives in the acquisition banner. Walk-away is a personal local ceiling for bids only. Place bid stays the only auction primary; amber means suggested bid is above your ceiling.",
+    doNot: "Approved September 29 A: one flat scouting list, compact headshots, season median, projected per-game pace, common-scale floor–ceiling graphic and text range. No second pickup board, invented trends or hardcoded mock deadlines. Use the compact phone header and left desktop league picker. Pos / Sort / Search precede the list; extra filters are disclosed. Player outlook and acquisition share a bottom sheet on phone and right sheet on desktop. Players-tab adds follow the calendar. Pick drafts retain ordered claims, conditional drops and staff priority confirmation; auctions retain bids, cap checks and a local personal walk-away. Suggested bid names scoring and Rules risk posture. No money or contract history in pick leagues. Keep the action visible when disabled, with the lock reason and draft stars. Desktop virtualizes on page scroll; phone progressively reveals rows. How adds work lives in the acquisition banner. Walk-away is a personal local ceiling for bids only. Place bid is the only auction primary; amber means above the personal ceiling. Failed claim loading must never allow overwriting the existing queue.",
   }),
   "hub.room": S({
     label: "Draft",

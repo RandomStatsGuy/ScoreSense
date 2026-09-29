@@ -299,7 +299,7 @@
 
 /* Compact league slot: opt-in from the approved Home mobile header. */
 @media (max-width: 768px) {
-  .app-header--hub .app-header-mobile-top--league { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) var(--touch-target); gap: var(--space-3); padding-block: var(--space-2); }
+  .app-header--hub .app-header-mobile-top--league { display: grid; grid-template-columns: fit-content(55%) minmax(0,1fr) var(--touch-target); gap: var(--space-3); padding-block: var(--space-2); }
   .app-header-mobile-top--league .app-header-mobile-title-btn { justify-self: start; max-width: 100%; padding: 0; gap: var(--space-1); }
   .app-header-mobile-top--league .app-header-mobile-title { font-size: var(--text-xl); }
   .app-header-mobile-title-caret svg { width: 20px; height: 20px; display: block; }
