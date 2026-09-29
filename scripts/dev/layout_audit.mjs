@@ -271,6 +271,19 @@ export function measureScript() {
     });
     if (!results.some((r) => r.rule === "bars")) results.push({ rule: "bars", ok: true, selector: "", detail: `${bars.length} bars` });
 
+    // Matchup summaries must not squeeze ordinary labels into vertical columns.
+    document.querySelectorAll(".hub-week-forecast").forEach((forecast) => {
+      if (!forecast.getClientRects().length) return;
+      const labels = [...forecast.querySelectorAll(":scope > span")];
+      const readable = labels.every((label) => {
+        const style = getComputedStyle(label);
+        const line = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.5;
+        return label.getBoundingClientRect().height <= line * 2 + 1;
+      });
+      results.push({rule: "week-forecast", ok: readable, selector: ".hub-week-forecast",
+        detail: readable ? "matchup labels fit within two lines" : "compressed matchup labels exceed two lines"});
+    });
+
     // Block-level siblings only. Inline runs in one paragraph (Now $114 leftover)
     // are supposed to sit adjacent — do not compare every text node on the page.
     const isBlockDisplay = (display) => {
