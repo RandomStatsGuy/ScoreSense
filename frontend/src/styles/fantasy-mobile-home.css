@@ -39,4 +39,4 @@
   .hub-home-chat .hub-league-chat-compose input { font-size: 1rem; }
 }
 
-.hub-home-chat .hub-league-chat-list { min-height: 0; max-height: 20rem; height: auto; }
+.hub-home-chat .hub-league-chat .hub-league-chat-list { min-height: 0; max-height: 20rem; height: auto; }
