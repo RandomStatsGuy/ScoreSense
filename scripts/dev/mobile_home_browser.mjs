@@ -56,7 +56,7 @@ try {
    await page.locator('.hub-league-context-caret > summary').click();await page.keyboard.press('Escape');
    assert.equal(await page.locator('.hub-league-context-caret').getAttribute('open'),null);
    await page.getByRole('button',{name:'Home, choose destination',exact:true}).click();
-   await page.getByRole('button',{name:/This Week/}).filter({visible:true}).click();
+   await page.getByRole('button',{name:'This Week',exact:true}).filter({visible:true}).click();
    assert.equal((await page.evaluate(()=>window.__navigation)).view,'week');
    await page.locator('.app-header-more').click();
    await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');

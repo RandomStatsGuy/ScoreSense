@@ -146,7 +146,7 @@ test("pre-draft home hides an unscored matchup deck", () => {
       draftCompleted: false,
       scoring: { placeholder: false, standings: [{ rank: 1 }], week: 1 },
     }),
-    { show: true, historical: true },
+    { show: false, historical: false },
   );
   assert.deepEqual(
     homeDeckMode({

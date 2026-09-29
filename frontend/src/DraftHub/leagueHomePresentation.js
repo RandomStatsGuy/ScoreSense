@@ -129,9 +129,6 @@ export function homeDeckMode({ phaseId, draftCompleted, scoring } = {}) {
   const view = interpretStandings(scoring, { phaseId, draftCompleted });
   if (!preDraft) return { show: true, historical: false };
   if (view.hasResults) return { show: true, historical: true };
-  const placeholder = Boolean(scoring?.placeholder);
-  const hasRows = Boolean(scoring?.standings?.length || scoring?.matchups?.length);
-  if (hasRows && !placeholder) return { show: true, historical: true };
   return { show: false, historical: false };
 }
 
