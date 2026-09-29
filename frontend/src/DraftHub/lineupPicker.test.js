@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { eligibleLineupReplacements, lineupPlayerLocked, lineupReplacementDelta } from "./weekBoard.js";
+import { eligibleLineupReplacements, eligibleStarterSlots, lineupPlayerLocked, lineupReplacementDelta } from "./weekBoard.js";
 
 test("position picker obeys configured FLEX eligibility and keeps missing projections last", () => {
   const bench = [
@@ -30,4 +30,15 @@ test("move preview does not invent a delta when either projection is missing", (
   assert.equal(lineupReplacementDelta({ player: { p50: null } }, { p50: 15.1 }), null);
   assert.equal(lineupReplacementDelta({}, { p50: null }), null);
   assert.equal(lineupReplacementDelta({}, { p50: 0 }), 0);
+});
+
+test("bench entry preserves distinct slots and custom FLEX eligibility including empty starters", () => {
+  const slots = [{key:"wr1",slot:"WR1",player:{player_id:"a"}}, {key:"wr2",slot:"WR2",player:null},
+    {key:"flex",slot:"FLEX"}, {key:"qb",slot:"QB"}, {key:"def",slot:"DEF"}];
+  const wideout={player_id:"bench-wr",position:"WR"};
+  assert.deepEqual(eligibleStarterSlots(wideout,slots).map(s=>s.key),["wr1","wr2","flex"]);
+  assert.deepEqual(eligibleStarterSlots(wideout,slots,{roster:{flex:{eligible:["QB"]}}}).map(s=>s.key),["wr1","wr2"]);
+  assert.deepEqual(eligibleStarterSlots({player_id:"bench-qb",position:"QB"},slots,{roster:{flex:{eligible:["QB"]}}}).map(s=>s.key),["flex","qb"]);
+  assert.deepEqual(eligibleStarterSlots({player_id:"def",position:"DEF"},slots).map(s=>s.key),["def"]);
+  assert.deepEqual(eligibleStarterSlots(null,slots),[]);
 });

@@ -113,7 +113,7 @@ export default function GameCenterMatchup({
   weekly = false,
   lineup,
 }) {
-  const [section, setSection] = useState(weekly && lineup && stateLabel !== "Live" && stateLabel !== "Final" ? "lineup" : "starters");
+  const [section, setSection] = useState(weekly && lineup ? "lineup" : "starters");
   const [selectedKey, setSelectedKey] = useState(rows[0]?.key);
   const [detailSide, setDetailSide] = useState("home");
   const id = useId().replaceAll(":", "");
@@ -123,10 +123,6 @@ export default function GameCenterMatchup({
   const theirs = identityFor(identities, identityTeam(opponent));
   const forecast = weeklyMatchupForecast(viewer, opponent);
   const pregame = weekly && placeholder;
-  const openLineup = () => {
-    setSection("lineup");
-    requestAnimationFrame(() => document.getElementById("hub-week-lineup-heading")?.focus());
-  };
   const select = (key) => {
     setSelectedKey(key);
     setDetailSide("home");
@@ -152,7 +148,7 @@ export default function GameCenterMatchup({
   );
   return (
     <>
-      <section className="gc-room-scoreboard" aria-label="Matchup score">
+      {!weekly && <section className="gc-room-scoreboard" aria-label="Matchup score">
         <MatchupBannerArt identity={mine} side="home" />
         <MatchupBannerArt identity={theirs} side="away" />
         <TeamName team={viewer} identity={mine} />
@@ -175,11 +171,11 @@ export default function GameCenterMatchup({
           <span>{COPY.scoreSource}</span>
           <span>{formatSyncedAgo(data.synced_at)}</span>
         </div>}
-      </section>
-      {weekly && <section className="hub-week-forecast" aria-label={COPY.projectedTotals}>
-        {!pregame && <div><small>{COPY.projectedTotals}</small><strong>{forecast.mine == null ? "—" : forecast.mine.toFixed(1)} <span>vs</span> {forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)}</strong></div>}
-        <div><strong>{forecast.label}</strong><small>{COPY.projectionBasis}</small></div>
-        {lineup && <button type="button" className="btn-primary" onClick={openLineup}>{COPY.setLineup}</button>}
+      </section>}
+      {weekly && <section className="hub-week-forecast" aria-label={pregame ? COPY.projectedTotals : stateLabel}>
+        <span>{COPY.youVersus(gameCenterTeamParts(opponent).owner || gameCenterTeamLabel(opponent))}</span>
+        <strong aria-live="polite">{pregame ? (forecast.mine == null ? "—" : forecast.mine.toFixed(1)) : formatMatchupScore(viewer.points, { placeholder }).score}<small aria-hidden="true">—</small>{pregame ? (forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)) : formatMatchupScore(opponent.points, { placeholder }).score}</strong>
+        <span>{pregame ? COPY.projected : stateLabel}</span>
       </section>}
       {!weekly && scoringControl}
       <div className="gc-room-toolbar">

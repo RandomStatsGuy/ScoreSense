@@ -42,6 +42,8 @@ export const GAME_CENTER_COPY = {
   emptyDuel:
     "No starting lineup is available. Review your lineup on This Week.",
   setLineup: "Set lineup",
+  projected: "Projected",
+  youVersus: (name) => `You vs ${name}`,
   setupCta: "Link Sleeper",
   openDraft: "Open draft room",
   nextGames: "Next games Thu",
