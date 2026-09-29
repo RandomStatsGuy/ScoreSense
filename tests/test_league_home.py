@@ -335,6 +335,20 @@ def test_league_home_in_season_lineup_action(hub_db):
     assert lineup["href"] == "week"
 
 
+def test_native_in_season_league_does_not_require_sleeper_to_play():
+    from src.draft_hub.league_home import _build_actions
+
+    kwargs = dict(
+        phase={"id": PHASE_IN_SEASON}, cap={}, pre_draft=None,
+        freshness={"projections": {"available": True, "stale": False}},
+        week_summary={}, sleeper_linked=False,
+    )
+    actions = _build_actions(**kwargs, league_id="native-league")
+    assert not any(action["id"] == "sync_league" for action in actions)
+    # Solo planning still offers the optional path to connect a league.
+    assert any(action["id"] == "sync_league" for action in _build_actions(**kwargs))
+
+
 def test_league_home_never_live_sleeper(hub_db):
     league, team, _ws, sub, _rules = _seed_league(hub_db)
     from src.draft_hub.hub_context import resolve_hub_context

@@ -26,7 +26,7 @@ from src.projections.player_compare import (
     position_rank_map,
     volatility,
 )
-from src.draft_hub.player_name_match import last_name_key, name_key
+from src.draft_hub.player_name_match import last_name_key, name_key, roster_name_key
 from src.projections.weekly_cache import load_weekly_prediction
 
 # nflverse/mlready uses LA/JAC/WAS; Sleeper rosters often use LAR/JAX/WSH.
@@ -268,6 +268,25 @@ def _lookup_projection(
             # NFL club (Josh Allen JAX must not inherit BUF QB projections).
             if _teams_compatible(team, proj_team):
                 return hits[0]
+    # Sleeper omits suffixes such as Jr. while weekly artifacts retain them.
+    # Require one compatible full-name identity; never guess by surname alone.
+    full_name = roster_name_key(str(slot.get("player_name") or ""))
+    pos = normalize_position(slot.get("position"))
+    candidates = {}
+    if full_name:
+        for entries in by_name.values():
+            for entry in entries:
+                if roster_name_key(str(entry.get("player_name") or "")) != full_name:
+                    continue
+                if not _teams_compatible(team, str(entry.get("team") or "")):
+                    continue
+                entry_pos = normalize_position(entry.get("position"))
+                if pos and entry_pos and pos != entry_pos:
+                    continue
+                identity = (entry.get("player_id"), entry.get("player_name"), entry.get("team"))
+                candidates[identity] = entry
+        if len(candidates) == 1:
+            return next(iter(candidates.values()))
     return {}
 
 

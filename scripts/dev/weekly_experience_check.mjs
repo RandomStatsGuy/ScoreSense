@@ -81,6 +81,29 @@ try {
     assert.equal(await changeFlex().count(), 0);
     checks.push(`${width}: live matchup, league results and read-only team deep link`);
 
+    for (const state of ["native-progress", "final"]) {
+      await open(`?state=${state}`);
+      const matchup = page.getByRole("button", { name: "Matchup", exact: true });
+      await matchup.waitFor();
+      assert.equal(await matchup.getAttribute("aria-pressed"), "true");
+      assert.ok((await text()).includes(state === "final" ? "Final" : "Week in progress"));
+      await page.getByRole("button", { name: state === "final" ? "Review lineup" : "Set lineup", exact: true }).click();
+      await changeFlex().waitFor();
+      if (state === "final") {
+        assert.equal(await page.getByRole("button", { name: "Set lineup", exact: true }).count(), 0);
+        await changeFlex().click();
+        assert.equal(await page.getByRole("radio", { name: "DeVonta Smith", exact: true }).isEnabled(), false);
+      }
+      assert.equal(await page.evaluate(() => window.fixtureWrites.length), 0);
+    }
+    checks.push(`${width}: native recorded weeks open Matchup; delayed slate stays in progress; final lineup is labeled Review and cannot write`);
+
+    await open("?state=specialists");
+    await changeFlex().waitFor();
+    assert.ok((await text()).includes("Projected favored by 13.4"));
+    assert.ok((await text()).includes("season-based kicker and defense estimates"));
+    checks.push(`${width}: existing specialist estimates count toward the forecast and their source is visible`);
+
     await open("?state=readonly");
     await changeFlex().waitFor();
     assert.ok((await text()).includes("This lineup is read-only."));

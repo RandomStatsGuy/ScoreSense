@@ -58,7 +58,9 @@ export default function useAppNavigation() {
             ...filterUpdates,
             preserveParams: searchParams,
           });
-          if (targetView !== "projections") params = stripProjectionParams(params);
+          if (targetView !== "projections") params = stripProjectionParams(params, {
+            preserveWeek: targetView === "hub" && filterUpdates.week != null,
+          });
           const qs = params.toString();
           search = qs ? `?${qs}` : "";
         } else if (targetView !== "projections") {

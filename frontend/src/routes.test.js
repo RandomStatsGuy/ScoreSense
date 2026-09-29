@@ -165,4 +165,8 @@ test("my-team and game-center aliases resolve, unknown hub paths go Home", () =>
 test("corrections keep the selected league week", () => {
   assert.deepEqual(hubSubViewFilterUpdates("office", { officeTab: "corrections", week: 3 }), { week: 3 });
   assert.equal(hubSubViewFilterUpdates("office", { officeTab: "corrections", week: 99 }), null);
+  const updates = hubSubViewFilterUpdates("office", {officeTab:"corrections",week:3});
+  const params = buildFilterSearchParams({...updates,preserveParams:new URLSearchParams("week=8&pos=qb&season=2026")});
+  assert.equal(stripProjectionParams(params, {preserveWeek:true}).toString(), "week=3");
+  assert.equal(stripProjectionParams(params).has("week"), false);
 });
