@@ -799,3 +799,35 @@ def test_projection_name_fallback_rejects_wrong_team_and_ambiguous_names():
     ]
     attach_matchup_analytics([{"teams": [{"starters": players}]}], index)
     assert [p["proj"] for p in players] == [None, None, 23]
+
+
+@pytest.mark.parametrize("linked", [False, True])
+def test_home_week_passed_to_same_source_for_opponent_and_projections(hub_client, hub_db, monkeypatch, linked):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    league = storage.create_league("dev", "Home window", 2026, LeagueRules())
+    if linked:
+        storage.update_league_sleeper_id(league["id"], "home-sleeper")
+    monkeypatch.setattr("src.draft_hub.home_matchup.home_matchup_window", lambda _: {"week": 4, "home_display_mode": "projected"})
+    calls = []
+    def payload(*args, **kwargs):
+        calls.append(kwargs["week"])
+        return {"available": True, "week": kwargs["week"], "matchups": [], "standings": []}
+    monkeypatch.setattr("src.draft_hub.league_live_scoring.get_sleeper_live_week", payload)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.build_hub_live_week", payload)
+    response = hub_client.get(f"/api/hub/league/{league['id']}/live-scoring?home_view=true")
+    assert response.status_code == 200
+    assert calls == [4]
+    assert response.json()["home_display_mode"] == "projected"
+    response = hub_client.get(f"/api/hub/league/{league['id']}/live-scoring?home_view=true&week=2")
+    assert response.json()["week"] == 2
+    assert "home_display_mode" not in response.json()
+
+
+def test_home_missing_schedule_never_guesses_a_matchup(hub_client, hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    league = storage.create_league("dev", "Home no schedule", 2026, LeagueRules())
+    monkeypatch.setattr("src.draft_hub.home_matchup.home_matchup_window", lambda _: None)
+    response = hub_client.get(f"/api/hub/league/{league['id']}/live-scoring?home_view=true")
+    assert response.status_code == 200
+    assert response.json()["available"] is False
+    assert response.json()["matchups"] == []

@@ -129,3 +129,20 @@ button.btn-link.hub-league-switcher-create,
     height: var(--control-h-lg);
   }
 }
+
+/* Shared disclosure variant, approved in the September mobile Home review. */
+.hub-disclosure { margin: 0; padding: var(--space-4); border: 0; background: var(--bg-elevated); border-radius: var(--radius-lg); }
+.hub-disclosure > summary { display: list-item; list-style: none; cursor: pointer; min-height: var(--touch-target); padding: 0; }
+.hub-disclosure > summary::-webkit-details-marker { display: none; }
+.hub-disclosure-heading { display: grid; grid-template-columns: var(--touch-target) minmax(0,1fr) var(--touch-target); gap: var(--space-3); align-items: center; }
+.hub-disclosure-icon, .hub-disclosure-toggle { display: flex; align-items: center; justify-content: center; width: var(--touch-target); height: var(--touch-target); color: var(--text-secondary); }
+.hub-disclosure-icon svg { width: 20px; height: 20px; }
+.hub-disclosure-title { display: flex; flex-direction: column; gap: var(--space-1); text-align: center; }
+.hub-disclosure-title strong { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+.hub-disclosure-title small { font-size: var(--text-xs); color: var(--text-muted); }
+.hub-disclosure-toggle { border: 1px solid var(--border-strong); border-radius: var(--radius-pill); font-size: var(--text-xl); }
+.hub-disclosure-toggle::after { content: '+'; }
+.hub-disclosure[open] .hub-disclosure-toggle::after { content: '−'; }
+.hub-disclosure > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--space-1); border-radius: var(--radius-sm); }
+.hub-disclosure > summary:hover .hub-disclosure-toggle { background: var(--bg-subtle); }
+.hub-disclosure[open] > .hub-section-body { margin-top: var(--space-4); }

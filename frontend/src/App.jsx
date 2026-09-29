@@ -1415,6 +1415,7 @@ export default function App() {
     <LeagueChromeProvider>
     <MobileShell
       section={view}
+      className={view === "hub" && hubSubView === "home" ? "app--compact-league" : ""}
       onSectionChange={goToSection}
       onMoreOpen={() => setMobileMenuOpen(true)}
       hrefForSection={pathForSection}
@@ -1457,10 +1458,12 @@ export default function App() {
           />
         )}
         <InstallPrompt />
-        <header className={`app-header${APP_SECTIONS.some(section => section.id === view) ? " app-header--product" : ""}${view === "hub" ? " app-header--hub" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
+        <header className={`app-header${APP_SECTIONS.some(section => section.id === view) ? " app-header--product" : ""}${view === "hub" ? " app-header--hub" : ""}${view === "hub" && hubSubView === "home" ? " app-header--compact-league" : ""}${view === "hub" && hubNeedsSignIn ? " app-header--hub-guest" : ""}`}>
           <div className={`app-header-shell${view === "hub" ? " app-header-shell--hub" : ""}`}>
             <MobileHeader
               title={mobileDestination.title}
+              compactLeague={view === "hub" && hubSubView === "home" && !hubNeedsSignIn && hubContext?.mode === "league"}
+              onMoreOpen={() => setMobileMenuOpen(true)}
               hasMenu={Boolean(mobileDestination.picker)}
               menuOpen={mobileDestOpen}
               onTitleClick={() => setMobileDestOpen(true)}
@@ -1510,6 +1513,7 @@ export default function App() {
                 hubContext={hubContext}
                 onNavigate={setHubSubView}
                 mobileLayout={mobileLayout}
+                pickerOnly={mobileLayout && hubSubView === "home"}
               />
             )}
           </div>

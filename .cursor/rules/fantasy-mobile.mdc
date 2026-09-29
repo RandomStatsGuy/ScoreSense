@@ -1,0 +1,52 @@
+---
+description: Approved ScoreSense mobile design defaults and reusable static mock foundation.
+globs: frontend/src/**/*.{js,jsx,css},docs/mockups/*.{html,css,js},scripts/dev/mobile_mock.py
+alwaysApply: false
+---
+
+# Fantasy mobile design
+
+Read `docs/PRODUCT.md` and the matching living-surface row first. The approved reference is `docs/mockups/fantasy-mobile-home-a.html` (September 29, 2026). Reuse its controls and spacing; keep each destination's own content hierarchy. Strategy, Rosters, live Draft, My team, and Game center retain their approved board/table/room structures.
+
+## Start from the shared foundation
+
+- Static mocks load `mockup-shared.css`, then `mobile-foundation.css`, then page-specific styles. Start with `_mobile-starter.html` through `scripts/dev/mobile_mock.py`; instructions live in `.cursor/skills/fast-ui-mock/SKILL.md`.
+- Production uses existing `MobileHeader`, `MobileShell`, `HubUILayout` and the product token/phone styles. Mock classes are examples, not a second production design system.
+- Change shared controls in the foundation and recheck its consumers. Keep phase logic, scoring, chat content, and task ordering in each page's own files.
+
+## Parameters at phone widths (≤768px)
+
+| Role | Mock token / default |
+|------|----------------------|
+| Page inset | `--mobile-page-inset`: 16px |
+| Card inset | `--mobile-card-inset`: 16px |
+| Section gap | `--mobile-section-gap`: 16px |
+| Header/control gap | `--mobile-header-gap`: 12px |
+| Touch target | `--mobile-touch-target`: 44px minimum |
+| Control icon | `--mobile-control-icon`: 20px; intrinsic SVG width/height required |
+| Card radius | `--mobile-card-radius`: 18px |
+| Bottom clearance | `--mobile-nav-clearance`: 6rem + safe-area inset |
+
+These alias existing ScoreSense tokens. Type stays ≥12px; text inputs use 16px. Use the established palette and type scale. Desktop density follows `frontend-craft.mdc`.
+
+## Chrome, alignment, and controls
+
+- At desktop widths, anchor the league switcher to the left of its context row, aligned with the page content. Keep the compact phone header arrangement below 769px.
+
+- New Fantasy phone mocks start with one row: destination left, quieter league switcher toward the right, More at the end. Aim for the approved 61px header, ≤72px in the audit. Keep long names truncated with full accessible labels and both switch actions reachable. Do not stack centered Home/league pills or repeat the league strip on phone.
+- Center short card headings, matchups, and standalone key figures. Left-align navigation, message text, player lists, forms, and actionable issues. Table numbers and their headers stay right-aligned.
+- Disclosures use a small leading icon, concise centered title, and a 44px plus/minus state indicator. Use native `details/summary`; keep summary `display: list-item`, put the grid inside, and hide its native marker only when providing the visible replacement. Never nest a second button in summary.
+- Make controls feel responsive with clear selected, expanded, pressed, and focus states. Respect reduced motion. Use accent for current selection and a meaningful next action; neutral controls can carry the rest. A page can have no primary action.
+- Keep Projections / Fantasy / Tools / More at the bottom, with safe-area padding and content clearance. Preview labels and scenario controls sit outside product chrome.
+
+## Content discipline
+
+- Put the page's useful decision or content first. Omit repeated titles, explanations of familiar fantasy tasks, decorative metrics, and empty sections. Add a short support line only when it changes understanding.
+- Disclose secondary detail. Keep urgent blocking issues visible beside the affected action; a collapsed section must not hide a blocker.
+- Phase relevance matters: show only the money, dates, and actions that matter in the current state. Home's in-season/pre-draft ordering and Wednesday transition live in its registry row and `PRODUCT.md`; they are not defaults for every page.
+
+## Preview checks
+
+At 390 and 1280: run the layout audit and inspect screenshots. At 320: check long destination/league names, touch targets, and overflow. Exercise pickers, disclosure click/keyboard behavior, relevant phases, and fixed-nav clearance. Audit success does not replace visual inspection.
+
+After any CSS/JS change, run `mobile_mock.py stamp` on affected pages, then reload the user's existing preview tab when available. Version every direct local stylesheet/script, including the foundation; a fresh screenshot session alone can miss stale styles in an already-open tab.
