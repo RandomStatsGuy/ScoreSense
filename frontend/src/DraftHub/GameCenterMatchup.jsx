@@ -16,6 +16,7 @@ import {
   gameCenterTeamParts,
   formatStandingRank,
   formatStandingRecord,
+  weeklyMatchupForecast,
 } from "./gameCenterPresentation";
 
 const identityTeam = (t) => ({
@@ -109,8 +110,10 @@ export default function GameCenterMatchup({
   onNavigate,
   hubContext,
   scoringControl,
+  weekly = false,
+  lineup,
 }) {
-  const [section, setSection] = useState("starters");
+  const [section, setSection] = useState(weekly && lineup && stateLabel !== "Live" && stateLabel !== "Final" ? "lineup" : "starters");
   const [selectedKey, setSelectedKey] = useState(rows[0]?.key);
   const [detailSide, setDetailSide] = useState("home");
   const id = useId().replaceAll(":", "");
@@ -118,6 +121,12 @@ export default function GameCenterMatchup({
   const player = selected?.[detailSide];
   const mine = identityFor(identities, identityTeam(viewer));
   const theirs = identityFor(identities, identityTeam(opponent));
+  const forecast = weeklyMatchupForecast(viewer, opponent);
+  const pregame = weekly && placeholder;
+  const openLineup = () => {
+    setSection("lineup");
+    requestAnimationFrame(() => document.getElementById("hub-week-lineup-heading")?.focus());
+  };
   const select = (key) => {
     setSelectedKey(key);
     setDetailSide("home");
@@ -149,48 +158,54 @@ export default function GameCenterMatchup({
         <TeamName team={viewer} identity={mine} />
         <div className="gc-room-score" aria-live="polite" aria-atomic="true">
           <strong>
-            {formatMatchupScore(viewer.points, { placeholder }).score}
+            {pregame ? (forecast.mine == null ? "—" : forecast.mine.toFixed(1)) : formatMatchupScore(viewer.points, { placeholder }).score}
           </strong>
           <div>
             <span className={stateLabel === "Live" ? "gc-room-live" : ""}>
-              {stateLabel}
+              {pregame ? COPY.projectedTotals : stateLabel}
             </span>
-            <small>{gameCenterLead(viewer, opponent, placeholder)}</small>
+            {!pregame && <small>{gameCenterLead(viewer, opponent, placeholder)}</small>}
           </div>
           <strong>
-            {formatMatchupScore(opponent.points, { placeholder }).score}
+            {pregame ? (forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)) : formatMatchupScore(opponent.points, { placeholder }).score}
           </strong>
         </div>
         <TeamName team={opponent} identity={theirs} away />
-        <div className="gc-room-score-foot">
+        {!pregame && <div className="gc-room-score-foot">
           <span>{COPY.scoreSource}</span>
           <span>{formatSyncedAgo(data.synced_at)}</span>
-        </div>
+        </div>}
       </section>
-      {scoringControl}
+      {weekly && <section className="hub-week-forecast" aria-label={COPY.projectedTotals}>
+        {!pregame && <div><small>{COPY.projectedTotals}</small><strong>{forecast.mine == null ? "—" : forecast.mine.toFixed(1)} <span>vs</span> {forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)}</strong></div>}
+        <div><strong>{forecast.label}</strong><small>{COPY.projectionBasis}</small></div>
+        {lineup && <button type="button" className="btn-primary" onClick={openLineup}>{COPY.setLineup}</button>}
+      </section>}
+      {!weekly && scoringControl}
       <div className="gc-room-toolbar">
         <div
           className="gc-room-segments"
           role="group"
           aria-label="Matchup view"
         >
-          {["starters", "bench", "league"].map((tab) => (
+          {(weekly ? [...(lineup ? ["lineup"] : []), "starters", "league"] : ["starters", "bench", "league"]).map((tab) => (
             <button
               key={tab}
               aria-pressed={section === tab}
               onClick={() => setSection(tab)}
             >
-              {COPY[tab]}
+              {weekly && tab === "starters" ? COPY.matchup : COPY[tab]}
             </button>
           ))}
         </div>
-        {onNavigate && (
+        {onNavigate && !weekly && (
           <button className="btn-link" onClick={() => onNavigate("week")}>
             {COPY.reviewLineup}
           </button>
         )}
       </div>
-      <div className="gc-room-layout">
+      {section === "lineup" && lineup}
+      {section !== "lineup" && <div className="gc-room-layout">
         <div className="gc-room-main">
           {section === "starters" && (
             <>
@@ -263,6 +278,7 @@ export default function GameCenterMatchup({
                 )}
               </section>
               <p className="gc-room-note">{COPY.forecastNote}</p>
+              {weekly && <button type="button" className="btn-link" onClick={() => setSection("bench")}>{COPY.benchTitle}</button>}
             </>
           )}
           {section === "bench" && (
@@ -348,8 +364,12 @@ export default function GameCenterMatchup({
               support={COPY.trophiesSupport}
             />
           </details>
+          {weekly && <details className="gc-room-panel"><summary>{COPY.weeklyExtras}</summary>
+            <button type="button" className="btn-link" onClick={() => onNavigate?.("vibes")}>{COPY.ratePlayers}</button>
+            {scoringControl}
+          </details>}
         </aside>
-      </div>
+      </div>}
     </>
   );
 }

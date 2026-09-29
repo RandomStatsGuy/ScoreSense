@@ -44,7 +44,6 @@ import { shouldApplyWorkspaceSave } from "./rulesPresentation";
 const LeagueInsights = lazy(() => import("./LeagueInsights"));
 const StrategyBoard = lazy(() => import("./StrategyBoard"));
 const DraftRoom = lazy(() => import("./DraftRoom"));
-const GameCenter = lazy(() => import("./GameCenter"));
 const VibeRankings = lazy(() => import("./VibeRankings"));
 const HubSetup = lazy(() => import("./HubSetup"));
 const RulesWizard = lazy(() => import("./RulesWizard"));
@@ -54,7 +53,7 @@ const CapPlanner = lazy(() => import("./CapPlanner"));
 const LeagueOffice = lazy(() => import("./LeagueOffice"));
 const LeagueTrades = lazy(() => import("./LeagueTrades"));
 const LeagueRostersBrowser = lazy(() => import("./LeagueRostersBrowser"));
-const WeeklyCommandCenter = lazy(() => import("./WeeklyCommandCenter"));
+const WeeklyExperience = lazy(() => import("./WeeklyExperience"));
 const LeagueHome = lazy(() => import("./LeagueHome"));
 
 const EMPTY_VALUE_ROWS = [];
@@ -151,6 +150,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   }, [setSubView, onOfficeTabChange]);
 
   const goHubView = useCallback((view, extra) => {
+    if (view === "office-corrections") return setSubView("office", {officeTab:"corrections", ...extra});
     if (view === "office-access") return goToOfficeTab("access");
     if (view === "office-members") return goToOfficeTab("members");
     if (view === "office") return goToOfficeTab("current");
@@ -842,8 +842,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
-      {subView === "week" && (
-        <WeeklyCommandCenter
+      {(subView === "week" || subView === "game") && (
+        <WeeklyExperience
+          requestedWeek={searchParams.get("matchupWeek") || searchParams.get("week")}
+          requestedTeam={searchParams.get("matchupTeam")}
           hubContext={effectiveCtx}
           reloadToken={weekReloadToken}
           onSynced={async (result) => {
@@ -854,11 +856,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             await onRosterChanged();
           }}
           onNavigateSetup={() => goToOfficeTab("access")}
-          onNavigate={(view) => {
-            if (view === "office-access") return goToOfficeTab("access");
-            if (view === "office-members") return goToOfficeTab("members");
-            return setSubView(view);
-          }}
+          onNavigate={goHubView}
         />
       )}
 
@@ -870,31 +868,6 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             onNavigate={goHubView}
           />
         </Suspense>
-      )}
-
-      {subView === "game" && (
-        effectiveCtx?.mode === "league" && effectiveCtx?.league_id ? (
-          <Suspense fallback={<p className="chart-note">Loading matchups…</p>}>
-            <GameCenter
-              requestedWeek={searchParams.get("matchupWeek")}
-              requestedTeam={searchParams.get("matchupTeam")}
-              leagueId={effectiveCtx.league_id}
-              hubContext={effectiveCtx}
-              onNavigate={goHubView}
-            />
-          </Suspense>
-        ) : (
-          <HubPage>
-            <h2 className="hub-tab-intro-title">Game center</h2>
-            <p className="chart-note">
-              Game center follows your head-to-head matchup. Open a shared league to use it.
-              {" "}
-              <button type="button" className="btn-link" onClick={() => goToOfficeTab("access")}>
-                Link Sleeper
-              </button>
-            </p>
-          </HubPage>
-        )
       )}
 
       {subView === "roster" && (

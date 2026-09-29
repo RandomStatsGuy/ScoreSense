@@ -1511,12 +1511,14 @@ export default function App() {
               />
             )}
 
-            {view === "hub" && !hubNeedsSignIn && !mobileLayout && (
+            {view === "hub" && !hubNeedsSignIn && (
               <HubSubnav
                 subView={hubSubView}
                 hubContext={hubContext}
                 onNavigate={setHubSubView}
                 mobileLayout={mobileLayout}
+                pickerOpen={mobileLayout ? mobileDestOpen : undefined}
+                onPickerOpenChange={mobileLayout ? setMobileDestOpen : undefined}
               />
             )}
           </div>
@@ -1565,16 +1567,6 @@ export default function App() {
           onApply={() => setMobileFilterOpen(false)}
         />
 
-        {mobileLayout && view === "hub" && !hubNeedsSignIn && (
-          <HubSubnav
-            pickerOnly
-            pickerOpen={mobileDestOpen}
-            onPickerOpenChange={setMobileDestOpen}
-            subView={hubSubView}
-            hubContext={hubContext}
-            onNavigate={setHubSubView}
-          />
-        )}
         {mobileLayout && view === "projections" && (
           <MobileDestinationSheet
             open={mobileDestOpen}

@@ -3,6 +3,18 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { weeklyMatchupForecast } from "./gameCenterPresentation.js";
+
+test("weekly matchup forecast requires complete starter projections and preserves zero", () => {
+  const team = projections => ({starters:projections.map(proj => ({name:"Player",proj}))});
+  assert.equal(weeklyMatchupForecast(team([10, 0]), team([8, 1])).label, "Projected favored by 1.0 points");
+  assert.equal(weeklyMatchupForecast(team([10, null]), team([8, 1])).margin, undefined);
+  assert.equal(weeklyMatchupForecast(team([10, NaN]), team([8, 1])).margin, undefined);
+  assert.equal(weeklyMatchupForecast(team([10]), team([10])).label, "Projected even");
+  assert.equal(weeklyMatchupForecast(team([0]), team([10])).label, "Projected behind by 10.0 points");
+  assert.equal(weeklyMatchupForecast({starters:[]}, team([10])).mine, null);
+  assert.equal(weeklyMatchupForecast({starters:[{name:"Empty"},{name:"Player",proj:10}]}, team([8])).mine, 10);
+});
 import {
   duelRows,
   findViewerMatchup,

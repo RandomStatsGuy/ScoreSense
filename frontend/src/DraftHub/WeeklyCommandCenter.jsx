@@ -42,6 +42,9 @@ export default function WeeklyCommandCenter({
   onNavigateSetup,
   onNavigate,
   reloadToken,
+  requestedWeek,
+  embedded = false,
+  onLineupChanged,
 }) {
   const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
   const [dataState, setDataState] = useState({ key: "", payload: null });
@@ -51,7 +54,7 @@ export default function WeeklyCommandCenter({
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
-  const [weekOverride, setWeekOverride] = useState("");
+  const [weekOverride, setWeekOverride] = useState(requestedWeek == null ? "" : String(requestedWeek));
   const mutationScope = `${contextKey}:${weekOverride}`;
   const mutationScopeRef = useRef(mutationScope);
   mutationScopeRef.current = mutationScope;
@@ -150,7 +153,7 @@ export default function WeeklyCommandCenter({
 
   const syncedLabel = sync.sleeper_synced_at
     ? formatRelativeTime(sync.sleeper_synced_at)
-    : (sync.linked ? "Synced — time unknown" : "Not linked");
+    : (sync.linked ? "Synced — time unknown" : data?.meta?.lineup_source === "hub" ? WEEK_BOARD_COPY.savedLineup : "Not linked");
 
   const weekLabel = meta.week != null ? `Week ${meta.week}` : "This week";
   const teamLabel = data?.hub_context?.team_name || hubContext?.team_name;
@@ -292,6 +295,7 @@ export default function WeeklyCommandCenter({
       if (mutationScopeRef.current !== mutationScope) return false;
       setPickerSlot(null);
       await load();
+      onLineupChanged?.();
       return true;
     } catch (e) {
       if (mutationScopeRef.current !== mutationScope) return false;
@@ -300,7 +304,7 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope]);
+  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope, onLineupChanged]);
 
   const applySwap = useCallback(async (starterId, benchId) => {
     if (!leagueId || !starterId || !benchId) return;
@@ -321,6 +325,7 @@ export default function WeeklyCommandCenter({
       setPickerSlot(null);
       setOpenCall(null);
       await load();
+      onLineupChanged?.();
       return true;
     } catch (e) {
       if (mutationScopeRef.current !== mutationScope) return false;
@@ -329,7 +334,7 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, weekOverride, mutationScope]);
+  }, [leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged]);
 
   const runPrimary = () => {
     if (primary.kind === "sync" || primary.kind === "strip-sync") return undefined;
@@ -461,9 +466,11 @@ export default function WeeklyCommandCenter({
     media,
   };
 
+  const Page = embedded ? "section" : HubPage;
+  const Layout = embedded ? React.Fragment : HubExperienceLayout;
   return (
-    <HubPage className={`hub-wcc hub-experience-page${openCall || pickerSlot ? " is-call-open" : ""}`}>
-      <HubExperienceHero
+    <Page className={`hub-wcc${embedded ? " hub-week-lineup" : " hub-experience-page"}${openCall || pickerSlot ? " is-call-open" : ""}`}>
+      {!embedded && <HubExperienceHero
         eyebrow="This week"
         heading={hero.heading}
         support={hero.support}
@@ -473,11 +480,16 @@ export default function WeeklyCommandCenter({
         {decisions.length > 0 && !poorCoverage ? (
           <a href="#hub-wcc-calls" className="btn-link">{WEEK_BOARD_COPY.seeCalls}</a>
         ) : null}
-      </HubExperienceHero>
+      </HubExperienceHero>}
 
-      <HubExperienceLayout
-        summaryLabel="This week snapshot"
-        summary={(
+      {embedded && <header id="hub-week-lineup-heading" tabIndex={-1} className="hub-week-lineup-heading"><h2>{WEEK_BOARD_COPY.lineupTitle}</h2>
+        {!loading && data && <p role="status">{WEEK_BOARD_COPY.lineupStatus(slots.filter(slot => !slot.player).length, decisions.length)}</p>}
+        {!loading && data && <p>{canEdit ? WEEK_BOARD_COPY.lineupHelp : sleeperLeagueId ? LINEUP_PICKER_COPY.linked : LINEUP_PICKER_COPY.readonly}</p>}
+        {!loading && meta.week && hubContext?.is_commissioner && !sleeperLeagueId && <button type="button" className="btn-link" onClick={() => onNavigate?.("office-corrections", {week:meta.week})}>{WEEK_BOARD_COPY.correctLineup}</button>}
+      </header>}
+      <Layout {...(embedded ? {} : {
+        summaryLabel:"This week snapshot",
+        summary:(
           <HubExperienceSummary
             title={teamLabel || leagueLabel || "Your team"}
             subtitle={weekLabel + (meta.season != null ? ` · ${meta.season}` : "")}
@@ -499,11 +511,11 @@ export default function WeeklyCommandCenter({
               <p className="hub-experience-summary-note">{WEEK_BOARD_COPY.gameCenterSupport}</p>
             ) : null}
           />
-        )}
-        footer={!emptyRoster && bench.length > 0 ? (
+        ),
+        footer:!emptyRoster && bench.length > 0 ? (
           <WeekLineupBoard {...boardProps} includeChrome={false} includeStarters={false} />
-        ) : null}
-      >
+        ) : null,
+      })}>
         {error && <div className="error">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
         {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
@@ -514,9 +526,9 @@ export default function WeeklyCommandCenter({
         )}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
-        <WeekLineupBoard {...boardProps} includeBench={false} />
+        <WeekLineupBoard {...boardProps} includeBench={embedded} showWeekStepper={!embedded} />
 
-      </HubExperienceLayout>
+      </Layout>
       {pickerSlot && <WeekLineupPicker
         key={`${contextKey}:${meta.week}:${pickerSlot.key || pickerSlot.slot}`}
         slot={pickerSlot} bench={bench} rules={hubContext?.rules || data?.hub_context?.rules}
@@ -550,6 +562,6 @@ export default function WeeklyCommandCenter({
           }}
         />
       ) : null}
-    </HubPage>
+    </Page>
   );
 }

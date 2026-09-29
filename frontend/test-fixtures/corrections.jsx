@@ -1,4 +1,5 @@
 import React from "react";
+import { BrowserRouter } from "react-router-dom";
 import {createRoot} from "react-dom/client";
 import WeekCorrections from "../src/DraftHub/WeekCorrections";
 import "../src/styles.css";
@@ -16,4 +17,4 @@ window.fetch=async(url,options={})=>{
  if(String(url).endsWith("/publish")) data={id:"preview",published_at:"now"};
  return new Response(JSON.stringify(data),{status:200,headers:{"Content-Type":"application/json"}});
 };
-createRoot(document.getElementById("root")).render(<div className="draft-hub"><WeekCorrections leagueId="qa" season={2026}/></div>);
+createRoot(document.getElementById("root")).render(<BrowserRouter><div className="draft-hub"><WeekCorrections leagueId="qa" season={2026}/></div></BrowserRouter>);
