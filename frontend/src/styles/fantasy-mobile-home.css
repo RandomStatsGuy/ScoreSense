@@ -1,0 +1,42 @@
+/* Home layout; shared chrome and disclosure controls live in the shared styles. */
+.hub-page.hub-home-page { padding: 0; background: transparent; border: 0; box-shadow: none; }
+.hub-home-phase-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-block: var(--space-3); }
+.hub-home-phases { display: flex; justify-content: center; gap: var(--space-4); padding: var(--space-2) 0; font-size: var(--text-xs); color: var(--text-muted); }
+.hub-home-phases span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.hub-home-phases i { width: var(--space-2); height: var(--space-2); border-radius: var(--radius-pill); background: var(--border-strong); }
+.hub-home-phases [aria-current] { color: var(--accent-muted); }
+.hub-home-phases [aria-current] i { background: var(--accent); }
+.hub-home-layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: var(--space-5); align-items: start; }
+.hub-home-main, .hub-home-rail { display: grid; gap: var(--space-4); min-width: 0; }
+.hub-home-card { padding: var(--space-4); background: var(--bg-elevated); border-radius: var(--radius-lg); }
+.hub-home-card h2 { font-size: var(--text-base); margin: 0; }
+.hub-home-card p { margin: var(--space-2) 0; }
+.hub-home-card-heading, .hub-home-next, .hub-home-draft-night { text-align: center; }
+.hub-home-next h2 { font-size: var(--text-2xl); }
+.hub-home-next .btn-primary { width: 100%; margin-top: var(--space-3); }
+.hub-home-muted { color: var(--text-secondary); }
+.hub-home-context { display: flex; justify-content: space-around; gap: var(--space-4); margin: var(--space-4) 0 0; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.hub-home-context dt { font-size: var(--text-xs); color: var(--text-muted); }
+.hub-home-context dd { margin: var(--space-1) 0 0; }
+.hub-home-scoreboard { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: var(--space-3); padding-block: var(--space-4); }
+.hub-home-score-team { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; }
+.hub-home-score-name { text-align: center; font-size: var(--text-sm); overflow-wrap: anywhere; }
+.hub-home-score { font-size: var(--text-2xl); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.hub-home-game-link { width: 100%; display: flex; justify-content: center; align-items: center; gap: var(--space-3); border-radius: var(--radius-pill); background: var(--bg-subtle); }
+.hub-home-standing-list { list-style: none; margin: 0; padding: 0; }
+.hub-home-standing-list li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--touch-target); padding-block: var(--space-2); border-bottom: 1px solid var(--border); }
+.hub-home-standing-list li:last-child { border: 0; }
+.hub-home-standing-list strong { font-variant-numeric: tabular-nums; }
+.hub-home-attention { grid-column: 1 / -1; }
+.hub-home-chat .hub-league-chat { margin: 0; }
+.hub-home-chat .hub-league-chat-compose { display: flex; gap: var(--space-2); }
+.hub-home-chat .hub-league-chat-compose input { min-width: 0; width: 100%; font-size: var(--text-base); }
+@media (max-width: 768px) {
+  .hub-home-phase-header { justify-content: center; }
+  .hub-home-phases { gap: var(--space-3); }
+  .hub-home-layout { grid-template-columns: minmax(0,1fr); gap: var(--space-4); }
+  .hub-home-card button, .hub-home-chat button, .hub-home-chat input { min-height: var(--touch-target); }
+  .hub-home-chat .hub-league-chat-compose input { font-size: 1rem; }
+}
+
+.hub-home-chat .hub-league-chat .hub-league-chat-list { min-height: 0; max-height: 20rem; height: auto; }

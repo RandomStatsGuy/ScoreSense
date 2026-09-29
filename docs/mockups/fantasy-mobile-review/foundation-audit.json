@@ -1,0 +1,137 @@
+[
+  {
+    "width": 320,
+    "geometry": {
+      "overflow": false,
+      "header": 61,
+      "targets": [
+        {
+          "name": "Roster management · choose Fantasy destination",
+          "width": 110,
+          "height": 44
+        },
+        {
+          "name": "The Extremely Long Fantasy Football League Name · switch league",
+          "width": 110,
+          "height": 44
+        },
+        {
+          "name": "More",
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "iconSizes": [
+        {
+          "width": 20,
+          "height": 20
+        },
+        {
+          "width": 20,
+          "height": 20
+        },
+        {
+          "width": 20,
+          "height": 20
+        },
+        {
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "summary": "list-item"
+    },
+    "layout": "PASS",
+    "interactions": "PASS"
+  },
+  {
+    "width": 390,
+    "geometry": {
+      "overflow": false,
+      "header": 61,
+      "targets": [
+        {
+          "name": "Roster management · choose Fantasy destination",
+          "width": 145,
+          "height": 44
+        },
+        {
+          "name": "The Extremely Long Fantasy Football League Name · switch league",
+          "width": 145,
+          "height": 44
+        },
+        {
+          "name": "More",
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "iconSizes": [
+        {
+          "width": 20,
+          "height": 20
+        },
+        {
+          "width": 20,
+          "height": 20
+        },
+        {
+          "width": 20,
+          "height": 20
+        },
+        {
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "summary": "list-item"
+    },
+    "layout": "PASS",
+    "interactions": "PASS"
+  },
+  {
+    "width": 1280,
+    "geometry": {
+      "overflow": false,
+      "header": 0,
+      "targets": [
+        {
+          "name": "Roster management · choose Fantasy destination",
+          "width": 0,
+          "height": 0
+        },
+        {
+          "name": "The Extremely Long Fantasy Football League Name · switch league",
+          "width": 0,
+          "height": 0
+        },
+        {
+          "name": "More",
+          "width": 0,
+          "height": 0
+        }
+      ],
+      "iconSizes": [
+        {
+          "width": 0,
+          "height": 0
+        },
+        {
+          "width": 0,
+          "height": 0
+        },
+        {
+          "width": 0,
+          "height": 0
+        },
+        {
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "summary": "list-item"
+    },
+    "layout": "PASS",
+    "interactions": "PASS"
+  }
+]

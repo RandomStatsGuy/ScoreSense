@@ -21,9 +21,11 @@ export default function MobileHeader({
   onTitleClick,
   onFilterOpen,
   showFilter = false,
+  compactLeague = false,
+  onMoreOpen,
 }) {
   return (
-    <div className="app-header-mobile-top">
+    <div className={`app-header-mobile-top${compactLeague ? " app-header-mobile-top--league" : ""}`} data-compact-header={compactLeague || undefined}>
       {hasMenu ? (
         <button
           type="button"
@@ -34,11 +36,17 @@ export default function MobileHeader({
           onClick={onTitleClick}
         >
           <span className="app-header-mobile-title">{title}</span>
-          <span className="app-header-mobile-title-caret" aria-hidden="true">▾</span>
+          <span className="app-header-mobile-title-caret" aria-hidden="true">{compactLeague ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg> : "▾"}</span>
         </button>
       ) : (
         <h1 className="app-header-mobile-title">{title}</h1>
       )}
+      {compactLeague ? <>
+        <div id="mobile-home-league-slot" className="app-header-mobile-league-slot" />
+        <button type="button" className="app-header-icon-btn app-header-more" aria-label="More" onClick={onMoreOpen}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+        </button>
+      </> : null}
       {showFilter ? (
         <div className="app-header-mobile-actions">
           <button

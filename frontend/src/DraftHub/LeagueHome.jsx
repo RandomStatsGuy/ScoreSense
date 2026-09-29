@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
-import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
+import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
-import { HubAlert, HubExperienceHero, HubLoadingSkeleton, HubPage } from "./HubUILayout";
+import { HubAlert, HubLoadingSkeleton, HubPage, HubSection } from "./HubUILayout";
 import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -13,10 +13,9 @@ import {
   formatStandingRecord,
   gameCenterTeamParts,
   interpretStandings,
-  scoresArePlaceholder,
   matchupTeams,
 } from "./gameCenterPresentation";
-import { hubTeamLabel } from "./hubTeamLabel";
+import "../styles/fantasy-mobile-home.css";
 import {
   actionLabel,
   formatHomeScore,
@@ -30,7 +29,10 @@ import {
   homeMatchupNote,
   phaseTrackState,
   resolveLeagueHomeFocus,
-  supportingLeagueHomeActions,
+  homeAttentionActions,
+  homeShowsPriority,
+  homeScoreMode,
+  homeScoresArePlaceholder,
 } from "./leagueHomePresentation";
 import { getHomeCache, homeCacheKey, setHomeCache } from "./hubDataCache";
 
@@ -123,6 +125,8 @@ export default function LeagueHome({
   const [loading, setLoading] = useState(() => !getHomeCache(cacheKey)?.data);
   const [error, setError] = useState("");
   const [scoring, setScoring] = useState(null);
+  const [scoringError, setScoringError] = useState("");
+  const [chatMounted, setChatMounted] = useState(!mobileLayout);
   const [slowLoad, setSlowLoad] = useState(false);
   const [prevCacheKey, setPrevCacheKey] = useState(cacheKey);
   if (cacheKey !== prevCacheKey) {
@@ -132,7 +136,9 @@ export default function LeagueHome({
     setLoading(!cached?.data);
     setError("");
     setScoring(null);
+    setScoringError("");
     setSlowLoad(false);
+    setChatMounted(!mobileLayout);
   }
   const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
@@ -146,8 +152,7 @@ export default function LeagueHome({
     }
     setError("");
     try {
-      // include_week=true so in-season action center can surface lineup decisions.
-      const res = await apiFetch("/api/hub/home?include_week=true", { signal });
+      const res = await apiFetch("/api/hub/home?include_week=false", { signal });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
       if (signal?.aborted) return;
@@ -185,44 +190,41 @@ export default function LeagueHome({
   ]);
 
   useEffect(() => {
-    if (!leagueId) {
-      setScoring(null);
-      return undefined;
-    }
+    if (!leagueId) { setScoring(null); return undefined; }
     const ctrl = new AbortController();
-    (async () => {
+    const update = async () => {
       try {
-        const res = await apiFetch(
-          `/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring`,
-          { signal: ctrl.signal },
-        );
-        if (res.ok) setScoring(await res.json());
-      } catch {
-        /* deck stays hidden if scoring cannot load */
+        const query = hubContext?.draft_completed ? "?home_view=true" : "";
+        const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring${query}`, { signal: ctrl.signal });
+        if (!res.ok) throw new Error(await parseApiError(res));
+        const payload = await res.json();
+        if (ctrl.signal.aborted) return;
+        setScoring(payload);
+        setScoringError(payload.available === false ? HOME_PAGE_COPY.matchupUnavailable : "");
+      } catch (e) {
+        if (!ctrl.signal.aborted) setScoringError(connectionErrorMessage(e));
       }
-    })();
-    return () => ctrl.abort();
-  }, [leagueId, reloadToken]);
+    };
+    update();
+    const refresh = () => { if (!document.hidden) update(); };
+    const timer = window.setInterval(refresh, 60000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { ctrl.abort(); window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
+  }, [leagueId, reloadToken, hubContext?.draft_completed]);
 
   const phase = data?.phase || {};
   const primaryCta = phase.primary_cta || null;
   const actions = data?.actions || [];
   const cap = data?.cap || {};
-  const salaryLeague = cap.salary_cap != null;
-  const weekSummary = data?.week_summary || {};
-  const freshness = data?.freshness || {};
   const focus = resolveLeagueHomeFocus({
     actions,
     primaryCta,
     defaultView: data?.checklist?.default_view,
     validViews: HUB_ACTION_VIEWS,
   });
-  const supportingActions = supportingLeagueHomeActions(actions, focus);
+  const showPriority = homeShowsPriority(phase.id);
+  const supportingActions = homeAttentionActions(actions, phase.id, showPriority ? focus : null);
   const phaseTrack = phaseTrackState(phase.id);
-  const phaseCtaView = primaryCta?.view && HUB_ACTION_VIEWS.has(primaryCta.view)
-    ? primaryCta.view
-    : null;
-  const showPhaseCta = phaseCtaView && phaseCtaView !== focus.view;
   const pendingCuts = homeHasPendingCuts(data);
   const deckMode = homeDeckMode({
     phaseId: phase.id,
@@ -230,7 +232,6 @@ export default function LeagueHome({
     scoring,
   });
 
-  const projBuilt = freshness.projections?.built_at;
   const draftDate = formatDraftDate(data?.draft_schedule);
 
   const goSetup = onNavigateSetup || (onNavigate ? () => onNavigate("setup") : null);
@@ -251,9 +252,10 @@ export default function LeagueHome({
     () => homeDeckStandingRows(standingsView.standings, hubContext?.team_id),
     [standingsView.standings, hubContext?.team_id],
   );
-  const showDeck = Boolean(deckMode.show && leagueId && (matchup || standingRows.length));
-  const placeholder = scoresArePlaceholder(scoring, hubContext);
+  const placeholder = homeScoresArePlaceholder(scoring, hubContext);
   const matchupNote = homeMatchupNote(scoring, matchOpponent);
+  const scoreMode = homeScoreMode(scoring);
+  const viewerStanding = standingsView.standings.find(row => String(row.hub_team_id || "") === String(hubContext?.team_id || ""));
   const identityTeam = (team) => ({
     id: team?.hub_team_id || team?.roster_id,
     name: team?.team_name,
@@ -261,256 +263,73 @@ export default function LeagueHome({
   });
 
   return (
-    <HubPage className={`hub-league-home hub-experience-page${mobileLayout ? " hub-league-home--mobile" : ""}`}>
-      {error && <div className="error">{error}</div>}
-      <HubExperienceHero
-        eyebrow={HOME_PAGE_COPY.kicker}
-        heading={loading && !data ? HOME_PAGE_COPY.loadingHeading : null}
-        support={null}
-        aside={goSetup ? (
-          <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
-            {HOME_PAGE_COPY.settings}
-          </button>
-        ) : null}
-      >
-        <nav className="hub-home-phase-track" aria-label="League season stage">
-          {phaseTrack.map((item) => (
-            <span
-              key={item.id}
-              className={`hub-home-phase-step${item.current ? " is-current" : ""}`}
-              aria-current={item.current ? "step" : undefined}
-            >
-              <span className="hub-home-phase-dot" aria-hidden="true" />
-              {item.label}
-            </span>
-          ))}
+    <HubPage className={`hub-league-home hub-home-page${mobileLayout ? " hub-league-home--mobile" : ""}`}>
+      {error && <HubAlert variant="danger">{error}</HubAlert>}
+      <header className="hub-home-phase-header">
+        <nav className="hub-home-phases" aria-label="League season stage">
+          {phaseTrack.map(item => <span key={item.id} aria-current={item.current ? "step" : undefined}><i aria-hidden="true" />{item.label}</span>)}
         </nav>
-      </HubExperienceHero>
-
-      <div className="hub-home-club">
-      <div className="hub-home-club-main">
-      <div className="hub-home-stage">
-        <section className={`hub-home-priority hub-home-priority--${focus.kind}`} aria-busy={loading}>
-          {loading && !data ? (
-            <>
-              <HubLoadingSkeleton label={HOME_PAGE_COPY.loadingKicker} rows={3} />
-              {slowLoad ? (
-                <div className="hub-home-priority-actions">
-                  {onLeagueSync && leagueId ? (
-                    <button type="button" className="btn-link" onClick={() => onLeagueSync(leagueId)}>
-                      Sync league
-                    </button>
-                  ) : onNavigate ? (
-                    <button type="button" className="btn-link" onClick={() => onNavigate("setup")}>
-                      Sync league
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <p className="hub-home-priority-kicker">{phase.label || "Right now"}</p>
-              <h3>{focus.title}</h3>
-              <p className="hub-home-priority-copy">{focus.detail}</p>
-              <div className="hub-home-priority-actions">
-                {focus.view && onNavigate ? (
-                  <button type="button" className="btn-primary" onClick={() => onNavigate(focus.view)}>
-                    {focus.label} <span aria-hidden="true">→</span>
-                  </button>
-                ) : null}
-                {pendingCuts && onNavigate ? (
-                  <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>
-                    {HOME_PAGE_COPY.undoCut}
-                  </button>
-                ) : showPhaseCta && onNavigate && !mobileLayout ? (
-                  <button type="button" className="btn-link" onClick={() => onNavigate(phaseCtaView)}>
-                    {primaryCta.label}
-                  </button>
-                ) : null}
-              </div>
-            </>
-          )}
-        </section>
-
-        <aside className="hub-home-snapshot" aria-label="League snapshot">
-          <div className="hub-home-snapshot-head">
-            <p className="hub-experience-kicker">At a glance</p>
-            <span>{hubTeamLabel({
-              name: hubContext?.team_name,
-              sleeper_team_name: hubContext?.sleeper_team_name,
-              owner_name: hubContext?.owner_name,
-            }) || "Your team"}</span>
-          </div>
-          <dl className="hub-home-snapshot-list">
-            {salaryLeague ? (
-              <div>
-                <dt>Cap room</dt>
-                <dd className={Number(cap.remaining) < 0 ? "is-danger" : ""}>{fmtCap(cap.remaining)}</dd>
-                <span>{fmtCap(cap.spent)} committed</span>
-              </div>
-            ) : (
-              <div>
-                <dt>Roster space</dt>
-                <dd>{data?.counts?.roster ?? cap.roster_size ?? 0} players</dd>
-                <span>Position limits apply</span>
-              </div>
-            )}
-            <div>
-              <dt>{weekSummary.available ? `Week ${weekSummary.week}` : "Draft night"}</dt>
-              <dd>
-                {weekSummary.available
-                  ? (weekSummary.headline || "Ready")
-                  : (draftDate || (
-                    onNavigate ? (
-                      <button
-                        type="button"
-                        className="btn-link"
-                        onClick={() => onNavigate("room")}
-                      >
-                        {HOME_PAGE_COPY.notScheduled}
-                      </button>
-                    ) : HOME_PAGE_COPY.notScheduled
-                  ))}
-              </dd>
-            </div>
-            <div>
-              <dt>Projections</dt>
-              <dd>
-                {projBuilt
-                  ? (formatRelativeTime(projBuilt) || "Available")
-                  : (freshness.projections?.available === false ? "Unavailable" : "Checking…")}
-              </dd>
-            </div>
-            {weekSummary?.available ? (
-              <>
-                <div>
-                  <dt>On bye</dt>
-                  <dd>{weekSummary?.on_bye ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Injured</dt>
-                  <dd>{weekSummary?.injured ?? 0}</dd>
-                </div>
-              </>
-            ) : null}
-          </dl>
-        </aside>
-      </div>
-
-      {showDeck ? (
-        <div className="hub-home-deck">
-          {placeholder && !deckMode.historical && scoring?.reason === "no_sleeper_league" ? (
-            <HubAlert
-              variant="info"
-              action={goSetup ? (
-                <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>
-                  Open Setup
-                </button>
-              ) : null}
-            >
-              {scoring?.hint || HOME_DECK_COPY.linkSleeper}
-            </HubAlert>
-          ) : null}
-          {matchup && matchViewer && matchOpponent ? (
-            <section className="hub-home-deck-card" aria-label={HOME_DECK_COPY.matchupTitle}>
-              <header className="hub-home-deck-head">
-                <h3>{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.matchupTitle}</h3>
-                <span className="chart-note">{deckMode.historical ? HOME_PAGE_COPY.lastSeason : matchupNote}</span>
-              </header>
-              {[matchViewer, matchOpponent].map((team) => {
-                const parts = gameCenterTeamParts(team);
-                return (
-                <div className="hub-home-mu-row" key={team.roster_id || team.team_name}>
-                  <TeamIdentityMark
-                    team={identityTeam(team)}
-                    identity={identityFor(identities, identityTeam(team))}
-                    size="sm"
-                  />
-                  <span className="hub-home-mu-name">
-                    {parts.owner || parts.team || team.team_name}
-                    {parts.owner && parts.team ? (
-                      <span className="hub-gc-team-nick">{parts.team}</span>
-                    ) : null}
-                  </span>
-                  <span className="hub-home-mu-score">{formatHomeScore(team, placeholder)}</span>
-                </div>
-                );
-              })}
-              {onNavigate ? (
-                <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game")}>
-                  {HOME_DECK_COPY.openGame} <span aria-hidden="true">→</span>
-                </button>
-              ) : null}
-            </section>
-          ) : null}
-          {standingRows.length > 0 ? (
-            <section className="hub-home-deck-card" aria-label={HOME_DECK_COPY.standingsTitle}>
-              <header className="hub-home-deck-head">
-                <h3>{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.standingsTitle}</h3>
-                <span className="chart-note">{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.standingsNote}</span>
-              </header>
-              <ol className="hub-home-standings">
-                {standingRows.map((row, index) => {
-                  const parts = gameCenterTeamParts(row);
-                  const prev = standingRows[index - 1];
-                  return (
-                  <React.Fragment key={row.roster_id}>
-                    {homeStandingHasGap(prev, row) ? (
-                      <li className="hub-home-standing-break" aria-hidden="true">···</li>
-                    ) : null}
-                    <li
-                      className={row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id) ? "is-you" : ""}
-                    >
-                      <span className="hub-home-standing-rank">
-                        {formatStandingRank(row, { ranked: standingsView.ranked })}
-                      </span>
-                      <span className="hub-home-standing-name">
-                        {parts.owner || parts.team || row.team_name}
-                        {parts.owner && parts.team ? (
-                          <span className="hub-gc-team-nick">{parts.team}</span>
-                        ) : null}
-                      </span>
-                      <span className="hub-home-standing-rec">
-                        {formatStandingRecord(row)}
-                      </span>
-                    </li>
-                  </React.Fragment>
-                  );
-                })}
-              </ol>
-            </section>
-          ) : null}
+        {!mobileLayout && goSetup ? <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>{HOME_PAGE_COPY.settings}</button> : null}
+      </header>
+      <div className="hub-home-layout">
+        <div className="hub-home-main">
+          {loading && !data ? <section className="hub-home-card" aria-busy="true">
+            <HubLoadingSkeleton label={HOME_PAGE_COPY.loadingKicker} rows={3} />
+            {slowLoad && onLeagueSync && leagueId ? <button className="btn-link" onClick={() => onLeagueSync(leagueId)}>{HOME_PAGE_COPY.syncLeague}</button> : null}
+          </section> : showPriority && data ? <section className="hub-home-card hub-home-next">
+            <p className="chart-note">{phase.label}</p><h2>{focus.title}</h2>
+            {focus.detail ? <p className="hub-home-muted">{focus.detail}</p> : null}
+            {focus.view && onNavigate ? <button type="button" className="btn-primary" onClick={() => onNavigate(focus.view)}>{focus.label} <span aria-hidden="true">→</span></button> : null}
+            {pendingCuts && onNavigate ? <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>{HOME_PAGE_COPY.undoCut}</button> : null}
+            {phase.id === "pre_draft" ? <dl className="hub-home-context">
+              {cap.uses_salaries !== false && cap.salary_cap != null ? <div><dt>{HOME_PAGE_COPY.draftLeftover}</dt><dd>{fmtCap(data?.pre_draft?.draft_budget_available ?? cap.remaining)}</dd></div> : null}
+              <div><dt>{HOME_PAGE_COPY.seatsFilled}</dt><dd>{data?.seating?.team_count != null && data?.seating?.open_seats != null ? data.seating.team_count - data.seating.open_seats : "—"} / {data?.seating?.team_count ?? "—"}</dd></div>
+            </dl> : null}
+          </section> : null}
+          {phase.id === "pre_draft" && data ? <section className="hub-home-card hub-home-draft-night">
+            <h2>{HOME_PAGE_COPY.draftNight}</h2><p className="chart-note">{draftDate || HOME_PAGE_COPY.notScheduled}</p>
+            {onNavigate ? <button type="button" className="btn-ghost" onClick={() => onNavigate("room")}>{HOME_PAGE_COPY.openDraft}</button> : null}
+          </section> : null}
+          {scoringError ? <HubAlert variant="warn">{scoringError}</HubAlert> : null}
+          {deckMode.show && leagueId && matchup && matchViewer && matchOpponent && (!deckMode.historical || Number(matchViewer.points) > 0 || Number(matchOpponent.points) > 0) ? <section className="hub-home-card hub-home-matchup" aria-label={HOME_DECK_COPY.matchupTitle}>
+            <div className="hub-home-card-heading"><h2>{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.matchupTitle}</h2><p className="chart-note">{matchupNote}</p></div>
+            <div className="hub-home-scoreboard">{[matchViewer, matchOpponent].map((team, index) => {
+              const parts = gameCenterTeamParts(team);
+              const record = standingsView.standings.find(row => (team.hub_team_id && String(row.hub_team_id) === String(team.hub_team_id)) || String(row.roster_id) === String(team.roster_id));
+              return <React.Fragment key={team.roster_id || index}>{index === 1 ? <span className="chart-note">{HOME_DECK_COPY.versus}</span> : null}<div className="hub-home-score-team">
+                <TeamIdentityMark team={identityTeam(team)} identity={identityFor(identities, identityTeam(team))} size="lg" />
+                <span className="hub-home-score-name">{parts.owner || parts.team || team.team_name}{team.is_viewer ? ` · ${HOME_DECK_COPY.you}` : ""}</span>
+                {record ? <span className="chart-note" aria-label={`${HOME_DECK_COPY.record}: ${formatStandingRecord(record)}`}>{formatStandingRecord(record)}</span> : null}
+                <strong className="hub-home-score">{formatHomeScore(team, placeholder, scoreMode)}</strong><span className="chart-note">{scoreMode === "projected" ? HOME_DECK_COPY.projectedPoints : HOME_DECK_COPY.weekPoints}</span>
+              </div></React.Fragment>;
+            })}</div>
+            {onNavigate ? <button type="button" className="btn-ghost hub-home-game-link" onClick={() => onNavigate("game", { matchupWeek: scoring?.week })}>{HOME_DECK_COPY.openGame} <span aria-hidden="true">→</span></button> : null}
+          </section> : null}
+          {phase.id === "in_season" && leagueId && !matchup && !scoringError ? <section className="hub-home-card">
+            {!scoring ? <HubLoadingSkeleton label={HOME_PAGE_COPY.matchupLoading} rows={3} /> : <><h2>{HOME_DECK_COPY.matchupTitle}</h2><p className="hub-home-muted">{HOME_PAGE_COPY.matchupEmpty}</p></>}
+          </section> : null}
         </div>
-      ) : null}
-
-      {supportingActions.length > 0 ? (
-        <section className="hub-home-supporting" aria-labelledby="hub-home-supporting-title">
-          <header>
-            <div>
-              <p className="hub-experience-kicker">After that</p>
-              <h3 id="hub-home-supporting-title">{HOME_PAGE_COPY.supportingTitle}</h3>
-            </div>
-          </header>
-          <ol className="hub-home-action-list">
-            {supportingActions.map((action) => (
-              <ActionRow key={action.id} action={action} onNavigate={onNavigate} />
-            ))}
-          </ol>
-        </section>
-      ) : null}
-      </div>
-      {leagueId ? (
-        <aside className="hub-home-locker" aria-label={HOME_DECK_COPY.lockerTitle}>
-          <header className="hub-home-locker-head">
-            <p className="hub-experience-kicker">{HOME_DECK_COPY.lockerKicker}</p>
-            <h3>{HOME_DECK_COPY.lockerTitle}</h3>
-            <p className="chart-note">{HOME_DECK_COPY.lockerNote}</p>
-          </header>
-          <LeagueChat leagueId={leagueId} hubContext={hubContext} />
-        </aside>
-      ) : null}
+        {leagueId ? <aside className="hub-home-rail" aria-label={HOME_DECK_COPY.leagueActivity}>
+          <HubSection disclosure className="hub-home-chat" title={HOME_DECK_COPY.lockerTitle} hint={HOME_DECK_COPY.chatHint} icon={<HomeIcon kind="chat" />} defaultOpen={!mobileLayout} onToggle={event => { if (event.currentTarget.open) setChatMounted(true); }}>
+            {chatMounted ? <LeagueChat key={leagueId} leagueId={leagueId} hubContext={hubContext} home /> : null}
+          </HubSection>
+          {deckMode.show && standingRows.length ? <HubSection disclosure title={HOME_DECK_COPY.standingsTitle} hint={viewerStanding ? `${formatStandingRank(viewerStanding, { ranked: standingsView.ranked })} · ${formatStandingRecord(viewerStanding)}` : HOME_DECK_COPY.standingsNote} icon={<HomeIcon kind="standings" />}>
+            <ol className="hub-home-standing-list">{standingRows.map((row,index) => {
+              const parts = gameCenterTeamParts(row);
+              return <React.Fragment key={row.roster_id}>{homeStandingHasGap(standingRows[index-1],row) ? <li aria-hidden="true">···</li> : null}<li><span>{formatStandingRank(row, { ranked: standingsView.ranked })} · {parts.owner || parts.team || row.team_name}</span><strong>{formatStandingRecord(row)}</strong></li></React.Fragment>;
+            })}</ol>
+          </HubSection> : null}
+        </aside> : null}
+        {supportingActions.length ? <HubSection disclosure className="hub-home-attention" title={HOME_PAGE_COPY.supportingTitle} icon={<HomeIcon kind="attention" />}>
+          <ol className="hub-home-action-list">{supportingActions.map(action => <ActionRow key={action.id} action={action} onNavigate={onNavigate} />)}</ol>
+        </HubSection> : null}
       </div>
     </HubPage>
   );
+}
+
+function HomeIcon({ kind }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    {kind === "chat" ? <path d="M5 5h14v10H9l-4 4V5ZM9 9h6M9 12h4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /> : kind === "standings" ? <path d="M4 19v-8h4v8M10 19V5h4v14M16 19v-5h4v5" stroke="currentColor" strokeWidth="1.8" /> : <><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" /><path d="M12 7v6m0 3v1" stroke="currentColor" strokeWidth="1.8" /></>}
+  </svg>;
 }

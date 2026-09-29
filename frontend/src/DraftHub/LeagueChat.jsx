@@ -21,7 +21,7 @@ function formatTime(iso) {
   }
 }
 
-export default function LeagueChat({ leagueId, hubContext, compact = false, lockedKind = null }) {
+export default function LeagueChat({ leagueId, hubContext, compact = false, lockedKind = null, home = false }) {
   const isStaff = Boolean(hubContext?.is_commissioner);
   const isPrimary = Boolean(hubContext?.is_primary_commissioner);
   const [kind, setKind] = useState(lockedKind || "league");
@@ -195,7 +195,7 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
 
   return (
     <div className={`hub-league-chat${compact ? " hub-league-chat--compact" : ""}`}>
-      {!compact && (
+      {!compact && (!home || isStaff) && (
       <div className="hub-filter-bar hub-league-chat-channels">
         <HubFilterChip active={kind === "league"} onClick={() => setKind("league")}>
           League
@@ -205,11 +205,11 @@ export default function LeagueChat({ leagueId, hubContext, compact = false, lock
             Staff
           </HubFilterChip>
         )}
-        <span className="table-meta">
+        {!home && <span className="table-meta">
           {kind === "office"
             ? "Commissioners only"
             : "Visible to every team in the league"}
-        </span>
+        </span>}
       </div>
       )}
       {compact && (
