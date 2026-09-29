@@ -1,5 +1,7 @@
 /* Approved product header: shared product and destination rows; Fantasy adds league context. */
 .fantasy-header-menu { position: relative; flex: 0 0 auto; min-width: 0; }
+.hub-subnav-row--focused .app-section-subnav--hub .app-section-subnav-btn .app-section-subnav-label { display:inline; }
+.hub-subnav-row--focused .app-section-subnav--hub .app-section-subnav-btn .app-section-subnav-label-short { display:none; }
 .fantasy-header-menu-trigger { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--control-h-lg,44px); max-width: 100%; padding: var(--space-2) var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--text-primary); font-size: var(--rosters-text,1rem); cursor: pointer; text-align: left; }
 .fantasy-header-menu-trigger svg { flex-shrink: 0; }
 .fantasy-header-menu-trigger.is-active { background: var(--accent-soft); border-color: var(--accent); }

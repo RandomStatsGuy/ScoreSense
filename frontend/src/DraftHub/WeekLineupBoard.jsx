@@ -285,6 +285,7 @@ export default function WeekLineupBoard({
   weekValue,
   weekPlaceholder,
   onWeekChange,
+  showWeekStepper = true,
   overlayActions = null,
   coverageActions = null,
   refreshAction = null,
@@ -395,11 +396,11 @@ export default function WeekLineupBoard({
                 ) : null}
               </p>
             </div>
-            <WeekStepper
+            {showWeekStepper && <WeekStepper
               weekValue={weekValue}
               weekPlaceholder={weekPlaceholder}
               onWeekChange={onWeekChange}
-            />
+            />}
           </header>
 
           <p className="hub-wcc-legend" aria-label="Board states">

@@ -3,6 +3,8 @@
 import { dealCanTakeExtension } from "./rosterFormat.js";
 
 export const MY_TEAM_COPY = {
+  trades: "Trades",
+  cap: "Cap",
   lookUploadError: "Choose a JPEG, PNG, or WebP image under 2 MB.",
   lookCropHelp: "Upload an image to adjust its position and zoom.",
   title: "My team",
@@ -20,7 +22,7 @@ export const MY_TEAM_COPY = {
   projectionMissing: "Projection unavailable",
   projectionNotSaved: "Pregame projection not saved",
   projectionNotSavedShort: "Not saved",
-  openGameCenter: "Open matchup in Game center",
+  openGameCenter: "Open matchup in This Week",
   roomStates: { pregame: "Pregame", live: "Week in progress", final: "Final", unknown: "Scores" },
   purpose: "View your players, manage contracts, and check your cap room.",
   noMoneyPurpose: "View your players and manage your roster.",

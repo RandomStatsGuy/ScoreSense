@@ -15,6 +15,11 @@ export const DEFAULT_STARTER_COUNTS = {
 export const BOARD_SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "K", "DEF"];
 
 export const WEEK_BOARD_COPY = {
+  lineupTitle: "Your lineup",
+  savedLineup: "Saved lineup",
+  lineupStatus: (empty, calls) => `${empty ? `${empty} empty starter ${empty === 1 ? "slot" : "slots"}` : "All starter slots filled"}${calls ? ` · ${calls} suggested ${calls === 1 ? "change" : "changes"}` : ""}`,
+  lineupHelp: "Choose a starter slot to review eligible replacements. Confirm Start to save the move.",
+  correctLineup: "Correct a lineup",
   seeCalls: "Review suggested changes",
   emptySlot: (slot) => `Find ${slot}`,
   emptySlotName: "Empty",

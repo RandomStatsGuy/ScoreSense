@@ -6,7 +6,7 @@ import { MOBILE_CHROME_COPY, selectAndDismissDestination } from "../layout/mobil
 import { interceptAppNav } from "../appNavLink";
 import { buildAppPath } from "../routes";
 import LeagueOverflowLead from "./LeagueOverflowLead";
-import { HUB_SUBVIEWS, HUB_GROUP_LABELS, filterHubSubviews, hubDestinationGroups } from "./hubSubnav.js";
+import { HUB_SUBVIEWS, HUB_GROUP_LABELS, filterHubSubviews, hubDestinationGroups, primaryHubSubviews, secondaryHubSubviews } from "./hubSubnav.js";
 
 export { HUB_SUBVIEWS, HUB_GROUP_LABELS, filterHubSubviews, hubDestinationGroups };
 
@@ -29,6 +29,8 @@ export default function HubSubnav({
   };
   const visible = useMemo(() => filterHubSubviews(hubContext), [hubContext]);
   const groups = useMemo(() => hubDestinationGroups(hubContext), [hubContext]);
+  const primary = primaryHubSubviews(hubContext);
+  const secondary = secondaryHubSubviews(hubContext);
   React.useEffect(() => {
     if (pickerOnly) return undefined;
     const active = navRef.current?.querySelector(".app-section-subnav-btn.active, .app-section-subnav-btn[aria-current='page']");
@@ -75,28 +77,23 @@ export default function HubSubnav({
 
   return (
     <>
-      <div className={`hub-subnav-row${!mobileLayout ? " hub-subnav-row--flat" : ""}`}>
+      <div className={`hub-subnav-row hub-subnav-row--focused${!mobileLayout ? " hub-subnav-row--flat" : ""}`}>
         <nav
           ref={navRef}
           className="app-section-subnav app-section-subnav--hub"
           aria-label="Fantasy"
         >
-          {(mobileLayout ? visible : visible.filter(v => v.group !== "office")).map(tabButton)}
+          {primary.map(tabButton)}
         </nav>
-        {!mobileLayout && <HeaderDisclosure label={visible.find(v => v.group === "office" && v.id === subView)?.label || FANTASY_HEADER_COPY.league} accessibleLabel={FANTASY_HEADER_COPY.leagueNavigation} active={visible.some(v => v.group === "office" && v.id === subView)} resetKey={subView} className="fantasy-league-nav">{close => <nav aria-label={FANTASY_HEADER_COPY.leagueNavigation}>{visible.filter(v => v.group === "office").map(v => <a key={v.id} href={buildAppPath({ view: "hub", hubSubView: v.id })} aria-current={subView === v.id ? "page" : undefined} onClick={event => interceptAppNav(event, () => { close(); onNavigate(v.id); })}>{v.label}</a>)}</nav>}</HeaderDisclosure>}
-        {mobileLayout && visible.length > 5 ? (
+        {!mobileLayout && <HeaderDisclosure label={FANTASY_HEADER_COPY.league} accessibleLabel={FANTASY_HEADER_COPY.leagueNavigation} active={secondary.some(v => v.id === subView)} resetKey={subView} className="fantasy-league-nav">{close => <nav aria-label={FANTASY_HEADER_COPY.leagueNavigation}>{secondary.map(v => <a key={v.id} href={buildAppPath({ view: "hub", hubSubView: v.id })} aria-current={subView === v.id ? "page" : undefined} onClick={event => interceptAppNav(event, () => { close(); onNavigate(v.id); })}>{v.label}</a>)}</nav>}</HeaderDisclosure>}
+        {mobileLayout ? (
           <button
             type="button"
             className="hub-subnav-picker-btn"
-            aria-label={MOBILE_CHROME_COPY.goTo}
+            aria-label={FANTASY_HEADER_COPY.leagueNavigation}
             onClick={() => setPickerOpen(true)}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2" />
-              <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2" />
-              <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2" />
-              <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2" />
-            </svg>
+            {FANTASY_HEADER_COPY.league}
           </button>
         ) : null}
       </div>

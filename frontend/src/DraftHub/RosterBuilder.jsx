@@ -1308,7 +1308,9 @@ export default function RosterBuilder({
   return <>
     <div className="team-room-page-tabs" role="group" aria-label="My team view">
       <button type="button" aria-pressed={roomTab === "room"} onClick={() => setRoomTab("room")}>{MY_TEAM_COPY.room}</button>
-      <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{MY_TEAM_COPY.manage}</button>
+      <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{usesSalaries ? MY_TEAM_COPY.manage : MY_TEAM_COPY.playerDetails}</button>
+      <button type="button" onClick={() => onNavigate?.("trades")}>{MY_TEAM_COPY.trades}</button>
+      {usesSalaries && <button type="button" onClick={() => onNavigate?.("planner")}>{MY_TEAM_COPY.cap}</button>}
     </div>
     {roomTab === "room" ? <TeamRoom leagueId={hubContext.league_id} teamId={hubContext.team_id}
       onContract={usesSalaries ? (pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); } : null}
