@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>${title}</title>
+  <!-- Keep direct asset links: mobile_mock.py stamps each file independently. -->
+  <link rel="stylesheet" href="mockup-shared.css">
+  <link rel="stylesheet" href="mobile-foundation.css">
+  <!-- Add the page's stylesheet last. Reuse the shared classes below. -->
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <!-- Preview options/scenario controls belong here, outside app chrome. -->
+  <div class="concept-banner"><strong>${title}</strong><nav class="concept-nav" aria-label="Design options"><a href="index.html">All mocks</a></nav></div>
+  <div class="mock-viewport">
+    <header class="mock-header">
+      <div class="mock-brand"><div><div class="mock-brand-name">ScoreSense</div><span class="mock-brand-sub">4th Down Labs</span></div><nav class="mock-topnav" aria-label="Product areas"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav></div>
+      <button class="text-action" data-preview="Account">Maya Chen</button>
+    </header>
+    <nav class="mock-subnav" aria-label="Fantasy destinations">
+      <!-- Replace this current destination with the living desktop nav for each option. -->
+      <button class="text-action" data-preview="Fantasy destinations" aria-current="page">${destination}</button>
+    </nav>
+    <header class="phone-header" data-compact-header>
+      <button class="destination" data-preview="Fantasy · destination picker" aria-label="${destination} · choose Fantasy destination">
+        <span>${destination}</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="league-button phone-league" data-preview="Switch league · league actions" aria-label="${league} · switch league" title="${league}">
+        <span>${league}</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="more-control" data-preview="Account · More" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    </header>
+    <div class="mock-league-strip"><button class="league-button" data-preview="Switch league · league actions">${league}</button></div>
+    <!-- Replace sample body with the living page's real decisions/states. The two-column
+         mobile-layout helper is optional; board/room/table surfaces keep their structure. -->
+    <main id="main-content" class="mobile-layout mobile-content" tabindex="-1">
+      <div class="mobile-main">
+        <section class="card">
+          <div class="section-head"><h1>Main section</h1></div>
+          <p class="muted">Page content goes here.</p>
+          <button class="btn btn-ghost" data-preview="Section details">Open details</button>
+        </section>
+      </div>
+      <aside class="mobile-rail" aria-label="Supporting information">
+        <details class="card">
+          <summary><span class="disclosure-heading">
+            <span class="section-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7v1" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <span class="disclosure-title"><strong>More details</strong></span>
+            <span class="disclosure-toggle" aria-hidden="true"></span>
+          </span></summary>
+          <p class="muted">Secondary content goes here.</p>
+        </details>
+      </aside>
+    </main>
+    <p class="footnote">Static design preview · sample league · not shipped</p>
+  </div>
+  <nav class="phone-nav" aria-label="Product areas">
+    <a href="#" data-preview="Projections"><span aria-hidden="true">▤</span>Projections</a>
+    <a href="#" aria-current="page" data-preview="Fantasy · destination picker"><span aria-hidden="true">◈</span>Fantasy</a>
+    <a href="#" data-preview="Tools"><span aria-hidden="true">▦</span>Tools</a>
+    <a href="#" data-preview="Account · More"><span aria-hidden="true">•••</span>More</a>
+  </nav>
+  <div class="preview-toast" id="preview-toast" role="status" hidden></div>
+  <script src="mobile-mock.js"></script>
+</body>
+</html>

@@ -8,6 +8,7 @@ alwaysApply: false
 
 Read `docs/PRODUCT.md` first. User-facing name is **Fantasy**, not Draft Hub.
 Layout craft (spacing, alignment, tables, selects): `.cursor/rules/frontend-craft.mdc`.
+Phone design and static mock foundation: `.cursor/rules/fantasy-mobile.mdc`.
 Page-specific do-nots: the matching row in `frontend/src/livingSurfaces.js`.
 
 ## Layout
@@ -58,7 +59,7 @@ Chat chrome lives on `FantasyChatDock.jsx` (header comment) and `docs/PRODUCT.md
 - Primary save/action stays visible. Disabled controls explain why.
 - Exclusive choice groups use `role="radiogroup"` / `role="radio"`. Destination subnavs set `aria-selected`.
 - After a build or validity verdict, announce with `aria-live` and move focus or scroll the result into view.
-- `details > summary` stays `list-item` so the disclosure triangle shows.
+- `details > summary` stays `list-item`. The mobile foundation may replace the native marker with an explicit plus/minus indicator and an inner grid; preserve keyboard behavior and visible expanded state.
 - Dense pool tables let the page own vertical scroll and stick the header. Lock/Skip accessible names include the player.
 - Numbered step sequences include every visible step or drop the numerals.
 - Do not keep hidden Fantasy panes in the DOM of another destination. Unmount keep-alives when the tab is not showing.

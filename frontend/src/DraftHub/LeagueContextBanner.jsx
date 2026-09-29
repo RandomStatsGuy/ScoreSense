@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
@@ -79,6 +80,27 @@ export default function LeagueContextBanner({
   const inLeague = !isSoloContext(hubContext);
   const hasLeagues = leagues.length > 0;
   const mobileLayout = useMobileLayout();
+  const compactHeader = mobileLayout && currentView === "home" && inLeague;
+  const [headerSlot, setHeaderSlot] = useState(null);
+  useEffect(() => {
+    setHeaderSlot(compactHeader ? document.getElementById("mobile-home-league-slot") : null);
+  }, [compactHeader]);
+  const compactMenuRef = useRef(null);
+  useEffect(() => {
+    if (!compactHeader) return undefined;
+    const close = (event) => {
+      const menu = compactMenuRef.current;
+      if (!menu?.open) return;
+      if (event.type === "keydown" && event.key === "Escape") {
+        menu.open = false;
+        menu.querySelector("summary")?.focus();
+      } else if (event.type === "pointerdown" && !menu.contains(event.target)) menu.open = false;
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", close); };
+  }, [compactHeader]);
+  useEffect(() => { if (compactMenuRef.current) compactMenuRef.current.open = false; }, [hubContext?.league_id]);
   const syncMenuId = useId();
   const syncWrapRef = useRef(null);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -517,14 +539,15 @@ export default function LeagueContextBanner({
   ) : null;
 
   if (mobileLayout) {
-    return (
+    const strip = (
       <section
-        className="hub-league-context-bar is-compact"
+        className={`hub-league-context-bar is-compact${compactHeader && headerSlot ? " is-header-slot" : ""}`}
         aria-busy={busy || freshnessLoading}
       >
-        <details className="hub-league-context-caret">
-          <summary>
+        <details className="hub-league-context-caret" ref={compactMenuRef}>
+          <summary aria-label={`${leagueName} · switch league`} title={leagueName}>
             <span className="hub-league-context-name">{leagueName}</span>
+            {compactHeader ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 10 5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg> : null}
           </summary>
           <div className="hub-league-context-caret-menu">
             {showSwitcher ? (
@@ -532,8 +555,9 @@ export default function LeagueContextBanner({
                 memberships={memberships}
                 hubContext={hubContext}
                 onSwitch={onLeagueSwitch}
-                onCreateLeague={onCreateLeague}
-                variant="compact"
+                onCreateLeague={compactHeader ? undefined : onCreateLeague}
+                variant={compactHeader ? "list" : "compact"}
+                hideActiveHero
                 hideCreate
                 disabled={busy}
               />
@@ -551,12 +575,13 @@ export default function LeagueContextBanner({
             {syncPopover}
           </div>
         </details>
-        {attentionOneLine}
+        {!compactHeader && attentionOneLine}
         {(syncError || freshnessError) && !syncOpen ? (
           <p className="error hub-league-context-inline-error">{syncError || freshnessError}</p>
         ) : null}
       </section>
     );
+    return compactHeader && headerSlot ? createPortal(strip, headerSlot) : strip;
   }
 
   return (

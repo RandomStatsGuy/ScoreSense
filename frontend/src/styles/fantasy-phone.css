@@ -296,3 +296,29 @@
   background-size: 200% 100%;
   animation: season-shimmer 1.4s ease-in-out infinite;
 }
+
+/* Compact league slot: opt-in from the approved Home mobile header. */
+@media (max-width: 768px) {
+  .app-header--hub .app-header-mobile-top--league { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) var(--touch-target); gap: var(--space-3); padding-block: var(--space-2); }
+  .app-header-mobile-top--league .app-header-mobile-title-btn { justify-self: start; max-width: 100%; padding: 0; gap: var(--space-1); }
+  .app-header-mobile-top--league .app-header-mobile-title { font-size: var(--text-xl); }
+  .app-header-mobile-title-caret svg { width: 20px; height: 20px; display: block; }
+  .app-header-mobile-top--league .app-header-mobile-title-caret { color: var(--text-primary); }
+  .app-header-mobile-league-slot { min-width: 0; }
+  .app-header-mobile-top--league .app-header-more { width: var(--touch-target); height: var(--touch-target); padding: 0; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--bg-elevated); }
+  .app-header-more svg { width: 20px; height: 20px; }
+  .hub-league-context-bar.is-header-slot { position: static; padding: 0; margin: 0; min-width: 0; border: 0; background: transparent; border-radius: 0; box-shadow: none; }
+  .is-header-slot .hub-league-context-caret > summary { display: flex; justify-content: flex-end; gap: var(--space-1); min-width: var(--touch-target); min-height: var(--touch-target); font-size: var(--text-xs); color: var(--text-secondary); }
+  .is-header-slot .hub-league-context-caret > summary::after { content: none; }
+  .is-header-slot .hub-league-context-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .is-header-slot .hub-league-context-caret > summary svg { width: 20px; height: 20px; flex: none; }
+  .is-header-slot .hub-league-context-caret-menu { position: absolute; top: 100%; right: 0; width: min(22rem, 100%); max-height: 70dvh; overflow-y: auto; padding: var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-elevated); box-shadow: var(--shadow-popover); z-index: var(--z-dropdown-portal); }
+  .is-header-slot .hub-league-context-sync-panel { position: static; width: 100%; min-width: 0; box-shadow: none; }
+  .is-header-slot .hub-league-context-inline-error { position: absolute; top: 100%; right: var(--space-4); max-width: calc(100vw - var(--space-6)); background: var(--bg-elevated); padding: var(--space-3); }
+}
+
+@media (max-width: 768px) {
+  .app.app--compact-league { padding-top: 0; padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right)); }
+  .app-header--compact-league .app-header-shell { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .is-header-slot .hub-league-context-name { font-weight: var(--font-weight-normal); }
+}

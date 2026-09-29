@@ -1,0 +1,39 @@
+/* Home phase, matchup, and league content; shared chrome lives in mobile-foundation.css. */
+.mock-hero { margin: var(--space-4) 0; padding: var(--space-3) var(--space-4); background: var(--bg-elevated); border: 0; }
+.hero-line { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.phase-track { display: flex; justify-content: center; align-items: center; gap: var(--space-4); padding: var(--space-2) 0; font-size: var(--text-xs); color: var(--text-muted); }
+.phase-track span { display: flex; align-items: center; gap: var(--space-2); }
+.phase-track span::before { content: ''; width: var(--space-2); height: var(--space-2); background: var(--border-strong); border-radius: var(--radius-pill); }
+.phase-track [aria-current] { color: var(--accent-muted); font-weight: 600; }
+.phase-track [aria-current]::before { background: var(--accent); }
+.priority .btn-primary { margin-top: var(--space-3); width: 100%; border-radius: var(--radius-md); }
+.context { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-5); align-items: center; text-align: center; padding: var(--space-3) 0 0; margin: var(--space-3) 0 0; border-top: 1px solid var(--border); }
+.context div { display: flex; flex-direction: column; gap: var(--space-1); }
+.context dt { font-size: var(--text-xs); color: var(--text-muted); }
+.context dd { margin: 0; font-weight: 600; }
+.scoreboard { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: var(--space-3); align-items: center; padding: var(--space-4) 0; }
+.score-team { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; }
+.team-mark { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); background: var(--bg-subtle); font-size: 1rem; font-weight: 600; }
+.score-name { text-align: center; font-size: var(--text-sm); }
+.score-number { font-size: 1.7rem; font-variant-numeric: tabular-nums; font-weight: 700; }
+.score-note { color: var(--text-muted); font-size: var(--text-xs); }
+.scoreboard + .section-link { justify-content: center; border: 1px solid var(--border-strong); border-radius: var(--radius-pill); background: var(--bg-subtle); }
+.priority h1, .priority .meta, .priority .muted { text-align: center; }
+.matchup-focus .score-number { font-size: 2.4rem; }
+.priority-line { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.priority-line h1 { font-size: 1.15rem; }
+.priority-line .btn { flex: none; margin: 0; width: auto; }
+.task-row, .standing-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--control-h-lg); padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+.task-row:last-child, .standing-row:last-child { border-bottom: 0; }
+.task-row a { min-height: var(--control-h-lg); display: inline-flex; align-items: center; color: var(--text-secondary); }
+.standing-row strong { font-variant-numeric: tabular-nums; }
+.chat-message { border-left: 2px solid var(--border-strong); padding-left: var(--space-3); margin-top: var(--space-4); }
+.chat-compose { display: flex; gap: var(--space-2); margin-top: var(--space-4); }
+.chat-compose input { width: 100%; min-width: 0; min-height: var(--control-h-lg); background: var(--bg-base); border: 1px solid var(--border-strong); border-radius: var(--radius-md); color: var(--text-primary); padding: var(--space-2) var(--space-3); font-size: 1rem; }
+@media (max-width:768px) {
+  .mock-hero { margin: var(--space-3) 0; padding: 0; background: transparent; }
+  .hero-line { display: none; }
+  .phase-track { gap: var(--space-3); padding: var(--space-2) 0; }
+  .priority-line { flex-direction: column; align-items: stretch; }
+  .priority-line .btn { width: 100%; }
+}

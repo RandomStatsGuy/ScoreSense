@@ -1,4 +1,4 @@
-import { interpretStandings } from "./gameCenterPresentation.js";
+import { interpretStandings, scoresArePlaceholder } from "./gameCenterPresentation.js";
 
 const ACTION_LABELS = {
   roster_hole: "Open draft room",
@@ -33,10 +33,10 @@ const ACTION_SUPPORT = {
 };
 
 export const LEAGUE_PHASES = [
-  { id: "offseason", label: "Setup" },
-  { id: "pre_draft", label: "Draft prep" },
+  { id: "pre_draft", label: "Pre-draft" },
   { id: "live_draft", label: "Draft" },
-  { id: "in_season", label: "In season" },
+  { id: "in_season", label: "In-season" },
+  { id: "offseason", label: "Offseason" },
 ];
 
 export function isLeagueHomeTarget(view, validViews) {
@@ -99,15 +99,23 @@ export const HOME_PAGE_COPY = {
   kicker: "Home",
   settings: "Settings",
   heading: "Fill the seats, then lock a night.",
-  supportingTitle: "Also due",
+  supportingTitle: "Needs attention",
   loadingKicker: "Reading your league",
-  loadingHeading: "Checking what is due…",
+  loadingHeading: "Reading your league…",
   loadingSupport: "Cap, lineup, and draft night.",
   loadingFallback: "Still syncing with Sleeper — this can take a few seconds",
   undoCut: "Undo a cut",
   emptySeatsCost: "Empty seats draft as bots.",
   notScheduled: "Not scheduled",
   lastSeason: "Last season",
+  draftLeftover: "Leftover for draft",
+  seatsFilled: "Seats filled",
+  draftNight: "Draft night",
+  openDraft: "Open draft room",
+  syncLeague: "Sync league",
+  matchupUnavailable: "Matchup unavailable. Try again shortly.",
+  matchupLoading: "Loading your matchup",
+  matchupEmpty: "Your matchup will appear when the schedule is ready.",
 };
 
 export function homeHasPendingCuts(data) {
@@ -180,6 +188,13 @@ export const HOME_DECK_COPY = {
   lockerTitle: "League chat",
   lockerNote: "Chat with your league from any Fantasy page.",
   clearChat: "Clear chat",
+  chatHint: "Latest from your league",
+  leagueActivity: "League activity",
+  versus: "vs",
+  you: "You",
+  record: "Season record",
+  projectedPoints: "Projected pts",
+  weekPoints: "Week pts",
 };
 
 export function homeDeckStandingRows(standings, viewerTeamId, limit = 5) {
@@ -201,7 +216,13 @@ export function homeStandingHasGap(prev, row) {
   return Number.isFinite(a) && Number.isFinite(b) && b > a + 1;
 }
 
-export function formatHomeScore(team, placeholder = false) {
+export function formatHomeScore(team, placeholder = false, mode = null) {
+  if (mode === "projected") {
+    const value = team?.proj_total;
+    if (team?.starters?.some(player => player.player_id && player.player_id !== "0" && player.proj == null)) return "—";
+    return !placeholder && value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(1) : "—";
+  }
+  if (mode === "scores") return !placeholder && team?.points != null && Number.isFinite(Number(team.points)) ? Number(team.points).toFixed(1) : "—";
   if (placeholder || team == null || team.points == null || Number.isNaN(Number(team.points))) {
     return "—";
   }
@@ -212,12 +233,32 @@ export function formatHomeScore(team, placeholder = false) {
 }
 
 export function homeMatchupNote(scoring, opponent) {
-  if (scoring?.placeholder) {
+  if (homeScoresArePlaceholder(scoring)) {
     const tbd = !opponent || opponent.roster_id === "tbd" || opponent.team_name === "Opponent TBD";
     if (tbd && scoring.week != null) return `Week ${scoring.week} opponent TBD`;
     if (tbd) return HOME_DECK_COPY.opponentTbd;
     return scoring.hint || HOME_DECK_COPY.linkSleeper;
   }
-  if (scoring?.week != null) return `Week ${scoring.week}`;
+  if (scoring?.week != null) return `Week ${scoring.week}${homeScoreMode(scoring) === "projected" ? " · Projected" : ""}`;
   return "";
+}
+
+/** Home has no routine action deck once the season starts. */
+export function homeShowsPriority(phaseId) {
+  return ["pre_draft", "live_draft", "offseason"].includes(phaseId);
+}
+
+export function homeAttentionActions(actions, phaseId, focus) {
+  const allowed = new Set(["cap_overage", "delete_league"]);
+  if (phaseId === "pre_draft") ["roster_hole", "expiring_contracts", "invite_managers", "mark_availability"].forEach(id => allowed.add(id));
+  return supportingLeagueHomeActions(actions, focus).filter(action => allowed.has(action.id) && action.href && (action.count == null || Number(action.count) > 0));
+}
+
+export function homeScoreMode(scoring) {
+  return scoring?.home_display_mode === "projected" ? "projected" : "scores";
+}
+
+export function homeScoresArePlaceholder(scoring, context) {
+  if (scoring?.home_display_mode === "projected" && scoring?.source === "hub" && scoring?.reason === "hub_unscored") return false;
+  return scoresArePlaceholder(scoring, context);
 }

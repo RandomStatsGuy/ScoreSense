@@ -536,6 +536,37 @@ export function measureScript() {
       results.push({ rule: "targets", ok: true, selector: "", detail: `${targets.length} targets ≥ ${minTarget}` });
     }
 
+    // Decorative disclosure/navigation icons must never take the browser's
+    // default SVG size when preview markup and cached CSS are out of sync.
+    const controlIcons = [...document.querySelectorAll(".section-icon svg, .control-caret svg, .more-control svg")];
+    controlIcons.forEach((el) => {
+      const box = el.getBoundingClientRect();
+      if (!box.width || !box.height) return;
+      if (box.width > 32 || box.height > 32 || !el.hasAttribute("width") || !el.hasAttribute("height")) {
+        results.push({ rule: "icons", ok: false, selector: elementClassName(el.parentElement), detail: `icon ${px(box.width)}×${px(box.height)}px; requires explicit dimensions and ≤32px` });
+      }
+    });
+    if (controlIcons.length && !results.some((r) => r.rule === "icons" && !r.ok)) {
+      results.push({ rule: "icons", ok: true, selector: "", detail: "control icons bounded with intrinsic dimensions" });
+    }
+
+    document.querySelectorAll(".phone-header[data-compact-header]").forEach((header) => {
+      const box = header.getBoundingClientRect();
+      if (!box.width || !box.height) return;
+      const duplicateStrip = [...document.querySelectorAll(".mock-league-strip")].some(el => el.getBoundingClientRect().height > 0);
+      results.push({ rule: "phone-chrome", ok: box.height <= 72 && !duplicateStrip, selector: ".phone-header", detail: `${px(box.height)}px; ${duplicateStrip ? "duplicate league row" : "single destination/league row"}` });
+    });
+
+    if (window.innerWidth > 768) {
+      document.querySelectorAll(".mock-league-strip").forEach((strip) => {
+        const control = strip.querySelector(".league-button");
+        if (!control || !strip.getBoundingClientRect().height) return;
+        const inset = parseFloat(getComputedStyle(strip).paddingLeft) || 0;
+        const gap = control.getBoundingClientRect().left - strip.getBoundingClientRect().left - inset;
+        results.push({ rule: "desktop-league", ok: Math.abs(gap) <= 2, selector: ".mock-league-strip", detail: `league switcher ${px(gap)}px from left content edge` });
+      });
+    }
+
     const primaries = [...document.querySelectorAll(".btn-primary, button.btn-primary")].filter((el) => {
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;

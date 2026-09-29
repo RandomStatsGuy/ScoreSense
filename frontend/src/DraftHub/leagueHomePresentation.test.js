@@ -77,7 +77,7 @@ test("phase track marks exactly one current phase", () => {
 
 test("home heading names the next move, not a command-center slogan", () => {
   assert.match(HOME_PAGE_COPY.heading, /seats|lock a night/i);
-  assert.equal(HOME_PAGE_COPY.supportingTitle, "Also due");
+  assert.equal(HOME_PAGE_COPY.supportingTitle, "Needs attention");
   assert.equal(HOME_PAGE_COPY.settings, "Settings");
   assert.equal(HOME_PAGE_COPY.notScheduled, "Not scheduled");
   assert.doesNotMatch(HOME_PAGE_COPY.heading, /command center|decision count|Do the next league move/i);
@@ -131,7 +131,7 @@ test("home hero names the roster hole over empty seats", () => {
   assert.equal(homeHasPendingCuts({ pre_draft: { pending_cuts_count: 1 } }), true);
   assert.equal(HOME_PAGE_COPY.undoCut, "Undo a cut");
   assert.match(HOME_PAGE_COPY.loadingFallback, /Still syncing with Sleeper/i);
-  assert.equal(HOME_PAGE_COPY.loadingHeading, "Checking what is due…");
+  assert.equal(HOME_PAGE_COPY.loadingHeading, "Reading your league…");
   assert.equal(HOME_PAGE_COPY.loadingKicker, "Reading your league");
 });
 
@@ -190,4 +190,37 @@ test("home deck helpers format empty scores and keep the viewer in standings", (
   assert.equal(HOME_DECK_COPY.lockerTitle, "League chat");
   assert.match(HOME_DECK_COPY.lockerNote, /any Fantasy page/i);
   assert.doesNotMatch(HOME_DECK_COPY.lockerNote, /Draft Hub|Submit|permission/i);
+});
+
+
+test("in-season Home omits routine lineup and draft tasks but keeps actionable issues", async () => {
+  const { homeAttentionActions, homeShowsPriority } = await import("./leagueHomePresentation.js");
+  const actions = [
+    { id: "lineup_decisions", count: 3, href: "week" },
+    { id: "invite_managers", count: 2, href: "room" },
+    { id: "cap_overage", amount: 5, href: "planner" },
+    { id: "expiring_contracts", count: 0, href: "roster" },
+  ];
+  assert.equal(homeShowsPriority("in_season"), false);
+  assert.equal(homeShowsPriority("pre_draft"), true);
+  assert.deepEqual(homeAttentionActions(actions, "in_season").map(a => a.id), ["cap_overage"]);
+  assert.deepEqual(homeAttentionActions(actions, "pre_draft", {action: actions[1]}).map(a => a.id), ["cap_overage"]);
+});
+
+test("projected Home scores never reuse actual scores or a missing estimate", async () => {
+  const { homeScoreMode } = await import("./leagueHomePresentation.js");
+  assert.equal(homeScoreMode({home_display_mode: "projected"}), "projected");
+  assert.equal(formatHomeScore({points: 95, proj_total: 112.4}, false, "projected"), "112.4");
+  assert.equal(formatHomeScore({points: 95, proj_total: null}, false, "projected"), "—");
+  assert.equal(formatHomeScore({points: 0, proj_total: 112.4}, false, "scores"), "0.0");
+  assert.equal(homeMatchupNote({week: 4, home_display_mode: "projected"}, {}), "Week 4 · Projected");
+});
+
+
+test("native pregame projections remain visible before actual points exist", async () => {
+ const {homeScoresArePlaceholder}=await import("./leagueHomePresentation.js");
+ const data={source:"hub", reason:"hub_unscored", placeholder:true,home_display_mode:"projected",week:4};
+ assert.equal(homeScoresArePlaceholder(data, {draft_completed:true}),false);
+ assert.equal(homeMatchupNote(data,{}),"Week 4 · Projected");
+ assert.equal(formatHomeScore({proj_total:40,starters:[{player_id:"p",proj:null}]},false,"projected"),"—");
 });

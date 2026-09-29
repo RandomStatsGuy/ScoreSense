@@ -101,7 +101,17 @@ export function HubAlert({ variant = "warn", children, action, live, role }) {
   );
 }
 
-export function HubSection({ title, hint, children, className = "" }) {
+export function HubSection({ title, hint, children, className = "", disclosure = false, icon, defaultOpen = false, onToggle }) {
+  if (disclosure) return (
+    <details className={`hub-section hub-disclosure ${className}`} open={defaultOpen || undefined} onToggle={onToggle}>
+      <summary><span className="hub-disclosure-heading">
+        <span className="hub-disclosure-icon" aria-hidden="true">{icon}</span>
+        <span className="hub-disclosure-title"><strong>{title}</strong>{hint ? <small>{hint}</small> : null}</span>
+        <span className="hub-disclosure-toggle" aria-hidden="true" />
+      </span></summary>
+      <div className="hub-section-body">{children}</div>
+    </details>
+  );
   return (
     <section className={`hub-section${className ? ` ${className}` : ""}`}>
       {(title || hint) && (

@@ -3709,6 +3709,7 @@ def hub_league_live_scoring(
     league_id: str,
     week: Optional[int] = Query(None, description="NFL week override"),
     refresh: bool = Query(False, description="Bypass cached live scoring (60s TTL)"),
+    home_view: bool = Query(False, description="Use Home Wednesday matchup window"),
     _user=Depends(require_hub_user),
 ) -> dict:
     """Current-week Sleeper matchup scores with starter-level points."""
@@ -3718,6 +3719,23 @@ def hub_league_live_scoring(
             ctx = _ctx_for_league(sub, league_id)
         from src.draft_hub.league_live_scoring import get_sleeper_live_week
         from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+
+        home_window = None
+        if home_view is True and week is None:
+            from src.draft_hub.home_matchup import home_matchup_window
+            from src.draft_hub.league_live_scoring import resolve_current_week
+
+            season = ctx.get("season") or (storage.get_league(league_id) or {}).get("season")
+            if not season:
+                _, state = resolve_current_week()
+                season = state.get("season")
+            try:
+                home_window = home_matchup_window(int(season)) if season else None
+            except Exception:
+                logger.warning("Home matchup schedule unavailable for league %s", league_id, exc_info=True)
+            if not home_window:
+                return {"available": False, "reason": "home_schedule_unavailable", "matchups": [], "standings": []}
+            week = home_window["week"]
 
         sleeper_lid = (
             resolve_sleeper_league_id(league_id)
@@ -3750,6 +3768,7 @@ def hub_league_live_scoring(
                 )
     return {
         **scoring,
+        **({"home_display_mode": home_window["home_display_mode"]} if home_window else {}),
         "hub_context": {
             "sleeper_roster_id": ctx.get("sleeper_roster_id"),
             "team_name": ctx.get("team_name"),
