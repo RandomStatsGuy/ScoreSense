@@ -311,6 +311,8 @@ def admin_link_team(
     _admin=Depends(require_admin),
 ) -> dict:
     user_sub = _resolve_account_sub(body.email, body.user_sub)
+    if is_native_sub(user_sub) and not user_store.get_user_by_id(user_sub.removeprefix("ss:")):
+        raise HTTPException(status_code=400, detail="Account not found")
     try:
         result = storage.admin_assign_team_user(league_id, team_id, user_sub)
     except ValueError as exc:

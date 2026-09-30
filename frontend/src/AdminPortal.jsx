@@ -81,7 +81,7 @@ function normalizeUsersPayload(payload, { showTestAccounts, showTestMemberships 
   return { accounts, systemSubs };
 }
 
-function LinkExistingAccountForm({ leagueId, teams, form, onFormChange, onLink }) {
+function LinkExistingAccountForm({ leagueId, teams, accounts, form, onFormChange, onLink, saving, primary = false }) {
   const openTeams = openAdminFranchises(teams);
   return (
     <div className="admin-inline-form">
@@ -90,12 +90,27 @@ function LinkExistingAccountForm({ leagueId, teams, form, onFormChange, onLink }
         <span className="admin-muted">{ADMIN_COPY.linkExisting.emptySeats}</span>
       ) : (
         <>
+          <HubFilterMenu
+            label="Account"
+            value={form?.user_sub || ""}
+            options={[
+              { id: "", label: ADMIN_COPY.linkExisting.accountPlaceholder },
+              ...(accounts || []).map((account) => ({
+                id: account.user_sub,
+                label: account.email || account.display_name || account.user_sub,
+                detail: account.display_name,
+              })),
+            ]}
+            disabled={saving}
+            onChange={(user_sub) => onFormChange({ ...(form || {}), user_sub, email: "" })}
+          />
           <input
             type="text"
             autoComplete="off"
             placeholder={ADMIN_COPY.linkExisting.emailPlaceholder}
             value={form?.email || ""}
-            onChange={(e) => onFormChange({ ...(form || {}), email: e.target.value })}
+            disabled={saving}
+            onChange={(e) => onFormChange({ ...(form || {}), email: e.target.value, user_sub: "" })}
             aria-label={ADMIN_COPY.linkExisting.emailPlaceholder}
           />
           <HubFilterMenu
@@ -106,13 +121,15 @@ function LinkExistingAccountForm({ leagueId, teams, form, onFormChange, onLink }
               ...openTeams.map((t) => ({ id: t.id, label: t.name })),
             ]}
             onChange={(id) => onFormChange({ ...(form || {}), team_id: id })}
+            disabled={saving}
           />
           <button
             type="button"
-            className="btn-primary btn-sm"
+            className={`${primary ? "btn-primary" : "btn-ghost"} btn-sm`}
             onClick={() => onLink(leagueId)}
+            disabled={saving || !(form?.user_sub || form?.email?.trim()) || !form?.team_id}
           >
-            {ADMIN_COPY.linkExisting.action}
+            {saving ? ADMIN_COPY.linkExisting.saving : ADMIN_COPY.linkExisting.action}
           </button>
         </>
       )}
@@ -180,6 +197,8 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
   const [transferEmail, setTransferEmail] = useState({});
   const [inviteForms, setInviteForms] = useState({});
   const [linkForms, setLinkForms] = useState({});
+  const [assignmentLeagueId, setAssignmentLeagueId] = useState("");
+  const [linkSaving, setLinkSaving] = useState(false);
   const [showTestLeagues, setShowTestLeagues] = useState(false);
   const [showTestMemberships, setShowTestMemberships] = useState(false);
   const [showTestAccounts, setShowTestAccounts] = useState(false);
@@ -187,7 +206,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
   const mobileLayout = useMobileLayout();
 
   const loadUsers = useCallback(async () => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ limit: "2000" });
     if (showTestAccounts) params.set("include_test_accounts", "true");
     if (showSystemSubs) params.set("include_system_subs", "true");
     const qs = params.toString();
@@ -466,10 +485,13 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
   };
 
   const handleLinkAccount = async (leagueId) => {
+    if (linkSaving) return;
     const form = linkForms[leagueId] || {};
-    const accountRef = adminLinkAccountRef(form.email);
+    const accountRef = form.user_sub ? { user_sub: form.user_sub } : adminLinkAccountRef(form.email);
     const teamId = String(form.team_id || "").trim();
-    const openTeams = openAdminFranchises(leagueDetail?.id === leagueId ? leagueDetail.teams : []);
+    const league = leagueDetail?.id === leagueId ? leagueDetail
+      : leaguesPayload?.leagues?.find((item) => item.id === leagueId);
+    const openTeams = openAdminFranchises(league?.teams);
     const selected = openTeams.find((t) => String(t.id) === teamId);
     if (!accountRef.email && !accountRef.user_sub) {
       setActionErr(ADMIN_COPY.linkExisting.needEmail);
@@ -481,6 +503,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
     }
     setActionMsg("");
     setActionErr("");
+    setLinkSaving(true);
     try {
       const res = await apiFetch(
         `/api/admin/leagues/${leagueId}/teams/${encodeURIComponent(teamId)}/link`,
@@ -498,11 +521,13 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
       }));
       setLinkForms((f) => ({ ...f, [leagueId]: { email: "", team_id: "" } }));
       await loadLeagues();
-      await loadLeagueDetail(leagueId);
+      if (expandedLeagueId === leagueId) await loadLeagueDetail(leagueId);
       await loadUsers();
       await loadOverview();
     } catch (err) {
       setActionErr(err.message || ADMIN_COPY.linkExisting.failed);
+    } finally {
+      setLinkSaving(false);
     }
   };
 
@@ -594,8 +619,8 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
         </button>
       </div>
 
-      {actionMsg && <div className="admin-notice admin-notice-success">{actionMsg}</div>}
-      {actionErr && <div className="error admin-notice">{actionErr}</div>}
+      {actionMsg && <div role="status" className="admin-notice admin-notice-success">{actionMsg}</div>}
+      {actionErr && <div role="alert" className="error admin-notice">{actionErr}</div>}
 
       {tab === "overview" && overview && (
         <section className="admin-panel panel">
@@ -727,6 +752,35 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
               Show test / mock-draft leagues
             </label>
           </div>
+          <section className="admin-panel panel admin-assignment">
+            <h3 className="admin-section-title">{ADMIN_COPY.linkExisting.assignmentTitle}</h3>
+            <p className="admin-muted">{ADMIN_COPY.linkExisting.hint}</p>
+            <HubFilterMenu
+              label="League"
+              value={assignmentLeagueId}
+              disabled={linkSaving}
+              options={[
+                { id: "", label: ADMIN_COPY.linkExisting.leaguePlaceholder },
+                ...(leaguesPayload?.leagues || []).map((league) => ({
+                  id: league.id,
+                  label: `${league.name} · ${league.room_code} · ${league.season}`,
+                })),
+              ]}
+              onChange={setAssignmentLeagueId}
+            />
+            {assignmentLeagueId && leaguesPayload?.leagues?.some((league) => league.id === assignmentLeagueId) && (
+              <LinkExistingAccountForm
+                leagueId={assignmentLeagueId}
+                teams={leaguesPayload.leagues.find((league) => league.id === assignmentLeagueId)?.teams}
+                accounts={accountRows}
+                saving={linkSaving}
+                primary
+                form={linkForms[assignmentLeagueId]}
+                onFormChange={(next) => setLinkForms((forms) => ({ ...forms, [assignmentLeagueId]: next }))}
+                onLink={handleLinkAccount}
+              />
+            )}
+          </section>
           <section className="admin-panel panel admin-create-form">
             <h3 className="admin-section-title">Create league</h3>
             <form className="admin-form" onSubmit={handleCreateLeague}>
@@ -778,7 +832,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                 />
                 Test / practice league
               </label>
-              <button type="submit" className="btn-primary">
+              <button type="submit" className="btn-ghost">
                 Create
               </button>
             </form>
@@ -875,6 +929,8 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                                     </button>
                                   </div>
                                   <LinkExistingAccountForm
+                                    accounts={accountRows}
+                                    saving={linkSaving}
                                     leagueId={lg.id}
                                     teams={leagueDetail.teams}
                                     form={linkForms[lg.id]}
@@ -921,7 +977,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                                     />
                                     <button
                                       type="button"
-                                      className="btn-primary btn-sm"
+                                      className="btn-ghost btn-sm"
                                       onClick={() => handleInvite(lg.id)}
                                     >
                                       Send invite
@@ -1026,6 +1082,8 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                           Commissioner: {lg.commissioner_email || lg.commissioner_sub}
                         </p>
                         <LinkExistingAccountForm
+                          accounts={accountRows}
+                          saving={linkSaving}
                           leagueId={lg.id}
                           teams={leagueDetail.teams}
                           form={linkForms[lg.id]}
@@ -1034,6 +1092,24 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                           }
                           onLink={handleLinkAccount}
                         />
+                        <ul className="admin-membership-list">
+                          {(leagueDetail.teams || []).map((team) => (
+                            <li key={team.id}>
+                              <strong>{team.name}</strong>
+                              <span> · {team.user_email || team.user_sub || "Unclaimed"}</span>
+                              {team.user_sub && (
+                                <button
+                                  type="button"
+                                  className="btn-ghost btn-sm admin-danger"
+                                  aria-label={`Unlink ${team.name}`}
+                                  onClick={() => handleUnlink(lg.id, team.id, Boolean(team.is_commissioner))}
+                                >
+                                  Unlink
+                                </button>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                         <div className="admin-delete-row">
                           <input
                             type="text"
