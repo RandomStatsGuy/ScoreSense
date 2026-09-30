@@ -21,6 +21,7 @@ export default function HubSubnav({
 }) {
   const navRef = useRef(null);
   const [internalOpen, setInternalOpen] = useState(false);
+  const [leaguePicker, setLeaguePicker] = useState(false);
   const controlled = pickerOpenProp != null;
   const pickerOpen = controlled ? pickerOpenProp : internalOpen;
   const setPickerOpen = (next) => {
@@ -28,9 +29,15 @@ export default function HubSubnav({
     onPickerOpenChange?.(next);
   };
   const visible = useMemo(() => filterHubSubviews(hubContext), [hubContext]);
-  const groups = useMemo(() => hubDestinationGroups(hubContext), [hubContext]);
   const primary = primaryHubSubviews(hubContext);
   const secondary = secondaryHubSubviews(hubContext);
+  React.useEffect(() => {
+    if (!pickerOpen) setLeaguePicker(false);
+  }, [pickerOpen]);
+  const closePicker = () => setPickerOpen(false);
+  const pickerItems = leaguePicker
+    ? secondary
+    : [...primary, { id: "league-menu", label: FANTASY_HEADER_COPY.league }];
   React.useEffect(() => {
     if (pickerOnly) return undefined;
     const active = navRef.current?.querySelector(".app-section-subnav-btn.active, .app-section-subnav-btn[aria-current='page']");
@@ -57,19 +64,26 @@ export default function HubSubnav({
   const sheet = (
     <MobileDestinationSheet
       open={pickerOpen}
-      onClose={() => setPickerOpen(false)}
-      title={MOBILE_CHROME_COPY.fantasySheet}
+      onClose={closePicker}
+      title={leaguePicker ? FANTASY_HEADER_COPY.league : MOBILE_CHROME_COPY.fantasySheet}
       className="app-mobile-sheet-hub-tabs"
-      lead={(
+      lead={leaguePicker ? (<>
+        <button type="button" className="app-mobile-sheet-item" onClick={() => setLeaguePicker(false)}>
+          ← {MOBILE_CHROME_COPY.fantasySheet}
+        </button>
         <LeagueOverflowLead
           hubContext={hubContext}
           onNavigate={onNavigate}
-          onAfterAction={() => setPickerOpen(false)}
+          onAfterAction={closePicker}
         />
-      )}
-      groups={groups}
-      active={subView}
-      onSelect={(id) => selectAndDismissDestination(id, onNavigate, () => setPickerOpen(false))}
+      </>) : null}
+      groups={[{ id: "destinations", items: pickerItems.map(({ id, label }) => ({ id, label })) }]}
+      active={!leaguePicker && secondary.some(v => v.id === subView) ? "league-menu" : subView}
+      dismissOnSelect={false}
+      onSelect={(id) => {
+        if (id === "league-menu") setLeaguePicker(true);
+        else selectAndDismissDestination(id, onNavigate, closePicker);
+      }}
     />
   );
 
@@ -91,7 +105,7 @@ export default function HubSubnav({
             type="button"
             className="hub-subnav-picker-btn"
             aria-label={FANTASY_HEADER_COPY.leagueNavigation}
-            onClick={() => setPickerOpen(true)}
+            onClick={() => { setLeaguePicker(true); setPickerOpen(true); }}
           >
             {FANTASY_HEADER_COPY.league}
           </button>

@@ -29,7 +29,7 @@
 .account-settings-section { margin-top: var(--space-5); padding-top: var(--space-5); }
 .standalone-content .account-auth-form { gap: var(--space-4); }
 .standalone-content .account-auth-form > button { justify-self: start; min-height: var(--control-h-md); }
-.standalone-content :is(input[type="text"], input[type="email"], input[type="password"], input[type="tel"]) {
+.standalone-content :is(input[type="text"], input[type="email"], input[type="password"], input[type="tel"], textarea) {
   width: 100%; min-width: 0; min-height: var(--control-h-lg);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-strong);
@@ -100,9 +100,11 @@
 .confirm-actions button { min-height: var(--control-h-md); }
 
 @media (max-width: 768px) {
-  .standalone-content-shell { margin: 0 auto; padding: var(--space-3); }
+  .standalone-content-shell { margin: 0 auto; padding: var(--space-4); }
   .standalone-content.panel { padding: var(--space-4); }
   .standalone-content .account-auth-form > button { justify-self: stretch; min-height: var(--control-h-lg); }
+  .standalone-content .account-auth-form :is(input, textarea) { font-size: 1rem; }
+  .app-mobile-sheet { scrollbar-gutter: stable; }
   .hub-look-overlay { padding: var(--space-2); }
   .hub-look-dialog.panel { max-height: calc(100dvh - var(--space-4)); }
   .hub-look-dialog-head, .hub-look-scroll { padding: var(--space-4); }
@@ -114,4 +116,8 @@
   .hub-look-dialog-foot { padding: var(--space-3) var(--space-4); padding-bottom: max(var(--space-3), env(safe-area-inset-bottom)); }
   .hub-look-dialog-foot button { flex: 1; }
   .hub-look-dialog button, .confirm-actions button { min-height: var(--control-h-lg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-mobile-sheet { animation: none; transition: none; }
 }

@@ -8231,10 +8231,11 @@ td.col-rank.col-rank-top {
   .app-mobile-sheet {
     width: 100%;
     max-width: 28rem;
-    max-height: min(78vh, 32rem);
+    max-height: min(78dvh, 32rem);
     overflow: auto;
+    overscroll-behavior: contain;
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: var(--radius-lg);
     background: var(--bg-elevated);
     box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
     animation: app-mobile-sheet-in 0.2s ease;
@@ -8405,7 +8406,7 @@ td.col-rank.col-rank-top {
   }
 
   .app-mobile-sheet-item-subdued {
-    min-height: 2.35rem;
+    min-height: var(--touch-target);
     font-size: 0.82rem;
     font-weight: 450;
     color: var(--text-secondary);
@@ -8435,6 +8436,8 @@ td.col-rank.col-rank-top {
     padding: 0.35rem 0.15rem 0.15rem;
     color: var(--text-secondary);
     font-size: 0.85rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .app-mobile-sheet-meta {
@@ -9561,9 +9564,10 @@ td.col-rank.col-rank-top {
 .legal-terms-checkbox a { color: inherit; }
 .auth-legal-footer { margin-top: 0.5rem; }
 .auth-shell-page { min-height: 60vh; padding: 1rem; }
-.legal-page-content section { margin-top: 1rem; }
+.legal-page-content { overflow-wrap: anywhere; }
+.legal-page-content section { margin-top: var(--space-6); }
 .legal-page-content section p,
-.legal-page-content section ul { margin: 0.35rem 0 0; line-height: 1.45; }
+.legal-page-content section ul { margin: var(--space-2) 0 0; line-height: 1.65; }
 .legal-page-list { padding-left: 1.25rem; }
 .account-settings-page { max-width: 36rem; }
 .account-settings-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
@@ -9591,7 +9595,7 @@ td.col-rank.col-rank-top {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.65rem 0.85rem;
+  padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) var(--space-2) max(var(--space-4), env(safe-area-inset-left));
   border-bottom: 1px solid var(--border);
   background: var(--bg-elevated);
   position: sticky;
@@ -9627,7 +9631,25 @@ td.col-rank.col-rank-top {
 
   .standalone-page .auth-shell-page {
     min-height: auto;
-    padding: 0.75rem;
+    padding: var(--space-4);
+  }
+
+  .standalone-page .auth-panel {
+    min-width: 0;
+    padding: var(--space-4);
+    overflow-wrap: anywhere;
+  }
+
+  .standalone-page .account-auth-form .hub-league-field-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .standalone-page .legal-page-content {
+    font-size: var(--text-md);
+  }
+
+  .standalone-page .btn-sm {
+    min-height: var(--touch-target);
   }
 
   .weekly-sticky-bar {

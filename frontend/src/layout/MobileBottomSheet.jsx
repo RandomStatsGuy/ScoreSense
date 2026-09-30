@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { createPortal } from "react-dom";
 import useMobileLayout from "../useMobileLayout";
+import useModalFocus from "../ui/useModalFocus";
 
 /** Swipe distance (px) past which a downward drag dismisses the sheet. */
 const DISMISS_THRESHOLD = 90;
@@ -17,29 +18,8 @@ export default function MobileBottomSheet({
   const dragStartY = useRef(null);
   const mobileLayout = useMobileLayout();
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (event) => {
-      if (event.key === "Escape") onClose?.();
-    };
-    document.addEventListener("keydown", onKey);
-
-    // Overlay is `display: none` above the mobile breakpoint. Only lock the
-    // page while the sheet is actually visible so a rotate/resize cannot leave
-    // #root inert with no way to dismiss.
-    const root = document.getElementById("root");
-    const prev = document.body.style.overflow;
-    if (mobileLayout) {
-      document.body.style.overflow = "hidden";
-      if (root) root.setAttribute("inert", "");
-    }
-
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-      root?.removeAttribute("inert");
-    };
-  }, [open, onClose, mobileLayout]);
+  // A hidden sheet after rotation must not keep the page locked.
+  useModalFocus(open && mobileLayout, sheetRef, onClose);
 
   if (!open) return null;
 
@@ -78,6 +58,7 @@ export default function MobileBottomSheet({
         ref={sheetRef}
         className={`app-mobile-sheet ${className}`.trim()}
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-label={ariaLabel || title || "Panel"}
         onClick={(event) => event.stopPropagation()}
