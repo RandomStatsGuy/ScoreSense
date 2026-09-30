@@ -14,14 +14,21 @@ from src.core.team_codes import normalize_team_to_mlready, normalize_team_to_sch
 SCHEDULE_CACHE = CACHE_DIR / "nfl_schedules.parquet"
 
 
+@lru_cache(maxsize=2)
+def _schedule_snapshot(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
+    """Shared source snapshot; callers get copies and file replacement invalidates it."""
+    return pd.read_parquet(path)
+
+
 def _load_schedules(seasons: list[int] | None = None) -> pd.DataFrame:
     if SCHEDULE_CACHE.exists():
         try:
-            cached = pd.read_parquet(SCHEDULE_CACHE)
+            stat = SCHEDULE_CACHE.stat()
+            cached = _schedule_snapshot(str(SCHEDULE_CACHE), stat.st_mtime_ns, stat.st_size)
             if seasons:
                 cached = cached[cached["season"].isin(seasons)]
             if not cached.empty:
-                return cached
+                return cached.copy()
         except Exception:
             pass
 
@@ -175,13 +182,14 @@ def team_game_kickoffs(season: int, team: str) -> pd.DataFrame:
     away = reg[[*cols, "away_team"]].rename(columns={"away_team": "team"})
     games = pd.concat([home, away], ignore_index=True)
     games["team"] = games["team"].astype(str).str.upper()
+    games = games[games["team"] == team].copy()
     gametimes = games["gametime"] if "gametime" in games.columns else [None] * len(games)
     games["kickoff"] = [
         schedule_kickoff_utc(day, gt) or pd.NaT
         for day, gt in zip(games["gameday"], gametimes)
     ]
     games["gameday"] = pd.to_datetime(games["gameday"], utc=True)
-    games = games[games["team"] == team].sort_values("week").drop_duplicates(subset=["week"], keep="first")
+    games = games.sort_values("week").drop_duplicates(subset=["week"], keep="first")
     return games.reset_index(drop=True)
 
 

@@ -44,6 +44,7 @@ def _with_roster_identity(
     week: int | None,
     *,
     cache_key: str | None = None,
+    allow_refresh: bool = True,
 ) -> pd.DataFrame:
     """Re-label cached weekly rows from the current nflverse roster."""
     from src.integrations.roster_identity import apply_roster_identity_with_attrs
@@ -54,6 +55,7 @@ def _with_roster_identity(
         season=season,
         week=week,
         cache_key=cache_key,
+        allow_refresh=allow_refresh,
     )
 
 
@@ -108,6 +110,7 @@ def load_weekly_prediction(
                     int(season),
                     int(week),
                     cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
+                    allow_refresh=allow_compute,
                 )
             )
 
@@ -129,6 +132,7 @@ def load_weekly_prediction(
                     int(season),
                     int(week),
                     cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
+                    allow_refresh=allow_compute,
                 )
 
     if not allow_compute:
@@ -318,4 +322,3 @@ def rebuild_weekly_predictions(
         injury_variants=injury_variants,
         force=True,
     )
-

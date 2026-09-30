@@ -41,9 +41,12 @@ def _normalize_roster(raw: pd.DataFrame) -> pd.DataFrame:
     return out.drop_duplicates(subset=["player_id"], keep="last").reset_index(drop=True)
 
 
-def load_seasonal_roster(season: int, *, force_refresh: bool = False) -> pd.DataFrame:
+def load_seasonal_roster(season: int, *, force_refresh: bool = False, allow_refresh: bool = True) -> pd.DataFrame:
     """Latest nflverse seasonal roster for ``season``, disk-cached for 12h."""
     season = int(season)
+    if not allow_refresh:
+        path = roster_cache_path(season)
+        return _normalize_roster(pd.read_parquet(path)) if path.exists() else pd.DataFrame()
     now = time.time()
     cached = _ROSTER_CACHE.get(season)
     if not force_refresh and cached is not None:

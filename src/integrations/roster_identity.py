@@ -236,6 +236,7 @@ def apply_roster_identity_with_attrs(
     season: int | None = None,
     week: int | None = None,
     cache_key: str | None = None,
+    allow_refresh: bool = True,
 ) -> pd.DataFrame:
     """Serve-time overlay that keeps source attrs and skips repeat work on cache hits."""
     if df is None or df.empty or "player_id" not in df.columns:
@@ -258,6 +259,7 @@ def apply_roster_identity_with_attrs(
         position,
         season=season,
         week=week,
+        allow_refresh=allow_refresh,
     )
     if stats.get("applied"):
         out.attrs["roster_identity"] = stats
@@ -281,6 +283,7 @@ def apply_roster_identity_overlay(
     nflverse_df: pd.DataFrame | None = None,
     sleeper_df: pd.DataFrame | None = None,
     load_defaults: bool = True,
+    allow_refresh: bool = True,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Update team/position and drop wrong-board or leftover roster rows."""
     empty_stats = {
@@ -300,7 +303,7 @@ def apply_roster_identity_overlay(
         try:
             from src.integrations.nflverse_roster import load_seasonal_roster
 
-            nflverse = load_seasonal_roster(int(season))
+            nflverse = load_seasonal_roster(int(season)) if allow_refresh else load_seasonal_roster(int(season), allow_refresh=False)
         except Exception:
             nflverse = pd.DataFrame()
     if nflverse is None:
@@ -311,7 +314,7 @@ def apply_roster_identity_overlay(
         try:
             from src.integrations.sleeper import players_dataframe
 
-            sleeper = players_dataframe()
+            sleeper = players_dataframe() if allow_refresh else players_dataframe(allow_refresh=False)
         except Exception:
             sleeper = pd.DataFrame()
     if sleeper is None:

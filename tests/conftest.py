@@ -49,6 +49,7 @@ def auth_db(tmp_path, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _isolate_materialized_caches():
+    from src.draft_hub.weekly_command_center import invalidate_weekly_context_cache
     from src.draft_hub import contract_sync, draft_pool_cache
     from src.draft_hub.value_sheet import invalidate_pool_payload_cache
     from src.projections import weekly_cache
@@ -56,11 +57,13 @@ def _isolate_materialized_caches():
     draft_pool_cache.invalidate_pool_cache()
     invalidate_pool_payload_cache()
     weekly_cache.invalidate_weekly_cache()
+    invalidate_weekly_context_cache()
     contract_sync.clear_history_cache()
     yield
     draft_pool_cache.invalidate_pool_cache()
     invalidate_pool_payload_cache()
     weekly_cache.invalidate_weekly_cache()
+    invalidate_weekly_context_cache()
     contract_sync.clear_history_cache()
 
 

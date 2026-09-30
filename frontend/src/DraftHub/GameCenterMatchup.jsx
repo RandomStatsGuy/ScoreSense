@@ -112,8 +112,12 @@ export default function GameCenterMatchup({
   scoringControl,
   weekly = false,
   lineup,
+  activeSection,
+  onSectionChange,
 }) {
-  const [section, setSection] = useState(weekly && lineup ? "lineup" : "starters");
+  const [localSection, setLocalSection] = useState(weekly && lineup ? "lineup" : "starters");
+  const section = activeSection ?? localSection;
+  const setSection = onSectionChange || setLocalSection;
   const [selectedKey, setSelectedKey] = useState(rows[0]?.key);
   const [detailSide, setDetailSide] = useState("home");
   const id = useId().replaceAll(":", "");

@@ -16,7 +16,7 @@ try {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     const open = async (state = "ready", slot = "FLEX", name = "Jaylen Waddle") => {
-      await page.goto(`${base}?state=${state}`);
+      await page.goto(`${base}?state=${state}`, { waitUntil: "domcontentloaded" });
       await page.getByRole("button", { name: `Change ${slot}: ${name}`, exact: true }).click();
       await page.getByRole("dialog").waitFor();
     };
@@ -29,6 +29,11 @@ try {
       reports.push({ width, state, audit });
       console.log(width, state, audit.filter((row) => !row.ok));
     };
+    await page.goto(`${base}?state=combined`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Change FLEX: Jaylen Waddle", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Matchup", exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => window.fixtureWeekReads), 1, "score arrival must not remount the lineup editor");
+    await measure("combined-week");
     await open();
     assert.equal(await page.getByRole("radio", { name: "Jayden Daniels" }).count(), 0);
     await page.getByRole("radio", { name: "DeVonta Smith", exact: true }).click();
@@ -59,6 +64,30 @@ try {
     await page.getByRole("button", { name: "Change FLEX: DeVonta Smith", exact: true }).waitFor();
     await measure("saved-board");
     await page.screenshot({ path: `${output}/saved-${width}.png`, fullPage: true });
+    // A confirmed save must not wait for the full page read, even if it fails.
+    for (const state of ["slow-refresh", "refresh-error"]) {
+      await open(state);
+      await page.getByRole("radio", { name: "DeVonta Smith", exact: true }).click();
+      const start = Date.now();
+      await page.getByRole("button", { name: "Start DeVonta Smith at FLEX", exact: true }).click();
+      await page.getByRole("button", { name: "Change FLEX: DeVonta Smith", exact: true }).waitFor();
+      const elapsed = Date.now() - start;
+      assert.ok(elapsed < 1000, `${state}: committed board took ${elapsed} ms`);
+      console.log(JSON.stringify({ width, state, committedBoardMs: elapsed }));
+      assert.equal(await page.getByRole("dialog").count(), 0);
+      if (state === "slow-refresh") {
+        // A second confirmed command supersedes the first background read.
+        await page.getByRole("button", { name: "Change FLEX: DeVonta Smith", exact: true }).click();
+        await page.getByRole("radio", { name: "Jaylen Waddle", exact: true }).click();
+        await page.getByRole("button", { name: "Start Jaylen Waddle at FLEX", exact: true }).click();
+        await page.getByRole("button", { name: "Change FLEX: Jaylen Waddle", exact: true }).waitFor();
+        await page.waitForTimeout(3400);
+        assert.equal(await page.getByRole("button", { name: "Change FLEX: DeVonta Smith", exact: true }).count(), 0);
+      } else {
+        await page.getByRole("alert").waitFor();
+        assert.equal(await page.getByRole("button", { name: "Change FLEX: DeVonta Smith", exact: true }).count(), 1);
+      }
+    }
     await open();
     await page.keyboard.press("Escape");
     assert.equal(await page.getByRole("dialog").count(), 0);
