@@ -3715,7 +3715,7 @@ def hub_league_live_scoring(
     response: Response,
     league_id: str,
     week: Optional[int] = Query(None, description="NFL week override"),
-    refresh: bool = Query(False, description="Bypass cached live scoring (60s TTL)"),
+    refresh: bool = Query(False, description="Request updated scoring; native leagues return the saved snapshot while refresh runs"),
     home_view: bool = Query(False, description="Use Home Wednesday matchup window"),
     _user=Depends(require_hub_user),
 ) -> dict:

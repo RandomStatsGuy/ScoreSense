@@ -1214,7 +1214,7 @@ def build_hub_live_week(
         **week_picker_meta(state, league),
     }
     if refresh:
-        payload["refreshed"] = True
+        payload["refresh_requested"] = True
     return _apply_live_viewer(
         payload,
         viewer_team_id=viewer_team_id,
