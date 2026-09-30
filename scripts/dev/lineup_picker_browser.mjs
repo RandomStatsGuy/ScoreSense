@@ -34,6 +34,16 @@ try {
     await page.getByRole("button", { name: "Matchup", exact: true }).waitFor();
     assert.equal(await page.evaluate(() => window.fixtureWeekReads), 1, "score arrival must not remount the lineup editor");
     await measure("combined-week");
+    for (const state of ["score-pending", "score-failed"]) {
+      await page.goto(`${base}?state=${state}`, { waitUntil: "domcontentloaded" });
+      await page.getByText(state === "score-pending" ? /Scores are updating/ : /Weekly statistics are unavailable/).waitFor();
+      await page.getByRole("button", { name: "Change FLEX: Jaylen Waddle", exact: true }).click();
+      await page.getByRole("radio", { name: "DeVonta Smith", exact: true }).click();
+      await page.getByRole("button", { name: "Start DeVonta Smith at FLEX", exact: true }).click();
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await measure(state);
+      await page.screenshot({ path: `${output}/${state}-${width}.png`, fullPage: true });
+    }
     await open();
     assert.equal(await page.getByRole("radio", { name: "Jayden Daniels" }).count(), 0);
     await page.getByRole("radio", { name: "DeVonta Smith", exact: true }).click();

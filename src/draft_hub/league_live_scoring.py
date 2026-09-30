@@ -292,8 +292,9 @@ def attach_matchup_analytics(
     # Sleeper no longer provides gsis_id for many current players. Reuse the
     # weekly board's guarded name/team resolver rather than guessing identities.
     from src.draft_hub.weekly_command_center import _lookup_projection, name_key
+    from src.draft_hub.roster_identity_match import roster_name_key
     from src.draft_hub.k_def_pool_cache import overlay_k_def_week_projections
-    by_name_team, by_name, seen = {}, {}, set()
+    by_name_team, by_name, by_roster_name, seen = {}, {}, {}, set()
     for entry in index.values():
         identity = (entry.get("player_id"), entry.get("player_name"), entry.get("team"))
         if identity in seen:
@@ -303,6 +304,9 @@ def attach_matchup_analytics(
         if nk:
             by_name.setdefault(nk, []).append(entry)
             by_name_team[f"{nk}|{str(entry.get('team') or '').upper()}"] = entry
+        full_name = roster_name_key(str(entry.get('player_name') or ''))
+        if full_name:
+            by_roster_name.setdefault(full_name, []).append(entry)
     for matchup in matchup_payloads:
         teams = matchup.get("teams") or []
         for team in teams:
@@ -310,7 +314,7 @@ def attach_matchup_analytics(
             for starter in (team.get("starters") or []) + (team.get("bench_players") or []):
                 entry = _lookup_projection(
                     {**starter, "player_name": starter.get("name")},
-                    index, by_name_team, by_name,
+                    index, by_name_team, by_name, by_roster_name,
                 )
                 starter["proj"] = entry.get("p50") if entry else None
                 starter.pop("projection_source", None)

@@ -930,7 +930,7 @@ def test_native_scoring_matches_sleeper_lineup_ids(hub_db, monkeypatch):
     assert by_player["sleeper-111"] == 20.0
 
 
-def test_game_center_refreshes_unscored_native_week(hub_db, monkeypatch):
+def test_game_center_queues_unscored_native_week(hub_db, monkeypatch):
     league, home, away, _ = _seed_two_team_league(hub_db)
     storage.update_league_settings(league["id"], draft_completed=True)
     monkeypatch.setattr(
@@ -960,6 +960,14 @@ def test_game_center_refreshes_unscored_native_week(hub_db, monkeypatch):
         league["id"],
         week=1,
         viewer_team_id=home["id"],
+        nfl_state={"week": 1, "season": "2026", "season_type": "regular"},
+    )
+    assert payload["placeholder"] is True
+    assert payload["scoring_control"]["refresh"]["status"] == "pending"
+    from src.draft_hub.native_score_refresh import refresh_pending_scores
+    assert refresh_pending_scores()["completed"] == 1
+    payload = build_hub_live_week(
+        league["id"], week=1, viewer_team_id=home["id"],
         nfl_state={"week": 1, "season": "2026", "season_type": "regular"},
     )
     assert payload["placeholder"] is False
@@ -1012,6 +1020,77 @@ def test_game_center_refresh_skips_final_week(hub_db, monkeypatch):
         storage.get_week_scoring_run(league["id"], 2026, 1),
         refresh=True,
     ) is False
+
+
+def test_automatic_publication_rejects_changed_lineups_and_final_results(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    storage.update_league_settings(league['id'], draft_completed=True)
+    monkeypatch.setattr('src.draft_hub.hub_scoring.nfl_game_started', lambda *a, **k: False)
+    ensure_team_lineup(league['id'], home['id'], 2026, 1)
+    expected = storage.list_week_lineups(league['id'], 2026, 1)
+    scoring = LeagueRules.model_validate(league['rules']).scoring.model_dump()
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league_week_lineup SET lineup_role='bench',slot='BN' WHERE league_id=? AND player_id='qb-a'", (league['id'],))
+    with pytest.raises(ValueError, match='Lineups changed'):
+        storage.save_native_week_scores(league['id'], 2026, 1, [], [], scoring,
+                                       automatic=True, final=False, expected_lineups=expected)
+    assert storage.get_week_scoring_run(league['id'], 2026, 1) is None
+    storage.save_native_week_scores(league['id'], 2026, 1, [], [], scoring, final=True)
+    with pytest.raises(ValueError, match='Saved results changed'):
+        storage.save_native_week_scores(league['id'], 2026, 1, [], [], scoring, automatic=True, final=False)
+    assert storage.get_week_scoring_run(league['id'], 2026, 1)['final']
+
+
+def test_scheduler_queues_native_weeks_without_loading_stats(hub_db, monkeypatch):
+    from src.draft_hub.native_score_refresh import queue_current_native_weeks, refresh_status
+    league, *_ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr('src.draft_hub.league_live_scoring.resolve_current_week', lambda: (4, {'season': '2026', 'season_type': 'regular'}))
+    queue_current_native_weeks()
+    assert refresh_status(league['id'], 2026, 4) is None
+    storage.update_league_settings(league['id'], draft_completed=True)
+    queue_current_native_weeks()
+    assert refresh_status(league['id'], 2026, 4)['status'] == 'pending'
+
+
+def test_expired_refresh_cannot_publish(hub_db):
+    from src.draft_hub.native_score_refresh import request_refresh, _claim
+    league, *_ = _seed_two_team_league(hub_db)
+    scoring = LeagueRules.model_validate(league['rules']).scoring.model_dump()
+    request_refresh(league['id'], 2026, 1, now=1000)
+    job = _claim(now=1000)
+    with pytest.raises(ValueError, match='lease expired'):
+        storage.save_native_week_scores(league['id'], 2026, 1, [], [], scoring,
+                                       automatic=True, final=False, refresh_lease=job['lease_until'])
+    assert storage.get_week_scoring_run(league['id'], 2026, 1) is None
+
+
+def test_score_snapshot_is_consistent_during_publication(hub_db, monkeypatch):
+    from contextlib import contextmanager
+    from concurrent.futures import ThreadPoolExecutor
+    league, home, *_ = _seed_two_team_league(hub_db)
+    scoring = LeagueRules.model_validate(league['rules']).scoring.model_dump()
+    def publish(points):
+        storage.save_native_week_scores(league['id'], 2026, 1,
+            [{'player_id': 'qb-a', 'team_id': home['id'], 'points': points}],
+            [{'team_id': home['id'], 'points': points}], scoring, final=False)
+    publish(10)
+    original = storage.get_conn
+    triggered = []
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        def trace(sql):
+            if sql.startswith('SELECT * FROM league_team_week_score') and not triggered:
+                triggered.append(True)
+                pool.submit(publish, 20).result(timeout=5)
+        @contextmanager
+        def get_conn():
+            with original() as conn:
+                conn.set_trace_callback(trace)
+                yield conn
+        monkeypatch.setattr(storage, 'get_conn', get_conn)
+        snapshot = storage.get_native_week_snapshot(league['id'], 2026, 1)
+    assert triggered
+    assert snapshot['teams'][0]['points'] == snapshot['players'][0]['points'] == 10
+    assert storage.get_native_week_snapshot(league['id'], 2026, 1)['teams'][0]['points'] == 20
 
 
 @pytest.mark.parametrize('allowed,expected', [(0,10),(1,7),(6,7),(7,4),(13,4),(14,1),(20,1),(21,0),(27,0),(28,-1),(34,-1),(35,-4)])

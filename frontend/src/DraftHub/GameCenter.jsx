@@ -17,6 +17,7 @@ import {
   scoresArePlaceholder,
   shouldPollGameCenter,
   matchupTeams,
+  nativeScoreRefreshMessage,
   shouldShowNextWeek,
   shouldShowPrevWeek,
 } from "./gameCenterPresentation";
@@ -94,6 +95,15 @@ export default function GameCenter({
   }, [load, hubContext?.draft_completed, hubContext?.sleeper_league_id, reloadToken]);
 
   const pollScores = shouldPollGameCenter(data, hubContext);
+  const refreshPending = ["pending", "running"].includes(data?.scoring_control?.refresh?.status);
+  useEffect(() => {
+    if (!refreshPending) return undefined;
+    const ctrl = new AbortController();
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") load(ctrl.signal);
+    }, 5000);
+    return () => { window.clearInterval(id); ctrl.abort(); };
+  }, [refreshPending, load]);
 
   /** Current NFL weeks re-pull stats while the tab is visible. */
   useEffect(() => {
@@ -228,6 +238,11 @@ export default function GameCenter({
           <button className="btn-ghost" onClick={() => load()}>
             {GAME_CENTER_COPY.retry}
           </button>
+        </HubAlert>
+      )}
+      {!loading && nativeScoreRefreshMessage(data) && (
+        <HubAlert variant={data?.scoring_control?.refresh?.status === "failed" ? "warn" : "info"}>
+          {nativeScoreRefreshMessage(data)}
         </HubAlert>
       )}
       {loading && <HubLoadingSkeleton label="Loading matchups" rows={3} />}

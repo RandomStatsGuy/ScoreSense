@@ -28,6 +28,10 @@ export const GAME_CENTER_COPY = {
   noPlayer: "No player is assigned to this slot.",
   emptySlot: "Empty slot",
   scoreSource: "Scoring from your league",
+  scoreRefreshPending: "Scores are updating. You can keep browsing.",
+  scoreStatsUnavailable: "Weekly statistics are unavailable. Score updates will retry automatically.",
+  scoreRefreshFailed: "Scores could not update. Updates will retry automatically.",
+  scoreRulesChanged: "Saved scores use earlier scoring rules. A commissioner can recalculate this week.",
   forecastNote:
     "Current forecasts can change. They are separate from the pregame projections saved in My team.",
   benchNote: "Bench points do not count toward the matchup score.",
@@ -68,6 +72,15 @@ export const GAME_CENTER_COPY = {
   trophiesTitle: "Weekly awards",
   trophiesSupport: "See weekly high and low scores in Insights.",
 };
+
+export function nativeScoreRefreshMessage(data) {
+  const refresh = data?.scoring_control?.refresh;
+  if (data?.scoring_control?.final || !refresh) return "";
+  if (refresh.status === "pending" || refresh.status === "running") return GAME_CENTER_COPY.scoreRefreshPending;
+  if (refresh.status !== "failed") return "";
+  if (refresh.error === "settings_changed") return GAME_CENTER_COPY.scoreRulesChanged;
+  return refresh.error === "no_stats" ? GAME_CENTER_COPY.scoreStatsUnavailable : GAME_CENTER_COPY.scoreRefreshFailed;
+}
 
 /** A partial set of forecasts cannot establish which team is favored. Empty slots score zero. */
 export function weeklyMatchupForecast(viewer, opponent) {

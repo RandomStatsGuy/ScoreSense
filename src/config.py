@@ -239,6 +239,7 @@ def write_parquet(df, path) -> None:
     df.to_parquet(path, **PARQUET_WRITE_KWARGS)
 
 DFS_REFRESH_SECONDS = 300
+NATIVE_SCORING_REFRESH_ENABLED = os.getenv("NATIVE_SCORING_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 DFS_REFRESH_ENABLED = os.getenv("DFS_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 
 for path in (
