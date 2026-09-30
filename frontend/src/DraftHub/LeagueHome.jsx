@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../auth";
+import useFantasyReady from "../useFantasyReady";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
@@ -125,6 +126,8 @@ export default function LeagueHome({
   const [loading, setLoading] = useState(() => !getHomeCache(cacheKey)?.data);
   const [error, setError] = useState("");
   const [scoring, setScoring] = useState(null);
+  useFantasyReady("home", "home-data", Boolean(data) && !loading);
+  useFantasyReady("home", "matchup", Boolean(data && scoring) && !loading);
   const [scoringError, setScoringError] = useState("");
   const [chatMounted, setChatMounted] = useState(!mobileLayout);
   const [slowLoad, setSlowLoad] = useState(false);

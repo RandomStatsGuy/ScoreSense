@@ -1,4 +1,6 @@
 import { clearHubDataCache, invalidateHomeCache, invalidateLeagueRosterRequests, invalidateRoomSnapshot, invalidateWeeklySnapshot } from "./DraftHub/hubDataCache.js";
+import { startHubRequest } from "./fantasyPerformance.js";
+import { beginClientWrite } from "./clientActivity.js";
 
 const TOKEN_KEY = "scoresense_token";
 const GUEST_KEY = "ss_draft_guest";
@@ -96,7 +98,17 @@ export async function apiFetch(url, options = {}) {
   if (signal instanceof AbortSignal) {
     init.signal = signal;
   }
-  const res = await fetch(url, init);
+  const method = (rest.method || "GET").toUpperCase();
+  const finishTiming = startHubRequest(url, method);
+  const finishWrite = ["GET", "HEAD"].includes(method) ? () => {} : beginClientWrite();
+  let res;
+  try {
+    res = await fetch(url, init);
+    finishTiming(res);
+  } catch (error) {
+    finishTiming(null, error);
+    throw error;
+  } finally { finishWrite(); }
   if (res.ok && !["GET", "HEAD"].includes((rest.method || "GET").toUpperCase())
       && /^\/api\/(hub|auth)\//.test(String(url))) {
     invalidateLeagueRosterRequests();

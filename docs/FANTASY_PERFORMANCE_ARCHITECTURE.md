@@ -121,6 +121,12 @@ layout checks passed at 1280 and 390 pixels.
 
 ## Performance budget and remaining proof
 
+Opt-in production browser diagnostics and response timing are documented in
+[FANTASY_BROWSER_TIMING.md](FANTASY_BROWSER_TIMING.md). They replace automation
+wall time with browser timestamps and distinguish useful cached data from later
+matchup readiness. These diagnostics do not themselves establish the latency
+budget or the cause of a transient asset fetch failure.
+
 ### Parallel page code and workspace bootstrap
 
 The Fantasy shell starts loading the selected destination's code while its

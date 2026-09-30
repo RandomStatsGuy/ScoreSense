@@ -12,7 +12,8 @@ const reports = [];
 try {
   for (const width of [1280,390]) {
     const page = await browser.newPage({viewport:{width,height:1000}});
-    const errors = [], requests = [];
+    const errors = [], requests = [], diagnostics = [];
+    page.on("console", message => { if (message.text().startsWith("[FantasyPerf] ")) diagnostics.push(JSON.parse(message.text().slice(14))); });
     page.on("pageerror", error => errors.push(error.message));
     page.on("request", request => {
       if (/\/assets\/WeeklyExperience-.*\.js/.test(request.url())) requests.push(Date.now());
@@ -24,8 +25,15 @@ try {
     assert.ok(requests[0] < resolved, "selected page code must start before workspace resolves");
     assert.deepEqual(await page.evaluate(() => window.fixtureWrites), []);
     assert.deepEqual(errors, []);
+    await page.waitForTimeout(100);
+    assert.ok(diagnostics.some(row=>row.event === "ready" && row.phase === "lineup"));
+    assert.ok(diagnostics.some(row=>row.event === "ready" && row.phase === "matchup"));
+    assert.ok(diagnostics.some(row=>row.event === "api-headers" && row.kind === "workspace" && row.durationMs >= 1100));
+    assert.ok(diagnostics.some(row=>row.event === "api-headers" && row.kind === "week" && row.serverMs === 40));
+    assert.ok(diagnostics.some(row=>row.event === "resource" && row.kind === "js"));
+    assert.ok(diagnostics.every(row=>!JSON.stringify(row).includes("fixture-user")));
     const audit = await page.evaluate(measureScript(), {minTarget:width===390?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
-    reports.push({width,moduleStartedBeforeWorkspaceMs:resolved-requests[0],audit});
+    reports.push({width,moduleStartedBeforeWorkspaceMs:resolved-requests[0],audit,diagnostics});
     await page.screenshot({path:`${output}/week-${width}.png`,fullPage:true});
     // Record the existing shared chat target violation honestly. This change
     // touches code loading, not that button's styles; all other failures fail QA.
