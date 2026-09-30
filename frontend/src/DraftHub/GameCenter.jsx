@@ -40,6 +40,7 @@ export default function GameCenter({
   const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
   const [lineupSummary, setLineupSummary] = useState(null);
+  const [section, setSection] = useState(renderLineup ? "lineup" : "starters");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [week, setWeek] = useState(() => gameCenterWeek(requestedWeek)); // null = current NFL week
@@ -50,10 +51,13 @@ export default function GameCenter({
   const scope = `${leagueId}:${week}`;
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
+  const readVersion = useRef(0);
 
   const load = useCallback(
     async (signal, { refresh = false } = {}) => {
       if (!leagueId) return;
+      const version = ++readVersion.current;
+      const isCurrent = () => !signal?.aborted && scopeRef.current === scope && version === readVersion.current;
       setError("");
       try {
         const params = new URLSearchParams();
@@ -66,12 +70,12 @@ export default function GameCenter({
         );
         if (!res.ok) throw new Error(await parseApiError(res));
         const payload = await res.json();
-        if (!signal?.aborted && scopeRef.current === scope) setData(payload);
+        if (isCurrent()) setData(payload);
       } catch (e) {
-        if (isAbortError(e) || signal?.aborted || scopeRef.current !== scope) return;
+        if (isAbortError(e) || !isCurrent()) return;
         setError(connectionErrorMessage(e));
       } finally {
-        if (!signal?.aborted && scopeRef.current === scope) setLoading(false);
+        if (isCurrent()) setLoading(false);
       }
     },
     [leagueId, week, scope],
@@ -140,8 +144,9 @@ export default function GameCenter({
       }),
     [standingsView.standings, hubContext?.team_id],
   );
-  const lineupWeek = data?.week ?? week;
-  const weekNumber = lineupWeek ?? lineupSummary?.week;
+  // Keep the editor in one location and one scope while independent scores load.
+  const lineupWeek = week;
+  const weekNumber = data?.week ?? week ?? lineupSummary?.week;
   const currentWeek = data?.current_week;
   const maxWeek = data?.max_week || 18;
   const stateLabel =
@@ -262,7 +267,9 @@ export default function GameCenter({
           onNavigate={onNavigate}
           hubContext={hubContext}
           weekly={weekly}
-          lineup={renderLineup?.({week:lineupWeek, onChanged:() => load(undefined, {refresh:true}), onSummary:setLineupSummary})}
+          lineup={Boolean(renderLineup)}
+          activeSection={weekly ? section : undefined}
+          onSectionChange={weekly ? setSection : undefined}
           scoringControl={(
             <LeagueScoringControl
               key={`${leagueId}-${data.season}-${data.week}`}
@@ -275,7 +282,7 @@ export default function GameCenter({
           )}
         />
       )}
-      {weekly && renderLineup && (!matchup || !viewer || !opponent) && renderLineup({week:lineupWeek, onChanged:() => load(undefined, {refresh:true}), onSummary:setLineupSummary})}
+      {weekly && renderLineup && section === "lineup" && renderLineup({week:lineupWeek, onChanged:() => load(), onSummary:setLineupSummary})}
     </HubPage>
   );
 }

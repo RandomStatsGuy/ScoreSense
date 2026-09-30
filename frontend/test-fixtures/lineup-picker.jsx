@@ -2,6 +2,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import WeeklyCommandCenter from "../src/DraftHub/WeeklyCommandCenter";
+import WeeklyExperience from "../src/DraftHub/WeeklyExperience";
 import "../src/styles.css";
 import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
@@ -36,8 +37,23 @@ if (state === "locked-player") data.roster.bench[0].locked = true;
 if (state === "locked-starter") data.roster.starters[3].locked = true;
 if (state === "missing") data.roster.bench[0].p50 = null;
 window.fixtureWrites = [];
+window.fixtureWeekReads = 0;
+window.fixtureScoreReads = 0;
 window.fetch = async (input, options = {}) => {
   const path = String(input);
+  if (path.includes("/live-scoring")) {
+    window.fixtureScoreReads += 1;
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return Response.json({ available: true, source: "hub", placeholder: true, season: 2026, week: 2,
+      current_week: 2, max_week: 18, starting_slots: ["QB", "RB", "WR", "FLEX"], standings: [],
+      scoring_control: { host: "native", final: false }, viewer_matchup_id: "fixture-match",
+      matchups: [{ matchup_id: "fixture-match", teams: [
+        { roster_id: "mine", hub_team_id: "mine", is_viewer: true, team_name: "Sunday Roster", points: 0,
+          starters: data.roster.starters.map((p) => ({ ...p, name: p.player_name, proj: p.p50, points: 0 })) },
+        { roster_id: "other", team_name: "Opponent", is_opponent: true, points: 0, starters: [] },
+      ] }],
+    });
+  }
   if (path.includes("/lineup")) {
     window.fixtureWrites.push({ path, method: options.method, body: JSON.parse(options.body) });
     if (state === "write-error") return Response.json({ detail: "Game started. This player is locked." }, { status: 409 });
@@ -53,12 +69,19 @@ window.fetch = async (input, options = {}) => {
       data.roster.starters = payload.starters.map((s) => ({ ...pool.find((p) => p.player_id === s.player_id), slot: s.slot }));
       data.roster.bench = pool.filter((p) => !payload.starters.some((s) => s.player_id === p.player_id));
     }
-    return Response.json({ saved: true });
+    return Response.json({ lineup: [
+      ...data.roster.starters.map((p) => ({ player_id: p.player_id, slot: p.slot, lineup_role: "starter", locked: false })),
+      ...data.roster.bench.map((p) => ({ player_id: p.player_id, slot: "BN", lineup_role: "bench", locked: false })),
+    ], locked: false });
   }
   if (path.startsWith("/api/hub/week")) {
+    window.fixtureWeekReads += 1;
+    const snapshot = structuredClone(data);
+    if (window.fixtureWeekReads > 1 && state === "slow-refresh") await new Promise((resolve) => setTimeout(resolve, 3000));
+    if (window.fixtureWeekReads > 1 && state === "refresh-error") return Response.json({ detail: "Unavailable" }, { status: 503 });
     if (state === "loading") await new Promise(() => {});
     if (state === "load-error") return Response.json({ detail: "Unavailable" }, { status: 503 });
-    return Response.json(data);
+    return Response.json(snapshot);
   }
   if (path.includes("/vibe-aura")) return Response.json({ aura_by_player_id: {} });
   return Response.json({ media: Object.fromEntries([
@@ -66,7 +89,8 @@ window.fetch = async (input, options = {}) => {
     ["smith", 4241478], ["charbonnet", 4426385], ["daniels", 4426348],
   ].map(([id, espn]) => [id, { headshot_url: `https://a.espncdn.com/i/headshots/nfl/players/full/${espn}.png` }])) });
 };
+const Component = state === "combined" ? WeeklyExperience : WeeklyCommandCenter;
 createRoot(document.getElementById("root")).render(<div className="app"><main id="main-content">
-  <div className="draft-hub"><WeeklyCommandCenter hubContext={context} onNavigate={(view) => {
+  <div className="draft-hub"><Component cacheScope="fixture" hubContext={context} onNavigate={(view) => {
     window.fixtureDestination = view;
   }} /></div></main></div>);

@@ -146,6 +146,8 @@ from app.auth import admin_configured
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
+    from src.draft_hub.week_context_warmup import warm_fantasy_week_context
+    await asyncio.to_thread(warm_fantasy_week_context)
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
 

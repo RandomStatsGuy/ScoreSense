@@ -18,6 +18,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [ONBOARDING.md](./ONBOARDING.md) | Auth, invites, legal, Report a bug, collaborator permissions |
 | [INVITE_FLOW.md](./INVITE_FLOW.md) | Text invite: claim a team, then mark draft nights |
 | [DRAFT_HUB.md](./DRAFT_HUB.md) | Hub API, SQLite storage, Sleeper link (internal name; UI says Fantasy) |
+| [FANTASY_PERFORMANCE_ARCHITECTURE.md](./FANTASY_PERFORMANCE_ARCHITECTURE.md) | Shared weekly reads, independent lineup commands, latency evidence and budgets |
 | [LINEUP_ROADMAP.md](./LINEUP_ROADMAP.md) | Tools backlog — DFS is shipped; props / best ball are not nav |
 | [MOBILE_APP.md](./MOBILE_APP.md) | PWA and Android TWA |
 | [Fantasy mobile design](../.cursor/rules/fantasy-mobile.mdc) | Approved mobile parameters, controls, and mock foundation |

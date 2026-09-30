@@ -356,14 +356,14 @@ def get_nfl_state(use_cache: bool = True, *, allow_stale: bool = True) -> dict:
     return state
 
 
-def load_sleeper_players(force_refresh: bool = False) -> dict:
+def load_sleeper_players(force_refresh: bool = False, *, allow_refresh: bool = True) -> dict:
     """Load Sleeper player dictionary, cached on disk (24h) and in-process by mtime."""
     global _PLAYERS_RAW_CACHE, _PLAYERS_RAW_MTIME
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     if not force_refresh and PLAYERS_CACHE.exists():
         mtime = PLAYERS_CACHE.stat().st_mtime
-        fresh_on_disk = (time.time() - mtime) < PLAYERS_CACHE_TTL_SECONDS
+        fresh_on_disk = not allow_refresh or (time.time() - mtime) < PLAYERS_CACHE_TTL_SECONDS
         if (
             fresh_on_disk
             and _PLAYERS_RAW_CACHE is not None
@@ -376,6 +376,8 @@ def load_sleeper_players(force_refresh: bool = False) -> dict:
             _PLAYERS_RAW_MTIME = mtime
             return players
 
+    if not allow_refresh:
+        return {}
     players = _fetch_json(SLEEPER_PLAYERS_URL)
     PLAYERS_CACHE.write_text(json.dumps(players), encoding="utf-8")
     _PLAYERS_RAW_CACHE = players
@@ -383,7 +385,7 @@ def load_sleeper_players(force_refresh: bool = False) -> dict:
     return players
 
 
-def players_dataframe(force_refresh: bool = False) -> pd.DataFrame:
+def players_dataframe(force_refresh: bool = False, *, allow_refresh: bool = True) -> pd.DataFrame:
     global _PLAYERS_DF_CACHE, _PLAYERS_DF_MTIME
     cache_mtime = PLAYERS_CACHE.stat().st_mtime if PLAYERS_CACHE.exists() else 0.0
     if (
@@ -393,7 +395,7 @@ def players_dataframe(force_refresh: bool = False) -> pd.DataFrame:
     ):
         return _PLAYERS_DF_CACHE
 
-    raw = load_sleeper_players(force_refresh=force_refresh)
+    raw = load_sleeper_players(force_refresh=force_refresh) if allow_refresh else load_sleeper_players(allow_refresh=False)
     rows = []
     for player_id, info in raw.items():
         if not info:

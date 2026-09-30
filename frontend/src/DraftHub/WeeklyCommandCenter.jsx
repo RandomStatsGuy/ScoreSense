@@ -20,6 +20,7 @@ import { usePlayerMedia } from "../PlayerCell";
 import { loadAura, readAura, saveAura, storageKey, vibeScore } from "./vibeAura";
 import {
   buildStarterSlotPlan,
+  applySavedLineup,
   fillStarterSlots,
   emptySlotAction,
   canEditHubLineup,
@@ -53,17 +54,21 @@ export default function WeeklyCommandCenter({
   const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
   const [weekOverride, setWeekOverride] = useState(requestedWeek == null ? "" : String(requestedWeek));
   const snapshotKey = weeklySnapshotKey(cacheScope, contextKey, `${weekOverride}:${reloadToken}`);
-  const [dataState, setDataState] = useState(() => ({ key: snapshotKey, payload: getWeeklySnapshot(snapshotKey) }));
-  const data = dataState.key === snapshotKey ? dataState.payload : getWeeklySnapshot(snapshotKey);
+  const dataKey = snapshotKey ?? `${contextKey}:${weekOverride}:${reloadToken}`;
+  const [dataState, setDataState] = useState(() => ({ key: dataKey, payload: getWeeklySnapshot(snapshotKey) }));
+  const data = dataState.key === dataKey ? dataState.payload : getWeeklySnapshot(snapshotKey);
   const [loading, setLoading] = useState(() => !getWeeklySnapshot(snapshotKey));
   const [revalidating, setRevalidating] = useState(false);
   const [error, setError] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
-  const mutationScope = `${contextKey}:${weekOverride}`;
+  const mutationScope = `${cacheScope}:${contextKey}:${weekOverride}`;
   const mutationScopeRef = useRef(mutationScope);
   mutationScopeRef.current = mutationScope;
+  const readVersion = useRef(0);
+  const dataRef = useRef(data);
+  dataRef.current = data;
   const [pickerSlot, setPickerSlot] = useState(null);
   const [lineupMessage, setLineupMessage] = useState("");
   const [openCall, setOpenCall] = useState(null);
@@ -79,11 +84,13 @@ export default function WeeklyCommandCenter({
     setLineupMessage("");
   }, [contextKey, weekOverride]);
 
-  const load = useCallback(async (signal, { rebuild = false } = {}) => {
+  const load = useCallback(async (signal, { rebuild = false, background = false } = {}) => {
+    const version = ++readVersion.current;
+    const isCurrent = () => !signal?.aborted && version === readVersion.current && mutationScopeRef.current === mutationScope;
     const cached = !rebuild ? getWeeklySnapshot(snapshotKey) : null;
-    setLoading(!cached);
-    setRevalidating(Boolean(cached));
-    if (!cached && !rebuild) setDataState({ key: snapshotKey, payload: null });
+    setLoading(!cached && !background);
+    setRevalidating(Boolean(cached) || background);
+    if (!cached && !rebuild && !background) setDataState({ key: dataKey, payload: null });
     setError("");
     try {
       const params = new URLSearchParams();
@@ -93,26 +100,26 @@ export default function WeeklyCommandCenter({
       const res = await apiFetch(path, { signal, ...(rebuild ? { method: "POST" } : {}) });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (!signal?.aborted) {
+      if (isCurrent()) {
         setWeeklySnapshot(snapshotKey, hubContext?.league_id, payload);
-        setDataState({ key: snapshotKey, payload });
+        setDataState({ key: dataKey, payload });
       }
     } catch (e) {
-      if (isAbortError(e) || signal?.aborted) return;
+      if (isAbortError(e) || !isCurrent()) return;
       setError(connectionErrorMessage(e, "Server did not respond — Retry"));
-      if (!rebuild && !cached) setDataState({ key: snapshotKey, payload: null });
+      if (!rebuild && !cached && !background) setDataState({ key: dataKey, payload: null });
     } finally {
-      if (!signal?.aborted) {
+      if (isCurrent()) {
         setLoading(false);
         setRevalidating(false);
       }
     }
-  }, [weekOverride, snapshotKey, hubContext?.league_id]);
+  }, [weekOverride, snapshotKey, dataKey, hubContext?.league_id, mutationScope]);
 
   useEffect(() => {
     const ctrl = new AbortController();
     load(ctrl.signal);
-    return () => ctrl.abort();
+    return () => { ctrl.abort(); readVersion.current += 1; };
   }, [load, hubContext?.league_id, hubContext?.team_id, hubContext?.mode, reloadToken]);
 
   const runSync = useCallback(async () => {
@@ -296,6 +303,8 @@ export default function WeeklyCommandCenter({
     if (!leagueId || !slot?.slot || !benchPlayer?.player_id) return;
     setLineupBusy(true);
     setLineupError("");
+    setRevalidating(false);
+    readVersion.current += 1;
     try {
       const starters = slots
         .filter((row) => row.player?.player_id)
@@ -310,9 +319,13 @@ export default function WeeklyCommandCenter({
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      const result = await res.json();
       if (mutationScopeRef.current !== mutationScope) return false;
+      const saved = applySavedLineup(dataRef.current, result);
+      setWeeklySnapshot(snapshotKey, leagueId, saved);
+      setDataState({ key: dataKey, payload: saved });
       setPickerSlot(null);
-      await load();
+      void load(undefined, { background: true });
       onLineupChanged?.();
       return true;
     } catch (e) {
@@ -322,12 +335,14 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope, onLineupChanged]);
+  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
 
   const applySwap = useCallback(async (starterId, benchId) => {
     if (!leagueId || !starterId || !benchId) return;
     setLineupBusy(true);
     setLineupError("");
+    setRevalidating(false);
+    readVersion.current += 1;
     try {
       const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/lineup/swap`, {
         method: "POST",
@@ -339,10 +354,14 @@ export default function WeeklyCommandCenter({
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      const result = await res.json();
       if (mutationScopeRef.current !== mutationScope) return false;
+      const saved = applySavedLineup(dataRef.current, result);
+      setWeeklySnapshot(snapshotKey, leagueId, saved);
+      setDataState({ key: dataKey, payload: saved });
       setPickerSlot(null);
       setOpenCall(null);
-      await load();
+      void load(undefined, { background: true });
       onLineupChanged?.();
       return true;
     } catch (e) {
@@ -352,7 +371,7 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged]);
+  }, [leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
 
   const runPrimary = () => {
     if (primary.kind === "sync" || primary.kind === "strip-sync") return undefined;
@@ -533,7 +552,7 @@ export default function WeeklyCommandCenter({
           <WeekLineupBoard {...boardProps} includeChrome={false} includeStarters={false} />
         ) : null,
       })}>
-        {error && <div className="error">{error}</div>}
+        {error && <div className="error" role="alert">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
         {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
         {lineupError && !pickerSlot && <div className="error" role="alert">{lineupError}</div>}
