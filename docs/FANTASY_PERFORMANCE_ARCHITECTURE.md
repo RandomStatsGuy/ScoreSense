@@ -27,6 +27,17 @@ no live model inference or upstream roster request. Missing/stale draft artifact
 return HTTP 503 and require the existing refresh job; they do not publish an empty
 successful board. Startup logs unavailable configurations and continues.
 
+Concurrent valuation cache misses now share one active producer per configuration,
+source revision, and read authority. HTTP artifact-only readers never join an
+offline producer allowed to run inference or fetch external rosters. Concurrent
+disk-snapshot reads also share one parse, including `/value-overlay` cache peeks.
+Each caller gets an independent copy. Different configurations/revisions proceed
+independently, failed producers release all waiters and permit a retry, and no
+completed computations are retained in the coordinator. Memory-cache mutation and
+eviction are protected by a short lock; computation and disk I/O run outside it.
+This coordination is per API process, matching the current single-process Uvicorn
+deployment. It does not coordinate independent API replicas or refresh workers.
+
 Ownership is rebuilt from current DB rows on every overlay. `RosterIdentityIndex`
 prepares exact-ID, alternate-ID, full-name/position, and unambiguous abbreviated
 name lookups once for the viewer and league rosters. It preserves existing match
@@ -46,8 +57,23 @@ and `value-sheet` server timing with the existing opt-in browser diagnostics,
 including a fresh browser session after API restart. Compare against the previous
 observed 9,717 ms server request and cached 162–228 ms browser readiness. Verify
 ownership after an authorized roster change. Other destinations may remain slow;
-concurrent miss coordination, lineup rendering, and browser profiling are subsequent
-items, to begin only after this deployment is tested.
+lineup rendering and browser profiling remain subsequent items.
+
+PR #597 production test on deployment `0dfb544`: all eight snapshots matched
+current source revisions. The selected league had changed from the prior audit,
+so these are not comparable before/after samples. Three full Free agents loads
+reported 3,496 / 2,953 / 5,047 ms readiness, with approximately 2,066–2,101 ms
+inside the HTTP server timer. A cached navigation return took 208 ms. Isolated
+snapshot reads took 27–65 ms and ownership matching took 125–215 ms on a temporary
+DB copy. Snapshot reuse worked; the full-request delay remains unexplained.
+
+The concurrent-computation change targets duplicated work during cache misses,
+source replacement, and simultaneous snapshot reads. It does not establish the
+cause of the warm HTTP delay or promise to remove it. Local concurrency tests
+verify eight simultaneous misses invoke one valuation producer, failures reach all
+waiters and retry, different configurations/revisions stay independent, and a late
+old-source computation cannot overwrite the current snapshot. Deploy and measure
+this item before proceeding to lineup rendering or browser profiling.
 
 ## Boundaries
 
