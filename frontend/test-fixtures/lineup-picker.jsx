@@ -46,7 +46,10 @@ window.fetch = async (input, options = {}) => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     return Response.json({ available: true, source: "hub", placeholder: true, season: 2026, week: 2,
       current_week: 2, max_week: 18, starting_slots: ["QB", "RB", "WR", "FLEX"], standings: [],
-      scoring_control: { host: "native", final: false }, viewer_matchup_id: "fixture-match",
+      scoring_control: { host: "native", final: false,
+        ...(state === "score-pending" ? {refresh: {status: "pending"}} : {}),
+        ...(state === "score-failed" ? {refresh: {status: "failed", error: "no_stats"}} : {}),
+      }, viewer_matchup_id: "fixture-match",
       matchups: [{ matchup_id: "fixture-match", teams: [
         { roster_id: "mine", hub_team_id: "mine", is_viewer: true, team_name: "Sunday Roster", points: 0,
           starters: data.roster.starters.map((p) => ({ ...p, name: p.player_name, proj: p.p50, points: 0 })) },
@@ -89,7 +92,7 @@ window.fetch = async (input, options = {}) => {
     ["smith", 4241478], ["charbonnet", 4426385], ["daniels", 4426348],
   ].map(([id, espn]) => [id, { headshot_url: `https://a.espncdn.com/i/headshots/nfl/players/full/${espn}.png` }])) });
 };
-const Component = state === "combined" ? WeeklyExperience : WeeklyCommandCenter;
+const Component = ["combined", "score-pending", "score-failed"].includes(state) ? WeeklyExperience : WeeklyCommandCenter;
 createRoot(document.getElementById("root")).render(<div className="app"><main id="main-content">
   <div className="draft-hub"><Component cacheScope="fixture" hubContext={context} onNavigate={(view) => {
     window.fixtureDestination = view;

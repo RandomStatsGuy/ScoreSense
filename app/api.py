@@ -150,6 +150,7 @@ async def lifespan(app: FastAPI):
     await asyncio.to_thread(warm_fantasy_week_context)
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
+    from app.native_scoring_ticker import native_scoring_ticker_loop
 
     from app.dfs_refresh_ticker import dfs_refresh_ticker_loop
     dfs_ticker = asyncio.create_task(dfs_refresh_ticker_loop(), name="dfs-refresh")
@@ -157,12 +158,13 @@ async def lifespan(app: FastAPI):
     sleeper_ticker = asyncio.create_task(
         sleeper_sync_ticker_loop(), name="sleeper-roster-sync-ticker"
     )
+    scoring_ticker = asyncio.create_task(native_scoring_ticker_loop(), name="native-scoring-ticker")
     try:
         yield
     finally:
-        for task in (ticker, sleeper_ticker, dfs_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
             task.cancel()
-        for task in (ticker, sleeper_ticker, dfs_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
             try:
                 await task
             except asyncio.CancelledError:

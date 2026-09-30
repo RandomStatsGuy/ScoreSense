@@ -33,10 +33,60 @@ its lineup editor when independently loaded matchup data arrived.
    force score recalculation for the entire league.
 
 These boundaries fit the current React, FastAPI, SQLite, and artifact architecture.
-They do not require a new database or microservices. Native scoring still has a
-synchronous calculation path on initial score reads and explicit score refresh;
-moving score refresh to a worker-owned snapshot is a separate next step if its
-measured latency continues to block matchup readiness.
+They do not require a new database or microservices. Native score refresh now
+runs in the application's shared process worker, independently of page reads.
+Explicit commissioner calculation remains a command that waits for publication.
+
+## Native score snapshots
+
+Native GETs read saved player/team totals and scoring rules. A refresh request
+queues a durable `(league, season, week)` job in SQLite and returns immediately.
+Duplicate reads coalesce, attempts have a 60-second minimum interval, and leases
+recover work after a crashed worker. Expired workers cannot publish or finish a
+new owner's job. Each bounded batch shares one statistics lookup per season/week.
+The ticker queues current native leagues and unfinished scoring runs every minute;
+Sleeper leagues and final results are excluded. It uses the existing shared CPU
+executor and participates in API shutdown. `NATIVE_SCORING_REFRESH_ENABLED=false`
+disables the ticker; explicit Calculate still works.
+
+Automatic publication checks the lineup, scoring rules, saved scoring run, and
+worker lease inside the publication transaction. Changed lineups trigger a retry.
+Final results and published commissioner corrections are protected. Changed saved
+scoring settings require commissioner recalculation rather than silently rewriting
+an existing week's rules. Failed inputs retain previous scores and expose a
+refresh failure. The page shows this state while keeping lineup editing available;
+pending jobs poll snapshot status every five seconds while visible. `synced_at`
+is the saved calculation time rather than the time somebody viewed it.
+
+The existing nflverse weekly-stat feed is **not a live play-by-play feed**. This
+worker polls that feed; it cannot guarantee live game coverage or specialist
+inputs. Automatic worker writes stay provisional, including after the last game's
+scheduled kickoff, because this feed does not confirm all games have completed.
+Commissioner Calculate/Publish remains the finalization path. A confirmed game
+completion provider, validated live stat feed, and complete-input gate are still
+required for reliable automatic finalization. Page speed does not establish that
+scoring-freshness requirement.
+
+### Scoreboard measurements — September 30
+
+Same VPS, deployed `d663041` versus isolated candidate modules, temporary SQLite
+backups, same six-team league and 13-player viewer, week 4, warmed projection
+context, no profiler. Neither sample had week statistics available.
+
+| Scoreboard function build | Deployed | Candidate |
+| --- | ---: | ---: |
+| First read after projection preparation | 851 ms | 129 ms |
+| Repeat refresh requests | 237, 244 ms | 82, 83 ms |
+
+The first deployed read includes an upstream statistics request; the candidate
+returns a pending refresh without waiting for it. This measures useful page data
+readiness, not completed scoring or end-to-end browser readiness. The separate
+profiled deployed sample was 1,148 ms / 352 ms / 350 ms. Do not compare those
+profiled numbers directly to the unprofiled candidate.
+
+Real-component browser fixtures passed pending/unavailable score states and
+confirmed lineup edits in both, plus desktop/phone layout at 1280 and 390. These
+fixtures isolate UI behavior and do not establish a production p95 page-load time.
 
 ## Measurement — September 30, 2026
 

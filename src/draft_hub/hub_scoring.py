@@ -797,6 +797,8 @@ def apply_week_scores(
     load_stats: Callable[[int, int], dict[str, dict[str, Any]]] | None = None,
     slate_complete: bool | None = None,
     now: datetime | None = None,
+    automatic: bool = False,
+    refresh_lease: float | None = None,
 ) -> dict[str, Any]:
     """Score every Hub lineup for the week and persist team totals."""
     league = storage.get_league(league_id)
@@ -805,6 +807,7 @@ def apply_week_scores(
     if sleeper_hosts_scoring(league):
         raise LineupError("Scoring is hosted in Sleeper")
     rules = _league_rules(league)
+    previous_run = storage.get_week_scoring_run(league_id, season, week) if automatic else None
     ensure_season_schedule(league_id, season=season, rules=rules)
     teams = storage.list_league_teams(league_id)
     ws = storage.roster_workspace_for_league(league)
@@ -906,6 +909,10 @@ def apply_week_scores(
             team_rows,
             rules.scoring.model_dump(),
             final=bool(slate_complete),
+            automatic=automatic,
+            expected_lineups=lineups if automatic else None,
+            expected_scored_at=previous_run.get('scored_at') if previous_run else None,
+            refresh_lease=refresh_lease,
         )
     except ValueError as exc:
         raise LineupError(str(exc)) from exc
@@ -1066,22 +1073,21 @@ def build_hub_live_week(
             ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules)
         lineups = storage.list_week_lineups(league_id, season_n, resolved_week)
 
-    scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
+    snapshot = storage.get_native_week_snapshot(league_id, season_n, resolved_week)
+    scoring_run = snapshot["run"]
+    lineups = snapshot["lineups"]
+    from src.draft_hub.native_score_refresh import request_refresh, refresh_status
     if native_week_needs_score_refresh(league, scoring_run, refresh=refresh):
-        try:
-            apply_week_scores(league_id, season_n, resolved_week)
-        except LineupError:
-            pass
-        scoring_run = storage.get_week_scoring_run(league_id, season_n, resolved_week)
-        lineups = storage.list_week_lineups(league_id, season_n, resolved_week)
+        request_refresh(league_id, season_n, resolved_week)
+    score_refresh = refresh_status(league_id, season_n, resolved_week)
 
     team_scores = {
         str(row["team_id"]): float(row.get("points") or 0)
-        for row in storage.list_team_week_scores(league_id, season_n, resolved_week)
+        for row in snapshot["teams"]
     }
     player_scores = {
         (str(row["team_id"]), str(row["player_id"])): float(row.get("points") or 0)
-        for row in storage.list_player_week_scores(league_id, season_n, resolved_week)
+        for row in snapshot["players"]
     }
     scored = bool(team_scores)
     season_type = str(state.get("season_type") or "regular").lower()
@@ -1180,6 +1186,7 @@ def build_hub_live_week(
             "final": run_final,
             "slate_complete": slate_done,
             "run": scoring_run,
+            "refresh": score_refresh,
             "settings_changed": bool(scoring_run and ScoringRules.model_validate(scoring_run["scoring"]) != rules.scoring),
             "settings": rules.scoring.model_dump(),
         },
@@ -1202,7 +1209,7 @@ def build_hub_live_week(
         "matchups": matchup_payloads,
         "starting_slots": list(slots),
         "standings": build_hub_standings(league_id, season_n),
-        "synced_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "synced_at": scoring_run.get("scored_at") if scoring_run else None,
         "cached": False,
         **week_picker_meta(state, league),
     }
