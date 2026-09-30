@@ -18,6 +18,7 @@ test("heavy Fantasy and Tools screens load through React.lazy", () => {
   const app = src("App.jsx");
   const router = src("AppRouter.jsx");
   const hub = src("DraftHub/DraftHub.jsx");
+  const pages = src("DraftHub/fantasyPageModules.js");
   const lobby = src("DraftHub/LobbyJoinPage.jsx");
   const mock = src("DraftHub/MockDraftTool.jsx");
   const vibes = src("DraftHub/VibeRankings.jsx");
@@ -28,9 +29,12 @@ test("heavy Fantasy and Tools screens load through React.lazy", () => {
   assert.match(app, /lazy\(\(\) => import\("\.\/DraftHub\/MockDraftTool"\)\)/);
   assert.match(router, /lazy\(\(\) => import\("\.\/DraftHub\/LobbyJoinPage"\)\)/);
   assert.doesNotMatch(router, /import LobbyJoinPage from/);
-  assert.match(hub, /lazy\(\(\) => import\("\.\/DraftRoom"\)\)/);
-  assert.match(hub, /lazy\(\(\) => import\("\.\/VibeRankings"\)\)/);
-  assert.match(hub, /lazy\(\(\) => import\("\.\/LeagueInsights"\)\)/);
+  for (const [view, module] of [["room", "DraftRoom"], ["vibes", "VibeRankings"], ["insights", "LeagueInsights"]]) {
+    assert.ok(hub.includes(`lazy(fantasyPageModules.${view})`));
+    assert.ok(pages.includes(`${view}: () => import("./${module}")`));
+    assert.ok(!hub.includes(`import ${module} from`));
+    assert.ok(!pages.includes(`import ${module} from`));
+  }
   assert.match(lobby, /lazy\(\(\) => import\("\.\/DraftRoom"\)\)/);
   assert.doesNotMatch(lobby, /import DraftRoom from/);
   assert.match(mock, /lazy\(\(\) => import\("\.\/DraftRoom"\)\)/);

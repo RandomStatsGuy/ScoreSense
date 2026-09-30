@@ -1,0 +1,95 @@
+"""Execute the actual deployment script against a fake Docker CLI, never Docker."""
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _bash():
+    git_bash = Path('C:/Program Files/Git/bin/bash.exe')
+    executable = str(git_bash) if os.name == 'nt' and git_bash.exists() else shutil.which('bash')
+    if not executable:
+        pytest.skip('Bash is required to execute the deployment script')
+    return executable
+
+
+def _shell_path(path):
+    value = Path(path).as_posix()
+    return f'/{value[0].lower()}/{value[3:]}' if os.name == 'nt' else value
+
+
+def _run_deploy(tmp_path, state, *, archive_fails=False):
+    script = tmp_path / 'deploy/server/deploy-on-server.sh'
+    script.parent.mkdir(parents=True)
+    script.write_bytes((ROOT / 'deploy/server/deploy-on-server.sh').read_bytes().replace(b'\r\n', b'\n'))
+    archiver = tmp_path / 'scripts/ops/archive_frontend_assets.py'
+    archiver.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / 'scripts/ops/archive_frontend_assets.py', archiver)
+    (tmp_path / '.env').write_text('')
+    previous = tmp_path / 'previous-assets'
+    previous.mkdir()
+    (previous / 'DraftHub-old.js').write_text('exact retired JavaScript')
+    binaries = tmp_path / 'bin'
+    binaries.mkdir()
+    fake_docker = '''#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\\n' "$*" >> "$FAKE_DOCKER_LOG"
+if [ "$1" = cp ]; then
+  cp -a "$FAKE_ASSET_SOURCE/." "$3/"
+  exit 0
+fi
+if [ "$1" != compose ]; then exit 99; fi
+shift
+if [ "${1:-}" = -f ]; then shift 2; fi
+command="${1:-}"
+shift
+case "$command" in
+  ps)
+    if [ "$FAKE_CONTAINER_STATE" = running ]; then echo previous-api;
+    elif [ "$FAKE_CONTAINER_STATE" = stopped ]; then
+      case " $* " in *" -a "*|*" --all "*) echo previous-api;; esac
+    fi;;
+  run)
+    if [ "$FAKE_ARCHIVE_FAIL" = 1 ]; then exit 42; fi
+    while [ "${1:-}" != python ]; do shift; done
+    shift
+    "$FAKE_PYTHON" "$1" "./${2#/app/}" "./${3#/app/}";;
+  build|up|down|exec|start) ;;
+  *) exit 98;;
+esac
+'''
+    for name, content in [('docker', fake_docker), ('sleep', '#!/usr/bin/env bash\nexit 0\n'), ('curl', '#!/usr/bin/env bash\necho healthy\n')]:
+        file = binaries / name
+        file.write_text(content, newline='\n')
+        file.chmod(0o755)
+    log = tmp_path / 'docker.log'
+    env = {**os.environ, 'PATH': str(binaries) + os.pathsep + os.environ['PATH'],
+           'FAKE_DOCKER_LOG': _shell_path(log), 'FAKE_ASSET_SOURCE': _shell_path(previous),
+           'FAKE_CONTAINER_STATE': state, 'FAKE_PYTHON': _shell_path(sys.executable),
+           'FAKE_ARCHIVE_FAIL': '1' if archive_fails else '0'}
+    result = subprocess.run([_bash(), _shell_path(script)], cwd=tmp_path, env=env,
+                            capture_output=True, text=True, timeout=20)
+    return result, log.read_text(), tmp_path / 'artifacts/frontend_assets/DraftHub-old.js'
+
+
+@pytest.mark.parametrize('state', ['running', 'stopped', 'absent'])
+def test_release_assets_are_archived_before_container_replacement(tmp_path, state):
+    result, log, asset = _run_deploy(tmp_path, state)
+    assert result.returncode == 0, result.stdout + result.stderr
+    if state == 'absent':
+        assert not asset.exists()
+    else:
+        assert asset.read_text() == 'exact retired JavaScript'
+        assert log.index('archive_frontend_assets.py') < log.index('up -d --force-recreate')
+
+
+def test_archive_failure_stops_container_replacement(tmp_path):
+    result, log, asset = _run_deploy(tmp_path, 'stopped', archive_fails=True)
+    assert result.returncode != 0
+    assert 'up -d --force-recreate' not in log
+    assert not asset.exists()

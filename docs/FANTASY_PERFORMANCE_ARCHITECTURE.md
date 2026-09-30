@@ -121,6 +121,47 @@ layout checks passed at 1280 and 390 pixels.
 
 ## Performance budget and remaining proof
 
+### Parallel page code and workspace bootstrap
+
+The Fantasy shell starts loading the selected destination's code while its
+workspace request is in flight. Previously, the workspace loading return kept
+React.lazy from requesting that code until the workspace finished. Both warmup
+and React.lazy use the same module loader; native module loading deduplicates
+the download. This loads only the active destination, after authentication or
+in demo mode, and does not fetch page data or change permissions. Failed warmup
+does not block the independent workspace request.
+
+On deployed `a8bc0dc`, a separate VPS process reading a temporary SQLite backup
+built the workspace in 82 ms initially and 55/56 ms on repeat, for one account
+with two memberships. These are server function timings, not HTTP measurements.
+This sample did not justify adding another authorization or membership cache.
+
+The real-shell browser fixture delays workspace by 1,200 ms. At 1280 and 390,
+the This Week module request started 1,200/1,197 ms before workspace completion,
+and only one request occurred. This proves overlap under a controlled delay;
+it does not measure a production improvement of 1.2 seconds. Both runs had no
+page errors or mutation requests. Screenshots and the full layout report are in
+`docs/reviews/fantasy-bootstrap/`. Desktop layout passed. Phone layout reports
+an existing shared chat dismiss target of 29 px, below the 44 px requirement;
+that primitive is unchanged. My team, Cap, Rules, and the other destinations
+were not visually checked in this pass.
+
+### Release asset continuity
+
+A production browser probe observed a failed request for a retired hashed
+Fantasy module. The exact missing module was also absent from the retained asset
+archive; the browser subsequently rendered This Week. This alone does not prove
+when or why that particular file disappeared.
+
+An independent deployment review found that GitHub stops the API for its database
+backup before calling the release script. Container discovery now uses `ps -a`
+so the previous release's assets are archived even when its container is stopped.
+The deployment harness executes the real shell with a fake Docker CLI, checking
+exact asset bytes for both running and stopped containers, first deployment with
+no previous container, and aborting replacement when archiving fails. This
+preserves the existing seven-day retention boundary; it cannot recover already
+missing files or support clients older than that window.
+
 Target common lineup changes at under one second from confirmation to a useful
 updated board, with visible input response much sooner. Target warm critical reads
 below 250 ms server time so network and rendering have room in that budget.
