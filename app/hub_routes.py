@@ -223,6 +223,7 @@ from src.draft_hub.sleeper_link import (
 from src.draft_hub.storage import user_sub_from_patron
 from src.draft_hub.tier_generator import generate_tiers
 from src.draft_hub.timing import HubTimer
+from src.config import HUB_TIMING
 from src.draft_hub.value_sheet import (
     _load_draft_pool,
     build_draft_pool_payload,
@@ -760,6 +761,7 @@ def hub_weekly_command_center(
                 apply_injury_adjustments=apply_injury_adjustments,
                 bench_over_starter_threshold=bench_over_starter_threshold,
                 league_cards=league_cards,
+                timings=timer.phases if HUB_TIMING else None,
             )
     return jsonable_encoder(payload)
 
