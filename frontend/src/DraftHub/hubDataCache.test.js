@@ -2,13 +2,90 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  clearHubDataCache,
+  getCachedPool,
+  getRoomSnapshot,
+  getWeeklySnapshot,
   homeCacheKey,
+  invalidateRoomSnapshot,
+  invalidateWeeklySnapshot,
   poolCacheKey,
   resetValueSheetInflightForTests,
+  roomSnapshotKey,
   runValueSheetRequest,
+  setCachedPool,
+  setRoomSnapshot,
+  setWeeklySnapshot,
   valueSheetInflightCount,
   valueSheetRequestKey,
+  weeklySnapshotKey,
 } from "./hubDataCache.js";
+
+test("draft pool session reuse stays within the account and league", () => {
+  const originalStorage = globalThis.sessionStorage;
+  const entries = new Map();
+  globalThis.sessionStorage = {
+    get length() { return entries.size; },
+    key: (index) => [...entries.keys()][index] ?? null,
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => entries.set(key, value),
+    removeItem: (key) => entries.delete(key),
+  };
+  const realNow = Date.now;
+  let now = 1_000;
+  Date.now = () => now;
+  const rules = { draft_type: "auction", salary_cap: 300 };
+  try {
+    setCachedPool(2026, rules, { rows: [{ name: "Player" }] }, "alice:one");
+    setCachedPool(2026, rules, { rows: [] }, "alice:two");
+    assert.deepEqual(getCachedPool(2026, rules, "alice:one"), { rows: [{ name: "Player" }] });
+    assert.equal(getCachedPool(2026, rules, "bob:one"), null);
+    now += 5 * 60_000;
+    assert.equal(getCachedPool(2026, rules, "alice:one"), null);
+    setCachedPool(2026, rules, { rows: [] }, "alice:one");
+    clearHubDataCache();
+    assert.equal(getCachedPool(2026, rules, "alice:one"), null);
+    assert.equal(entries.size, 0);
+  } finally {
+    Date.now = realNow;
+    clearHubDataCache();
+    if (originalStorage === undefined) delete globalThis.sessionStorage;
+    else globalThis.sessionStorage = originalStorage;
+  }
+});
+
+test("weekly and room snapshots are scoped, expire, and invalidate", () => {
+  const realNow = Date.now;
+  let now = 100;
+  Date.now = () => now;
+  const weekA = weeklySnapshotKey("alice", "league:one:team:a");
+  const weekB = weeklySnapshotKey("bob", "league:one:team:a");
+  const roomA = roomSnapshotKey("alice", "one", "a", null);
+  const roomB = roomSnapshotKey("alice", "two", "a", null);
+  try {
+    setWeeklySnapshot(weekA, "one", { marker: "alice" });
+    setWeeklySnapshot(weekB, "one", { marker: "bob" });
+    setRoomSnapshot(roomA, "one", { marker: "one" });
+    setRoomSnapshot(roomB, "two", { marker: "two" });
+    assert.deepEqual(getWeeklySnapshot(weekA), { marker: "alice" });
+    assert.deepEqual(getWeeklySnapshot(weekB), { marker: "bob" });
+    invalidateWeeklySnapshot("one");
+    invalidateRoomSnapshot("one");
+    assert.equal(getWeeklySnapshot(weekA), null);
+    assert.equal(getWeeklySnapshot(weekB), null);
+    assert.equal(getRoomSnapshot(roomA), null);
+    assert.deepEqual(getRoomSnapshot(roomB), { marker: "two" });
+    setWeeklySnapshot(weekA, "one", { marker: "fresh" });
+    now += 30_000;
+    assert.equal(getWeeklySnapshot(weekA), null);
+    now += 30_000;
+    assert.equal(getRoomSnapshot(roomB), null);
+  } finally {
+    Date.now = realNow;
+    invalidateWeeklySnapshot();
+    invalidateRoomSnapshot();
+  }
+});
 
 test("pool cache separates auction and pick-draft economics", () => {
   assert.notEqual(
