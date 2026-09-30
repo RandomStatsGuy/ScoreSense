@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+import re
 import urllib.parse
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -250,6 +251,19 @@ def _collect_route_paths(routes) -> set[str]:
         if nested:
             paths.update(_collect_route_paths(nested))
     return paths
+
+
+@app.get("/api/client-version")
+def client_version(response: Response) -> dict[str, str]:
+    """Expose the deployed HTML build without letting browser or edge caches retain it."""
+    index = FRONTEND_DIST / "index.html"
+    if not index.is_file():
+        raise HTTPException(status_code=404, detail="Frontend not built")
+    match = re.search(r'<meta name="scoresense-build" content="([a-f0-9-]+)"', index.read_text(encoding="utf-8"))
+    if not match:
+        raise HTTPException(status_code=503, detail="Frontend version unavailable")
+    response.headers.update(_FRONTEND_NO_CACHE_HEADERS)
+    return {"version": match.group(1)}
 
 
 @app.get("/api/health")

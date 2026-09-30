@@ -12,7 +12,10 @@ from fastapi.testclient import TestClient
 def frontend_dist_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     dist = tmp_path / "dist"
     dist.mkdir()
-    (dist / "index.html").write_text("<!DOCTYPE html><html><body>app</body></html>", encoding="utf-8")
+    (dist / "index.html").write_text(
+        '<!DOCTYPE html><html><head><meta name="scoresense-build" content="1234-abcd" /></head><body>app</body></html>',
+        encoding="utf-8",
+    )
     (dist / "manifest.webmanifest").write_text('{"name":"ScoreSense"}', encoding="utf-8")
     (dist / "sw.js").write_text("self.skipWaiting();", encoding="utf-8")
     (dist / "pwa-192.png").write_bytes(b"png")
@@ -57,6 +60,13 @@ def test_unknown_spa_route_falls_back_to_index(frontend_dist_client: TestClient)
 def test_index_html_is_not_cached(frontend_dist_client: TestClient) -> None:
     res = frontend_dist_client.get("/")
     assert res.status_code == 200
+    assert "no-store" in res.headers.get("cache-control", "")
+
+
+def test_client_version_is_current_and_not_cached(frontend_dist_client: TestClient) -> None:
+    res = frontend_dist_client.get("/api/client-version")
+    assert res.status_code == 200
+    assert res.json() == {"version": "1234-abcd"}
     assert "no-store" in res.headers.get("cache-control", "")
 
 
