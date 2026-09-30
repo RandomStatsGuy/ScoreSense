@@ -18,6 +18,7 @@ import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
 import "../src/styles/color-theme.css";
+import "../src/styles/standalone-dialogs.css";
 
 const params = new URLSearchParams(location.search), state = params.get("state") || "bid";
 const pick = ["claim", "priority", "claim-error", "market-error", "add"].includes(state) || params.has("pick");

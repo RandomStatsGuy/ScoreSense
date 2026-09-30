@@ -18,6 +18,7 @@ export default function MobilePlayerCard({
   badge,
   expanded,
   defaultOpen = false,
+  open: controlledOpen,
   selected = false,
   className = "",
   unavailable = false,
@@ -29,14 +30,15 @@ export default function MobilePlayerCard({
   reserveHeroSub = false,
   playerId,
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? internalOpen;
   const detailsId = useId();
-  const hasExpand = Boolean(expanded);
+  const hasExpand = Boolean(expanded) || controlledOpen != null;
   // While selecting, a tap on a selectable row picks it instead of expanding.
   const tapSelects = selecting && Boolean(onSelect);
 
   const toggle = () => {
-    if (hasExpand) setOpen((v) => !v);
+    if (hasExpand && controlledOpen == null) setOpen((v) => !v);
   };
 
   const handleHeaderClick = () => {

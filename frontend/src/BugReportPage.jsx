@@ -109,9 +109,8 @@ export default function BugReportPage() {
 
   return (
     <StandalonePageShell title={BUG_REPORT_COPY.eyebrow}>
-      <div className="auth-shell auth-shell-page account-settings-page">
-        <div className="panel auth-panel account-settings-panel">
-          <p className="auth-session-eyebrow">{BUG_REPORT_COPY.eyebrow}</p>
+      <div className="standalone-content-shell account-settings-page">
+        <div className="panel standalone-content account-settings-panel">
           <h2 className="auth-panel-title-desktop">{BUG_REPORT_COPY.heading}</h2>
           <p className="chart-note">{BUG_REPORT_COPY.support}</p>
 
@@ -130,7 +129,7 @@ export default function BugReportPage() {
               </p>
             </>
           ) : filedKey ? (
-            <p className="chart-note">{reportSuccess(filedKey)}</p>
+            <p className="chart-note" role="status">{reportSuccess(filedKey)}</p>
           ) : (
             <form className="account-auth-form" onSubmit={sendReport}>
               {boardOpen === false ? (
@@ -139,6 +138,7 @@ export default function BugReportPage() {
               <label>
                 <span className="hub-field-label">{BUG_REPORT_COPY.titleLabel}</span>
                 <input
+                  type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={BUG_REPORT_COPY.titlePlaceholder}
@@ -175,7 +175,7 @@ export default function BugReportPage() {
                 {pagePath ? (
                   <label>
                     <span className="hub-field-label">{BUG_REPORT_COPY.pathLabel}</span>
-                    <input value={pagePath} readOnly disabled />
+                    <input type="text" value={pagePath} readOnly disabled />
                   </label>
                 ) : null}
               </div>
@@ -188,7 +188,7 @@ export default function BugReportPage() {
                   {BUG_REPORT_COPY.sending}
                 </button>
               ) : null}
-              {error ? <div className="error">{error}</div> : null}
+              {error ? <div className="error" role="alert">{error}</div> : null}
             </form>
           )}
 
