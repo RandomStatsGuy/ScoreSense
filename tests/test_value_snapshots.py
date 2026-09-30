@@ -1,6 +1,8 @@
 """Snapshot correctness, input freshness, and equivalent prepared matching."""
 import json
 import random
+from concurrent.futures import Future, ThreadPoolExecutor
+from threading import Event, Lock
 
 import pandas as pd
 import pytest
@@ -8,6 +10,21 @@ import pytest
 from src.draft_hub import value_sheet as values, value_snapshot as snapshots
 from src.draft_hub.roster_identity_match import RosterIdentityIndex, find_matching_roster_slot
 from src.draft_hub.schemas import LeagueRules
+
+
+def observe_waiters(monkeypatch, expected):
+    """Signal actual joins, so concurrency tests need no scheduling sleeps."""
+    from src.core import shared_computation
+    joined, lock, count = Event(), Lock(), [0]
+    class ObservedFuture(Future):
+        def result(self, *args, **kwargs):
+            with lock:
+                count[0] += 1
+                if count[0] == expected:
+                    joined.set()
+            return super().result(*args, **kwargs)
+    monkeypatch.setattr(shared_computation, "Future", ObservedFuture)
+    return joined
 
 
 @pytest.fixture
@@ -186,3 +203,154 @@ def test_warmup_prepares_manager_ranges_with_league_rules(hub_db, pool, monkeypa
     assert values.peek_pool_payload_cache(2026, rules, [], team_count=10)
     assert storage.get_league(league["id"])["team_count"] == 10
     assert storage.list_roster(ws["id"]) == []
+
+
+def test_eight_concurrent_misses_share_one_preparation_and_isolate_responses(pool, monkeypatch):
+    started, release = Event(), Event()
+    joined = observe_waiters(monkeypatch, 7)
+    original, calls = values._valuation_maps, []
+    def prepare(*args, **kwargs):
+        calls.append(1)
+        started.set()
+        assert release.wait(5)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(values, "_valuation_maps", prepare)
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        leader = executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), [])
+        try:
+            assert started.wait(5)
+            others = [executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), []) for _ in range(7)]
+            assert joined.wait(5)
+        finally:
+            release.set()
+        results = [f.result(timeout=5) for f in [leader, *others]]
+    assert len(calls) == 1
+    assert all(r == results[0] for r in results)
+    results[0]["rows"][0]["player"] = "Viewer mutation"
+    results[0]["hub_context"] = {"viewer": "private"}
+    assert all(r["rows"][0]["player"] == "Player One" and "hub_context" not in r for r in results[1:])
+
+
+def test_shared_failure_reaches_waiters_and_next_request_retries(pool, monkeypatch):
+    started, release = Event(), Event()
+    joined = observe_waiters(monkeypatch, 3)
+    original, calls = values._valuation_maps, []
+    def fail_once(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:
+            started.set()
+            assert release.wait(5)
+            raise RuntimeError("Preparation failed")
+        return original(*args, **kwargs)
+    monkeypatch.setattr(values, "_valuation_maps", fail_once)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        leader = executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), [])
+        try:
+            assert started.wait(5)
+            others = [executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), []) for _ in range(3)]
+            assert joined.wait(5)
+        finally:
+            release.set()
+        for future in [leader, *others]:
+            with pytest.raises(RuntimeError, match="Preparation failed"):
+                future.result(timeout=5)
+    assert len(calls) == 1
+    assert values.read_draft_pool_payload(2026, LeagueRules(), [])["count"] == 1
+    assert len(calls) == 2
+
+
+def test_unrelated_configurations_do_not_wait_for_one_global_builder(pool, monkeypatch):
+    started, release = Event(), Event()
+    original = values._valuation_maps
+    def prepare(*args, **kwargs):
+        if kwargs["team_count"] == 12:
+            started.set()
+            assert release.wait(5)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(values, "_valuation_maps", prepare)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        slow = executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), [], team_count=12)
+        try:
+            assert started.wait(5)
+            independent = executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), [], team_count=10)
+            assert independent.result(timeout=3)["team_count"] == 10
+            assert not slow.done()
+        finally:
+            release.set()
+        assert slow.result(timeout=5)["team_count"] == 12
+
+
+def test_http_reader_does_not_join_inference_allowed_producer(pool, monkeypatch):
+    started, release = Event(), Event()
+    def load(_season, **options):
+        if not options:
+            started.set()
+            assert release.wait(5)
+        else:
+            assert options == {"allow_compute": False, "apply_identity": False}
+        return pool.copy()
+    monkeypatch.setattr(values, "load_draft_pool", load)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        offline = executor.submit(values.build_draft_pool_payload, 2026, LeagueRules(), [])
+        try:
+            assert started.wait(5)
+            reader = executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), [])
+            assert reader.result(timeout=3)["count"] == 1
+            assert not offline.done()
+        finally:
+            release.set()
+        assert offline.result(timeout=5)["count"] == 1
+
+
+def test_source_replacement_starts_new_flight_and_rejects_old_publication(pool, monkeypatch):
+    started, release = Event(), Event()
+    revision = ["old"]
+    original = values._valuation_maps
+    monkeypatch.setattr(values, "source_revision", lambda _: revision[0])
+    monkeypatch.setattr(values, "load_draft_pool", lambda *_a, **_k: pool.copy())
+    def prepare(frame, *args, **kwargs):
+        if frame.loc[0, "Season Proj"] == 200:
+            started.set()
+            assert release.wait(5)
+        return original(frame, *args, **kwargs)
+    monkeypatch.setattr(values, "_valuation_maps", prepare)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        old = executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), [])
+        try:
+            assert started.wait(5)
+            revision[0] = "new"
+            pool.loc[0, "Season Proj"] = 250
+            new = executor.submit(values.read_draft_pool_payload, 2026, LeagueRules(), [])
+            assert new.result(timeout=3)["rows"][0]["season_proj"] == 250
+        finally:
+            release.set()
+        assert old.result(timeout=5)["rows"][0]["season_proj"] == 200
+    values.invalidate_pool_payload_cache()
+    assert values.peek_pool_payload_cache(2026, LeagueRules(), [])["rows"][0]["season_proj"] == 250
+
+
+@pytest.mark.parametrize("read_name", ["read_draft_pool_payload", "peek_pool_payload_cache"])
+def test_concurrent_restart_reads_share_one_snapshot_parse(pool, monkeypatch, read_name):
+    rules = LeagueRules()
+    values.read_draft_pool_payload(2026, rules, [])
+    values.invalidate_pool_payload_cache()
+    started, release = Event(), Event()
+    joined = observe_waiters(monkeypatch, 3)
+    original, calls = values.load_snapshot, []
+    def load(*args):
+        calls.append(1)
+        started.set()
+        assert release.wait(5)
+        return original(*args)
+    monkeypatch.setattr(values, "load_snapshot", load)
+    read = getattr(values, read_name)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        leader = executor.submit(read, 2026, rules, [])
+        try:
+            assert started.wait(5)
+            others = [executor.submit(read, 2026, rules, []) for _ in range(3)]
+            assert joined.wait(5)
+        finally:
+            release.set()
+        assert all(f.result(timeout=5)["count"] == 1 for f in [leader, *others])
+    assert len(calls) == 1

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import copy
+from threading import RLock
 from typing import Any
 
 import pandas as pd
+from src.core.shared_computation import SharedComputation
 
 from src.draft_hub.auction_values import build_player_values
 from src.draft_hub.draft_pool_cache import load_draft_pool
@@ -25,10 +27,13 @@ from src.draft_hub.value_snapshot import load_snapshot, save_snapshot, source_re
 
 _POOL_PAYLOAD_CACHE: dict[str, tuple[str, dict[str, Any]]] = {}
 _POOL_PAYLOAD_MAX_ENTRIES = 64
+_POOL_PAYLOAD_LOCK = RLock()
+_POOL_PAYLOAD_FLIGHTS = SharedComputation()
 
 
 def invalidate_pool_payload_cache() -> None:
-    _POOL_PAYLOAD_CACHE.clear()
+    with _POOL_PAYLOAD_LOCK:
+        _POOL_PAYLOAD_CACHE.clear()
 
 
 def _pool_payload_cache_key(
@@ -132,20 +137,41 @@ def peek_pool_payload_cache(
     """Return cached pool payload without building (overlay hot path)."""
     cache_key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
     revision = source_revision(season)
-    cached = _POOL_PAYLOAD_CACHE.get(cache_key)
-    if cached and cached[0] == revision:
-        return copy.deepcopy(cached[1])
+    cached = _peek_memory_payload(cache_key, revision)
+    if cached is not None:
+        return cached
+    persisted = _POOL_PAYLOAD_FLIGHTS.run(
+        ("snapshot", cache_key, revision),
+        lambda: _read_snapshot_payload(cache_key, revision),
+    )
+    return copy.deepcopy(persisted) if persisted is not None else None
+
+
+def _read_snapshot_payload(cache_key: str, revision: str) -> dict | None:
+    cached = _peek_memory_payload(cache_key, revision)
+    if cached is not None:
+        return cached
     persisted = load_snapshot(cache_key, revision)
     if persisted is not None:
         _remember_payload(cache_key, revision, persisted)
-        return copy.deepcopy(persisted)
+        return persisted
     return None
 
 
 def _remember_payload(key: str, revision: str, payload: dict) -> None:
-    if key not in _POOL_PAYLOAD_CACHE and len(_POOL_PAYLOAD_CACHE) >= _POOL_PAYLOAD_MAX_ENTRIES:
-        _POOL_PAYLOAD_CACHE.pop(next(iter(_POOL_PAYLOAD_CACHE)))
-    _POOL_PAYLOAD_CACHE[key] = (revision, copy.deepcopy(payload))
+    isolated = copy.deepcopy(payload)
+    with _POOL_PAYLOAD_LOCK:
+        if key not in _POOL_PAYLOAD_CACHE and len(_POOL_PAYLOAD_CACHE) >= _POOL_PAYLOAD_MAX_ENTRIES:
+            _POOL_PAYLOAD_CACHE.pop(next(iter(_POOL_PAYLOAD_CACHE)))
+        _POOL_PAYLOAD_CACHE[key] = (revision, isolated)
+
+
+def _peek_memory_payload(key: str, revision: str) -> dict | None:
+    with _POOL_PAYLOAD_LOCK:
+        cached = _POOL_PAYLOAD_CACHE.get(key)
+    if cached and cached[0] == revision:
+        return copy.deepcopy(cached[1])
+    return None
 
 
 def read_draft_pool_payload(season: int, rules: LeagueRules, salary_ranges: list[dict[str, Any]],
@@ -161,6 +187,36 @@ def build_draft_pool_payload(
     *,
     team_count: int = 12,
     artifact_only: bool = False,
+) -> dict[str, Any]:
+    """Share preparation per configuration, source revision, and read authority."""
+    # Freeze inputs before deriving a key; callers cannot change a producer's
+    # rules/ranges while another request joins its result.
+    rules = rules.model_copy(deep=True)
+    salary_ranges = copy.deepcopy(salary_ranges)
+    key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
+    revision = source_revision(season)
+    cached = _peek_memory_payload(key, revision)
+    if cached is not None:
+        return cached
+    # HTTP readers must never join an offline producer allowed to fetch rosters
+    # or run inference. Neither ownership nor viewer data enters this result.
+    result = _POOL_PAYLOAD_FLIGHTS.run(
+        ("build", key, revision, artifact_only),
+        lambda: _build_draft_pool_payload(
+            season, rules, salary_ranges, team_count=team_count,
+            artifact_only=artifact_only,
+        ),
+    )
+    return copy.deepcopy(result)
+
+
+def _build_draft_pool_payload(
+    season: int,
+    rules: LeagueRules,
+    salary_ranges: list[dict[str, Any]],
+    *,
+    team_count: int,
+    artifact_only: bool,
 ) -> dict[str, Any]:
     """
     League-agnostic valuation layer (projections + fair values).
