@@ -356,7 +356,7 @@ def test_constitution_covers_league_delete_and_workbook() -> None:
 def test_strategy_is_deliberate_hero_band_exception() -> None:
     product = _read("docs", "PRODUCT.md")
     core_rule = _read(".cursor", "rules", "scoresense-core.mdc")
-    assert "only Fantasy destination without a `HubExperienceHero` band" in product
+    assert "Strategy, Rosters and Trades are also exceptions: no hero band" in product
     assert "Do not add `HubExperienceHero` to Strategy" in product
     assert "Strategy is the board-first exception" in core_rule
 

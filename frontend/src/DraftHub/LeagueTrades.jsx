@@ -1,16 +1,20 @@
+import { createPortal } from 'react-dom';
+import TradeDiscovery from './TradeDiscovery';
+import TradeImpactGrid from './TradeImpactGrid';
+import { TRADE_DISCOVERY_COPY as DISCOVERY } from './leagueTradesPresentation';
+import { currentTradeCap, positionStrengthRanks, projectedTradeImpact } from './tradeOutlook';
+import '../styles/league-trades.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import {
   HubAlert,
-  HubExperienceHero,
   HubFilterChip,
   HubFilterMenu,
   HubFilterScroll,
   HubLoadingSkeleton,
   HubPage,
-  HubSegmentNav,
 } from "./HubUILayout";
 import { getInsightsSection, setInsightsSection, loadLeagueRosterRequest } from "./hubDataCache";
 import { isAbortError } from "../fetchAbort";
@@ -22,15 +26,14 @@ import { leagueUsesSalaries } from "./leagueCapabilities";
 
 import { hubTeamLabel } from "./hubTeamLabel";
 import { clearTradeSeed, readTradeSeed, resolveTradePartnerId } from "./tradeSeed";
-import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
+import { projectTeamTradeStats } from "./tradeProjection";
 import { formatIdeaCapNet, ideaCapImpact, whyThisHelpsText } from "./tradeIdeaHelpers";
 import { playerTradeableInWindow, tradesWindowBanner } from "./acquisitionWindow";
-import { expireChipLabel, stepBlockedReason, TRADES_COPY, tradesCopyForFormat, tradesFreeLabel } from "./leagueTradesPresentation";
+import { TRADES_COPY, tradesCopyForFormat } from "./leagueTradesPresentation";
 import {
   notifyPartnerNames,
   packageFingerprint,
   packageLegFlow,
-  partnerCardMeta,
   sendGetCopy,
   validationBanner,
 } from "./tradeBuilderHelpers";
@@ -46,20 +49,8 @@ import {
 
 const MAX_PARTIES = 4;
 
-const BUILDER_STEPS = [
-  { id: "partner", label: "Partner" },
-  { id: "players", label: "Players" },
-  { id: "review", label: "Cap impact" },
-  { id: "propose", label: "Propose" },
-];
-
 function emptyParty(teamId) {
   return { team_id: teamId || "", sends: [], drops: [] };
-}
-
-function builderStepIndex(stepId) {
-  const i = BUILDER_STEPS.findIndex((s) => s.id === stepId);
-  return i >= 0 ? i : 0;
 }
 
 function Chip({ label, tone }) {
@@ -88,15 +79,6 @@ function sortRoster(rows) {
     if (ai !== bi) return ai - bi;
     return String(a.player_name || "").localeCompare(String(b.player_name || ""));
   });
-}
-
-function StatWithDelta({ value, delta, label, warn }) {
-  return (
-    <span className={warn ? "hub-trade-stat-warn" : undefined}>
-      <strong>{fmtSal(value)}</strong> {label}
-      {delta && <span className="hub-trade-stat-delta"> ({delta})</span>}
-    </span>
-  );
 }
 
 function TradeWeekStrip({ preview, emptyCopy, media }) {
@@ -136,63 +118,6 @@ function TradeWeekStrip({ preview, emptyCopy, media }) {
   );
 }
 
-function TeamCapStrip({ projected, salaryCap, salaryLeague = true }) {
-  if (!projected) return null;
-  const { committed, dead_cap: dead, unspent, by_position_count: byPos, base, dirty } = projected;
-  const basePos = base?.by_position_count || {};
-  return (
-    <div
-      className={`hub-trade-team-stats${dirty ? " is-projected" : ""}`}
-      aria-label={dirty
-        ? "Projected post-trade current roster"
-        : (salaryLeague ? "Current roster salary" : "Current roster balance")}
-    >
-      {dirty && <span className="hub-trade-preview-tag">Projected</span>}
-      {!salaryLeague && (
-        <span><strong>{Object.values(byPos).reduce((sum, n) => sum + Number(n || 0), 0)}</strong> players</span>
-      )}
-      {salaryLeague && committed != null && (
-        <StatWithDelta
-          value={committed}
-          label={TRADES_COPY.currentRoster}
-          delta={dirty ? formatStatDelta(base?.committed, committed) : null}
-        />
-      )}
-      {salaryLeague && (dead > 0 || (dirty && base?.dead_cap > 0)) && (
-        <StatWithDelta
-          value={dead}
-          label={TRADES_COPY.dead}
-          delta={dirty ? formatStatDelta(base?.dead_cap, dead) : null}
-          warn={dirty && dead > (base?.dead_cap || 0)}
-        />
-      )}
-      {salaryLeague && unspent != null && (
-        <StatWithDelta
-          value={unspent}
-          label={tradesFreeLabel(salaryCap, fmtSal)}
-          delta={dirty ? formatStatDelta(base?.unspent, unspent) : null}
-          warn={unspent < 0}
-        />
-      )}
-      {HUB_POS_ORDER.filter((pos) => (byPos[pos] || 0) > 0 || (dirty && (basePos[pos] || 0) > 0)).map((pos) => {
-        const n = byPos[pos] || 0;
-        const bn = basePos[pos] || 0;
-        const changed = dirty && n !== bn;
-        return (
-          <span
-            key={pos}
-            className={`hub-trade-pos-count${changed ? " is-changed" : ""}${n > bn ? " is-up" : ""}${n < bn ? " is-down" : ""}`}
-            title={changed ? `Was ${bn}` : undefined}
-          >
-            {pos} {n}
-            {changed && <span className="hub-trade-pos-delta">{n > bn ? `+${n - bn}` : `${n - bn}`}</span>}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
 function TradeVerdict({ status, errors, message }) {
   const banner = validationBanner(status, errors, message);
   if (!banner) {
@@ -222,96 +147,13 @@ function TradePlayerRow({
   salaryLeague = true,
   copy = TRADES_COPY,
 }) {
-  const grade = gradeLabel(row.contract_grade);
-  const expireLabel = expireChipLabel(row.expire_chip);
-  const yrs = row.years_remaining ?? row.contract_years;
-  const sendCopy = sendGetCopy({
-    isYours,
-    playerName: row.player_name || row.player_id,
-    destName,
-    srcName,
-  });
-  const cutLabel = salaryLeague
-    ? copy.cutPlayer(row.player_name || row.player_id)
-    : `Drop ${row.player_name || row.player_id} for roster space`;
-  return (
-    <li
-      className={[
-        "hub-trade-player-row",
-        sending ? "is-sending" : "",
-        dropping ? "is-dropping" : "",
-      ].filter(Boolean).join(" ")}
-    >
-      <div className="hub-trade-player-main">
-        <span className="hub-roster-pos-tag hub-trade-pos">{row.position || "—"}</span>
-        <div className="hub-trade-player-identity">
-          <PlayerCell
-            name={row.player_name}
-            team={row.team}
-            playerId={row.player_id}
-            position={row.position}
-            media={media}
-            size="sm"
-            showTeam
-            clickable
-            narrativeScope="season"
-          />
-          <div className="hub-trade-player-meta">
-            {salaryLeague && yrs != null && <span>{yrs}y</span>}
-            {salaryLeague && row.contract_type && <span>{row.contract_type}</span>}
-            {salaryLeague && expireLabel && (
-              <span className={`hub-expire-chip${row.expire_chip === "extend" ? " hub-expire-chip--extend" : ""}`}>
-                {expireLabel}
-              </span>
-            )}
-            {salaryLeague && grade && (
-              <span className={gradeClass(row.contract_grade)}>
-                {grade}
-                {row.value_delta != null
-                  ? ` (${row.value_delta <= 0 ? "" : "+"}${fmtSal(row.value_delta)})`
-                  : ""}
-              </span>
-            )}
-            {salaryLeague && row.fp_per_dollar != null && (
-              <span className="hub-trade-fpd">
-                {row.fp_per_dollar} pts /$
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="hub-trade-player-actions">
-        {salaryLeague && <span className="hub-trade-salary">{fmtSal(row.salary)}</span>}
-        <button
-          type="button"
-          className={`btn-ghost btn-sm${sending ? " active" : ""}`}
-          disabled={!canSend || tradeLocked}
-          onClick={onSend}
-          aria-pressed={sending}
-          aria-label={sendCopy.aria}
-          title={
-            tradeLocked
-              ? (salaryLeague
-                ? "Offseason trades are limited to contracts that continue beyond the upcoming draft"
-                : "This player cannot be traded during the current acquisition window")
-              : canSend ? sendCopy.aria : "Select another team first"
-          }
-        >
-          {sendCopy.button}
-        </button>
-        <button
-          type="button"
-          className={`btn-ghost btn-sm hub-trade-cut-btn${dropping ? " active" : ""}`}
-          onClick={onDrop}
-          aria-pressed={dropping}
-          aria-label={cutLabel}
-          title={copy.cutHint}
-        >
-          {copy.cutVerb}
-        </button>
-      </div>
-    </li>
-  );
+  const yrs = row.years_remaining ?? row.contract?.years_remaining ?? row.contract_years;
+  const sendCopy=sendGetCopy({isYours,playerName:row.player_name||row.player_id,destName,srcName});
+  return <li className={`ss-trade-player-row${sending?' is-sending':''}${dropping?' is-dropping':''}`}>
+   <div className="ss-trade-player-name"><PlayerCell name={row.player_name} team={row.team} playerId={row.player_id} position={row.position} media={media} size="sm" showTeam clickable narrativeScope="season"/></div>
+   {salaryLeague&&<span className="ss-trade-player-cost">{fmtSal(row.salary)}<small>{yrs??'—'} yrs</small></span>}
+   <button type="button" className="ss-trade-square" disabled={!canSend||tradeLocked} onClick={onSend} aria-pressed={sending} aria-label={sendCopy.aria} title={sendCopy.aria}>{sending?'✓':'+'}</button>
+  </li>;
 }
 
 export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheScope }) {
@@ -334,6 +176,19 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const [proposeNote, setProposeNote] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [search, setSearch] = useState("");
+  const [partnerSearch, setPartnerSearch] = useState("");
+  const [outlook, setOutlook] = useState(null);
+  const reviewDialog=useRef(null),reviewTrigger=useRef(null);
+  const reviewOpen=tab==='builder'&&builderStep==='review';
+  useEffect(()=>{
+    const dialog=reviewDialog.current;
+    if(!dialog)return;
+    if(!reviewOpen){if(dialog.open)dialog.close();return;}
+    const previousOverflow=document.body.style.overflow;
+    dialog.showModal();document.body.style.overflow='hidden';
+    dialog.querySelector('h2')?.focus({preventScroll:true});
+    return()=>{if(dialog.open)dialog.close();document.body.style.overflow=previousOverflow;reviewTrigger.current?.focus({preventScroll:true});};
+  },[reviewOpen]);
   const validateSeq = useRef(0);
   const payloadRef = useRef(null);
 
@@ -376,6 +231,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     return m;
   }, [rosterByTeam]);
 
+  const positionRanks=useMemo(()=>positionStrengthRanks(rosterByTeam,rules,outlook?.players),[rosterByTeam,rules,outlook]);
+  const rankPositions=useMemo(()=>HUB_POS_ORDER.filter(pos=>Number(rules?.roster?.[pos.toLowerCase()]?.starter)>0||Object.values(rosterByTeam).some(rows=>rows.some(r=>normalizeHubPosition(r.position)===pos))),[rosterByTeam,rules]);
   const [parties, setParties] = useState(() => [
     emptyParty(myTeamId),
     emptyParty(""),
@@ -397,6 +254,15 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     if (data.salary_cap != null) setSalaryCap(data.salary_cap);
     return data.teams || [];
   }, [leagueId, cacheScope]);
+
+  useEffect(()=>{
+    const controller=new AbortController();setOutlook(null);
+    if(leagueId)apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trade-outlook`,{signal:controller.signal})
+      .then(async res=>{if(!res.ok)throw new Error('Outlook unavailable');return res.json();})
+      .then(data=>{if(!controller.signal.aborted)setOutlook(data);})
+      .catch(()=>{if(!controller.signal.aborted)setOutlook({players:{}});});
+    return()=>controller.abort();
+  },[leagueId]);
 
   const loadProposals = useCallback(async (signal) => {
     if (!leagueId) return;
@@ -499,7 +365,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     return () => controller.abort();
   }, [boot]);
 
-  const needsWeekPreview = tab === "inbox" || (tab === "builder" && builderStep !== "partner");
+  const needsWeekPreview = tab === "inbox";
   useEffect(() => {
     if (!needsWeekPreview || weekState.status !== "idle") return undefined;
     const controller = new AbortController();
@@ -590,7 +456,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       if (!p.team_id) return;
       out[p.team_id] = projectTeamTradeStats({
         teamId: p.team_id,
-        statsByTeam,
+        statsByTeam: Object.fromEntries(Object.entries(statsByTeam).map(([id,stats])=>[id,{...stats,committed:(rosterByTeam[id]||[]).reduce((sum,row)=>sum+Number(row.salary||0),0),by_position_count:(rosterByTeam[id]||[]).reduce((counts,row)=>{const pos=normalizeHubPosition(row.position);counts[pos]=(counts[pos]||0)+1;return counts;},{})}])),
         rosterByTeam,
         rowByPlayer,
         parties,
@@ -602,6 +468,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     return out;
   }, [parties, deadCapAssignments, statsByTeam, rosterByTeam, rowByPlayer, rules, salaryCap]);
 
+  const pointImpact=useMemo(()=>projectedTradeImpact({rosterByTeam,parties,myTeamId,rules,forecasts:outlook?.players,salaryLeague}),[rosterByTeam,parties,myTeamId,rules,outlook,salaryLeague]);
   const weekPayload = weekState.status === "ready" ? weekState.data : null;
   const weekStripReady = weekState.status === "ready" || weekState.status === "missing";
   const weekEmptyCopy = useMemo(() => tradeWeekEmptyCopy({
@@ -611,17 +478,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       || Boolean(weekPayload?.status?.projections_missing),
     draftCompleted: Boolean(hubContext?.draft_completed),
   }), [weekPayload, weekState.status, hubContext?.draft_completed]);
-
-  const myWeekPreview = useMemo(() => projectTradeWeekLineup({
-    rosterByTeam,
-    parties,
-    myTeamId,
-    weekCards: weekPayload?.cards,
-    weekStarters: weekPayload?.roster?.starters,
-    rules,
-    projectionsAvailable: Boolean(weekPayload?.meta?.projections_available),
-    emptyRoster: Boolean(weekPayload?.status?.empty_roster),
-  }), [rosterByTeam, parties, myTeamId, weekPayload, rules]);
 
   const inboxWeekPreview = useCallback((proposal) => projectTradeWeekLineup({
     rosterByTeam,
@@ -919,13 +775,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     setBuilderStep(stepId);
   };
 
-  const canEnterStep = (stepId) => {
-    if (stepId === "partner") return true;
-    if (stepId === "players") return hasPartner;
-    if (stepId === "review" || stepId === "propose") return hasPartner && hasPackage;
-    return false;
-  };
-
   const filterRows = (rows) => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
@@ -936,7 +785,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     });
   };
 
-  const stepIdx = builderStepIndex(builderStep);
   const capLimit = salaryCap ?? rules?.salary_cap;
   const canPropose = validationStatus === "valid" && hasPackage && !busy;
   const partnerNames = notifyPartnerNames(teams, partnerTeamIds, myTeamId);
@@ -954,17 +802,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         return (
           <div key={idx} className="hub-trade-party-col panel">
             <div className="hub-trade-party-head">
-              <strong className="hub-trade-party-name">
-                {teamName(party.team_id)}
-                {isYours ? " (you)" : ""}
-              </strong>
+              <strong className="hub-trade-party-name">{isYours?'You send':'You get'}</strong><span className="table-meta">{teamName(party.team_id)}</span>
             </div>
-
-            <TeamCapStrip
-              projected={teamProjected}
-              salaryCap={capLimit}
-              salaryLeague={salaryLeague}
-            />
 
             <ul className="hub-trade-player-list">
               {rows.length === 0 && (
@@ -994,6 +833,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
               })}
             </ul>
 
+            <details className="ss-trade-advanced"><summary>{DISCOVERY.advanced}</summary>
+             <div className="ss-trade-cut-options">{rows.map(row=><button key={row.player_id} type="button" className="btn-ghost ss-trade-action" onClick={()=>toggleDrop(idx,row.player_id)} aria-pressed={party.drops.includes(row.player_id)}>{party.drops.includes(row.player_id)?'Undo ':''}{salaryLeague?'Cut':'Drop'} {row.player_name}</button>)}</div>
             {incoming.length > 0 && (
               <div className="hub-trade-legs hub-trade-receiving">
                 <strong>{formatCopy.getVerb}</strong>
@@ -1096,6 +937,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 })}
               </div>
             )}
+            </details>
           </div>
         );
       })}
@@ -1123,68 +965,12 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   );
 
   const renderCapReview = () => (
-    <div className="hub-trade-cap-review" aria-label={salaryLeague ? "Cap impact review" : "Roster impact review"}>
-      {activeParties.map((party) => (
-        <div key={party.team_id} className="hub-trade-cap-review-card panel">
-          <div className="hub-trade-cap-review-head">
-            <strong>
-              {teamName(party.team_id)}
-              {party.team_id === myTeamId ? " (you)" : ""}
-            </strong>
-          </div>
-          <TeamCapStrip
-            projected={projectedByTeam[party.team_id]}
-            salaryCap={capLimit}
-            salaryLeague={salaryLeague}
-          />
-          {weekStripReady && party.team_id === myTeamId && (
-            <TradeWeekStrip
-              preview={myWeekPreview}
-              emptyCopy={weekEmptyCopy}
-              media={media}
-            />
-          )}
-          {(party.sends.length > 0 || party.drops.length > 0 || receivingFor(party.team_id).length > 0) && (
-            <div className="hub-trade-cap-review-legs">
-              {receivingFor(party.team_id).map((s) => (
-                <div key={`in-${s.player_id}`} className="hub-trade-leg-row">
-                  <span className="table-meta">{formatCopy.getVerb}</span>
-                  <span className="hub-roster-pos-tag">{s.row?.position || "?"}</span>
-                  <span>{s.row?.player_name || s.player_id}</span>
-                  {salaryLeague && <span className="hub-trade-salary-inline">{fmtSal(s.row?.salary)}</span>}
-                </div>
-              ))}
-              {party.sends.map((s) => {
-                const row = rowByPlayer[s.player_id];
-                return (
-                  <div key={`out-${s.player_id}`} className="hub-trade-leg-row">
-                    <span className="table-meta">{formatCopy.sendVerb}</span>
-                    <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
-                    <span>{playerLabel(party.team_id, s.player_id)}</span>
-                    {salaryLeague && <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>}
-                  </div>
-                );
-              })}
-              {party.drops.map((pid) => {
-                const row = rowByPlayer[pid];
-                const a = deadCapAssignments.find(
-                  (x) => x.player_id === pid && x.from_team_id === party.team_id,
-                );
-                return (
-                  <div key={`drop-${pid}`} className="hub-trade-leg-row">
-                    <span className="table-meta">{formatCopy.cutVerb}</span>
-                    <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
-                    <span>{playerLabel(party.team_id, pid)}</span>
-                    {salaryLeague && a?.assigned_to_team_id && (
-                      <span className="table-meta">dead → {teamName(a.assigned_to_team_id)}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ))}
+    <div className="ss-trade-cap-review" aria-label={salaryLeague ? "Cap impact" : "Roster impact"}>
+      {activeParties.map(party=>{
+        const projected=projectedByTeam[party.team_id];
+        if(!projected)return null;
+        return <div className="ss-trade-cap-line" key={party.team_id}><span>{party.team_id===myTeamId?'Your':teamName(party.team_id)} {salaryLeague?'Available Cap':'players'}</span><strong>{salaryLeague?`${fmtSal(projected.base.unspent)} → ${fmtSal(projected.unspent)}`:`${Object.values(projected.base.by_position_count).reduce((a,b)=>a+b,0)} → ${Object.values(projected.by_position_count).reduce((a,b)=>a+b,0)}`}</strong></div>;
+      })}
     </div>
   );
 
@@ -1203,35 +989,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   );
 
   return (
-    <HubPage className="hub-experience-page">
-      <HubExperienceHero
-        eyebrow={formatCopy.eyebrow}
-        heading={formatCopy.heading}
-        support={formatCopy.support}
-        compact
-        chip={tab === "builder" ? (hasPartner ? formatCopy.partnerPicked : formatCopy.partnerNeeded) : null}
-        chipAs="status"
-        chipTone={hasPartner ? "ready" : "readonly"}
-      />
-      {tradeBanner ? (
-        <HubAlert variant={tradeBanner.variant}>
-          <strong>{tradeBanner.label}.</strong>
-          {" "}
-          {tradeBanner.text}
-        </HubAlert>
-      ) : null}
-
-      <HubSegmentNav
-        ariaLabel="Trades"
-        active={tab}
-        onChange={setTab}
-        tabs={[
-          { id: "builder", label: "Builder" },
-          { id: "inbox", label: `Inbox${proposals.length ? ` (${proposals.length})` : ""}` },
-          { id: "ideas", label: "Ideas" },
-        ]}
-      />
-
+    <HubPage className="ss-trades-page" frameless>
+      <header className="ss-trade-page-head"><h1>{tab==='builder'?(builderStep==='partner'?DISCOVERY.title:'Trades'):tab==='inbox'?'Inbox':'Trade ideas'}</h1><div className="ss-trade-page-links"><button type="button" className="btn-ghost ss-trade-action" onClick={()=>{setTab('builder');setBuilderStep('partner');}}>Teams</button><button type="button" className="btn-ghost ss-trade-action" onClick={()=>setTab('inbox')}>Inbox{proposals.length?` · ${proposals.length}`:''}</button><button type="button" className="btn-ghost ss-trade-action" onClick={()=>setTab('ideas')}>Ideas</button></div></header>
+      {tradeBanner&&<HubAlert variant={tradeBanner.variant}><strong>{tradeBanner.label}.</strong> {tradeBanner.text}</HubAlert>}
       {error && (
         <div className="error hub-trade-alerts" role="alert">
           {error}
@@ -1244,263 +1004,27 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       {tab !== "builder" && secondaryLoading && <HubLoadingSkeleton label={TRADES_COPY.loadingDetails} rows={4} />}
       {tab !== "builder" && secondaryError[tab] && <HubAlert variant="warn">{secondaryError[tab]}</HubAlert>}
 
-      {tab === "builder" && !loading && (
-        <div className="hub-trade-builder" id="trades-panel-builder">
-          <nav className="hub-trade-flow-steps" aria-label="Trade builder steps">
-            {BUILDER_STEPS.map((s, i) => {
-              const reachable = canEnterStep(s.id);
-              const isActive = builderStep === s.id;
-              const isDone = i < stepIdx;
-              const blocked = stepBlockedReason(s.id, { hasPartner, hasPackage });
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={[
-                    "hub-trade-flow-step",
-                    isActive ? "is-active" : "",
-                    isDone ? "is-done" : "",
-                    !reachable && !isActive ? "is-blocked" : "",
-                  ].filter(Boolean).join(" ")}
-                  aria-disabled={!reachable && !isActive ? "true" : undefined}
-                  aria-current={isActive ? "step" : undefined}
-                  title={!reachable && !isActive ? blocked : undefined}
-                  aria-describedby={!reachable && !isActive && blocked ? `trade-step-why-${s.id}` : undefined}
-                  onClick={() => reachable && goBuilderStep(s.id)}
-                >
-                  <span className="hub-trade-flow-step-num">{i + 1}</span>
-                  <span className="hub-trade-flow-step-label">{!salaryLeague && s.id === "review" ? "Roster impact" : s.label}</span>
-                  {!reachable && !isActive && blocked ? (
-                    <span id={`trade-step-why-${s.id}`} className="sr-only">{blocked}</span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </nav>
-
-          {builderStep === "partner" && (
-            <div className="hub-trade-step hub-trade-step-partner">
-              <div className="hub-trade-step-copy">
-                <h2 className="hub-trade-step-title">{formatCopy.pickPartnerTitle}</h2>
-                <p className="chart-note">{formatCopy.pickPartnerSupport}</p>
-              </div>
-              {myTeamId && (
-                <p className="hub-trade-you-line">
-                  {formatCopy.youPrefix}{" "}
-                  <strong>{teamName(myTeamId)}</strong>
-                </p>
-              )}
-              <ul className="hub-trade-partner-grid">
-                {teams.filter((t) => t.id && t.id !== myTeamId).map((t) => {
-                  const selected = partnerTeamIds.includes(t.id);
-                  const insight = (trade.partners || []).find((p) => p.team_id === t.id);
-                  const meta = partnerCardMeta({
-                    stats: statsByTeam[t.id],
-                    insight,
-                    byPos: statsByTeam[t.id]?.by_position_count,
-                    includeCap: salaryLeague,
-                  });
-                  return (
-                    <li key={t.id}>
-                      <button
-                        type="button"
-                        className={`hub-trade-partner-card${selected ? " is-selected" : ""}`}
-                        onClick={() => togglePartner(t.id)}
-                        aria-pressed={selected}
-                      >
-                        <strong>{hubTeamLabel(t) || t.name}</strong>
-                        <span className="hub-trade-partner-meta">
-                          {meta || "Roster balance available after selection"}
-                        </span>
-                        <span className="table-meta">
-                          {selected ? formatCopy.selectedPartner : formatCopy.selectPartner}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              {teams.filter((t) => t.id && t.id !== myTeamId).length === 0 && (
-                <p className="chart-note">{formatCopy.noPartners}</p>
-              )}
-              {partnerTeamIds.length > 1 && (
-                <p className="chart-note">{formatCopy.multiPartner(partnerTeamIds.length)}</p>
-              )}
-              {renderStepActions({
-                back: null,
-                primary: teams.filter((t) => t.id && t.id !== myTeamId).length === 0 ? (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm"
-                    onClick={() => onNavigate?.("office-members")}
-                  >
-                    {formatCopy.inviteManagers}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm"
-                    disabled={!hasPartner}
-                    onClick={() => goBuilderStep("players")}
-                  >
-                    {formatCopy.continuePlayers}
-                  </button>
-                ),
-              })}
-            </div>
-          )}
-
-          {builderStep === "players" && (
-            <div className="hub-trade-step hub-trade-step-players">
-              <div className="hub-trade-step-copy">
-                <h2 className="hub-trade-step-title">{formatCopy.choosePlayersTitle}</h2>
-                <p className="chart-note">{formatCopy.choosePlayersSupport}</p>
-              </div>
-              <div className="hub-trade-filters hub-filter-bar">
-                <input
-                  type="search"
-                  className="search-input hub-filter-search"
-                  placeholder="Search both rosters…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Filter both rosters"
-                />
-                <HubFilterScroll className="hub-trade-pos-filters">
-                  {HUB_POSITION_FILTERS.map((p) => (
-                    <HubFilterChip
-                      key={p}
-                      active={posFilter === p}
-                      onClick={() => setPosFilter(p)}
-                    >
-                      {p === "ALL" ? "All" : p}
-                    </HubFilterChip>
-                  ))}
-                </HubFilterScroll>
-              </div>
-              <p className="chart-note hub-trade-filter-hint">{formatCopy.filterBoth}</p>
-              <p className="chart-note hub-trade-meta-key">{formatCopy.playerMetaKey}</p>
-              {renderPartyPlayerColumns()}
-              {renderPackageSummary()}
-              {renderStepActions({
-                back: (
-                  <>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={() => goBuilderStep("partner")}
-                    >
-                      Back
-                    </button>
-                    {activeParties.length < MAX_PARTIES && (
-                      <button
-                        type="button"
-                        className="btn-ghost btn-sm"
-                        onClick={() => goBuilderStep("partner")}
-                      >
-                        Add / change partners
-                      </button>
-                    )}
-                  </>
-                ),
-                showVerdict: hasPackage,
-                primary: (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm hub-trade-primary"
-                    disabled={!hasPackage}
-                    onClick={() => goBuilderStep("review")}
-                  >
-                    Review cap impact
-                  </button>
-                ),
-              })}
-            </div>
-          )}
-
-          {builderStep === "review" && (
-            <div className="hub-trade-step hub-trade-step-review">
-              <div className="hub-trade-step-copy">
-                <h2 className="hub-trade-step-title">{formatCopy.reviewTitle}</h2>
-                <p className="chart-note">{formatCopy.reviewSupport}</p>
-              </div>
-              {renderCapReview()}
-              {renderPackageSummary()}
-              {renderStepActions({
-                back: (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => goBuilderStep("players")}
-                  >
-                    Back
-                  </button>
-                ),
-                showVerdict: true,
-                primary: (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm hub-trade-primary"
-                    disabled={!hasPackage}
-                    onClick={() => goBuilderStep("propose")}
-                  >
-                    {formatCopy.continuePropose}
-                  </button>
-                ),
-              })}
-            </div>
-          )}
-
-          {builderStep === "propose" && (
-            <div className="hub-trade-step hub-trade-step-propose">
-              <div className="hub-trade-step-copy">
-                <h2 className="hub-trade-step-title">{formatCopy.proposeTitle}</h2>
-                <p className="chart-note">{formatCopy.notifyLine(partnerNames)}</p>
-                <p className="chart-note">{formatCopy.whatsNext}</p>
-              </div>
-              {renderPackageSummary()}
-              <TeamCapStrip
-                projected={projectedByTeam[myTeamId]}
-                salaryCap={capLimit}
-                salaryLeague={salaryLeague}
-              />
-              <label className="hub-trade-note-label" htmlFor="trade-propose-note">
-                {formatCopy.proposeNoteLabel}
-              </label>
-              <textarea
-                id="trade-propose-note"
-                className="hub-trade-note"
-                rows={3}
-                value={proposeNote}
-                onChange={(e) => setProposeNote(e.target.value)}
-                placeholder={formatCopy.proposeNotePlaceholder}
-              />
-              {renderStepActions({
-                back: (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => goBuilderStep("review")}
-                  >
-                    Back
-                  </button>
-                ),
-                showVerdict: true,
-                primary: (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm hub-trade-primary"
-                    disabled={!canPropose}
-                    title={!canPropose && validationStatus !== "valid" ? formatCopy.invalidFallback : undefined}
-                    onClick={propose}
-                  >
-                    {busy === "propose" ? formatCopy.proposing : formatCopy.proposeTrade}
-                  </button>
-                ),
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {tab==='builder'&&!loading&&!error&&<div className="ss-trade-builder" id="trades-panel-builder">
+       {builderStep==='partner'?<>
+        {teams.filter(t=>t.id!==myTeamId).length?<TradeDiscovery teams={teams} myTeamId={myTeamId} rosterByTeam={rosterByTeam} statsByTeam={statsByTeam} salaryCap={capLimit} salaryLeague={salaryLeague} ranks={positionRanks} positions={rankPositions} search={partnerSearch} onSearch={setPartnerSearch} onChoose={id=>{setParties([emptyParty(myTeamId),emptyParty(id)]);setDeadCapAssignments([]);setSearch('');setBuilderStep('players');}}/>:<div className="hub-insights-empty-state"><p>{formatCopy.noPartners}</p><button type="button" className="btn-primary" onClick={()=>onNavigate?.('office-members')}>{formatCopy.inviteManagers}</button></div>}
+       </>:<>
+        <nav className="ss-trade-progress" aria-label="Trade progress"><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>Partner</button><span aria-hidden="true">→</span><span aria-current="step">Players</span><span aria-hidden="true">→</span><span>Review</span></nav>
+        <div className="ss-trade-chosen"><strong>{partnerNames.join(' · ')}</strong><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>{DISCOVERY.back}</button></div>
+        <div className="hub-trade-filters hub-filter-bar"><input type="search" className="search-input hub-filter-search" placeholder="Find a player" value={search} onChange={e=>setSearch(e.target.value)} aria-label="Filter both rosters"/><HubFilterScroll>{HUB_POSITION_FILTERS.map(p=><HubFilterChip key={p} active={posFilter===p} onClick={()=>setPosFilter(p)}>{p==='ALL'?'All':p}</HubFilterChip>)}</HubFilterScroll></div>
+        <TradeImpactGrid impact={pointImpact} salaryLeague={salaryLeague}/>
+        {renderPartyPlayerColumns()}
+        <details className="ss-trade-advanced"><summary>Multi-team trade</summary><div className="ss-trade-cut-options">{teams.filter(t=>t.id!==myTeamId).map(team=><button type="button" className="btn-ghost ss-trade-action" key={team.id} aria-pressed={partnerTeamIds.includes(team.id)} onClick={()=>togglePartner(team.id)}>{partnerTeamIds.includes(team.id)?'Remove':'Add'} {teamName(team.id)}</button>)}</div></details>
+        {!reviewOpen&&renderStepActions({showVerdict:hasPackage,primary:<button type="button" ref={reviewTrigger} className="btn-primary hub-trade-primary" disabled={!hasPackage||!hasPartner} onClick={()=>goBuilderStep('review')}>{DISCOVERY.review} →</button>})}
+       </>}
+      </div>}
+      {createPortal(<dialog className="ss-trade-review" ref={reviewDialog} aria-labelledby="trade-review-title" onCancel={event=>{event.preventDefault();setBuilderStep('players');}}><header><h2 id="trade-review-title" tabIndex={-1}>{DISCOVERY.review}</h2><button type="button" className="btn-ghost ss-trade-action" aria-label={DISCOVERY.close} onClick={()=>setBuilderStep('players')}>×</button></header><div className="ss-trade-review-body">
+       {renderPackageSummary()}<TradeImpactGrid impact={pointImpact} salaryLeague={salaryLeague}/>{renderCapReview()}
+       {error&&<HubAlert variant="warn">{error}</HubAlert>}
+       <TradeVerdict status={validationStatus} errors={validationErrors} message={validationMessage}/>
+       <details className="ss-trade-advanced"><summary>{DISCOVERY.note}</summary><textarea aria-label={formatCopy.proposeNoteLabel} value={proposeNote} onChange={e=>setProposeNote(e.target.value)} className="hub-trade-note" rows={3}/></details>
+       <details className="ss-trade-advanced"><summary>{DISCOVERY.projectionDetails}</summary><p className="chart-note">{salaryLeague?DISCOVERY.method:DISCOVERY.rosterMethod}</p></details>
+       <button type="button" className="btn-primary" disabled={!canPropose||!hasPartner} onClick={propose}>{busy==='propose'?formatCopy.proposing:formatCopy.proposeTrade} →</button><p className="chart-note">{DISCOVERY.afterAccept}</p>
+      </div></dialog>,document.body)}
 
       {tab === "inbox" && !secondaryLoading && !secondaryError.inbox && (
         <div className="hub-trade-inbox" id="trades-panel-inbox">

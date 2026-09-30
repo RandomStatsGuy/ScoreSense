@@ -107,7 +107,7 @@ def test_registry_donots_name_concrete_jobs() -> None:
     assert "writes no league state" in text
     assert "summary-rail primary is leftover / open the room" in text
     assert "Chat Send is ghost" in text
-    assert "Continue (or Propose on the last step) is the only primary" in text
+    assert "gate Propose on a pass" in text
     hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
     assert "Rules risk posture" in hub
 

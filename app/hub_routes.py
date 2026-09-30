@@ -2513,6 +2513,17 @@ def hub_league_rosters(
     return payload
 
 
+@router.get("/league/{league_id}/trade-outlook")
+def hub_trade_outlook(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_league_member(ctx)
+    from src.draft_hub.trade_outlook import build_trade_outlook
+    return build_trade_outlook({
+        "league": storage.get_league(league_id),
+        "teams": [{"roster": rows} for rows in storage.list_league_rosters_by_team(league_id).values()],
+    })
+
+
 @router.get("/league/{league_id}/trades")
 def hub_list_trade_proposals(
     league_id: str,
