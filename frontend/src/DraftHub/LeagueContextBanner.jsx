@@ -556,17 +556,18 @@ export default function LeagueContextBanner({
                 hubContext={hubContext}
                 onSwitch={onLeagueSwitch}
                 onCreateLeague={compactHeader ? undefined : onCreateLeague}
-                variant={compactHeader ? "list" : "compact"}
+                variant="list"
                 hideActiveHero
                 hideCreate
                 disabled={busy}
+                onSelect={() => { if (compactMenuRef.current) compactMenuRef.current.open = false; }}
               />
             ) : null}
             {onCreateLeague ? (
               <button
                 type="button"
                 className="btn-link hub-league-switcher-create"
-                onClick={onCreateLeague}
+                onClick={() => { if (compactMenuRef.current) compactMenuRef.current.open = false; onCreateLeague(); }}
                 disabled={busy}
               >
                 {LEAGUE_CREATE_COPY.newLeague}

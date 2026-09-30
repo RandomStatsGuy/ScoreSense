@@ -90,6 +90,7 @@ export default function LeagueSwitcher({
   disabled = false,
   hideActiveHero = false,
   hideCreate = false,
+  onSelect,
 }) {
   const searchId = useId();
   const { identities } = useTeamIdentities();
@@ -127,7 +128,11 @@ export default function LeagueSwitcher({
       onCreateLeague?.();
       return;
     }
-    if (choice.action === "noop" || busy || disabled) return;
+    if (busy || disabled) return;
+    if (choice.action === "noop") {
+      onSelect?.();
+      return;
+    }
     setBusy(true);
     setSwitchError("");
     try {
@@ -136,12 +141,25 @@ export default function LeagueSwitcher({
       } else {
         await onSwitch?.({ leagueId: choice.leagueId });
       }
+      onSelect?.();
     } catch (e) {
       setSwitchError(e.message || "Could not switch league");
     } finally {
       setBusy(false);
     }
   };
+
+  if (variant === "list") {
+    return <div className="hub-league-switcher hub-league-switcher--list fantasy-league-picker" aria-busy={busy}>
+      {leagues.length > LIST_SCROLL_THRESHOLD && <input type="search" aria-label={FANTASY_HEADER_COPY.searchLeagues} placeholder={FANTASY_HEADER_COPY.searchLeagues} value={filter} onChange={event => setFilter(event.target.value)} />}
+      <div className="fantasy-league-picker-options">
+        {filteredLeagues.map(m => <LeagueRow key={m.league_id} title={m.league_name || membershipLabel(m)} meta={m.team?.name} active={isActiveMembership(m, hubContext)} disabled={busy || disabled} onClick={() => switchTo(m.league_id)} />)}
+        {!filteredLeagues.length && filter.trim() && <p>{FANTASY_HEADER_COPY.noLeagues}</p>}
+        <LeagueRow title="Solo prep" active={soloActive} disabled={busy || disabled} onClick={() => switchTo(SOLO_VALUE)} />
+      </div>
+      {switchError && <div role="alert" className="error hub-league-picker-error">{switchError}</div>}
+    </div>;
+  }
 
   if (variant === "compact") {
     if (leagues.length === 0 && soloActive && !onCreateLeague) return null;
