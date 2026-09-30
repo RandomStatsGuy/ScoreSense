@@ -12,6 +12,7 @@ import { HubFilterMenu } from "./HubUILayout";
 import { formatSyncedAgo } from "./gameCenterPresentation";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import MatchupBannerArt from "./MatchupBannerArt";
+import { getRoomSnapshot, roomSnapshotKey, setRoomSnapshot } from "./hubDataCache";
 import "../styles/team-room.css";
 
 export function TeamRoomView({
@@ -395,6 +396,7 @@ export function TeamRoomView({
 }
 
 export default function TeamRoom({
+  cacheScope,
   leagueId,
   teamId,
   token,
@@ -404,7 +406,7 @@ export default function TeamRoom({
 }) {
   const [viewTeam, setViewTeam] = useState(teamId);
   const [week, setWeek] = useState(null);
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(() => getRoomSnapshot(roomSnapshotKey(cacheScope, leagueId, teamId, null)));
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -417,14 +419,16 @@ export default function TeamRoom({
   const base = token
     ? `/api/hub/shared-room/${encodeURIComponent(token)}`
     : `/api/hub/league/${encodeURIComponent(leagueId)}/teams/${encodeURIComponent(viewTeam)}/room`;
+  const cacheKey = token ? null : roomSnapshotKey(cacheScope, leagueId, viewTeam, week);
   useEffect(() => {
     const version = ++generation.current;
     const ctrl = new AbortController();
     let timer;
     let pending = false;
-    setData(null);
+    const cached = getRoomSnapshot(cacheKey);
+    setData(cached);
     setError("");
-    setMessage("");
+    setMessage(cached ? "Checking for room updates…" : "");
     const load = async () => {
       if (pending || document.hidden) return;
       pending = true;
@@ -435,8 +439,10 @@ export default function TeamRoom({
         if (!res.ok) throw Error(COPY.roomError);
         const next = await res.json();
         if (version === generation.current) {
+          setRoomSnapshot(cacheKey, leagueId, next);
           setData(next);
           setError("");
+          setMessage("");
         }
       } catch (e) {
         if (!ctrl.signal.aborted && version === generation.current)
@@ -453,7 +459,7 @@ export default function TeamRoom({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", load);
     };
-  }, [base, week, retry]);
+  }, [base, cacheKey, leagueId, week, retry]);
   const mutate = useCallback(
     async (path, body) => {
       const version = generation.current;
