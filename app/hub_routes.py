@@ -2209,8 +2209,28 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
     return payload
 
 
+@router.get("/league/{league_id}/cap-plans")
+def hub_league_cap_plans(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    """Member-only, DB-only cap review; does not change the viewer's focus."""
+    from src.draft_hub.cap_planner import cap_planner_data
+    from src.draft_hub.hub_context import filter_team_sleeper_roster
+    from src.draft_hub.league_capabilities import uses_salaries
+
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    rules = LeagueRules.model_validate(ctx["rules"])
+    if not uses_salaries(rules):
+        raise HTTPException(status_code=400, detail="Salaries do not apply to this league")
+    by_team = storage.list_league_rosters_by_team(league_id)
+    teams = []
+    for team in storage.list_league_teams(league_id):
+        roster = filter_team_sleeper_roster(team, by_team.get(team["id"], []))
+        teams.append({"team": team, "cap_sheet": cap_planner_data(rules, roster, draft_completed=bool(ctx.get("draft_completed")))})
+    return {"teams": teams, "season": ctx.get("season"), "league_id": league_id}
+
+
 @router.get("/cap-sheet")
 def hub_cap_sheet(response: Response, _user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.cap_planner import cap_planner_data
     with HubTimer("cap-sheet", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
@@ -2220,19 +2240,15 @@ def hub_cap_sheet(response: Response, _user=Depends(require_hub_user)) -> dict:
         with timer.phase("roster"):
             roster = list_roster_for_context(ctx, live_sleeper=False)
         with timer.phase("cap_math"):
-            summary = cap_summary_for_phase(rules, roster, draft_completed=draft_completed)
+            planning = cap_planner_data(rules, roster, draft_completed=draft_completed)
             errors = validate_roster(
                 rules,
                 roster_for_pre_draft_validation(rules, roster, draft_completed=draft_completed),
             )
-            plan = multi_year_cap_plan(rules, roster, draft_completed=draft_completed)
-            pre_draft = pre_draft_cap_summary(rules, roster, draft_completed=draft_completed)
             sleeper = get_sleeper_context(sub)
     return {
-        "summary": summary,
+        **planning,
         "validation_errors": errors,
-        "multi_year_plan": plan,
-        "pre_draft": pre_draft,
         "sleeper": sleeper,
         "hub_context": ctx,
         "season": ctx.get("season"),

@@ -105,7 +105,7 @@ def test_registry_donots_name_concrete_jobs() -> None:
     text = _read("frontend", "src", "livingSurfaces.js")
     assert "ECR or ADP by its real name" in text
     assert "writes no league state" in text
-    assert "summary-rail primary is leftover / open the room" in text
+    assert "season filters carry the cap impact" in text
     assert "Chat Send is ghost" in text
     assert "gate Propose on a pass" in text
     hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
