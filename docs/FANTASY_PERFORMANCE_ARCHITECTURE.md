@@ -6,6 +6,49 @@ matchup read rebuilt the same projection index, and reading a saved prediction
 could refresh an external roster source. The combined weekly page also remounted
 its lineup editor when independently loaded matchup data arrived.
 
+## Valuation snapshots and current ownership
+
+Free agents and draft-pool HTTP reads use `read_draft_pool_payload`. Existing
+solo and league configurations are prepared at API startup, before accepting
+traffic, and after weekly/preseason source refresh. Atomic JSON snapshots live
+under `artifacts/draft_pool/value_snapshots/`, on the existing production volume.
+They survive process restarts. There is no 15-minute expiration rebuild.
+
+Snapshot identity includes season, normalized rules, team count, imported ranges
+(including source/tier), model/input fingerprint, pool artifact revision, roster
+identity revision, and `value_snapshot.SNAPSHOT_VERSION`. Bump that version when
+valuation, tier, or snapshot construction logic changes. Memory holds at most 64
+configurations. Responses receive independent copies; viewer context and ownership
+are never persisted in a valuation snapshot.
+
+An unseen or changed configuration may still require local valuation preparation
+on its first read. That path reads existing projection and identity files only:
+no live model inference or upstream roster request. Missing/stale draft artifacts
+return HTTP 503 and require the existing refresh job; they do not publish an empty
+successful board. Startup logs unavailable configurations and continues.
+
+Ownership is rebuilt from current DB rows on every overlay. `RosterIdentityIndex`
+prepares exact-ID, alternate-ID, full-name/position, and unambiguous abbreviated
+name lookups once for the viewer and league rosters. It preserves existing match
+precedence and duplicate-contract tie breaking, while avoiding a full roster scan
+and repeated name normalization for every board player. Adds/cuts require no
+valuation snapshot invalidation.
+
+September 30 local synthetic benchmark: 1,200 board players, 240 league roster
+rows, 20 viewer rows. Previous scan took 9,991 ms; prepared lookup took
+150–169 ms across three samples, with 960 players available in both versions.
+These are backend function measurements on the development machine, not production
+HTTP or browser timings. Reproduce with `PYTHONPATH=.` and the repo Python:
+`python scripts/dev/benchmark_value_overlay.py --compare`.
+
+Deployment gate for this item: measure first and repeat Free agents readiness
+and `value-sheet` server timing with the existing opt-in browser diagnostics,
+including a fresh browser session after API restart. Compare against the previous
+observed 9,717 ms server request and cached 162–228 ms browser readiness. Verify
+ownership after an authorized roster change. Other destinations may remain slow;
+concurrent miss coordination, lineup rendering, and browser profiling are subsequent
+items, to begin only after this deployment is tested.
+
 ## Boundaries
 
 1. Data refresh jobs own external roster refresh and model computation. Weekly

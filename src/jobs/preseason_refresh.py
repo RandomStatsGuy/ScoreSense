@@ -116,6 +116,9 @@ def run_preseason_refresh(
     except Exception as exc:
         player_context_status = {"status": "error", "detail": str(exc)}
 
+    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+    value_snapshot_status = warm_fantasy_value_snapshots()
+
     status = {
         "started_at": started,
         "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -123,6 +126,7 @@ def run_preseason_refresh(
         "draft_projections": draft_counts,
         "draft_paths": draft_paths,
         "draft_pool_artifact": pool_status,
+        "fantasy_value_snapshots": value_snapshot_status,
         "weekly_predictions_prewarm": weekly_prewarm,
         "ros_predictions_prewarm": ros_prewarm,
         "injury_overlay_prewarm": injury_overlay_status,
