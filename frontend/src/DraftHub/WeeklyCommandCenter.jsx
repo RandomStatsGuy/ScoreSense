@@ -15,6 +15,7 @@ import {
 import WeekLineupBoard from "./WeekLineupBoard";
 import WeekLineupCallSheet from "./WeekLineupCallSheet";
 import WeekLineupPicker from "./WeekLineupPicker";
+import { getWeeklySnapshot, setWeeklySnapshot, weeklySnapshotKey } from "./hubDataCache";
 import { usePlayerMedia } from "../PlayerCell";
 import { loadAura, readAura, saveAura, storageKey, vibeScore } from "./vibeAura";
 import {
@@ -38,6 +39,7 @@ import {
 const EMPTY_ARRAY = [];
 
 export default function WeeklyCommandCenter({
+  cacheScope,
   hubContext,
   onSynced,
   onNavigateSetup,
@@ -49,14 +51,16 @@ export default function WeeklyCommandCenter({
   onSummary,
 }) {
   const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
-  const [dataState, setDataState] = useState({ key: "", payload: null });
-  const data = dataState.key === contextKey ? dataState.payload : null;
-  const [loading, setLoading] = useState(true);
+  const [weekOverride, setWeekOverride] = useState(requestedWeek == null ? "" : String(requestedWeek));
+  const snapshotKey = weeklySnapshotKey(cacheScope, contextKey, `${weekOverride}:${reloadToken}`);
+  const [dataState, setDataState] = useState(() => ({ key: snapshotKey, payload: getWeeklySnapshot(snapshotKey) }));
+  const data = dataState.key === snapshotKey ? dataState.payload : getWeeklySnapshot(snapshotKey);
+  const [loading, setLoading] = useState(() => !getWeeklySnapshot(snapshotKey));
+  const [revalidating, setRevalidating] = useState(false);
   const [error, setError] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
-  const [weekOverride, setWeekOverride] = useState(requestedWeek == null ? "" : String(requestedWeek));
   const mutationScope = `${contextKey}:${weekOverride}`;
   const mutationScopeRef = useRef(mutationScope);
   mutationScopeRef.current = mutationScope;
@@ -76,7 +80,10 @@ export default function WeeklyCommandCenter({
   }, [contextKey, weekOverride]);
 
   const load = useCallback(async (signal, { rebuild = false } = {}) => {
-    setLoading(true);
+    const cached = !rebuild ? getWeeklySnapshot(snapshotKey) : null;
+    setLoading(!cached);
+    setRevalidating(Boolean(cached));
+    if (!cached && !rebuild) setDataState({ key: snapshotKey, payload: null });
     setError("");
     try {
       const params = new URLSearchParams();
@@ -86,15 +93,21 @@ export default function WeeklyCommandCenter({
       const res = await apiFetch(path, { signal, ...(rebuild ? { method: "POST" } : {}) });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (!signal?.aborted) setDataState({ key: contextKey, payload });
+      if (!signal?.aborted) {
+        setWeeklySnapshot(snapshotKey, hubContext?.league_id, payload);
+        setDataState({ key: snapshotKey, payload });
+      }
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return;
       setError(connectionErrorMessage(e, "Server did not respond — Retry"));
-      if (!rebuild) setDataState({ key: contextKey, payload: null });
+      if (!rebuild && !cached) setDataState({ key: snapshotKey, payload: null });
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+        setRevalidating(false);
+      }
     }
-  }, [weekOverride, contextKey]);
+  }, [weekOverride, snapshotKey, hubContext?.league_id]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -487,6 +500,8 @@ export default function WeeklyCommandCenter({
           <a href="#hub-wcc-calls" className="btn-link">{WEEK_BOARD_COPY.seeCalls}</a>
         ) : null}
       </HubExperienceHero>}
+
+      {revalidating && data ? <p className="chart-note" role="status">Checking for lineup updates…</p> : null}
 
       {embedded && <h2 id="hub-week-lineup-heading" tabIndex={-1} className="sr-only">{WEEK_BOARD_COPY.lineupTitle}</h2>}
       <Layout {...(embedded ? {} : {
