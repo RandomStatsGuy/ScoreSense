@@ -132,6 +132,7 @@ def refresh_sleeper_scoring_cache(
     max_weeks: int = 18,
 ) -> dict[str, Any]:
     """Force live Sleeper fetch and persist scoring history."""
+    _SCORING_CACHE.pop(str(sleeper_league_id), None)
     payload = build_sleeper_scoring_history(
         sleeper_league_id,
         hub_teams=hub_teams,
@@ -501,6 +502,9 @@ def build_sleeper_scoring_history(
             week, matchups = future.result()
             week_results[week] = matchups
 
+    from src.integrations.sleeper import load_sleeper_players
+    from src.draft_hub.season_scoring import sleeper_week
+    player_metadata = load_sleeper_players
     for week in range(1, max_weeks + 1):
         matchups = week_results.get(week)
         if matchups is None:
@@ -525,6 +529,13 @@ def build_sleeper_scoring_history(
             })
             team_totals[rid] = team_totals.get(rid, 0.0) + pts
             team_weeks.setdefault(rid, []).append(pts)
+        if any(m.get("players_points") for m in matchups):
+            try:
+                sleeper_week(league, week, matchups, _fetch_json, player_metadata)
+            except Exception:
+                # Preserve the last good player cache if the optional feed is unavailable.
+                import logging
+                logging.getLogger(__name__).warning("Player season scoring refresh failed for week %s", week, exc_info=True)
         weekly.append(
             {
                 "week": week,

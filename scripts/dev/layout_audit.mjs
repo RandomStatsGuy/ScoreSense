@@ -36,6 +36,27 @@ export function parseGate(value) {
   return rules.length ? rules : null;
 }
 
+/** Opening phone locker details must preserve the selected jersey's grid cell. */
+export async function auditLockerStability(page) {
+  if (page.viewportSize()?.width > 600) return [];
+  const lockers = page.locator(".team-room-locker-trigger");
+  if (await lockers.count() < 2) return [];
+  const trigger = lockers.nth(1);
+  if (!await trigger.isVisible() || !await trigger.isEnabled()) return [];
+  await trigger.scrollIntoViewIfNeeded();
+  const bounds = () => trigger.evaluate(el => {
+    const box = el.getBoundingClientRect();
+    return {x:box.x,y:box.y + scrollY,width:box.width,height:box.height};
+  });
+  const before = await bounds();
+  await trigger.click();
+  const after = await bounds();
+  const ok = Object.keys(before).every(key => Math.abs(before[key] - after[key]) < 2);
+  const close = page.locator(".team-room-drawer button[aria-label='Close locker']");
+  if (await close.count()) await close.click();
+  return [{rule:"lockers",ok,selector:".team-room-locker-trigger",detail:ok?"Right jersey stays in its grid cell":"Opening details moves or resizes the right jersey"}];
+}
+
 export function isGatedFailure(result, gate) {
   if (!result || result.ok) return false;
   if (result.rule === "load") return true;
@@ -775,6 +796,7 @@ async function auditRoute(browser, route, width) {
   });
   const openMenuResults = await auditOpenMenus(page);
   results.push(...openMenuResults);
+  results.push(...await auditLockerStability(page));
   await page.close();
   return results;
 }

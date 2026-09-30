@@ -885,6 +885,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
         )"""
     )
     _safe_add_column(conn, "league_week_scoring_run", "final", "INTEGER NOT NULL DEFAULT 1")
+    conn.execute("""CREATE TABLE IF NOT EXISTS player_season_week (
+        source TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
+        payload_json TEXT NOT NULL, PRIMARY KEY(source,season,week))""")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_delete_request (
             id TEXT PRIMARY KEY,
