@@ -13,6 +13,9 @@ import "./styles/fantasy-phone.css";
 import "./styles/fantasy-header.css";
 import "./styles/standalone-dialogs.css";
 import "./styles/color-theme.css";
+import { startClientVersionWatcher } from "./clientVersion";
+
+if (import.meta.env.PROD) startClientVersionWatcher();
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
