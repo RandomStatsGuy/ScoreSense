@@ -704,12 +704,12 @@ def require_position_stats(position: str, stats: dict[str, Any], scoring: Scorin
         raise LineupError(f"Actual {position} scoring statistics are incomplete; no results were saved.")
 
 
-def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
+def load_week_stat_index(season: int, week: int, *, frame=None) -> dict[str, dict[str, Any]]:
     """player_id → stat dict + fantasy_points for one NFL week (nflverse)."""
     from src.config import is_testing
 
     cache_key = (int(season), int(week))
-    if not is_testing():
+    if frame is None and not is_testing():
         cached = _STAT_INDEX_CACHE.get(cache_key)
         if cached and (time.monotonic() - cached[0]) < _STAT_INDEX_TTL_S:
             return cached[1]
@@ -721,7 +721,8 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
     try:
         from src.etl.nflverse_etl import load_weekly_player_stats
 
-        frame = load_weekly_player_stats([int(season)])
+        if frame is None:
+            frame = load_weekly_player_stats([int(season)])
     except Exception:
         return _store({})
     if frame is None or getattr(frame, "empty", True):
@@ -762,6 +763,8 @@ def load_week_stat_index(season: int, week: int) -> dict[str, dict[str, Any]]:
             pts = float(row["fantasy_points"])
         except (TypeError, ValueError):
             pts = fantasy_points_from_stats(stats)
+        stats["position"] = str(row.get("position") or "")
+        stats["opponent"] = str(row.get("opponent") or "")
         stats["fantasy_points"] = round(pts, 2)
         index[pid] = stats
     result = _alias_week_stat_index(index, week_df)
@@ -906,6 +909,13 @@ def apply_week_scores(
         )
     except ValueError as exc:
         raise LineupError(str(exc)) from exc
+    if slate_complete:
+        from src.draft_hub.season_scoring import native_week
+        try:
+            native_week(league_id, season, week, lookup, rules.scoring)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning("Player season cache failed for %s week %s", league_id, week, exc_info=True)
     return {
         "scored": True,
         "live": not bool(slate_complete),

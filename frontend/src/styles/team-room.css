@@ -626,12 +626,15 @@
   .team-room .hub-locker-jersey {
     min-height: 145px;
   }
-  .team-room-locker.is-open {
-    grid-column: 1/-1;
+  .team-room-locker.is-open { grid-column: auto; }
+  .team-room-locker.is-open .team-room-drawer {
+    width: calc(200% + var(--space-2) + 4px);
+    margin-left: 0;
   }
-  .team-room-locker.is-open .hub-locker-jersey {
-    max-height: 240px;
+  .team-room-locker.is-open:nth-child(even) .team-room-drawer {
+    margin-left: calc(-100% - var(--space-2) - 4px);
   }
+
   .team-room-drawer {
     padding: var(--space-4);
   }

@@ -275,6 +275,11 @@ def _refresh_scoring_cache_for_league(league_id: str) -> None:
 
     sleeper_lid = resolve_sleeper_league_id(league_id)
     if not sleeper_lid:
+        from src.draft_hub.season_scoring import refresh_native_season
+        try:
+            refresh_native_season(storage.get_league(league_id))
+        except Exception:
+            logger.warning("Player season scoring refresh failed for league %s", league_id, exc_info=True)
         return
     hub_teams = _hub_teams_for_scoring(league_id)
     try:
@@ -6130,6 +6135,12 @@ def _room_team(league_id: str, team_id: str, sub: str, *, owner=False):
     if owner and team.get("user_sub") != sub:
         raise HTTPException(403, "Only the team owner can change this room")
     return team
+
+
+@router.get("/league/{league_id}/teams/{team_id}/season-scores")
+def hub_team_season_scores(league_id: str, team_id: str, _user=Depends(require_hub_user)):
+    from src.draft_hub.season_scoring import team_scores
+    return team_scores(_room_team(league_id, team_id, _sub(_user)))
 
 
 @router.get("/league/{league_id}/teams/{team_id}/room")

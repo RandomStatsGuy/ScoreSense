@@ -35,6 +35,8 @@ import {
 import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import TeamRoom from "./TeamRoom";
+import MatchupBannerArt from "./MatchupBannerArt";
+import { SeasonNumbers, SeasonGameLog } from "./SeasonScore";
 import TeamIdentityStudio from "./TeamIdentityStudio";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import { hubTeamLabel } from "./hubTeamLabel";
@@ -109,6 +111,7 @@ function ContractRulesDisclosure({
 }
 
 function ContractSidePanelBody({
+  seasonScore, showSeasonScores,
   r,
   season,
   usesSalaries = true,
@@ -157,6 +160,7 @@ function ContractSidePanelBody({
         </span>
       </div>
 
+      {showSeasonScores && <SeasonGameLog score={seasonScore} />}
       {usesSalaries && <div className="hub-roster-contract-panel-grid">
         {canEditType ? (
           <div className="hub-roster-mobile-field">
@@ -374,6 +378,24 @@ export default function RosterBuilder({
   const searchRef = useRef(null);
   const [selectedSlotKey, setSelectedSlotKey] = useState(null);
   const [lookOpen, setLookOpen] = useState(false);
+  const [seasonScores, setSeasonScores] = useState(null);
+  const [scoreError, setScoreError] = useState(false);
+  useEffect(() => {
+    setSeasonScores(null); setScoreError(false);
+    if (!hubContext?.league_id || !hubContext?.team_id) return;
+    const ctrl = new AbortController();
+    let timer;
+    const load = (attempt = 0) => apiFetch(`/api/hub/league/${encodeURIComponent(hubContext.league_id)}/teams/${encodeURIComponent(hubContext.team_id)}/season-scores`, { signal: ctrl.signal })
+      .then(async res => { if (!res.ok) throw new Error(); return res.json(); })
+      .then(data => {
+        if (ctrl.signal.aborted) return;
+        setSeasonScores(data);
+        if (data.pending && attempt < 5) timer = setTimeout(() => load(attempt + 1), 3000);
+      })
+      .catch(() => { if (!ctrl.signal.aborted) setScoreError(true); });
+    load();
+    return () => { ctrl.abort(); clearTimeout(timer); };
+  }, [hubContext?.league_id, hubContext?.team_id, roster]);
   const [roomTab, setRoomTab] = useState("room");
   const manageTabRef = useRef(null);
   useEffect(() => { setRoomTab("room"); setSelectedSlotKey(null); setSearch(""); setSearchOpen(false); setPosFilter("ALL"); }, [hubContext?.league_id, hubContext?.team_id]);
@@ -831,9 +853,12 @@ export default function RosterBuilder({
   const rosterPage = (
     <HubPage frameless className="my-team-page">
       <section className={`my-team-overview${usesSalaries ? "" : " is-standard"}`} aria-label={usesSalaries ? MY_TEAM_COPY.summaryLabel : MY_TEAM_COPY.teamLabel}>
+        <div className={`my-team-banner hub-banner-fill--${teamIdentity?.banner_preset || "navy_stripe"}`} aria-hidden="true">
+          <MatchupBannerArt identity={teamIdentity} variant="room" />
+        </div>
         <div className="my-team-identity">
-          <h1>{ownerName}</h1>
-          <p>{[teamName !== ownerName ? teamName : "", MY_TEAM_COPY.playerCount(liveRoster.length)].filter(Boolean).join(" · ")}</p>
+          <h1>{teamName}</h1>
+          <p>{[ownerName, MY_TEAM_COPY.playerCount(liveRoster.length)].filter(Boolean).join(" · ")}</p>
         </div>
         {usesSalaries && <>
           <button type="button" className="my-team-budget" disabled={!onNavigate} onClick={() => onNavigate?.("planner")} aria-label={MY_TEAM_COPY.openCap(cap?.leftoverLabel, draftCompleted)}>
@@ -928,15 +953,17 @@ export default function RosterBuilder({
           {statusFocus === "extend" && <button type="button" className="btn-ghost" onClick={() => setStatusFocus(null)}>{MY_TEAM_COPY.clearExtensionFilter}</button>}
           <span className="sr-only" role="status">{MY_TEAM_COPY.showingCount(displayedRoster.length, sortedRoster.length)}</span>
         </div>
+        <p className="my-team-season-caption">{scoreError ? MY_TEAM_COPY.scoringError : seasonScores?.host === "sleeper" && !seasonScores?.available ? MY_TEAM_COPY.syncSeasonScores : MY_TEAM_COPY.seasonSoFar(seasonScores?.season ?? season)}</p>
         <section className="my-team-roster" aria-label={MY_TEAM_COPY.rosterHeading}>
           {displayedRoster.map((row) => {
             const vm = rowViewModel(row);
             const secondary = [normalizeHubPosition(row.position), row.team, usesSalaries ? contractTypeLabel(vm.ctype) : "", showManagerTeam ? row.manager_team : ""].filter(Boolean).join(" · ");
-            return <button key={rosterSlotKey(row)} type="button" className="my-team-player" onClick={(event) => openContractPanel(row, event.currentTarget)} aria-label={MY_TEAM_COPY.openPlayer(row.player_name, usesSalaries)}>
+            return <button key={rosterSlotKey(row)} type="button" className={`my-team-player${isLeague ? " has-season-scores" : ""}`} onClick={(event) => openContractPanel(row, event.currentTarget)} aria-label={MY_TEAM_COPY.openPlayer(row.player_name, usesSalaries)}>
               <span className="my-team-player-identity">
                 <strong>{row.player_name}</strong><span>{secondary}</span>
                 {((usesSalaries && vm.status.key !== "ok") || !rosterRowOccupies(row)) && <span className={`my-team-player-status is-${vm.status.tone}`}>{vm.status.label}</span>}
               </span>
+              {isLeague && <SeasonNumbers score={seasonScores?.players?.[row.player_id]} />}
               {usesSalaries && <span className="my-team-term"><strong>{fmtSal(vm.edit.salary)}</strong><span>{MY_TEAM_COPY.years(vm.edit.years)}</span></span>}
               <span className="my-team-arrow" aria-hidden="true">↗</span>
             </button>;
@@ -965,7 +992,7 @@ export default function RosterBuilder({
       </footer>
       {panelProps && <ContractPanel title={usesSalaries ? MY_TEAM_COPY.contract : MY_TEAM_COPY.playerDetails} onClose={closeContractPanel}>
         {error && <div className={isRookieExtendSuccessMessage(error) ? "hub-msg" : "error"} role="status">{error}</div>}
-        <ContractSidePanelBody {...panelProps} />
+        <ContractSidePanelBody {...panelProps} seasonScore={isLeague ? seasonScores?.players?.[selectedRow.player_id] : undefined} showSeasonScores={isLeague} />
       </ContractPanel>}
     </HubPage>
   );

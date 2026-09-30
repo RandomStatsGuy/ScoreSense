@@ -40,6 +40,10 @@ if(state==="cut")roster[0]={...roster[0],roster_status:"cut_before_draft",can_un
 window.fixtureWrites=[];
 window.fetch=async(input,options={})=>{
   const path=String(input);
+  if(path.includes("/season-scores")) {
+    if(params.has("score-error")) return Response.json({}, {status:503});
+    return Response.json({season:2026,available:true,players:Object.fromEntries(roster.map((row,i)=>[row.player_id,{points:69.4-i*3,ppg:(69.4-i*3)/3,games:3,rank:i+4,position:row.position,game_log:[{week:3,opponent:"NYG",points:29.2-i*3,projection:22.3},{week:2,opponent:"PHI",points:16.8,projection:20.4},{week:1,opponent:"LAC",points:23.4,projection:null}]}]))});
+  }
   if(options.method&&options.method!=="GET") {
     const body=JSON.parse(options.body||"{}");
     window.fixtureWrites.push({path,method:options.method,body});

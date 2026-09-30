@@ -78,6 +78,8 @@ def build_defense_stat_index(frame: pd.DataFrame, schedules: pd.DataFrame, seaso
                 allowed = score - 6 * excluded[0] - 2 * excluded[1] - 2 * excluded[2]
                 if allowed >= 0:
                     stats["def_points_allowed"] = allowed
+        stats["position"] = "DEF"
+        stats["opponent"] = opponent_code
         index[team] = stats
     for alias, canonical in {"JAC": "JAX", "WSH": "WAS", "LAR": "LA", "LVR": "LV", "OAK": "LV"}.items():
         if canonical in index:
