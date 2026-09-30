@@ -115,14 +115,14 @@ test("approved primaries keep one fill on Home, Cap, and Trades", () => {
   assert.match(LIVING_SURFACES["hub.planner"].doNot, /Adding a player does not remove that dead cap/);
   assert.match(LIVING_SURFACES["hub.roster"].doNot, /Undo cut only if they are not active on any team/);
   assert.match(LIVING_SURFACES["hub.office.current"].doNot, /Adding a player does not remove that dead cap/);
-  assert.match(LIVING_SURFACES["hub.trades"].doNot, /Continue \(or Propose on the last step\) is the only primary/);
-  assert.match(LIVING_SURFACES["hub.trades"].doNot, /This Week starter strip sits under your cap card only/);
+  assert.match(LIVING_SURFACES["hub.trades"].doNot, /Review or Propose is the only primary/);
+  assert.match(LIVING_SURFACES["hub.trades"].doNot, /live 2×2 grid/);
   assert.match(LIVING_SURFACES["hub.available"].doNot, /Walk-away is a personal local ceiling/);
 });
 
 test("Strategy stays a board-first hero exception", () => {
   assert.match(LIVING_SURFACES["hub.value"].doNot, /Do not add HubExperienceHero/);
-  assert.match(LIVING_SURFACES["hub.value"].doNot, /only Fantasy destination without a hero band/);
+  assert.match(LIVING_SURFACES["hub.value"].doNot, /approved board-first destination without a hero band/);
 });
 
 test("Draft does not repeat Night locked as a body heading", () => {
