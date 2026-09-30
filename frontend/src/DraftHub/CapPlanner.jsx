@@ -1,445 +1,186 @@
-import React, { useMemo, useState } from "react";
-import useMobileLayout from "../useMobileLayout";
+import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
-import {
-  HubAlert,
-  HubAlertStack,
-  HubExperienceHero,
-  HubExperienceSummary,
-  HubPage,
-  HubSection,
-  HubTableCard,
-  HubToolbar,
-  HubFilterMenu,
-  rosterAlertVariant,
-} from "./HubUILayout";
-import {
-  againstCap,
-  capEquationNote,
-  displayCapPair,
-  capHeroCopy,
-  capRailPrimary,
-  capSheetYearOffsets,
-  leftoverAfterMoveDisplay,
-  leftoverMoveReadout,
-  capStepUpLine,
-  capCutRefundLine,
-  fmtCapMoney,
-  parseNeedErrors,
-  rosterNeedLine,
-  rosterPositionNeeds,
-  previewCutFunds,
-  capCutFundsAction,
-  capCutFundsLine,
-  capCutConfirmCopy,
-  CAP_DRAFT_COPY,
-  CAP_EXTEND_COPY,
-  queuedExtensionsSummary,
-  queuedYearsLine,
-  CAP_FIGURE_COPY,
-  CAP_MODEL_COPY,
-  CAP_STATUS_COPY,
-  CAP_MOVE_COPY,
-  CAP_NEED_COPY,
-  CAP_SHEET_COPY,
-  CAP_CUT_COPY,
-  CAP_UNAVAILABLE_COPY,
-} from "./capPlannerPresentation";
+import { HubPage, HubFilterMenu, HubAlert, HubLoadingSkeleton } from "./HubUILayout";
 import { leagueUsesSalaries } from "./leagueCapabilities";
-import { buildCapStatusCard } from "./capStatusCard";
-import { contractDeadCapStory, contractTypeLabel, dealSalaryIsStatic, fmtSal, leagueStepUp, rosterSlotKey } from "./rosterFormat";
-import { MY_TEAM_COPY } from "./rosterPresentation";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import IdentityCropMedia from "./IdentityCropMedia";
+import { identityMediaUrl, mergeTeamIdentity, HUB_MEDIA_HERO_WIDTH } from "./atmosphereCatalog";
+import { hubTeamParts } from "./hubTeamLabel";
 import ContractHistoryLink from "./ContractHistoryLink";
-import { playersTabAddMode, playersTabBanner } from "./acquisitionWindow";
+import { fmtSal, contractDeadCapStory } from "./rosterFormat";
 import { confirmDialog } from "../ui/confirm";
-import {
-  cancelRookieExtend,
-  hasPendingExtension,
-  isRookieExtendSuccessMessage,
-  postRookieExtend,
-  previewRookieExtendStartSalary,
-  rookieExtendCancelSuccessMessage,
-  rookieExtendSuccessMessage,
-} from "./rookieExtend";
-
-function capHitForRow(row, offset = 0, rules) {
-  const contract = row?.contract;
-  const yrs = Number(contract?.years_remaining ?? row?.contract_years ?? 1);
-  if (offset >= yrs) return null;
-  const ctype = String(contract?.contract_type || "veteran");
-  const base = Number(contract?.current_salary ?? row?.salary ?? 0);
-  if (ctype === "rookie" && Number.isFinite(base)) {
-    if (contract?.rookie_salary_static !== false) return base;
-    const hit = contract?.schedule?.find((year) => Number(year.year_offset) === offset);
-    if (hit) return Number(hit.salary);
-    const step = Number(contract?.step_up_per_year);
-    return Math.round(base + (Number.isFinite(step) ? step : leagueStepUp(rules)) * offset);
-  }
-  if ((ctype === "extension" || ctype === "veteran") && Number.isFinite(base)) {
-    if (ctype === "veteran" && dealSalaryIsStatic(ctype, rules, contract)) {
-      const sched = contract?.schedule;
-      if (sched?.length) {
-        const amounts = sched.map((year) => Number(year.salary));
-        const isFlat = amounts.length > 0 && amounts.every((v) => Math.abs(v - base) < 0.001);
-        if (!isFlat) {
-          const hit = sched.find((year) => Number(year.year_offset) === offset);
-          if (hit) return Number(hit.salary);
-        }
-      }
-      return base;
-    }
-    const step = Number(contract?.step_up_per_year);
-    const useStep = Number.isFinite(step) && step > 0 ? step : leagueStepUp(rules);
-    const sched = contract?.schedule;
-    if (sched?.length) {
-      const amounts = sched.map((year) => Number(year.salary));
-      const isFlat = amounts.length > 0 && amounts.every((v) => Math.abs(v - base) < 0.001);
-      if (!isFlat) {
-        const hit = sched.find((year) => Number(year.year_offset) === offset);
-        if (hit) return Number(hit.salary);
-      }
-    }
-    return Math.round(base + useStep * offset);
-  }
-  const sched = contract?.schedule;
-  if (sched?.length) {
-    const hit = sched.find((year) => Number(year.year_offset) === offset);
-    if (hit) return Number(hit.salary);
-    if (offset === 0) return Number(contract.current_salary ?? row.salary);
-    return null;
-  }
-  return offset === 0 ? Number(row.salary) : Number(row.salary);
-}
-
-function CapDenseRow({ name, value, chip, onOpen, selected = false }) {
-  const body = (
-    <>
-      <span className="hub-cap-dense-name">{name}</span>
-      <span className="hub-cap-dense-value">{value}</span>
-      {chip ? <span className="hub-cap-dense-chip">{chip}</span> : null}
-    </>
-  );
-  if (onOpen) {
-    return (
-      <li>
-        <button
-          type="button"
-          className={`hub-cap-dense-row is-action${selected ? " is-selected" : ""}`}
-          aria-pressed={selected}
-          onClick={onOpen}
-        >
-          {body}
-        </button>
-      </li>
-    );
-  }
-  return <li className="hub-cap-dense-row">{body}</li>;
-}
-
-function CapWorkbench({ children, summary, calculator, mobile }) {
-  return (
-    <div className="hub-cap-workbench">
-      <div className="hub-cap-workbench-main">{mobile && calculator}{children}</div>
-      <aside className="hub-cap-workbench-rail" aria-label={CAP_MOVE_COPY.title}>
-        {!mobile && calculator}
-        <section className="hub-cap-snapshot">{summary}</section>
-      </aside>
-    </div>
-  );
-}
-
-function CapMoneyField({ id, label, value, onChange }) {
-  return (
-    <div className="hub-filter-menu hub-cap-money-field">
-      <label className="hub-filter-menu-trigger hub-cap-money" htmlFor={id}>
-        <span className="hub-filter-menu-kind">{label}</span>
-        <span className="hub-cap-money-affix" aria-hidden="true">$</span>
-        <input
-          id={id}
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          value={value}
-          onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
-          aria-label={label}
-        />
-      </label>
-    </div>
-  );
-}
-
+import { postRookieExtend, cancelRookieExtend, canManagerRookieExtend, rookieExtendSuccessMessage } from "./rookieExtend";
+import { playersTabAddMode, playersTabBanner } from "./acquisitionWindow";
+import { CAP_PLANNER_COPY as C, CAP_UNAVAILABLE_COPY, CAP_CUT_COPY, capPlannerProjection, previewCutFunds, capCutFundsAction, capCutConfirmCopy, capStepUpLine, capCutRefundLine, rosterPositionNeeds, rosterNeedLine, parseNeedErrors } from "./capPlannerPresentation";
+import "../styles/cap-planner.css";
 export default function CapPlanner({
+  capSheet,
+  roster = [],
+  workspace,
+  hubContext,
+  onChanged,
+  onNavigate,
+  valueRows = [],
+  acquisitionWindow,
+  onOpenContractHistory
+}) {
+  const scope = `${hubContext?.league_id || workspace?.id || "solo"}:${hubContext?.team_id || ""}`;
+  return <CapPlannerView key={scope} {...{
+    capSheet,
+    roster,
+    workspace,
+    hubContext,
+    onChanged,
+    onNavigate,
+    valueRows,
+    acquisitionWindow,
+    onOpenContractHistory
+  }} />;
+}
+function CapPlannerView({
   capSheet,
   roster,
   workspace,
   hubContext,
   onChanged,
   onNavigate,
-  valueRows = [],
-  acquisitionWindow = null,
+  valueRows,
+  acquisitionWindow,
+  onOpenContractHistory
 }) {
-  const [extendPlayer, setExtendPlayer] = useState("");
-  const [extendYears, setExtendYears] = useState("2");
-  const [cutPlayer, setCutPlayer] = useState("");
-  const [bidAmount, setBidAmount] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [around, setAround] = useState(false);
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [query, setQuery] = useState("");
+  const [year, setYear] = useState(0);
+  const [plans, setPlans] = useState({});
+  const [editor, setEditor] = useState("");
+  const [mode, setMode] = useState("add");
+  const [cutId, setCutId] = useState("");
+  const [target, setTarget] = useState("");
   const [msg, setMsg] = useState("");
-  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [cutBusyId, setCutBusyId] = useState("");
-  const [extendBusyId, setExtendBusyId] = useState("");
-  const [spendOpen, setSpendOpen] = useState(false);
-
-  const summary = capSheet?.summary;
-  const errors = capSheet?.validation_errors || [];
-  const plan = capSheet?.multi_year_plan || [];
-  const preDraft = capSheet?.pre_draft;
+  const [extendBusy, setExtendBusy] = useState(false);
+  const {
+    identities
+  } = useTeamIdentities();
+  const leagueId = hubContext?.mode === "league" ? hubContext.league_id : "";
+  const ownId = String(hubContext?.team_id || "mine");
+  const selected = teams.find(t => String(t.team.id) === teamId);
+  const own = !teamId || teamId === ownId;
+  const scopeId = own ? ownId : teamId;
+  const sheet = own ? capSheet : selected?.cap_sheet;
+  const rules = workspace?.rules || hubContext?.rules;
+  const base = Number(capSheet?.season || workspace?.season || new Date().getFullYear());
+  const chosenPlans = plans[scopeId] || {};
+  const projection = capPlannerProjection(sheet, chosenPlans);
+  const offset = Math.min(year, Math.max(0, projection.years.length - 1));
+  const current = projection.years[offset];
   const draftCompleted = Boolean(hubContext?.draft_completed);
-  const baseSeason = Number(capSheet?.season ?? workspace?.season ?? new Date().getFullYear());
-  const isCommissioner = Boolean(hubContext?.is_commissioner);
-  const inLeague = hubContext?.mode === "league";
-  const cutPct = Math.round((workspace?.rules?.contracts?.cut_refund_pct ?? 0.5) * 100);
-  const stepUp = leagueStepUp(workspace?.rules);
-  const maxExtensionYears = Math.max(1, Number(workspace?.rules?.contracts?.max_years ?? 3));
-  const rookieSalaryStatic = workspace?.rules?.contracts?.rookie_salary_static !== false;
-  const veteranSalaryStatic = workspace?.rules?.contracts?.veteran_salary_static !== false;
-  const veteranExtensions = workspace?.rules?.contracts?.allow_veteran_renewal === true;
-  const hasRoster = (roster?.length ?? 0) > 0;
-  const mobileLayout = useMobileLayout();
-
-  const positionRows = useMemo(() => (
-    Object.keys({
-      ...(summary?.by_position_count || {}),
-      ...(summary?.by_position_spend || {}),
-    }).sort()
-  ), [summary?.by_position_count, summary?.by_position_spend]);
-
-  const yearLabels = useMemo(
-    () => plan.map((year, idx) => ({
-      ...year,
-      seasonLabel: baseSeason + idx,
-    })),
-    [plan, baseSeason],
-  );
-
-  const extend = async () => {
-    setMsg("");
+  const cap = Number(sheet?.summary?.salary_cap ?? rules?.salary_cap);
+  const activeRows = projection.rows.filter(r => Number(r.cap_hits[offset]) > 0 || offset === 0 && r.is_active);
+  const cutRow = projection.rows.find(r => String(r.player_id) === cutId);
+  const savedRow = (own ? roster : projection.rows).find(r => String(r.player_id) === cutId);
+  const hit = Number(cutRow?.cap_hits[offset] || 0);
+  const refund = rules?.contracts?.cut_refund_pct ?? .5;
+  const newDead = offset === 0 ? Math.floor(hit * (1 - refund)) : 0;
+  const remaining = Number(current?.cap_remaining);
+  const after = remaining + (mode === 'cut' ? hit - newDead : 0) - (Number(target) || 0);
+  const cuts = sheet?.pre_draft?.pending_cuts || [];
+  const queued = sheet?.pre_draft?.queued_extensions || [];
+  const caption = own ? hubContext?.team_name || C.own : hubTeamParts(selected?.team).team || selected?.team.name;
+  const owner = own ? "" : hubTeamParts(selected?.team).owner;
+  const triggerRefs = useRef({});
+  const aroundRef = useRef(null);
+  const headingRef = useRef(null);
+  const controller = useRef(null);
+  useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => {
+    if (around) headingRef.current?.focus({
+      preventScroll: true
+    });
+  }, [around]);
+  const loadTeams = async () => {
+    controller.current?.abort();
+    const ctrl = new AbortController();
+    controller.current = ctrl;
+    setLoading(true);
+    setLoadError("");
     try {
-      const data = await postRookieExtend(extendPlayer, extendYearsSafe, maxExtensionYears);
-      setMsg(rookieExtendSuccessMessage(data));
-      setExtendPlayer("");
-      onChanged?.();
-    } catch (e) {
-      setMsg(e.message);
-    }
-  };
-
-  const mustExtend = preDraft?.must_extend ?? [];
-  const droppingAtDraft = preDraft?.dropping_at_draft ?? [];
-  const extendableIds = useMemo(
-    () => new Set(mustExtend.map((p) => String(p.player_id))),
-    [mustExtend],
-  );
-  const droppingIds = useMemo(
-    () => new Set(droppingAtDraft.map((p) => String(p.player_id))),
-    [droppingAtDraft],
-  );
-  const extendableRoster = useMemo(
-    () => (roster || []).filter((r) => extendableIds.has(String(r.player_id))),
-    [roster, extendableIds],
-  );
-  const selectedExtendRow = useMemo(
-    () => extendableRoster.find((r) => String(r.player_id) === String(extendPlayer)),
-    [extendableRoster, extendPlayer],
-  );
-  const selectedStartSalary = selectedExtendRow
-    ? previewRookieExtendStartSalary(selectedExtendRow, workspace?.rules)
-    : null;
-  const pendingExtendIds = useMemo(
-    () => new Set(
-      (roster || [])
-        .filter((r) => hasPendingExtension(r))
-        .map((r) => String(r.player_id)),
-    ),
-    [roster],
-  );
-  const queuedExtensions = useMemo(() => {
-    const fromSummary = preDraft?.queued_extensions;
-    if (Array.isArray(fromSummary) && fromSummary.length) return fromSummary;
-    return (roster || [])
-      .filter((r) => hasPendingExtension(r))
-      .map((r) => ({
-        player_id: r.player_id,
-        player_name: r.player_name,
-        position: r.position,
-        salary: r.salary,
-        queued_years: r.contract?.pending_extension?.years,
-      }));
-  }, [preDraft?.queued_extensions, roster]);
-
-  const expiryBadge = (playerId) => {
-    const pid = String(playerId);
-    if (pendingExtendIds.has(pid)) {
-      return <span className="hub-expire-chip hub-expire-chip--extend">{CAP_STATUS_COPY.extensionQueued}</span>;
-    }
-    if (extendableIds.has(pid)) {
-      return <span className="hub-roster-status hub-roster-status--keep">{CAP_STATUS_COPY.extendToKeep}</span>;
-    }
-    if (droppingIds.has(pid)) {
-      return <span className="hub-roster-status hub-roster-status--warn">{CAP_STATUS_COPY.expiring}</span>;
-    }
-    return null;
-  };
-
-  const glossary = (
-    <>
-      <p><strong>{CAP_MODEL_COPY.expireBeforeDraftTitle}</strong> — {CAP_MODEL_COPY.expireBeforeDraft}</p>
-      <p><strong>Years left</strong> — Includes the upcoming season; drops by 1 when the draft is marked complete.</p>
-      <p><strong>Contract extension</strong> — Eligible final-year {veteranExtensions ? "rookie deals and vet deals" : "rookie deals"}; one 1–{maxExtensionYears} year extension. The extension starts at the current salary plus ${stepUp}.</p>
-      <p><strong>Queued</strong> — Extension activates when draft is marked complete (1- and 3-year terms preserved).</p>
-      <p><strong>Cap used</strong> — This year&apos;s salary plus dead cap. Leftover is the rest of the cap.</p>
-      <p><strong>Keep past this draft</strong> — Players still under contract after this draft. On this sheet is every row listed below.</p>
-      <p><strong>{CAP_MODEL_COPY.stepUp}</strong> — {capStepUpLine({
-        rookieStatic: rookieSalaryStatic,
-        veteranStatic: veteranSalaryStatic,
-        stepUp,
-      })}</p>
-      <p><strong>{CAP_MODEL_COPY.cutRefund}</strong> — {capCutRefundLine(cutPct)}</p>
-    </>
-  );
-
-  const undoQueuedExtension = async (playerId) => {
-    if (!playerId) return;
-    setExtendBusyId(String(playerId));
-    setMsg("");
-    try {
-      await cancelRookieExtend(playerId);
-      setMsg(rookieExtendCancelSuccessMessage());
-      onChanged?.();
-    } catch (e) {
-      setMsg(e.message || "Could not undo the extension");
-    } finally {
-      setExtendBusyId("");
-    }
-  };
-
-  const undoCut = async (playerId) => {
-    if (!playerId) return;
-    setCutBusyId(String(playerId));
-    setMsg("");
-    try {
-      const res = await apiFetch("/api/hub/roster", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: playerId, roster_status: "active" }),
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/cap-plans`, {
+        signal: ctrl.signal
       });
       if (!res.ok) throw new Error(await parseApiError(res));
-      onChanged?.();
+      const data = await res.json();
+      if (!ctrl.signal.aborted) setTeams(data.teams || []);
     } catch (e) {
-      setMsg(e.message || "Could not undo the cut");
+      if (!ctrl.signal.aborted) setLoadError(e.message || C.loadError);
     } finally {
-      setCutBusyId("");
+      if (!ctrl.signal.aborted) setLoading(false);
     }
   };
-
-  const selectCapRow = (playerId) => {
-    const id = playerId ? String(playerId) : "";
-    setSelectedPlayerId(id || null);
-    setCutPlayer(id);
+  const closeAround = () => {
+    setAround(false);
+    requestAnimationFrame(() => aroundRef.current?.focus({
+      preventScroll: true
+    }));
   };
-
-  const clearCapSelection = () => {
-    setSelectedPlayerId(null);
-    setCutPlayer("");
+  const selectTeam = id => {
+    setTeamId(String(id));
+    setYear(0);
+    setEditor("");
+    setCutId("");
+    setMode("add");
+    setTarget("");
+    setMsg("");
+    closeAround();
   };
-
-  const resetMove = () => {
-    setCutPlayer("");
-    setBidAmount("");
-    setSelectedPlayerId(null);
+  const chooseYears = (row, n) => {
+    setPlans(prev => ({
+      ...prev,
+      [scopeId]: {
+        ...(prev[scopeId] || {}),
+        [row.player_id]: n
+      }
+    }));
+    setEditor("");
+    requestAnimationFrame(() => triggerRefs.current[row.player_id]?.focus({
+      preventScroll: true
+    }));
   };
-
-  if (!summary) {
-    return (
-      <HubPage className="hub-experience-page">
-        <HubExperienceHero
-          {...capHeroCopy({ empty: true })}
-          chip="No cap data"
-          chipTone="readonly"
-        />
-        <p className="chart-note hub-experience-empty">No cap data. Add players on Roster first.</p>
-      </HubPage>
-    );
-  }
-
-  const salaryCap = Number(
-    summary.salary_cap ?? workspace?.rules?.salary_cap ?? preDraft?.salary_cap,
-  );
-  const deadCap = Number(summary.dead_cap ?? preDraft?.dead_cap ?? 0);
-  const sheetCount = roster?.length ?? 0;
-  const keepCount = Number(summary.roster_size);
-  const statusCard = buildCapStatusCard({
-    remaining: summary.remaining,
-    spent: summary.spent,
-    salaryCap,
-    rosterSize: keepCount,
-    sheetSize: sheetCount,
-    deadCap,
-    preDraft: Boolean(preDraft),
-  });
-  const seasonPlan = yearLabels.slice(0, 3);
-  const cutRow = (roster || []).find((row) => String(row.player_id) === String(cutPlayer));
-  const cutHits = seasonPlan.map((_, idx) => (
-    cutRow ? Number(capHitForRow(cutRow, idx, workspace?.rules) || 0) : 0
-  ));
-  const currentPair = displayCapPair({ leftover: summary.remaining, salaryCap });
-  const movedPlan = leftoverAfterMoveDisplay({
-    years: seasonPlan,
-    salaryCap,
-    cutHits,
-    cutRefundPct: workspace?.rules?.contracts?.cut_refund_pct ?? 0.5,
-    bid: Number(bidAmount) || 0,
-  });
-  const moveReadout = leftoverMoveReadout({
-    current: currentPair.leftover,
-    after: movedPlan[0]?.cap_remaining ?? currentPair.leftover,
-  });
-  const nowPair = currentPair;
-  const afterPair = displayCapPair({ leftover: moveReadout?.after, salaryCap });
-  const afterOverBy = afterPair.leftover != null && afterPair.leftover < 0
-    ? Math.abs(afterPair.leftover)
-    : 0;
-  const hasMove = Boolean(cutPlayer || bidAmount);
-  const against = againstCap({ spent: summary.spent, deadCap });
-
-  const pendingCut = (preDraft?.pending_cuts || [])[0] || null;
-  const railPrimary = capRailPrimary({ pendingCut, remaining: summary.remaining });
-  const selectedCapRow = selectedPlayerId
-    ? (roster || []).find((row) => String(row.player_id) === String(selectedPlayerId))
-    : null;
-  const addMode = playersTabAddMode(acquisitionWindow, { inLeague });
-  const cutWindowBanner = inLeague ? playersTabBanner(acquisitionWindow) : null;
-  const minBid = Number(workspace?.rules?.auction?.min_bid ?? 1) || 1;
-  const cutPreview = selectedCapRow
-    ? previewCutFunds({
-      row: selectedCapRow,
-      leftover: currentPair.leftover,
-      rules: workspace?.rules,
-      availableRows: valueRows,
-      addMode,
-      minBid,
-    })
-    : null;
+  const reset = () => {
+    setMode("add");
+    setCutId("");
+    setTarget("");
+    setEditor("");
+    setPlans(prev => ({
+      ...prev,
+      [scopeId]: {}
+    }));
+  };
+  const cutPreview = own && savedRow ? previewCutFunds({
+    row: savedRow,
+    leftover: sheet?.summary?.remaining,
+    rules,
+    availableRows: valueRows,
+    addMode: playersTabAddMode(acquisitionWindow, {
+      inLeague: Boolean(leagueId)
+    }),
+    minBid: Number(rules?.auction?.min_bid || 1)
+  }) : null;
   const cutAction = capCutFundsAction(cutPreview);
-  const cutFundsLine = capCutFundsLine(cutPreview);
-
   const cutAndHandoff = async () => {
     if (!cutPreview || cutPreview.is_cut || cutBusyId) return;
+    if (!own || offset !== 0 || !canWrite) return;
     const ok = await confirmDialog({
       title: CAP_CUT_COPY.confirmTitle(cutPreview.player_name),
       message: capCutConfirmCopy(cutPreview),
       confirmLabel: cutAction.label,
       cancelLabel: CAP_CUT_COPY.keep,
-      danger: true,
+      danger: true
     });
     if (!ok) return;
     setCutBusyId(String(cutPreview.player_id));
@@ -447,690 +188,191 @@ export default function CapPlanner({
     try {
       const res = await apiFetch("/api/hub/roster", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           player_id: cutPreview.player_id,
-          roster_status: "cut_before_draft",
-        }),
+          roster_status: "cut_before_draft"
+        })
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      setMsg(C.cutSaved);
+      setCutId("");
       onChanged?.();
-      if (cutAction.kind === "cut-bid" || cutAction.kind === "cut-add") {
-        onNavigate?.("available", {
-          player: cutPreview.funded_player_id || "",
-          pos: cutPreview.funded_position || undefined,
-        });
-      }
+      if (['cut-add', 'cut-bid'].includes(cutAction.kind)) onNavigate?.("available", {
+        player: cutPreview.funded_player_id || "",
+        pos: cutPreview.funded_position || undefined
+      });
     } catch (e) {
-      setMsg(e.message || "Could not cut");
+      setMsg(e.message || C.errorCut);
     } finally {
       setCutBusyId("");
     }
   };
-
-  const computedNeeds = rosterPositionNeeds({
+  const undoCut = async playerId => {
+    if (!own || !canWrite) return;
+    setCutBusyId(String(playerId));
+    setMsg("");
+    try {
+      const res = await apiFetch("/api/hub/roster", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          player_id: playerId,
+          roster_status: "active"
+        })
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      onChanged?.();
+    } catch (e) {
+      setMsg(e.message || C.errorUndo);
+    } finally {
+      setCutBusyId("");
+    }
+  };
+  const saveExtension = async row => {
+    if (!own || !canWrite || !canManagerRookieExtend(row, {
+      draftCompleted,
+      rules
+    }).ok) return;
+    setExtendBusy(true);
+    setMsg("");
+    try {
+      const data = await postRookieExtend(row.player_id, chosenPlans[row.player_id], rules?.contracts?.max_years);
+      chooseYears(row, 0);
+      setMsg(rookieExtendSuccessMessage(data));
+      onChanged?.();
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setExtendBusy(false);
+    }
+  };
+  const undoExtension = async id => {
+    if (!own || !canWrite) return;
+    setExtendBusy(true);
+    try {
+      await cancelRookieExtend(id);
+      onChanged?.();
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setExtendBusy(false);
+    }
+  };
+  const canWrite = (!leagueId || Boolean(hubContext?.team_id)) && hubContext?.readonly !== true;
+  const needs = own ? rosterPositionNeeds({
     roster,
-    limits: workspace?.rules?.roster || {},
+    limits: rules?.roster || {}
+  }) : {
+    needs: []
+  };
+  const needLine = rosterNeedLine(needs.needs, {
+    minimumTotal: needs.minimumTotal
   });
-  const { needs: parsedNeeds, other: otherErrors } = parseNeedErrors(errors);
-  const needs = computedNeeds.needs.length ? computedNeeds.needs : parsedNeeds;
-  const needLine = rosterNeedLine(needs, { minimumTotal: computedNeeds.minimumTotal });
-  const futureYearOffsets = capSheetYearOffsets({
-    roster: roster || [],
-    yearCount: yearLabels.length,
-    hitFor: (row, offset) => capHitForRow(row, offset, workspace?.rules),
-  });
-
-  const teamItems = [
-    { id: "leftover", label: CAP_FIGURE_COPY.leftover, value: fmtCapMoney(currentPair.leftover) },
-    { id: "against", label: CAP_FIGURE_COPY.againstCap, value: fmtCapMoney(currentPair.against) },
-    { id: "dead", label: CAP_FIGURE_COPY.deadCap, value: fmtSal(deadCap) },
-  ];
-  if (preDraft && Number.isFinite(keepCount)) {
-    teamItems.push({
-      id: "keep",
-      label: CAP_FIGURE_COPY.keepPastDraft,
-      value: String(keepCount),
-    });
-  }
-  if (sheetCount && (!preDraft || sheetCount !== keepCount)) {
-    teamItems.push({
-      id: "sheet",
-      label: CAP_FIGURE_COPY.onThisSheet,
-      value: String(sheetCount),
-    });
-  }
-
-  const yearOptions = Array.from({ length: maxExtensionYears }, (_, idx) => ({
-    id: String(idx + 1),
-    label: `${idx + 1}`,
-  }));
-  const extendYearsSafe = yearOptions.some((option) => option.id === String(extendYears))
-    ? String(extendYears)
-    : String(Math.min(2, maxExtensionYears));
-
-  const moveCalculator = (
-      <section className="hub-cap-preview">
-        <h2>{CAP_MOVE_COPY.title}</h2>
-        <p className="hub-cap-preview-hint">{CAP_MOVE_COPY.hint}</p>
-        <div className="hub-cap-preview-controls">
-          <HubFilterMenu
-            label={CAP_MOVE_COPY.cutLabel}
-            value={cutPlayer}
-            options={[
-              { id: "", label: CAP_MOVE_COPY.none },
-              ...(roster || []).map((row) => ({
-                id: row.player_id,
-                label: `${row.player_name || row.player_id} · ${fmtSal(row.salary)}`,
-              })),
-            ]}
-            onChange={(id) => {
-              setCutPlayer(id);
-              setSelectedPlayerId(id || null);
-            }}
-          />
-          <CapMoneyField
-            id="cap-move-bid"
-            label={CAP_MOVE_COPY.bidLabel}
-            value={bidAmount}
-            onChange={setBidAmount}
-          />
-          {hasMove ? (
-            <button type="button" className="btn-ghost btn-sm" onClick={resetMove}>
-              {CAP_MOVE_COPY.reset}
-            </button>
-          ) : null}
-        </div>
-        {moveReadout ? (
-          <div
-            className={`hub-cap-move-result${moveReadout.over ? " is-over" : ""}`}
-            aria-live="polite"
-          >
-            <p className="hub-cap-move-result-line">
-              <span>
-                {CAP_MOVE_COPY.now}
-                {" "}
-                <strong>{fmtCapMoney(nowPair.leftover)}</strong>
-                {" "}
-                {CAP_MOVE_COPY.leftoverWord}
-              </span>
-              <span aria-hidden="true">→</span>
-              <span>
-                {CAP_MOVE_COPY.after}
-                {" "}
-                <strong>{fmtCapMoney(afterPair.leftover)}</strong>
-                {" "}
-                {CAP_MOVE_COPY.leftoverWord}
-              </span>
-            </p>
-            {afterOverBy > 0 ? (
-              <p className="hub-cap-move-over">
-                {CAP_MOVE_COPY.over(fmtCapMoney(afterOverBy))}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-        <details className="hub-cap-preview-years">
-        <summary>{CAP_MOVE_COPY.bySeason}</summary>
-        <p className="chart-note">{CAP_MOVE_COPY.futureHint}</p>
-        {movedPlan.length > 0 && (
-          <ul className="hub-cap-season-list" aria-label={CAP_MOVE_COPY.bySeason}>
-            {movedPlan.map((year) => {
-              const pair = displayCapPair({ leftover: year.cap_remaining, salaryCap });
-              const freeOver = pair.leftover != null && pair.leftover < 0;
-              return (
-                <li key={year.label || year.seasonLabel} className="hub-cap-season-row">
-                  <span className="hub-cap-season-year">{year.seasonLabel}</span>
-                  <span className="hub-cap-season-committed">
-                    {fmtCapMoney(pair.against)}
-                    <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonAgainst}</span>
-                  </span>
-                  <span className={`hub-cap-season-free${freeOver ? " is-over" : ""}`}>
-                    {fmtCapMoney(pair.leftover)}
-                    <span className="hub-cap-season-unit"> {CAP_FIGURE_COPY.seasonLeftover}</span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </details>
+  const otherErrors = parseNeedErrors(sheet?.validation_errors || []).other;
+  if (!leagueUsesSalaries(hubContext)) return <HubPage><h1>{CAP_UNAVAILABLE_COPY.heading}</h1><p>{CAP_UNAVAILABLE_COPY.body}</p></HubPage>;
+  if (!sheet?.summary || !current) return <HubPage><p role="status">{C.noData}</p></HubPage>;
+  const sumDead = Number(current.dead_cap || 0);
+  const salary = Number(current.total_committed) - sumDead;
+  const moveBanner = own && leagueId ? playersTabBanner(acquisitionWindow) : null;
+  return <HubPage frameless className="cap-planner-page">
+    {around ? <section className="cap-planner-discovery" aria-labelledby="cap-league-title">
+      <header><h1 id="cap-league-title" ref={headingRef} tabIndex={-1}>{C.around}</h1><button className="btn-ghost" onClick={closeAround}>← {C.back}</button></header>
+      <input type="search" aria-label={C.search} placeholder={C.search} value={query} onChange={e => setQuery(e.target.value)} />
+      <p className="cap-planner-meta">{base} · {C.available}</p>
+      {loading ? <div className="cap-planner-teams" aria-label={C.loading}>{[0, 1].map(i => <div className="cap-planner-team-loading" key={i}><HubLoadingSkeleton label={C.loading} rows={2} /></div>)}</div> : loadError ? <HubAlert variant="danger">{loadError}<button className="btn-ghost" onClick={loadTeams}>{C.retry}</button></HubAlert> : <div className="cap-planner-teams">
+        {teams.filter(t => `${hubTeamParts(t.team).team} ${hubTeamParts(t.team).owner}`.toLowerCase().includes(query.toLowerCase())).map(block => {
+          const team = block.team,
+            look = mergeTeamIdentity(identityFor(identities, team)),
+            url = identityMediaUrl(look, "banner", {
+              width: HUB_MEDIA_HERO_WIDTH
+            }),
+            parts = hubTeamParts(team);
+          return <button key={team.id} className="cap-planner-team" onClick={() => selectTeam(team.id)} aria-label={`${parts.team}, ${fmtSal(block.cap_sheet.summary.remaining)} ${C.available}`}>
+            <span className={`cap-planner-team-banner hub-banner-fill--${look.banner_preset}`}>{url && <IdentityCropMedia src={url} focus={look.banner_focus} width={HUB_MEDIA_HERO_WIDTH} />}<span><strong>{parts.team || team.name}</strong><small>{parts.owner}</small></span></span>
+            <span className="cap-planner-team-cap"><span>{C.available}<strong>{fmtSal(block.cap_sheet.summary.remaining)}</strong></span><span aria-hidden="true">↗</span></span>
+          </button>;
+        })}{!teams.filter(t => `${hubTeamParts(t.team).team} ${hubTeamParts(t.team).owner}`.toLowerCase().includes(query.toLowerCase())).length && <p role="status">{C.noTeams}</p>}
+      </div>}
+    </section> : <>
+      <header className="cap-planner-context"><div><strong>{caption}</strong>{owner && <small>{owner} · {C.preview}</small>}</div>
+        {leagueId && <button ref={aroundRef} className="btn-ghost" onClick={() => {
+          setAround(true);
+          setQuery("");
+          loadTeams();
+        }}>{C.around} ↗</button>}</header>
+      <section className="cap-planner-balance"><h1>{offset ? `${base + offset} ${C.available}` : !draftCompleted ? C.draft : C.available}</h1><strong>{fmtSal(remaining)}</strong><p className="cap-planner-meta">{base + offset} · {fmtSal(cap)} cap</p>
+        <div className="cap-planner-bar" aria-hidden="true"><span style={{
+            width: `${Math.min(100, Math.max(0, salary / cap * 100))}%`
+          }} /><i style={{
+            width: `${Math.min(100, Math.max(0, sumDead / cap * 100))}%`
+          }} /></div>
+        <p className="cap-planner-meta">{fmtSal(salary)} {C.salary} · {fmtSal(sumDead)} {C.dead} · {fmtSal(current.total_committed)} {C.used}</p>
+        <div className="cap-planner-years" role="group" aria-label="Cap season">{projection.years.map((_, i) => <button key={i} aria-pressed={i === offset} onClick={() => {
+            setYear(i);
+            setEditor("");
+            setCutId("");
+          }}>{base + i}</button>)}</div>
       </section>
-  );
-
-  if (!leagueUsesSalaries(hubContext)) {
-    return (
-      <HubPage className="hub-experience-page hub-planner-page">
-        <HubExperienceHero
-          eyebrow={CAP_UNAVAILABLE_COPY.eyebrow}
-          heading={CAP_UNAVAILABLE_COPY.heading}
-          support={CAP_UNAVAILABLE_COPY.support}
-        />
-        <HubAlert
-          variant="info"
-          action={(
-            <button type="button" className="btn-primary" onClick={() => onNavigate?.("available")}>
-              {CAP_UNAVAILABLE_COPY.cta}
-            </button>
-          )}
-        >
-          {CAP_UNAVAILABLE_COPY.body}
-        </HubAlert>
-      </HubPage>
-    );
-  }
-
-  return (
-    <HubPage className="hub-experience-page hub-planner-page">
-      <HubExperienceHero
-        {...capHeroCopy({ preDraft: Boolean(preDraft) })}
-        chip={statusCard?.label || "Cap plan"}
-        chipTone={statusCard?.tone === "over" ? "caution" : "readonly"}
-      >
-        {statusCard && !mobileLayout ? (
-          <p className="hub-experience-hero-status">{statusCard.headline}</p>
-        ) : null}
-
-      </HubExperienceHero>
-
-      <CapWorkbench
-        mobile={mobileLayout}
-        calculator={moveCalculator}
-        summary={(
-          <>
-          <HubExperienceSummary
-            actionFirst
-            title={workspace?.name || "Your team"}
-            subtitle={`${baseSeason} season · ${fmtSal(salaryCap)} cap`}
-            groups={[
-              { id: "you", items: teamItems },
-              ...(cutPreview ? [{
-                id: "cut-funds",
-                heading: CAP_CUT_COPY.heading,
-                items: [
-                  { id: "dead-after", label: CAP_CUT_COPY.deadAfter, value: fmtCapMoney(cutPreview.dead_cap) },
-                  { id: "left-after", label: CAP_CUT_COPY.leftoverAfter, value: fmtCapMoney(cutPreview.leftover_after) },
-                  { id: "funds", label: CAP_CUT_COPY.thisCutFunds, value: cutFundsLine },
-                ],
-              }] : []),
-              {
-                id: "rules",
-                heading: CAP_FIGURE_COPY.rulesHeading,
-                items: [
-                  { id: "step", label: CAP_FIGURE_COPY.stepUp, value: fmtSal(stepUp) },
-                  { id: "cut", label: CAP_FIGURE_COPY.cutRefund, value: `${cutPct}%` },
-                ],
-              },
-            ]}
-            note={cutPreview && addMode === "locked" && cutWindowBanner?.text
-              ? cutWindowBanner.text
-              : capEquationNote({
-                against,
-                leftover: summary.remaining,
-                salaryCap,
-              })}
-            action={(
-              <div className="hub-cap-rail-actions">
-                {cutPreview && !cutPreview.is_cut ? (
-                  <>
-                    <button
-                      type="button"
-                      className="btn-primary hub-experience-summary-action"
-                      disabled={Boolean(cutBusyId)}
-                      onClick={cutAndHandoff}
-                    >
-                      {cutAction.label}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost hub-experience-summary-action"
-                      onClick={clearCapSelection}
-                    >
-                      {CAP_CUT_COPY.keep}
-                    </button>
-                    {selectedCapRow ? (
-                      <ContractHistoryLink
-                        playerId={selectedCapRow.player_id}
-                        playerName={selectedCapRow.player_name}
-                      />
-                    ) : null}
-                  </>
-                ) : cutPreview?.is_cut ? (
-                  <div className="hub-cap-undo-cut">
-                    <button
-                      type="button"
-                      className="btn-ghost hub-experience-summary-action"
-                      disabled={Boolean(cutBusyId) || selectedCapRow?.can_undo_cut === false}
-                      onClick={() => undoCut(cutPreview.player_id)}
-                    >
-                      {selectedCapRow?.can_undo_cut === false
-                        ? MY_TEAM_COPY.undoCutClosed
-                        : MY_TEAM_COPY.undoCut}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost hub-experience-summary-action"
-                      onClick={clearCapSelection}
-                    >
-                      {CAP_CUT_COPY.keep}
-                    </button>
-                  </div>
-                ) : railPrimary.kind === "undo-cut" ? (
-                  <div className="hub-cap-undo-cut">
-                    <button
-                      type="button"
-                      className="btn-ghost hub-experience-summary-action"
-                      disabled={Boolean(cutBusyId)}
-                      onClick={() => undoCut(railPrimary.playerId)}
-                    >
-                      {railPrimary.label}
-                    </button>
-                    {railPrimary.detail ? (
-                      <p className="chart-note">{railPrimary.detail}</p>
-                    ) : null}
-                  </div>
-                ) : onNavigate ? (
-                  <button
-                    type="button"
-                    className="btn-primary hub-experience-summary-action"
-                    onClick={() => onNavigate("room")}
-                  >
-                    {railPrimary.label}
-                  </button>
-                ) : null}
-                {inLeague && onNavigate && !cutPreview ? (
-                  <button
-                    type="button"
-                    className="btn-link hub-cap-league-spend"
-                    onClick={() => onNavigate("insights")}
-                  >
-                    {CAP_FIGURE_COPY.leagueSpend}
-                  </button>
-                ) : null}
-              </div>
-            )}
-          />
-          </>
-        )}
-      >
-      {roster.length > 0 && (
-        <HubSection title={CAP_SHEET_COPY.title} hint={CAP_SHEET_COPY.hint} className="hub-cap-contracts">
-          <div className="hub-cap-sheet-table">
-            {mobileLayout ? (
-              <ul className="hub-cap-dense-list" aria-label="Cap sheet">
-                {roster.map((r) => (
-                  <CapDenseRow
-                    key={rosterSlotKey(r)}
-                    name={r.player_name}
-                    value={fmtSal(capHitForRow(r, 0, workspace?.rules))}
-                    chip={r.position || `${r.contract?.years_remaining ?? r.contract_years ?? "—"} yrs`}
-                    selected={String(r.player_id) === String(selectedPlayerId)}
-                    onOpen={() => selectCapRow(r.player_id)}
-                  />
-                ))}
-              </ul>
-            ) : (
-            <div className="table-wrap table-sticky">
-              <table className="data-table hub-table hub-cap-values-table">
-                <thead>
-                  <tr>
-                    <th>Player</th>
-                    <th>{baseSeason}</th>
-                    <th>{CAP_SHEET_COPY.years}</th>
-                    {futureYearOffsets.map((offset) => (
-                      <th key={yearLabels[offset]?.seasonLabel || offset}>
-                        {yearLabels[offset]?.seasonLabel}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {roster.map((r) => (
-                    <tr
-                      key={rosterSlotKey(r)}
-                      className={`hub-cap-row is-action${
-                        String(r.player_id) === String(selectedPlayerId) ? " is-selected" : ""
-                      }${
-                        droppingIds.has(String(r.player_id))
-                        || extendableIds.has(String(r.player_id))
-                        || pendingExtendIds.has(String(r.player_id))
-                          ? " hub-cap-row--expiring"
-                          : ""
-                      }`}
-                      aria-selected={String(r.player_id) === String(selectedPlayerId)}
-                      onClick={() => selectCapRow(r.player_id)}
-                    >
-                      <td>
-                        <button type="button" className="btn-link hub-cap-player-select"
-                          aria-pressed={String(r.player_id) === String(selectedPlayerId)}
-                          onClick={(event) => { event.stopPropagation(); selectCapRow(r.player_id); }}
-                        >{r.player_name}</button>
-                        {" "}
-                        {expiryBadge(r.player_id)}
-                      </td>
-                      <td>{fmtSal(capHitForRow(r, 0, workspace?.rules))}</td>
-                      <td>{r.contract?.years_remaining ?? r.contract_years ?? "—"}</td>
-                      {futureYearOffsets.map((offset) => (
-                        <td key={yearLabels[offset]?.seasonLabel || offset}>
-                          {fmtSal(capHitForRow(r, offset, workspace?.rules))}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            )}
-          </div>
-        </HubSection>
-      )}
-      <details className="hub-cap-model-details">
-        <summary>{CAP_MODEL_COPY.summary}</summary>
-        <div>{glossary}</div>
-      </details>
-      <div className="hub-cap-tools">
-
-
-      {!draftCompleted && (
-        <details className="hub-cap-disclosure">
-        <summary>{CAP_EXTEND_COPY.title}</summary>
-        <HubSection
-          title={CAP_EXTEND_COPY.title}
-          hint={
-            extendableRoster.length > 0
-              ? `Eligible final-year contracts — pick 1–${maxExtensionYears} years. Start salary is current + $${stepUp} (server-calculated).`
-              : pendingExtendIds.size > 0
-                ? CAP_EXTEND_COPY.queuedHint
-                : "No rookies eligible to extend right now."
-          }
-        >
-          {extendableRoster.length > 0 ? (
-            <HubToolbar>
-              <HubFilterMenu
-                label={CAP_EXTEND_COPY.playerLabel}
-                value={extendPlayer}
-                options={[
-                  { id: "", label: CAP_EXTEND_COPY.selectPlayer },
-                  ...extendableRoster.map((r) => ({
-                    id: String(r.player_id),
-                    label: `${r.player_name} (${contractTypeLabel(r.contract?.contract_type) || "contract"} · ${fmtSal(r.salary)})`,
-                  })),
-                ]}
-                onChange={setExtendPlayer}
-              />
-              <HubFilterMenu
-                label={CAP_EXTEND_COPY.yearsLabel}
-                value={extendYearsSafe}
-                options={yearOptions}
-                onChange={setExtendYears}
-              />
-              {selectedStartSalary != null && (
-                <span className="chart-note hub-extend-start-preview">
-                  Starts at {fmtSal(selectedStartSalary)}
-                </span>
-              )}
-              <button type="button" className="btn-ghost btn-sm" onClick={extend} disabled={!extendPlayer}>
-                {CAP_EXTEND_COPY.queue}
-              </button>
-            </HubToolbar>
-          ) : (
-            <p className="chart-note">
-              {queuedExtensions.length > 0
-                ? CAP_EXTEND_COPY.queuedHint
-                : mustExtend.length === 0 && droppingAtDraft.length === 0
-                  ? CAP_EXTEND_COPY.noDealsEnd
-                  : CAP_EXTEND_COPY.alreadyExtended}
-            </p>
-          )}
-          {queuedExtensions.length > 0 ? (
-            <ul className="hub-pre-draft-list">
-              {queuedExtensions.map((p) => (
-                <li key={p.player_id}>
-                  {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
-                  {p.player_name}
-                  {queuedYearsLine(p.queued_years) ? (
-                    <span className="table-meta"> · {queuedYearsLine(p.queued_years)}</span>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="btn-link"
-                    disabled={extendBusyId === String(p.player_id)}
-                    onClick={() => undoQueuedExtension(p.player_id)}
-                  >
-                    {CAP_EXTEND_COPY.undo}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </HubSection>
-        </details>
-      )}
-      </div>
-
-      {needLine && (
-        <div className="hub-cap-need">
-          <p>{needLine}</p>
-          {onNavigate ? (
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={() => onNavigate("available", { pos: needs[0]?.position })}
-            >
-              {CAP_NEED_COPY.browseFreeAgents}
-            </button>
-          ) : null}
-        </div>
-      )}
-
-      {otherErrors.length > 0 && (
-        <HubAlertStack>
-          {otherErrors.map((e) => (
-            <HubAlert key={e} variant={rosterAlertVariant(e)}>
-              {e}
-            </HubAlert>
-          ))}
-        </HubAlertStack>
-      )}
-
-      {preDraft && (
-        <HubSection
-          title={CAP_MODEL_COPY.contractReview}
-          hint={
-            CAP_MODEL_COPY.contractReviewHint
-          }
-        >
-          {preDraft.dead_cap > 0 && (
-            <p className="hub-cap-pre-draft-dead chart-note">
-              Dead cap this season: <strong>{fmtSal(preDraft.dead_cap)}</strong>
-              {preDraft.cap_freed_from_cuts > 0
-                ? ` · pending cuts free ${fmtSal(preDraft.cap_freed_from_cuts)}`
-                : ""}
-            </p>
-          )}
-          {preDraft.pending_cuts?.length > 0 && (
-            <details className="hub-pre-draft-details" open>
-              <summary>{preDraft.pending_cuts.length} pending cut(s)</summary>
-              <ul className="hub-pre-draft-list">
-                {preDraft.pending_cuts.map((p) => (
-                  <li key={p.player_id}>
-                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
-                    {p.player_name}: {contractDeadCapStory({
-                      ...p,
-                      salary: p.salary,
-                      roster_status: "cut_before_draft",
-                    }, workspace?.rules).cutBullet}
-                    {p.dead_cap_years > 1 ? ` (${p.dead_cap_years} yrs)` : ""}
-                    {p.can_undo_cut === false ? (
-                      <span className="hub-btn-support">
-                        {MY_TEAM_COPY.undoCutClosedDetail(p.claimed_by_owner)}
-                      </span>
-                    ) : (
-                    <button
-                      type="button"
-                      className="btn-link"
-                      disabled={cutBusyId === String(p.player_id)}
-                      onClick={() => undoCut(p.player_id)}
-                    >
-                      Undo cut
-                    </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          {queuedExtensions.length > 0 && (
-            <details className="hub-pre-draft-details" open>
-              <summary>{queuedExtensionsSummary(queuedExtensions.length)}</summary>
-              <ul className="hub-pre-draft-list">
-                {queuedExtensions.map((p) => (
-                  <li key={p.player_id}>
-                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
-                    {p.player_name}: {fmtSal(p.salary)}
-                    {queuedYearsLine(p.queued_years) ? (
-                      <span className="table-meta"> · {queuedYearsLine(p.queued_years)}</span>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="btn-link"
-                      disabled={extendBusyId === String(p.player_id)}
-                      onClick={() => undoQueuedExtension(p.player_id)}
-                    >
-                      {CAP_EXTEND_COPY.undo}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          {mustExtend.length > 0 && (
-            <details className="hub-pre-draft-details" open>
-              <summary>{mustExtend.length} extend to keep (eligible deal ending)</summary>
-              <ul className="hub-pre-draft-list">
-                {mustExtend.map((p) => (
-                  <li key={p.player_id}>
-                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
-                    {p.player_name}: {fmtSal(p.salary)}
-                    <span className="table-meta"> · extend 1–{maxExtensionYears} years to keep</span>
-                    <button
-                      type="button"
-                      className="btn-link"
-                      onClick={() => setSelectedPlayerId(p.player_id)}
-                    >
-                      Contract
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          {droppingAtDraft.length > 0 && (
-            <details className="hub-pre-draft-details" open={mustExtend.length === 0}>
-              <summary>{droppingAtDraft.length} return to the draft pool</summary>
-              <ul className="hub-pre-draft-list">
-                {droppingAtDraft.map((p) => (
-                  <li key={p.player_id}>
-                    {p.position && <span className="hub-roster-pos-tag">{p.position}</span>}{" "}
-                    {p.player_name}: {fmtSal(p.salary)}
-                    <span className="table-meta"> · cannot extend again</span>
-                    <button
-                      type="button"
-                      className="btn-link"
-                      onClick={() => setSelectedPlayerId(p.player_id)}
-                    >
-                      Contract
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-          {mustExtend.length === 0 && droppingAtDraft.length === 0 && (
-            <p className="chart-note">No deals end at this draft.</p>
-          )}
-          {!draftCompleted && isCommissioner ? (
-            <p className="chart-note hub-pre-draft-note">
-              {onNavigate ? (
-                <button type="button" className="btn-link" onClick={() => onNavigate("office")}>
-                  {CAP_DRAFT_COPY.markComplete}
-                </button>
-              ) : (
-                <strong>{CAP_DRAFT_COPY.markComplete}</strong>
-              )}
-              {" "}
-              {CAP_DRAFT_COPY.markCompleteRest}
-            </p>
-          ) : null}
-        </HubSection>
-      )}
-
-      {!hasRoster && onNavigate && (
-        <p className="chart-note">
-          <button type="button" className="btn-link" onClick={() => onNavigate("setup")}>
-            Add players in Setup
-          </button>
-          {" "}before planning cuts.
-        </p>
-      )}
-
-      {msg && (
-        <p
-          className={`hub-msg${
-            isRookieExtendSuccessMessage(msg) ? "" : " hub-msg--error"
-          }`}
-        >
-          {msg}
-        </p>
-      )}
-
-
-
-      {Object.keys(summary.by_position_count || {}).length > 0 && (
-        <details className="hub-cap-disclosure" onToggle={(event) => setSpendOpen(event.currentTarget.open)}>
-        <summary>{CAP_SHEET_COPY.spend}</summary>
-        {spendOpen && (
-        <HubSection title="Spend by position" className="hub-section--flush-table">
-          <HubTableCard>
-            {mobileLayout ? (
-              <ul className="hub-cap-dense-list" aria-label="Spend by position">
-                {positionRows.map((pos) => (
-                  <CapDenseRow
-                    key={pos}
-                    name={pos}
-                    value={fmtSal(summary.by_position_spend?.[pos])}
-                    chip={`${summary.by_position_count?.[pos] ?? 0}`}
-                  />
-                ))}
-              </ul>
-            ) : (
-            <div className="table-wrap table-sticky">
-              <table className="data-table hub-table hub-cap-values-table">
-                <thead>
-                  <tr>
-                    <th>Pos</th>
-                    <th>Count</th>
-                    <th>Spend</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positionRows.map((pos) => (
-                    <tr key={pos}>
-                      <td><span className="hub-roster-pos-tag">{pos}</span></td>
-                      <td>{summary.by_position_count?.[pos] ?? 0}</td>
-                      <td>{fmtSal(summary.by_position_spend?.[pos])}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            )}
-          </HubTableCard>
-        </HubSection>
-        )}
-        </details>
-      )}
-      </CapWorkbench>
-    </HubPage>
-  );
+      <div className="cap-planner-columns"><div className="cap-planner-main"><section className="cap-planner-card">
+        <header><h2>{C.sheet}</h2><span className="cap-planner-meta">{activeRows.length} players · {base + offset}</span></header>
+        <div className="cap-planner-list">{activeRows.map(row => {
+                const id = String(row.player_id),
+                  added = Number(chosenPlans[id] || 0),
+                  saved = queued.find(q => String(q.player_id) === id);
+                const eligible = Boolean(row.extension_terms?.length) && offset === row.extension_eligible_offset;
+                const reason = row.contract?.contract_type === 'extension' || row.contract?.renewal_used ? C.alreadyExtended : row.extension_terms?.length ? C.notFinal : C.extensionsOff;
+                const yearsLeft = row.preview_term ? row.preview_term.start_offset + row.preview_term.years - offset : Number(row.contract?.years_remaining || row.contract_years || 1) - offset;
+                return <div className="cap-planner-row" key={row.id || id}>
+            <button className="cap-planner-player" aria-label={`${row.player_name}, ${fmtSal(row.cap_hits[offset])}, preview cut`} aria-pressed={id === cutId} disabled={!row.is_active} onClick={() => {
+                    setCutId(id);
+                    setMode('cut');
+                  }}><span><strong>{row.player_name}</strong><small>{row.position} · {row.team}</small></span><span><strong>{fmtSal(row.cap_hits[offset])}</strong><small>{row.is_active ? yearsLeft > 0 ? C.yearsLeft(yearsLeft) : C.expiring : C.dead}</small></span></button>
+            {row.is_active && <div className="cap-planner-extension"><small>{added ? C.preview : saved ? `${C.queued} · ${saved.queued_years} yrs` : eligible ? C.eligible(base + row.extension_eligible_offset) : reason}</small>{(eligible || Boolean(added)) && <button ref={el => {
+                      triggerRefs.current[id] = el;
+                    }} className="btn-ghost" aria-expanded={editor === id} aria-controls={`cap-extend-${id}`} onClick={() => setEditor(editor === id ? '' : id)}>{added ? C.previewYears(added) : `${C.extend} +`}</button>}</div>}
+            {editor === id && <div className="cap-planner-extension-years" id={`cap-extend-${id}`} role="group" aria-label={`${row.player_name} extension years`}><button className="btn-ghost" onClick={() => chooseYears(row, 0)}>{C.revert}</button>{row.extension_terms.map(t => <button key={t.years} className="btn-ghost" aria-pressed={added === t.years} onClick={() => chooseYears(row, t.years)}>+{t.years} {t.years === 1 ? 'yr' : 'yrs'}</button>)}</div>}
+          </div>;
+              })}{!activeRows.length && <p>{C.noRoster}</p>}</div>
+      </section>
+      <details className="cap-planner-card cap-planner-disclosure"><summary><span className="cap-planner-disclosure-title">{C.contracts}<i aria-hidden="true" /></span></summary><div className="cap-planner-details">
+        {own && projection.rows.filter(r => chosenPlans[r.player_id] && canManagerRookieExtend(r, {
+                draftCompleted,
+                rules
+              }).ok).map(r => <div key={r.player_id}><span>{r.player_name} · +{chosenPlans[r.player_id]} yrs</span><button className="btn-ghost" disabled={extendBusy || !canWrite} onClick={() => saveExtension(r)}>{C.saveExtension}</button></div>)}
+        {queued.map(q => <div key={q.player_id}><span>{q.player_name} · {q.queued_years} {C.queued.toLowerCase()}</span>{own && <button className="btn-ghost" disabled={extendBusy || !canWrite} onClick={() => undoExtension(q.player_id)}>{C.revert}</button>}</div>)}
+        {cuts.map(c => <div key={c.player_id}><span>{c.player_name} · {contractDeadCapStory(c, rules).cutBullet}</span>{own && c.can_undo_cut !== false && <button className="btn-ghost" disabled={Boolean(cutBusyId) || !canWrite} onClick={() => undoCut(c.player_id)}>{C.removeCut}</button>}</div>)}
+        {projection.rows.map(r => <ContractHistoryLink key={r.id || r.player_id} playerId={r.player_id} playerName={r.player_name} onOpen={onOpenContractHistory}>{r.player_name}</ContractHistoryLink>)}
+      </div></details></div>
+      <aside className="cap-planner-side" aria-label="Move preview"><section className="cap-planner-card cap-planner-move"><h2>{C.move}</h2>
+        <div className="cap-planner-modes" role="group" aria-label="Move preview">{[['add', C.add], ['cut', C.cutAdd]].map(([id, label]) => <button key={id} aria-pressed={mode === id} onClick={() => {
+                setMode(id);
+                setCutId("");
+              }}>{label}</button>)}</div>
+        {mode === 'cut' && <HubFilterMenu label={C.cutPlayer} value={cutId} options={[{
+              id: '',
+              label: C.choose
+            }, ...activeRows.filter(r => r.is_active).map(r => ({
+              id: String(r.player_id),
+              label: r.player_name
+            }))]} onChange={setCutId} />}
+        <label className="cap-planner-field"><span>{C.target}</span><div><span aria-hidden="true">$</span><input inputMode="numeric" type="text" aria-label={C.target} value={target} onChange={e => setTarget(e.target.value.replace(/[^0-9]/g, ''))} /></div></label>
+        <div className="cap-planner-impact" aria-live="polite"><div><span>{C.now}</span><strong>{fmtSal(remaining)}</strong></div><div><span>{C.after}</span><strong className={after >= 0 ? 'is-positive' : 'is-negative'}>{fmtSal(after)}</strong></div></div>
+        {mode === 'cut' && cutRow && <p className="cap-planner-meta">{C.cutDead} · {fmtSal(newDead)}</p>}
+        {after < 0 && <HubAlert variant="warn">{C.over(fmtSal(-after))}</HubAlert>}
+        {own ? mode === 'cut' && cutRow && offset === 0 ? <><p className="cap-planner-meta">{cutAction.support}</p>{moveBanner && <p className="cap-planner-meta">{moveBanner.text || moveBanner}</p>}<button className="btn-primary" disabled={!canWrite || Boolean(cutBusyId) || !cutPreview || cutPreview.is_cut || after < 0} onClick={cutAndHandoff}>{cutAction.label || C.reviewCut}</button></> : <button className="btn-primary" disabled={after < 0} onClick={() => onNavigate?.('available')}>{C.freeAgents} →</button> : <button className="btn-ghost" onClick={() => selectTeam(ownId)}>{C.myCap} →</button>}
+        <button className="btn-ghost cap-planner-reset" onClick={reset}>{C.reset}</button><p className="cap-planner-meta">{C.previewOnly}</p>
+        {own && needLine && <p className="cap-planner-meta">{needLine}</p>}
+      </section><details className="cap-planner-card cap-planner-disclosure"><summary><span className="cap-planner-disclosure-title">{C.rules}<i aria-hidden="true" /></span></summary><div className="cap-planner-details"><p>{capStepUpLine({
+                  rookieStatic: rules?.contracts?.rookie_salary_static !== false,
+                  veteranStatic: rules?.contracts?.veteran_salary_static !== false,
+                  stepUp: rules?.contracts?.extension_step_up
+                })}</p><p>{capCutRefundLine(refund * 100)}</p></div></details></aside></div>
+      {msg && <p role="status">{msg}</p>}{otherErrors.map((e, i) => <HubAlert key={i} variant="warn">{e}</HubAlert>)}
+    </>}
+  </HubPage>;
 }

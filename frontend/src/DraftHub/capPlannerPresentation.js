@@ -490,3 +490,39 @@ export function capCutConfirmCopy(preview) {
   }
   return `Cut ${name}. ${money} ${CAP_CUT_COPY.noneFit}`;
 }
+
+
+export const CAP_PLANNER_COPY = {
+  available: "Available Cap", draft: "Leftover for draft", sheet: "Cap sheet",
+  around: "Around the league", back: "Back", search: "Team or manager", noTeams: "No matching teams",
+  loading: "Loading teams…", loadError: "Could not load team caps", retry: "Try again",
+  myCap: "Back to my cap", preview: "Planning preview", extend: "Extend", edit: "Edit", revert: "Revert",
+  notFinal: "Not final year", alreadyExtended: "Already extended", extensionsOff: "Extensions off",
+  previewYears: n => `+${n} ${n === 1 ? "yr" : "yrs"} · Edit`, yearsLeft: n => `${n} ${n === 1 ? "yr" : "yrs"} left`,
+  eligible: season => `Eligible · ${season} draft`, expiring: "Expiring", queued: "Queued",
+  move: "Try a move", add: "Add", cutAdd: "Cut + add", target: "Target salary", cutPlayer: "Cut player",
+  choose: "Choose player", now: "Available now", after: "After move", reset: "Reset", previewOnly: "Preview only",
+  freeAgents: "Open free agents", reviewCut: "Review cut", contracts: "Contracts", rules: "Cap rules",
+  noData: "Cap data unavailable", noRoster: "No contracts this season", own: "Your team",
+  cutSaved: "Cut saved", errorCut: "Could not cut", errorUndo: "Could not undo cut",
+  saveExtension: "Queue extension", clearPreview: "Clear previews", details: "Contract history",
+  removeCut: "Undo cut", dead: "dead", salary: "salary", used: "used", cutDead: "New dead cap",
+  over: amount => `${amount} over cap. Lower the target salary.`,
+};
+
+// Saved totals and schedules come from the server; previews only add the selected terms.
+export function capPlannerProjection(sheet, selections = {}) {
+  const rows = (sheet?.planning_rows || []).map(row => {
+    const term = row.extension_terms?.find(t => t.years === Number(selections[row.player_id]));
+    const hits = [...(row.cap_hits || [])];
+    if (term) term.salaries.forEach((salary, i) => { hits[term.start_offset + i] = salary; });
+    return { ...row, cap_hits: hits, preview_term: term || null };
+  });
+  const years = (sheet?.multi_year_plan || []).map((year, offset) => {
+    const delta = rows.reduce((sum, row, i) => sum + Number(row.cap_hits[offset] || 0) - Number(sheet.planning_rows[i]?.cap_hits[offset] || 0), 0);
+    return { ...year, cap_remaining: Math.round((Number(year.cap_remaining) - delta) * 100) / 100,
+      total_committed: Math.round((Number(year.total_committed) + delta) * 100) / 100 };
+  });
+  const last = Math.max(2, ...years.map((y, i) => Number(y.total_committed) > 0 ? i : 0));
+  return { rows, years: years.slice(0, last + 1) };
+}
