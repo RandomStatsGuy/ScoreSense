@@ -31,7 +31,7 @@ export default function MobileMenuSheet({
     <MobileBottomSheet
       open={open}
       onClose={onClose}
-      title="Menu"
+      title="More"
       className="app-mobile-sheet-menu"
     >
       <div className="app-mobile-sheet-list">

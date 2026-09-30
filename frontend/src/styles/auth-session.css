@@ -132,17 +132,21 @@
 .account-auth-form label {
   display: grid;
   gap: 0.3rem;
+  min-width: 0;
 }
 .account-auth-form input[type="email"],
 .account-auth-form input[type="password"],
 .account-auth-form input[type="text"],
-.account-auth-form input[type="tel"] {
+.account-auth-form input[type="tel"],
+.account-auth-form textarea {
   min-height: var(--touch-target);
   width: 100%;
   box-sizing: border-box;
   padding: 0.7rem 0.85rem;
   font-size: 1rem;
   border-radius: var(--radius-md);
+  min-width: 0;
+  max-width: 100%;
 }
 .account-auth-submit {
   width: 100%;

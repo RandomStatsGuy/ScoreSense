@@ -299,14 +299,12 @@
 
 /* Compact league slot: opt-in from the approved Home mobile header. */
 @media (max-width: 768px) {
-  .app-header--hub .app-header-mobile-top--league { display: grid; grid-template-columns: fit-content(55%) minmax(0,1fr) var(--touch-target); gap: var(--space-3); padding-block: var(--space-2); }
+  .app-header--hub .app-header-mobile-top--league { display: grid; grid-template-columns: fit-content(55%) minmax(0,1fr); gap: var(--space-3); padding: var(--space-2); }
   .app-header-mobile-top--league .app-header-mobile-title-btn { justify-self: start; max-width: 100%; padding: 0; gap: var(--space-1); }
   .app-header-mobile-top--league .app-header-mobile-title { font-size: var(--text-xl); }
   .app-header-mobile-title-caret svg { width: 20px; height: 20px; display: block; }
-  .app-header-mobile-top--league .app-header-mobile-title-caret { color: var(--text-primary); }
+  .app-header-mobile-top--league .app-header-mobile-title-caret { color: var(--text-primary); flex: none; }
   .app-header-mobile-league-slot { min-width: 0; }
-  .app-header-mobile-top--league .app-header-more { width: var(--touch-target); height: var(--touch-target); padding: 0; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--bg-elevated); }
-  .app-header-more svg { width: 20px; height: 20px; }
   .hub-league-context-bar.is-header-slot { position: static; padding: 0; margin: 0; min-width: 0; border: 0; background: transparent; border-radius: 0; box-shadow: none; }
   .is-header-slot .hub-league-context-caret > summary { display: flex; justify-content: flex-end; gap: var(--space-1); min-width: var(--touch-target); min-height: var(--touch-target); font-size: var(--text-xs); color: var(--text-secondary); }
   .is-header-slot .hub-league-context-caret > summary::after { content: none; }
