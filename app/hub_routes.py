@@ -226,10 +226,9 @@ from src.draft_hub.timing import HubTimer
 from src.config import HUB_TIMING
 from src.draft_hub.value_sheet import (
     _load_draft_pool,
-    build_draft_pool_payload,
+    read_draft_pool_payload,
     build_value_overlay,
     build_value_overlay_sheet,
-    build_value_sheet,
     peek_pool_payload_cache,
 )
 from src.draft_hub.ws_manager import draft_room_manager
@@ -578,7 +577,7 @@ def hub_draft_pool(
             rules = LeagueRules.model_validate(ctx["rules"])
             ranges = storage.list_salary_ranges(ctx.get("personal_workspace_id") or ws_id)
         with timer.phase("draft_pool"):
-            payload = build_draft_pool_payload(
+            payload = read_draft_pool_payload(
                 target_season,
                 rules,
                 ranges,
@@ -651,7 +650,7 @@ def hub_value_sheet(
             if overlay_only:
                 pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count)
                 if pool_payload is None:
-                    pool_payload = build_draft_pool_payload(
+                    pool_payload = read_draft_pool_payload(
                         target_season, rules, ranges, team_count=team_count
                     )
                 sheet = build_value_overlay(
@@ -665,16 +664,11 @@ def hub_value_sheet(
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
             else:
-                sheet = build_value_sheet(
-                    target_season,
-                    rules,
-                    ranges,
-                    roster,
-                    league_roster=league_roster,
-                    my_team_id=team_id,
-                    sleeper_player_ids=sleeper_ids,
+                pool_payload = read_draft_pool_payload(target_season, rules, ranges, team_count=team_count)
+                sheet = build_value_overlay(
+                    pool_payload, rules, roster, league_roster=league_roster,
+                    my_team_id=team_id, sleeper_player_ids=sleeper_ids,
                     league_sleeper_player_ids=league_sleeper_ids,
-                    team_count=team_count,
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
             sheet["sleeper"] = get_sleeper_context(sub)

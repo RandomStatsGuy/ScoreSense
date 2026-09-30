@@ -114,6 +114,53 @@ def _team_key(row: dict[str, Any] | None) -> str:
     return str((row or {}).get("team_id") or "")
 
 
+class RosterIdentityIndex:
+    """Prepared roster snapshot for many lookups, preserving matcher precedence.
+
+    Build from the current roster once per read. Do not cache across writes.
+    Lists retain source order so duplicate-contract tie breaking stays identical.
+    """
+
+    def __init__(self, rows: list[dict[str, Any]], *, occupying_only: bool = True):
+        self.rows = [r for r in rows if not occupying_only or roster_row_occupies(r)]
+        self.exact: dict[str, list[int]] = {}
+        self.tokens: dict[str, list[int]] = {}
+        self.names: dict[str, list[int]] = {}
+        self.clusters: dict[str, list[int]] = {}
+        self.abbreviated: set[int] = set()
+        for i, row in enumerate(self.rows):
+            pid = str(row.get("player_id") or "")
+            if pid:
+                self.exact.setdefault(pid, []).append(i)
+            for token in roster_identity_tokens(row):
+                self.tokens.setdefault(token, []).append(i)
+            name = name_pos_key(row)
+            if name:
+                self.names.setdefault(name, []).append(i)
+            cluster = _row_cluster_key(row)
+            if cluster:
+                self.clusters.setdefault(cluster, []).append(i)
+            if len(str(row.get("player_name") or row.get("player") or "").strip().split()) == 1:
+                self.abbreviated.add(i)
+
+    def find(self, player: dict[str, Any], *, team_id: str | None = None) -> dict[str, Any] | None:
+        pid = str(player.get("player_id") or "").strip()
+        exact = self.exact.get(pid, []) if pid else []
+        if exact:
+            return _prefer_team([self.rows[i] for i in exact], team_id)
+        overlapping = sorted({i for token in roster_identity_tokens(player) for i in self.tokens.get(token, [])})
+        if overlapping:
+            return _prefer_team([self.rows[i] for i in overlapping], team_id)
+        named = self.names.get(name_pos_key(player), [])
+        if named:
+            return _prefer_team([self.rows[i] for i in named], team_id)
+        abbreviated = len(str(player.get("player_name") or player.get("player") or "").strip().split()) == 1
+        clustered = [self.rows[i] for i in self.clusters.get(_row_cluster_key(player), [])
+                     if (abbreviated or i in self.abbreviated)
+                     and (not team_id or _team_key(self.rows[i]) == str(team_id))]
+        return clustered[0] if len(clustered) == 1 else None
+
+
 def find_matching_roster_slot(
     rows: list[dict[str, Any]],
     player: dict[str, Any],

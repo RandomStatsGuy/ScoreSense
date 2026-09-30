@@ -15,7 +15,7 @@ import pandas as pd
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from app.hub_http_timing import HubServerTimingMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
@@ -141,6 +141,7 @@ from src.projections.ros_cache import load_ros_prediction
 from app.hub_routes import router as hub_router
 from app.admin_routes import router as admin_router
 from app.support_routes import router as support_router
+from src.draft_hub.value_snapshot import PoolSnapshotUnavailable
 from app.auth import admin_configured
 
 
@@ -149,6 +150,8 @@ async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
     from src.draft_hub.week_context_warmup import warm_fantasy_week_context
     await asyncio.to_thread(warm_fantasy_week_context)
+    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+    await asyncio.to_thread(warm_fantasy_value_snapshots)
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
     from app.native_scoring_ticker import native_scoring_ticker_loop
@@ -181,6 +184,12 @@ app = FastAPI(
 )
 
 app.add_middleware(HubServerTimingMiddleware)
+
+
+@app.exception_handler(PoolSnapshotUnavailable)
+async def unavailable_pool_snapshot(_request, exc):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
 
 app.add_middleware(
     CORSMiddleware,
