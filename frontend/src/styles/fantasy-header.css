@@ -18,6 +18,7 @@
 .fantasy-league-picker .hub-league-pick-row { min-height: var(--control-h-lg,44px); padding: var(--space-3); }
 .fantasy-league-picker .hub-league-pick-row-title { font-size: var(--rosters-text,1rem); }
 .fantasy-league-picker .hub-league-pick-row-meta { font-size: var(--rosters-meta,.875rem); }
+.hub-league-switcher--list { display: block; width: 100%; margin: 0; }
 @media (min-width: 769px) {
  .app-header:is(.app-header--hub, .app-header--product) { margin-bottom: 0; position: relative; z-index: var(--z-header); }
  :is(.app-header--hub, .app-header--product) .app-header-shell { padding: 0; gap: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
