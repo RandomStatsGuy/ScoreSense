@@ -33,7 +33,8 @@ These alias existing ScoreSense tokens. Type stays ≥12px; text inputs use 16px
 
 - At desktop widths, anchor the league switcher to the left of its context row, aligned with the page content. Keep the compact phone header arrangement below 769px.
 
-- New Fantasy phone mocks start with one row: destination left, quieter league switcher toward the right, More at the end. Aim for the approved 61px header, ≤72px in the audit. Keep long names truncated with full accessible labels and both switch actions reachable. Do not stack centered Home/league pills or repeat the league strip on phone.
+- New Fantasy phone mocks start with one row: destination left and quieter league switcher toward the right, with an internal text inset. More belongs only in the bottom navigation. Aim for the approved 61px header, ≤72px in the audit. Keep long names truncated with full accessible labels and both switch actions reachable. Do not stack centered Home/league pills or repeat the league strip on phone.
+- The phone destination picker mirrors desktop primary destinations plus League. Secondary pages (Vibes, Cap, Rules, etc.) live under League with the same permission and capability filters as desktop.
 - Center short card headings, matchups, and standalone key figures. Left-align navigation, message text, player lists, forms, and actionable issues. Table numbers and their headers stay right-aligned.
 - Disclosures use a small leading icon, concise centered title, and a 44px plus/minus state indicator. Use native `details/summary`; keep summary `display: list-item`, put the grid inside, and hide its native marker only when providing the visible replacement. Never nest a second button in summary.
 - Make controls feel responsive with clear selected, expanded, pressed, and focus states. Respect reduced motion. Use accent for current selection and a meaningful next action; neutral controls can carry the rest. A page can have no primary action.

@@ -665,7 +665,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
             </table>
           </div>
           {mobileLayout ? (
-            <MobileDataList className="admin-mobile-list" emptyMessage="No registered accounts match the current filters.">
+            <MobileDataList emptyMessage={accountRows.length ? null : "No registered accounts match the current filters."}>
               {accountRows.map((row) => (
                 <MobilePlayerCard
                   key={row.user_sub}
@@ -733,6 +733,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
               <label>
                 Name
                 <input
+                  type="text"
                   required
                   value={createForm.name}
                   onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
@@ -1008,15 +1009,16 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
               </table>
             </div>
             {mobileLayout ? (
-              <MobileDataList className="admin-mobile-list" emptyMessage="No leagues match the current filters.">
+              <MobileDataList emptyMessage={leaguesPayload?.leagues?.length ? null : "No leagues match the current filters."}>
                 {(leaguesPayload?.leagues || []).map((lg) => (
                   <MobilePlayerCard
                     key={lg.id}
                     name={lg.name}
                     badge={lg.test_mode ? <span className="admin-badge">test</span> : null}
                     meta={`${lg.room_code} · ${lg.season} · ${lg.member_count}/${lg.team_rows} teams`}
-                    heroValue={lg.commissioner_email || lg.commissioner_sub || "—"}
-                    heroLabel="comm."
+                    heroValue={lg.member_count}
+                    heroLabel="teams"
+                    open={expandedLeagueId === lg.id}
                     onSelect={() => toggleLeague(lg.id)}
                     expanded={expandedLeagueId === lg.id && leagueDetail ? (
                       <div className="admin-mobile-league-detail">

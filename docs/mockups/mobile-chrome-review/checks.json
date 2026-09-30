@@ -1,0 +1,157 @@
+[
+  {
+    "width": 320,
+    "state": "more-sheet",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "navigation",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "report",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "admin",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "admin-Users",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "admin-Leagues",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "admin-expanded",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "terms",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "privacy",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "account",
+    "pass": true
+  },
+  {
+    "width": 320,
+    "state": "sms",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "more-sheet",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "navigation",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "report",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "admin",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "admin-Users",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "admin-Leagues",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "admin-expanded",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "terms",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "privacy",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "account",
+    "pass": true
+  },
+  {
+    "width": 390,
+    "state": "sms",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "navigation",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "report",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "admin",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "admin-Users",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "admin-Leagues",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "terms",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "privacy",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "account",
+    "pass": true
+  },
+  {
+    "width": 1280,
+    "state": "sms",
+    "pass": true
+  }
+]

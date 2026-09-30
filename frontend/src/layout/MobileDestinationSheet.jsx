@@ -10,6 +10,7 @@ export default function MobileDestinationSheet({
   groups = [],
   active,
   onSelect,
+  dismissOnSelect = true,
   className = "",
 }) {
   return (
@@ -31,7 +32,9 @@ export default function MobileDestinationSheet({
                 className={`app-mobile-sheet-item app-mobile-sheet-item-subdued app-mobile-sheet-item--dest${active === item.id ? " active" : ""}`}
                 aria-label={item.label}
                 aria-current={active === item.id ? "page" : undefined}
-                onClick={() => selectAndDismissDestination(item.id, onSelect, onClose)}
+                onClick={() => dismissOnSelect
+                  ? selectAndDismissDestination(item.id, onSelect, onClose)
+                  : onSelect?.(item.id)}
               >
                 <span>{item.label}</span>
                 {item.hint ? <span className="chart-note">{item.hint}</span> : null}
