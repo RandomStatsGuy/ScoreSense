@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useFantasyReady from "../useFantasyReady";
 import { parseApiError } from "../format";
 import { TipLine, TipTitle } from "../HoverTip";
 import { TableSkeletonBody } from "../TableSkeleton";
@@ -179,6 +180,7 @@ export default function ValueSheetTable({
   const isAvailableView = mode === "available";
   const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft));
   const [sortDir, setSortDir] = useState(DEFAULT_SORT_DIR);
+  useFantasyReady("available", "player-board", !loading && Array.isArray(rows));
   const [posFilter, setPosFilter] = useState(defaultPosFilter);
   const [statusFilter, setStatusFilter] = useState(isAvailableView ? "AVAILABLE" : "ALL");
   const [tierFilter, setTierFilter] = useState("ALL");

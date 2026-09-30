@@ -14,6 +14,7 @@ from typing import Any, Optional
 import pandas as pd
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from app.hub_http_timing import HubServerTimingMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -178,6 +179,8 @@ app = FastAPI(
     version="4.0.0",
     lifespan=lifespan,
 )
+
+app.add_middleware(HubServerTimingMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

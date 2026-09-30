@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useFantasyReady from "../useFantasyReady";
 import { parseApiError } from "../format";
 import { createPortal } from "react-dom";
 import useModalFocus from "../ui/useModalFocus";
@@ -365,6 +366,7 @@ export default function RosterBuilder({
   onFocusConsumed,
 }) {
   const [playerId, setPlayerId] = useState("");
+  useFantasyReady("roster", "roster-data", !loading && Array.isArray(roster));
   const [salary, setSalary] = useState("");
   const [years, setYears] = useState(1);
   const [error, setError] = useState("");

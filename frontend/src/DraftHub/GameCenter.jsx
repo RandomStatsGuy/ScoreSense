@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useFantasyReady from "../useFantasyReady";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
@@ -43,6 +44,7 @@ export default function GameCenter({
   const [lineupSummary, setLineupSummary] = useState(null);
   const [section, setSection] = useState(renderLineup ? "lineup" : "starters");
   const [loading, setLoading] = useState(true);
+  useFantasyReady("week", "matchup", Boolean(data) && !loading);
   const [error, setError] = useState("");
   const [week, setWeek] = useState(() => gameCenterWeek(requestedWeek)); // null = current NFL week
   useEffect(() => {

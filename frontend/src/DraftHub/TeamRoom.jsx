@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useFantasyReady from "../useFantasyReady";
 import {
   MY_TEAM_COPY as COPY,
   roomNumber,
@@ -28,6 +29,7 @@ export function TeamRoomView({
   busy = false,
   message = "",
 }) {
+  useFantasyReady("roster", "team-room", Boolean(data));
   const { identities } = useTeamIdentities();
   const [section, setSection] = useState("starters");
   const [selected, setSelected] = useState(null);

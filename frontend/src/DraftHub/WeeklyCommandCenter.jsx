@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useFantasyReady from "../useFantasyReady";
+import { startFantasyAction } from "../fantasyPerformance";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import {
@@ -60,6 +62,7 @@ export default function WeeklyCommandCenter({
   const [loading, setLoading] = useState(() => !getWeeklySnapshot(snapshotKey));
   const [revalidating, setRevalidating] = useState(false);
   const [error, setError] = useState("");
+  useFantasyReady("week", "lineup", Boolean(data));
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
@@ -301,6 +304,7 @@ export default function WeeklyCommandCenter({
 
   const applyFill = useCallback(async (slot, benchPlayer) => {
     if (!leagueId || !slot?.slot || !benchPlayer?.player_id) return;
+    const finishAction = startFantasyAction("lineup-fill");
     setLineupBusy(true);
     setLineupError("");
     setRevalidating(false);
@@ -320,15 +324,17 @@ export default function WeeklyCommandCenter({
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const result = await res.json();
-      if (mutationScopeRef.current !== mutationScope) return false;
+      if (mutationScopeRef.current !== mutationScope) { finishAction("superseded"); return false; }
       const saved = applySavedLineup(dataRef.current, result);
       setWeeklySnapshot(snapshotKey, leagueId, saved);
       setDataState({ key: dataKey, payload: saved });
       setPickerSlot(null);
+      finishAction("saved");
       void load(undefined, { background: true });
       onLineupChanged?.();
       return true;
     } catch (e) {
+      finishAction("rejected");
       if (mutationScopeRef.current !== mutationScope) return false;
       setLineupError(connectionErrorMessage(e));
       return false;
@@ -339,6 +345,7 @@ export default function WeeklyCommandCenter({
 
   const applySwap = useCallback(async (starterId, benchId) => {
     if (!leagueId || !starterId || !benchId) return;
+    const finishAction = startFantasyAction("lineup-swap");
     setLineupBusy(true);
     setLineupError("");
     setRevalidating(false);
@@ -355,16 +362,18 @@ export default function WeeklyCommandCenter({
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const result = await res.json();
-      if (mutationScopeRef.current !== mutationScope) return false;
+      if (mutationScopeRef.current !== mutationScope) { finishAction("superseded"); return false; }
       const saved = applySavedLineup(dataRef.current, result);
       setWeeklySnapshot(snapshotKey, leagueId, saved);
       setDataState({ key: dataKey, payload: saved });
       setPickerSlot(null);
       setOpenCall(null);
+      finishAction("saved");
       void load(undefined, { background: true });
       onLineupChanged?.();
       return true;
     } catch (e) {
+      finishAction("rejected");
       if (mutationScopeRef.current !== mutationScope) return false;
       setLineupError(connectionErrorMessage(e));
       return false;
