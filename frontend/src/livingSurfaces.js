@@ -66,7 +66,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/DraftHub/strategyRank.js",
       "frontend/src/styles/strategy-board.css",
     ],
-    doNot: "Do not add HubExperienceHero. Strategy is the only Fantasy destination without a hero band — a deliberate board-first exception. Face-off is the Strategy page (full-page cards). Cards show a larger player photo on a faded team backdrop. Pairs are the same position only. View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone. Never show Hub in the scoring label. Suggested bid names scoring and Rules risk posture.",
+    doNot: "Do not add HubExperienceHero. Strategy is the approved board-first destination without a hero band — a deliberate board-first exception. Face-off is the Strategy page (full-page cards). Cards show a larger player photo on a faded team backdrop. Pairs are the same position only. View my rankings opens site vs mine. Not a leftover-cap spreadsheet and not a Vibes clone. Never show Hub in the scoring label. Suggested bid names scoring and Rules risk posture.",
   }),
   "hub.available": S({
     label: "Free agents",
@@ -185,15 +185,12 @@ export const LIVING_SURFACES = Object.freeze({
   }),
   "hub.trades": S({
     label: "Trades",
-    chrome: "experience",
+    chrome: "action-center",
     route: "/hub/trades",
     page: "frontend/src/DraftHub/LeagueTrades.jsx",
     copy: "frontend/src/DraftHub/leagueTradesPresentation.js",
-    also: [
-      "frontend/src/DraftHub/tradeWeekPreviewPresentation.js",
-      "frontend/src/DraftHub/tradeWeekPreview.js",
-    ],
-    doNot: "Wrap Trades in HubExperienceHero. Zero partners swaps the primary to Invite managers on Members. Continue (or Propose on the last step) is the only primary in the viewport. Accept and Load into builder are ghost. Do not invent a second hero system. Need a partner is status text, never amber. Partner cards use the Rosters manager-rail min-width with Select pinned to the card bottom. The Continue bar right-aligns and drops the extra card chrome. Trades cap line is current roster salary, not My team's {season} committed. Auto-check the package and gate Propose on a pass; put the verdict beside the primary as a live status banner. Partner status is hero text, not a chip CTA. Ideas need chips are starter-thin only. Expire chips say Extendable or Expiring, never a question or Expires — FA. This Week starter strip sits under your cap card only — do not broadcast the preview. Teal when the week delta is up, amber when it is down; blue stays Propose. Offseason hides the strip with week empty copy, never a $0 lineup.",
+    also: ["frontend/src/DraftHub/TradeDiscovery.jsx", "frontend/src/DraftHub/TradeImpactGrid.jsx", "frontend/src/DraftHub/tradeOutlook.js", "frontend/src/styles/league-trades.css"],
+    doNot: "Team discovery is the landing view: two wide saved-image banner cards per row, team name first and owner below, searchable by team, manager or player. Each card compares projected Starter and Bench positional strength across the league and shows Available Cap only in salary leagues. Tapping a team opens both rosters with square selection controls. A live 2×2 grid shows remaining-season points, contract-life points, starter/bench changes and points per dollar; pick leagues omit contract life and points per dollar. The same grid sits in the mobile bottom-sheet Review. Missing forecasts stay unavailable. Rank uses an optimal eligible projected lineup, not salary or player counts. Forecasts are PPR research; future contract years use an explicitly labeled same-pace estimate, not a dynasty model. Use a compact title/actions without an experience hero. Multi-team routing, cuts and dead-cap assignment stay in disclosures. Auto-check each package and gate Propose on a pass; verdict sits beside the primary. Review or Propose is the only primary. Inbox and Ideas remain secondary. Trades cap is current active roster salary including expiring contracts, distinct from My team draft-surviving committed salary.",
   }),
   "hub.rules": S({
     label: "Rules",
