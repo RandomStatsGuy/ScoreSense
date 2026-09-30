@@ -967,6 +967,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
       {subView === "planner" && (
         <CapPlanner
+          onOpenContractHistory={onOpenContractHistory}
           capSheet={capSheet}
           roster={roster}
           workspace={workspace}
