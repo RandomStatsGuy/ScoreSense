@@ -343,6 +343,7 @@ function ContractSidePanelBody({
 }
 
 export default function RosterBuilder({
+  cacheScope,
   roster,
   onChanged,
   valueRows,
@@ -976,7 +977,7 @@ export default function RosterBuilder({
       <button type="button" aria-pressed={roomTab === "room"} onClick={() => setRoomTab("room")}>{MY_TEAM_COPY.room}</button>
       <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{usesSalaries ? MY_TEAM_COPY.manage : MY_TEAM_COPY.playerDetails}</button>
     </div>
-    {roomTab === "room" ? <TeamRoom leagueId={hubContext.league_id} teamId={hubContext.team_id}
+    {roomTab === "room" ? <TeamRoom key={`${hubContext.league_id}:${hubContext.team_id}`} cacheScope={cacheScope} leagueId={hubContext.league_id} teamId={hubContext.team_id}
       onContract={usesSalaries ? (pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); } : null}
       onAppearance={() => { setRoomTab("manage"); setLookOpen(true); }}
       onLineup={() => onNavigate?.("week")} /> : rosterPage}

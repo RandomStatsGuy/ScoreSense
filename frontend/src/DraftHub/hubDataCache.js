@@ -5,6 +5,8 @@ export function hubCacheGeneration() { return cacheGeneration; }
 
 let poolCache = null;
 let overlayCache = null;
+const POOL_SESSION_PREFIX = "ss_pool_v1:";
+const POOL_SESSION_TTL_MS = 5 * 60_000;
 
 const INSIGHTS_SESSION_PREFIX = "ss_insights_";
 const INSIGHTS_CACHE_VERSION = 2;
@@ -29,18 +31,51 @@ function rulesKey(rules) {
   ].join("|");
 }
 
-export function poolCacheKey(season, rules) {
-  return `${season}:${rulesKey(rules)}`;
+export function poolCacheKey(season, rules, scope = "") {
+  return JSON.stringify([scope, season, rulesKey(rules)]);
 }
 
-export function getCachedPool(season, rules) {
-  const key = poolCacheKey(season, rules);
-  if (poolCache?.key === key) return poolCache.data;
-  return null;
+export function getCachedPool(season, rules, scope = "") {
+  const key = poolCacheKey(season, rules, scope);
+  if (poolCache?.key === key && Date.now() - poolCache.at < POOL_SESSION_TTL_MS) return poolCache.data;
+  if (!scope) return null;
+  try {
+    const raw = sessionStorage.getItem(`${POOL_SESSION_PREFIX}${key}`);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved?.data || Date.now() - saved.at >= POOL_SESSION_TTL_MS) {
+      sessionStorage.removeItem(`${POOL_SESSION_PREFIX}${key}`);
+      return null;
+    }
+    poolCache = { key, data: saved.data, at: saved.at };
+    return saved.data;
+  } catch {
+    return null;
+  }
 }
 
-export function setCachedPool(season, rules, data) {
-  poolCache = { key: poolCacheKey(season, rules), data };
+export function setCachedPool(season, rules, data, scope = "") {
+  const key = poolCacheKey(season, rules, scope);
+  poolCache = { key, data, at: Date.now() };
+  if (!scope || !data) return;
+  try {
+    sessionStorage.setItem(`${POOL_SESSION_PREFIX}${key}`, JSON.stringify({ at: Date.now(), data }));
+  } catch {
+    // In-memory reuse still works when browser storage is full or unavailable.
+  }
+}
+
+export function clearPersistedPool() {
+  try {
+    const keys = [];
+    for (let i = 0; i < sessionStorage.length; i += 1) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(POOL_SESSION_PREFIX)) keys.push(key);
+    }
+    keys.forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // The in-memory pool is cleared even if session storage is unavailable.
+  }
 }
 
 export function getCachedOverlay(season) {
@@ -56,14 +91,18 @@ export function clearHubDataCache() {
   cacheGeneration += 1;
   poolCache = null;
   overlayCache = null;
+  clearPersistedPool();
   clearLeagueRostersCache();
+  invalidateHomeCache();
+  invalidateWeeklySnapshot();
+  invalidateRoomSnapshot();
 }
 
 /** One in-flight value-sheet GET per season/rules key. */
 const valueSheetInflight = new Map();
 
-export function valueSheetRequestKey(season, rules, { forcePool = false } = {}) {
-  return `${cacheGeneration}:${poolCacheKey(season, rules)}:${forcePool ? "force" : "soft"}`;
+export function valueSheetRequestKey(season, rules, { forcePool = false, scope = "" } = {}) {
+  return `${cacheGeneration}:${poolCacheKey(season, rules, scope)}:${forcePool ? "force" : "soft"}`;
 }
 
 export function runValueSheetRequest(key, factory) {
@@ -287,6 +326,69 @@ export function invalidateFreshnessCache(leagueId) {
   if (leagueId) freshnessCache.delete(leagueId);
   else freshnessCache.clear();
   invalidateHomeCache(leagueId);
+  invalidateWeeklySnapshot(leagueId);
+}
+
+/** Short-lived lineup payload for returning to This Week within a session. */
+const weeklySnapshots = new Map();
+const WEEKLY_SNAPSHOT_TTL_MS = 30_000;
+
+export function weeklySnapshotKey(scope, contextKey, week = "") {
+  if (!scope) return null;
+  return JSON.stringify([scope, contextKey, String(week)]);
+}
+
+export function getWeeklySnapshot(key) {
+  if (!key) return null;
+  const hit = weeklySnapshots.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at >= WEEKLY_SNAPSHOT_TTL_MS) {
+    weeklySnapshots.delete(key);
+    return null;
+  }
+  return hit.data;
+}
+
+export function setWeeklySnapshot(key, leagueId, data) {
+  if (!key || !data) return;
+  weeklySnapshots.set(key, { leagueId, data, at: Date.now() });
+}
+
+export function invalidateWeeklySnapshot(leagueId) {
+  for (const [key, entry] of weeklySnapshots) {
+    if (!leagueId || entry.leagueId === leagueId) weeklySnapshots.delete(key);
+  }
+}
+
+/** Keep a recently viewed team room visible while its next read refreshes. */
+const roomSnapshots = new Map();
+const ROOM_SNAPSHOT_TTL_MS = 60_000;
+
+export function roomSnapshotKey(scope, leagueId, teamId, week) {
+  if (!scope || !leagueId || !teamId) return null;
+  return JSON.stringify([scope, leagueId, teamId, week || "current"]);
+}
+
+export function getRoomSnapshot(key) {
+  if (!key) return null;
+  const hit = roomSnapshots.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at >= ROOM_SNAPSHOT_TTL_MS) {
+    roomSnapshots.delete(key);
+    return null;
+  }
+  return hit.data;
+}
+
+export function setRoomSnapshot(key, leagueId, data) {
+  if (!key || !data) return;
+  roomSnapshots.set(key, { leagueId, data, at: Date.now() });
+}
+
+export function invalidateRoomSnapshot(leagueId) {
+  for (const [key, entry] of roomSnapshots) {
+    if (!leagueId || entry.leagueId === leagueId) roomSnapshots.delete(key);
+  }
 }
 
 /** In-memory League Home cache (/api/hub/home). */
