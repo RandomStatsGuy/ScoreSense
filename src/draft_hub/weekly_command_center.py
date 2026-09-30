@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 import re
+import time
 from typing import Any, Iterable
 
 import numpy as np
@@ -572,6 +573,8 @@ def attach_call_facts(
     def_vs_pos: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Attach Ticket-sheet facts. Soft-fail: missing sources leave fields empty."""
+    if not cards:
+        return cards
     if vegas_teams is None:
         vegas_teams = _load_vegas_teams(season, week)
     if prior_ppg is None:
@@ -943,6 +946,8 @@ def _roster_projection_changes(
     apply_injury_adjustments: bool,
 ) -> dict[str, Any]:
     """Attach SCORE-7 movement for roster players (soft-fail if artifact missing)."""
+    if not players:
+        return {"available": False, "items": [], "note": "No roster players to compare."}
     try:
         from src.projections.projection_movement import build_projection_movement_payload
     except Exception:
@@ -1037,8 +1042,18 @@ def build_weekly_command_center(
     apply_injury_adjustments: bool = True,
     bench_over_starter_threshold: float = DEFAULT_BENCH_OVER_STARTER_THRESHOLD,
     league_cards: bool = False,
+    timings: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Build the Your Week payload for the signed-in Hub user's active team."""
+    phase_start = time.perf_counter() if timings is not None else 0.0
+
+    def mark_phase(name: str) -> None:
+        nonlocal phase_start
+        if timings is not None:
+            now = time.perf_counter()
+            timings[f"build.{name}"] = round((now - phase_start) * 1000, 1)
+            phase_start = now
+
     hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
     try:
         resolved_season, resolved_week = resolve_week_context(
@@ -1050,14 +1065,17 @@ def build_weekly_command_center(
 
     rules = LeagueRules.model_validate(ctx.get("rules") or {})
     _, flex_eligible = _flex_rule(rules)
+    mark_phase("context")
 
     # DB-only roster — never live_sleeper on dashboard load.
     roster_rows = list_roster_for_context(ctx, live_sleeper=False)
+    mark_phase("roster")
     proj_index, proj_meta = _load_projection_index(
         resolved_season,
         resolved_week,
         apply_injury_adjustments=apply_injury_adjustments,
     )
+    mark_phase("projections")
     players = _enrich_roster_players(
         roster_rows,
         proj_index,
@@ -1067,6 +1085,7 @@ def build_weekly_command_center(
     from src.draft_hub.k_def_pool_cache import overlay_k_def_week_projections
 
     overlay_k_def_week_projections(players)
+    mark_phase("enrich")
     from src.draft_hub.hub_scoring import resolve_week_lineup
 
     starters, bench, lineup_meta = resolve_week_lineup(
@@ -1076,11 +1095,13 @@ def build_weekly_command_center(
         season=resolved_season,
         week=resolved_week,
     )
+    mark_phase("lineup")
     attach_call_facts(
         [*starters, *bench],
         season=resolved_season,
         week=resolved_week,
     )
+    mark_phase("call_facts")
 
     decisions = build_lineup_decisions(
         starters,
@@ -1109,6 +1130,14 @@ def build_weekly_command_center(
     # League without sleeper link is also an unlinked-league style state for UI.
     if ctx.get("mode") == "league" and not sync.get("linked"):
         unlinked = True
+
+    projection_changes = _roster_projection_changes(
+        [*starters, *bench],
+        resolved_season,
+        resolved_week,
+        apply_injury_adjustments=apply_injury_adjustments,
+    )
+    mark_phase("movement")
 
     return {
         "hub_context": {
@@ -1175,12 +1204,7 @@ def build_weekly_command_center(
         },
         "decisions": decisions,
         "wide_ranges": wide_ranges,
-        "projection_changes": _roster_projection_changes(
-            [*starters, *bench],
-            resolved_season,
-            resolved_week,
-            apply_injury_adjustments=apply_injury_adjustments,
-        ),
+        "projection_changes": projection_changes,
         "counts": {
             "roster": len(players),
             "starters": len(starters),
