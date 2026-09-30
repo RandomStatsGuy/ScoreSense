@@ -119,6 +119,39 @@ def test_admin_link_team_unknown_email(admin_client):
     assert "No account" in res.json()["detail"]
 
 
+def test_admin_link_team_rejects_missing_native_account(admin_client):
+    league = storage.create_league("comm", "Known accounts", 2026, LeagueRules())
+    team = _open_franchise(league["id"])
+    res = admin_client.post(
+        f"/api/admin/leagues/{league['id']}/teams/{team['id']}/link",
+        headers=_auth_headers(),
+        json={"user_sub": "ss:deleted-account"},
+    )
+    assert res.status_code == 400
+    assert storage.get_team(team["id"])["user_sub"] is None
+
+
+def test_admin_restores_unlinked_account_to_existing_team(admin_client):
+    league = storage.create_league("comm", "Restore access", 2026, LeagueRules())
+    player = register_native_user("restore@mail.com", "longpassword1", "Owner", accept_terms=True)
+    sub = f"ss:{player['id']}"
+    team = storage.join_league(sub, league["room_code"], "Existing franchise")
+    storage.update_league_status(league["id"], "live")
+    headers = _auth_headers()
+    url = f"/api/admin/leagues/{league['id']}/teams/{team['id']}"
+    assert admin_client.post(f"{url}/unlink", headers=headers).status_code == 200
+    assert storage.get_team_by_user(league["id"], sub) is None
+    response = admin_client.post(f"{url}/link", headers=headers, json={"user_sub": sub})
+    assert response.status_code == 200
+    restored = storage.get_team_by_user(league["id"], sub)
+    assert restored["id"] == team["id"]
+    assert restored["name"] == "Existing franchise"
+    assert storage.get_hub_focus_league_id(sub) == league["id"]
+    memberships = admin_client.get("/api/admin/users", headers=headers).json()["accounts"]
+    owner = next(row for row in memberships if row["user_sub"] == sub)
+    assert any(m["team"]["id"] == team["id"] for m in owner["memberships"])
+
+
 def test_admin_link_team_rejects_taken_seat(admin_client):
     comm = register_native_user("link.taken.comm@mail.com", "longpassword1", "Comm", accept_terms=True)
     league = storage.create_league(f"ss:{comm['id']}", "Taken Seat League", 2026, LeagueRules(), team_count=10)

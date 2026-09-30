@@ -193,6 +193,33 @@
   align-items: center;
   font-size: 0.88rem;
 }
+.admin-assignment {
+  display: grid;
+  gap: var(--space-3);
+  position: relative;
+  z-index: 2;
+}
+.admin-assignment > h3,
+.admin-assignment > p {
+  margin: 0;
+}
+.admin-assignment .admin-inline-form {
+  gap: var(--space-3);
+}
+.admin-assignment .admin-inline-form input {
+  min-height: var(--control-h-sm);
+}
+@media (max-width: 768px) {
+  .admin-assignment .admin-inline-form > *,
+  .admin-assignment > .hub-filter-menu {
+    width: 100%;
+    min-width: 0;
+  }
+  .admin-assignment .admin-inline-form input,
+  .admin-assignment .admin-inline-form button {
+    min-height: var(--control-h-lg);
+  }
+}
 .admin-link-hint {
   margin: -0.35rem 0 0;
 }
