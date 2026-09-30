@@ -4,6 +4,14 @@ import { displayCapPair, fmtCapMoney } from "./capPlannerPresentation.js";
 import { dealCanTakeExtension } from "./rosterFormat.js";
 
 export const MY_TEAM_COPY = {
+  seasonPoints: "Points", ppg: "PPG", games: "Games", positionRank: "Pos rank",
+  gameLog: "Game log", vsProjection: "vs projection", noScoredGames: "No scored games yet.",
+  scoringWeek: (week) => `Week ${week}`,
+  gameProjection: (points) => `Proj ${points}`,
+  projectionDelta: (delta) => `${delta > 0 ? "+" : ""}${delta.toFixed(1)} vs projection`,
+  scoringError: "Scores unavailable. Try again.",
+  syncSeasonScores: "Sync league for scores",
+  seasonSoFar: (season) => `${season} · Season so far`,
   trades: "Trades",
   contract: "Contract",
   related: "Related",

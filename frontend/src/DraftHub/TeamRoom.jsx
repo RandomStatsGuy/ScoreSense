@@ -49,7 +49,7 @@ export function TeamRoomView({
   }, [active?.player_id, active?.nickname]);
   const close = () => {
     setSelected(null);
-    trigger.current?.focus();
+    trigger.current?.focus({ preventScroll: true });
   };
   useEffect(() => {
     if (!selected) return undefined;
