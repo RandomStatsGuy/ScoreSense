@@ -5,6 +5,7 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { loadHubBootstrap } from "./hubBootstrap";
+import { fantasyPageModules, preloadFantasyPage } from "./fantasyPageModules";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
@@ -41,20 +42,20 @@ import { TeamIdentityProvider } from "./TeamIdentityContext";
 import { mergeAtmospherePrefs } from "./atmosphereCatalog";
 import { shouldApplyWorkspaceSave } from "./rulesPresentation";
 
-const LeagueInsights = lazy(() => import("./LeagueInsights"));
-const StrategyBoard = lazy(() => import("./StrategyBoard"));
-const DraftRoom = lazy(() => import("./DraftRoom"));
-const VibeRankings = lazy(() => import("./VibeRankings"));
-const HubSetup = lazy(() => import("./HubSetup"));
-const RulesWizard = lazy(() => import("./RulesWizard"));
-const ValueSheetTable = lazy(() => import("./ValueSheetTable"));
-const RosterBuilder = lazy(() => import("./RosterBuilder"));
-const CapPlanner = lazy(() => import("./CapPlanner"));
-const LeagueOffice = lazy(() => import("./LeagueOffice"));
-const LeagueTrades = lazy(() => import("./LeagueTrades"));
-const LeagueRostersBrowser = lazy(() => import("./LeagueRostersBrowser"));
-const WeeklyExperience = lazy(() => import("./WeeklyExperience"));
-const LeagueHome = lazy(() => import("./LeagueHome"));
+const LeagueInsights = lazy(fantasyPageModules.insights);
+const StrategyBoard = lazy(fantasyPageModules.value);
+const DraftRoom = lazy(fantasyPageModules.room);
+const VibeRankings = lazy(fantasyPageModules.vibes);
+const HubSetup = lazy(fantasyPageModules.setup);
+const RulesWizard = lazy(fantasyPageModules.rules);
+const ValueSheetTable = lazy(fantasyPageModules.available);
+const RosterBuilder = lazy(fantasyPageModules.roster);
+const CapPlanner = lazy(fantasyPageModules.planner);
+const LeagueOffice = lazy(fantasyPageModules.office);
+const LeagueTrades = lazy(fantasyPageModules.trades);
+const LeagueRostersBrowser = lazy(fantasyPageModules.rosters);
+const WeeklyExperience = lazy(fantasyPageModules.week);
+const LeagueHome = lazy(fantasyPageModules.home);
 
 const EMPTY_VALUE_ROWS = [];
 
@@ -78,6 +79,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   });
   const [workspace, setWorkspace] = useState(null);
+  useEffect(() => {
+    if (active && (demoMode || authenticated || hubAuthRequired === false)) {
+      void preloadFantasyPage(subView);
+    }
+  }, [active, authenticated, demoMode, hubAuthRequired, subView]);
   const [valueSheet, setValueSheet] = useState(null);
   const [roster, setRoster] = useState([]);
   const [capSheet, setCapSheet] = useState(null);

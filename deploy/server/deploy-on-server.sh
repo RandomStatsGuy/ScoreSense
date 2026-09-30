@@ -21,9 +21,11 @@ fi
 echo "==> Building and starting ScoreSense (production)..."
 docker compose -f deploy/docker-compose.prod.yml build --pull
 
-# Archive the running release before replacing its container. Both old and new
+# Archive the previous release before replacing its container. Both old and new
 # API images serve their own shell; the new API can also serve exact old chunks.
-previous_api="$(docker compose -f deploy/docker-compose.prod.yml ps -q api)"
+# GitHub deployment stops the API for its SQLite backup before invoking this
+# script. Include stopped containers or that path silently loses the old assets.
+previous_api="$(docker compose -f deploy/docker-compose.prod.yml ps -a -q api)"
 if [ -n "$previous_api" ]; then
   mkdir -p "$ROOT/artifacts"
   asset_stage="$(mktemp -d "$ROOT/artifacts/frontend-assets.XXXXXX")"
