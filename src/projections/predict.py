@@ -126,6 +126,18 @@ def predict_from_features(
         feature_cols_override=list(feature_cols) if feature_cols else None,
     )
     qpreds = predict_quantiles(quantile_models, X)
+    from src.projections.temporal_inputs import MARKET_MEDIAN_POLICY
+    if policy == MARKET_MEDIAN_POLICY and bundle.get("market_fallback_model") is None:
+        raise ValueError("Game-market model requires its qualified fallback median head")
+    if bundle.get("market_fallback_model") is not None:
+        from src.core.game_market import missing_market
+        from src.ml.quantile import repair_quantile_order
+        unavailable = missing_market(df)
+        if unavailable.any():
+            fallback = bundle["market_fallback_model"]
+            qpreds.loc[unavailable, "q50"] = fallback.predict(X.loc[unavailable, list(fallback.feature_names_in_)])
+            qpreds = repair_quantile_order(qpreds)
+        X.attrs["input_quality"]["market_fallback_rows"] = int(unavailable.sum())
 
     name_col = _player_name_col(df)
     result = pd.DataFrame(

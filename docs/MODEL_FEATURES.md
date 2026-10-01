@@ -155,3 +155,18 @@ All positions use the same quantile GBM config in `src/ml/quantile.py`:
 - [FEATURE_SCREENING.md](FEATURE_SCREENING.md) — how candidate features are screened and promoted
 - [EVALUATION.md](EVALUATION.md) — backtest methodology
 - [WR_UPSIDE_CALIBRATION.md](WR_UPSIDE_CALIBRATION.md) — next pipeline sprint (rank/P90 tuning)
+## Target-game market median policy
+
+`pregame_season_recent4_market_p50_v1` is qualified for QB only. P50 replaces
+historical `implied_team_total_avg`/`total_line_avg` inputs with the target game's
+`game_implied_team_total`, `game_total_line`, and `game_spread`. Positive nflverse
+spread favors the home team, so its implied total is `(total + spread)/2` and the
+away team's is `(total - spread)/2`.
+[Source definition](https://nflreadr.nflverse.com/articles/dictionary_schedules.html).
+Training and inference share the same pure season/week/team join. It uses saved
+schedule quotes without reading game scores or fetching on the inference path.
+Historical evaluations use closing-line proxies; an upcoming forecast uses the
+currently saved observations. Missing/invalid quotes route to the bundle's
+qualified recent-form P50. Floors/ceilings retain the prior long-history inputs,
+including legacy market averages, pending separate risk qualification.
+See [EVALUATION.md](EVALUATION.md) for the exact-data gate and limitations.

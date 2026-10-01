@@ -102,6 +102,67 @@ Output: `artifacts/analytics/season_quantile_coverage.json` — empirical covera
 actual season totals inside `[Season P10, Season P90]`) by position/season, plus the legacy
 `independent_scale` band for comparison.
 
+## Pregame point and risk qualification (October 2026)
+
+`src.analytics.forecast_candidate_eval` compares a candidate with the qualified
+current-season recent-form P50 model on identical games. Every fold trains only
+on earlier seasons. It retains zero/negative observed scores, freezes the
+reference-ranked cohort before comparing candidates, and saves row forecasts
+for independent rescoring. Inactive roster weeks are not reconstructed. These
+are raw model comparisons; historical injury and availability overlays are not
+validated by this experiment.
+
+The QB target-game market candidate passed 2019–2024 and the additional 2025
+check. All seven seasons improved point error in both the full observed pool
+and the top 24 reference-projected QBs per week. In 2025, that second cohort's
+MAE fell from **6.713 to 6.542**; its paired week-bootstrap 95% interval for the
+change was **[-0.295, -0.052]**. Boom recall and bust F1 were unchanged in 2025.
+The exact gate and training matrix digest are in
+[game_market_gate_qb.json](../artifacts/evaluations/model_gates/game_market_gate_qb.json).
+2025 has already been explored; it is **not an untouched holdout**.
+
+Point-candidate qualification preserves the six-season composite/boom gate and
+adds lower mean MAE and weighted interval score on both cohorts, no seasonal
+boom precision/recall or bust F1 loss over 2 percentage points, and a 2025 paired
+MAE interval excluding zero. A wide range cannot win on coverage alone. Interval
+score penalizes width and missed outcomes; weighted interval score uses the
+median and the central 80% range with weights 0.5 and 0.1, divided by 1.5.
+[Scoring rule reference](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008618).
+The probability/Brier diagnostics assume a quantile-matched piecewise normal
+distribution and do not establish calibrated production boom/bust probabilities.
+
+RB market context did not improve 2025 error. WR market gains failed the paired
+confidence check. Reducing RB/WR P90 boom weighting from 3 to 2 improved interval
+scores but lost 8.40/5.21 percentage points of all-observed boom recall in 2025.
+These candidates remain unpromoted.
+
+An informational cohort also reports top 20 QB/TE and top 40 RB/WR results,
+including separate WR and TE diagnostics. These sizes follow the
+[FFA 2015–2025 study](https://fantasyfootballanalytics.net/which-dfs-projections-are-most-accurate).
+They do **not** make a direct provider comparison: scoring, actual players,
+publication cutoffs and seasons must match, using dated provider forecasts.
+Historical nflverse market lines are closing-line proxies, not archived
+Thursday projections. No industry-leading accuracy claim follows from this gate.
+
+```powershell
+$env:PYTHONPATH="."
+python -m src.analytics.forecast_candidate_eval --position qb `
+  --candidate game_market_p50 --data-dir data/processed `
+  --schedules data/processed/nfl_schedules.parquet `
+  --output artifacts/evaluations/research/game_market_qb.json `
+  --checkpoint-dir artifacts/evaluations/research/checkpoints `
+  --gate-output artifacts/evaluations/model_gates/game_market_gate_qb.json
+```
+
+The gate selects a versioned median feature contract, not a replacement point
+head. Training requires its exact feature matrix and fit parameters to match.
+The final bundle includes the qualified recent-form median as a fallback when
+target-game quotes are absent/invalid. P10/P90 retain their prior contracts.
+Fresh ETL saves schedule snapshots for offline training and cached inference;
+the shared schedule revision invalidates weekly, season and ROS artifacts.
+Publication still requires rebuilding training inputs, retraining, and refreshing
+serving artifacts. Research reports and fitted replay bundles do not deploy code.
+
 ## Detailed results
 
 Full JSON metrics: `artifacts/backtest/backtest_summary.json`
