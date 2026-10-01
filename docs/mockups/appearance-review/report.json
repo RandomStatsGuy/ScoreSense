@@ -1,0 +1,1525 @@
+{
+  "browserErrors": [],
+  "checks": [
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "cozy",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "cozy",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "leaves",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "leaves",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "footballs",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "footballs",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/home",
+      "actualPath": "/hub/home",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/home",
+      "actualPath": "/hub/home",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/strategy",
+      "actualPath": "/hub/strategy",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/strategy",
+      "actualPath": "/hub/strategy",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/free-agents",
+      "actualPath": "/hub/free-agents",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/free-agents",
+      "actualPath": "/hub/free-agents",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/draft",
+      "actualPath": "/hub/draft",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/draft",
+      "actualPath": "/hub/draft",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/week",
+      "actualPath": "/hub/week",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/week",
+      "actualPath": "/hub/week",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/vibes",
+      "actualPath": "/hub/vibes",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/vibes",
+      "actualPath": "/hub/vibes",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/game",
+      "actualPath": "/hub/game",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/game",
+      "actualPath": "/hub/game",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster",
+      "actualPath": "/hub/roster",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster",
+      "actualPath": "/hub/roster",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rosters",
+      "actualPath": "/hub/rosters",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rosters",
+      "actualPath": "/hub/rosters",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/cap",
+      "actualPath": "/hub/cap",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/cap",
+      "actualPath": "/hub/cap",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/trades",
+      "actualPath": "/hub/trades",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/trades",
+      "actualPath": "/hub/trades",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rules",
+      "actualPath": "/hub/rules",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rules",
+      "actualPath": "/hub/rules",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/contracts",
+      "actualPath": "/hub/roster-management/contracts",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/contracts",
+      "actualPath": "/hub/roster-management/contracts",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/rosters",
+      "actualPath": "/hub/roster-management/rosters",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/rosters",
+      "actualPath": "/hub/roster-management/rosters",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/sheets",
+      "actualPath": "/hub/roster-management/sheets",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/sheets",
+      "actualPath": "/hub/roster-management/sheets",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/corrections",
+      "actualPath": "/hub/roster-management/corrections",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/corrections",
+      "actualPath": "/hub/roster-management/corrections",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/members",
+      "actualPath": "/hub/roster-management/members",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/members",
+      "actualPath": "/hub/roster-management/members",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/access",
+      "actualPath": "/hub/roster-management/access",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/access",
+      "actualPath": "/hub/roster-management/access",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/insights/overview",
+      "actualPath": "/hub/insights/overview",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/insights/overview",
+      "actualPath": "/hub/insights/overview",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/setup",
+      "actualPath": "/hub/setup",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/setup",
+      "actualPath": "/hub/setup",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/dfs",
+      "actualPath": "/tools/dfs",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/dfs",
+      "actualPath": "/tools/dfs",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/mock-draft",
+      "actualPath": "/tools/mock-draft",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/mock-draft",
+      "actualPath": "/tools/mock-draft",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/best-ball",
+      "actualPath": "/tools/best-ball",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/best-ball",
+      "actualPath": "/tools/best-ball",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/weekly",
+      "actualPath": "/projections/weekly",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/weekly",
+      "actualPath": "/projections/weekly",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/season",
+      "actualPath": "/projections/season/preseason",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/season",
+      "actualPath": "/projections/season/preseason",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/model",
+      "actualPath": "/model",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/model",
+      "actualPath": "/model",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/admin",
+      "actualPath": "/admin",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/admin",
+      "actualPath": "/admin",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/report",
+      "actualPath": "/report",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/report",
+      "actualPath": "/report",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "actualPath": "/projections/weekly",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "actualPath": "/projections/weekly",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/register",
+      "actualPath": "/projections/weekly",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/register",
+      "actualPath": "/projections/weekly",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/privacy",
+      "actualPath": "/privacy",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/privacy",
+      "actualPath": "/privacy",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/terms",
+      "actualPath": "/terms",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/terms",
+      "actualPath": "/terms",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/sms-alerts",
+      "actualPath": "/sms-alerts",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/sms-alerts",
+      "actualPath": "/sms-alerts",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "cozy",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "cozy",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "leaves",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "leaves",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "footballs",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "footballs",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/home",
+      "actualPath": "/hub/home",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/home",
+      "actualPath": "/hub/home",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/strategy",
+      "actualPath": "/hub/strategy",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/strategy",
+      "actualPath": "/hub/strategy",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/free-agents",
+      "actualPath": "/hub/free-agents",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/free-agents",
+      "actualPath": "/hub/free-agents",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/draft",
+      "actualPath": "/hub/draft",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/draft",
+      "actualPath": "/hub/draft",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/week",
+      "actualPath": "/hub/week",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/week",
+      "actualPath": "/hub/week",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/vibes",
+      "actualPath": "/hub/vibes",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/vibes",
+      "actualPath": "/hub/vibes",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/game",
+      "actualPath": "/hub/game",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/game",
+      "actualPath": "/hub/game",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster",
+      "actualPath": "/hub/roster",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster",
+      "actualPath": "/hub/roster",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rosters",
+      "actualPath": "/hub/rosters",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rosters",
+      "actualPath": "/hub/rosters",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/cap",
+      "actualPath": "/hub/cap",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/cap",
+      "actualPath": "/hub/cap",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/trades",
+      "actualPath": "/hub/trades",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/trades",
+      "actualPath": "/hub/trades",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rules",
+      "actualPath": "/hub/rules",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/rules",
+      "actualPath": "/hub/rules",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/contracts",
+      "actualPath": "/hub/roster-management/contracts",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/contracts",
+      "actualPath": "/hub/roster-management/contracts",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/rosters",
+      "actualPath": "/hub/roster-management/rosters",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/rosters",
+      "actualPath": "/hub/roster-management/rosters",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/sheets",
+      "actualPath": "/hub/roster-management/sheets",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/sheets",
+      "actualPath": "/hub/roster-management/sheets",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/corrections",
+      "actualPath": "/hub/roster-management/corrections",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/corrections",
+      "actualPath": "/hub/roster-management/corrections",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/members",
+      "actualPath": "/hub/roster-management/members",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/members",
+      "actualPath": "/hub/roster-management/members",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/access",
+      "actualPath": "/hub/roster-management/access",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/roster-management/access",
+      "actualPath": "/hub/roster-management/access",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/insights/overview",
+      "actualPath": "/hub/insights/overview",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/insights/overview",
+      "actualPath": "/hub/insights/overview",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/setup",
+      "actualPath": "/hub/setup",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/hub/setup",
+      "actualPath": "/hub/setup",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/dfs",
+      "actualPath": "/tools/dfs",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/dfs",
+      "actualPath": "/tools/dfs",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/mock-draft",
+      "actualPath": "/tools/mock-draft",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/mock-draft",
+      "actualPath": "/tools/mock-draft",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/best-ball",
+      "actualPath": "/tools/best-ball",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/tools/best-ball",
+      "actualPath": "/tools/best-ball",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/weekly",
+      "actualPath": "/projections/weekly",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/weekly",
+      "actualPath": "/projections/weekly",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/season",
+      "actualPath": "/projections/season/preseason",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/projections/season",
+      "actualPath": "/projections/season/preseason",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/model",
+      "actualPath": "/model",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/model",
+      "actualPath": "/model",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/admin",
+      "actualPath": "/admin",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/admin",
+      "actualPath": "/admin",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/report",
+      "actualPath": "/report",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/report",
+      "actualPath": "/report",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "actualPath": "/projections/weekly",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/login",
+      "actualPath": "/projections/weekly",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/register",
+      "actualPath": "/projections/weekly",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/register",
+      "actualPath": "/projections/weekly",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/privacy",
+      "actualPath": "/privacy",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/privacy",
+      "actualPath": "/privacy",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/terms",
+      "actualPath": "/terms",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/terms",
+      "actualPath": "/terms",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/sms-alerts",
+      "actualPath": "/sms-alerts",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/sms-alerts",
+      "actualPath": "/sms-alerts",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    }
+  ]
+}

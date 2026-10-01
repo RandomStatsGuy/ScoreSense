@@ -22,6 +22,7 @@ def test_merge_atmosphere_prefs_defaults_and_rejects_unknown():
 
 def test_merge_atmosphere_prefs_tailoring_options():
     defaults = merge_atmosphere_prefs({"atmosphere": "cozy"})
+    assert defaults["atmosphere_enabled"] is True
     assert defaults["atmosphere_motion"] is True
     assert defaults["atmosphere_pile"] is True
     assert defaults["atmosphere_wash"] is True
@@ -30,6 +31,7 @@ def test_merge_atmosphere_prefs_tailoring_options():
     custom = merge_atmosphere_prefs(
         {
             "atmosphere": "leaves",
+            "atmosphere_enabled": "off",
             "atmosphere_motion": False,
             "atmosphere_pile": "off",
             "atmosphere_wash": "true",
@@ -37,6 +39,7 @@ def test_merge_atmosphere_prefs_tailoring_options():
         }
     )
     assert custom["atmosphere_motion"] is False
+    assert custom["atmosphere_enabled"] is False
     assert custom["atmosphere_pile"] is False
     assert custom["atmosphere_wash"] is True
     assert custom["atmosphere_intensity"] == "lively"

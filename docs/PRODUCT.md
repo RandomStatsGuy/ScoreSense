@@ -62,7 +62,7 @@ In this order:
 4. **Selective** — hide advanced controls until needed.
 5. **Respectful** — talk to an experienced fantasy player. No tutorial voice, no “you do not have permission” theatrics.
 
-Fun comes from consequence and control, not animation, confetti, or mascots.
+Fun comes from consequence and control. The approved optional Appearance themes add recognizable cats, falling snow, and autumn leaves as a personal atmosphere; functional content remains clear and predictable.
 
 ---
 
@@ -153,7 +153,11 @@ Say current cap room versus room after the preview. Selecting a contract and ent
 
 Dark and light modes. Matte, editorial, layered. Sports-product energy without casino chrome.
 
-Light mode follows the approved soft-canvas B concept: pale neutral canvas, white surfaces, navy text, green current context, and teal healthy states. Dark mode keeps its blue accent. A sun/moon control beside the desktop account menu and a labeled switch in phone More change modes immediately. Account settings offers the same switch. Dark remains the first-visit default; the choice persists per browser, applies before first paint, and stays separate from Fantasy atmosphere. My team and Game center honor the active color mode while uploaded banners and jersey artwork retain their original colors. Theme changes do not change page layout or league state.
+Classic light mode follows the approved soft-canvas B concept: pale neutral canvas, white surfaces, navy text, green current context, and teal healthy states. Classic dark mode keeps its blue accent. A sun/moon control beside the desktop account menu and a labeled switch in phone More change modes immediately. Account Appearance offers System, Light, and Dark. Dark remains the first-visit default; color mode persists per browser and applies before first paint. System follows device changes.
+
+The approved September 30 Appearance themes are Classic, Cozy den, Snowfall, Autumn, and the existing Footballs preset. Each has coordinated light and dark palettes across Projections, Fantasy, Tools, and Account: navigation, cards, boards, menus, sheets, and room surfaces share the selected palette. Cozy den uses peach and plum with the existing ragdoll cats and yarn; Snowfall uses icy blue with falling snow and snowbanks; Autumn uses copper and rust with tumbling leaves and ground piles. Keep their vibrance and recognizable artwork. Uploaded team banners, jerseys, and semantic success, warning, and danger colors retain their meaning.
+
+Themes are account preferences, independent of browser color mode. Atmosphere switches the decorative scene off without removing its palette; Motion stops particles and cursor reactions while retaining the static scene. Reduced motion always wins. Existing pile, wash, and intensity options remain available under More scene options. Scenes sit behind functional content with a dedicated ground area; draft workspaces remain clear. Load preferences once in the shared app shell, cache appearance before first paint, and restore the previous preference with a visible error after failed saves. Themes never change scoring, contracts, page destinations, or saved league focus.
 
 | Role | Token / value | Use |
 |------|----------------|-----|
