@@ -10,6 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const dist = path.join(root, "frontend/dist");
 const out = path.join(root, "docs/mockups/appearance-loading-review");
 const origin = "http://127.0.0.1:5173";
+const buildVersion = (await fs.readFile(path.join(dist, "index.html"), "utf8")).match(/name="scoresense-build" content="([^"]+)"/)?.[1];
 const prefs = { atmosphere: "cozy", atmosphere_enabled: true, atmosphere_motion: true, atmosphere_pile: true, atmosphere_wash: true, atmosphere_intensity: "standard" };
 const browser = await chromium.launch({ headless: true });
 const report = [];
@@ -44,6 +45,7 @@ try {
     const errors = [];
     await context.route(`${origin}/**`, async route => {
       const url = new URL(route.request().url());
+      if (url.pathname === "/api/client-version") return route.fulfill({ json: { version: buildVersion } });
       const selected = test.hold(url);
       if (selected) { held = true; await gate; }
       if (url.pathname === "/api/auth/me") return route.fulfill({ json: { authenticated: true, user: { id: "appearance-loading-review", auth_type: "native", name: "Theme review", email: "themes@example.test", has_password: true, email_verified: true, terms_version: "2026-09" } } });
@@ -77,7 +79,7 @@ try {
       if (["fantasy-data", "weekly-data"].includes(test.name)) await page.screenshot({ path: path.join(out, `${test.name}-loading-${width}.webp`), type: "webp" });
       release();
       await page.locator(".app-atmosphere-floor").waitFor({ state: "visible", timeout: 30000 });
-      assert.equal(await page.locator(".app-atmosphere-floor .hub-atmosphere-cat").count(), 2);
+      assert.equal(await page.locator(".app-atmosphere-floor [data-buddy]").count(), 2);
       if (test.visibilityFixture) {
         // Exercise visibility in a real DOM: a hidden cached placeholder and a
         // closed disclosure are different from a visible, active page loader.

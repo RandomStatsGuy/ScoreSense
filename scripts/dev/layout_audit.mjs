@@ -242,6 +242,19 @@ export function measureScript() {
       return "";
     };
     const results = [];
+    // Wide screens exposed the old disconnected pile tiles. The shared scene
+    // must have one continuous base, seated on its layout's bottom edge.
+    document.querySelectorAll(".app-atmosphere-floor .companion-ground").forEach((ground) => {
+      const floor = ground.closest(".app-atmosphere-floor");
+      const base = ground.getBoundingClientRect(), bounds = floor.getBoundingClientRect();
+      const inset = parseFloat(getComputedStyle(floor).paddingBottom) || 0;
+      const continuous = Math.abs(base.left - bounds.left) <= 1 && Math.abs(base.right - bounds.right) <= 1 && Math.abs(base.bottom - (bounds.bottom - inset)) <= 1;
+      results.push({ rule: "atmosphere-ground", ok: continuous, selector: ".companion-ground", detail: continuous ? "continuous base sits on the page ground" : "base has gaps, clipping, or floats above its layout edge" });
+    });
+    document.querySelectorAll(".companion-interaction").forEach((button) => {
+      const rect = button.getBoundingClientRect();
+      results.push({ rule: "companion-controls", ok: rect.width >= 44 && rect.height >= 44 && !button.closest('[aria-hidden="true"]'), selector: ".companion-interaction", detail: "toys have accessible targets of at least 44px" });
+    });
     const px = (n) => Math.round(n);
     const numericPat = new RegExp(numericRe, "i");
 

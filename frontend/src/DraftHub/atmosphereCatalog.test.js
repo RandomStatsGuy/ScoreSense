@@ -43,6 +43,18 @@ test("mergeAtmospherePrefs normalizes the tailoring options", () => {
   assert.equal(mergeAtmospherePrefs({ atmosphere_intensity: "chaos" }).intensity, "standard");
 });
 
+test("old still settings migrate and new layers round-trip independently", () => {
+  const old = mergeAtmospherePrefs({ atmosphere: "cozy", atmosphere_motion: false });
+  assert.equal(old.falling, false);
+  assert.equal(old.reactions, false);
+  assert.equal(old.companions, true);
+  const next = applyAtmospherePatch(old, { atmosphere_motion: true, atmosphere_falling: true, atmosphere_companions: false });
+  assert.equal(next.falling, true);
+  assert.equal(next.companions, false);
+  assert.equal(next.reactions, false);
+  assert.deepEqual(mergeAtmospherePrefs(serializeAtmospherePrefs(next)), next);
+});
+
 test("applyAtmospherePatch overlays one option without resetting the rest", () => {
   const next = applyAtmospherePatch(
     {

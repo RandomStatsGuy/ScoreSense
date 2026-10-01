@@ -13,6 +13,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const dist = path.join(root, "frontend/dist");
 const out = path.join(root, "docs/mockups/appearance-review");
 const origin = "http://127.0.0.1:5173";
+const buildVersion = (await fs.readFile(path.join(dist, "index.html"), "utf8")).match(/name="scoresense-build" content="([^"]+)"/)?.[1];
 const defaults = { atmosphere: "none", atmosphere_enabled: true, atmosphere_motion: true, atmosphere_pile: true, atmosphere_wash: true, atmosphere_intensity: "standard" };
 let prefs = { ...defaults };
 let gets = 0;
@@ -23,6 +24,7 @@ const context = await browser.newContext({ serviceWorkers: "block", viewport: { 
 await fs.mkdir(out, { recursive: true });
 await context.route(`${origin}/**`, async (route) => {
   const url = new URL(route.request().url());
+  if (url.pathname === "/api/client-version") return route.fulfill({ json: { version: buildVersion } });
   if (url.pathname === "/api/auth/me") return route.fulfill({ json: {
     authenticated: true, user: { id: "appearance-review", auth_type: "native", name: "Theme review", email: "themes@example.test", has_password: true, email_verified: true, terms_version: "2026-09" },
   } });
@@ -52,6 +54,7 @@ const report = [];
 const errors = [];
 const page = await context.newPage();
 page.on("pageerror", (error) => errors.push(error.message));
+page.on("console", message => { if (message.type() === "error" && /ReferenceError|TypeError/.test(message.text())) { errors.push(message.text()); console.error(message.text()); } });
 const themeRadio = (id) => page.locator(`#appearance input[name="appearance-theme"][value="${id}"]`);
 const modeRadio = (id) => page.locator(`#appearance input[name="appearance-mode"][value="${id}"]`);
 async function selectTheme(id) {
@@ -68,7 +71,7 @@ async function navigate(route) {
 }
 async function measure(route, width, theme, mode) {
   const results = await page.evaluate(measureScript(), { minTarget: width === 390 ? 44 : 32, numericRe: NUMERIC_RE.source, barControlSelector: BAR_CONTROL_SELECTOR, tableDeadZonePx: TABLE_DEAD_ZONE_PX, columnPackRatio: COLUMN_PACK_RATIO, gutterSelectors: GUTTER_EDGE_SELECTORS });
-  const failures = results.filter((result) => !result.ok && ["type", "selects", "collisions", "grids"].includes(result.rule));
+  const failures = results.filter((result) => !result.ok && ["type", "selects", "collisions", "grids", "atmosphere-ground", "companion-controls"].includes(result.rule));
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
   report.push({ route, actualPath: new URL(page.url()).pathname, width, theme, mode, ok: failures.length === 0 && !overflow, failures, overflow });
   assert.equal(overflow, false, `${route} ${width} ${theme} horizontal overflow`);
@@ -104,19 +107,19 @@ try {
   assert.equal(await page.locator("html").getAttribute("data-theme"), "light");
   await selectTheme("cozy");
   await page.locator(".app-atmosphere-floor").waitFor({ state: "visible" });
-  assert.equal(await page.locator(".app-atmosphere-floor .hub-atmosphere-cat").count(), 2);
+  assert.equal(await page.locator(".app-atmosphere-floor [data-buddy]").count(), 2);
   assert.ok(await page.locator(".hub-atmosphere-particle").count() > 0);
-  await page.getByRole("checkbox", { name: /^Motion/ }).uncheck();
+  await page.getByRole("checkbox", { name: /^Falling decorations/ }).uncheck();
   await page.waitForFunction(() => !document.querySelector('#appearance input:disabled'));
   assert.equal(await page.locator(".hub-atmosphere-particle").count(), 0);
   assert.equal(await page.locator(".hub-atmosphere").evaluateAll((els) => els.flatMap((el) => el.getAnimations({ subtree: true })).length), 0);
-  await page.getByRole("checkbox", { name: /^Atmosphere/ }).uncheck();
+  await page.getByRole("checkbox", { name: /^Companions/ }).uncheck();
   await page.waitForFunction(() => !document.querySelector('#appearance input:disabled'));
-  assert.equal(await page.locator(".hub-atmosphere").count(), 0);
+  assert.equal(await page.locator(".app-atmosphere-floor").count(), 0);
   assert.equal(await page.locator("html").getAttribute("data-experience-theme"), "cozy");
-  await page.getByRole("checkbox", { name: /^Atmosphere/ }).check();
+  await page.getByRole("checkbox", { name: /^Companions/ }).check();
   await page.waitForFunction(() => !document.querySelector('#appearance input:disabled'));
-  await page.getByRole("checkbox", { name: /^Motion/ }).check();
+  await page.getByRole("checkbox", { name: /^Falling decorations/ }).check();
   await page.waitForFunction(() => !document.querySelector('#appearance input:disabled'));
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.waitForFunction(() => !document.querySelector(".hub-atmosphere-particle"));
@@ -178,13 +181,7 @@ try {
       await navigate("/hub/home");
       await page.locator(".app-atmosphere-floor").waitFor({ state: "visible" });
       await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
-      if (theme === "cozy" && width === 1280) {
-        const cat = page.locator(".app-atmosphere-floor .hub-atmosphere-cat--left");
-        const box = await cat.boundingBox();
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-        await page.waitForFunction(() => document.querySelector(".app-atmosphere-floor .hub-atmosphere-cat--left.is-alert"));
-        await page.mouse.move(600, 0);
-      }
+
       await page.screenshot({ path: path.join(out, `${theme}-${width}.webp`), type: "webp", fullPage: false });
       await navigate("/account#appearance");
     }

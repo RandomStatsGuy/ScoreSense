@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { useAppearance } from "./AppearanceProvider";
 import { APPEARANCE_COPY } from "./themePresentation";
 import { ATMOSPHERE_INTENSITIES, ATMOSPHERE_OPTION_COPY } from "./DraftHub/atmosphereCatalog";
+import CompanionScene from "./DraftHub/CompanionScene";
+import { usePrefersReducedMotion } from "./DraftHub/AtmosphereLayer";
 
 const subscribe = (listener) => window.scoreSenseTheme.subscribe(listener);
 const preference = () => window.scoreSenseTheme.getPreference();
@@ -12,6 +14,13 @@ export default function AppearanceSettings() {
   const mode = useSyncExternalStore(subscribe, preference, () => "dark");
   const { hash } = useLocation();
   const busy = loading || saving || Boolean(loadError);
+  const reduced = usePrefersReducedMotion();
+  const effective = (key) => prefs.enabled && prefs[key] && (key === "companions" || prefs.motion);
+  const setLayer = (key, checked) => save({
+    atmosphere_enabled: true, atmosphere_motion: true,
+    atmosphere_falling: effective("falling"), atmosphere_companions: effective("companions"), atmosphere_reactions: effective("reactions"),
+    [`atmosphere_${key}`]: checked,
+  });
   useEffect(() => { if (hash === "#appearance") document.getElementById("appearance")?.scrollIntoView(); }, [hash]);
   return <section id="appearance" className="account-settings-section appearance-settings" aria-labelledby="appearance-title">
     <h3 id="appearance-title" className="hub-panel-subtitle">{APPEARANCE_COPY.title}</h3>
@@ -38,10 +47,15 @@ export default function AppearanceSettings() {
       </div>
     </fieldset>
     {prefs.atmosphere !== "none" && <>
+      <section className="appearance-scene-preview" aria-label={APPEARANCE_COPY.preview}>
+        <strong>{APPEARANCE_COPY.scenes[prefs.atmosphere].title}</strong>
+        {effective("companions") && <CompanionScene theme={prefs.atmosphere} reactions={effective("reactions") && !reduced && !busy} />}
+        <p className="chart-note">{!effective("companions") ? APPEARANCE_COPY.companionsOff : reduced ? APPEARANCE_COPY.reducedSupport : effective("reactions") ? APPEARANCE_COPY.scenes[prefs.atmosphere].hint : APPEARANCE_COPY.reactionsOff}</p>
+      </section>
       <div className="appearance-effect-options">
-        {[{ key: "enabled", title: APPEARANCE_COPY.atmosphere, support: APPEARANCE_COPY.atmosphereSupport }, { key: "motion", title: APPEARANCE_COPY.motion, support: APPEARANCE_COPY.motionSupport }].map((option) => <label key={option.key} className="account-atmosphere-toggle">
-          <input type="checkbox" checked={prefs[option.key]} disabled={busy} onChange={(event) => save({ [`atmosphere_${option.key}`]: event.target.checked })} />
-          <span><strong>{option.title}</strong><small>{option.support}</small></span>
+        {["falling", "companions", "reactions"].map((key) => <label key={key} className="account-atmosphere-toggle">
+          <input type="checkbox" checked={effective(key)} disabled={busy} onChange={(event) => setLayer(key, event.target.checked)} />
+          <span><strong>{APPEARANCE_COPY[key]}</strong><small>{APPEARANCE_COPY[key + "Support"]}</small></span>
         </label>)}
       </div>
       <details className="appearance-details">
