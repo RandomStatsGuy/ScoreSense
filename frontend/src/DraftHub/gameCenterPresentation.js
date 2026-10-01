@@ -3,6 +3,19 @@
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel.js";
 
 export const GAME_CENTER_COPY = {
+  pregameProjection: "Pregame projection",
+  projectionNotSaved: "Pregame projection not saved",
+  live: "Live",
+  final: "Final",
+  scorePending: "Score pending",
+  pregameNote: "Scores update after kickoff.",
+  previousGame: "Previous matchup",
+  nextGame: "Next matchup",
+  yourMatchup: "Your matchup",
+  browseGames: "Browse matchups",
+  viewMatchup: "View matchup",
+  lineupTitle: "Starting lineup",
+  matchupPosition: (index, total) => `Matchup ${index} of ${total}`,
   weeklyTitle: "This Week",
   lineup: "Lineup",
   matchup: "Matchup",
@@ -274,7 +287,7 @@ export function shouldPollGameCenter(payload, hubContext) {
     return false;
   }
   if (payload.source === "sleeper" || hubContext?.sleeper_league_id) {
-    return !scoresArePlaceholder(payload, hubContext);
+    return payload.week_complete !== true;
   }
   return payload?.scoring_control?.final !== true;
 }
@@ -531,6 +544,81 @@ export function gameCenterProjection(player) {
   return value != null && Number.isFinite(Number(value))
     ? `${GAME_CENTER_COPY.currentForecast}: ${Number(value).toFixed(1)}`
     : GAME_CENTER_COPY.noProjection;
+}
+
+
+const knownNumber = (value) => value == null || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
+
+export function playerGameState(player, data = {}) {
+  if (data.preseason) return "pregame";
+  if (["pregame", "live", "final", "unknown"].includes(player?.game_state)) return player.game_state;
+  if (data.scoring_control?.host === "native" && data.scoring_control.scored && !data.scoring_control.final) return data.scoring_control.live ? "live" : "unknown";
+  if (data.week_complete === true || (data.week != null && data.current_week != null && Number(data.week) < Number(data.current_week))) return "final";
+  if (player?.kickoff_at && new Date(player.kickoff_at).getTime() > Date.now()) return "pregame";
+  if (data.placeholder || (!data.live && !data.has_live_games && !matchupsHavePoints(data))) return "pregame";
+  return "unknown";
+}
+
+export function gameCenterPlayerScore(player, data = {}, placeholder = false) {
+  if (!duelSlotFilled(player)) return { value: "—", label: GAME_CENTER_COPY.emptySlot, secondary: "", state: "empty" };
+  const state = playerGameState(player, data);
+  const forecast = knownNumber(player.proj);
+  const baseline = knownNumber(player.pregame_projection);
+  const points = placeholder ? null : knownNumber(player.points);
+  const saved = baseline == null ? GAME_CENTER_COPY.projectionNotSaved : `${GAME_CENTER_COPY.pregameProjection} ${baseline.toFixed(1)}`;
+  if (state === "pregame") return {
+    value: forecast == null ? "—" : forecast.toFixed(1),
+    label: GAME_CENTER_COPY.currentForecast,
+    secondary: forecast == null ? GAME_CENTER_COPY.noProjection : saved,
+    state,
+  };
+  const delta = state === "final" && points != null && baseline != null ? points - baseline : null;
+  return {
+    value: points == null ? "—" : points.toFixed(1),
+    label: state === "final" ? GAME_CENTER_COPY.final : state === "live" ? GAME_CENTER_COPY.live : GAME_CENTER_COPY.scorePending,
+    secondary: delta == null ? saved : `${Math.abs(delta).toFixed(1)} ${delta > 0 ? "above" : delta < 0 ? "below" : "from"} projection`,
+    state,
+  };
+}
+
+export function gameCenterTeamScore(team, data = {}, placeholder = false) {
+  const filled = (team?.starters || []).filter(duelSlotFilled);
+  const pregame = !data.matchup_started && (data.preseason || (filled.length
+    ? filled.every((p) => playerGameState(p, data) === "pregame")
+    : placeholder || (!data.live && !matchupsHavePoints(data) && !data.week_complete)));
+  // Empty lineup slots are excluded, but an unknown filled player's forecast is not zero.
+  const projections = filled.map((p) => knownNumber(p.proj));
+  const total = filled.length && projections.every((p) => p != null)
+    ? projections.reduce((a, b) => a + b, 0)
+    : filled.length ? null : knownNumber(team?.proj_total);
+  const points = placeholder ? null : knownNumber(team?.points);
+  return {
+    value: pregame ? total == null ? "—" : total.toFixed(1) : points == null ? "—" : points.toFixed(1),
+    label: pregame ? GAME_CENTER_COPY.projected : gameStateLabel(data),
+    projected: total == null ? "—" : total.toFixed(1),
+    pregame,
+  };
+}
+
+export function gameCenterMatchupScores(viewer, opponent, data = {}, placeholder = false) {
+  let home = gameCenterTeamScore(viewer, data, placeholder);
+  let away = gameCenterTeamScore(opponent, data, placeholder);
+  if (!home.pregame || !away.pregame) {
+    const context = { ...data, matchup_started: true };
+    home = gameCenterTeamScore(viewer, context, placeholder);
+    away = gameCenterTeamScore(opponent, context, placeholder);
+  }
+  return { home, away };
+}
+
+export function gameCenterMatchupLead(viewer, opponent, data, placeholder) {
+  const { home, away } = gameCenterMatchupScores(viewer, opponent, data, placeholder);
+  if (home.value === "—" || away.value === "—") return home.pregame ? GAME_CENTER_COPY.noProjection : GAME_CENTER_COPY.scorePending;
+  const margin = Number(home.value) - Number(away.value);
+  if (!margin) return home.pregame ? "Projected tie" : "Tied";
+  const team = margin > 0 ? viewer : opponent;
+  const parts = gameCenterTeamParts(team);
+  return `${parts.owner || parts.team} ${home.pregame && away.pregame ? "projected ahead" : "leads"} by ${Math.abs(margin).toFixed(1)}`;
 }
 
 

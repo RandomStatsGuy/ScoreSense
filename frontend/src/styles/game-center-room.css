@@ -573,3 +573,30 @@
   .league-scoring-control summary small { display: none; }
   .league-scoring-control .hub-form-row > * { min-height: var(--control-h-lg); }
 }
+
+/* Shared player and game navigation primitives for the combined weekly page. */
+.gc-nfl-team-mark { width:1.5rem; height:1.5rem; object-fit:contain; flex:none; }
+.gc-nfl-team-mark--fallback { display:inline-flex; align-items:center; justify-content:center; font-size:var(--text-xs); color:var(--text-muted); }
+.gc-room-player-name { display:flex; align-items:center; gap:var(--space-2); }
+.gc-room-player-name > span { min-width:0; }
+.gc-room-player-name--away { flex-direction:row-reverse; }
+.gc-room-player-meta { display:flex; align-items:center; justify-content:center; gap:var(--space-2); }
+.gc-room-feature-score small { display:block; margin-top:var(--space-1); }
+.gc-room-game-nav { display:flex; align-items:center; justify-content:center; gap:var(--space-3); margin:0 0 var(--space-4); }
+.gc-room-game-nav > span { font-size:var(--text-xs); color:var(--text-muted); }
+.gc-room-game-nav button { min-height:var(--control-h-md); }
+.gc-room-game-nav .btn-link { margin-left:var(--space-2); }
+.gc-room-other-match { display:grid; width:100%; text-align:left; background:transparent; border:0; border-bottom:1px solid var(--border); border-radius:0; color:var(--text-primary); font:inherit; cursor:pointer; gap:var(--space-2); }
+.gc-room-other-match:last-child { border-bottom:0; }
+.gc-room-other-match:hover { background:var(--bg-subtle); }
+.gc-room-other-team { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); min-width:0; }
+.gc-room-other-team > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gc-room-other-team > b { flex:none; font-variant-numeric:tabular-nums; }
+.gc-room-lineup-player { display:grid; grid-template-columns:var(--control-h-lg) minmax(0,1fr) minmax(5rem,auto); align-items:center; gap:var(--space-3); padding:var(--space-3) 0; border-bottom:1px solid var(--border); }
+.gc-room-kickoff-note { text-align:center; margin-top:var(--space-4) !important; }
+@media(max-width:768px) {
+  .gc-room-game-nav { flex-wrap:wrap; gap:var(--space-2); }
+  .gc-room-game-nav button { min-height:var(--control-h-lg); }
+  .gc-room-duel .gc-room-player-name { flex-direction:column; align-items:flex-start; }
+  .gc-room-duel .gc-room-player-name--away { align-items:flex-end; }
+}

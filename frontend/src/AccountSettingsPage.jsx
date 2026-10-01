@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import LegalLinks from "./LegalLinks";
 import VerifyEmailBanner from "./VerifyEmailBanner";
-import StandalonePageShell from "./layout/StandalonePageShell";
+import StandalonePageShell, { StandaloneFormContent, StandalonePageFooter } from "./layout/StandalonePageShell";
 import {
   changePassword,
   deleteAccount,
@@ -140,195 +140,193 @@ export default function AccountSettingsPage() {
     <StandalonePageShell title="Account settings">
       <div className="standalone-content-shell account-settings-page">
         <div className="panel standalone-content account-settings-panel">
-          <h2 className="auth-panel-title-desktop">Account settings</h2>
-        <p className="chart-note">
-          {isNative
-            ? googleLinked
-              ? "Google account"
-              : "Email account"
-            : "Patreon account"}{" "}
-          · {user?.email || user?.name}
-        </p>
-
-        <VerifyEmailBanner user={user} onVerified={refreshAuth} />
-
-        <section className="account-settings-section">
-          <h3 className="hub-panel-subtitle">Profile</h3>
-          {isNative ? (
-            <form className="account-auth-form" onSubmit={saveProfile}>
-              <label>
-                <span className="hub-field-label">Email</span>
-                <input type="email" value={user?.email || ""} readOnly disabled />
-              </label>
-              <label>
-                <span className="hub-field-label">Display name</span>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  required
-                />
-              </label>
-              <button type="submit" className="btn-primary btn-sm" disabled={profileBusy}>
-                {profileBusy ? "Saving…" : "Save name"}
-              </button>
-              {profileMsg && <p className="chart-note">{profileMsg}</p>}
-              {profileErr && <div className="error">{profileErr}</div>}
-            </form>
-          ) : (
+          <StandaloneFormContent>
+            <h2 className="auth-panel-title-desktop">Account settings</h2>
             <p className="chart-note">
-              Name and email come from Patreon. Update them in your Patreon profile.
+              {isNative
+                ? googleLinked
+                  ? "Google account"
+                  : "Email account"
+                : "Patreon account"}{" "}
+              · {user?.email || user?.name}
             </p>
-          )}
-        </section>
 
-        <section className="account-settings-section">
-          <SmsOptInCard termsUrl={termsUrl} privacyUrl={privacyUrl} />
-        </section>
+            <VerifyEmailBanner user={user} onVerified={refreshAuth} />
 
-        <AppearanceSettings />
-
-        <section className="account-settings-section">
-          <h3 className="hub-panel-subtitle">On-site notifications</h3>
-          <Link className="btn-ghost" to="/hub/home?notifications=settings">Notification settings</Link>
-        </section>
-
-        <section className="account-settings-section">
-          <h3 className="hub-panel-subtitle">Security</h3>
-          {isNative && hasPassword ? (
-            <form className="account-auth-form" onSubmit={submitPassword}>
-              <label>
-                <span className="hub-field-label">Current password</span>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-              </label>
-              <label>
-                <span className="hub-field-label">New password</span>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  minLength={8}
-                  autoComplete="new-password"
-                  required
-                />
-              </label>
-              <label>
-                <span className="hub-field-label">Confirm new password</span>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  minLength={8}
-                  autoComplete="new-password"
-                  required
-                />
-              </label>
-              <button type="submit" className="btn-primary btn-sm" disabled={pwBusy}>
-                {pwBusy ? "Updating…" : "Change password"}
-              </button>
-              {pwMsg && <p className="chart-note">{pwMsg}</p>}
-              {pwErr && <div className="error">{pwErr}</div>}
-            </form>
-          ) : isNative ? (
-            <p className="chart-note">
-              Signed in with Google. Set a password from Forgot password if you also want email
-              sign-in.
-            </p>
-          ) : (
-            <p className="chart-note">Password is managed by Patreon.</p>
-          )}
-          {isNative && (
-            <p className="chart-note">
-              <Link to="/auth/forgot-password">Forgot password?</Link> — send a reset link to your email.
-            </p>
-          )}
-        </section>
-
-        <section className="account-settings-section">
-          <h3 className="hub-panel-subtitle">{BUG_REPORT_COPY.eyebrow}</h3>
-          <p className="chart-note">{BUG_REPORT_COPY.accountLink}</p>
-          <p className="hub-toolbar">
-            <Link className="btn-ghost btn-sm" to="/report?from=%2Faccount">
-              {BUG_REPORT_COPY.accountAction}
-            </Link>
-          </p>
-        </section>
-
-        <section className="account-settings-section">
-          <h3 className="hub-panel-subtitle">Legal</h3>
-          <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} compact showDisclaimer={false} />
-        </section>
-
-        {isNative && (
-          <details className="account-settings-section account-settings-danger">
-            <summary>
-              <span>
-                <strong>Delete account</strong>
-                <small>Permanently remove your login</small>
-              </span>
-            </summary>
-            <div className="account-settings-danger-body">
-              <p className="chart-note">
-                Removes your login credentials. League data and rosters linked to your account may
-                still exist until manually cleaned up.
-              </p>
-              <form className="account-auth-form" onSubmit={submitDelete}>
-                {hasPassword ? (
+            <section className="account-settings-section">
+              <h3 className="hub-panel-subtitle">Profile</h3>
+              {isNative ? (
+                <form className="account-auth-form" onSubmit={saveProfile}>
                   <label>
-                    <span className="hub-field-label">Password</span>
+                    <span className="hub-field-label">Email</span>
+                    <input type="email" value={user?.email || ""} readOnly disabled />
+                  </label>
+                  <label>
+                    <span className="hub-field-label">Display name</span>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="btn-primary btn-sm" disabled={profileBusy}>
+                    {profileBusy ? "Saving…" : "Save name"}
+                  </button>
+                  {profileMsg && <p className="chart-note">{profileMsg}</p>}
+                  {profileErr && <div className="error">{profileErr}</div>}
+                </form>
+              ) : (
+                <p className="chart-note">
+                  Name and email come from Patreon. Update them in your Patreon profile.
+                </p>
+              )}
+            </section>
+
+            <section className="account-settings-section">
+              <SmsOptInCard termsUrl={termsUrl} privacyUrl={privacyUrl} embedded />
+            </section>
+
+            <AppearanceSettings />
+
+            <section className="account-settings-section">
+              <h3 className="hub-panel-subtitle">On-site notifications</h3>
+              <Link className="btn-ghost" to="/hub/home?notifications=settings">Notification settings</Link>
+            </section>
+
+            <section className="account-settings-section">
+              <h3 className="hub-panel-subtitle">Security</h3>
+              {isNative && hasPassword ? (
+                <form className="account-auth-form" onSubmit={submitPassword}>
+                  <label>
+                    <span className="hub-field-label">Current password</span>
                     <input
                       type="password"
-                      value={deletePassword}
-                      onChange={(e) => setDeletePassword(e.target.value)}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
                       autoComplete="current-password"
                       required
                     />
                   </label>
-                ) : (
                   <label>
-                    <span className="hub-field-label">Type your account email</span>
+                    <span className="hub-field-label">New password</span>
                     <input
-                      type="email"
-                      value={deleteEmail}
-                      onChange={(e) => setDeleteEmail(e.target.value)}
-                      autoComplete="email"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      minLength={8}
+                      autoComplete="new-password"
                       required
                     />
                   </label>
-                )}
-                <label className="legal-terms-checkbox hub-toggle-row">
-                  <input
-                    type="checkbox"
-                    checked={deleteConfirm}
-                    onChange={(e) => setDeleteConfirm(e.target.checked)}
-                  />
-                  <span>I understand my login will be removed and league data may remain.</span>
-                </label>
-                <button type="submit" className="btn-ghost btn-sm account-delete-btn" disabled={deleteBusy}>
-                  {deleteBusy ? "Deleting…" : "Delete account"}
-                </button>
-                {deleteErr && <div className="error">{deleteErr}</div>}
-              </form>
-            </div>
-          </details>
-        )}
+                  <label>
+                    <span className="hub-field-label">Confirm new password</span>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      minLength={8}
+                      autoComplete="new-password"
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="btn-ghost btn-sm" disabled={pwBusy}>
+                    {pwBusy ? "Updating…" : "Change password"}
+                  </button>
+                  {pwMsg && <p className="chart-note">{pwMsg}</p>}
+                  {pwErr && <div className="error">{pwErr}</div>}
+                </form>
+              ) : isNative ? (
+                <p className="chart-note">
+                  Signed in with Google. Set a password from Forgot password if you also want email
+                  sign-in.
+                </p>
+              ) : (
+                <p className="chart-note">Password is managed by Patreon.</p>
+              )}
+              {isNative && (
+                <p className="chart-note">
+                  <Link to="/auth/forgot-password">Forgot password?</Link> — send a reset link to your email.
+                </p>
+              )}
+            </section>
 
-        <p className="hub-toolbar auth-panel-back-desktop">
-          <Link className="btn-ghost btn-sm" to="/projections/weekly">
-            Back to {PRODUCT_NAME}
-          </Link>
+            <section className="account-settings-section">
+              <h3 className="hub-panel-subtitle">{BUG_REPORT_COPY.eyebrow}</h3>
+              <p className="chart-note">{BUG_REPORT_COPY.accountLink}</p>
+              <p className="hub-toolbar">
+                <Link className="btn-ghost btn-sm" to="/report?from=%2Faccount">
+                  {BUG_REPORT_COPY.accountAction}
+                </Link>
+              </p>
+            </section>
+
+            {isNative && (
+              <details className="account-settings-section account-settings-danger">
+                <summary>
+                  <span>
+                    <strong>Delete account</strong>
+                    <small>Permanently remove your login</small>
+                  </span>
+                </summary>
+                <div className="account-settings-danger-body">
+                  <p className="chart-note">
+                    Removes your login credentials. League data and rosters linked to your account may
+                    still exist until manually cleaned up.
+                  </p>
+                  <form className="account-auth-form" onSubmit={submitDelete}>
+                    {hasPassword ? (
+                      <label>
+                        <span className="hub-field-label">Password</span>
+                        <input
+                          type="password"
+                          value={deletePassword}
+                          onChange={(e) => setDeletePassword(e.target.value)}
+                          autoComplete="current-password"
+                          required
+                        />
+                      </label>
+                    ) : (
+                      <label>
+                        <span className="hub-field-label">Type your account email</span>
+                        <input
+                          type="email"
+                          value={deleteEmail}
+                          onChange={(e) => setDeleteEmail(e.target.value)}
+                          autoComplete="email"
+                          required
+                        />
+                      </label>
+                    )}
+                    <label className="legal-terms-checkbox hub-toggle-row">
+                      <input
+                        type="checkbox"
+                        checked={deleteConfirm}
+                        onChange={(e) => setDeleteConfirm(e.target.checked)}
+                      />
+                      <span>I understand my login will be removed and league data may remain.</span>
+                    </label>
+                    <button type="submit" className="btn-ghost btn-sm account-delete-btn" disabled={deleteBusy}>
+                      {deleteBusy ? "Deleting…" : "Delete account"}
+                    </button>
+                    {deleteErr && <div className="error">{deleteErr}</div>}
+                  </form>
+                </div>
+              </details>
+            )}
+
+            <StandalonePageFooter>
+              <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} compact showDisclaimer={false} />
+              <Link className="btn-ghost btn-sm" to="/projections/weekly">
+                Back to {PRODUCT_NAME}
+              </Link>
+            </StandalonePageFooter>
+          </StandaloneFormContent>
+        </div>
+        <p className="app-studio-credit">
+          {PRODUCT_NAME} · {STUDIO_NAME}
         </p>
       </div>
-      <p className="app-studio-credit">
-        {PRODUCT_NAME} · {STUDIO_NAME}
-      </p>
-    </div>
     </StandalonePageShell>
   );
 }

@@ -43,9 +43,9 @@ _OPPORTUNITY_GROUP_BY_POS = {
 # resort and rejected when the value is not a share.
 _SHARE_COLS_BY_GROUP: dict[str, tuple[str, ...]] = {
     "qb": ("target_share_avg", "carry_share_avg"),
-    "rb": ("carry_share_avg", "target_share_avg"),
-    "pass": ("target_share_avg", "carry_share_avg"),
-    "all": ("target_share_avg", "carry_share_avg", "targets_avg"),
+    "rb": ("_opportunity_carry_share", "carry_share_avg", "target_share_avg"),
+    "pass": ("_opportunity_target_share", "target_share_avg", "carry_share_avg"),
+    "all": ("_opportunity_target_share", "target_share_avg", "carry_share_avg", "targets_avg"),
 }
 
 # ROS near-term horizons (weeks) aligned with data/injury/return_heuristics.yaml
@@ -243,6 +243,12 @@ def _roster_usage_share(
     )
     if match.empty:
         return DEFAULT_OFF_ROSTER_SHARE
+    # A synthetic low-usage profile is a forecast, not evidence that an absent
+    # teammate had touches to redistribute.
+    observed = match.iloc[0].get("_opportunity_observed")
+    estimated = match.iloc[0].get("_roster_estimate")
+    if (pd.notna(observed) and not bool(observed)) or (pd.notna(estimated) and bool(estimated)):
+        return 0.0
     raw = match.iloc[0].get(share_col, 0.0)
     try:
         share = float(raw)

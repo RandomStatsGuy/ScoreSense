@@ -16,6 +16,8 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Disclosures, footnotes, and "see also" lines live inside the card they refer to, not floating between cards.
 
 ## Alignment
+- Standalone settings and entry forms use `StandaloneFormContent`: center a column capped by `--form-content-max` inside the card; align titles, headings, labels, editable text, help, and actions to its left edge. Phone columns fill the available inset. Session forms retain their narrower session column; legal prose stays left-aligned at reading width.
+- Standalone return navigation and Account legal links share a centered footer. Consent checkboxes sit beside the first line of their text, including when it wraps; generic grid-label styles must not stack the checkbox above its copy. SMS disclosures use one compact group with token gaps and zero paragraph margins.
 - Every horizontal group (bar, row, toolbar, button pair) is `align-items: center` and all its controls share one height token (`--control-h-sm` 32 / `--control-h-md` 40 / `--control-h-lg` 44). No mixed heights in one row.
 - Segmented controls and tabs center their labels. Fixed-width segments center; content-width segments use equal horizontal padding.
 - Tables: numeric columns (`$`, points, ranks, counts, deltas) right-align the cell AND the header. Text columns left-align both. Never center a column unless it is a single glyph (Pos, injury mark). The action column right-aligns.
@@ -29,6 +31,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Text that wraps differently per card (badge, meta line) gets a fixed line count or a fixed height. Never let a badge push a sibling's timestamp onto two lines.
 
 ## Controls
+- Standalone field pairs use `StandaloneFormRow` and `--form-field-min` to share available width and stack on phone. Text fields and dropdowns share the form control height; use explicit text input types so fields receive shared styling.
 - Interactive targets are ≥ 32 tall at 1280 and ≥ 44 at 390. Do not apply the phone 44 floor on desktop. Lock/Skip/Add/History in a row share one style tier (all buttons or all links, not mixed).
 - One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text. Do not demote whichever `.btn-primary` is second in the DOM to satisfy the audit — each extra primary is a judgment call on an approved list. Approved: Cap Undo cut and Undo extension are ghost (leftover / open the room stays primary); Home chat Send is ghost (the deck action stays); Trades Continue or Propose is the only primary (Accept and Load into builder are ghost).
 - Native `<select>` is never used; `HubFilterMenu` is the default. The approved Rosters board uses its compact `BoardFilter` with manager search and keyboard dismissal. Navigation links and league actions in the approved Fantasy header use `HeaderDisclosure`; data filters continue using the existing filter components. Applies to Rules, DFS, Season, every page.

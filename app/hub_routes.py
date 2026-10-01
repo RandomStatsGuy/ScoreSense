@@ -3841,6 +3841,8 @@ def hub_league_live_scoring(
                     rules=ctx.get("rules"),
                     refresh=refresh,
                 )
+    from src.draft_hub.game_center import game_center_payload
+    scoring = game_center_payload(scoring, league_id)
     return {
         **scoring,
         **({"home_display_mode": home_window["home_display_mode"]} if home_window else {}),

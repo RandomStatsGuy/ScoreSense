@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import StandalonePageShell from "./layout/StandalonePageShell";
+import StandalonePageShell, { StandaloneFormContent, StandaloneFormRow, StandalonePageFooter } from "./layout/StandalonePageShell";
 import { apiFetch } from "./auth";
 import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { parseApiError } from "./format";
@@ -111,92 +111,98 @@ export default function BugReportPage() {
     <StandalonePageShell title={BUG_REPORT_COPY.eyebrow}>
       <div className="standalone-content-shell account-settings-page">
         <div className="panel standalone-content account-settings-panel">
-          <h2 className="auth-panel-title-desktop">{BUG_REPORT_COPY.heading}</h2>
-          <p className="chart-note">{BUG_REPORT_COPY.support}</p>
+          <StandaloneFormContent>
+            <h2 className="auth-panel-title-desktop">{BUG_REPORT_COPY.heading}</h2>
+            <p className="chart-note">{BUG_REPORT_COPY.support}</p>
 
-          {!authenticated ? (
-            <>
-              <p className="chart-note">{BUG_REPORT_COPY.needAccount}</p>
-              <p className="hub-toolbar">
-                <Link className="btn-primary" to={`/login?next=${encodeURIComponent(reportNext(pagePath))}`}>
-                  {BUG_REPORT_COPY.signIn}
-                </Link>
-              </p>
-              <p className="chart-note">
-                <Link to={`/register?next=${encodeURIComponent(reportNext(pagePath))}`}>
-                  {BUG_REPORT_COPY.createAccount}
-                </Link>
-              </p>
-            </>
-          ) : filedKey ? (
-            <p className="chart-note" role="status">{reportSuccess(filedKey)}</p>
-          ) : (
-            <form className="account-auth-form" onSubmit={sendReport}>
-              {boardOpen === false ? (
-                <p className="chart-note">{BUG_REPORT_COPY.boardClosed}</p>
-              ) : null}
-              <label>
-                <span className="hub-field-label">{BUG_REPORT_COPY.titleLabel}</span>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={BUG_REPORT_COPY.titlePlaceholder}
-                  maxLength={120}
-                  required
-                />
-              </label>
-              <label>
-                <span className="hub-field-label">{BUG_REPORT_COPY.happenedLabel}</span>
-                <textarea
-                  value={whatHappened}
-                  onChange={(e) => setWhatHappened(e.target.value)}
-                  placeholder={BUG_REPORT_COPY.happenedPlaceholder}
-                  maxLength={4000}
-                  required
-                />
-              </label>
-              <label>
-                <span className="hub-field-label">{BUG_REPORT_COPY.expectedLabel}</span>
-                <textarea
-                  value={expected}
-                  onChange={(e) => setExpected(e.target.value)}
-                  placeholder={BUG_REPORT_COPY.expectedPlaceholder}
-                  maxLength={2000}
-                />
-              </label>
-              <div className="hub-league-field-split">
-                <HubFilterMenu
-                  label={BUG_REPORT_COPY.areaLabel}
-                  value={area}
-                  options={REPORT_AREAS.map((option) => ({ id: option, label: option }))}
-                  onChange={setArea}
-                />
-                {pagePath ? (
-                  <label>
-                    <span className="hub-field-label">{BUG_REPORT_COPY.pathLabel}</span>
-                    <input type="text" value={pagePath} readOnly disabled />
-                  </label>
+            {!authenticated ? (
+              <>
+                <p className="chart-note">{BUG_REPORT_COPY.needAccount}</p>
+                <p className="hub-toolbar">
+                  <Link className="btn-primary" to={`/login?next=${encodeURIComponent(reportNext(pagePath))}`}>
+                    {BUG_REPORT_COPY.signIn}
+                  </Link>
+                </p>
+                <p className="chart-note">
+                  <Link to={`/register?next=${encodeURIComponent(reportNext(pagePath))}`}>
+                    {BUG_REPORT_COPY.createAccount}
+                  </Link>
+                </p>
+              </>
+            ) : filedKey ? (
+              <p className="chart-note" role="status">{reportSuccess(filedKey)}</p>
+            ) : (
+              <form className="account-auth-form" onSubmit={sendReport}>
+                {boardOpen === false ? (
+                  <p className="chart-note">{BUG_REPORT_COPY.boardClosed}</p>
                 ) : null}
-              </div>
-              {reportSendEnabled(boardOpen, busy) ? (
-                <button type="submit" className="btn-primary btn-sm">
-                  {BUG_REPORT_COPY.send}
-                </button>
-              ) : boardOpen === true && busy ? (
-                <button type="submit" className="btn-primary btn-sm" disabled>
-                  {BUG_REPORT_COPY.sending}
-                </button>
-              ) : null}
-              {error ? <div className="error" role="alert">{error}</div> : null}
-            </form>
-          )}
+                <label>
+                  <span className="hub-field-label">{BUG_REPORT_COPY.titleLabel}</span>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={BUG_REPORT_COPY.titlePlaceholder}
+                    maxLength={120}
+                    required
+                  />
+                </label>
+                <label>
+                  <span className="hub-field-label">{BUG_REPORT_COPY.happenedLabel}</span>
+                  <textarea
+                    value={whatHappened}
+                    onChange={(e) => setWhatHappened(e.target.value)}
+                    placeholder={BUG_REPORT_COPY.happenedPlaceholder}
+                    maxLength={4000}
+                    required
+                  />
+                </label>
+                <label>
+                  <span className="hub-field-label">{BUG_REPORT_COPY.expectedLabel}</span>
+                  <textarea
+                    value={expected}
+                    onChange={(e) => setExpected(e.target.value)}
+                    placeholder={BUG_REPORT_COPY.expectedPlaceholder}
+                    maxLength={2000}
+                  />
+                </label>
+                <StandaloneFormRow>
+                  <div className="standalone-form-field">
+                    <span className="hub-field-label">{BUG_REPORT_COPY.areaLabel}</span>
+                    <HubFilterMenu
+                      className="hub-filter-menu--field"
+                      label={BUG_REPORT_COPY.areaLabel}
+                      value={area}
+                      options={REPORT_AREAS.map((option) => ({ id: option, label: option }))}
+                      onChange={setArea}
+                    />
+                  </div>
+                  {pagePath ? (
+                    <label>
+                      <span className="hub-field-label">{BUG_REPORT_COPY.pathLabel}</span>
+                      <input type="text" value={pagePath} readOnly disabled />
+                    </label>
+                  ) : null}
+                </StandaloneFormRow>
+                {reportSendEnabled(boardOpen, busy) ? (
+                  <button type="submit" className="btn-primary btn-sm">
+                    {BUG_REPORT_COPY.send}
+                  </button>
+                ) : boardOpen === true && busy ? (
+                  <button type="submit" className="btn-primary btn-sm" disabled>
+                    {BUG_REPORT_COPY.sending}
+                  </button>
+                ) : null}
+                {error ? <div className="error" role="alert">{error}</div> : null}
+              </form>
+            )}
 
-          <p className="hub-toolbar auth-panel-back-desktop">
-            <Link className="btn-ghost btn-sm" to={pagePath || "/projections/weekly"}>
-              {BUG_REPORT_COPY.back}
-            </Link>
-          </p>
+            <StandalonePageFooter>
+              <Link className="btn-ghost btn-sm" to={pagePath || "/projections/weekly"}>
+                {BUG_REPORT_COPY.back}
+              </Link>
+            </StandalonePageFooter>
+          </StandaloneFormContent>
         </div>
         <p className="app-studio-credit">
           {PRODUCT_NAME} · {STUDIO_NAME}

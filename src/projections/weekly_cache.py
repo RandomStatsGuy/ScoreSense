@@ -68,6 +68,8 @@ def _with_roster_identity(
 def weekly_fingerprint() -> str:
     from src.projections.roster_coverage import roster_input_revisions
     parts: list[str] = [f"pool:{WEEKLY_POOL_POLICY}"]
+    from src.projections.input_policy import projection_input_revisions
+    parts.extend(projection_input_revisions())
     parts.extend(roster_input_revisions())
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
@@ -265,7 +267,7 @@ def save_weekly_artifact(
         "built_at": built_at,
         "attrs": {
             k: df.attrs[k]
-            for k in ("inference_meta", "projection_note", "preseason_mode")
+            for k in ("inference_meta", "projection_note", "preseason_mode", "input_quality")
             if k in df.attrs
         },
     }

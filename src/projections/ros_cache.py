@@ -59,6 +59,8 @@ ROS_AGGREGATION_VERSION = "ros_opp_decay_v2_deep_coverage"
 def ros_fingerprint() -> str:
     from src.projections.roster_coverage import roster_input_revisions
     parts: list[str] = [f"agg:{ROS_AGGREGATION_VERSION}"]
+    from src.projections.input_policy import projection_input_revisions
+    parts.extend(projection_input_revisions())
     parts.extend(roster_input_revisions())
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"

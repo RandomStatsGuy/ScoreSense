@@ -283,6 +283,7 @@ def predict_draft_season(
             result[col] = result[col].fillna(0.0)
 
     result.attrs["feature_season"] = feature_season
+    result.attrs["input_quality"] = weekly.attrs.get("input_quality", {})
     result.attrs["games_per_season"] = games_per_season
     result.attrs["roster_overlay"] = roster_overlay
     result.attrs["depth_chart"] = inference_meta.get("depth_chart") or {"applied": False}

@@ -305,6 +305,7 @@
   .app-header-mobile-title-caret svg { width: 20px; height: 20px; display: block; }
   .app-header-mobile-top--league .app-header-mobile-title-caret { color: var(--text-primary); flex: none; }
   .app-header-mobile-league-slot { min-width: 0; }
+  .app-header-mobile-top--league .app-header-mobile-actions:empty { display: none; }
   .hub-league-context-bar.is-header-slot { position: static; padding: 0; margin: 0; min-width: 0; border: 0; background: transparent; border-radius: 0; box-shadow: none; }
   .is-header-slot .hub-league-context-caret > summary { display: flex; justify-content: flex-end; gap: var(--space-1); min-width: var(--touch-target); min-height: var(--touch-target); font-size: var(--text-xs); color: var(--text-secondary); }
   .is-header-slot .hub-league-context-caret > summary::after { content: none; }

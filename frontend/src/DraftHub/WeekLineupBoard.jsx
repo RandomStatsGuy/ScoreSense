@@ -1,3 +1,5 @@
+import { gameCenterPlayerScore, GAME_CENTER_COPY } from "./gameCenterPresentation";
+import NflTeamMark from "./NflTeamMark";
 import React, { useEffect, useState } from "react";
 import { HubFilterMenu, HubSection, HubLoadingSkeleton } from "./HubUILayout";
 import { fmtNum, formatRelativeTime } from "../format";
@@ -139,6 +141,8 @@ function SlateRow({
   decision,
   highlighted = false,
   compact = false,
+  scorePlayer,
+  gameCenterData,
   wide,
   movement,
   vibePts,
@@ -151,6 +155,7 @@ function SlateRow({
 }) {
   const player = slot.player;
   const empty = !player;
+  const metric = compact && scorePlayer ? gameCenterPlayerScore(scorePlayer, gameCenterData, Boolean(gameCenterData?.placeholder)) : null;
   const injured = Boolean(player?.injured);
   const onBye = Boolean(player?.on_bye);
   const missing = projectionMissing(player);
@@ -197,14 +202,14 @@ function SlateRow({
         </div>
       ) : (
         <div className="hub-wcc-row-who">
-          <strong>{player.player_name || player.player_id}</strong>
+          <div className="hub-week-player-identity">{compact && <NflTeamMark team={player.team} />}<strong>{player.player_name || player.player_id}</strong></div>
           <span>{compact ? <>{decision && <em className="hub-wcc-sit-mark">{WEEK_BOARD_COPY.sitRole} · </em>}{[player.team, player.on_bye ? "BYE" : formatKickoffFact(player)].filter(Boolean).join(" · ")}</> : slatePlayerMeta(player)}</span>
           {compact && <PlayerFlags player={player} />}
           {compact && wide && !missing && <span className="hub-wcc-range-mark" title={marks.join(" · ")}>{WEEK_BOARD_COPY.legendWide}</span>}
         </div>
       )}
       <div className={`hub-wcc-row-pts${missing ? " is-quiet" : ""}`}>
-        {empty || missing ? (
+        {metric ? <span title={`${metric.label} · ${metric.secondary}`}>{metric.value}<small>{metric.state === "pregame" ? "" : metric.secondary}</small></span> : empty || missing ? (
           empty ? null : WEEK_BOARD_COPY.noProjection
         ) : (
           <>
@@ -310,6 +315,8 @@ export default function WeekLineupBoard({
   includeStarters = true,
   includeBench = true,
   compact = false,
+  scorePlayers = [],
+  gameCenterData,
 }) {
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
@@ -338,6 +345,8 @@ export default function WeekLineupBoard({
         decision={showCall ? decisionForStarter(slot, decisions) : null}
         highlighted={highlighted}
         compact={compact}
+        scorePlayer={pid ? scorePlayers.find(p => String(p.player_id) === String(pid)) : null}
+        gameCenterData={gameCenterData}
         wide={pid ? wideById.get(String(pid)) : null}
         movement={pid ? moveById.get(String(pid)) : null}
         vibePts={pid ? vibeById[String(pid)] : null}
@@ -441,7 +450,7 @@ export default function WeekLineupBoard({
       {compact && poorCoverage && !hideSlots && <div className="hub-wcc-coverage-block" role="status"><h3>{coverageCopy?.title}</h3><p>{coverageCopy?.body}</p>{coverageActions}</div>}
       {includeStarters ? (
         <div className="hub-wcc-board-stage">
-          {compact && !hideSlots && <header className="hub-week-starters-heading"><h3>{WEEK_BOARD_COPY.startersTitle}</h3><span>{WEEK_BOARD_COPY.projected}</span></header>}
+          {compact && !hideSlots && <header className="hub-week-starters-heading"><h3>{WEEK_BOARD_COPY.startersTitle}</h3><span>{gameCenterData && !gameCenterData.placeholder ? ((gameCenterData.week_complete || gameCenterData.scoring_control?.final) ? GAME_CENTER_COPY.final : GAME_CENTER_COPY.points) : WEEK_BOARD_COPY.projected}</span></header>}
           <div className="hub-wcc-slate" id="hub-wcc-calls">
             {hideSlots ? null : slots.map((slot) => renderRow(slot, {
               selected: selectedSlotKey === (slot.key || slot.slot),

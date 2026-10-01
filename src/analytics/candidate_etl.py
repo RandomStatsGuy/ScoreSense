@@ -24,6 +24,17 @@ def _load_snap_counts(seasons: list[int]) -> pd.DataFrame:
     nfl = _import_nfl_data_py()
     snaps = nfl.import_snap_counts(years=seasons)
     snaps = snaps.rename(columns={"player": "player_name", "team": "team"})
+    # The snap feed uses PFR IDs; weekly statistics use GSIS. Grouping on a
+    # nonexistent player_id previously made the caller silently discard snaps.
+    if "player_id" not in snaps.columns:
+        pfr_col = next((c for c in ("pfr_player_id", "pfr_id") if c in snaps), None)
+        if pfr_col is None:
+            raise ValueError("Snap counts contain neither GSIS nor PFR player IDs")
+        ids = nfl.import_ids()[["pfr_id", "gsis_id"]].dropna().drop_duplicates()
+        conflicts = ids.groupby("pfr_id")["gsis_id"].nunique()
+        ids = ids[~ids["pfr_id"].isin(conflicts[conflicts > 1].index)]
+        snaps = snaps.merge(ids, left_on=pfr_col, right_on="pfr_id", how="left", validate="many_to_one")
+        snaps["player_id"] = snaps["gsis_id"]
     if "position" not in snaps.columns and "position_group" in snaps.columns:
         snaps["position"] = snaps["position_group"]
     agg = (
@@ -293,8 +304,9 @@ def build_candidate_features(
         stat_cols = list(dict.fromkeys(stat_cols + ["deep_target_share", "ngs_avg_separation", "ngs_yac_above_expectation"]))
     for col in stat_cols:
         if col not in df.columns:
-            df[col] = 0.0
-        df[col] = df[col].fillna(0.0)
+            df[col] = np.nan if col in ("offense_snaps", "offense_pct") else 0.0
+        if col not in ("offense_snaps", "offense_pct"):
+            df[col] = df[col].fillna(0.0)
 
     df = add_rolling_averages(df, "player_id", stat_cols)
     trend_base = "target_share_avg" if "target_share_avg" in df.columns else "target_share"
@@ -308,6 +320,10 @@ def build_candidate_features(
                 df = _usage_volatility_and_trend(df, base)
 
     keep = ["player_id", "season", "week", "team", "opponent", "position"]
+    # Retain completed observations so inference can advance the lagged average.
+    for col in stat_cols:
+        df[f"{col}_lead"] = df[col]
+    keep += [f"{col}_lead" for col in stat_cols]
     keep += [c for c in df.columns if c.endswith("_avg") or c.endswith("_volatility") or c.endswith("_trend")]
     out = df[list(dict.fromkeys(keep))].copy()
 
@@ -330,10 +346,18 @@ def merge_candidates_into_mlready(
         raise FileNotFoundError("Run nflverse ETL and candidate ETL first")
     base = pd.read_parquet(base_path)
     cand = pd.read_parquet(cand_path)
+    return merge_candidate_frame(base, cand)
+
+
+def merge_candidate_frame(base: pd.DataFrame, cand: pd.DataFrame) -> pd.DataFrame:
+    """Merge enrichment in memory; never publish a stripped intermediate file."""
+    keys = ["player_id", "season", "week"]
+    if cand.duplicated(keys).any():
+        raise ValueError("Candidate features contain duplicate player-game keys")
     merge_cols = [
         c
         for c in cand.columns
-        if c not in ("team", "opponent", "position") and c not in base.columns
+        if c not in (*keys, "team", "opponent", "position") and c not in base.columns
     ]
     if not merge_cols:
         return base
@@ -342,7 +366,8 @@ def merge_candidates_into_mlready(
         on=["player_id", "season", "week"],
         how="left",
     )
-    return merged.fillna(0)
+    # Missing enrichment is not an observed zero. Keep gaps visible to audits.
+    return merged
 
 
 def build_all_candidates(seasons: list[int] | None = None) -> dict[str, Path]:

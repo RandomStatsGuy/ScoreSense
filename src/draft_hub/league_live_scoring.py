@@ -119,7 +119,7 @@ def _enrich_starter(
         "name": _player_display_name(sid, info),
         "position": str(info.get("position") or ""),
         "team": str(info.get("team") or ""),
-        "points": round(pts, 2),
+        "points": round(pts, 2) if pts_raw is not None else None,
         "jersey_number": info.get("number"),
     }
 

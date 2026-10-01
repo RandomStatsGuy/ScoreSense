@@ -73,8 +73,9 @@ def week_matchups(season: int, week: int) -> dict[str, str]:
 
 
 def attach_schedule_context(roster: pd.DataFrame, season: int, week: int) -> pd.DataFrame:
-    """Set opponent from schedule; mark bye weeks."""
+    """Use the target game's opponent, venue and rest, and mark byes."""
     out = roster.copy()
+    out["gameday"] = pd.to_datetime(out.get("gameday", pd.Series(pd.NaT, index=out.index)), errors="coerce")
     matchups = week_matchups(season, week)
     bye = teams_on_bye(season, week)
 
@@ -88,6 +89,24 @@ def attach_schedule_context(roster: pd.DataFrame, season: int, week: int) -> pd.
     if "team" in out.columns:
         out["opponent"] = out["team"].map(_opp)
         out["on_bye"] = out["opponent"].eq("BYE")
+        schedules = _load_schedules([season])
+        current = schedules[(schedules["season"] == season) & (schedules["week"] == week)]
+        game_context = {}
+        for _, game in current.iterrows():
+            day = pd.to_datetime(game.get("gameday"), errors="coerce")
+            for team_col, is_home in (("home_team", 1), ("away_team", 0)):
+                team = normalize_team_to_mlready(str(game[team_col]))
+                game_context[team] = (is_home, day)
+        for idx, row in out.iterrows():
+            context = game_context.get(normalize_team_to_mlready(str(row["team"])))
+            if context is None:
+                continue
+            home, day = context
+            out.at[idx, "is_home"] = home
+            prior_day = pd.to_datetime(row.get("gameday"), errors="coerce")
+            rest = (day - prior_day).days if pd.notna(day) and pd.notna(prior_day) else 7
+            out.at[idx, "days_rest"] = max(3, min(14, rest))
+            out.at[idx, "gameday"] = day
     return out
 
 

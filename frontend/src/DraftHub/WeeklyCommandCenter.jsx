@@ -52,6 +52,8 @@ export default function WeeklyCommandCenter({
   embedded = false,
   onLineupChanged,
   onSummary,
+  scorePlayers = [],
+  gameCenterData,
 }) {
   const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
   const [weekOverride, setWeekOverride] = useState(requestedWeek == null ? "" : String(requestedWeek));
@@ -460,6 +462,8 @@ export default function WeeklyCommandCenter({
 
   const boardProps = {
     compact: embedded,
+    scorePlayers,
+    gameCenterData,
     weekLabel,
     slots,
     bench,

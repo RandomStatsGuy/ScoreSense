@@ -98,12 +98,17 @@ def _load_or_predict_weekly(
     )
     if weekly.empty:
         roster, _inference_meta = build_inference_roster(df, position, season, target_week, depth_mode="coverage")
+        from src.core.schedule_utils import attach_schedule_context
+        from src.integrations.sleeper import apply_vet_backup_projection_scale
+
+        roster = attach_schedule_context(roster, season, target_week)
         weekly = predict_from_features(
             roster,
             position,
             model_dir,
             apply_injury_adjustments=apply_injury_adjustments,
         )
+        weekly = apply_vet_backup_projection_scale(weekly, roster)
     return weekly
 
 
