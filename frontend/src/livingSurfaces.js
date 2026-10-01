@@ -18,6 +18,8 @@ export const CHROME = Object.freeze([
 ]);
 
 export const SHARED = Object.freeze({
+  // Phone: shared rounded header/title hierarchy; League first, Home first within League.
+  mobileHeader: ["frontend/src/App.jsx", "frontend/src/layout/MobileHeader.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/hubSubnav.js", "frontend/src/lastDestinations.js", "frontend/src/styles/fantasy-header.css"],
     desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/ProductSubnav.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/hubSubnav.js", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
   tokens: [
     "frontend/src/styles/tokens.css",

@@ -103,6 +103,7 @@ try {
   await page.emulateMedia({ colorScheme: "dark" });
   assert.equal(await page.locator("html").getAttribute("data-theme"), "light");
   await selectTheme("cozy");
+  await page.locator(".app-atmosphere-floor").waitFor({ state: "visible" });
   assert.equal(await page.locator(".app-atmosphere-floor .hub-atmosphere-cat").count(), 2);
   assert.ok(await page.locator(".hub-atmosphere-particle").count() > 0);
   await page.getByRole("checkbox", { name: /^Motion/ }).uncheck();
@@ -175,6 +176,7 @@ try {
       await selectTheme(theme);
       await modeRadio(width === 390 ? "light" : "dark").check();
       await navigate("/hub/home");
+      await page.locator(".app-atmosphere-floor").waitFor({ state: "visible" });
       await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
       if (theme === "cozy" && width === 1280) {
         const cat = page.locator(".app-atmosphere-floor .hub-atmosphere-cat--left");

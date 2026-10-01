@@ -8,6 +8,8 @@ import { isAbortError } from "../fetchAbort";
 export default function useProjectionsMeta() {
   const [projMeta, setProjMeta] = useState(null);
   const [draftMeta, setDraftMeta] = useState(null);
+  const [projMetaLoading, setProjMetaLoading] = useState(false);
+  const [draftMetaLoading, setDraftMetaLoading] = useState(false);
   const [season, setSeason] = useState(null);
   const [week, setWeek] = useState(null);
   const [rosSeason, setRosSeason] = useState(null);
@@ -34,6 +36,7 @@ export default function useProjectionsMeta() {
   }, [season, week, projMeta]);
 
   const fetchProjMeta = useCallback(async (pos, signal) => {
+    setProjMetaLoading(true);
     try {
       const res = await apiFetch(`/api/meta/projections/${pos}`, { signal });
       if (!res.ok) return null;
@@ -59,10 +62,13 @@ export default function useProjectionsMeta() {
         /* optional during dev */
       }
       return null;
+    } finally {
+      if (!signal?.aborted) setProjMetaLoading(false);
     }
   }, []);
 
   const fetchDraftMeta = useCallback(async (pos, signal) => {
+    setDraftMetaLoading(true);
     try {
       const res = await apiFetch(`/api/meta/draft/${pos}`, { signal });
       if (!res.ok) return;
@@ -74,6 +80,8 @@ export default function useProjectionsMeta() {
       if (!isAbortError(err)) {
         /* optional during dev */
       }
+    } finally {
+      if (!signal?.aborted) setDraftMetaLoading(false);
     }
   }, []);
 
@@ -81,6 +89,8 @@ export default function useProjectionsMeta() {
     projMeta,
     setProjMeta,
     draftMeta,
+    projMetaLoading,
+    draftMetaLoading,
     season,
     setSeason,
     week,

@@ -187,6 +187,8 @@ export default function App() {
   const {
     projMeta,
     draftMeta,
+    projMetaLoading,
+    draftMetaLoading,
     season,
     setSeason,
     week,
@@ -1520,7 +1522,7 @@ export default function App() {
                 hubContext={hubContext}
                 onNavigate={setHubSubView}
                 mobileLayout={mobileLayout}
-                pickerOnly={mobileLayout && ["home", "week", "game", "roster", "available", "trades", "planner"].includes(hubSubView)}
+                pickerOnly={mobileLayout}
                 pickerOpen={mobileLayout ? mobileDestOpen : undefined}
                 onPickerOpenChange={mobileLayout ? setMobileDestOpen : undefined}
               />
@@ -1534,7 +1536,8 @@ export default function App() {
           )}
         </header>
 
-        <main id="main-content" className="app-main" tabIndex={-1}>
+        <main id="main-content" className="app-main" tabIndex={-1}
+          data-appearance-loading={view === "projections" && (isSeasonPreseason ? draftMetaLoading && !draftMeta : projMetaLoading && !projMeta) || undefined}>
         {view === "projections" && !mobileLayout && (
           <ProjectionsFilterBar {...projectionsFilterProps} />
         )}

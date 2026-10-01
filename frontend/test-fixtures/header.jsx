@@ -22,7 +22,7 @@ window.fetch = (url, options) => {
 };
 function Preview() {
   const [context, setContext] = useState({ mode: 'league', league_id: 'fixture', league_name: 'Bottom to Top: Dominate Your Panda', team_id: 'caleb', team_name: 'Immaculate Concepcion', is_commissioner: true, draft_completed: true, sleeper_league_id: '123' });
-  const [view, setView] = useState('rosters');
+  const [view, setView] = useState('home');
   const [product, setProduct] = useState('hub');
   const [open, setOpen] = useState(false);
   const mobile = useMobileLayout();
@@ -31,10 +31,14 @@ function Preview() {
   window.__destinations = HUB_SUBVIEWS;
   const title = HUB_SUBVIEWS.find(item => item.id === view)?.label;
   const memberships = [{ league_id: 'fixture', league_name: context.league_name, team: { name: context.team_name }, is_commissioner: true }, { league_id: 'second', league_name: 'Sunday league', team: { name: 'Second team' } }];
-  return <div className="app"><header className={`app-header ${product === 'hub' ? 'app-header--hub' : ''}`}><div className="app-header-shell">
+  const compact = mobile && ["home", "week", "game", "roster", "available", "trades", "planner"].includes(view);
+  return <div className={`app${compact ? " app--compact-league" : ""}`}><header className={`app-header ${product === 'hub' ? 'app-header--hub' : ''}${compact ? " app-header--compact-league" : ""}`}><div className="app-header-shell">
     <DesktopPrimaryHeader productName="ScoreSense" studioName="4th Down Labs" sections={[{ id: 'projections', label: 'Projections' }, { id: 'hub', label: 'Fantasy' }, { id: 'tools', label: 'Tools' }]} view={product} pathForSection={id => `/${id}`} onNavigate={setProduct}><UserMenu authReady authenticated user={{ name: 'Kheylub' }} view={product} /></DesktopPrimaryHeader>
-    {mobile && <MobileHeader title={title} hasMenu menuOpen={open} onTitleClick={() => setOpen(true)} />}
-    <HubSubnav subView={view} hubContext={context} onNavigate={setView} mobileLayout={mobile} pickerOpen={mobile ? open : undefined} onPickerOpenChange={mobile ? setOpen : undefined} />
+    {mobile && <MobileHeader title={title} compactLeague={compact} hasMenu menuOpen={open} onTitleClick={() => setOpen(true)} />}
+    <HubSubnav subView={view} hubContext={context} onNavigate={setView} mobileLayout={mobile} pickerOnly={mobile} pickerOpen={mobile ? open : undefined} onPickerOpenChange={mobile ? setOpen : undefined} />
   </div></header><main id="main-content"><div className="draft-hub"><LeagueContextBanner hubContext={context} memberships={memberships} onLeagueSwitch={choice => { window.__switched = choice; }} onCreateLeague={() => { window.__created = true; }} onLeagueSync={() => { window.__synced = true; }} showAttention={false} currentView={view} /><section style={{ padding: '32px 12px' }}><h1>{title === 'Rosters' ? 'League rosters' : title}</h1><p>Compare salaries, contract years, and estimated player values across teams.</p></section></div></main></div>;
 }
 createRoot(document.getElementById('root')).render(<Preview />);
+
+import "../src/styles/color-theme.css";
+import "../src/styles/appearance.css";
