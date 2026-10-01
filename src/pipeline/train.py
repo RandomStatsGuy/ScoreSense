@@ -231,19 +231,25 @@ def train_rb_calibrated_model(
     )
 
 
-def gated_training_options(position: str, data_dir: Path, train_seasons: list[int], cfg: TrainingConfig) -> dict:
+def gated_training_options(position: str, data_dir: Path, train_seasons: list[int], cfg: TrainingConfig,
+                           *, require_qualified: bool = False) -> dict:
     """Use the candidate only when its frozen gate exactly matches current inputs.
 
-    Source revisions or feature-flag changes require a new evaluation. Revert to
-    the safe baseline on mismatch rather than silently claiming stale evidence.
+    Source revisions or feature-flag changes require a new evaluation. Research
+    callers may probe eligibility; full refresh must preserve the previous
+    serving bundles if no configured qualified policy matches.
     """
+    qualified_paths = []
     for name in ("game_market_gate", "recent_usage_gate"):
         path = PROJECTION_MODEL_GATES_DIR / f"{name}_{position}.json"
         if not path.exists():
             continue
         evidence = json.loads(path.read_text())
         policy = evidence.get("candidate_policy")
-        if not evidence.get("gate", {}).get("eligible_for_publication") or policy not in GATED_POLICIES:
+        if not evidence.get("gate", {}).get("eligible_for_publication"):
+            continue
+        qualified_paths.append(path)
+        if policy not in GATED_POLICIES:
             continue
         if policy == MARKET_MEDIAN_POLICY:
             from src.analytics.forecast_candidate_eval import diagnostic_gate
@@ -260,6 +266,13 @@ def gated_training_options(position: str, data_dir: Path, train_seasons: list[in
         if matches:
             return {"input_policy": policy, "gate_report": path}
         print(f"{position}: {name} evidence does not match current inputs; checking next qualified policy")
+    if require_qualified and qualified_paths:
+        raise ValueError(
+            f"{position.upper()} refresh cannot use the configured qualified model: "
+            "its rebuilt data, feature contract or training preset no longer matches the evaluation evidence. "
+            "Re-run qualification for the rebuilt inputs before retraining. "
+            "Previous serving model bundles have not been replaced."
+        )
     return {}
 
 
@@ -278,6 +291,14 @@ def train_all(
     data_dir = data_dir or PROCESSED_DATA_DIR
     model_dir = model_dir or MODEL_DIR
     train_seasons = train_seasons or DEFAULT_TRAIN_SEASONS
+    # Validate all three serving contracts before spending time fitting any
+    # heads or replacing an existing artifact. Never silently downgrade a full
+    # refresh to the baseline when a configured qualified policy stops matching.
+    serving_options = {
+        position: gated_training_options(position, data_dir, train_seasons, cfg, require_qualified=True)
+        for position, cfg in (("qb", DEFAULT_TRAINING_CONFIG), ("rb", RB_P90_BOOM_WEIGHT_3),
+                              ("wr", WR_P90_BOOM_WEIGHT_3))
+    }
     model_dir.mkdir(parents=True, exist_ok=True)
     results = {}
     # A source/fitting failure must not publish a partial new set of serving
@@ -285,14 +306,14 @@ def train_all(
     with TemporaryDirectory(prefix=".training-", dir=model_dir) as temporary:
         stage = Path(temporary)
         for position in ("qb", "rb", "wr"):
-            options = gated_training_options(position, data_dir, train_seasons, DEFAULT_TRAINING_CONFIG) if position == "qb" else {}
+            options = serving_options[position] if position == "qb" else {}
             results[position] = train_position_model(position, data_dir=data_dir,
                 train_seasons=train_seasons, model_dir=stage, **options)
         # The router serves the calibrated RB/WR bundles, not their baseline files.
         results["rb_calibrated"] = train_rb_calibrated_model(data_dir, train_seasons, stage,
-            **gated_training_options("rb", data_dir, train_seasons, RB_P90_BOOM_WEIGHT_3))
+            **serving_options["rb"])
         results["wr_calibrated"] = train_wr_calibrated_model(data_dir, train_seasons, stage,
-            **gated_training_options("wr", data_dir, train_seasons, WR_P90_BOOM_WEIGHT_3))
+            **serving_options["wr"])
         (stage / "training_summary.json").write_text(json.dumps(results, indent=2), encoding="utf-8", newline="\n")
         for artifact in stage.iterdir():
             artifact.replace(model_dir / artifact.name)
