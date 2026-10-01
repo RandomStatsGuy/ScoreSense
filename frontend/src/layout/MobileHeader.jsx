@@ -1,4 +1,5 @@
 import React from "react";
+import { NotificationBell } from "../DraftHub/CommunicationPanel";
 import { chooseDestinationLabel, MOBILE_CHROME_COPY } from "./mobileChromePresentation";
 
 function FilterIcon() {
@@ -43,8 +44,9 @@ export default function MobileHeader({
       {compactLeague ? (
         <div id="mobile-home-league-slot" className="app-header-mobile-league-slot" />
       ) : null}
+      <div className="app-header-mobile-actions">
+        <NotificationBell />
       {showFilter ? (
-        <div className="app-header-mobile-actions">
           <button
             type="button"
             className="app-header-icon-btn"
@@ -53,8 +55,8 @@ export default function MobileHeader({
           >
             <FilterIcon />
           </button>
-        </div>
       ) : null}
+      </div>
     </div>
   );
 }

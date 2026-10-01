@@ -189,6 +189,11 @@ export default function AccountSettingsPage() {
         <AppearanceSettings />
 
         <section className="account-settings-section">
+          <h3 className="hub-panel-subtitle">On-site notifications</h3>
+          <Link className="btn-ghost" to="/hub/home?notifications=settings">Notification settings</Link>
+        </section>
+
+        <section className="account-settings-section">
           <h3 className="hub-panel-subtitle">Security</h3>
           {isNative && hasPassword ? (
             <form className="account-auth-form" onSubmit={submitPassword}>

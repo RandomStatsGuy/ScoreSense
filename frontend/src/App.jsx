@@ -10,6 +10,8 @@ import DraftTable from "./DraftTable";
 // specifier to the data module, which has no default export.
 import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav.jsx";
 import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
+import { CommunicationProvider } from "./DraftHub/CommunicationContext";
+import CommunicationPanel, { NotificationBell } from "./DraftHub/CommunicationPanel";
 const DraftHub = lazy(() => import("./DraftHub/DraftHub"));
 const DfsOptimizer = lazy(() => import("./LineupOptimizer"));
 const MockDraftTool = lazy(() => import("./DraftHub/MockDraftTool"));
@@ -1416,6 +1418,7 @@ export default function App() {
       resetKey={`${projectionsTab}:${seasonMode}:${position}`}
     >
     <LeagueChromeProvider>
+    <CommunicationProvider hubContext={hubContext} enabled={authReady && (!hubAuthRequired || authenticated)} identity={user?.sub || user?.id || "dev"}>
     <MobileShell
       section={view}
       className={view === "hub" && ["home", "week", "game", "roster", "available", "trades", "planner"].includes(hubSubView) ? "app--compact-league" : ""}
@@ -1481,6 +1484,7 @@ export default function App() {
             />
 
             <DesktopPrimaryHeader productName={PRODUCT_NAME} studioName={STUDIO_NAME} sections={APP_SECTIONS} view={view} pathForSection={pathForSection} onNavigate={goToSection}>
+                <NotificationBell />
                 {showDataRefresh && (
                   <button
                     className="btn-ghost btn-header-action"
@@ -2148,6 +2152,8 @@ export default function App() {
           <LegalLinks termsUrl={termsUrl} privacyUrl={privacyUrl} className="app-legal-footer" compact />
         )}
       </MobileShell>
+      <CommunicationPanel />
+    </CommunicationProvider>
     </LeagueChromeProvider>
     </PlayerCardProvider>
   );

@@ -14,6 +14,7 @@ import "./styles/fantasy-phone.css";
 import "./styles/fantasy-header.css";
 import "./styles/standalone-dialogs.css";
 import "./styles/color-theme.css";
+import "./styles/fantasy-chat.css";
 import "./styles/appearance.css";
 import { startClientVersionWatcher } from "./clientVersion";
 import { startFantasyDiagnostics } from "./fantasyPerformance";
