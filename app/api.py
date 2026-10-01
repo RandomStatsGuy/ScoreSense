@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import math
 import re
 import urllib.parse
@@ -15,7 +16,7 @@ import pandas as pd
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from app.hub_http_timing import HubServerTimingMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
@@ -282,6 +283,34 @@ def client_version(response: Response) -> dict[str, str]:
         raise HTTPException(status_code=503, detail="Frontend version unavailable")
     response.headers.update(_FRONTEND_NO_CACHE_HEADERS)
     return {"version": match.group(1)}
+
+
+@app.get("/api/client-recovery", response_class=HTMLResponse)
+def client_recovery(return_to: str = "/hub/home") -> HTMLResponse:
+    """Open the current shell outside the deployed worker's navigation fallback.
+
+    Redirecting to the destination would let the old worker serve its cached
+    shell again. Restore the same-origin URL before any app scripts execute.
+    This reads no account/league state and changes no browser storage.
+    """
+    index = FRONTEND_DIST / "index.html"
+    if not index.is_file():
+        raise HTTPException(status_code=404, detail="Frontend not built")
+    target = return_to
+    if (
+        not target.startswith("/")
+        or target.startswith("//")
+        or "\\" in target
+        or any(ord(char) < 32 for char in target)
+        or urllib.parse.urlsplit(target).path == "/api"
+        or urllib.parse.urlsplit(target).path.startswith(("/api/", "/assets/"))
+    ):
+        target = "/hub/home"
+    # Escape '<' so even a quoted </script> in a destination stays inert.
+    encoded = json.dumps(target).replace("<", "\\u003c")
+    restore_url = f'<script>history.replaceState(history.state, "", {encoded});</script>'
+    html = index.read_text(encoding="utf-8").replace("<head>", "<head>" + restore_url, 1)
+    return HTMLResponse(html, headers=_FRONTEND_NO_CACHE_HEADERS)
 
 
 @app.get("/api/health")

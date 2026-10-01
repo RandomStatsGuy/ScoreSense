@@ -1,4 +1,5 @@
 import { hasPendingClientWrite } from "./clientActivity.js";
+import { recoverClientPage } from "./clientRecovery.js";
 const CHECK_INTERVAL_MS = 60_000;
 const SERVICE_WORKER_WAIT_MS = 10_000;
 const RELOAD_ATTEMPT_KEY = "scoresense-build-reload-attempt";
@@ -76,7 +77,7 @@ export function startClientVersionWatcher() {
       if (attempts >= 3 || (attempts && Date.now() - previous.at < 30_000)) return;
       if (!(await waitForUpdatedServiceWorker()) || !canReload()) return;
       sessionStorage.setItem(RELOAD_ATTEMPT_KEY, JSON.stringify({ version, count: attempts + 1, at: Date.now() }));
-      window.location.reload();
+      recoverClientPage();
     } catch {
       // A deployment or network interruption is transient; the next check retries.
     } finally {

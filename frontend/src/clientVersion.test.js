@@ -17,7 +17,7 @@ test("asset recovery is bounded, immediate and respects dialogs, writes and prot
   const originals = Object.fromEntries(["window", "document", "navigator", "fetch", "sessionStorage"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis,key)]));
   const events = new Map(), values = new Map();
   let reloads = 0, blocked = false, offline = false;
-  const windowMock = {location:{pathname:"/hub/week",reload:()=>reloads++},
+  const windowMock = {location:{pathname:"/hub/week",replace:url=>{assert.match(url,/^\/api\/client-recovery\?/); reloads++;}},
     addEventListener:(name,handler)=>events.set(name,handler), removeEventListener:name=>events.delete(name),
     setInterval:()=>1, clearInterval:()=>{}};
   const documentMock = {visibilityState:"visible",activeElement:{matches:()=>false},
