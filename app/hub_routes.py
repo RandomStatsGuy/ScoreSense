@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any, Optional
@@ -5464,14 +5465,14 @@ async def hub_ws(
         league_id, websocket, staff=user_is_draft_staff(league_id, sub)
     )
     try:
-        state = get_room_state(league_id, sub)
+        state = await asyncio.to_thread(get_room_state, league_id, sub)
         await websocket.send_json({"type": "state", "payload": state})
         while True:
             msg = await websocket.receive_text()
             if msg == "ping":
                 await websocket.send_text("pong")
             elif msg == "refresh":
-                state = check_timers(league_id, sub)
+                state = await asyncio.to_thread(check_timers, league_id, sub)
                 await websocket.send_json({"type": "state", "payload": state})
     except WebSocketDisconnect:
         pass
@@ -5480,7 +5481,9 @@ async def hub_ws(
 
 
 async def broadcast_room(league_id: str) -> None:
-    state = check_timers(league_id)
+    # The command/ticker already advanced the clock. Broadcast its committed
+    # state without advancing it a second time on the event loop.
+    state = await asyncio.to_thread(get_room_state, league_id)
     await draft_room_manager.broadcast(league_id, {"type": "state", "payload": state})
 
 

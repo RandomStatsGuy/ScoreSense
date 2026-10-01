@@ -28,7 +28,9 @@ async def draft_ticker_loop() -> None:
     while True:
         await asyncio.sleep(_TICK_SEC)
         try:
-            changed = tick_expired_drafts()
+            # Clock work uses SQLite and may run bot/player selection. Keep it
+            # off the event loop that accepts and completes HTTP requests.
+            changed = await asyncio.to_thread(tick_expired_drafts)
             for league_id in changed:
                 try:
                     await broadcast_room(league_id)
