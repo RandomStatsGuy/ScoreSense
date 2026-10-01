@@ -52,7 +52,7 @@ legend { padding:0; margin-bottom:var(--space-2); font-size:var(--text-sm); font
 .scene-stage { position:relative; isolation:isolate; height:280px; }
 .scene-stage svg { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:min(100%,420px); height:auto; aspect-ratio:420/270; overflow:visible; }
 .scene-ground { opacity:.8; }
-.scene-drag-area { position:absolute; z-index:2; pointer-events:none; border:1px dashed color-mix(in srgb,var(--accent) 65%,transparent); background:color-mix(in srgb,var(--accent) 5%,transparent); border-radius:6px; }
+.scene-drag-area { position:absolute; z-index:2; pointer-events:none; border:0; background:transparent; }
 .scene-interaction { position:absolute; z-index:4; width:var(--control-h-lg); height:var(--control-h-lg); padding:0; margin:-22px 0 0 -22px; border:1px dashed transparent; border-radius:50%; background:transparent; touch-action:none; cursor:grab; }
 .scene-interaction:hover,.scene-interaction:focus-visible { background:color-mix(in srgb,var(--bg-elevated) 28%,transparent); border-color:var(--accent); }
 .scene-interaction:active { cursor:grabbing; transform:none; }

@@ -142,7 +142,7 @@
 .companion-interaction:active { cursor: grabbing; }
 .companion-interaction:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .companion-interaction:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.companion-drag-area { position: absolute; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--appearance-material) 8%, transparent); pointer-events: none; }
+.companion-drag-area { position: absolute; border: 0; background: transparent; pointer-events: none; }
 .companion-drag-area[hidden] { display: none; }
 .companion-paw, .companion-arm, .companion-head { transform-box: fill-box; transform-origin: center; transition: transform .12s ease-out; }
 .companion-head { transform-origin: 50% 85%; }

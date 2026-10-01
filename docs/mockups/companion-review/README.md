@@ -2,7 +2,7 @@
 
 These are screenshots of the React app's production build, with account preference writes intercepted. The app uses the approved A artwork and interactions. The existing local API provides read-only league data.
 
-Each theme was checked in light and dark mode at 1280, 390, and 2501 pixels. The browser harness exercises all four drag corners, gaze relative to the face (including the mirrored cat), keyboard controls, release physics, touch dragging, resting motion, independent layers, reduced motion cancellation, failed-save rollback, persistence, and the continuous ground assertion. The separate loading harness checks initial loaders, hidden cached content, route changes, empty responses, and error responses.
+Each theme was checked in light and dark mode at 1280, 390, and 2501 pixels. The browser harness exercises all four drag corners with invisible movement limits, gaze relative to the face (including the mirrored cat), keyboard controls, release physics, touch dragging, resting motion, independent layers, reduced motion cancellation, failed-save rollback, persistence, and the continuous ground assertion. The separate loading harness checks initial loaders, hidden cached content, route changes, empty responses, and error responses.
 
 | Theme | Desktop | Phone | Wide |
 |---|---|---|---|
@@ -21,4 +21,4 @@ node scripts/dev/appearance_browser.mjs --all
 node scripts/dev/appearance_readiness_browser.mjs
 ```
 
-Live draft interactions, real account writes, and production deployment were not exercised. Draft workspaces were checked for absence of the global scene. Browser checks use the repository's CI layout gates plus the new ground and companion-target assertions.
+Live draft interactions, real account writes, and production deployment were not exercised. Draft workspaces were checked for absence of the global scene. Browser checks use the repository's CI layout gates plus the new ground, companion-target, and invisible movement-boundary assertions.
