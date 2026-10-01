@@ -157,26 +157,32 @@ def build_projection_roster(
     target_week: int,
 ) -> pd.DataFrame:
     """
-    Latest feature row per player before target_week.
+    Latest completed profile per player, advanced through that game.
 
     Uses each player's most recent game in the season so the full league is
     included, not just teams that played in a single postseason week.
     """
-    season_df = df[df["season"] == season].copy()
-    history = season_df[season_df["week"] < target_week]
+    from src.core.features import completed_game_profiles
 
+    history = df[(df["season"] < season) | ((df["season"] == season) & (df["week"] < target_week))].copy()
     if history.empty:
-        # Week 1 (or pre-season): carry forward the latest available prior season.
-        history = _latest_prior_season_df(df, season)
-        if history.empty:
-            history = season_df
+        # Never use the target game's statistics to construct its forecast.
+        return df.iloc[:0].copy()
+    history = completed_game_profiles(history)
+    prior = _latest_prior_season_df(history, season)
+    earliest = int(prior["season"].iloc[0]) if not prior.empty else season
+    history = history[history["season"] >= earliest]
 
     roster = (
-        history.sort_values(["player_id", "week"])
+        history.sort_values(["player_id", "season", "week"])
         .groupby("player_id", as_index=False)
         .tail(1)
     )
     roster = roster.copy()
+    roster["_profile_season"] = roster["season"]
+    roster["_profile_week"] = roster["week"]
+    roster["_opportunity_observed"] = roster["_profile_season"].eq(season) | (target_week == 1)
+    roster["season"] = season
     roster["week"] = target_week
     return roster
 

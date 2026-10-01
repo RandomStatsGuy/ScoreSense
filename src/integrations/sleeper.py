@@ -773,10 +773,10 @@ def _backup_feature_template(
     work = roster.copy()
     if "_rookie_estimate" in work.columns:
         work = work.loc[~work["_rookie_estimate"].fillna(False).astype(bool)]
-    work = work.drop(columns=["_rookie_estimate", "_rookie_role_mult", "_rookie_role_label"], errors="ignore")
+    work = work.drop(columns=[c for c in work.columns if c.startswith("_")], errors="ignore")
     if work.empty:
         work = roster.drop(
-            columns=["_rookie_estimate", "_rookie_role_mult", "_rookie_role_label"],
+            columns=[c for c in roster.columns if c.startswith("_")],
             errors="ignore",
         )
 
@@ -805,6 +805,7 @@ def _rookie_stub_from_template(
     target_week: int,
     position: str,
     medians: pd.Series | None = None,
+    mark_rookie: bool = True,
 ) -> pd.Series:
     from src.projections.rookie_role import (
         compute_rookie_role,
@@ -813,7 +814,7 @@ def _rookie_stub_from_template(
     )
 
     skill_pos = resolve_rookie_skill_position(position, sleeper_row)
-    stub = template.copy()
+    stub = template.drop(labels=[c for c in template.index if c.startswith("_")]).copy()
     stub["player_display_name"] = sleeper_row["full_name"]
     if "player_name" in stub.index:
         stub["player_name"] = sleeper_row["full_name"]
@@ -824,7 +825,16 @@ def _rookie_stub_from_template(
     stub["player_id"] = gsis or f"sleeper-{sleeper_row['sleeper_id']}"
     stub["season"] = season
     stub["week"] = target_week
-    stub["_rookie_estimate"] = True
+    stub["gameday"] = pd.NaT
+    if "Fpts" in stub:
+        stub["Fpts"] = float("nan")
+    stub["_rookie_estimate"] = mark_rookie
+    stub["_opportunity_observed"] = False
+    stub["_vet_backup_mult"] = 1.0
+    stub["_vet_backup_label"] = ""
+    stub["_sleeper_unlisted"] = False
+    stub["_sleeper_depth_order"] = pd.NA
+    stub["_sleeper_search_rank"] = _optional_int(sleeper_row.get("search_rank"))
     dc_raw = sleeper_row.get("depth_chart_order")
     try:
         dc_val = int(dc_raw) if dc_raw is not None and not (isinstance(dc_raw, float) and pd.isna(dc_raw)) else None
@@ -832,12 +842,26 @@ def _rookie_stub_from_template(
         dc_val = None
     if dc_val is not None and dc_val > 0:
         stub["_sleeper_depth_order"] = dc_val
+    else:
+        dc_val = None
 
-    mult, role_label = compute_rookie_role(skill_pos, sleeper_row, season=season)
+    mult, role_label = (
+        compute_rookie_role(skill_pos, sleeper_row, season=season, target_week=target_week)
+        if mark_rookie else (1.0, "roster-estimate")
+    )
     stub["_rookie_role_mult"] = mult
     stub["_rookie_role_label"] = role_label
     if medians is not None and mult != 1.0:
         stub = scale_rookie_stub_features(stub, medians, mult)
+    # Synthetic profiles never claim recent observed usage. Recipient allocation
+    # may still fall back to their conservative estimated share.
+    for share in ("carry_share", "target_share"):
+        stub[f"_opportunity_{share}"] = stub.get(f"{share}_avg", 0.)
+    # A conditional GBM can still predict starter points from tiny QB features.
+    # Use the established output discount for current backup roles as well.
+    if not mark_rookie or (skill_pos == "qb" and target_week > 1):
+        stub["_vet_backup_mult"], stub["_vet_backup_label"] = sleeper_vet_backup_mult(skill_pos, dc_val)
+        stub["_sleeper_unlisted"] = dc_val is None
     return stub
 
 
@@ -929,6 +953,8 @@ def apply_sleeper_roster_overlay(
         current_team = normalize_team_to_mlready(str(row.get("team") or "").strip().upper())
         if current_team != sleeper_team:
             out.at[idx, "team"] = sleeper_team
+            # Old-team touches are not observed opportunity on the new team.
+            out.at[idx, "_opportunity_observed"] = False
             teams_updated += 1
 
         dc_val = _optional_positive_int(sleeper_row.get("depth_chart_order"))
@@ -996,6 +1022,7 @@ def apply_sleeper_roster_overlay(
                     target_week=week_val,
                     position=position,
                     medians=medians,
+                    mark_rookie=mark_rookie,
                 )
                 stub["_roster_estimate"] = True
                 if not mark_rookie:

@@ -1,0 +1,507 @@
+{
+  "date": "2026-10-01",
+  "scope": "first repair; no production model promotion",
+  "input_audit": {
+    "season": 2026,
+    "week": 4,
+    "positions": {
+      "qb": {
+        "rows": 87,
+        "expected_features": 24,
+        "missing_columns": [
+          "rz_carries_avg",
+          "explosive_plays_avg",
+          "team_pass_rate_avg",
+          "implied_team_total_avg",
+          "total_line_avg",
+          "offense_pct_avg",
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "null_counts": {},
+        "all_zero_columns": [
+          "fumbles_avg"
+        ],
+        "complete": false,
+        "latest_candidate_context": {
+          "season": 2025,
+          "week": 22
+        },
+        "current_season_profiles": 49,
+        "current_season_input_quality": {
+          "rows": 49,
+          "expected_features": 24,
+          "missing_columns": [
+            "rz_carries_avg",
+            "explosive_plays_avg",
+            "team_pass_rate_avg",
+            "implied_team_total_avg",
+            "total_line_avg",
+            "offense_pct_avg",
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "null_counts": {},
+          "all_zero_columns": [
+            "fumbles_avg",
+            "opponent_pass_epa_allowed"
+          ],
+          "complete": false
+        }
+      },
+      "rb": {
+        "rows": 182,
+        "expected_features": 26,
+        "missing_columns": [
+          "fp_consensus_ppr",
+          "fp_ecr",
+          "team_pass_rate_avg",
+          "opponent_pass_rate_allowed_avg",
+          "rz_targets_avg",
+          "carry_share_avg_trend",
+          "implied_team_total_avg",
+          "offense_pct_avg",
+          "offense_snaps_avg",
+          "rz_carries_avg",
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "null_counts": {},
+        "all_zero_columns": [
+          "fumbles_avg"
+        ],
+        "complete": false,
+        "latest_candidate_context": {
+          "season": 2025,
+          "week": 22
+        },
+        "current_season_profiles": 121,
+        "current_season_input_quality": {
+          "rows": 121,
+          "expected_features": 26,
+          "missing_columns": [
+            "fp_consensus_ppr",
+            "fp_ecr",
+            "team_pass_rate_avg",
+            "opponent_pass_rate_allowed_avg",
+            "rz_targets_avg",
+            "carry_share_avg_trend",
+            "implied_team_total_avg",
+            "offense_pct_avg",
+            "offense_snaps_avg",
+            "rz_carries_avg",
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "null_counts": {},
+          "all_zero_columns": [
+            "fumbles_avg",
+            "opponent_rush_epa_allowed"
+          ],
+          "complete": false
+        }
+      },
+      "wr": {
+        "rows": 427,
+        "expected_features": 25,
+        "missing_columns": [
+          "separation_at_throw_avg",
+          "defender_closing_speed_avg",
+          "fp_consensus_ppr",
+          "fp_ecr",
+          "explosive_plays_avg",
+          "target_share_avg_volatility",
+          "implied_team_total_avg",
+          "offense_pct_avg",
+          "routes_avg",
+          "rz_targets_avg",
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "null_counts": {},
+        "all_zero_columns": [
+          "fumbles_avg"
+        ],
+        "complete": false,
+        "latest_candidate_context": {
+          "season": 2025,
+          "week": 22
+        },
+        "current_season_profiles": 291,
+        "current_season_input_quality": {
+          "rows": 291,
+          "expected_features": 25,
+          "missing_columns": [
+            "separation_at_throw_avg",
+            "defender_closing_speed_avg",
+            "fp_consensus_ppr",
+            "fp_ecr",
+            "explosive_plays_avg",
+            "target_share_avg_volatility",
+            "implied_team_total_avg",
+            "offense_pct_avg",
+            "routes_avg",
+            "rz_targets_avg",
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "null_counts": {},
+          "all_zero_columns": [
+            "fumbles_avg",
+            "opponent_pass_epa_allowed"
+          ],
+          "complete": false
+        }
+      }
+    },
+    "complete": false
+  },
+  "timing_replay": {
+    "qb": {
+      "position": "qb",
+      "test_season": 2025,
+      "declared_bundle_train_through": 2024,
+      "cohort": "same observed player-games; played zeros included",
+      "rows": 613,
+      "incomplete_inputs": true,
+      "missing_model_features": [
+        "explosive_plays_avg",
+        "implied_team_total_avg",
+        "injury_opportunity_boost_hist_avg",
+        "offense_pct_avg",
+        "rz_carries_avg",
+        "team_pass_rate_avg",
+        "total_line_avg"
+      ],
+      "limitation": "Fixed legacy bundles may have learned same-game EPA leakage; matchup inputs are lagged for both sides. Not a model promotion gate.",
+      "before": {
+        "mae": 7.050795020825102,
+        "rmse": 8.585526115550698,
+        "spearman": 0.3671309693270412,
+        "n": 613,
+        "top12_overlap": 0.486111111111111,
+        "coverage_p10_p90": 0.5725938009787929,
+        "pinball": {
+          "0.1": 1.6179985799335341,
+          "0.5": 3.525397510412551,
+          "0.9": 1.6678384737113527
+        }
+      },
+      "after": {
+        "mae": 6.995700525442227,
+        "rmse": 8.489279557269047,
+        "spearman": 0.40196364346701197,
+        "n": 613,
+        "top12_overlap": 0.4722222222222222,
+        "coverage_p10_p90": 0.5693311582381729,
+        "pinball": {
+          "0.1": 1.6281982531705532,
+          "0.5": 3.4978502627211134,
+          "0.9": 1.6433173453802352
+        }
+      }
+    },
+    "rb": {
+      "position": "rb",
+      "test_season": 2025,
+      "declared_bundle_train_through": 2024,
+      "cohort": "same observed player-games; played zeros included",
+      "rows": 1564,
+      "incomplete_inputs": true,
+      "missing_model_features": [
+        "carry_share_avg_trend",
+        "fp_consensus_ppr",
+        "fp_ecr",
+        "implied_team_total_avg",
+        "injury_opportunity_boost_hist_avg",
+        "offense_pct_avg",
+        "offense_snaps_avg",
+        "opponent_pass_rate_allowed_avg",
+        "rz_carries_avg",
+        "rz_targets_avg",
+        "team_pass_rate_avg"
+      ],
+      "limitation": "Fixed legacy bundles may have learned same-game EPA leakage; matchup inputs are lagged for both sides. Not a model promotion gate.",
+      "before": {
+        "mae": 4.664560552415467,
+        "rmse": 6.73230200721658,
+        "spearman": 0.6512681361640724,
+        "n": 1564,
+        "top12_overlap": 0.41203703703703703,
+        "coverage_p10_p90": 0.6777493606138107,
+        "pinball": {
+          "0.1": 0.7328313428498913,
+          "0.5": 2.3322802762077335,
+          "0.9": 1.4960220406641385
+        }
+      },
+      "after": {
+        "mae": 4.61637390908816,
+        "rmse": 6.6683099252523395,
+        "spearman": 0.6728118171478418,
+        "n": 1564,
+        "top12_overlap": 0.41666666666666674,
+        "coverage_p10_p90": 0.6841432225063938,
+        "pinball": {
+          "0.1": 0.7267859169013511,
+          "0.5": 2.30818695454408,
+          "0.9": 1.4915449795682534
+        }
+      }
+    },
+    "wr": {
+      "position": "wr",
+      "test_season": 2025,
+      "declared_bundle_train_through": 2024,
+      "cohort": "same observed player-games; played zeros included",
+      "rows": 3606,
+      "incomplete_inputs": true,
+      "missing_model_features": [
+        "defender_closing_speed_avg",
+        "explosive_plays_avg",
+        "fp_consensus_ppr",
+        "fp_ecr",
+        "implied_team_total_avg",
+        "injury_opportunity_boost_hist_avg",
+        "offense_pct_avg",
+        "routes_avg",
+        "rz_targets_avg",
+        "separation_at_throw_avg",
+        "target_share_avg_volatility"
+      ],
+      "limitation": "Fixed legacy bundles may have learned same-game EPA leakage; matchup inputs are lagged for both sides. Not a model promotion gate.",
+      "before": {
+        "mae": 4.379919627900597,
+        "rmse": 6.036485975138458,
+        "spearman": 0.5660409387055971,
+        "n": 3606,
+        "top12_overlap": 0.20833333333333331,
+        "coverage_p10_p90": 0.6203549639489739,
+        "pinball": {
+          "0.1": 0.8317474905850059,
+          "0.5": 2.1899598139502987,
+          "0.9": 1.3253592710470028
+        }
+      },
+      "after": {
+        "mae": 4.351928769246801,
+        "rmse": 5.994235846735914,
+        "spearman": 0.5826569308503085,
+        "n": 3606,
+        "top12_overlap": 0.2037037037037037,
+        "coverage_p10_p90": 0.6261785912368275,
+        "pinball": {
+          "0.1": 0.8314973781439045,
+          "0.5": 2.1759643846234007,
+          "0.9": 1.3191495049679662
+        }
+      }
+    }
+  },
+  "research_walk_forward": {
+    "qb": {
+      "model": {
+        "mae": 6.671351862785199,
+        "rmse": 8.315436097808842,
+        "spearman": 0.45037426066138847,
+        "n": 692
+      },
+      "season_average": {
+        "mae": 7.226767863215664,
+        "rmse": 9.065034581926824,
+        "spearman": 0.37989140764448875,
+        "n": 692
+      },
+      "last_game": {
+        "mae": 8.164206140629073,
+        "rmse": 10.620270843564619,
+        "spearman": 0.3547065747091162,
+        "n": 692
+      },
+      "top12_overlap": 0.4912280701754386,
+      "coverage_p10_p90": 0.7182080924855492,
+      "input_quality": {
+        "rows": 692,
+        "expected_features": 24,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 14,
+          "explosive_plays_avg": 14,
+          "team_pass_rate_avg": 14,
+          "implied_team_total_avg": 14,
+          "total_line_avg": 14,
+          "offense_pct_avg": 14
+        },
+        "all_zero_columns": [
+          "fumbles_avg",
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "training_max_season": 2024
+    },
+    "rb": {
+      "model": {
+        "mae": 4.341466410211175,
+        "rmse": 6.348552482892825,
+        "spearman": 0.6892271547053157,
+        "n": 1725
+      },
+      "season_average": {
+        "mae": 4.521437388644683,
+        "rmse": 6.495821420034078,
+        "spearman": 0.6478386452564794,
+        "n": 1725
+      },
+      "last_game": {
+        "mae": 5.353970173972025,
+        "rmse": 8.061919508343758,
+        "spearman": 0.6101989368291231,
+        "n": 1725
+      },
+      "top12_overlap": 0.4841269841269842,
+      "coverage_p10_p90": 0.6968115942028985,
+      "input_quality": {
+        "rows": 1725,
+        "expected_features": 24,
+        "missing_columns": [],
+        "null_counts": {
+          "team_pass_rate_avg": 55,
+          "opponent_pass_rate_allowed_avg": 55,
+          "rz_targets_avg": 55,
+          "carry_share_avg_trend": 188,
+          "implied_team_total_avg": 55,
+          "offense_pct_avg": 55,
+          "offense_snaps_avg": 55,
+          "rz_carries_avg": 55
+        },
+        "all_zero_columns": [
+          "fumbles_avg",
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "training_max_season": 2024
+    },
+    "wr": {
+      "model": {
+        "mae": 4.182106125355975,
+        "rmse": 5.870264707634623,
+        "spearman": 0.5900568630869585,
+        "n": 3979
+      },
+      "season_average": {
+        "mae": 4.333982844662206,
+        "rmse": 6.010752548277028,
+        "spearman": 0.5562119542016123,
+        "n": 3979
+      },
+      "last_game": {
+        "mae": 5.155062163419509,
+        "rmse": 7.4744474199892545,
+        "spearman": 0.475903458145843,
+        "n": 3979
+      },
+      "top12_overlap": 0.30303030303030304,
+      "coverage_p10_p90": 0.8291027896456397,
+      "input_quality": {
+        "rows": 3979,
+        "expected_features": 23,
+        "missing_columns": [
+          "separation_at_throw_avg",
+          "defender_closing_speed_avg"
+        ],
+        "null_counts": {
+          "explosive_plays_avg": 96,
+          "target_share_avg_volatility": 250,
+          "implied_team_total_avg": 96,
+          "offense_pct_avg": 96,
+          "routes_avg": 96,
+          "rz_targets_avg": 96
+        },
+        "all_zero_columns": [
+          "fumbles_avg",
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "training_max_season": 2024
+    }
+  },
+  "current_week_replay": {
+    "qb": {
+      "rows": 119,
+      "missing_quantiles": 0,
+      "selected": [
+        {
+          "Player": "Josh Allen",
+          "Projected Points": 17.384951928227878,
+          "Opportunity Adjustment": 0.0,
+          "projection_source": "ScoreSense"
+        },
+        {
+          "Player": "Fernando Mendoza",
+          "Projected Points": 1.717,
+          "Opportunity Adjustment": 0.0,
+          "projection_source": "Roster estimate"
+        }
+      ]
+    },
+    "rb": {
+      "rows": 205,
+      "missing_quantiles": 0,
+      "selected": [
+        {
+          "Player": "Alvin Kamara",
+          "Projected Points": 16.09371041612309,
+          "Opportunity Adjustment": 0.2175163425705882,
+          "projection_source": "ScoreSense"
+        },
+        {
+          "Player": "Aaron Jones",
+          "Projected Points": 14.02763618821509,
+          "Opportunity Adjustment": 0.17072778999227495,
+          "projection_source": "ScoreSense"
+        },
+        {
+          "Player": "Kendre Miller",
+          "Projected Points": 3.147,
+          "Opportunity Adjustment": 0.1561283970006666,
+          "projection_source": "ScoreSense"
+        }
+      ]
+    },
+    "wr": {
+      "rows": 530,
+      "missing_quantiles": 0,
+      "selected": [
+        {
+          "Player": "Jaxon Smith-Njigba",
+          "Projected Points": 10.209424376938427,
+          "Opportunity Adjustment": 0.0,
+          "projection_source": "ScoreSense"
+        }
+      ]
+    }
+  },
+  "snapshot_sha256": {
+    "processed/qb_mlready.parquet": "f51d77d4e590e942c49b5a9adcae9f2d5c1a50146488c6446c21cd6056c567d3",
+    "processed/rb_mlready.parquet": "87c570e408fc49f9da82bb8b947f0173f6361e2b25828c49968c6bc32ae18321",
+    "processed/wr_mlready.parquet": "7fac1813bd87a2c8c951ca2343f51aef2b1d7baf91310cbb024c4a00782015a7",
+    "models/qb_model.joblib": "0eedba23c61c27e396b9bdab4ff11cb62ef83711cf5cb8a82c6f01ee3b623eee",
+    "models/rb_model.joblib": "25efea1c38d15f43a8c59389537e043f07b16bce13d284b31ed8ca63b61645c0",
+    "models/rb_model_calibrated.joblib": "96db3b0a1e02568b2d8abf7778f0268eadb6a8664e4910435df9c38afe6d6f96",
+    "models/wr_model.joblib": "0d807290cdc60da819312ef2eeaaed2e4583b7525224f062860a2ee803909730",
+    "models/wr_model_calibrated.joblib": "f4240a5764888db505cffa12d83428a3b8d03b3f6150224c714aa6c3ca6ab4df",
+    "candidates/candidate_features_qb.parquet": "2ffe7ce04ee2214f20d61682047f521815fbab1c8379549cb444466e7b299bb1",
+    "candidates/candidate_features_rb.parquet": "d7dc20718fdf50f1c2fd833515c61e9307f8cceeb42d79b962fa3ce0aa71675a",
+    "candidates/candidate_features_wr.parquet": "2de7367445a1caacb1e60555fcf06819e380807bf21f7d79e299a91f91feebda",
+    "cache/nfl_schedules.parquet": "c6c9db55fdae1fbac5de8de98295b02dd0c5dc49814416f0a4f2427e855cddc8",
+    "cache/nflverse_roster_2026.parquet": "eb0cd1693be123b8bdddb55c9a9d96c706ad45f642d8d1fa03097dc35a98b467",
+    "cache/sleeper_players.json": "737f6df0b00ee8f62bec75812756e79776e5f6e5c40e1966ed003da8f9008742"
+  },
+  "validation": {
+    "full_suite": {
+      "passed": 1989,
+      "skipped": 2,
+      "failed": 10,
+      "limitations": "Unchanged Linux-shell tests require /bin/sh and compatible POSIX paths; Windows host"
+    },
+    "new_regression_tests_passed": 16,
+    "production_models_promoted": false
+  }
+}

@@ -165,6 +165,7 @@ def predict_from_features(
         result,
         column_sets=(("Low (P10)", "Projected Points", "High (P90)"),),
     )
+    result.attrs["input_quality"] = X.attrs["input_quality"]
     return result.sort_values("Projected Points", ascending=False).reset_index(drop=True)
 
 

@@ -12,6 +12,65 @@ import pandas as pd
 from src.config import FANTASY_SCORING
 
 FP_FEATURE_COLS = ("fp_consensus_ppr", "fp_ecr")
+STAT_AVG_RENAMES = {
+    "passing_tds": "pass_tds_avg",
+    "interceptions": "ints_avg",
+    "attempts": "pass_attmpt_avg",
+    "carries": "rush_attmpt_avg",
+    "rushing_tds": "rush_tds_avg",
+    "receiving_air_yards": "air_yards_avg",
+}
+
+
+def completed_game_profiles(history: pd.DataFrame) -> pd.DataFrame:
+    """Advance pre-game averages through the last completed game.
+
+    Keep the trained expanding-average definition. Changing the window to recent
+    games is a separate model experiment, not an inference-only transformation.
+    Callers must exclude the target game and all later games first.
+    """
+    out = history.sort_values(["player_id", "season", "week"]).copy()
+    # Older ETL files retained only share averages. Reconstruct raw shares with
+    # the same position-pool denominator used by that ETL, when possible.
+    if "team" in out.columns:
+        for share, count in (("carry_share", "carries"), ("target_share", "targets"), ("air_yards_share", "receiving_air_yards")):
+            raw = f"{count}_lead"
+            if f"{share}_lead" not in out and f"{share}_avg" in out and raw in out:
+                total = out.groupby(["season", "week", "team"])[raw].transform("sum")
+                out[f"{share}_lead"] = safe_div(out[raw], total)
+        if "wopr_lead" not in out and {"target_share_lead", "air_yards_share_lead"}.issubset(out):
+            out["wopr_lead"] = 1.5 * out["target_share_lead"] + 0.7 * out["air_yards_share_lead"]
+    for raw in [c for c in out.columns if c.endswith("_lead")]:
+        stat = raw.removesuffix("_lead")
+        avg = STAT_AVG_RENAMES.get(stat, f"{stat}_avg")
+        if avg in out.columns:
+            values = pd.to_numeric(out[raw], errors="coerce")
+            totals = values.fillna(0.).groupby(out["player_id"]).cumsum()
+            counts = values.notna().astype(int).groupby(out["player_id"]).cumsum()
+            out[avg] = totals / counts.replace(0, np.nan)
+    # Availability allocation is a current-role heuristic, separate from the
+    # trained career averages. Preserve an injured player's last observed role.
+    for share in ("carry_share", "target_share"):
+        raw = f"{share}_lead"
+        if raw in out and "team" in out:
+            out[f"_opportunity_{share}"] = out.groupby(["player_id", "season", "team"])[raw].transform(
+                lambda s: pd.to_numeric(s, errors="coerce").rolling(3, min_periods=1).mean()
+            )
+    out["_opportunity_observed"] = True
+    return out
+
+
+def feature_completeness(df: pd.DataFrame, feature_cols: Iterable[str]) -> dict:
+    """Audit model inputs before any compatibility imputation conceals gaps."""
+    cols = list(dict.fromkeys(feature_cols))
+    present = [c for c in cols if c in df]
+    numeric = df[present].apply(pd.to_numeric, errors="coerce")
+    missing = [c for c in cols if c not in df]
+    null_counts = {c: int(n) for c, n in numeric.isna().sum().items() if n}
+    zeros = [c for c in present if len(df) and numeric[c].notna().all() and numeric[c].eq(0).all()]
+    return {"rows": len(df), "expected_features": len(cols), "missing_columns": missing,
+            "null_counts": null_counts, "all_zero_columns": zeros,
+            "complete": bool(len(df)) and not missing and not null_counts}
 
 
 @dataclass(frozen=True)
@@ -254,7 +313,9 @@ def prepare_feature_matrix(
             matrix[col] = df[col]
         else:
             matrix[col] = fill_value
-    return matrix.fillna(fill_value)
+    matrix = matrix.fillna(fill_value)
+    matrix.attrs["input_quality"] = feature_completeness(df, cols)
+    return matrix
 
 
 def season_average_baseline(df: pd.DataFrame) -> pd.Series:

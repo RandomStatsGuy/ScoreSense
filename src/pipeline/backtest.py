@@ -19,6 +19,29 @@ from src.core.features import (
 from src.ml.quantile import interval_coverage, predict_quantiles, train_quantile_models
 
 
+def lag_legacy_matchup_epa(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove legacy same-game defensive EPA from historical model comparisons.
+
+    mlready stores the opponent's realized EPA for that game. Only earlier
+    opponent games may inform a pre-game forecast. This evaluation transform
+    does not reroute or replace the production bundles.
+    """
+    out = df.copy()
+    keys = ["opponent", "season", "week"]
+    if not set(keys).issubset(out.columns):
+        return out
+    for col in ("opponent_pass_epa_allowed", "opponent_rush_epa_allowed"):
+        if col not in out:
+            continue
+        games = out.groupby(keys, as_index=False)[col].median().sort_values(keys)
+        games[col] = games.groupby("opponent")[col].transform(
+            lambda s: s.shift(1).expanding(min_periods=1).mean()
+        ).fillna(0.)
+        lookup = games.set_index(keys)[col]
+        out[col] = pd.MultiIndex.from_frame(out[keys]).map(lookup).to_numpy()
+    return out
+
+
 def walk_forward_backtest(
     position: str,
     data_dir: Path | None = None,
@@ -31,28 +54,36 @@ def walk_forward_backtest(
     if not path.exists():
         path = data_dir / f"{position}_mlready.csv"
     df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
-    df = df.sort_values(["season", "week"])
+    df = lag_legacy_matchup_epa(df)
 
-    test_df = df[df["season"].isin(test_seasons)].copy()
-    train_df = df[~df["season"].isin(test_seasons)].copy()
-
-    X_train = prepare_feature_matrix(train_df, position)
-    quantile_models = train_quantile_models(
-        X_train, train_df["Fpts"].values, PREDICTION_QUANTILES
-    )
-
-    test_df = test_df.copy()
-    qpreds = predict_quantiles(quantile_models, prepare_feature_matrix(test_df, position))
-    test_df["model_pred"] = qpreds["q50"]
-    test_df["model_p10"] = qpreds["q10"]
-    test_df["model_p90"] = qpreds["q90"]
-    test_df["season_avg_baseline"] = season_average_baseline(test_df)
-    test_df["last_game_baseline"] = last_game_baseline(test_df)
-
-    for col in ("season_avg_baseline", "last_game_baseline"):
-        test_df[col] = test_df[col].fillna(test_df.groupby("season")["Fpts"].transform("mean"))
-
-    return test_df
+    df = df.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
+    df["season_avg_baseline"] = season_average_baseline(df)
+    df["last_game_baseline"] = last_game_baseline(df)
+    frames = []
+    for test_season in sorted(set(test_seasons)):
+        # Retrain separately at each season boundary, using only earlier seasons.
+        train_df = df[df["season"] < test_season]
+        test_df = df[df["season"] == test_season].copy()
+        if test_df.empty:
+            raise ValueError(f"No test games for season {test_season}")
+        if train_df.empty:
+            raise ValueError(f"No training games before season {test_season}")
+        X_train = prepare_feature_matrix(train_df, position)
+        quantile_models = train_quantile_models(
+            X_train, train_df["Fpts"].values, PREDICTION_QUANTILES, position=position
+        )
+        qpreds = predict_quantiles(quantile_models, prepare_feature_matrix(test_df, position))
+        test_df["model_pred"] = qpreds["q50"]
+        test_df["model_p10"] = qpreds["q10"]
+        test_df["model_p90"] = qpreds["q90"]
+        test_df["training_max_season"] = int(train_df["season"].max())
+        # Cold-start baselines use training-only points, never the test season's
+        # final average (which contains the game we are trying to predict).
+        fallback = float(train_df["Fpts"].mean())
+        for col in ("season_avg_baseline", "last_game_baseline"):
+            test_df[col] = test_df[col].fillna(fallback)
+        frames.append(test_df)
+    return pd.concat(frames).sort_values(["season", "week", "player_id"]).reset_index(drop=True)
 
 
 def compute_metrics(actual: pd.Series, predicted: pd.Series) -> dict[str, float]:

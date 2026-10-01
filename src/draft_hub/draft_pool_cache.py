@@ -60,6 +60,8 @@ def pool_fingerprint() -> str:
         f"pos_logic:{POSITION_LOGIC_VERSION}",
     ]
     from src.projections.roster_coverage import roster_input_revisions
+    from src.projections.input_policy import projection_input_revisions
+    parts.extend(projection_input_revisions())
     parts.extend(roster_input_revisions())
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"

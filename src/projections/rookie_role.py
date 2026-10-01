@@ -1,4 +1,4 @@
-"""Rookie projection role tiers from Sleeper depth chart, overrides, and sentiment."""
+"""Rookie projection role tiers from current depth and time-scoped overrides."""
 
 from __future__ import annotations
 
@@ -200,6 +200,7 @@ def lookup_rookie_override(
     team: str,
     position: str,
     season: int | None,
+    target_week: int = 1,
     path: Path | None = None,
 ) -> dict[str, Any] | None:
     if season is None:
@@ -216,6 +217,11 @@ def lookup_rookie_override(
             continue
         row_pos = str(row.get("position") or "").upper()
         if row_pos and row_pos != pos_u:
+            continue
+        # Camp assumptions expire after the opener unless explicitly time-scoped.
+        start_week = int(row.get("start_week", 1))
+        end_week = int(row.get("end_week", 1))
+        if not start_week <= int(target_week) <= end_week:
             continue
         return row
     return None
@@ -323,11 +329,11 @@ def compute_rookie_role(
     sleeper_row: pd.Series,
     *,
     season: int | None = None,
+    target_week: int = 1,
 ) -> tuple[float, str]:
-    """Final rookie multiplier: Sleeper tier, optional override, sentiment blend."""
+    """Current depth tier with a time-scoped manual override."""
     player_name = str(sleeper_row.get("full_name") or "")
     team = str(sleeper_row.get("team") or "")
-    player_id = str(sleeper_row.get("gsis_id") or sleeper_row.get("player_id") or "").strip() or None
     skill_pos = resolve_rookie_skill_position(position, sleeper_row)
 
     base_mult, label = rookie_role_multiplier(skill_pos, sleeper_row)
@@ -336,43 +342,34 @@ def compute_rookie_role(
         team=team,
         position=skill_pos,
         season=season,
+        target_week=target_week,
     )
 
     if override:
         mult = float(override.get("role_mult") or base_mult)
         label = str(override.get("role_label") or "override")
-        blend_sentiment = override.get("sentiment_blend", True) is not False
     else:
         mult = base_mult
-        blend_sentiment = True
-
-    if blend_sentiment and season:
-        sent_mult, sent_tag = sentiment_role_boost(
-            player_name=player_name,
-            team=team,
-            player_id=player_id,
-            position=skill_pos,
-            season=season,
-        )
-        mult *= sent_mult
-        if sent_tag:
-            label = f"{label}+{sent_tag}"
 
     mult = max(MULT_MIN, min(MULT_MAX, mult))
     return round(mult, 3), label
 
 
 def scale_rookie_stub_features(stub: pd.Series, medians: pd.Series, mult: float) -> pd.Series:
-    """Multiply numeric feature columns on a rookie stub by the role multiplier."""
+    """Scale usage features only; preserve identity, role and matchup context."""
     out = stub.copy()
-    skip = {"season", "week", "_rookie_role_mult"}
     for col in medians.index:
-        if col in skip or col not in out.index:
+        if col not in out.index or col.startswith("_") or not col.endswith(("_avg", "_lead")):
+            continue
+        if col.startswith(("opponent_", "team_", "implied_", "total_line", "spread_line", "injury_",
+                           "target_quality", "separation_", "defender_", "ngs_", "adot_")):
             continue
         val = medians[col]
         if not isinstance(val, (int, float)) or pd.isna(val):
             continue
         out[col] = float(val) * mult
+        if col.removesuffix("_avg").removesuffix("_lead") in {"target_share", "carry_share", "air_yards_share", "offense_pct"}:
+            out[col] = max(0., min(1., out[col]))
     return out
 
 
@@ -387,5 +384,5 @@ def rookie_role_note_suffix(roster: pd.DataFrame) -> str:
     top = ", ".join(f"{k} ({v})" for k, v in labels.head(4).items())
     return (
         f" Rookie estimates use backup-usage features, Sleeper depth, draft-capital "
-        f"(search rank), camp overrides, and role-hype sentiment ({top})."
+        f"(search rank), and time-scoped camp overrides ({top})."
     )
