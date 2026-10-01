@@ -1,0 +1,36 @@
+{
+  "base": "9c050ea7",
+  "productionRead": {
+    "cachedNavigation": true,
+    "networkNavigation": false,
+    "apiExcluded": true,
+    "build": "93f967d0-92dc-44de-a47c-91d396470d18",
+    "method": "Read-only deployed worker and shell files"
+  },
+  "backend": {
+    "targetedPassed": 26,
+    "fullSuiteRun": false
+  },
+  "frontend": {
+    "targetedPassed": 5,
+    "fullPassed": 927,
+    "fullFailed": 3,
+    "failures": [
+      "auctionAwardContractLabel describes locked rookie and vet deals",
+      "accuracy copy names the miss, not a trust slogan",
+      "My team keeps the approved summary above a flat roster"
+    ],
+    "baselineEvidence": "Same three failures as the previous audit; all failing test and implementation modules match current master exactly"
+  },
+  "productionBuild": "passed; existing >500 kB chunk warning",
+  "browser": {
+    "passed": 12,
+    "method": "Actual generated candidate worker and unchanged master build worker, isolated contexts and ephemeral local server",
+    "realAPI": "Backend response is independently tested through TestClient; the browser fixture models that response contract"
+  },
+  "notVerified": [
+    "Deployed candidate recovery",
+    "Normal Fantasy page content and page-load latency"
+  ],
+  "deployed": false
+}

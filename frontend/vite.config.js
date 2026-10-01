@@ -83,15 +83,29 @@ export default defineConfig(({ mode }) => {
         // Precaching every dynamic chunk would download secondary screens on
         // the first visit anyway. Cache their hashed assets when first used.
         manifestTransforms: [async (entries) => ({
-          manifest: entries.filter(({ url }) => !/\.(?:js|css)$/.test(url) || initialAssets.has(url)),
+          manifest: entries
+            .filter(({ url }) => !/\.(?:js|css)$/.test(url) || initialAssets.has(url))
+            // Keep an offline shell without matching online / or /index.html
+            // in the precache route ahead of the navigation network handler.
+            .map((entry) => entry.url === "index.html"
+              ? { ...entry, url: "index.html?__scoresense_offline=1" } : entry),
           warnings: [],
         })],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallback: null,
         runtimeCaching: [
+          {
+            urlPattern: ({ request, url, sameOrigin }) => sameOrigin
+              && request.mode === "navigate"
+              && !url.pathname.startsWith("/api/"),
+            handler: "NetworkOnly",
+            options: {
+              fetchOptions: { cache: "no-store" },
+              precacheFallback: { fallbackURL: "/index.html?__scoresense_offline=1" },
+            },
+          },
           {
             urlPattern: ({ url, sameOrigin }) => sameOrigin && /\/assets\/.*\.(?:js|css)$/.test(url.pathname),
             handler: "CacheFirst",
@@ -101,7 +115,7 @@ export default defineConfig(({ mode }) => {
             },
           },
           {
-            urlPattern: /^\/api\/.*/i,
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/api/"),
             handler: "NetworkOnly",
           },
           {

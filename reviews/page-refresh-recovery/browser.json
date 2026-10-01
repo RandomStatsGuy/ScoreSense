@@ -1,0 +1,64 @@
+{
+  "checks": [
+    {
+      "check": "online navigation uses current shell",
+      "route": "/hub/home",
+      "pass": true
+    },
+    {
+      "check": "online navigation uses current shell",
+      "route": "/",
+      "pass": true
+    },
+    {
+      "check": "online navigation uses current shell",
+      "route": "/index.html",
+      "pass": true
+    },
+    {
+      "check": "online navigation uses current shell",
+      "route": "/hub/week?week=4",
+      "pass": true
+    },
+    {
+      "check": "offline navigation retains prepared fallback",
+      "pass": true
+    },
+    {
+      "check": "offline API navigation never receives a cached HTML shell",
+      "pass": true
+    },
+    {
+      "check": "legacy ordinary reload repeats error",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "check": "explicit recovery bypasses unchanged legacy worker and preserves URL/storage",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "check": "Fantasy home action also bypasses the legacy cache",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "check": "legacy ordinary reload repeats error",
+      "width": 390,
+      "pass": true
+    },
+    {
+      "check": "explicit recovery bypasses unchanged legacy worker and preserves URL/storage",
+      "width": 390,
+      "pass": true
+    },
+    {
+      "check": "Fantasy home action also bypasses the legacy cache",
+      "width": 390,
+      "pass": true
+    }
+  ],
+  "recoveryRequests": 4,
+  "legacyWorker": "unchanged production build"
+}

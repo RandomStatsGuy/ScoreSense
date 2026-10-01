@@ -21,6 +21,16 @@ Browser → Cloudflare (DNS + HTTPS) → cloudflared on Vultr → http://127.0.0
 - **`127.0.0.1:8000`** = ScoreSense on that server (not the internet)
 - **Cloudflare** = public hostname + TLS
 
+### Browser recovery after a deployment
+
+Online navigations read the current HTML shell. The service worker keeps a separate shell key (`index.html?__scoresense_offline=1`) for network failures, so an ordinary online reload cannot keep returning an old release. Hashed assets retain their existing cache/retirement policy.
+
+The shared error screen and bounded deployment watcher navigate through `/api/client-recovery?return_to=...`. The previously deployed worker excludes `/api` from its navigation fallback. This endpoint serves the current shell directly with `no-store` and restores the validated local destination before app scripts run; a redirect would reenter the old worker's cache. It never clears cookies, preferences, caches or league state. Automatic recovery still waits on live drafts, editable pages, dialogs and outstanding saves.
+
+If an older tab still has the old recovery button after rollout, open `/api/client-recovery?return_to=%2Fhub%2Fhome` on the production host to load the current client without clearing site data. This endpoint must ship with the frontend change. Verify recovery before removing retained assets.
+
+Local regression: from `frontend/`, run `npm run build`, `npx vite build --config test-fixtures/page-recovery.config.js`, then `node ../scripts/dev/page_recovery_browser.mjs`. This uses an isolated browser and ephemeral fixture server. Backend coverage lives in `tests/test_frontend_static.py`.
+
 ---
 
 ## Checklist (do in this order)

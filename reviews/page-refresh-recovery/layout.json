@@ -1,0 +1,287 @@
+{
+  "scope": "Shared recovery component in isolated fixtures; normal destination content was not rechecked",
+  "widths": {
+    "1280": {
+      "ok": true,
+      "routes": [
+        {
+          "route": "/hub/home",
+          "ok": true
+        },
+        {
+          "route": "/hub/strategy",
+          "ok": true
+        },
+        {
+          "route": "/hub/free-agents",
+          "ok": true
+        },
+        {
+          "route": "/hub/draft",
+          "ok": true
+        },
+        {
+          "route": "/hub/week",
+          "ok": true
+        },
+        {
+          "route": "/hub/vibes",
+          "ok": true
+        },
+        {
+          "route": "/hub/game",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster",
+          "ok": true
+        },
+        {
+          "route": "/hub/rosters",
+          "ok": true
+        },
+        {
+          "route": "/hub/cap",
+          "ok": true
+        },
+        {
+          "route": "/hub/trades",
+          "ok": true
+        },
+        {
+          "route": "/hub/rules",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/contracts",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/rosters",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/sheets",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/corrections",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/members",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/access",
+          "ok": true
+        },
+        {
+          "route": "/hub/insights/overview",
+          "ok": true
+        },
+        {
+          "route": "/hub/setup",
+          "ok": true
+        },
+        {
+          "route": "/tools/dfs",
+          "ok": true
+        },
+        {
+          "route": "/tools/mock-draft",
+          "ok": true
+        },
+        {
+          "route": "/tools/best-ball",
+          "ok": true
+        },
+        {
+          "route": "/projections/weekly",
+          "ok": true
+        },
+        {
+          "route": "/projections/season",
+          "ok": true
+        },
+        {
+          "route": "/model",
+          "ok": true
+        },
+        {
+          "route": "/admin",
+          "ok": true
+        },
+        {
+          "route": "/account",
+          "ok": true
+        },
+        {
+          "route": "/report",
+          "ok": true
+        },
+        {
+          "route": "/login",
+          "ok": true
+        },
+        {
+          "route": "/register",
+          "ok": true
+        },
+        {
+          "route": "/privacy",
+          "ok": true
+        },
+        {
+          "route": "/terms",
+          "ok": true
+        },
+        {
+          "route": "/sms-alerts",
+          "ok": true
+        }
+      ]
+    },
+    "390": {
+      "ok": true,
+      "routes": [
+        {
+          "route": "/hub/home",
+          "ok": true
+        },
+        {
+          "route": "/hub/strategy",
+          "ok": true
+        },
+        {
+          "route": "/hub/free-agents",
+          "ok": true
+        },
+        {
+          "route": "/hub/draft",
+          "ok": true
+        },
+        {
+          "route": "/hub/week",
+          "ok": true
+        },
+        {
+          "route": "/hub/vibes",
+          "ok": true
+        },
+        {
+          "route": "/hub/game",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster",
+          "ok": true
+        },
+        {
+          "route": "/hub/rosters",
+          "ok": true
+        },
+        {
+          "route": "/hub/cap",
+          "ok": true
+        },
+        {
+          "route": "/hub/trades",
+          "ok": true
+        },
+        {
+          "route": "/hub/rules",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/contracts",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/rosters",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/sheets",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/corrections",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/members",
+          "ok": true
+        },
+        {
+          "route": "/hub/roster-management/access",
+          "ok": true
+        },
+        {
+          "route": "/hub/insights/overview",
+          "ok": true
+        },
+        {
+          "route": "/hub/setup",
+          "ok": true
+        },
+        {
+          "route": "/tools/dfs",
+          "ok": true
+        },
+        {
+          "route": "/tools/mock-draft",
+          "ok": true
+        },
+        {
+          "route": "/tools/best-ball",
+          "ok": true
+        },
+        {
+          "route": "/projections/weekly",
+          "ok": true
+        },
+        {
+          "route": "/projections/season",
+          "ok": true
+        },
+        {
+          "route": "/model",
+          "ok": true
+        },
+        {
+          "route": "/admin",
+          "ok": true
+        },
+        {
+          "route": "/account",
+          "ok": true
+        },
+        {
+          "route": "/report",
+          "ok": true
+        },
+        {
+          "route": "/login",
+          "ok": true
+        },
+        {
+          "route": "/register",
+          "ok": true
+        },
+        {
+          "route": "/privacy",
+          "ok": true
+        },
+        {
+          "route": "/terms",
+          "ok": true
+        },
+        {
+          "route": "/sms-alerts",
+          "ok": true
+        }
+      ]
+    }
+  }
+}

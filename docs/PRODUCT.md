@@ -420,6 +420,8 @@ Game center labels current forecasts separately from the pregame baselines froze
 
 ### Refresh behavior
 
+Online document navigation fetches the current app shell; the saved shell is an offline fallback only. A failed page's Reload page and Go to Fantasy home actions open a fresh shell outside older service workers' navigation caches, then restore the intended URL before the app starts. Recovery keeps sign-in, preferences and league data. Automatic deployment recovery remains bounded and waits while a live draft, editable page, dialog or save is active.
+
 An interrupted projection refresh is a persisted failure, not a permanent running marker. Admins can Retry refresh directly from the shared status banner in any product area. Retry uses the existing no-retrain pipeline and preserves the last successful data timestamp until completion; it does not deploy or change league state.
 
 Weekly's notes chip rebuilds notes from existing weekly artifacts and reports missing projections promptly. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.
