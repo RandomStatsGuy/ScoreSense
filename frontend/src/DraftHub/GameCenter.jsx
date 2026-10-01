@@ -42,6 +42,7 @@ export default function GameCenter({
 }) {
   const { identities } = useTeamIdentities();
   const [data, setData] = useState(null);
+  const [selectedMatchupId, setSelectedMatchupId] = useState(null);
   const [lineupSummary, setLineupSummary] = useState(null);
   const [section, setSection] = useState(renderLineup ? "lineup" : "starters");
   const [loading, setLoading] = useState(true);
@@ -51,6 +52,8 @@ export default function GameCenter({
   useEffect(() => {
     setWeek(gameCenterWeek(requestedWeek));
   }, [leagueId, requestedWeek]);
+
+  useEffect(() => setSelectedMatchupId(null), [leagueId, requestedWeek, requestedTeam, week]);
 
   const scope = `${leagueId}:${week}`;
   const scopeRef = useRef(scope);
@@ -123,8 +126,8 @@ export default function GameCenter({
   }, [pollScores, load]);
 
   const matchup = useMemo(
-    () => findViewerMatchup(data, requestedTeam),
-    [data, requestedTeam],
+    () => (data?.matchups || []).find(m => String(m.matchup_id) === String(selectedMatchupId)) || findViewerMatchup(data, requestedTeam),
+    [data, requestedTeam, selectedMatchupId],
   );
   const { viewer, opponent } = useMemo(
     () => matchupTeams(matchup, requestedTeam),
@@ -168,6 +171,16 @@ export default function GameCenter({
       : data
         ? gameStateLabel(data, hubContext)
         : "";
+  const ownMatchup = findViewerMatchup(data, hubContext?.team_id);
+  const viewingOwnTeam = viewer
+    ? String(viewer.hub_team_id) === String(hubContext?.team_id) || viewer.is_viewer
+    : selectedMatchupId == null && (!requestedTeam || String(requestedTeam) === String(hubContext?.team_id));
+  const selectMatchup = (id) => {
+    setSelectedMatchupId(id);
+    if (section === "league") setSection("starters");
+  };
+  const scorePlayers = [...(viewer?.starters || []), ...(viewer?.bench_players || [])];
+  const upcomingNotice = nativeScoreRefreshMessage(data) === GAME_CENTER_COPY.scoreUpcoming;
   const otherMatchups = (data?.matchups || []).filter((m) => m !== matchup);
   const placeholder = scoresArePlaceholder(data, hubContext);
   const hasSlate = (data?.matchups || []).length > 0;
@@ -243,7 +256,7 @@ export default function GameCenter({
           </button>
         </HubAlert>
       )}
-      {!loading && nativeScoreRefreshMessage(data) && (
+      {!loading && !upcomingNotice && nativeScoreRefreshMessage(data) && (
         <HubAlert variant={nativeScoreRefreshVariant(data)}>
           {nativeScoreRefreshMessage(data)}
         </HubAlert>
@@ -270,7 +283,7 @@ export default function GameCenter({
       )}
       {!loading && matchup && viewer && opponent && (
         <GameCenterMatchup
-          key={`${leagueId}-${weekNumber}-${viewer.roster_id}`}
+          key={`${leagueId}-${weekNumber}`}
           data={data}
           viewer={viewer}
           opponent={opponent}
@@ -285,7 +298,11 @@ export default function GameCenter({
           onNavigate={onNavigate}
           hubContext={hubContext}
           weekly={weekly}
-          lineup={Boolean(renderLineup)}
+          lineup={weekly}
+          showReadOnlyLineup={!renderLineup || !viewingOwnTeam}
+          onSelectMatchup={selectMatchup}
+          ownMatchupId={ownMatchup?.matchup_id}
+          selectedMatchupId={matchup.matchup_id}
           activeSection={weekly ? section : undefined}
           onSectionChange={weekly ? setSection : undefined}
           scoringControl={(
@@ -300,7 +317,8 @@ export default function GameCenter({
           )}
         />
       )}
-      {weekly && renderLineup && section === "lineup" && renderLineup({week:lineupWeek, onChanged:() => load(), onSummary:setLineupSummary})}
+      {weekly && renderLineup && viewingOwnTeam && section === "lineup" && renderLineup({week:lineupWeek, onChanged:() => load(), onSummary:setLineupSummary, scorePlayers, gameCenterData:data})}
+      {!loading && (upcomingNotice || placeholder) && !showBanner && <p className="gc-room-note gc-room-kickoff-note">{GAME_CENTER_COPY.pregameNote}</p>}
     </HubPage>
   );
 }

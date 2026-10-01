@@ -241,7 +241,20 @@ export function measureScript() {
       if (raw && typeof raw.baseVal === "string") return raw.baseVal;
       return "";
     };
+    const tokenPixels = (name) => {
+      const root = getComputedStyle(document.documentElement);
+      const value = root.getPropertyValue(name).trim();
+      const number = Number.parseFloat(value);
+      if (value.endsWith("rem")) return number * Number.parseFloat(root.fontSize);
+      return value.endsWith("px") ? number : Number.NaN;
+    };
     const results = [];
+    document.querySelectorAll(".hub-week-forecast-opponent, .hub-week-forecast-totals strong").forEach(el => {
+      const cs = getComputedStyle(el);
+      const clipped = el.scrollWidth > el.clientWidth + 1 || (cs.overflowY === "hidden" && el.scrollHeight > el.clientHeight + 1);
+      const faded = Number(cs.opacity) < 1 || (cs.maskImage && cs.maskImage !== "none");
+      results.push({rule:"matchup-readability",ok:!clipped && !faded,selector:elementClassName(el),detail:clipped ? "banner name or total clipped" : faded ? "banner name or total faded" : "banner name and total readable"});
+    });
     document.querySelectorAll(".companion-drag-area").forEach((area) => {
       const style = getComputedStyle(area);
       const hiddenGuide = [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth].every((width) => parseFloat(width) === 0)
@@ -684,11 +697,7 @@ export function measureScript() {
       const type = getComputedStyle(title);
       const rootStyle = getComputedStyle(document.documentElement);
       const expectedRadius = parseFloat(rootStyle.getPropertyValue("--radius-lg"));
-      const probe = document.createElement("span");
-      probe.style.fontSize = "var(--text-xl)";
-      header.appendChild(probe);
-      const expectedSize = parseFloat(getComputedStyle(probe).fontSize);
-      probe.remove();
+      const expectedSize = tokenPixels("--text-xl");
       const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius].map(parseFloat);
       const sameCorners = radii.every(radius => Math.abs(radius - expectedRadius) <= 1);
       const boldTitle = Number(type.fontWeight) === Number(rootStyle.getPropertyValue("--font-weight-bold"));
@@ -720,7 +729,8 @@ export function measureScript() {
       if (!row.getBoundingClientRect().height) return;
       const button = row.querySelector(".hub-wcc-position-button");
       const rect = button?.getBoundingClientRect();
-      results.push({ rule:"lineup-controls", ok:Boolean(rect && rect.width >= minTarget && rect.height >= minTarget && Math.abs(rect.width-rect.height) <= 1), selector:".hub-wcc-position-button", detail:rect ? `${px(rect.width)}×${px(rect.height)}px` : "missing starter/bench control" });
+      // Use the same CSS-pixel dimensions as the target check; viewport scaling can yield 43.993 for a 44px control.
+      results.push({ rule:"lineup-controls", ok:Boolean(rect && button.offsetWidth >= minTarget && button.offsetHeight >= minTarget && Math.abs(rect.width-rect.height) <= 1), selector:".hub-wcc-position-button", detail:rect ? `${px(rect.width)}×${px(rect.height)}px` : "missing starter/bench control" });
       const call = row.querySelector(".hub-wcc-call-pill.is-start");
       if (call) {
         const bounds = call.getBoundingClientRect();
@@ -745,13 +755,7 @@ export function measureScript() {
         : { rule: "primaries", ok: true, selector: "", detail: `${primaries.length} visible primary` },
     );
 
-    const probe = document.createElement("span");
-    probe.style.fontSize = "var(--text-xs)";
-    probe.style.position = "absolute";
-    probe.textContent = ".";
-    document.body.appendChild(probe);
-    const xsPx = parseFloat(getComputedStyle(probe).fontSize) || 0;
-    probe.remove();
+    const xsPx = tokenPixels("--text-xs") || 0;
     if (xsPx + 0.05 < 12) {
       results.push({
         rule: "type",

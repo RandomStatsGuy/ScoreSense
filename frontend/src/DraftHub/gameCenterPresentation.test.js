@@ -55,6 +55,10 @@ import {
   formatWinProb,
   GAME_CENTER_COPY,
   LEAGUE_SCORING_CONTROL_COPY,
+  gameCenterPlayerScore,
+  gameCenterTeamScore,
+  gameCenterMatchupScores,
+  playerGameState,
   gameCenterBanner,
   gameCenterHeroCopy,
   gameCenterStandingRows,
@@ -488,7 +492,7 @@ test("native Game center polls the current week until it is final", () => {
       { ...current, source: "sleeper", placeholder: true },
       { draft_completed: true, sleeper_league_id: "123" },
     ),
-    false,
+    true,
   );
   assert.equal(
     shouldPollGameCenter(
@@ -497,4 +501,49 @@ test("native Game center polls the current week until it is final", () => {
     ),
     true,
   );
+});
+
+test("player headlines follow their own game and preserve missing results", () => {
+  const player = { name: "Player", proj: 15.9, pregame_projection: 15.2, points: 0, game_state: "pregame" };
+  assert.equal(gameCenterPlayerScore(player, { live: true }).value, "15.9");
+  assert.equal(gameCenterPlayerScore(player, { live: true }).label, "Current forecast");
+  assert.equal(gameCenterPlayerScore({ ...player, game_state: "live" }, {}).value, "0.0");
+  assert.equal(gameCenterPlayerScore({ ...player, game_state: "live", points: null }, {}).value, "—");
+  assert.equal(playerGameState({ ...player, game_state: "unknown" }, { live: true }), "unknown");
+  assert.equal(gameCenterPlayerScore({ ...player, proj: 0 }, {}).value, "0.0");
+  assert.equal(gameCenterPlayerScore({ name: "Empty" }, {}).state, "empty");
+});
+
+test("final differences use saved baselines instead of refreshed forecasts", () => {
+  const player = { name: "Player", game_state: "final", points: 20, proj: 24, pregame_projection: 16 };
+  assert.equal(gameCenterPlayerScore(player).secondary, "4.0 above projection");
+  assert.equal(gameCenterPlayerScore({ ...player, points: 10 }).secondary, "6.0 below projection");
+  assert.equal(gameCenterPlayerScore({ ...player, pregame_projection: null }).secondary, "Pregame projection not saved");
+});
+
+test("pregame totals exclude empty slots but do not replace missing forecasts with zero", () => {
+  const team = { points: 0, proj_total: 99, starters: [
+    { name: "One", proj: 16, game_state: "pregame" },
+    { name: "Two", proj: 0, game_state: "pregame" },
+    { name: "Empty", proj: null },
+  ] };
+  assert.equal(gameCenterTeamScore(team).value, "16.0");
+  assert.equal(gameCenterTeamScore(team).label, "Projected");
+  assert.equal(gameCenterTeamScore({ ...team, starters: [...team.starters, { name: "Unknown", game_state: "pregame", proj: null }] }).value, "—");
+  assert.equal(gameCenterTeamScore({ ...team, starters: team.starters.map((p) => ({ ...p, game_state: "live" })) }, { live: true }).value, "0.0");
+});
+
+test("mixed kickoff times never compare one team's actual points against the other's forecast", () => {
+  const home = { points: 5.4, starters: [{ name: "One", proj: 15, game_state: "live" }] };
+  const away = { points: 0, starters: [{ name: "Two", proj: 20, game_state: "pregame" }] };
+  const scores = gameCenterMatchupScores(home, away, { live: true });
+  assert.equal(scores.home.value, "5.4");
+  assert.equal(scores.away.value, "0.0");
+  assert.equal(scores.away.projected, "20.0");
+});
+
+test("a delayed native slate stays live when the calendar advances", () => {
+  const data = {week:4,current_week:5,scoring_control:{host:"native",scored:true,final:false,live:true}};
+  assert.equal(gameCenterPlayerScore({name:"Player",points:0,proj:16}, data).label, "Live");
+  assert.equal(gameCenterPlayerScore({name:"Player",game_state:"pregame",points:0,proj:16}, data).value, "16.0");
 });

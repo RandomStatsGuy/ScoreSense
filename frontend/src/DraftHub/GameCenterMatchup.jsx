@@ -3,6 +3,7 @@ import { JerseySvg } from "./LockerRoomScene";
 import { nflTeamColors } from "./nflTeamColors";
 import { identityFor } from "./TeamIdentityContext";
 import MatchupBannerArt from "./MatchupBannerArt";
+import NflTeamMark from "./NflTeamMark";
 import TeamIdentityMark from "./TeamIdentityMark";
 import WeekCulturePanel from "./WeekCulturePanel";
 import {
@@ -11,12 +12,13 @@ import {
   formatMatchupScore,
   formatSyncedAgo,
   gameCenterLead,
-  gameCenterProjection,
+  gameCenterPlayerScore,
+  gameCenterMatchupScores,
+  gameCenterMatchupLead,
   gameCenterTeamLabel,
   gameCenterTeamParts,
   formatStandingRank,
   formatStandingRecord,
-  weeklyMatchupForecast,
 } from "./gameCenterPresentation";
 
 const identityTeam = (t) => ({
@@ -24,10 +26,6 @@ const identityTeam = (t) => ({
   name: t?.team_name,
   owner_name: t?.owner_name,
 });
-const score = (p, placeholder) =>
-  !duelSlotFilled(p)
-    ? "—"
-    : formatMatchupScore(p.points, { placeholder }).score;
 
 function TeamName({ team, identity, away = false }) {
   const parts = gameCenterTeamParts(team);
@@ -45,8 +43,9 @@ function TeamName({ team, identity, away = false }) {
     </div>
   );
 }
-function FeaturedPlayer({ player, media, gradientId, placeholder }) {
+function FeaturedPlayer({ player, media, gradientId, placeholder, data }) {
   const filled = duelSlotFilled(player);
+  const metric = gameCenterPlayerScore(player, data, placeholder);
   return (
     <div className="gc-room-feature-player">
       <div className="gc-room-jersey">
@@ -62,13 +61,14 @@ function FeaturedPlayer({ player, media, gradientId, placeholder }) {
           gradientId={gradientId}
         />
       </div>
-      <small>
+      <small className="gc-room-player-meta">
+        <NflTeamMark team={player?.team} />
         {[player?.team, player?.position].filter(Boolean).join(" · ")}
       </small>
       <h2>{filled ? player.name : COPY.emptySlot}</h2>
       <div className="gc-room-feature-score">
-        <strong>{score(player, placeholder)}</strong>
-        <span>{gameCenterProjection(player)}</span>
+        <strong>{metric.value}</strong>
+        <span>{metric.label}<small>{metric.secondary}</small></span>
       </div>
     </div>
   );
@@ -78,22 +78,31 @@ function PlayerName({ player, away = false }) {
     <span
       className={`gc-room-player-name${away ? " gc-room-player-name--away" : ""}`}
     >
-      <b>{duelSlotFilled(player) ? player.name : COPY.emptySlot}</b>
+      <NflTeamMark team={player?.team} />
+      <span><b>{duelSlotFilled(player) ? player.name : COPY.emptySlot}</b>
       <small>
         {[player?.team, player?.position].filter(Boolean).join(" · ")}
       </small>
+      </span>
     </span>
   );
 }
-function Points({ player, placeholder }) {
-  return (
-    <span className="gc-room-player-points">
-      <b>{score(player, placeholder)}</b>
-      <small>
-        {player?.proj != null ? `Proj ${Number(player.proj).toFixed(1)}` : "—"}
-      </small>
-    </span>
-  );
+function Points({ player, placeholder, data }) {
+  const metric = gameCenterPlayerScore(player, data, placeholder);
+  return <span className="gc-room-player-points" title={`${metric.label} · ${metric.secondary}`}>
+    <b>{metric.value}</b>
+    <small>{metric.state === "pregame" ? COPY.currentForecast : metric.secondary}</small>
+  </span>;
+}
+function ReadOnlyLineup({ viewer, data, placeholder }) {
+  return <section className="gc-room-panel gc-room-readonly-lineup" aria-label={COPY.lineupTitle}>
+    <div className="gc-room-section-head"><h2>{gameCenterTeamLabel(viewer)}</h2><small>{COPY.lineupTitle}</small></div>
+    {(viewer?.starters || []).map((player, index) => <div className="gc-room-lineup-player" key={player.player_id || index}>
+      <span className="gc-room-slot">{data.starting_slots?.[index] || player.position}</span>
+      <PlayerName player={player} /><Points {...{player, data, placeholder}} />
+    </div>)}
+    {!viewer?.starters?.length && <p>{COPY.emptyDuel}</p>}
+  </section>;
 }
 export default function GameCenterMatchup({
   data,
@@ -112,6 +121,10 @@ export default function GameCenterMatchup({
   scoringControl,
   weekly = false,
   lineup,
+  showReadOnlyLineup = false,
+  onSelectMatchup,
+  ownMatchupId,
+  selectedMatchupId,
   activeSection,
   onSectionChange,
 }) {
@@ -125,8 +138,13 @@ export default function GameCenterMatchup({
   const player = selected?.[detailSide];
   const mine = identityFor(identities, identityTeam(viewer));
   const theirs = identityFor(identities, identityTeam(opponent));
-  const forecast = weeklyMatchupForecast(viewer, opponent);
-  const pregame = weekly && placeholder;
+  const scores = gameCenterMatchupScores(viewer, opponent, data, placeholder);
+  const pregame = scores.home.pregame && scores.away.pregame;
+  const games = data.matchups || [];
+  const gameIndex = games.findIndex(m => String(m.matchup_id) === String(selectedMatchupId));
+  const isOwn = viewer?.is_viewer || String(viewer?.hub_team_id) === String(hubContext?.team_id);
+  const opponentName = gameCenterTeamParts(opponent).owner || gameCenterTeamLabel(opponent);
+  const matchupName = isOwn ? COPY.youVersus(opponentName) : `${gameCenterTeamParts(viewer).owner || gameCenterTeamLabel(viewer)} vs ${opponentName}`;
   const select = (key) => {
     setSelectedKey(key);
     setDetailSide("home");
@@ -137,16 +155,16 @@ export default function GameCenterMatchup({
         <h2>{COPY.leagueTitle}</h2>
         <small>Week {data.week}</small>
       </div>
-      {otherMatchups.map((m) => (
-        <div className="gc-room-other-match" key={m.matchup_id}>
-          {(m.teams || []).map((t) => (
-            <div key={t.roster_id}>
-              <span>{gameCenterTeamLabel(t)}</span>
-              <b>{formatMatchupScore(t.points, { placeholder }).score}</b>
-            </div>
-          ))}
-        </div>
-      ))}
+      {(section === "league" ? games : otherMatchups).map((m) => {
+        const totals = gameCenterMatchupScores(m.teams?.[0], m.teams?.[1], data, placeholder);
+        const labels = (m.teams || []).map(gameCenterTeamLabel);
+        return <button type="button" className="gc-room-other-match" key={m.matchup_id}
+          aria-label={`${COPY.viewMatchup}: ${labels.join(" vs ")}`} onClick={() => onSelectMatchup?.(m.matchup_id)}>
+          {(m.teams || []).map((t, i) => <span className="gc-room-other-team" key={t.roster_id}>
+            <span title={labels[i]}>{labels[i]}</span><b>{(i === 0 ? totals.home : totals.away).value}</b>
+          </span>)}
+        </button>;
+      })}
       {!otherMatchups.length && <p>{COPY.leagueSupport}</p>}
     </section>
   );
@@ -177,10 +195,19 @@ export default function GameCenterMatchup({
         </div>}
       </section>}
       {weekly && <section className="hub-week-forecast" aria-label={pregame ? COPY.projectedTotals : stateLabel}>
-        <span className="hub-week-forecast-opponent" title={COPY.youVersus(gameCenterTeamParts(opponent).owner || gameCenterTeamLabel(opponent))}>{COPY.youVersus(gameCenterTeamParts(opponent).owner || gameCenterTeamLabel(opponent))}</span>
-        <strong aria-live="polite">{pregame ? (forecast.mine == null ? "—" : forecast.mine.toFixed(1)) : formatMatchupScore(viewer.points, { placeholder }).score}<small aria-hidden="true">—</small>{pregame ? (forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)) : formatMatchupScore(opponent.points, { placeholder }).score}</strong>
-        <span className="hub-week-forecast-status">{pregame ? COPY.projected : stateLabel}</span>
+        <span className="hub-week-forecast-opponent">{matchupName}</span>
+        <div className="hub-week-forecast-totals" aria-live="polite" aria-atomic="true">
+          <strong>{scores.home.value}<small aria-hidden="true">—</small>{scores.away.value}</strong>
+          <small>{pregame ? COPY.projectedTotals : stateLabel}</small>
+        </div>
+        <span className="hub-week-forecast-status">{gameCenterMatchupLead(viewer, opponent, data, placeholder)}</span>
       </section>}
+      {onSelectMatchup && games.length > 1 && <nav className="gc-room-game-nav" aria-label={COPY.browseGames}>
+        <button type="button" className="btn-ghost" aria-label={COPY.previousGame} onClick={() => onSelectMatchup(games[(gameIndex - 1 + games.length) % games.length].matchup_id)}>←</button>
+        <span>{COPY.matchupPosition(gameIndex + 1, games.length)}</span>
+        <button type="button" className="btn-ghost" aria-label={COPY.nextGame} onClick={() => onSelectMatchup(games[(gameIndex + 1) % games.length].matchup_id)}>→</button>
+        {String(ownMatchupId) !== String(selectedMatchupId) && ownMatchupId != null && <button type="button" className="btn-link" onClick={() => onSelectMatchup(ownMatchupId)}>{COPY.yourMatchup}</button>}
+      </nav>}
       {!weekly && scoringControl}
       <div className="gc-room-toolbar">
         <div
@@ -204,7 +231,7 @@ export default function GameCenterMatchup({
           </button>
         )}
       </div>
-      {section === "lineup" && lineup}
+      {section === "lineup" && showReadOnlyLineup && <ReadOnlyLineup {...{viewer, data, placeholder}} />}
       {section !== "lineup" && <div className="gc-room-layout">
         <div className="gc-room-main">
           {section === "starters" && (
@@ -239,6 +266,7 @@ export default function GameCenterMatchup({
                       media={media}
                       gradientId={`${id}-home`}
                       placeholder={placeholder}
+                      data={data}
                     />
                     <div className="gc-room-versus">
                       {selected.slot}
@@ -249,6 +277,7 @@ export default function GameCenterMatchup({
                       media={media}
                       gradientId={`${id}-away`}
                       placeholder={placeholder}
+                      data={data}
                     />
                   </section>
                 </>
@@ -267,9 +296,9 @@ export default function GameCenterMatchup({
                     aria-label={`Compare ${row.home?.name || COPY.emptySlot} and ${row.away?.name || COPY.emptySlot}`}
                   >
                     <PlayerName player={row.home} />
-                    <Points player={row.home} placeholder={placeholder} />
+                    <Points player={row.home} placeholder={placeholder} data={data} />
                     <span className="gc-room-slot">{row.slot}</span>
-                    <Points player={row.away} placeholder={placeholder} />
+                    <Points player={row.away} placeholder={placeholder} data={data} />
                     <PlayerName player={row.away} away />
                   </button>
                 ))}
@@ -295,7 +324,7 @@ export default function GameCenterMatchup({
                         key={p.player_id || i}
                       >
                         <PlayerName player={p} />
-                        <Points player={p} placeholder={placeholder} />
+                        <Points player={p} placeholder={placeholder} data={data} />
                       </div>
                     ))}
                     {!team.bench_players?.length && <p>{COPY.noBench}</p>}
@@ -329,10 +358,10 @@ export default function GameCenterMatchup({
               </div>
               <h2>{player?.name || COPY.emptySlot}</h2>
               <div className="gc-room-detail-total">
-                <strong>{score(player, placeholder)}</strong>
-                <small>{COPY.points}</small>
+                <strong>{gameCenterPlayerScore(player, data, placeholder).value}</strong>
+                <small>{gameCenterPlayerScore(player, data, placeholder).label}</small>
               </div>
-              <p>{gameCenterProjection(player)}</p>
+              <p>{gameCenterPlayerScore(player, data, placeholder).label} · {gameCenterPlayerScore(player, data, placeholder).secondary}</p>
               <p>{COPY.forecastNote}</p>
             </section>
           )}
