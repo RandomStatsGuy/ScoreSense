@@ -129,13 +129,13 @@ function buildParticle(theme, layer, index, rng) {
     /** 0 = soft dot (depth filler), 1 = crystal flake. */
     particle.variant = rng() < 0.45 ? 0 : 1;
   } else if (theme === "cozy") {
-    /** 0 = dust mote (depth filler), 1 = fur tuft, 2 = yarn ball. */
+    /** 0 = dust mote (depth filler), 1 = mouse toy, 2 = yarn ball. */
     const roll = rng();
     if (layer.id === "far" || roll < 0.2) {
       particle.variant = 0;
-    } else if (roll < 0.7) {
+    } else if (roll < 0.45) {
       particle.variant = 1;
-      particle.colors = pick(rng, FUR_COLORS);
+      particle.colors = pick(rng, YARN_COLORS);
     } else {
       particle.variant = 2;
       particle.colors = pick(rng, YARN_COLORS);
@@ -144,7 +144,7 @@ function buildParticle(theme, layer, index, rng) {
       particle.size = Math.round(particle.size * 1.2 * 10) / 10;
     }
     if (particle.variant === 1) {
-      /** Fur floats: slower fall, wider sway, lazy rock. */
+      /** Mouse toys tumble gently with the yarn. */
       particle.fallDuration = Math.round(particle.fallDuration * 1.3 * 10) / 10;
       particle.spinMode = "rock";
     }

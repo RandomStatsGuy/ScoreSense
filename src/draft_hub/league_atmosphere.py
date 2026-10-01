@@ -77,6 +77,9 @@ def default_atmosphere_prefs() -> dict[str, Any]:
         # Independent layers so the experience can be tailored:
         # falling particles / ground pile / background color wash.
         "atmosphere_motion": True,
+        "atmosphere_falling": True,
+        "atmosphere_companions": True,
+        "atmosphere_reactions": True,
         "atmosphere_pile": True,
         "atmosphere_wash": True,
         "atmosphere_intensity": "standard",
@@ -108,6 +111,10 @@ def merge_atmosphere_prefs(raw: Any) -> dict[str, Any]:
     for key in ("atmosphere_enabled", "atmosphere_motion", "atmosphere_pile", "atmosphere_wash"):
         if key in raw:
             base[key] = _coerce_bool(raw.get(key), base[key])
+    # Old Motion off keeps both new moving layers off until explicitly enabled.
+    for key in ("atmosphere_falling", "atmosphere_reactions"):
+        base[key] = _coerce_bool(raw.get(key), base["atmosphere_motion"])
+    base["atmosphere_companions"] = _coerce_bool(raw.get("atmosphere_companions"), True)
     intensity = str(raw.get("atmosphere_intensity") or "").strip().lower()
     if intensity in ATMOSPHERE_INTENSITIES:
         base["atmosphere_intensity"] = intensity

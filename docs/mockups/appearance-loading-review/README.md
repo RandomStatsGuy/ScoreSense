@@ -4,7 +4,7 @@ The shared app shell waits for the active content to finish loading and paint be
 
 `node scripts/dev/appearance_readiness_browser.mjs` holds initial code, preferences, metadata, and page data requests using the production bundle served through an isolated browser context against the existing local server. It never changes real account preferences or league data. Checks cover desktop 1280px and phone 390px and navigation from a completed page into a loading one. A temporary browser DOM fixture also exercises hidden cached placeholders and closed disclosures, then makes each visible to confirm that it blocks readiness. See [report.json](report.json).
 
-The companion artwork and toy controls remain native design previews; see [reactive theme review](../reactive-themes-review/README.md).
+The companion artwork and toy controls are now implemented in React; see [companion review](../companion-review/README.md).
 
 | State | Desktop | Phone |
 |---|---|---|
