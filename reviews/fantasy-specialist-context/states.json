@@ -1,0 +1,126 @@
+{
+  "fixture": true,
+  "productionComponents": true,
+  "checks": [
+    {
+      "width": 1280,
+      "state": "upcoming",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "stats-unavailable",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "unknown-schedule",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "score-pending",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "linked",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "final",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "loading",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "load-error",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "readonly",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 1280,
+      "state": "no-roster",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "upcoming",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "stats-unavailable",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "unknown-schedule",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "score-pending",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "linked",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "final",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "loading",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "load-error",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "readonly",
+      "ok": true,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "state": "no-roster",
+      "ok": true,
+      "errors": []
+    }
+  ]
+}

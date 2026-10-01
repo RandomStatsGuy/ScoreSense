@@ -1,8 +1,7 @@
 """Personalized Weekly Hub Command Center (SCORE-6).
 
-Joins Hub roster state (SQLite, no live Sleeper) with weekly projection
-artifacts at request time. Starters/bench are inferred from LeagueRules
-starter counts + P50 ranking — Hub does not persist weekly lineup slots.
+Joins current Hub roster/lineup state with prepared weekly player snapshots.
+Shared player context is materialized by jobs, never by a page request.
 """
 
 from __future__ import annotations
@@ -10,9 +9,6 @@ from __future__ import annotations
 import math
 import re
 import time
-from collections import OrderedDict
-from copy import deepcopy
-from threading import RLock
 from typing import Any, Iterable
 
 import numpy as np
@@ -72,13 +68,11 @@ _MLREADY_SLIM_CACHE: dict[str, tuple[tuple[str, int], pd.DataFrame]] = {}
 _PRIOR_PPG_CACHE: dict[int, tuple[tuple[str, ...], dict[str, Any]]] = {}
 _DEF_VS_POS_CACHE: dict[tuple[int, int], tuple[tuple[str, ...], dict[tuple[str, str], dict[str, Any]]]] = {}
 _VEGAS_CACHE: dict[tuple[int, int], dict[str, dict[str, Any]]] = {}
-_WEEK_CONTEXT_CACHE: OrderedDict[tuple, tuple[dict, dict]] = OrderedDict()
-_WEEK_CONTEXT_LOCK = RLock()
 
 
 def invalidate_weekly_context_cache() -> None:
-    with _WEEK_CONTEXT_LOCK:
-        _WEEK_CONTEXT_CACHE.clear()
+    from src.draft_hub.prepared_week_context import _read_snapshot
+    _read_snapshot.cache_clear()
 
 
 def _weekly_context_revision(season: int, week: int, apply_injury: bool) -> tuple:
@@ -177,33 +171,10 @@ def _load_projection_index(
     *,
     apply_injury_adjustments: bool,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
-    """Shared read model, revised by source files rather than roster or lineup writes.
-
-    All callers receive isolated dictionaries. A single builder per process prevents
-    simultaneous Home, matchup and lineup reads rebuilding the same player context.
-    """
-    revision = _weekly_context_revision(season, week, apply_injury_adjustments)
-    with _WEEK_CONTEXT_LOCK:
-        hit = _WEEK_CONTEXT_CACHE.get(revision)
-        if hit is None:
-            hit = _build_projection_index(season, week, apply_injury_adjustments=apply_injury_adjustments)
-            _WEEK_CONTEXT_CACHE[revision] = hit
-            while len(_WEEK_CONTEXT_CACHE) > 12:
-                _WEEK_CONTEXT_CACHE.popitem(last=False)
-        _WEEK_CONTEXT_CACHE.move_to_end(revision)
-    # Entries contain scalars. Clone each entry once and preserve its aliases.
-    index, meta = hit
-    copies: dict[int, dict] = {}
-    def copy_entry(entry: dict) -> dict:
-        if id(entry) not in copies:
-            copies[id(entry)] = dict(entry)
-        return copies[id(entry)]
-    result_index = {key: copy_entry(entry) for key, entry in index.items()}
-    result_meta = {key: deepcopy(value) for key, value in meta.items() if not key.startswith("_by_")}
-    result_meta["_by_name_team"] = {key: copy_entry(entry) for key, entry in meta.get("_by_name_team", {}).items()}
-    for name in ("_by_name", "_by_roster_name"):
-        result_meta[name] = {key: [copy_entry(entry) for entry in entries] for key, entries in meta.get(name, {}).items()}
-    return result_index, result_meta
+    """Read prepared public player data; roster and lineup writes never invalidate it."""
+    from src.draft_hub.prepared_week_context import load_week_context
+    index, meta, _facts = load_week_context(season, week, apply_injury_adjustments)
+    return index, meta
 
 
 def _build_projection_index(
@@ -643,12 +614,15 @@ def attach_call_facts(
     """Attach Ticket-sheet facts. Soft-fail: missing sources leave fields empty."""
     if not cards:
         return cards
+    if vegas_teams is None or prior_ppg is None or def_vs_pos is None:
+        from src.draft_hub.prepared_week_context import load_week_context
+        _index, _meta, facts = load_week_context(season, week)
     if vegas_teams is None:
-        vegas_teams = _load_vegas_teams(season, week)
+        vegas_teams = facts.get("vegas", {})
     if prior_ppg is None:
-        prior_ppg = _load_prior_ppg_index(season)
+        prior_ppg = facts.get("prior_ppg", {})
     if def_vs_pos is None:
-        def_vs_pos = _load_def_vs_pos(season, week)
+        def_vs_pos = facts.get("def_vs_pos", {})
     prior_season = prior_ppg.get("season") if isinstance(prior_ppg, dict) else season - 1
     for card in cards:
         ctx = _vegas_for_team(vegas_teams, card.get("team"))
@@ -1138,10 +1112,11 @@ def build_weekly_command_center(
     # DB-only roster — never live_sleeper on dashboard load.
     roster_rows = list_roster_for_context(ctx, live_sleeper=False)
     mark_phase("roster")
-    proj_index, proj_meta = _load_projection_index(
+    from src.draft_hub.prepared_week_context import load_week_context
+    proj_index, proj_meta, call_facts = load_week_context(
         resolved_season,
         resolved_week,
-        apply_injury_adjustments=apply_injury_adjustments,
+        apply_injury_adjustments,
     )
     mark_phase("projections")
     players = _enrich_roster_players(
@@ -1169,6 +1144,9 @@ def build_weekly_command_center(
         [*starters, *bench],
         season=resolved_season,
         week=resolved_week,
+        vegas_teams=call_facts.get("vegas", {}),
+        prior_ppg=call_facts.get("prior_ppg", {}),
+        def_vs_pos=call_facts.get("def_vs_pos", {}),
     )
     mark_phase("call_facts")
 
@@ -1225,6 +1203,8 @@ def build_weekly_command_center(
             "apply_injury_adjustments": bool(apply_injury_adjustments),
             "projections_available": bool(proj_meta.get("available")),
             "projections_built_at": proj_meta.get("projections_built_at"),
+            "context_status": proj_meta.get("context_status"),
+            "context_built_at": proj_meta.get("context_built_at"),
             "available_positions": proj_meta.get("available_positions") or [],
             "missing_positions": proj_meta.get("missing_positions") or [],
             "projection_stale": bool(proj_meta.get("stale_positions")),

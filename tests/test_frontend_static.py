@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def frontend_dist_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def frontend_shell_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text(
@@ -25,10 +25,16 @@ def frontend_dist_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Tes
 
     import app.api as api_module
 
-    if not hasattr(api_module, "serve_spa"):
-        pytest.skip("Frontend static routes not registered (build frontend/dist first)")
     monkeypatch.setattr(api_module, "FRONTEND_DIST", dist)
     return TestClient(api_module.app)
+
+
+@pytest.fixture
+def frontend_dist_client(frontend_shell_client: TestClient) -> TestClient:
+    import app.api as api_module
+    if not hasattr(api_module, "serve_spa"):
+        pytest.skip("Frontend static routes not registered (build frontend/dist first)")
+    return frontend_shell_client
 
 
 def test_serve_pwa_manifest_not_html(frontend_dist_client: TestClient) -> None:
@@ -63,11 +69,48 @@ def test_index_html_is_not_cached(frontend_dist_client: TestClient) -> None:
     assert "no-store" in res.headers.get("cache-control", "")
 
 
-def test_client_version_is_current_and_not_cached(frontend_dist_client: TestClient) -> None:
-    res = frontend_dist_client.get("/api/client-version")
+def test_client_version_is_current_and_not_cached(frontend_shell_client: TestClient) -> None:
+    res = frontend_shell_client.get("/api/client-version")
     assert res.status_code == 200
     assert res.json() == {"version": "1234-abcd"}
     assert "no-store" in res.headers.get("cache-control", "")
+
+
+def test_recovery_serves_current_shell_and_restores_url_before_app(frontend_shell_client):
+    import json
+    target = "/hub/roster?team=mine&week=4#lineup"
+    res = frontend_shell_client.get("/api/client-recovery", params={"return_to": target})
+    assert res.status_code == 200
+    assert "text/html" in res.headers["content-type"]
+    assert "no-store" in res.headers["cache-control"]
+    assert "location" not in res.headers  # A redirect would reenter the old cache.
+    assert res.text.index("history.replaceState") < res.text.index('name="scoresense-build"')
+    assert json.dumps(target) in res.text
+    assert 'content="1234-abcd"' in res.text
+
+
+@pytest.mark.parametrize("target", [
+    "https://example.com/", "//example.com/", "/\\example.com/", "relative",
+    "/api/client-recovery", "/api", "/assets/index.js", "/hub/home\n",
+])
+def test_recovery_rejects_external_and_recursive_destinations(frontend_shell_client, target):
+    res = frontend_shell_client.get("/api/client-recovery", params={"return_to": target})
+    assert res.status_code == 200
+    assert 'history.replaceState(history.state, "", "/hub/home")' in res.text
+
+
+def test_recovery_destination_cannot_inject_script(frontend_shell_client):
+    target = '/hub/home?query=</script><script>alert("x")</script>'
+    res = frontend_shell_client.get("/api/client-recovery", params={"return_to": target})
+    assert res.text.count("<script>") == 1
+    assert target not in res.text
+    assert "\\u003c/script>" in res.text
+
+
+def test_recovery_without_frontend_build_returns_404(frontend_shell_client, monkeypatch, tmp_path):
+    import app.api as api_module
+    monkeypatch.setattr(api_module, "FRONTEND_DIST", tmp_path / "absent")
+    assert frontend_shell_client.get("/api/client-recovery").status_code == 404
 
 
 def test_service_worker_is_not_cached(frontend_dist_client: TestClient) -> None:

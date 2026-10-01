@@ -1,4 +1,5 @@
 import { HUB_SLUG_TO_ID } from "./routes.js";
+import { observeFantasyMainThread } from "./fantasyFrameProfile.js";
 
 // Explicitly opt-in, session-local console diagnostics. No telemetry upload,
 // account/league/player identifiers, raw URLs, queries, headers or payloads.
@@ -19,7 +20,7 @@ export function hubRequestKind(url) {
   if (/^\/api\/hub\/league\/[^/]+\/teams\/[^/]+\/room/.test(path)) return "team-room";
   if (/^\/api\/hub\/(?:league\/[^/]+\/)?lineup/.test(path)) return "lineup";
   const first = path.slice(9).split("/")[0];
-  return ["workspace", "home", "week", "roster", "cap-sheet", "draft-pool", "value-sheet", "presets"].includes(first) ? first : "other";
+  return ["workspace", "home", "week", "roster", "cap-sheet", "draft-pool", "value-sheet", "value-overlay", "presets"].includes(first) ? first : "other";
 }
 function emit(event, fields = {}, owner = visit) {
   if (!output) return;
@@ -36,10 +37,35 @@ export function beginFantasyVisit(path, started = clock()) {
   return visit;
 }
 export function currentFantasyVisit() { return visit; }
-export function markFantasyReady(destination, phase, owner = visit) {
+function pageState() {
+  return {visibility:document.visibilityState, focused:document.hasFocus?.() ?? null};
+}
+export function measureFantasyReady(destination, phase, owner = visit, options = {}) {
+  if (!output || !owner || owner !== visit || owner.destination !== destination || owner.phases.has(phase)) return () => {};
+  const requestFrame = options.requestFrame || globalThis.requestAnimationFrame;
+  const cancelFrame = options.cancelFrame || globalThis.cancelAnimationFrame;
+  const effectAt = clock();
+  emit("data-ready", {phase, durationMs:round(effectAt-owner.started), ...pageState()}, owner);
+  let firstAt, second, cancelled = false;
+  const first = requestFrame(() => {
+    if (cancelled || owner !== visit) return;
+    firstAt = clock();
+    emit("frame-wait", {phase, frame:1, durationMs:round(firstAt-effectAt), ...pageState()}, owner);
+    second = requestFrame(() => {
+      if (cancelled || owner !== visit) return;
+      const finished = clock();
+      emit("frame-wait", {phase, frame:2, durationMs:round(finished-firstAt), ...pageState()}, owner);
+      markFantasyReady(destination, phase, owner, {
+        dataReadyMs:round(effectAt-owner.started), frameWaitMs:round(finished-effectAt),
+      });
+    });
+  });
+  return () => { cancelled = true; cancelFrame(first); if (second !== undefined) cancelFrame(second); };
+}
+export function markFantasyReady(destination, phase, owner = visit, detail = {}) {
   if (!owner || owner !== visit || owner.destination !== destination || owner.phases.has(phase)) return;
   owner.phases.add(phase);
-  emit("ready", {phase, durationMs:round(clock()-owner.started), visibility:document.visibilityState}, owner);
+  emit("ready", {phase, durationMs:round(clock()-owner.started), ...detail, ...pageState()}, owner);
 }
 export function startHubRequest(url, method = "GET") {
   const kind = output && hubRequestKind(url);
@@ -76,6 +102,15 @@ export function startFantasyDiagnostics() {
   emit("session", {build:document.querySelector('meta[name="scoresense-build"]')?.content || "dev", viewport:innerWidth,
     navigation:performance.getEntriesByType("navigation")[0]?.type || "unknown"});
   beginFantasyVisit(location.pathname, 0);
+  const stateChanged = () => emit("page-state", {startTimeMs:round(clock()), ...pageState()});
+  stateChanged();
+  document.addEventListener("visibilitychange", stateChanged);
+  window.addEventListener("focus", stateChanged);
+  window.addEventListener("blur", stateChanged);
+  const stopMainThread = observeFantasyMainThread((event, fields) => {
+    const owner = fields.startTimeMs == null || (visit && fields.startTimeMs >= visit.started) ? visit : null;
+    emit(event, fields, owner);
+  });
   const clicked = e => {
     const anchor = e.target.closest?.("a[href]");
     if (!anchor || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || anchor.target || anchor.download) return;
@@ -105,5 +140,13 @@ export function startFantasyDiagnostics() {
     });
     observer.observe({type:"resource", buffered:true});
   }
-  return () => { observer?.disconnect(); document.removeEventListener("click", clicked, true); window.removeEventListener("vite:preloadError", failed); configureFantasyDiagnostics(null); };
+  return () => {
+    stopMainThread(); observer?.disconnect();
+    document.removeEventListener("click", clicked, true);
+    document.removeEventListener("visibilitychange", stateChanged);
+    window.removeEventListener("focus", stateChanged);
+    window.removeEventListener("blur", stateChanged);
+    window.removeEventListener("vite:preloadError", failed);
+    configureFantasyDiagnostics(null);
+  };
 }

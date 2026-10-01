@@ -186,6 +186,24 @@ def nfl_game_started(
     return stamp >= kick
 
 
+def nfl_week_started(season: int, week: int, *, now: datetime | None = None) -> bool | None:
+    """Whether any game has kicked off; unknown schedule is not an upcoming week.
+
+    This is a saved-schedule read only. HTTP status checks never fetch schedules.
+    """
+    try:
+        from src.core.schedule_utils import week_first_kickoff_et
+        first = week_first_kickoff_et(int(season), int(week), allow_fetch=False)
+    except Exception:
+        return None
+    if first is None:
+        return None
+    stamp = now or _utcnow()
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return stamp >= first.astimezone(timezone.utc)
+
+
 def nfl_week_slate_complete(
     season: int,
     week: int,
@@ -1185,6 +1203,7 @@ def build_hub_live_week(
             "live": live,
             "final": run_final,
             "slate_complete": slate_done,
+            "week_started": nfl_week_started(season_n, resolved_week),
             "run": scoring_run,
             "refresh": score_refresh,
             "settings_changed": bool(scoring_run and ScoringRules.model_validate(scoring_run["scoring"]) != rules.scoring),

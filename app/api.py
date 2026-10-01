@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import math
 import re
 import urllib.parse
@@ -15,7 +16,7 @@ import pandas as pd
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from app.hub_http_timing import HubServerTimingMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
@@ -149,12 +150,13 @@ from app.auth import admin_configured
 async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
     from src.draft_hub.week_context_warmup import warm_fantasy_week_context
-    await asyncio.to_thread(warm_fantasy_week_context)
+    await submit_cpu_job(warm_fantasy_week_context)
     from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
     await asyncio.to_thread(warm_fantasy_value_snapshots)
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
     from app.native_scoring_ticker import native_scoring_ticker_loop
+    from app.fantasy_context_ticker import fantasy_context_ticker_loop
 
     from app.dfs_refresh_ticker import dfs_refresh_ticker_loop
     dfs_ticker = asyncio.create_task(dfs_refresh_ticker_loop(), name="dfs-refresh")
@@ -163,12 +165,13 @@ async def lifespan(app: FastAPI):
         sleeper_sync_ticker_loop(), name="sleeper-roster-sync-ticker"
     )
     scoring_ticker = asyncio.create_task(native_scoring_ticker_loop(), name="native-scoring-ticker")
+    context_ticker = asyncio.create_task(fantasy_context_ticker_loop(), name="fantasy-context-ticker")
     try:
         yield
     finally:
-        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker, context_ticker):
             task.cancel()
-        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker, context_ticker):
             try:
                 await task
             except asyncio.CancelledError:
@@ -280,6 +283,34 @@ def client_version(response: Response) -> dict[str, str]:
         raise HTTPException(status_code=503, detail="Frontend version unavailable")
     response.headers.update(_FRONTEND_NO_CACHE_HEADERS)
     return {"version": match.group(1)}
+
+
+@app.get("/api/client-recovery", response_class=HTMLResponse)
+def client_recovery(return_to: str = "/hub/home") -> HTMLResponse:
+    """Open the current shell outside the deployed worker's navigation fallback.
+
+    Redirecting to the destination would let the old worker serve its cached
+    shell again. Restore the same-origin URL before any app scripts execute.
+    This reads no account/league state and changes no browser storage.
+    """
+    index = FRONTEND_DIST / "index.html"
+    if not index.is_file():
+        raise HTTPException(status_code=404, detail="Frontend not built")
+    target = return_to
+    if (
+        not target.startswith("/")
+        or target.startswith("//")
+        or "\\" in target
+        or any(ord(char) < 32 for char in target)
+        or urllib.parse.urlsplit(target).path == "/api"
+        or urllib.parse.urlsplit(target).path.startswith(("/api/", "/assets/"))
+    ):
+        target = "/hub/home"
+    # Escape '<' so even a quoted </script> in a destination stays inert.
+    encoded = json.dumps(target).replace("<", "\\u003c")
+    restore_url = f'<script>history.replaceState(history.state, "", {encoded});</script>'
+    html = index.read_text(encoding="utf-8").replace("<head>", "<head>" + restore_url, 1)
+    return HTMLResponse(html, headers=_FRONTEND_NO_CACHE_HEADERS)
 
 
 @app.get("/api/health")

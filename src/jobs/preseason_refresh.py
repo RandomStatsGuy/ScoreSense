@@ -118,6 +118,8 @@ def run_preseason_refresh(
 
     from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
     value_snapshot_status = warm_fantasy_value_snapshots()
+    from src.draft_hub.prepared_week_context import prewarm_week_context
+    fantasy_week_context = prewarm_week_context(weekly_season, weekly_week)
 
     status = {
         "started_at": started,
@@ -128,6 +130,7 @@ def run_preseason_refresh(
         "draft_pool_artifact": pool_status,
         "fantasy_value_snapshots": value_snapshot_status,
         "weekly_predictions_prewarm": weekly_prewarm,
+        "fantasy_week_context": fantasy_week_context,
         "ros_predictions_prewarm": ros_prewarm,
         "injury_overlay_prewarm": injury_overlay_status,
         "player_context_prewarm": player_context_status,

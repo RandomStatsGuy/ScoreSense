@@ -280,7 +280,7 @@ def test_storage_round_trip_aura(hub_db):
     assert storage.get_team_vibe_aura(league["id"], team["id"], 2026, 2) == {}
 
 
-def test_build_vibe_rankings_payload(hub_db):
+def test_build_vibe_rankings_payload(hub_db, prepare_weekly_context):
     league, team, _, sub = _seed_league(hub_db, sleeper=False)
     from src.draft_hub.hub_context import resolve_hub_context
 
@@ -294,6 +294,7 @@ def test_build_vibe_rankings_payload(hub_db):
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
     ):
+        prepare_weekly_context()
         payload = build_vibe_rankings(ctx, season=2026, week=1)
 
     assert "aura_by_id" in payload
@@ -309,7 +310,7 @@ def test_build_vibe_rankings_payload(hub_db):
     assert all("player_id" in s and "slot" in s for s in payload["starters"])
 
 
-def test_api_get_put_vibes_persist_across_requests(hub_db):
+def test_api_get_put_vibes_persist_across_requests(hub_db, prepare_weekly_context):
     league, team, _, sub = _seed_league(hub_db, sleeper=False)
     client = _client_for(sub)
     try:
@@ -322,6 +323,7 @@ def test_api_get_put_vibes_persist_across_requests(hub_db):
         ), patch(
             "src.draft_hub.league_sleeper_sync.compose_team_roster_from_live_snapshot",
         ) as live:
+            prepare_weekly_context()
             put = client.put(
                 "/api/hub/vibes",
                 json={
@@ -356,7 +358,7 @@ def test_api_get_put_vibes_persist_across_requests(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_sleeper_linked_vibes_are_advice_only(hub_db):
+def test_sleeper_linked_vibes_are_advice_only(hub_db, prepare_weekly_context):
     league, _team, _, sub = _seed_league(hub_db, sleeper=True, sub="vibe-sleeper")
     client = _client_for(sub)
     try:
@@ -367,6 +369,7 @@ def test_sleeper_linked_vibes_are_advice_only(hub_db):
             "src.draft_hub.weekly_command_center.resolve_week_context",
             return_value=(2026, 1),
         ):
+            prepare_weekly_context()
             res = client.get("/api/hub/vibes", params={"season": 2026, "week": 1})
             assert res.status_code == 200
             data = res.json()
@@ -387,7 +390,7 @@ def test_sleeper_linked_vibes_are_advice_only(hub_db):
         app.dependency_overrides.pop(require_hub_user, None)
 
 
-def test_hub_only_apply_vibe_slate_via_lineup_set(hub_db, monkeypatch):
+def test_hub_only_apply_vibe_slate_via_lineup_set(hub_db, monkeypatch, prepare_weekly_context):
     monkeypatch.setattr(
         "src.draft_hub.hub_scoring.nfl_game_started",
         lambda *_a, **_k: False,
@@ -402,6 +405,7 @@ def test_hub_only_apply_vibe_slate_via_lineup_set(hub_db, monkeypatch):
             "src.draft_hub.weekly_command_center.resolve_week_context",
             return_value=(2026, 1),
         ):
+            prepare_weekly_context()
             vibes = client.put(
                 "/api/hub/vibes",
                 json={
@@ -456,7 +460,7 @@ def test_health_feature_flag_vibe_rankings():
     assert res.json()["features"]["vibe_rankings"] is True
 
 
-def test_set_team_starters_helper_still_accepts_vibe_starters(hub_db, monkeypatch, before_nfl_week_one):
+def test_set_team_starters_helper_still_accepts_vibe_starters(hub_db, monkeypatch, before_nfl_week_one, prepare_weekly_context):
     monkeypatch.setattr(
         "src.draft_hub.hub_scoring.nfl_game_started",
         lambda *_a, **_k: False,
@@ -472,6 +476,7 @@ def test_set_team_starters_helper_still_accepts_vibe_starters(hub_db, monkeypatc
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
     ):
+        prepare_weekly_context()
         payload = build_vibe_rankings(
             ctx,
             season=2026,

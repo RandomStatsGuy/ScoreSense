@@ -1,0 +1,1492 @@
+{
+  "baseCommit": "f77fa6e44b0174a3ef27f869ce3303de759e7d7d",
+  "environment": "Local Brave, isolated account responses, built production-mode QA fixture. Production deployment status awaits user confirmation.",
+  "workspaceDelayMs": 1200,
+  "tests": {
+    "targeted": {
+      "pass": 11,
+      "fail": 0
+    },
+    "frontend": {
+      "pass": 913,
+      "fail": 3
+    },
+    "unchangedBaseline": {
+      "pass": 33,
+      "fail": 3,
+      "scope": "Three existing test files containing the same three failures"
+    },
+    "productionBuild": "PASS"
+  },
+  "sessions": [
+    {
+      "case": "Original native frame scheduler",
+      "baseCommit": "b4a45ff3",
+      "actualCssWidth": 1920,
+      "records": [
+        {
+          "event": "session",
+          "visit": null,
+          "destination": null,
+          "build": "ff7c1fec-cd35-4acd-8ffc-15d5cc24b2d1",
+          "viewport": 1920,
+          "navigation": "navigate"
+        },
+        {
+          "event": "route-start",
+          "visit": 1,
+          "destination": "week"
+        },
+        {
+          "event": "page-state",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 417,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "profile-support",
+          "visit": 1,
+          "destination": "week",
+          "longFrames": true,
+          "longTasks": true
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 134.8,
+          "durationMs": 102.4,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 16.1,
+          "styleAndLayoutToFrameEndMs": 16,
+          "scripts": []
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 239.3,
+          "durationMs": 160.1,
+          "blockingMs": 110,
+          "renderToFrameEndMs": 1.1,
+          "styleAndLayoutToFrameEndMs": 1,
+          "scripts": []
+        },
+        {
+          "event": "long-task",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 239.3,
+          "durationMs": 158
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "presets",
+          "method": "GET",
+          "durationMs": 0.8,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 440.6,
+          "durationMs": 149.8,
+          "blockingMs": 32.6,
+          "renderToFrameEndMs": 33.8,
+          "styleAndLayoutToFrameEndMs": 33.8,
+          "scripts": [
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 48.8,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            }
+          ]
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 593.4,
+          "durationMs": 62.5,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 9.4,
+          "styleAndLayoutToFrameEndMs": 0.2,
+          "scripts": [
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 25.8,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            }
+          ]
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 714,
+          "durationMs": 191.9,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 2.5,
+          "styleAndLayoutToFrameEndMs": 1.9,
+          "scripts": []
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "workspace",
+          "method": "GET",
+          "durationMs": 1209.8,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 2.5,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 2.1,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 1.8,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "cap-sheet",
+          "method": "GET",
+          "durationMs": 1.8,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "week",
+          "method": "GET",
+          "durationMs": 0.6,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "live-scoring",
+          "method": "GET",
+          "durationMs": 0.4,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "data-ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "durationMs": 1873.8,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "data-ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "durationMs": 1874.2,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 1.5,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "frame": 1,
+          "durationMs": 238.2,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "frame": 1,
+          "durationMs": 238.2,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "long-task",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 2111.6,
+          "durationMs": 73
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "frame": 2,
+          "durationMs": 1003,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "durationMs": 3115.2,
+          "dataReadyMs": 1873.8,
+          "frameWaitMs": 1241.2,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "frame": 2,
+          "durationMs": 1002.9,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "durationMs": 3115.4,
+          "dataReadyMs": 1874.2,
+          "frameWaitMs": 1241.1,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 2185.4,
+          "durationMs": 930.2,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 0.8,
+          "styleAndLayoutToFrameEndMs": 0,
+          "scripts": []
+        },
+        {
+          "event": "long-task",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 23717.2,
+          "durationMs": 202
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 907.3,
+          "durationMs": 102.9,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 3.5,
+          "styleAndLayoutToFrameEndMs": 2.2,
+          "scripts": []
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 1116.2,
+          "durationMs": 1062.3,
+          "blockingMs": 33,
+          "renderToFrameEndMs": 66.8,
+          "styleAndLayoutToFrameEndMs": 65.9,
+          "scripts": [
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 16.2,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            },
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 10.7,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            },
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 6.7,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "Synthetic 1000 ms delay per requested callback",
+      "baseCommit": "b4a45ff3",
+      "actualCssWidth": 585,
+      "records": [
+        {
+          "event": "session",
+          "visit": null,
+          "destination": null,
+          "build": "6047e41d-7804-43dc-9e0e-7e599e406dd5",
+          "viewport": 585,
+          "navigation": "navigate"
+        },
+        {
+          "event": "route-start",
+          "visit": 1,
+          "destination": "week"
+        },
+        {
+          "event": "page-state",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 139.9,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "profile-support",
+          "visit": 1,
+          "destination": "week",
+          "longFrames": true,
+          "longTasks": true
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "presets",
+          "method": "GET",
+          "durationMs": 0.3,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "workspace",
+          "method": "GET",
+          "durationMs": 1213.2,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 2.2,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 2.2,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 2.1,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "cap-sheet",
+          "method": "GET",
+          "durationMs": 2.2,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "week",
+          "method": "GET",
+          "durationMs": 0.4,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "live-scoring",
+          "method": "GET",
+          "durationMs": 0.4,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "data-ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "durationMs": 1370.6,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "data-ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "durationMs": 1370.8,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 1.1,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "frame": 1,
+          "durationMs": 1113.5,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "frame": 1,
+          "durationMs": 1114.4,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 1486.1,
+          "durationMs": 999.3,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 1.8,
+          "styleAndLayoutToFrameEndMs": 0,
+          "scripts": []
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 2485.5,
+          "durationMs": 998,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 0.3,
+          "styleAndLayoutToFrameEndMs": 0.1,
+          "scripts": []
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "frame": 2,
+          "durationMs": 2001.8,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "durationMs": 4486,
+          "dataReadyMs": 1370.6,
+          "frameWaitMs": 3115.3,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "frame": 2,
+          "durationMs": 2001,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "durationMs": 4486.2,
+          "dataReadyMs": 1370.8,
+          "frameWaitMs": 3115.4,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 3485.4,
+          "durationMs": 1000.9,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 0.5,
+          "styleAndLayoutToFrameEndMs": 0,
+          "scripts": []
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "live-scoring",
+          "method": "GET",
+          "durationMs": 0.1,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 315.5,
+          "durationMs": 109.9,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 1.5,
+          "styleAndLayoutToFrameEndMs": 0.9,
+          "scripts": []
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 462.7,
+          "durationMs": 1021.9,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 4.8,
+          "styleAndLayoutToFrameEndMs": 4.2,
+          "scripts": [
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 6.8,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            }
+          ]
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 63594.8,
+          "durationMs": 748.3,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 0,
+          "styleAndLayoutToFrameEndMs": 0,
+          "scripts": []
+        },
+        {
+          "event": "long-task",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 65360.6,
+          "durationMs": 200
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 64346.2,
+          "durationMs": 85.8,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 0.1,
+          "styleAndLayoutToFrameEndMs": 0,
+          "scripts": []
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 65360.3,
+          "durationMs": 200.6,
+          "blockingMs": 150.4,
+          "renderToFrameEndMs": 200.3,
+          "styleAndLayoutToFrameEndMs": 0.2,
+          "scripts": [
+            {
+              "asset": "app",
+              "invokerType": "user-callback",
+              "durationMs": 200.1,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 721
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "Final native frame scheduler on rebased master",
+      "baseCommit": "f77fa6e4",
+      "actualCssWidth": 2880,
+      "records": [
+        {
+          "event": "session",
+          "visit": null,
+          "destination": null,
+          "build": "cae61411-8ae0-480f-8839-d81eeb3e9f97",
+          "viewport": 2880,
+          "navigation": "navigate"
+        },
+        {
+          "event": "route-start",
+          "visit": 1,
+          "destination": "week"
+        },
+        {
+          "event": "page-state",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 322,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "profile-support",
+          "visit": 1,
+          "destination": "week",
+          "longFrames": true,
+          "longTasks": true
+        },
+        {
+          "event": "long-task",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 146.1,
+          "durationMs": 154
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "presets",
+          "method": "GET",
+          "durationMs": 0.4,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 106.4,
+          "durationMs": 198.1,
+          "blockingMs": 108.4,
+          "renderToFrameEndMs": 3.6,
+          "styleAndLayoutToFrameEndMs": 3.6,
+          "scripts": []
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "workspace",
+          "method": "GET",
+          "durationMs": 1202.3,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 1.9,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 1.8,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "cap-sheet",
+          "method": "GET",
+          "durationMs": 1.8,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "week",
+          "method": "GET",
+          "durationMs": 0.6,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "live-scoring",
+          "method": "GET",
+          "durationMs": 0.3,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "data-ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "durationMs": 1598.4,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "data-ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "durationMs": 1598.8,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "api-headers",
+          "visit": 1,
+          "destination": "week",
+          "kind": "other",
+          "method": "GET",
+          "durationMs": 1.6,
+          "serverMs": 40,
+          "status": 200,
+          "outcome": "response"
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "frame": 1,
+          "durationMs": 777.3,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "frame": 1,
+          "durationMs": 777.1,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "frame": 2,
+          "durationMs": 115.3,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "lineup",
+          "durationMs": 2491.2,
+          "dataReadyMs": 1598.4,
+          "frameWaitMs": 892.6,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "frame-wait",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "frame": 2,
+          "durationMs": 115.6,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "ready",
+          "visit": 1,
+          "destination": "week",
+          "phase": "matchup",
+          "durationMs": 2491.5,
+          "dataReadyMs": 1598.8,
+          "frameWaitMs": 892.7,
+          "visibility": "visible",
+          "focused": true
+        },
+        {
+          "event": "long-task",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 2490.5,
+          "durationMs": 201
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 391.5,
+          "durationMs": 985.6,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 1.6,
+          "styleAndLayoutToFrameEndMs": 0.8,
+          "scripts": []
+        },
+        {
+          "event": "long-frame",
+          "visit": 1,
+          "destination": "week",
+          "startTimeMs": 1377.9,
+          "durationMs": 998.1,
+          "blockingMs": 0,
+          "renderToFrameEndMs": 0.7,
+          "styleAndLayoutToFrameEndMs": 0,
+          "scripts": [
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 10.2,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            },
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 5.7,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            },
+            {
+              "asset": "app",
+              "invokerType": "event-listener",
+              "durationMs": 5,
+              "forcedStyleAndLayoutMs": 0,
+              "sourceCharPosition": 10476
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "layouts": [
+    {
+      "surface": "week",
+      "width": 1280,
+      "result": "PASS",
+      "checks": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "week-forecast",
+          "ok": true,
+          "selector": ".hub-week-forecast",
+          "detail": "matchup labels fit within two lines"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "12 targets ≥ 32"
+        },
+        {
+          "rule": "lineup-controls",
+          "ok": true,
+          "selector": ".hub-wcc-position-button",
+          "detail": "40×40px"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "strip menus stack above later hub siblings"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "Sync league",
+          "detail": "panel paints above page"
+        }
+      ]
+    },
+    {
+      "surface": "week",
+      "width": 390,
+      "result": "FAIL",
+      "checks": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "week-forecast",
+          "ok": true,
+          "selector": ".hub-week-forecast",
+          "detail": "matchup labels fit within two lines"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": false,
+          "selector": "fantasy-chat-dismiss fantasy-chat-dismiss--on-bubble",
+          "detail": "height=29 < 44"
+        },
+        {
+          "rule": "lineup-controls",
+          "ok": true,
+          "selector": ".hub-wcc-position-button",
+          "detail": "44×44px"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "strip menus stack above later hub siblings"
+        }
+      ]
+    },
+    {
+      "surface": "free-agents",
+      "width": 1280,
+      "result": "PASS",
+      "checks": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "26 targets ≥ 32"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "strip menus stack above later hub siblings"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "Sync league",
+          "detail": "panel paints above page"
+        }
+      ]
+    },
+    {
+      "surface": "free-agents",
+      "width": 390,
+      "result": "PASS",
+      "checks": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "27 targets ≥ 44"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "61px; single header"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "strip menus stack above later hub siblings"
+        }
+      ]
+    },
+    {
+      "surface": "team",
+      "width": 1280,
+      "result": "PASS",
+      "checks": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "18 targets ≥ 32"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "strip menus stack above later hub siblings"
+        }
+      ]
+    },
+    {
+      "surface": "team",
+      "width": 390,
+      "result": "PASS",
+      "checks": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "18 targets ≥ 44"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "strip menus stack above later hub siblings"
+        },
+        {
+          "rule": "lockers",
+          "ok": true,
+          "selector": ".team-room-locker-trigger",
+          "detail": "Right jersey stays in its grid cell"
+        }
+      ]
+    }
+  ],
+  "capture": {
+    "file": "browser-proof.png",
+    "responsiveScreenshotsVerified": false,
+    "note": "Browser viewport overrides did not match requested CSS widths. Native screenshot confirms the QA control completed; 1280/390 are headless layout measurements and are not visually verified."
+  },
+  "unchecked": [
+    "Home",
+    "Other Fantasy destinations",
+    "Production after confirmed deployment",
+    "Real phone CPU and network",
+    "Lineup writes"
+  ]
+}

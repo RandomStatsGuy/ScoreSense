@@ -240,12 +240,16 @@ def test_specialist_recovery_warms_public_identities_and_schedule_in_worker(monk
 
     calls = []
     monkeypatch.setattr(projection_recovery, 'refresh_lock', lambda *a: nullcontext())
+    monkeypatch.setattr('src.integrations.sleeper.players_dataframe',
+                        lambda **kw: calls.append(kw) or pd.DataFrame())
+    monkeypatch.setattr('src.draft_hub.prepared_k_def_context.prepare_k_def_context',
+                        lambda: calls.append('prepare') or {'status':'prepared'})
     monkeypatch.setattr('src.draft_hub.k_def_pool_cache.k_def_projection_index',
                         lambda **kw: calls.append(kw) or {'BUF':{'p50':100}})
     monkeypatch.setattr('src.core.schedule_utils._load_schedules',
                         lambda seasons: calls.append(seasons) or pd.DataFrame([{'season':2026}]))
     assert projection_recovery.rebuild_projection_context(2026,4,('specialists',))['status'] == 'ok'
-    assert calls == [{'allow_fetch':True}, [2026]]
+    assert calls == [{'allow_refresh':True}, 'prepare', {}, [2026]]
 
 
 def test_explicit_bestball_context_uses_existing_board_without_feature_metadata(monkeypatch):

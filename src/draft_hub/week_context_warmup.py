@@ -6,16 +6,10 @@ Data jobs remain responsible for replacing the source snapshots.
 import logging
 
 
-def warm_fantasy_week_context() -> None:
+def warm_fantasy_week_context() -> dict:
     try:
-        from src.draft_hub.weekly_command_center import (
-            _load_projection_index, _load_prior_ppg_index, _load_def_vs_pos,
-            _load_vegas_teams, resolve_week_context,
-        )
-        season, week = resolve_week_context(None, None)
-        _load_projection_index(season, week, apply_injury_adjustments=True)
-        _load_prior_ppg_index(season)
-        _load_def_vs_pos(season, week)
-        _load_vegas_teams(season, week)
+        from src.draft_hub.prepared_week_context import refresh_week_contexts
+        return refresh_week_contexts(current_only=True, max_preparations=None)
     except Exception:
         logging.getLogger(__name__).warning("Fantasy context warmup unavailable", exc_info=True)
+        return {"status": "error"}

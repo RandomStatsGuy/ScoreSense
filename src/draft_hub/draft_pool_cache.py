@@ -15,7 +15,6 @@ from src.core.artifact_revision import artifact_revision
 
 from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR, SEASON_QUANTILE_METHOD
 from src.draft_hub.auction_values import RISK_WEIGHT
-from src.projections.draft_projections import predict_draft_season
 from src.projections.artifact_snapshot import read_cached_frame, read_cached_metadata
 
 _POOL_CACHE: dict[int, tuple[tuple, pd.DataFrame]] = {}
@@ -81,6 +80,12 @@ def pool_fingerprint() -> str:
     except Exception:
         pass
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
+
+
+def predict_draft_season(*args, **kwargs):
+    """Load the prediction engine only at the explicit pool computation boundary."""
+    from src.projections.draft_projections import predict_draft_season as predict
+    return predict(*args, **kwargs)
 
 
 def _compute_pool(season: int) -> tuple[pd.DataFrame, dict[str, Any]]:

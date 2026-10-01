@@ -14,10 +14,15 @@ from src.core.artifact_revision import artifact_revision
 
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, WEEKLY_PREDICTIONS_DIR
 from src.core.opportunity import ensure_opportunity_adjustment_columns
-from src.projections.predict import predict_upcoming_week
 from src.projections.artifact_snapshot import read_cached_frame, read_cached_metadata
 
 _WEEKLY_CACHE: dict[str, tuple[tuple, pd.DataFrame]] = {}
+
+
+def predict_upcoming_week(*args, **kwargs):
+    """Keep artifact readers independent of model-engine imports."""
+    from src.projections.predict import predict_upcoming_week as predict
+    return predict(*args, **kwargs)
 
 
 def _cache_key(position: str, season: int, week: int, apply_injury: bool) -> str:
@@ -351,10 +356,16 @@ def rebuild_weekly_predictions(
 ) -> dict[str, int]:
     """Force-rebuild weekly artifacts (Hub Refresh projections / jobs)."""
     invalidate_weekly_cache()
-    return prewarm_weekly_predictions(
+    counts = prewarm_weekly_predictions(
         int(season),
         int(week),
         positions=positions,
         injury_variants=injury_variants,
         force=True,
     )
+    from src.draft_hub.prepared_week_context import prepare_week_context
+    for apply_injury in injury_variants:
+        status = prepare_week_context(int(season), int(week), apply_injury)
+        if status["status"] not in ("prepared", "current"):
+            raise RuntimeError("Weekly player context is not ready: " + status["status"])
+    return counts

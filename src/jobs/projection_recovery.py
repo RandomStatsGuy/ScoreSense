@@ -23,9 +23,14 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                         if result.get('historical_inputs_only') or result.get('special_history_refresh_failed'):
                             raise ValueError("Specialist inputs could not refresh; saved forecasts remain available")
                     elif kind == "specialists":
+                        from src.integrations.sleeper import players_dataframe
+                        from src.draft_hub.prepared_k_def_context import prepare_k_def_context
                         from src.draft_hub.k_def_pool_cache import k_def_projection_index
                         from src.core.schedule_utils import _load_schedules
-                        if not k_def_projection_index(allow_fetch=True) or _load_schedules([season]).empty:
+                        players_dataframe(allow_refresh=True)
+                        prepared = prepare_k_def_context()
+                        if (prepared['status'] not in {'current', 'prepared'}
+                                or not k_def_projection_index() or _load_schedules([season]).empty):
                             raise ValueError("Specialist identities or schedule unavailable")
                     else:
                         from src.projections.ros_cache import load_ros_prediction
