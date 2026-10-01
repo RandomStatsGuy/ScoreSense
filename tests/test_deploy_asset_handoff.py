@@ -59,7 +59,17 @@ case "$command" in
     while [ "${1:-}" != python ]; do shift; done
     shift
     "$FAKE_PYTHON" "$1" "./${2#/app/}" "./${3#/app/}";;
-  build|up|down|exec|start) ;;
+  build)
+    services=()
+    for arg in "$@"; do
+      case "$arg" in -*) ;; *) services+=("$arg");; esac
+    done
+    # Docker's actual unprofiled build plan contains api only. Explicit
+    # service targets include the optional refresh worker too.
+    if [ "${#services[@]}" = 0 ]; then services=(api); fi
+    mkdir -p "$FAKE_IMAGE_DIR"
+    for service in "${services[@]}"; do touch "$FAKE_IMAGE_DIR/$service"; done;;
+  up|down|exec|start) ;;
   *) exit 98;;
 esac
 '''
@@ -71,6 +81,7 @@ esac
     env = {**os.environ, 'PATH': str(binaries) + os.pathsep + os.environ['PATH'],
            'FAKE_DOCKER_LOG': _shell_path(log), 'FAKE_ASSET_SOURCE': _shell_path(previous),
            'FAKE_CONTAINER_STATE': state, 'FAKE_PYTHON': _shell_path(sys.executable),
+           'FAKE_IMAGE_DIR': _shell_path(tmp_path / 'built-images'),
            'FAKE_ARCHIVE_FAIL': '1' if archive_fails else '0'}
     result = subprocess.run([_bash(), _shell_path(script)], cwd=tmp_path, env=env,
                             capture_output=True, text=True, timeout=20)
@@ -93,3 +104,10 @@ def test_archive_failure_stops_container_replacement(tmp_path):
     assert result.returncode != 0
     assert 'up -d --force-recreate' not in log
     assert not asset.exists()
+
+
+def test_deployment_rebuilds_optional_refresh_image_without_running_refresh(tmp_path):
+    result, log, _ = _run_deploy(tmp_path, 'absent')
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert {p.name for p in (tmp_path / 'built-images').iterdir()} == {'api', 'refresh'}
+    assert not any('run ' in line and line.endswith(' refresh') for line in log.splitlines())

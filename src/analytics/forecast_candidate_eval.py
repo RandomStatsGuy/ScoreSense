@@ -23,21 +23,30 @@ from src.core.features import feature_completeness, get_position_features, prepa
 from src.ml.quantile import predict_quantiles, train_quantile_models, training_specification
 from src.ml.quantile import repair_quantile_order
 from src.core.game_market import missing_market
+from src.analytics.role_features import attach_position, role_feature_cols, role_history
 from src.ml.training_config import DEFAULT_TRAINING_CONFIG, RB_P90_BOOM_WEIGHT_3, WR_P90_BOOM_WEIGHT_3, TrainingConfig
 from src.projections.temporal_inputs import (
     RECENT_MEDIAN_POLICY, MARKET_MEDIAN_POLICY, feature_digest, policy_feature_cols, quantile_feature_subsets,
     training_inputs,
 )
 
-CANDIDATES = ("game_market_p50", "p90_boom_weight_2", "p90_uniform")
+CANDIDATES = ("game_market_p50", "p90_boom_weight_2", "p90_uniform", "current_role_p50", "position_p50")
 
 
-def candidate_contract(candidate: str, reference_cols: list[str], config: TrainingConfig) -> tuple[float, list[str], TrainingConfig]:
+def candidate_contract(candidate: str, reference_cols: list[str], config: TrainingConfig,
+                       position: str | None = None) -> tuple[float, list[str], TrainingConfig]:
     if candidate == "game_market_p50":
         cols = [c for c in reference_cols if c not in ("implied_team_total_avg", "total_line_avg")]
         return .5, cols + MARKET_COLS, config
     if candidate in ("p90_boom_weight_2", "p90_uniform"):
         return .9, [], TrainingConfig(name=candidate, boom_weight_p90=2. if candidate.endswith("2") else 1.)
+    if candidate == "current_role_p50":
+        extra = role_feature_cols(position)
+        return .5, reference_cols + extra + (["is_tight_end"] if position == "wr" else []), config
+    if candidate == "position_p50":
+        if position != "wr":
+            raise ValueError("Position-indicator research supports the WR/TE model only")
+        return .5, reference_cols + ["is_tight_end"], config
     raise ValueError(f"Unknown research candidate: {candidate}")
 
 
@@ -158,15 +167,25 @@ def evaluate(position: str, data_dir: Path, schedules_path: Path, output: Path,
     cols = policy_feature_cols(position, list(get_position_features(position).feature_cols), RECENT_MEDIAN_POLICY)
     subsets = {**quantile_feature_subsets(position, cols, RECENT_MEDIAN_POLICY), .5: cols}
     config = {"qb": DEFAULT_TRAINING_CONFIG, "rb": RB_P90_BOOM_WEIGHT_3, "wr": WR_P90_BOOM_WEIGHT_3}[position]
-    alpha, candidate_cols, candidate_config = candidate_contract(candidate_name, cols, config)
+    alpha, candidate_cols, candidate_config = candidate_contract(candidate_name, cols, config, position)
     if alpha == .9:
         candidate_cols = subsets[.9]
-    enriched = attach_game_market(frame, pd.read_parquet(schedules_path)) if alpha == .5 else frame
+    enriched = frame
+    if candidate_name == "game_market_p50":
+        enriched = attach_game_market(frame, pd.read_parquet(schedules_path))
+    elif candidate_name == "current_role_p50":
+        enriched = role_history(frame, position)
+        if position == "wr":
+            enriched = attach_position(enriched)
+    elif candidate_name == "position_p50":
+        enriched = attach_position(frame)
     union_cols = list(dict.fromkeys(cols + candidate_cols))
     report = {"position": position, "candidate": candidate_name, "reference_policy": RECENT_MEDIAN_POLICY,
         "cohort": "Observed regular-season player-stat rows, including zero/negative scores; inactive roster weeks not reconstructed.",
-        "source_sha256": {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in (data_path, schedules_path)},
-        "market_timing": "Historical closing-line proxy, not archived Thursday/Sunday weekly snapshots.",
+        "source_sha256": {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in
+                          ((data_path, schedules_path) if candidate_name == "game_market_p50" else (data_path,))},
+        "market_timing": ("Historical closing-line proxy, not archived Thursday/Sunday weekly snapshots."
+                          if candidate_name == "game_market_p50" else "No current-game market inputs used."),
         "later_season_note": "2025 has been explored; not an untouched holdout.",
         "candidate_feature_cols": candidate_cols, "candidate_alpha": alpha,
         "reference_specification": training_specification(config, position),

@@ -19,7 +19,9 @@ if [ ! -f .env ]; then
 fi
 
 echo "==> Building and starting ScoreSense (production)..."
-docker compose -f deploy/docker-compose.prod.yml build --pull
+# The refresh worker is behind the cron profile. Target it explicitly so a
+# manual/scheduled refresh cannot keep running an image from an older release.
+docker compose -f deploy/docker-compose.prod.yml build --pull api refresh
 
 # Archive the previous release before replacing its container. Both old and new
 # API images serve their own shell; the new API can also serve exact old chunks.

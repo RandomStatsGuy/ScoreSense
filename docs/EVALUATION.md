@@ -163,6 +163,37 @@ the shared schedule revision invalidates weekly, season and ROS artifacts.
 Publication still requires rebuilding training inputs, retraining, and refreshing
 serving artifacts. Research reports and fitted replay bundles do not deploy code.
 
+### Role and model-vintage follow-up
+
+Current-season last-four-game snap share, target share, air-yard share and
+red-zone targets, plus an explicit WR/TE indicator, improved the WR/TE composite
+in all six 2019–2024 folds. They still failed the stronger promotion check:
+2025 actionable MAE moved from **5.524 to 5.497**, but the paired 95% interval
+**[-0.061, 0.007]** did not exclude zero. Position alone had little effect.
+The candidate stays research-only. Its training and serving-parity probe both
+exclude the target game and future games, reset to observed current-season
+roles, preserve played zeros/missing observations, and use prior games before
+the opener. Production input policies and risk tails are unchanged.
+
+Giving more recent training seasons greater P50 weight also failed the full-pool
+2025 confidence check. Applying that head only to TEs improved starter error but
+still failed the full-pool check. A separate TE-only P50 fit worsened 2025 error.
+These screens are exploratory, not full walk-forward qualifications.
+
+A separate P50-only fit using complete 2025 history moved JSN's Week 4 2026
+replay from **14.16 to 15.66**. Across the first three 2026 weeks, actionable
+WR/TE MAE moved from **6.079 to 6.066**, with a paired interval including zero;
+TE error in the informational top-20 cohort worsened. This partial-season
+diagnostic does not authorize a new training cutoff or solve the scale concern.
+All result details, contracts and source hashes are in
+[the research record](../artifacts/evaluations/projection_role_research_2026-10-01.json).
+
+Full refresh now checks all configured serving qualifications before fitting,
+and preserves the previous model bundles when rebuilt historical inputs or fit
+parameters stop matching. Deployment builds the optional refresh worker
+explicitly, preventing an updated API from sharing data with an obsolete worker.
+See [activation steps](DEPLOY_CLOUDFLARE_TUNNEL.md#activating-projection-model-changes).
+
 ## Detailed results
 
 Full JSON metrics: `artifacts/backtest/backtest_summary.json`
