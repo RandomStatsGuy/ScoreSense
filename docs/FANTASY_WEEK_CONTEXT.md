@@ -66,6 +66,61 @@ $env:PYTHONPATH="."
 
 ## Verification
 
+### Prepared kicker and defense lookup
+
+`prepared_k_def_context.py` publishes `k_def.json` beside the weekly snapshots.
+K/DEF rank curves depend on the saved Sleeper player catalog, the curve version
+and parameters, and games per season. They do not depend on week, injury variant
+or league rules, so one public lookup serves weekly boards, matchup projections,
+Vibes, recap and trade/draft analysis without duplicating it into each week.
+League-specific auction rows cannot seed or truncate this lookup.
+
+The existing startup, 30-second ticker and explicit weekly preparation entry
+points prepare this dependency in the shared worker. They read the saved catalog
+with network refresh disabled, lock once, and atomically publish the complete
+lookup. Source changes, missing positions, parse failures and disk failures keep
+the previous complete file. Readers only deserialize a small, revision-cached
+file and return isolated scalar dictionaries. Missing/corrupt output stays
+unavailable until the next worker pass; no page request parses the full catalog.
+Upstream jobs continue to own Sleeper catalog updates.
+
+League lifecycle rules now live in `league_phase.py`, independently of Home
+aggregation. Acquisition policy uses the already-read NFL state. Home preserves
+its last-known-calendar compatibility entry point. Draft-pool and weekly-cache
+readers load the model engine only when explicitly computing predictions, rather
+than merely importing artifact metadata or weekly lookup modules.
+
+### Upcoming native scoring
+
+Native scoring adds `scoring_control.week_started`: `false` before the earliest
+saved kickoff, `true` afterward, or `null` for unknown/incomplete schedules.
+This check never fetches a schedule during an HTTP request. The background score
+worker records `upcoming` without downloading actual statistics before kickoff;
+the regular scheduler requeues it and begins scoring automatically after kickoff.
+No scores are fabricated or finalized. Missing statistics after kickoff and
+unknown schedules retain the existing failure/retry behavior. The UI uses neutral
+upcoming copy even if an older `no_stats` failure remains in the queue.
+
+The October 1 production-source check found 2026 Weeks 1–3 in the working fallback
+feed and zero Week 4 rows; the selected Week 4 slate had not started. This was an
+actual-stat availability state, independent of projected-point preparation.
+
+The new comparison and verification evidence lives in
+`reviews/fantasy-specialist-context/`. Fresh baseline and candidate processes use
+disposable SQLite copies and temporary snapshots on production hardware. Network
+connections and production parquet writes are blocked, and candidate readers
+cannot invoke source builders. The final comparison matched roster, lineup,
+projections, recommendations and summary; neither copied database changed.
+It measured 2,410 → 36 ms for cold league context and 834 → 381 ms for the first
+weekly read. Warm weekly reads varied (132–230 ms baseline, 214–221 ms candidate).
+K/DEF enrichment itself fell from 647 to 3 ms. The API entry point eagerly
+imports model modules at startup, so the standalone cold-import improvement must
+not be presented as a 2.4-second saving on every running API request. These are
+backend samples, not a browser page-load or p95 guarantee. Deploy this
+PR and repeat the foreground browser audit before starting the next item.
+
+### Original weekly-context verification
+
 Tests exercise concurrent readers, isolated caller copies and alias identity,
 missing/corrupt snapshots, coalesced hints, nonblocking stale reads during a
 worker build, process lock coalescing, atomic publication failures, source
@@ -86,6 +141,9 @@ separate process on the production machine, with a disposable database copy,
 temporary snapshot directory, and external HTTP disabled. Source builders were
 forbidden during candidate reads, and their source caches were cleared after
 preparation. Report: `reviews/fantasy-week-context/comparison.json`.
+The baseline and candidate ran sequentially in that same process, so other
+imported modules and operating-system file caches were already warm for the
+candidate; its first durable read was not a complete cold-process benchmark.
 
 | Backend read | Deployed | Prepared candidate |
 | --- | ---: | ---: |

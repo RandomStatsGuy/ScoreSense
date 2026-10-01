@@ -14,7 +14,6 @@ from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.schemas import LeagueRules
 
 _CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
-_PROJ_INDEX: dict[str, dict[str, Any]] | None = None
 _LOCK = threading.Lock()
 _TTL_SEC = 3600
 K_DEF_QUANTILE_METHOD = "k_def_rank_v1"
@@ -27,10 +26,8 @@ _PROJ_CURVE = {
 
 
 def invalidate_k_def_cache() -> None:
-    global _PROJ_INDEX
     with _LOCK:
         _CACHE.clear()
-        _PROJ_INDEX = None
 
 
 def _has_nfl_team(series: pd.Series) -> pd.Series:
@@ -131,17 +128,6 @@ def _index_from_rows(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return index
 
 
-def _sleeper_players_df(*, allow_fetch: bool) -> pd.DataFrame:
-    from src.integrations.sleeper import PLAYERS_CACHE, _PLAYERS_DF_CACHE, players_dataframe
-
-    if not allow_fetch and _PLAYERS_DF_CACHE is None and not PLAYERS_CACHE.exists():
-        return pd.DataFrame()
-    try:
-        return players_dataframe(force_refresh=False)
-    except Exception:
-        return pd.DataFrame()
-
-
 def build_k_def_projection_index(df: pd.DataFrame, *, games: int = GAMES_PER_SEASON) -> dict[str, dict[str, Any]]:
     """Build a player_id index from a Sleeper players frame (no auction math)."""
     if df is None or getattr(df, "empty", True):
@@ -182,23 +168,14 @@ def build_k_def_projection_index(df: pd.DataFrame, *, games: int = GAMES_PER_SEA
 
 
 def k_def_projection_index(*, allow_fetch: bool = False) -> dict[str, dict[str, Any]]:
-    """Lookup of K/DEF quantiles. Prefers in-process pool rows, then Sleeper cache."""
-    global _PROJ_INDEX
-    with _LOCK:
-        if _PROJ_INDEX is not None:
-            return dict(_PROJ_INDEX)
-        for _key, (_ts, rows) in _CACHE.items():
-            built = _index_from_rows(rows)
-            if built:
-                _PROJ_INDEX = built
-                return dict(built)
+    """Read prepared public quantiles; never build or fetch on a page request.
 
-    df = _sleeper_players_df(allow_fetch=allow_fetch)
-    built = build_k_def_projection_index(df)
-    if built:
-        with _LOCK:
-            _PROJ_INDEX = built
-    return dict(built)
+    ``allow_fetch`` remains accepted for callers of the old API, but preparation
+    belongs exclusively to ``prepare_k_def_context`` in the shared worker/jobs.
+    League-specific auction caches cannot seed or truncate this public lookup.
+    """
+    from src.draft_hub.prepared_k_def_context import load_k_def_context
+    return load_k_def_context()
 
 
 def k_def_week_bands(
@@ -301,7 +278,6 @@ def load_k_def_rows(
     team_count: int,
     allow_fetch: bool = True,
 ) -> list[dict[str, Any]]:
-    global _PROJ_INDEX
     roster = rules.roster or {}
     k_rule = roster.get("k") if isinstance(roster.get("k"), dict) else {}
     def_rule = roster.get("def") if isinstance(roster.get("def"), dict) else {}
@@ -393,9 +369,6 @@ def load_k_def_rows(
 
     with _LOCK:
         _CACHE[key] = (now, rows)
-        built = _index_from_rows(rows)
-        if built:
-            _PROJ_INDEX = built
 
     return _apply_import_ranges(rows, range_map, rules)
 

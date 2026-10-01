@@ -3,7 +3,28 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { weeklyMatchupForecast } from "./gameCenterPresentation.js";
+import { weeklyMatchupForecast, nativeScoreRefreshMessage, nativeScoreRefreshVariant } from "./gameCenterPresentation.js";
+
+test("upcoming native weeks show neutral copy even with an older no-stats failure", () => {
+  for (const refresh of [null, {status:"pending"}, {status:"upcoming"}, {status:"failed",error:"no_stats"}]) {
+    const data = {scoring_control:{week_started:false,scored:false,refresh}};
+    assert.equal(nativeScoreRefreshMessage(data), GAME_CENTER_COPY.scoreUpcoming);
+    assert.equal(nativeScoreRefreshVariant(data), "info");
+  }
+});
+
+test("started and unknown weeks retain real stats failures and retry messages", () => {
+  for (const week_started of [true, null, undefined]) {
+    const data = {scoring_control:{week_started,refresh:{status:"failed",error:"no_stats"}}};
+    assert.equal(nativeScoreRefreshMessage(data), GAME_CENTER_COPY.scoreStatsUnavailable);
+    assert.equal(nativeScoreRefreshVariant(data), "warn");
+    data.scoring_control.refresh.status = "running";
+    assert.equal(nativeScoreRefreshMessage(data), GAME_CENTER_COPY.scoreRefreshPending);
+  }
+  assert.equal(nativeScoreRefreshMessage({scoring_control:{final:true,week_started:false}}), "");
+  assert.equal(nativeScoreRefreshMessage({source:"sleeper"}), "");
+  assert.equal(nativeScoreRefreshMessage({scoring_control:{scored:true,week_started:false,refresh:{status:"failed",error:"settings_changed"}}}), GAME_CENTER_COPY.scoreRulesChanged);
+});
 
 test("weekly matchup forecast requires complete starter projections and preserves zero", () => {
   const team = projections => ({starters:projections.map(proj => ({name:"Player",proj}))});

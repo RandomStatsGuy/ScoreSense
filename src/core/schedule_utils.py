@@ -20,7 +20,7 @@ def _schedule_snapshot(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
-def _load_schedules(seasons: list[int] | None = None) -> pd.DataFrame:
+def _load_schedules(seasons: list[int] | None = None, *, allow_fetch: bool = True) -> pd.DataFrame:
     if SCHEDULE_CACHE.exists():
         try:
             stat = SCHEDULE_CACHE.stat()
@@ -31,6 +31,9 @@ def _load_schedules(seasons: list[int] | None = None) -> pd.DataFrame:
                 return cached.copy()
         except Exception:
             pass
+
+    if not allow_fetch:
+        return pd.DataFrame()
 
     from src.etl.nflverse_etl import load_schedules
 
@@ -262,34 +265,67 @@ def _parse_gametime(val: object) -> tuple[int, int]:
         return 0, 0
 
 
+def week_first_kickoff_et(season: int, week: int, *, allow_fetch: bool = True) -> datetime | None:
+    """Earliest kickoff, or unknown when the saved schedule is missing/incomplete."""
+    return _week_kickoff_et(season, week, first=True, allow_fetch=allow_fetch)
+
+
 def week_last_kickoff_et(season: int, week: int) -> datetime | None:
     """Latest kickoff (America/New_York) for a regular-season week."""
+    return _week_kickoff_et(season, week, first=False)
+
+
+def _week_kickoff_et(season: int, week: int, *, first: bool, allow_fetch: bool = True) -> datetime | None:
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
     et = ZoneInfo("America/New_York")
-    schedules = _load_schedules([season])
+    schedules = _load_schedules([season]) if allow_fetch else _load_schedules([season], allow_fetch=False)
+    if schedules.empty or not {"season", "week", "gameday"}.issubset(schedules.columns):
+        return None
     games = schedules[
         (schedules["season"] == season)
         & (schedules["week"] == int(week))
         & (schedules["week"] <= REGULAR_SEASON_MAX_WEEK)
     ]
+    if first:
+        for column in ("game_type", "season_type"):
+            if column in games:
+                games = games[games[column].astype(str).str.upper() == "REG"]
+                break
     if games.empty:
         return None
-    latest: datetime | None = None
+    selected: datetime | None = None
     for _, row in games.iterrows():
         day = pd.Timestamp(row["gameday"])
         if pd.isna(day):
+            if first:
+                return None
             continue
         if day.tzinfo is not None:
             date_et = day.tz_convert(et).date()
         else:
             date_et = day.date()
-        hh, mm = _parse_gametime(row.get("gametime"))
-        kick = datetime(date_et.year, date_et.month, date_et.day, hh, mm, tzinfo=et)
-        if latest is None or kick > latest:
-            latest = kick
-    return latest
+        # Unknown times cannot prove that no game has started. Do not silence
+        # a real scoring failure based on an assumed midnight kickoff.
+        gametime = row.get("gametime")
+        if first:
+            if pd.isna(gametime):
+                return None
+            try:
+                hh, mm = map(int, str(gametime).strip().split(":"))
+            except (TypeError, ValueError):
+                return None
+            if not 0 <= hh <= 23 or not 0 <= mm <= 59:
+                return None
+            # Reuse the kickoff converter's date-only UTC handling.
+            kick = schedule_kickoff_utc(row["gameday"], gametime).tz_convert(et).to_pydatetime()
+        else:
+            hh, mm = _parse_gametime(gametime)
+            kick = datetime(date_et.year, date_et.month, date_et.day, hh, mm, tzinfo=et)
+        if selected is None or (kick < selected if first else kick > selected):
+            selected = kick
+    return selected
 
 
 def week_rollover_at_et(season: int, week: int) -> datetime | None:

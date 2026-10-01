@@ -52,7 +52,7 @@ def _finish(job: dict, status: str, error: str | None = None) -> None:
 
 def refresh_pending_scores(*, limit: int = 10) -> dict:
     """One bounded worker batch. Shared stats are loaded once per season/week."""
-    from src.draft_hub.hub_scoring import apply_week_scores, load_week_stat_index, sleeper_hosts_scoring
+    from src.draft_hub.hub_scoring import apply_week_scores, load_week_stat_index, nfl_week_started, sleeper_hosts_scoring
     from src.draft_hub.schemas import LeagueRules, ScoringRules
 
     indexes = {}
@@ -72,6 +72,11 @@ def refresh_pending_scores(*, limit: int = 10) -> dict:
             if run and ScoringRules.model_validate(run['scoring']) != rules.scoring:
                 _finish(job, 'failed', 'settings_changed')
                 failed += 1
+                continue
+            if not run and nfl_week_started(season, week) is False:
+                # A future slate has no actual stats yet. The regular scheduler
+                # requeues this state, so scoring begins automatically at kickoff.
+                _finish(job, 'upcoming')
                 continue
             key = (season, week)
             if key not in indexes:

@@ -167,6 +167,17 @@ def load_week_context(season: int, week: int, apply_injury: bool = True) -> tupl
 def prepare_week_context(season: int, week: int, apply_injury: bool = True) -> dict:
     """Worker/job entry point. Publish only a complete, stable source revision."""
     from src.draft_hub import weekly_command_center as wc
+    from src.draft_hub.prepared_k_def_context import prepare_k_def_context
+    # Also prepares the week-independent public specialist lookup at startup,
+    # ticker passes and explicit projection/data rebuilds. Subsequent contexts
+    # perform only a cheap revision check; no duplicate catalog preparation.
+    try:
+        specialists = prepare_k_def_context()
+        if specialists["status"] not in ("current", "prepared"):
+            logger.warning("Fantasy specialist context unavailable: %s", specialists["status"])
+    except Exception:
+        # A specialist-source failure must not stop unrelated weekly preparation.
+        logger.exception("Fantasy specialist context preparation failed")
     context = (int(season), int(week), bool(apply_injury))
     path = context_path(*context)
     try:

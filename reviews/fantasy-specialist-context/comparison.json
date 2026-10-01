@@ -1,0 +1,158 @@
+{
+  "records": [
+    {
+      "preparation": {
+        "status": "prepared",
+        "players": 68
+      },
+      "ms": 724.3
+    },
+    {
+      "mode": "baseline",
+      "samples": [
+        {
+          "label": "league-context-including-import",
+          "ms": 2409.7
+        },
+        {
+          "label": "weekly-module-import",
+          "ms": 3.1
+        },
+        {
+          "label": "weekly-first",
+          "ms": 834.2,
+          "phases": {
+            "build.context": 71.7,
+            "build.roster": 9.4,
+            "build.projections": 15.4,
+            "build.enrich": 646.5,
+            "build.lineup": 35.8,
+            "build.call_facts": 3.8,
+            "build.movement": 51.4
+          }
+        },
+        {
+          "label": "weekly-warm-1",
+          "ms": 230.2,
+          "phases": {
+            "build.context": 38.2,
+            "build.roster": 9.6,
+            "build.projections": 115.0,
+            "build.enrich": 0.6,
+            "build.lineup": 31.4,
+            "build.call_facts": 2.4,
+            "build.movement": 32.7
+          }
+        },
+        {
+          "label": "weekly-warm-2",
+          "ms": 132.3,
+          "phases": {
+            "build.context": 33.4,
+            "build.roster": 9.4,
+            "build.projections": 4.0,
+            "build.enrich": 0.6,
+            "build.lineup": 32.5,
+            "build.call_facts": 1.8,
+            "build.movement": 50.3
+          }
+        },
+        {
+          "label": "matchup-first",
+          "ms": 158.6
+        },
+        {
+          "label": "matchup-warm",
+          "ms": 119.4
+        }
+      ],
+      "databaseUnchanged": true,
+      "changedCopiedTables": [],
+      "networkAttemptsBlocked": 0,
+      "modelEngineLoaded": true,
+      "candidateSourceBuildersForbidden": false,
+      "contextStatus": "refreshing",
+      "weekStarted": null
+    },
+    {
+      "mode": "candidate",
+      "samples": [
+        {
+          "label": "league-context-including-import",
+          "ms": 35.9
+        },
+        {
+          "label": "weekly-module-import",
+          "ms": 14.5
+        },
+        {
+          "label": "weekly-first",
+          "ms": 381.3,
+          "phases": {
+            "build.context": 91.1,
+            "build.roster": 10.1,
+            "build.projections": 97.5,
+            "build.enrich": 3.4,
+            "build.lineup": 72.2,
+            "build.call_facts": 6.0,
+            "build.movement": 100.7
+          }
+        },
+        {
+          "label": "weekly-warm-1",
+          "ms": 214.3,
+          "phases": {
+            "build.context": 79.8,
+            "build.roster": 14.0,
+            "build.projections": 14.2,
+            "build.enrich": 0.8,
+            "build.lineup": 58.9,
+            "build.call_facts": 2.6,
+            "build.movement": 43.7
+          }
+        },
+        {
+          "label": "weekly-warm-2",
+          "ms": 220.7,
+          "phases": {
+            "build.context": 39.9,
+            "build.roster": 24.0,
+            "build.projections": 10.8,
+            "build.enrich": 0.8,
+            "build.lineup": 75.9,
+            "build.call_facts": 4.9,
+            "build.movement": 64.0
+          }
+        },
+        {
+          "label": "matchup-first",
+          "ms": 171.3
+        },
+        {
+          "label": "matchup-warm",
+          "ms": 146.2
+        }
+      ],
+      "databaseUnchanged": true,
+      "changedCopiedTables": [],
+      "networkAttemptsBlocked": 0,
+      "modelEngineLoaded": false,
+      "candidateSourceBuildersForbidden": true,
+      "contextStatus": "refreshing",
+      "weekStarted": false
+    },
+    {
+      "sameRosterLineupProjectionsAndDecisions": true,
+      "isolatedFreshProcesses": true,
+      "productionCodeAndConfigUnchanged": true,
+      "productionDatabaseWrites": false,
+      "temporarySnapshotsOnly": true,
+      "includesHttpOrBrowser": false
+    }
+  ],
+  "limitations": [
+    "Backend samples exclude HTTP and browser time; no page-load p95 claim.",
+    "Independent fresh processes; operating-system file caches and server load were not controlled.",
+    "Prepared weekly sources were refreshing during this trial; both readers used the same last complete snapshots."
+  ]
+}

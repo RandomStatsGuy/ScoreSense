@@ -23,25 +23,10 @@ from src.draft_hub.rules_engine import (
 )
 from src.draft_hub.schemas import LeagueRules
 from src.integrations.sleeper import get_nfl_state
-
-PHASE_PRE_DRAFT = "pre_draft"
-PHASE_LIVE_DRAFT = "live_draft"
-PHASE_IN_SEASON = "in_season"
-PHASE_OFFSEASON = "offseason"
-
-_PHASE_LABELS = {
-    PHASE_PRE_DRAFT: "Pre-draft",
-    PHASE_LIVE_DRAFT: "Live draft",
-    PHASE_IN_SEASON: "In season",
-    PHASE_OFFSEASON: "Offseason",
-}
-
-_PRIMARY_CTA = {
-    PHASE_PRE_DRAFT: {"view": "value", "label": "Draft plan"},
-    PHASE_LIVE_DRAFT: {"view": "room", "label": "Live draft"},
-    PHASE_IN_SEASON: {"view": "week", "label": "Your Week"},
-    PHASE_OFFSEASON: {"view": "roster", "label": "Roster & cap"},
-}
+from src.draft_hub.league_phase import (
+    PHASE_PRE_DRAFT, PHASE_LIVE_DRAFT, PHASE_IN_SEASON, PHASE_OFFSEASON,
+    resolve_league_phase as _resolve_league_phase,
+)
 
 # Priority order for action center (lower = higher priority).
 # roster_hole beats commissioner invite / cap chrome when the occupying roster fails mins.
@@ -127,29 +112,13 @@ def resolve_league_phase(
     draft_session_status: str | None,
     nfl_season_type: str | None = None,
 ) -> dict[str, Any]:
-    """Map hub draft lifecycle + NFL calendar to a League Home phase."""
-    session = str(draft_session_status or "").lower()
-    league = str(league_status or "").lower()
-    nfl = str(nfl_season_type or _nfl_season_type()).lower()
-
-    if draft_completed:
-        # Mark draft complete wins over a leftover live session/status.
-        phase_id = PHASE_IN_SEASON if nfl == "regular" else PHASE_OFFSEASON
-    elif session in {"nominating", "bidding", "picking"} or league == "live":
-        phase_id = PHASE_LIVE_DRAFT
-    else:
-        phase_id = PHASE_PRE_DRAFT
-
-    cta = dict(_PRIMARY_CTA[phase_id])
-    return {
-        "id": phase_id,
-        "label": _PHASE_LABELS[phase_id],
-        "nfl_season_type": nfl,
-        "league_status": league or None,
-        "draft_session_status": session or None,
-        "draft_completed": bool(draft_completed),
-        "primary_cta": cta,
-    }
+    """Compatibility entry point with Home's last-known NFL calendar default."""
+    return _resolve_league_phase(
+        draft_completed=draft_completed,
+        league_status=league_status,
+        draft_session_status=draft_session_status,
+        nfl_season_type=nfl_season_type or _nfl_season_type(),
+    )
 
 
 def _status_line(ctx: dict[str, Any], phase: dict[str, Any]) -> str:
