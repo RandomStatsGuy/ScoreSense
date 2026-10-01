@@ -70,17 +70,13 @@ def test_k_def_rows_skip_free_agents_with_nan_team(monkeypatch):
     assert set(index) == {"k1", "d1"}
 
 
-def test_empty_projection_index_is_cached(monkeypatch):
-    import src.draft_hub.k_def_pool_cache as kdef
-
-    invalidate_k_def_cache()
-    kdef._PROJ_INDEX = {}
-    monkeypatch.setattr(
-        kdef,
-        "_sleeper_players_df",
-        lambda allow_fetch=False: (_ for _ in ()).throw(AssertionError("should use empty cache")),
-    )
+def test_missing_prepared_projection_index_never_loads_catalog(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("catalog preparation on a read")
+    monkeypatch.setattr("src.integrations.sleeper.players_dataframe", forbidden)
+    monkeypatch.setattr("src.draft_hub.k_def_pool_cache.build_k_def_projection_index", forbidden)
     assert k_def_projection_index() == {}
+    assert k_def_projection_index(allow_fetch=True) == {}
 
 
 def test_overlay_k_def_projections_fills_zeros(monkeypatch):

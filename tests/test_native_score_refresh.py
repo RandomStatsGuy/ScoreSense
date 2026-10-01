@@ -32,6 +32,8 @@ def test_failed_jobs_retry_without_another_page_visit(hub_db):
 
 def test_worker_shares_stats_and_isolates_failure(hub_db, monkeypatch):
     from src.draft_hub import hub_scoring as hs
+    # This fixture represents a played week, independent of today's NFL clock.
+    monkeypatch.setattr(hs, 'nfl_week_started', lambda *a, **kw: True)
     rules = {'scoring': ScoringRules().model_dump()}
     monkeypatch.setattr(storage, 'get_league', lambda lid: {'draft_completed': True, 'rules': rules})
     monkeypatch.setattr(storage, 'get_week_scoring_run', lambda *a: None)

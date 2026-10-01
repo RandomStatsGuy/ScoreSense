@@ -29,6 +29,7 @@ export const GAME_CENTER_COPY = {
   emptySlot: "Empty slot",
   scoreSource: "Scoring from your league",
   scoreRefreshPending: "Scores are updating. You can keep browsing.",
+  scoreUpcoming: "Games haven't started yet. Scores will update as results arrive.",
   scoreStatsUnavailable: "Weekly statistics are unavailable. Score updates will retry automatically.",
   scoreRefreshFailed: "Scores could not update. Updates will retry automatically.",
   scoreRulesChanged: "Saved scores use earlier scoring rules. A commissioner can recalculate this week.",
@@ -75,11 +76,21 @@ export const GAME_CENTER_COPY = {
 
 export function nativeScoreRefreshMessage(data) {
   const refresh = data?.scoring_control?.refresh;
-  if (data?.scoring_control?.final || !refresh) return "";
+  if (data?.scoring_control?.final) return "";
+  if (data?.scoring_control?.week_started === false && !data.scoring_control.scored && refresh?.error !== "settings_changed") {
+    return GAME_CENTER_COPY.scoreUpcoming;
+  }
+  if (!refresh) return "";
   if (refresh.status === "pending" || refresh.status === "running") return GAME_CENTER_COPY.scoreRefreshPending;
   if (refresh.status !== "failed") return "";
   if (refresh.error === "settings_changed") return GAME_CENTER_COPY.scoreRulesChanged;
   return refresh.error === "no_stats" ? GAME_CENTER_COPY.scoreStatsUnavailable : GAME_CENTER_COPY.scoreRefreshFailed;
+}
+
+export function nativeScoreRefreshVariant(data) {
+  const control = data?.scoring_control;
+  const upcoming = control?.week_started === false && !control.scored && control.refresh?.error !== "settings_changed";
+  return !upcoming && control?.refresh?.status === "failed" ? "warn" : "info";
 }
 
 /** A partial set of forecasts cannot establish which team is favored. Empty slots score zero. */

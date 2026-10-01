@@ -1,0 +1,26 @@
+{
+  "season": 2026,
+  "week": 4,
+  "readOnly": true,
+  "sources": [
+    {
+      "source": "legacy",
+      "error": "HTTPError",
+      "detail": "HTTP Error 404: Not Found",
+      "elapsedMs": 47.5
+    },
+    {
+      "source": "fallback",
+      "rows": 3339,
+      "weeks": [
+        1,
+        2,
+        3
+      ],
+      "selectedWeekRows": 0,
+      "hasPlayerId": true,
+      "hasSeason": true,
+      "elapsedMs": 343.4
+    }
+  ]
+}

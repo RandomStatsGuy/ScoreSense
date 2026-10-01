@@ -62,7 +62,14 @@ window.fetch = async (input, options = {}) => {
     if (state === "specialists") mine.starters.push({name:"Kicker",position:"K",proj:8.4,projection_source:"rank_curve"});
     const other={roster_id:"2",hub_team_id:"other",owner_name:params.has("long-opponent") ? "Alexandria Montgomery with a very long fantasy name" : "Alex",team_name:"Sunday Rivals",points:recorded ? 37.8 : 0,
       starters:[{name:"Josh Allen",position:"QB",team:"BUF",proj:21,points:10},{name:"Saquon Barkley",position:"RB",team:"PHI",proj:20,points:5},{name:"Justin Jefferson",position:"WR",team:"MIN",proj:18,points:0},{name:"Trey McBride",position:"TE",team:"ARI",proj:12,points:0}],bench_players:[]};
+    const refreshStates = {
+      upcoming: {week_started:false,refresh:{status:"failed",error:"no_stats"}},
+      "stats-unavailable": {week_started:true,refresh:{status:"failed",error:"no_stats"}},
+      "unknown-schedule": {week_started:null,refresh:{status:"failed",error:"no_stats"}},
+      "score-pending": {week_started:true,refresh:{status:"pending"}},
+    };
     return Response.json({available:true,source:"hub",reason:"hub",placeholder:!recorded,live:state==="live",week_complete:state==="final",season:2026,week,current_week:state === "native-progress" ? week + 1 : 2,max_week:18,
+      ...(refreshStates[state] ? {scoring_control:{host:"native",scored:false,final:false,...refreshStates[state]}} : {}),
       ...(["native-progress", "final"].includes(state) ? {scoring_control:{host:"native",scored:true,final:state === "final",live:state !== "final",slate_complete:state === "final"}} : {}),
       viewer_matchup_id:"one",starting_slots:["QB","RB","WR","FLEX"],matchups:[{matchup_id:"one",teams:[mine,other]},{matchup_id:"two",teams:[{roster_id:"3",owner_name:"Sam",points:60},{roster_id:"4",owner_name:"Jamie",points:52}]}],standings:[]});
   }

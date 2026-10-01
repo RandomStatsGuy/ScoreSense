@@ -14,9 +14,14 @@ from src.core.artifact_revision import artifact_revision
 
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, WEEKLY_PREDICTIONS_DIR
 from src.core.opportunity import ensure_opportunity_adjustment_columns
-from src.projections.predict import predict_upcoming_week
 
 _WEEKLY_CACHE: dict[str, tuple[tuple, pd.DataFrame]] = {}
+
+
+def predict_upcoming_week(*args, **kwargs):
+    """Keep artifact readers independent of model-engine imports."""
+    from src.projections.predict import predict_upcoming_week as predict
+    return predict(*args, **kwargs)
 
 
 def _cache_key(position: str, season: int, week: int, apply_injury: bool) -> str:

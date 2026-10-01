@@ -19,6 +19,7 @@ import {
   shouldPollGameCenter,
   matchupTeams,
   nativeScoreRefreshMessage,
+  nativeScoreRefreshVariant,
   shouldShowNextWeek,
   shouldShowPrevWeek,
 } from "./gameCenterPresentation";
@@ -243,7 +244,7 @@ export default function GameCenter({
         </HubAlert>
       )}
       {!loading && nativeScoreRefreshMessage(data) && (
-        <HubAlert variant={data?.scoring_control?.refresh?.status === "failed" ? "warn" : "info"}>
+        <HubAlert variant={nativeScoreRefreshVariant(data)}>
           {nativeScoreRefreshMessage(data)}
         </HubAlert>
       )}

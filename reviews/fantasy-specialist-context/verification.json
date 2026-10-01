@@ -1,0 +1,59 @@
+{
+  "backend": {
+    "initial_targeted": {"passed": 209, "failed": 0},
+    "final_targeted": {"passed": 122, "failed": 0},
+    "followup_native_refresh_home_timing_schedule": {"passed": 13, "failed": 0},
+    "full_run_before_played_week_fixture_correction": {
+      "passed": 1912,
+      "skipped": 2,
+      "failed": 12,
+      "seconds": 779.86,
+      "failures": {
+        "windows_shell_runner": {
+          "count": 10,
+          "modules": ["tests/test_render_blueprint.py", "tests/test_resolve_python.py"],
+          "baseline": "10 failures reproduced on unchanged d2cbc89; the relevant tests/scripts/render.yaml are identical on current origin/master (7815cfba)."
+        },
+        "home_timing_budget": {
+          "test": "tests/test_hub_perf.py::test_home_and_freshness_skip_workbook_parse_and_live_sleeper",
+          "measured_ms": 3526,
+          "budget_ms": 2000,
+          "followup": "Passed the initial targeted suite and the isolated final rerun; also seen during the previous broad suite. Not a claim that the full suite is green."
+        },
+        "date_dependent_fixture": {
+          "test": "tests/test_native_score_refresh.py::test_worker_shares_stats_and_isolates_failure",
+          "resolution": "Mark the mocked stats fixture as a started week; the new production guard correctly skips actual statistics before kickoff. The entire native refresh module passed the final followup."
+        }
+      }
+    },
+    "note": "Targeted runs overlap. The 13-minute full suite was not repeated after the fixture correction and final boundary guards."
+  },
+  "frontend": {
+    "production_build": "passed",
+    "build_note": "Existing warning for the entry chunk above 500 kB remains; this PR does not change bundling.",
+    "changed_presentation_module": {"passed": 25, "failed": 0},
+    "all_test_files": {"passed": 915, "failed": 3},
+    "unchanged_master_reproduction": {
+      "passed": 33,
+      "failed": 3,
+      "tests": [
+        "DraftHub/draftRoomHelpers.test.js: auctionAwardContractLabel describes locked rookie and vet deals",
+        "accuracyPresentation.test.js: accuracy copy names the miss, not a trust slogan",
+        "livingSurfaces.test.js: My team keeps the approved summary above a flat roster"
+      ]
+    }
+  },
+  "visual": {
+    "method": "Isolated fixture renders the candidate production components; browser requests served in memory without modifying the existing local servers.",
+    "layout_audits": [
+      {"route": "/hub/week", "width": 1280, "result": "PASS"},
+      {"route": "/hub/week", "width": 390, "result": "PASS"},
+      {"route": "/hub/game", "width": 1280, "result": "PASS"},
+      {"route": "/hub/game", "width": 390, "result": "PASS"}
+    ],
+    "state_checks": {"passed": 20, "failed": 0},
+    "screenshots": ["upcoming-1280.png", "upcoming-390.png"],
+    "not_visually_rechecked": ["Home", "My team", "Free agents", "Cap", "Rules"],
+    "production_browser_validation": "Pending user merge/deploy, before the next optimization item."
+  }
+}

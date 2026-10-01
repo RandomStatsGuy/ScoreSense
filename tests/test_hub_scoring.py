@@ -931,6 +931,7 @@ def test_native_scoring_matches_sleeper_lineup_ids(hub_db, monkeypatch):
 
 
 def test_game_center_queues_unscored_native_week(hub_db, monkeypatch):
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_week_started", lambda *a, **kw: True)
     league, home, away, _ = _seed_two_team_league(hub_db)
     storage.update_league_settings(league["id"], draft_completed=True)
     monkeypatch.setattr(
@@ -981,6 +982,52 @@ def test_game_center_queues_unscored_native_week(hub_db, monkeypatch):
     )
     assert viewer["points"] > 0
     assert storage.get_week_scoring_run(league["id"], 2026, 1)["final"] is False
+
+
+@pytest.mark.parametrize("started", [False, True, None])
+def test_native_refresh_distinguishes_upcoming_week_from_missing_stats(hub_db, monkeypatch, started):
+    from src.draft_hub import native_score_refresh as jobs
+    league, home, *_ = _seed_two_team_league(hub_db)
+    storage.update_league_settings(league["id"], draft_completed=True)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_week_started", lambda *a, **kw: started)
+    calls = []
+    monkeypatch.setattr("src.draft_hub.hub_scoring.load_week_stat_index", lambda *a: calls.append(1) or {})
+    jobs.request_refresh(league["id"], 2026, 1)
+    result = jobs.refresh_pending_scores()
+    status = jobs.refresh_status(league["id"], 2026, 1)
+    assert calls == ([] if started is False else [1])
+    assert status["status"] == ("upcoming" if started is False else "failed")
+    assert status["error"] == (None if started is False else "no_stats")
+    assert result["failed"] == (0 if started is False else 1)
+    payload = build_hub_live_week(league["id"], week=1, viewer_team_id=home["id"],
+        nfl_state={"season": "2026", "week": 1, "season_type": "regular"})
+    assert payload["scoring_control"]["week_started"] is started
+    assert not payload["scoring_control"]["scored"]
+    assert storage.get_week_scoring_run(league["id"], 2026, 1) is None
+
+
+def test_upcoming_refresh_requeues_after_kickoff_without_manual_action(hub_db, monkeypatch):
+    from src.draft_hub import native_score_refresh as jobs
+    league, *_ = _seed_two_team_league(hub_db)
+    storage.update_league_settings(league["id"], draft_completed=True)
+    clock = [1000.0]
+    started = [False]
+    monkeypatch.setattr(jobs.time, "time", lambda: clock[0])
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_week_started", lambda *a, **kw: started[0])
+    calls = []
+    monkeypatch.setattr("src.draft_hub.hub_scoring.load_week_stat_index", lambda *a: calls.append(1) or {})
+    monkeypatch.setattr("src.draft_hub.league_live_scoring.resolve_current_week",
+                        lambda: (1, {"season": "2026", "season_type": "regular"}))
+    jobs.queue_current_native_weeks()
+    jobs.refresh_pending_scores()
+    assert jobs.refresh_status(league["id"], 2026, 1)["status"] == "upcoming"
+    assert not calls
+    clock[0] += jobs.CADENCE_SECONDS + 1
+    started[0] = True
+    jobs.queue_current_native_weeks()
+    jobs.refresh_pending_scores()
+    assert calls == [1]
+    assert jobs.refresh_status(league["id"], 2026, 1)["error"] == "no_stats"
 
 
 def test_game_center_refresh_skips_final_week(hub_db, monkeypatch):

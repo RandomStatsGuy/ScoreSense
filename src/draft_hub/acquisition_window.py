@@ -13,11 +13,10 @@ from zoneinfo import ZoneInfo
 
 from src.integrations.sleeper import get_nfl_state
 from src.draft_hub.league_capabilities import league_capabilities
-
-PHASE_PRE_DRAFT = "pre_draft"
-PHASE_LIVE_DRAFT = "live_draft"
-PHASE_IN_SEASON = "in_season"
-PHASE_OFFSEASON = "offseason"
+from src.draft_hub.league_phase import (
+    PHASE_PRE_DRAFT, PHASE_LIVE_DRAFT, PHASE_IN_SEASON, PHASE_OFFSEASON,
+    resolve_league_phase,
+)
 
 ET = ZoneInfo("America/New_York")
 
@@ -136,8 +135,6 @@ def resolve_acquisition_window(
         season_n = int(season) if season is not None else None
     except (TypeError, ValueError):
         season_n = None
-
-    from src.draft_hub.league_home import resolve_league_phase
 
     capabilities = ctx.get("capabilities") or league_capabilities(ctx.get("rules") or {})
     priority_waivers = capabilities.get("acquisition_mode") == "priority"
