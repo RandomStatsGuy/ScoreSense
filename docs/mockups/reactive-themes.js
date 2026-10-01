@@ -21,7 +21,7 @@ const GRAVITY = 460;
 const clamp = (v,min,max) => Math.min(max,Math.max(min,v));
 const svg = (content,attrs='') => `<svg viewBox="0 0 420 270" aria-hidden="true" ${attrs}>${content}</svg>`;
 const stroke = 'stroke="#66515c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
-const eyes = (x,y) => `<g class="companion-pupil"><ellipse cx="${x-11}" cy="${y}" rx="3" ry="4" fill="#4a4038"/><ellipse cx="${x+11}" cy="${y}" rx="3" ry="4" fill="#4a4038"/><circle cx="${x-10}" cy="${y-1}" r="1" fill="#fff"/><circle cx="${x+12}" cy="${y-1}" r="1" fill="#fff"/></g>`;
+const eyes = (x,y) => `<g class="companion-eyes"><ellipse cx="${x-11}" cy="${y}" rx="4.5" ry="5.5" fill="#f7f2e8"/><ellipse cx="${x+11}" cy="${y}" rx="4.5" ry="5.5" fill="#f7f2e8"/><g class="companion-pupil" data-gaze-x="${x}" data-gaze-y="${y}"><ellipse cx="${x-11}" cy="${y}" rx="2.7" ry="3.6" fill="#4a4038"/><ellipse cx="${x+11}" cy="${y}" rx="2.7" ry="3.6" fill="#4a4038"/><circle cx="${x-10}" cy="${y-1}" r="1" fill="#fff"/><circle cx="${x+12}" cy="${y-1}" r="1" fill="#fff"/></g></g>`;
 const cheek = (x,y) => `<ellipse cx="${x-20}" cy="${y}" rx="6" ry="3" fill="#eaa5ac" opacity=".6"/><ellipse cx="${x+20}" cy="${y}" rx="6" ry="3" fill="#eaa5ac" opacity=".6"/>`;
 const ball = (x,y,size=1) => `<g transform="translate(${x} ${y}) scale(${size})"><ellipse rx="22" ry="14" fill="#b9794f" stroke="#714935" stroke-width="1.8"/><path d="M-14-11Q-6 0-14 11M14-11Q6 0 14 11" stroke="#f9e8d4" stroke-width="3" fill="none"/><path d="M-7 0H7M-4-4V4M0-4V4M4-4V4" stroke="#fff4dc" stroke-width="1.7" stroke-linecap="round"/></g>`;
 const yarn = (x,y,size=1,color='#c98dab') => `<g transform="translate(${x} ${y}) scale(${size})"><circle r="15" fill="${color}" stroke="#855c7b" stroke-width="1.4"/><path d="M-12-7Q-4 5 12 7M-13 0Q-4 11 7 13M-9-12Q1-3 14 0M-3-14Q-12 2-4 14M6-13Q-3 3 2 14M12-8Q4 3 9 11" fill="none" stroke="#f5d4e2" stroke-width="1.3"/><path d="M12 10Q26 16 25 5" fill="none" stroke="${color}" stroke-width="2.5"/></g>`;
@@ -29,6 +29,7 @@ const acorn = (x,y,size=1) => `<g transform="translate(${x} ${y}) scale(${size})
 const leaf = (x,y,scale=1,color='#d68a59') => `<g transform="translate(${x} ${y}) scale(${scale})"><path d="M0-20L5-9L16-15L12-4L23 0L11 7L12 18L2 12L0 25L-2 12L-12 18L-11 7L-23 0L-12-4L-16-15L-5-9Z" fill="${color}"/><path d="M0 24V-14M0 6L12 0M0 0L-10-6" fill="none" stroke="#91573f" stroke-width="1.5"/></g>`;
 const mouse = (x,y,size=1) => `<g transform="translate(${x} ${y}) scale(${size})"><path d="M-9 6Q-21 10-17-3" fill="none" stroke="#b786ac" stroke-width="2"/><ellipse rx="12" ry="8" fill="#d8b8d0" stroke="#896a84" stroke-width="1.2"/><ellipse cx="3" cy="-7" rx="5" ry="5" fill="#e6cbdc" stroke="#896a84" stroke-width="1.2"/><circle cx="8" cy="-1" r="1.5" fill="#66515c"/><circle cx="13" cy="2" r="2" fill="#c890a2"/></g>`;
 const skittles = (x,y) => `<g transform="translate(${x} ${y})"><ellipse cx="-9" cy="3" rx="8" ry="6" fill="#da7184" stroke="#a75368"/><ellipse cx="6" cy="7" rx="8" ry="6" fill="#e7be69" stroke="#ba9655"/><ellipse cx="1" cy="-6" rx="8" ry="6" fill="#a59aca" stroke="#7c6c9d"/><ellipse cx="13" cy="-1" rx="7" ry="6" fill="#88b497" stroke="#619376"/><path d="M-11 2Q-7 0-9 4Q-12 6-8 5M4 6Q8 4 6 8Q3 10 7 9M-1-7Q3-9 1-5Q-2-3 2-4M11-2Q15-4 13 0Q10 2 14 1" stroke="#fff7e6" stroke-width="1.1" fill="none" stroke-linecap="round"/></g>`;
+const henny = (x,y) => `<g data-scene-prop="henny" transform="translate(${x} ${y})"><title>Henny bottle</title><path d="M-6-36H6V-26Q15-22 15-14V-4Q15 0 10 0H-10Q-15 0-15-4V-14Q-15-22-6-26Z" fill="#8d592f" stroke="#5f4937" stroke-width="1.5"/><path d="M-11-20Q-5-24-5-29V-34" fill="none" stroke="#d9bd78" stroke-width="2" opacity=".5"/><rect x="-6.5" y="-40" width="13" height="9" rx="2" fill="#3e4240" stroke="#5f4937" stroke-width="1"/><path d="M-6-32H6" stroke="#bda268" stroke-width="2"/><rect x="-11" y="-19" width="22" height="14" rx="3" fill="#eee0b7" stroke="#c6aa6f" stroke-width="1"/><text x="0" y="-8" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="#65503b">H</text><path d="M-10-3H10" stroke="#c39858" stroke-width="1.4" opacity=".65"/></g>`;
 const cat = (id,x,y,mirror=false) => `<g data-buddy="${id}" transform="translate(${x} ${y}) scale(${mirror?'-.85':'.85'} .85)">
   <path d="M28 92C6 92 2 74 14 66C20 62 28 64 30 72" fill="none" stroke="#9d8194" stroke-width="13" stroke-linecap="round"/>
   <path d="M24 101C16 74 34 52 66 50L118 52C140 54 152 68 150 82C148 94 138 102 122 102L44 102C34 102 27 102 24 101Z" fill="#efe6d8" ${stroke}/>
@@ -36,7 +37,7 @@ const cat = (id,x,y,mirror=false) => `<g data-buddy="${id}" transform="translate
   <g class="companion-head"><path d="M104 38L110 16L124 32ZM136 32L152 20L152 42Z" fill="#9d8194" ${stroke}/><path d="M109 34L112 23L119 33ZM143 33L149 26L148 36Z" fill="#d9a3a3"/>
   <ellipse cx="128" cy="56" rx="30" ry="26" fill="#efe6d8" ${stroke}/><path d="M100 48C104 34 152 34 156 48C158 42 154 30 146 28L110 28C102 30 98 42 100 48Z" fill="#9d8194"/>
   <g class="sleep-eyes"><path d="M112 56Q117 60 122 56M134 56Q139 60 144 56" fill="none" stroke="#4a4038" stroke-width="2.6" stroke-linecap="round"/></g>
-  <g class="awake-eyes" style="display:none"><ellipse cx="117" cy="56" rx="6" ry="6.5" fill="#eef6ff"/><ellipse cx="139" cy="56" rx="6" ry="6.5" fill="#eef6ff"/><g class="companion-pupil"><circle cx="117" cy="56.5" r="3.4" fill="#3c6ea5"/><circle cx="139" cy="56.5" r="3.4" fill="#3c6ea5"/><circle cx="118.2" cy="55.2" r="1.1" fill="#fff"/><circle cx="140.2" cy="55.2" r="1.1" fill="#fff"/></g></g>
+  <g class="awake-eyes" style="display:none"><ellipse cx="117" cy="56" rx="6" ry="6.5" fill="#eef6ff"/><ellipse cx="139" cy="56" rx="6" ry="6.5" fill="#eef6ff"/><g class="companion-pupil" data-gaze-x="128" data-gaze-y="56.5" data-gaze-range-x="2.1" data-gaze-range-y="1.3"><circle cx="117" cy="56.5" r="3.4" fill="#3c6ea5"/><circle cx="139" cy="56.5" r="3.4" fill="#3c6ea5"/><circle cx="118.2" cy="55.2" r="1.1" fill="#fff"/><circle cx="140.2" cy="55.2" r="1.1" fill="#fff"/></g></g>
   <path d="M124 64L128 60L132 64L128 67Z" fill="#d98d8d"/><path d="M128 67Q128 72 122 73M128 67Q128 72 134 73M108 62L88 58M108 68L88 70M147 62L166 58M147 68L166 70" fill="none" stroke="#66515c" stroke-width="1.2" stroke-linecap="round"/>
   </g><path d="M96 102Q98 92 108 92Q118 92 119 102Z" fill="#d9c9c6" ${stroke}/><path class="companion-paw" d="M120 102Q121 90 132 89Q143 89 144 102Z" fill="#d9c9c6" ${stroke}/><path d="M131 98V101M137 98V101" stroke="#a48a94" stroke-width="1"/>
 </g>`;
@@ -68,18 +69,24 @@ const marshawn = x => `<g data-buddy="football" transform="translate(${x} 164)">
   <path d="M-34 73Q-44 72-45 83H-13V75M34 73Q44 72 45 83H13V75" fill="#e5e5d3" ${stroke}/>
   <path d="M-33 2L-42 16L-27 24L-28 55Q0 66 28 55L27 24L42 16L33 2Q0-10-33 2" fill="#365862" ${stroke}/><path d="M-38 13L-29 17M29 17L38 13" stroke="#abc986" stroke-width="5"/><path d="M-25 49Q0 55 25 49" stroke="#abc986" stroke-width="4" fill="none"/><path d="M-9 5L0 13L9 5" fill="none" stroke="#b5c5c5" stroke-width="3"/>
   <text x="0" y="40" fill="#e9eddf" stroke="#abc986" stroke-width=".6" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="23">24</text>
-  <g class="companion-head"><path d="M-35-9Q-50-58-15-65Q25-78 40-44L38-1" fill="#363039" ${stroke}/>
-  <path d="M-28-29Q-48-21-39 8M-24-22Q-43-10-34 20M-18-19Q-35 0-27 24M29-33Q45-23 38 10M25-25Q41-9 33 23" stroke="#363039" stroke-width="8" fill="none" stroke-linecap="round"/>
-  <ellipse cy="-24" rx="33" ry="33" fill="#a97151" ${stroke}/><path d="M-31-33Q-34-55-13-57Q18-66 31-39Q17-47 3-43Q-15-50-31-33" fill="#363039"/>
-  <path d="M-18-29L-7-31M7-31L18-29" stroke="#503930" stroke-width="2.7" stroke-linecap="round"/>${eyes(0,-22)}<path d="M-3-17Q-8-8 4-10" fill="none" stroke="#85573f" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M-25-4Q-17 17 0 14Q20 17 27-4Q14 0 9-5Q0-9-9-5Q-17 0-25-4" fill="#503930"/>
-  <path class="snack-smile" d="M-9-1Q0 6 9-1" fill="none" stroke="#f7e7d5" stroke-width="2" stroke-linecap="round"/>
-  <g class="snack-grin"><path d="M-14-3Q0 18 14-3Q0 2-14-3" fill="#f9ead7" stroke="#734b38" stroke-width="1"/><path d="M-9 0H9" stroke="#d9baa1" stroke-width="1"/><path d="M2 0H5V5H2Z" fill="#d3ad61"/></g></g>
+  <g class="companion-head">
+  <path d="M-29-38Q-41-20-35 2L-40 37M-23-37Q-39-10-29 11L-31 44M-17-36Q-31-8-23 17L-24 41M28-39Q42-21 35-1L37 26M22-38Q35-11 29 10L29 34" stroke="#302c30" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M-30-29Q-39-14-34 1L-38 34M-24-26Q-34-6-28 10L-29 40M25-27Q35-14 32 3L34 23" stroke="#51464b" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="-32" cy="-20" rx="5" ry="8" fill="#9c674d"/><ellipse cx="32" cy="-20" rx="5" ry="8" fill="#9c674d"/>
+  <path d="M-30-41Q-24-61 1-59Q24-59 30-42L31-18Q29 5 16 13Q0 21-17 12Q-31 1-32-19Z" fill="#a46e51" ${stroke}/>
+  <path d="M-28-40Q-32-68-7-72Q25-74 31-43Z" fill="#46505a" ${stroke}/><path d="M-31-43Q0-52 32-44L33-33Q0-40-32-31Z" fill="#b2b7ba" ${stroke}/>
+  <path d="M-25-42L-25-33M-18-44L-18-35M-11-46L-11-36M-4-47L-4-37M3-47L3-37M10-46L10-36M17-45L17-35M24-43L24-33" stroke="#89959b" stroke-width="1.4"/>
+  <path d="M-19-29Q-13-32-6-29M6-29Q13-32 19-29" stroke="#48352f" stroke-width="2.8" fill="none" stroke-linecap="round"/>${eyes(0,-23)}
+  <path d="M-4-20L-7-10Q-2-5 7-10" fill="#a97155" stroke="#83523d" stroke-width="1.4" stroke-linecap="round"/><path d="M-21-12Q-20-5-15-3M21-12Q20-5 15-3" stroke="#bb8364" stroke-width="1.2" fill="none"/>
+  <path d="M-23-5Q-23 15 0 18Q22 15 24-5Q17 0 12-2L7-5Q0-8-7-5L-12-2Q-18 1-23-5" fill="#443235"/>
+  <path d="M-18 5L-15 9M-10 10L-8 13M0 12V15M10 10L8 13M18 5L15 9" stroke="#655055" stroke-width="1.3" stroke-linecap="round"/>
+  <path class="snack-smile" d="M-11-1Q0 7 11-1" fill="none" stroke="#e8b99d" stroke-width="2.3" stroke-linecap="round"/>
+  <g class="snack-grin"><path d="M-15-3Q0 19 15-3Q0 2-15-3" fill="#f9ead7" stroke="#734b38" stroke-width="1"/><path d="M-10 1H10" stroke="#d9baa1" stroke-width="1"/><path d="M-9-1H-5V5H-9ZM3-1H7V5H3Z" fill="#d3ad61"/></g><circle cx="-33" cy="-14" r="1.8" fill="#eee4c7"/></g>
 </g>`;
 function footballScene() {
   const x=option==='a'?138:176;
   sceneConfig=[{id:'football',x:x+103,y:235,kind:'skittles',buddy:'football',hand:{x:x+60,y:190}}];
-  return `<path d="M4 247Q210 222 417 247V270H4Z" fill="#82997b" opacity=".75"/><path d="M57 255H363M82 249V263M336 249V263" stroke="#dbe1c6" stroke-width="2" opacity=".8"/>${marshawn(x)}<path d="M338 198V244M377 198V244" stroke="#a78469" stroke-width="6"/><rect x="326" y="193" width="64" height="12" rx="6" fill="#c7a784" ${stroke}/>${ball(359,180,.65)}${toy('football',x+103,235,'skittles')}`;
+  return `<path d="M4 247Q210 222 417 247V270H4Z" fill="#82997b" opacity=".75"/><path d="M57 255H363M82 249V263M336 249V263" stroke="#dbe1c6" stroke-width="2" opacity=".8"/>${marshawn(x)}<path d="M338 198V244M377 198V244" stroke="#a78469" stroke-width="6"/><rect x="326" y="193" width="64" height="12" rx="6" fill="#c7a784" ${stroke}/>${henny(359,193)}${toy('football',x+103,235,'skittles')}`;
 }
 const sceneNames = option==='a' ? {cozy:'Cat-tree corners',snow:'Snowbank friend',leaves:'Acorn lookout',footballs:'Marshawn’s snack break'} : {cozy:'Cat-nap bench',snow:'Snowman family',leaves:'Little autumn den',footballs:'Marshawn’s snack break'};
 const instructions = {cozy:'Move a hanging toy to wake its cat.',snow:'Roll the snowball to get a mitten wave.',leaves:'Move the acorn to catch a curious eye.',footballs:'Bring Marshawn some Skittles for a big grin.'};
@@ -114,7 +121,7 @@ function render() {
   ['falling','companions'].forEach(id=>document.getElementById(id).disabled=state.theme==='none');
   document.getElementById('layer-status').textContent = reduced.matches?'Reduced motion is on. Your scene stays still.':state.theme==='none'?'Classic colors.':`${state.falling?'Falling decorations':'No falling decorations'} · ${hasCompanions?'Companions':'No companions'}${hasCompanions?canReact?' · Reactions on':' · Reactions off':''}`;
   if(canReact) sceneConfig.forEach(c=>{
-    c.bounds={left:c.x-45,right:c.x+45,top:c.anchor?c.y-45:c.y-90,bottom:c.anchor?c.y+45:c.y};
+    c.bounds={left:c.x-50,right:c.x+50,top:c.anchor?c.y-50:c.y-100,bottom:c.anchor?c.y+50:c.y};
     const button=document.createElement('button'); button.className='scene-interaction'; button.dataset.toy=c.id; button.type='button';
     button.setAttribute('aria-label',`${c.kind==='yarn'||c.kind==='mouse'?'Hanging cat toy':c.kind==='acorn'?'Acorn':c.kind==='snowball'?'Snowball':c.kind==='skittles'?'Skittles':'Practice football'} · drag, arrow keys, or Enter`);
     stage.append(button); positionButton(c);
@@ -159,10 +166,15 @@ function paintToy(c,x,y) {
   const buddy=stage.querySelector(`[data-buddy="${c.buddy}"]`);
   if(buddy)buddy.classList.add('playing');
   if(buddy){
-    // The right cat's horizontal scale is negative; convert gaze to its local direction.
-    const horizontalDirection = buddy.getCTM().a < 0 ? -1 : 1;
-    buddy.querySelectorAll('.companion-pupil').forEach(p=>p.style.transform=`translate(${horizontalDirection*clamp((x-c.x)/12,-2.5,2.5)}px,${clamp((y-c.y)/10,-1.5,1.5)}px)`);
     buddy.querySelectorAll('.awake-eyes').forEach(e=>e.style.display='');buddy.querySelectorAll('.sleep-eyes').forEach(e=>e.style.display='none');
+    // Aim from the face to the object, including head tilt, scale, and mirrored cats.
+    const scenePoint=new DOMPoint(x,y).matrixTransform(stage.querySelector('svg:not(.particle-field svg)').getScreenCTM());
+    buddy.querySelectorAll('.companion-pupil').forEach(p=>{
+      const facePoint=scenePoint.matrixTransform(p.parentElement.getScreenCTM().inverse());
+      const dx=facePoint.x-Number(p.dataset.gazeX),dy=facePoint.y-Number(p.dataset.gazeY);
+      const distance=Math.hypot(dx,dy,28);
+      p.style.transform=`translate(${dx/distance*Number(p.dataset.gazeRangeX||1.5)}px,${dy/distance*Number(p.dataset.gazeRangeY||1.1)}px)`;
+    });
     if(c.hand)buddy.classList.toggle('snack-happy',Math.hypot(x-c.hand.x,y-c.hand.y)<43);
   }
 }

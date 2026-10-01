@@ -49,5 +49,5 @@ export default function MobileDataList({
     );
   }
 
-  return <div className="mobile-data-list">{children}</div>;
+  return <div className="mobile-data-list" aria-busy={loading || undefined}>{children}</div>;
 }

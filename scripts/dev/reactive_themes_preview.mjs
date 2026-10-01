@@ -22,27 +22,29 @@ async function geometry(width){
   assert.deepEqual(failures,[],'layout gate');
   for(const box of await page.locator('.scene-interaction').evaluateAll(elements=>elements.map(e=>{const b=e.getBoundingClientRect();return {w:b.width,h:b.height};})))assert.ok(box.w>=44&&box.h>=44,'toy target size');
 }
-async function catGazeFollowsToy() {
-  for(const id of ['left','right']) {
-    const target=page.locator(`[data-toy="${id}"]`);
-    const buddy=page.locator(`[data-buddy="${id}"]`);
-    for(const key of ['ArrowLeft','ArrowRight']) {
-      // Reset each attempt so direction is measured from the same resting toy.
+async function gazeFollowsObject() {
+  const ids=await page.locator('.scene-interaction').evaluateAll(els=>els.map(e=>e.dataset.toy));
+  for(const id of ids) {
+    const target=page.locator(`.scene-interaction[data-toy="${id}"]`);
+    for(const [rx,ry] of [[0,0],[1,0],[0,1],[1,1]]) {
       await page.locator('#reactions').uncheck();await page.locator('#reactions').check();
-      await target.focus();await page.keyboard.down(key);
-      await page.waitForTimeout(180);
-      const offset=await buddy.evaluate(el=>{
-        const pupil=el.querySelector('.awake-eyes .companion-pupil circle');
-        const iris=el.querySelector('.awake-eyes ellipse');
-        const center=new DOMPoint(pupil.cx.baseVal.value,pupil.cy.baseVal.value);
-        // Compare the pupil to its unmoved location in the actual rendered iris.
-        return center.matrixTransform(pupil.getScreenCTM()).x-center.matrixTransform(iris.getScreenCTM()).x;
-      });
-      assert.ok(key==='ArrowLeft'?offset<-.1:offset>.1,`${id} cat pupils must follow ${key} in screen coordinates; got ${offset}`);
+      await target.scrollIntoViewIfNeeded();const hit=await target.boundingBox();
+      await page.mouse.move(hit.x+22,hit.y+22);await page.mouse.down();
+      const box=await page.locator('.scene-drag-area').boundingBox();
+      await page.mouse.move(box.x+box.width*rx,box.y+box.height*ry,{steps:3});await page.waitForTimeout(180);
+      const gaze=await page.locator(`[data-buddy="${id}"] .companion-pupil`).evaluate((el,id)=>{
+        const origin=new DOMPoint(Number(el.dataset.gazeX),Number(el.dataset.gazeY));
+        const face=origin.matrixTransform(el.parentElement.getScreenCTM());
+        const pupil=origin.matrixTransform(el.getScreenCTM());
+        const target=new DOMPoint(0,0).matrixTransform(document.getElementById(`toy-${id}`).getScreenCTM());
+        return {dx:target.x-face.x,dy:target.y-face.y,gx:pupil.x-face.x,gy:pupil.y-face.y};
+      },id);
+      assert.ok(gaze.dx*gaze.gx+gaze.dy*gaze.gy>0,`${id} eyes must face the object at box corner ${rx},${ry}: ${JSON.stringify(gaze)}`);
+      if(Math.abs(gaze.dx)>3)assert.ok(gaze.dx*gaze.gx>0,`${id} horizontal gaze points toward the face-relative target`);
+      if(Math.abs(gaze.dy)>3)assert.ok(gaze.dy*gaze.gy>0,`${id} vertical gaze points toward the face-relative target`);
+      assert.ok(Math.hypot(gaze.gx,gaze.gy)<2.4,'subtle bounded pupil movement');
       assert.equal(await page.locator('[data-buddy].playing').count(),1,'only the toy owner reacts');
-      const other=page.locator(`[data-buddy="${id==='left'?'right':'left'}"] .awake-eyes`);
-      assert.equal(await other.isVisible(),false,'other cat stays asleep');
-      await page.keyboard.up(key);
+      await page.mouse.up();
     }
   }
   await page.locator('#reactions').uncheck();await page.locator('#reactions').check();
@@ -55,6 +57,8 @@ async function squareAndPhysics(option,id) {
   const area=page.locator('.scene-drag-area');
   const bounds=await area.boundingBox();
   assert.ok(Math.abs(bounds.width-bounds.height)<.5,'drag region is square');
+  const stageWidth=await page.locator('#scene-stage > svg').evaluate(el=>el.getBoundingClientRect().width);
+  assert.ok(Math.abs(bounds.width/stageWidth*420-100)<.5,'movement square is a modest 100 SVG units');
   await page.mouse.move(bounds.x+bounds.width+100,bounds.y-100,{steps:5});
   const position=()=>page.locator('#scene-stage > svg > #toy-'+(id==='cozy'?'left':id==='snow'?'snow':id==='leaves'?'autumn':'football')).evaluate(el=>{
     const m=el.getScreenCTM();return {x:m.e,y:m.f};
@@ -79,6 +83,7 @@ async function squareAndPhysics(option,id) {
   console.log(`${option} ${id}: square bounds and release physics passed`);
 }
 async function skittlesReaction(option) {
+  assert.equal(await page.locator('[data-scene-prop="henny"]').count(),1,'Henny bottle on the side table');
   const target=page.locator('[data-toy="football"]');await target.scrollIntoViewIfNeeded();
   const box=await target.boundingBox();await page.mouse.move(box.x+22,box.y+22);await page.mouse.down();
   const area=await page.locator('.scene-drag-area').boundingBox();
@@ -104,7 +109,7 @@ try {
           await theme(id).check(); await geometry(width);
           assert.equal(await page.locator('html').getAttribute('data-theme'),id);
           assert.equal(await page.locator('html').getAttribute('data-mode'),colorMode);
-          if(id==='cozy')await catGazeFollowsToy();
+          if(id!=='none')await gazeFollowsObject();
           if(id!=='none'&&width===390&&colorMode==='dark')await squareAndPhysics(option,id);
           if(id==='footballs'&&width===390&&colorMode==='dark')await skittlesReaction(option);
           if(id!=='none'){
@@ -166,5 +171,5 @@ try {
   }
   assert.deepEqual(errors,[],'browser errors');
   await fs.writeFile(path.join(output,'report.json'),JSON.stringify({ok:true,report,errors},null,2));
-  console.log(`${report.length} theme, mode, and width combinations passed; mirrored cat gaze, square drag bounds, release physics, Skittles proximity, layer controls, reduced motion, disclosure, navigation, and 320px long-title checks passed.`);
+  console.log(`${report.length} theme, mode, and width combinations passed; face-relative gaze at all square corners, larger drag bounds, release physics, Skittles proximity, Henny table prop, layer controls, reduced motion, disclosure, navigation, and 320px long-title checks passed.`);
 } finally {await browser.close();}

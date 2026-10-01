@@ -1,9 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { apiFetch } from "./auth";
 import { parseApiError } from "./format";
 import { APPEARANCE_COPY } from "./themePresentation";
+import { observeAppearanceReadiness } from "./appearanceReadiness";
 import AtmosphereLayer from "./DraftHub/AtmosphereLayer";
 import { applyAtmospherePatch, mergeAtmospherePrefs, serializeAtmospherePrefs } from "./DraftHub/atmosphereCatalog";
 
@@ -89,14 +90,23 @@ export function AppearanceProvider({ children }) {
 export const useAppearance = () => useContext(AppearanceContext);
 
 export function AppAppearanceLayer({ children }) {
-  const { prefs } = useAppearance();
-  const { pathname } = useLocation();
+  const { prefs, loading } = useAppearance();
+  const { pathname, search } = useLocation();
+  const routeKey = pathname + search;
+  const contentMarker = useRef(null);
+  const [readyRoute, setReadyRoute] = useState(null);
   const productPage = /^\/(projections|hub|tools)(\/|$)/.test(pathname) || pathname === "/account";
   const draftWorkspace = /^\/hub\/(draft|room)(\/|$)/.test(pathname) || /^\/tools\/mock-draft(\/|$)/.test(pathname);
+  useLayoutEffect(() => {
+    setReadyRoute(null);
+    if (!productPage || draftWorkspace || loading) return undefined;
+    return observeAppearanceReadiness(contentMarker.current.parentElement, (ready) => setReadyRoute(ready ? routeKey : null));
+  }, [productPage, draftWorkspace, loading, routeKey]);
   if (!productPage) return children;
   return <>
     <AtmosphereLayer className="app-atmosphere" prefsOverride={prefs} liveDraft={draftWorkspace} fieldOnly />
     {children}
-    <AtmosphereLayer className="app-atmosphere-floor" prefsOverride={prefs} liveDraft={draftWorkspace} sceneOnly />
+    <span hidden ref={contentMarker} />
+    {!loading && readyRoute === routeKey && <AtmosphereLayer className="app-atmosphere-floor" prefsOverride={prefs} liveDraft={draftWorkspace} sceneOnly />}
   </>;
 }

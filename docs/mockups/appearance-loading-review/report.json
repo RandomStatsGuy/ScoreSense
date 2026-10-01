@@ -1,0 +1,124 @@
+{
+  "checks": [
+    {
+      "name": "lazy-account",
+      "route": "/account",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "preferences",
+      "route": "/account",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "lazy-fantasy",
+      "route": "/hub/home",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "fantasy-data",
+      "route": "/hub/home",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "hidden-content",
+      "route": "/account",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "weekly-metadata",
+      "route": "/projections/weekly",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "weekly-data",
+      "route": "/projections/weekly",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "empty-best-ball",
+      "route": "/tools/best-ball",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "error-best-ball",
+      "route": "/tools/best-ball",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "route-transition",
+      "route": "/tools/best-ball",
+      "width": 1280,
+      "ok": true
+    },
+    {
+      "name": "lazy-account",
+      "route": "/account",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "preferences",
+      "route": "/account",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "lazy-fantasy",
+      "route": "/hub/home",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "fantasy-data",
+      "route": "/hub/home",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "hidden-content",
+      "route": "/account",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "weekly-metadata",
+      "route": "/projections/weekly",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "weekly-data",
+      "route": "/projections/weekly",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "empty-best-ball",
+      "route": "/tools/best-ball",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "error-best-ball",
+      "route": "/tools/best-ball",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "name": "route-transition",
+      "route": "/tools/best-ball",
+      "width": 390,
+      "ok": true
+    }
+  ]
+}
