@@ -1,0 +1,4494 @@
+{
+  "position": "qb",
+  "candidate": "game_market_p50",
+  "reference_policy": "pregame_season_recent4_p50_v1",
+  "cohort": "Observed regular-season player-stat rows, including zero/negative scores; inactive roster weeks not reconstructed.",
+  "source_sha256": {
+    "outputs\\projection-integrity\\rebuilt-processed\\qb_mlready.parquet": "62b1ce1ad6c29b8be6ecc45a2de1dbc654fc241ecaba95dbb8e64cea8930b71a",
+    "outputs\\projection-integrity\\rebuild-sources\\schedules.parquet": "0a0024fd30c68b8d6f6944b58839b217f8989f7268d36f1225a8b5d565196fea"
+  },
+  "market_timing": "Historical closing-line proxy, not archived Thursday/Sunday weekly snapshots.",
+  "later_season_note": "2025 has been explored; not an untouched holdout.",
+  "candidate_feature_cols": [
+    "passing_yards_avg",
+    "pass_tds_avg",
+    "ints_avg",
+    "completions_avg",
+    "pass_attmpt_avg",
+    "rush_attmpt_avg",
+    "rushing_yards_avg",
+    "rush_tds_avg",
+    "fumbles_avg",
+    "passing_epa_avg",
+    "rushing_epa_avg",
+    "target_share_avg",
+    "wopr_avg",
+    "opponent_pass_epa_allowed",
+    "days_rest",
+    "is_home",
+    "carry_share_avg",
+    "rz_carries_avg",
+    "explosive_plays_avg",
+    "team_pass_rate_avg",
+    "offense_pct_avg",
+    "injury_opportunity_boost_hist_avg",
+    "recent4_Fpts_avg",
+    "recent4_attempts_avg",
+    "recent4_passing_yards_avg",
+    "recent4_carries_avg",
+    "recent4_rushing_yards_avg",
+    "game_implied_team_total",
+    "game_total_line",
+    "game_spread"
+  ],
+  "candidate_alpha": 0.5,
+  "reference_specification": {
+    "sklearn_version": "1.6.1",
+    "backend": "sklearn",
+    "boom_weight_p90": 1.0,
+    "boom_threshold": 25.0,
+    "regressors": {
+      "0.1": {
+        "alpha": 0.1,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.5": {
+        "alpha": 0.5,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.9": {
+        "alpha": 0.9,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      }
+    }
+  },
+  "candidate_specification": {
+    "sklearn_version": "1.6.1",
+    "backend": "sklearn",
+    "boom_weight_p90": 1.0,
+    "boom_threshold": 25.0,
+    "regressors": {
+      "0.1": {
+        "alpha": 0.1,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.5": {
+        "alpha": 0.5,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.9": {
+        "alpha": 0.9,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "season": 2019,
+      "train_seasons": [
+        2018
+      ],
+      "reference_training_digest": "ab346b8981be3cd1bd4aadfabe8e4075b209e3351b7c95864cf51d1ddc904794",
+      "candidate_training_digest": "06dd38431e065883f50603a1eb77ad99f2ea1cebd08edad56968e1a96bf8fdee",
+      "union_training_digest": "75b2ee1a68f29af7473932510572e07895d8bddb4f5e0dd055b5bf13d2a746fe",
+      "input_quality": {
+        "rows": 589,
+        "expected_features": 30,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 21,
+          "explosive_plays_avg": 21,
+          "team_pass_rate_avg": 21,
+          "offense_pct_avg": 21,
+          "recent4_Fpts_avg": 21,
+          "recent4_attempts_avg": 21,
+          "recent4_passing_yards_avg": 21,
+          "recent4_carries_avg": 21,
+          "recent4_rushing_yards_avg": 21
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "cohorts": {
+        "all_observed": {
+          "reference": {
+            "rows": 589,
+            "mae": 6.671669766597788,
+            "rmse": 8.314013606603872,
+            "mean_bias": -0.6160851887340008,
+            "pinball": {
+              "0.1": 1.386119995944383,
+              "0.5": 3.335834883298894,
+              "0.9": 1.7332562178236515
+            },
+            "coverage_p10_p90": 0.6400679117147708,
+            "mean_width": 16.84067825592488,
+            "interval_score_80": 31.193762137680352,
+            "weighted_interval_score": 4.303474064711287,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.1731748726655348,
+                "at_or_below": 0.1799660441426146,
+                "distance_from_nominal": 0.0731748726655348
+              },
+              "0.5": {
+                "below": 0.5144312393887945,
+                "at_or_below": 0.5144312393887945,
+                "distance_from_nominal": 0.014431239388794537
+              },
+              "0.9": {
+                "below": 0.8132427843803056,
+                "at_or_below": 0.8132427843803056,
+                "distance_from_nominal": 0.0867572156196944
+              }
+            },
+            "boom": {
+              "tp": 38,
+              "fp": 128,
+              "fn": 37,
+              "tn": 386,
+              "precision": 0.2289156626506024,
+              "recall": 0.5066666666666667,
+              "false_positive_rate": 0.2490272373540856,
+              "alert_rate": 0.28183361629881154,
+              "f1": 0.3153526970954357
+            },
+            "bust": {
+              "tp": 179,
+              "fp": 391,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.3140350877192982,
+              "recall": 0.9781420765027322,
+              "false_positive_rate": 0.9630541871921182,
+              "alert_rate": 0.967741935483871,
+              "f1": 0.4754316069057105
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11080940922539986,
+              "bust_brier": 0.17489388713470022,
+              "mean_boom_probability": 0.07086568231138032,
+              "actual_boom_rate": 0.1273344651952462,
+              "mean_bust_probability": 0.29142848647692404,
+              "actual_bust_rate": 0.31069609507640067
+            }
+          },
+          "candidate": {
+            "rows": 589,
+            "mae": 6.478690239811432,
+            "rmse": 8.027364900258343,
+            "mean_bias": -0.35757869860129116,
+            "pinball": {
+              "0.1": 1.3863065815177764,
+              "0.5": 3.239345119905716,
+              "0.9": 1.7332562178236515
+            },
+            "coverage_p10_p90": 0.6400679117147708,
+            "mean_width": 16.83745794568148,
+            "interval_score_80": 31.19562799341428,
+            "weighted_interval_score": 4.239271946164763,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.1731748726655348,
+                "at_or_below": 0.1799660441426146,
+                "distance_from_nominal": 0.0731748726655348
+              },
+              "0.5": {
+                "below": 0.5263157894736842,
+                "at_or_below": 0.5263157894736842,
+                "distance_from_nominal": 0.02631578947368418
+              },
+              "0.9": {
+                "below": 0.8132427843803056,
+                "at_or_below": 0.8132427843803056,
+                "distance_from_nominal": 0.0867572156196944
+              }
+            },
+            "boom": {
+              "tp": 39,
+              "fp": 127,
+              "fn": 36,
+              "tn": 387,
+              "precision": 0.23493975903614459,
+              "recall": 0.52,
+              "false_positive_rate": 0.24708171206225682,
+              "alert_rate": 0.28183361629881154,
+              "f1": 0.3236514522821577
+            },
+            "bust": {
+              "tp": 179,
+              "fp": 391,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.3140350877192982,
+              "recall": 0.9781420765027322,
+              "false_positive_rate": 0.9630541871921182,
+              "alert_rate": 0.967741935483871,
+              "f1": 0.4754316069057105
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11148698931238554,
+              "bust_brier": 0.17216587588566606,
+              "mean_boom_probability": 0.07084589568619061,
+              "actual_boom_rate": 0.1273344651952462,
+              "mean_bust_probability": 0.28859019695917026,
+              "actual_bust_rate": 0.31069609507640067
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.19297952678635752,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.3394553313851937,
+              -0.05300448890746388
+            ],
+            "fraction_delta_below_zero": 0.998
+          }
+        },
+        "actionable": {
+          "reference": {
+            "rows": 408,
+            "mae": 6.740873787308874,
+            "rmse": 8.34072847369586,
+            "mean_bias": -0.3877441363172138,
+            "pinball": {
+              "0.1": 1.380698946465539,
+              "0.5": 3.370436893654437,
+              "0.9": 1.787708911101234
+            },
+            "coverage_p10_p90": 0.6764705882352942,
+            "mean_width": 16.763830603272826,
+            "interval_score_80": 31.68407857566773,
+            "weighted_interval_score": 4.359229834147474,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.11274509803921569,
+                "at_or_below": 0.11274509803921569,
+                "distance_from_nominal": 0.012745098039215683
+              },
+              "0.5": {
+                "below": 0.5196078431372549,
+                "at_or_below": 0.5196078431372549,
+                "distance_from_nominal": 0.019607843137254943
+              },
+              "0.9": {
+                "below": 0.7892156862745098,
+                "at_or_below": 0.7892156862745098,
+                "distance_from_nominal": 0.11078431372549025
+              }
+            },
+            "boom": {
+              "tp": 37,
+              "fp": 123,
+              "fn": 30,
+              "tn": 218,
+              "precision": 0.23125,
+              "recall": 0.5522388059701493,
+              "false_positive_rate": 0.36070381231671556,
+              "alert_rate": 0.39215686274509803,
+              "f1": 0.32599118942731276
+            },
+            "bust": {
+              "tp": 80,
+              "fp": 309,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.20565552699228792,
+              "recall": 0.9523809523809523,
+              "false_positive_rate": 0.9537037037037037,
+              "alert_rate": 0.9534313725490197,
+              "f1": 0.3382663847780127
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14166466886552534,
+              "bust_brier": 0.1619946361884068,
+              "mean_boom_probability": 0.08459336330286799,
+              "actual_boom_rate": 0.1642156862745098,
+              "mean_bust_probability": 0.19491733748637902,
+              "actual_bust_rate": 0.20588235294117646
+            }
+          },
+          "candidate": {
+            "rows": 408,
+            "mae": 6.488620768508828,
+            "rmse": 8.032955358839425,
+            "mean_bias": -0.4480300432307884,
+            "pinball": {
+              "0.1": 1.380698946465539,
+              "0.5": 3.244310384254414,
+              "0.9": 1.787708911101234
+            },
+            "coverage_p10_p90": 0.6764705882352942,
+            "mean_width": 16.763830603272826,
+            "interval_score_80": 31.68407857566773,
+            "weighted_interval_score": 4.275145494547458,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.11274509803921569,
+                "at_or_below": 0.11274509803921569,
+                "distance_from_nominal": 0.012745098039215683
+              },
+              "0.5": {
+                "below": 0.5196078431372549,
+                "at_or_below": 0.5196078431372549,
+                "distance_from_nominal": 0.019607843137254943
+              },
+              "0.9": {
+                "below": 0.7892156862745098,
+                "at_or_below": 0.7892156862745098,
+                "distance_from_nominal": 0.11078431372549025
+              }
+            },
+            "boom": {
+              "tp": 38,
+              "fp": 122,
+              "fn": 29,
+              "tn": 219,
+              "precision": 0.2375,
+              "recall": 0.5671641791044776,
+              "false_positive_rate": 0.35777126099706746,
+              "alert_rate": 0.39215686274509803,
+              "f1": 0.33480176211453744
+            },
+            "bust": {
+              "tp": 80,
+              "fp": 309,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.20565552699228792,
+              "recall": 0.9523809523809523,
+              "false_positive_rate": 0.9537037037037037,
+              "alert_rate": 0.9534313725490197,
+              "f1": 0.3382663847780127
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14253384196507518,
+              "bust_brier": 0.15759836182553255,
+              "mean_boom_probability": 0.08593447510451896,
+              "actual_boom_rate": 0.1642156862745098,
+              "mean_bust_probability": 0.20273150632278517,
+              "actual_bust_rate": 0.20588235294117646
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.2522530188000473,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.4312085189825378,
+              -0.07051477202878821
+            ],
+            "fraction_delta_below_zero": 0.9975
+          }
+        },
+        "industry_sized": {
+          "reference": {
+            "rows": 340,
+            "mae": 6.756438448663495,
+            "rmse": 8.354326235239473,
+            "mean_bias": -0.009406144058792709,
+            "pinball": {
+              "0.1": 1.400429494595302,
+              "0.5": 3.3782192243317475,
+              "0.9": 1.7765286515549361
+            },
+            "coverage_p10_p90": 0.6676470588235294,
+            "mean_width": 16.831613348581904,
+            "interval_score_80": 31.769581461502383,
+            "weighted_interval_score": 4.37011824698799,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.12058823529411765,
+                "at_or_below": 0.12058823529411765,
+                "distance_from_nominal": 0.020588235294117643
+              },
+              "0.5": {
+                "below": 0.5411764705882353,
+                "at_or_below": 0.5411764705882353,
+                "distance_from_nominal": 0.04117647058823526
+              },
+              "0.9": {
+                "below": 0.788235294117647,
+                "at_or_below": 0.788235294117647,
+                "distance_from_nominal": 0.11176470588235299
+              }
+            },
+            "boom": {
+              "tp": 37,
+              "fp": 114,
+              "fn": 20,
+              "tn": 169,
+              "precision": 0.24503311258278146,
+              "recall": 0.6491228070175439,
+              "false_positive_rate": 0.4028268551236749,
+              "alert_rate": 0.4441176470588235,
+              "f1": 0.3557692307692308
+            },
+            "bust": {
+              "tp": 63,
+              "fp": 258,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.19626168224299065,
+              "recall": 0.9402985074626866,
+              "false_positive_rate": 0.945054945054945,
+              "alert_rate": 0.9441176470588235,
+              "f1": 0.3247422680412371
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14218769714241436,
+              "bust_brier": 0.1572027037903945,
+              "mean_boom_probability": 0.0910669288890538,
+              "actual_boom_rate": 0.1676470588235294,
+              "mean_bust_probability": 0.17912500590032732,
+              "actual_bust_rate": 0.19705882352941176
+            }
+          },
+          "candidate": {
+            "rows": 340,
+            "mae": 6.566664785352251,
+            "rmse": 8.118774198812991,
+            "mean_bias": -0.15332072872006944,
+            "pinball": {
+              "0.1": 1.400429494595302,
+              "0.5": 3.2833323926761255,
+              "0.9": 1.7765286515549361
+            },
+            "coverage_p10_p90": 0.6676470588235294,
+            "mean_width": 16.831613348581904,
+            "interval_score_80": 31.769581461502383,
+            "weighted_interval_score": 4.306860359217576,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.12058823529411765,
+                "at_or_below": 0.12058823529411765,
+                "distance_from_nominal": 0.020588235294117643
+              },
+              "0.5": {
+                "below": 0.5411764705882353,
+                "at_or_below": 0.5411764705882353,
+                "distance_from_nominal": 0.04117647058823526
+              },
+              "0.9": {
+                "below": 0.788235294117647,
+                "at_or_below": 0.788235294117647,
+                "distance_from_nominal": 0.11176470588235299
+              }
+            },
+            "boom": {
+              "tp": 38,
+              "fp": 113,
+              "fn": 19,
+              "tn": 170,
+              "precision": 0.25165562913907286,
+              "recall": 0.6666666666666666,
+              "false_positive_rate": 0.3992932862190813,
+              "alert_rate": 0.4441176470588235,
+              "f1": 0.36538461538461536
+            },
+            "bust": {
+              "tp": 63,
+              "fp": 258,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.19626168224299065,
+              "recall": 0.9402985074626866,
+              "false_positive_rate": 0.945054945054945,
+              "alert_rate": 0.9441176470588235,
+              "f1": 0.3247422680412371
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14276887015974465,
+              "bust_brier": 0.15497661280777986,
+              "mean_boom_probability": 0.09313051131696365,
+              "actual_boom_rate": 0.1676470588235294,
+              "mean_bust_probability": 0.1873985166975067,
+              "actual_bust_rate": 0.19705882352941176
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.18977366331124343,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.36619633029204685,
+              -0.026896970665262622
+            ],
+            "fraction_delta_below_zero": 0.9905
+          }
+        },
+        "industry_sized_qb": {
+          "reference": {
+            "rows": 340,
+            "mae": 6.756438448663495,
+            "rmse": 8.354326235239473,
+            "mean_bias": -0.009406144058792709,
+            "pinball": {
+              "0.1": 1.400429494595302,
+              "0.5": 3.3782192243317475,
+              "0.9": 1.7765286515549361
+            },
+            "coverage_p10_p90": 0.6676470588235294,
+            "mean_width": 16.831613348581904,
+            "interval_score_80": 31.769581461502383,
+            "weighted_interval_score": 4.37011824698799,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.12058823529411765,
+                "at_or_below": 0.12058823529411765,
+                "distance_from_nominal": 0.020588235294117643
+              },
+              "0.5": {
+                "below": 0.5411764705882353,
+                "at_or_below": 0.5411764705882353,
+                "distance_from_nominal": 0.04117647058823526
+              },
+              "0.9": {
+                "below": 0.788235294117647,
+                "at_or_below": 0.788235294117647,
+                "distance_from_nominal": 0.11176470588235299
+              }
+            },
+            "boom": {
+              "tp": 37,
+              "fp": 114,
+              "fn": 20,
+              "tn": 169,
+              "precision": 0.24503311258278146,
+              "recall": 0.6491228070175439,
+              "false_positive_rate": 0.4028268551236749,
+              "alert_rate": 0.4441176470588235,
+              "f1": 0.3557692307692308
+            },
+            "bust": {
+              "tp": 63,
+              "fp": 258,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.19626168224299065,
+              "recall": 0.9402985074626866,
+              "false_positive_rate": 0.945054945054945,
+              "alert_rate": 0.9441176470588235,
+              "f1": 0.3247422680412371
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14218769714241436,
+              "bust_brier": 0.1572027037903945,
+              "mean_boom_probability": 0.0910669288890538,
+              "actual_boom_rate": 0.1676470588235294,
+              "mean_bust_probability": 0.17912500590032732,
+              "actual_bust_rate": 0.19705882352941176
+            }
+          },
+          "candidate": {
+            "rows": 340,
+            "mae": 6.566664785352251,
+            "rmse": 8.118774198812991,
+            "mean_bias": -0.15332072872006944,
+            "pinball": {
+              "0.1": 1.400429494595302,
+              "0.5": 3.2833323926761255,
+              "0.9": 1.7765286515549361
+            },
+            "coverage_p10_p90": 0.6676470588235294,
+            "mean_width": 16.831613348581904,
+            "interval_score_80": 31.769581461502383,
+            "weighted_interval_score": 4.306860359217576,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.12058823529411765,
+                "at_or_below": 0.12058823529411765,
+                "distance_from_nominal": 0.020588235294117643
+              },
+              "0.5": {
+                "below": 0.5411764705882353,
+                "at_or_below": 0.5411764705882353,
+                "distance_from_nominal": 0.04117647058823526
+              },
+              "0.9": {
+                "below": 0.788235294117647,
+                "at_or_below": 0.788235294117647,
+                "distance_from_nominal": 0.11176470588235299
+              }
+            },
+            "boom": {
+              "tp": 38,
+              "fp": 113,
+              "fn": 19,
+              "tn": 170,
+              "precision": 0.25165562913907286,
+              "recall": 0.6666666666666666,
+              "false_positive_rate": 0.3992932862190813,
+              "alert_rate": 0.4441176470588235,
+              "f1": 0.36538461538461536
+            },
+            "bust": {
+              "tp": 63,
+              "fp": 258,
+              "fn": 4,
+              "tn": 15,
+              "precision": 0.19626168224299065,
+              "recall": 0.9402985074626866,
+              "false_positive_rate": 0.945054945054945,
+              "alert_rate": 0.9441176470588235,
+              "f1": 0.3247422680412371
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14276887015974465,
+              "bust_brier": 0.15497661280777986,
+              "mean_boom_probability": 0.09313051131696365,
+              "actual_boom_rate": 0.1676470588235294,
+              "mean_bust_probability": 0.1873985166975067,
+              "actual_bust_rate": 0.19705882352941176
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.18977366331124343,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.36619633029204685,
+              -0.026896970665262622
+            ],
+            "fraction_delta_below_zero": 0.9905
+          }
+        }
+      }
+    },
+    {
+      "season": 2020,
+      "train_seasons": [
+        2018,
+        2019
+      ],
+      "reference_training_digest": "84761877b217b3b1ef147983108897105c40e7b3f1017fc56b9dbc2ce38af5af",
+      "candidate_training_digest": "ac1af139e1f757c9ee1d0cbaaf199bbc06470b42b15b34bb884fc87e914315aa",
+      "union_training_digest": "b420c3fb01425ee0842fcc134000cadc82c388625bfec6fbd67b67b9594defab",
+      "input_quality": {
+        "rows": 622,
+        "expected_features": 30,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 15,
+          "explosive_plays_avg": 15,
+          "team_pass_rate_avg": 15,
+          "offense_pct_avg": 15,
+          "recent4_Fpts_avg": 15,
+          "recent4_attempts_avg": 15,
+          "recent4_passing_yards_avg": 15,
+          "recent4_carries_avg": 15,
+          "recent4_rushing_yards_avg": 15
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "cohorts": {
+        "all_observed": {
+          "reference": {
+            "rows": 622,
+            "mae": 6.468035974338116,
+            "rmse": 8.168651324236473,
+            "mean_bias": -1.0890572939155552,
+            "pinball": {
+              "0.1": 1.327072817792514,
+              "0.5": 3.234017987169058,
+              "0.9": 1.620760545191118
+            },
+            "coverage_p10_p90": 0.6929260450160771,
+            "mean_width": 18.578898299473583,
+            "interval_score_80": 29.478333629836317,
+            "weighted_interval_score": 4.121234233435127,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.15755627009646303,
+                "at_or_below": 0.1639871382636656,
+                "distance_from_nominal": 0.057556270096463025
+              },
+              "0.5": {
+                "below": 0.49356913183279744,
+                "at_or_below": 0.49356913183279744,
+                "distance_from_nominal": 0.006430868167202564
+              },
+              "0.9": {
+                "below": 0.8504823151125402,
+                "at_or_below": 0.8504823151125402,
+                "distance_from_nominal": 0.04951768488745978
+              }
+            },
+            "boom": {
+              "tp": 63,
+              "fp": 192,
+              "fn": 35,
+              "tn": 332,
+              "precision": 0.24705882352941178,
+              "recall": 0.6428571428571429,
+              "false_positive_rate": 0.366412213740458,
+              "alert_rate": 0.409967845659164,
+              "f1": 0.35694050991501414
+            },
+            "bust": {
+              "tp": 190,
+              "fp": 409,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.31719532554257096,
+              "recall": 0.9895833333333334,
+              "false_positive_rate": 0.9511627906976744,
+              "alert_rate": 0.9630225080385852,
+              "f1": 0.4804045512010114
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.12709814897474353,
+              "bust_brier": 0.1519151059194634,
+              "mean_boom_probability": 0.11008047156831138,
+              "actual_boom_rate": 0.15755627009646303,
+              "mean_bust_probability": 0.3051598513541846,
+              "actual_bust_rate": 0.3086816720257235
+            }
+          },
+          "candidate": {
+            "rows": 622,
+            "mae": 6.4243015174877165,
+            "rmse": 8.018792089905501,
+            "mean_bias": -0.4116757970879691,
+            "pinball": {
+              "0.1": 1.3192665837937645,
+              "0.5": 3.2121507587438582,
+              "0.9": 1.620760545191118
+            },
+            "coverage_p10_p90": 0.6961414790996785,
+            "mean_width": 18.598477816946783,
+            "interval_score_80": 29.400271289848828,
+            "weighted_interval_score": 4.101451925152494,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.15434083601286175,
+                "at_or_below": 0.1607717041800643,
+                "distance_from_nominal": 0.05434083601286174
+              },
+              "0.5": {
+                "below": 0.5048231511254019,
+                "at_or_below": 0.5048231511254019,
+                "distance_from_nominal": 0.004823151125401881
+              },
+              "0.9": {
+                "below": 0.8504823151125402,
+                "at_or_below": 0.8504823151125402,
+                "distance_from_nominal": 0.04951768488745978
+              }
+            },
+            "boom": {
+              "tp": 67,
+              "fp": 194,
+              "fn": 31,
+              "tn": 330,
+              "precision": 0.2567049808429119,
+              "recall": 0.6836734693877551,
+              "false_positive_rate": 0.3702290076335878,
+              "alert_rate": 0.41961414790996787,
+              "f1": 0.3732590529247911
+            },
+            "bust": {
+              "tp": 190,
+              "fp": 409,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.31719532554257096,
+              "recall": 0.9895833333333334,
+              "false_positive_rate": 0.9511627906976744,
+              "alert_rate": 0.9630225080385852,
+              "f1": 0.4804045512010114
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1250628684057501,
+              "bust_brier": 0.1530630959688214,
+              "mean_boom_probability": 0.11197946275966034,
+              "actual_boom_rate": 0.15755627009646303,
+              "mean_bust_probability": 0.2938247346680732,
+              "actual_bust_rate": 0.3086816720257235
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.04373445685040008,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.14411999624334448,
+              0.06312874557312588
+            ],
+            "fraction_delta_below_zero": 0.813
+          }
+        },
+        "actionable": {
+          "reference": {
+            "rows": 408,
+            "mae": 6.913745960050266,
+            "rmse": 8.61487249216433,
+            "mean_bias": -1.403267127271942,
+            "pinball": {
+              "0.1": 1.4798299998527893,
+              "0.5": 3.456872980025133,
+              "0.9": 1.7010037669069276
+            },
+            "coverage_p10_p90": 0.7132352941176471,
+            "mean_width": 18.77723243185325,
+            "interval_score_80": 31.80833766759717,
+            "weighted_interval_score": 4.425137831189901,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.09558823529411764,
+                "at_or_below": 0.09558823529411764,
+                "distance_from_nominal": 0.004411764705882365
+              },
+              "0.5": {
+                "below": 0.4534313725490196,
+                "at_or_below": 0.4534313725490196,
+                "distance_from_nominal": 0.04656862745098039
+              },
+              "0.9": {
+                "below": 0.8088235294117647,
+                "at_or_below": 0.8088235294117647,
+                "distance_from_nominal": 0.0911764705882353
+              }
+            },
+            "boom": {
+              "tp": 63,
+              "fp": 175,
+              "fn": 31,
+              "tn": 139,
+              "precision": 0.2647058823529412,
+              "recall": 0.6702127659574468,
+              "false_positive_rate": 0.5573248407643312,
+              "alert_rate": 0.5833333333333334,
+              "f1": 0.3795180722891566
+            },
+            "bust": {
+              "tp": 64,
+              "fp": 321,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.16623376623376623,
+              "recall": 0.9696969696969697,
+              "false_positive_rate": 0.9385964912280702,
+              "alert_rate": 0.9436274509803921,
+              "f1": 0.2838137472283814
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.18308887314524672,
+              "bust_brier": 0.1311921919960084,
+              "mean_boom_probability": 0.14378542586892512,
+              "actual_boom_rate": 0.23039215686274508,
+              "mean_bust_probability": 0.18264844449951248,
+              "actual_bust_rate": 0.16176470588235295
+            }
+          },
+          "candidate": {
+            "rows": 408,
+            "mae": 6.843364903843792,
+            "rmse": 8.388823388682408,
+            "mean_bias": -0.9276179015644166,
+            "pinball": {
+              "0.1": 1.4798299998527893,
+              "0.5": 3.421682451921896,
+              "0.9": 1.7010037669069276
+            },
+            "coverage_p10_p90": 0.7132352941176471,
+            "mean_width": 18.77723243185325,
+            "interval_score_80": 31.80833766759717,
+            "weighted_interval_score": 4.4016774791210755,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.09558823529411764,
+                "at_or_below": 0.09558823529411764,
+                "distance_from_nominal": 0.004411764705882365
+              },
+              "0.5": {
+                "below": 0.4632352941176471,
+                "at_or_below": 0.4632352941176471,
+                "distance_from_nominal": 0.03676470588235292
+              },
+              "0.9": {
+                "below": 0.8088235294117647,
+                "at_or_below": 0.8088235294117647,
+                "distance_from_nominal": 0.0911764705882353
+              }
+            },
+            "boom": {
+              "tp": 67,
+              "fp": 177,
+              "fn": 27,
+              "tn": 137,
+              "precision": 0.27459016393442626,
+              "recall": 0.7127659574468085,
+              "false_positive_rate": 0.5636942675159236,
+              "alert_rate": 0.5980392156862745,
+              "f1": 0.39644970414201186
+            },
+            "bust": {
+              "tp": 64,
+              "fp": 321,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.16623376623376623,
+              "recall": 0.9696969696969697,
+              "false_positive_rate": 0.9385964912280702,
+              "alert_rate": 0.9436274509803921,
+              "f1": 0.2838137472283814
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.17997705009330417,
+              "bust_brier": 0.13053106420845118,
+              "mean_boom_probability": 0.14837333092622934,
+              "actual_boom_rate": 0.23039215686274508,
+              "mean_bust_probability": 0.18009026493582314,
+              "actual_bust_rate": 0.16176470588235295
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.07038105620647454,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.1663510739723559,
+              0.021046172673383344
+            ],
+            "fraction_delta_below_zero": 0.933
+          }
+        },
+        "industry_sized": {
+          "reference": {
+            "rows": 340,
+            "mae": 6.878752539500002,
+            "rmse": 8.544471609488518,
+            "mean_bias": -1.5178133731745487,
+            "pinball": {
+              "0.1": 1.4538849791720116,
+              "0.5": 3.439376269750001,
+              "0.9": 1.7130650657321522
+            },
+            "coverage_p10_p90": 0.7235294117647059,
+            "mean_width": 18.885564109072213,
+            "interval_score_80": 31.669500449041646,
+            "weighted_interval_score": 4.404217543102776,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.07941176470588235,
+                "at_or_below": 0.07941176470588235,
+                "distance_from_nominal": 0.020588235294117657
+              },
+              "0.5": {
+                "below": 0.45294117647058824,
+                "at_or_below": 0.45294117647058824,
+                "distance_from_nominal": 0.047058823529411764
+              },
+              "0.9": {
+                "below": 0.8029411764705883,
+                "at_or_below": 0.8029411764705883,
+                "distance_from_nominal": 0.09705882352941175
+              }
+            },
+            "boom": {
+              "tp": 59,
+              "fp": 158,
+              "fn": 28,
+              "tn": 95,
+              "precision": 0.271889400921659,
+              "recall": 0.6781609195402298,
+              "false_positive_rate": 0.6245059288537549,
+              "alert_rate": 0.638235294117647,
+              "f1": 0.3881578947368421
+            },
+            "bust": {
+              "tp": 47,
+              "fp": 270,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.14826498422712933,
+              "recall": 0.9591836734693877,
+              "false_positive_rate": 0.9278350515463918,
+              "alert_rate": 0.9323529411764706,
+              "f1": 0.2568306010928962
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.20176258693545576,
+              "bust_brier": 0.12100909719678712,
+              "mean_boom_probability": 0.15685686167122587,
+              "actual_boom_rate": 0.25588235294117645,
+              "mean_bust_probability": 0.167952822213868,
+              "actual_bust_rate": 0.14411764705882352
+            }
+          },
+          "candidate": {
+            "rows": 340,
+            "mae": 6.782873586558575,
+            "rmse": 8.31848802803013,
+            "mean_bias": -1.138331170700947,
+            "pinball": {
+              "0.1": 1.4538849791720116,
+              "0.5": 3.3914367932792877,
+              "0.9": 1.7130650657321522
+            },
+            "coverage_p10_p90": 0.7235294117647059,
+            "mean_width": 18.885564109072213,
+            "interval_score_80": 31.669500449041646,
+            "weighted_interval_score": 4.372257892122302,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.07941176470588235,
+                "at_or_below": 0.07941176470588235,
+                "distance_from_nominal": 0.020588235294117657
+              },
+              "0.5": {
+                "below": 0.45588235294117646,
+                "at_or_below": 0.45588235294117646,
+                "distance_from_nominal": 0.04411764705882354
+              },
+              "0.9": {
+                "below": 0.8029411764705883,
+                "at_or_below": 0.8029411764705883,
+                "distance_from_nominal": 0.09705882352941175
+              }
+            },
+            "boom": {
+              "tp": 63,
+              "fp": 160,
+              "fn": 24,
+              "tn": 93,
+              "precision": 0.2825112107623318,
+              "recall": 0.7241379310344828,
+              "false_positive_rate": 0.6324110671936759,
+              "alert_rate": 0.6558823529411765,
+              "f1": 0.4064516129032258
+            },
+            "bust": {
+              "tp": 47,
+              "fp": 270,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.14826498422712933,
+              "recall": 0.9591836734693877,
+              "false_positive_rate": 0.9278350515463918,
+              "alert_rate": 0.9323529411764706,
+              "f1": 0.2568306010928962
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.19894195256301936,
+              "bust_brier": 0.11993985241948633,
+              "mean_boom_probability": 0.16201239543890844,
+              "actual_boom_rate": 0.25588235294117645,
+              "mean_bust_probability": 0.1668727293919297,
+              "actual_bust_rate": 0.14411764705882352
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.09587895294142593,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.21605763273205036,
+              0.01675185616196507
+            ],
+            "fraction_delta_below_zero": 0.956
+          }
+        },
+        "industry_sized_qb": {
+          "reference": {
+            "rows": 340,
+            "mae": 6.878752539500002,
+            "rmse": 8.544471609488518,
+            "mean_bias": -1.5178133731745487,
+            "pinball": {
+              "0.1": 1.4538849791720116,
+              "0.5": 3.439376269750001,
+              "0.9": 1.7130650657321522
+            },
+            "coverage_p10_p90": 0.7235294117647059,
+            "mean_width": 18.885564109072213,
+            "interval_score_80": 31.669500449041646,
+            "weighted_interval_score": 4.404217543102776,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.07941176470588235,
+                "at_or_below": 0.07941176470588235,
+                "distance_from_nominal": 0.020588235294117657
+              },
+              "0.5": {
+                "below": 0.45294117647058824,
+                "at_or_below": 0.45294117647058824,
+                "distance_from_nominal": 0.047058823529411764
+              },
+              "0.9": {
+                "below": 0.8029411764705883,
+                "at_or_below": 0.8029411764705883,
+                "distance_from_nominal": 0.09705882352941175
+              }
+            },
+            "boom": {
+              "tp": 59,
+              "fp": 158,
+              "fn": 28,
+              "tn": 95,
+              "precision": 0.271889400921659,
+              "recall": 0.6781609195402298,
+              "false_positive_rate": 0.6245059288537549,
+              "alert_rate": 0.638235294117647,
+              "f1": 0.3881578947368421
+            },
+            "bust": {
+              "tp": 47,
+              "fp": 270,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.14826498422712933,
+              "recall": 0.9591836734693877,
+              "false_positive_rate": 0.9278350515463918,
+              "alert_rate": 0.9323529411764706,
+              "f1": 0.2568306010928962
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.20176258693545576,
+              "bust_brier": 0.12100909719678712,
+              "mean_boom_probability": 0.15685686167122587,
+              "actual_boom_rate": 0.25588235294117645,
+              "mean_bust_probability": 0.167952822213868,
+              "actual_bust_rate": 0.14411764705882352
+            }
+          },
+          "candidate": {
+            "rows": 340,
+            "mae": 6.782873586558575,
+            "rmse": 8.31848802803013,
+            "mean_bias": -1.138331170700947,
+            "pinball": {
+              "0.1": 1.4538849791720116,
+              "0.5": 3.3914367932792877,
+              "0.9": 1.7130650657321522
+            },
+            "coverage_p10_p90": 0.7235294117647059,
+            "mean_width": 18.885564109072213,
+            "interval_score_80": 31.669500449041646,
+            "weighted_interval_score": 4.372257892122302,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.07941176470588235,
+                "at_or_below": 0.07941176470588235,
+                "distance_from_nominal": 0.020588235294117657
+              },
+              "0.5": {
+                "below": 0.45588235294117646,
+                "at_or_below": 0.45588235294117646,
+                "distance_from_nominal": 0.04411764705882354
+              },
+              "0.9": {
+                "below": 0.8029411764705883,
+                "at_or_below": 0.8029411764705883,
+                "distance_from_nominal": 0.09705882352941175
+              }
+            },
+            "boom": {
+              "tp": 63,
+              "fp": 160,
+              "fn": 24,
+              "tn": 93,
+              "precision": 0.2825112107623318,
+              "recall": 0.7241379310344828,
+              "false_positive_rate": 0.6324110671936759,
+              "alert_rate": 0.6558823529411765,
+              "f1": 0.4064516129032258
+            },
+            "bust": {
+              "tp": 47,
+              "fp": 270,
+              "fn": 2,
+              "tn": 21,
+              "precision": 0.14826498422712933,
+              "recall": 0.9591836734693877,
+              "false_positive_rate": 0.9278350515463918,
+              "alert_rate": 0.9323529411764706,
+              "f1": 0.2568306010928962
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.19894195256301936,
+              "bust_brier": 0.11993985241948633,
+              "mean_boom_probability": 0.16201239543890844,
+              "actual_boom_rate": 0.25588235294117645,
+              "mean_bust_probability": 0.1668727293919297,
+              "actual_bust_rate": 0.14411764705882352
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.09587895294142593,
+            "week_blocks": 17,
+            "repeats": 2000,
+            "ci95": [
+              -0.21605763273205036,
+              0.01675185616196507
+            ],
+            "fraction_delta_below_zero": 0.956
+          }
+        }
+      }
+    },
+    {
+      "season": 2021,
+      "train_seasons": [
+        2018,
+        2019,
+        2020
+      ],
+      "reference_training_digest": "abd593df8a6476e267e5760545339c8eb567bc842084e7abf4163db640a622d5",
+      "candidate_training_digest": "4970b3830153d3d0579b7582f832e97962578a9cab4f5c57b456a6571f6743ff",
+      "union_training_digest": "5275c1560dcf1c8a701aebe2eca63a2f81bc679102ac37b3f56cbf366f99c731",
+      "input_quality": {
+        "rows": 655,
+        "expected_features": 30,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 16,
+          "explosive_plays_avg": 16,
+          "team_pass_rate_avg": 16,
+          "offense_pct_avg": 16,
+          "recent4_Fpts_avg": 16,
+          "recent4_attempts_avg": 16,
+          "recent4_passing_yards_avg": 16,
+          "recent4_carries_avg": 16,
+          "recent4_rushing_yards_avg": 16
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "cohorts": {
+        "all_observed": {
+          "reference": {
+            "rows": 655,
+            "mae": 6.1180833062141655,
+            "rmse": 7.672473204280721,
+            "mean_bias": 0.08666758720701102,
+            "pinball": {
+              "0.1": 1.1792029647237305,
+              "0.5": 3.0590416531070828,
+              "0.9": 1.496972349130276
+            },
+            "coverage_p10_p90": 0.7572519083969466,
+            "mean_width": 19.433929333636645,
+            "interval_score_80": 26.761753138540065,
+            "weighted_interval_score": 3.8234779779740595,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.1282442748091603,
+                "at_or_below": 0.13435114503816795,
+                "distance_from_nominal": 0.028244274809160308
+              },
+              "0.5": {
+                "below": 0.5419847328244275,
+                "at_or_below": 0.5419847328244275,
+                "distance_from_nominal": 0.041984732824427495
+              },
+              "0.9": {
+                "below": 0.8854961832061069,
+                "at_or_below": 0.8854961832061069,
+                "distance_from_nominal": 0.01450381679389312
+              }
+            },
+            "boom": {
+              "tp": 59,
+              "fp": 253,
+              "fn": 21,
+              "tn": 322,
+              "precision": 0.1891025641025641,
+              "recall": 0.7375,
+              "false_positive_rate": 0.44,
+              "alert_rate": 0.4763358778625954,
+              "f1": 0.3010204081632653
+            },
+            "bust": {
+              "tp": 227,
+              "fp": 412,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.35524256651017216,
+              "recall": 0.9869565217391304,
+              "false_positive_rate": 0.9694117647058823,
+              "alert_rate": 0.9755725190839695,
+              "f1": 0.522439585730725
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10083127292724423,
+              "bust_brier": 0.17328213508697332,
+              "mean_boom_probability": 0.11334480360228323,
+              "actual_boom_rate": 0.12213740458015267,
+              "mean_bust_probability": 0.3200639970661483,
+              "actual_bust_rate": 0.3511450381679389
+            }
+          },
+          "candidate": {
+            "rows": 655,
+            "mae": 6.035931015394734,
+            "rmse": 7.585182450566637,
+            "mean_bias": 0.24103988318083047,
+            "pinball": {
+              "0.1": 1.1732257462532933,
+              "0.5": 3.017965507697367,
+              "0.9": 1.496972349130276
+            },
+            "coverage_p10_p90": 0.751145038167939,
+            "mean_width": 19.435866885081854,
+            "interval_score_80": 26.7019809538357,
+            "weighted_interval_score": 3.7921090687206243,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.13435114503816795,
+                "at_or_below": 0.14045801526717558,
+                "distance_from_nominal": 0.03435114503816794
+              },
+              "0.5": {
+                "below": 0.5435114503816794,
+                "at_or_below": 0.5435114503816794,
+                "distance_from_nominal": 0.04351145038167936
+              },
+              "0.9": {
+                "below": 0.8854961832061069,
+                "at_or_below": 0.8854961832061069,
+                "distance_from_nominal": 0.01450381679389312
+              }
+            },
+            "boom": {
+              "tp": 60,
+              "fp": 253,
+              "fn": 20,
+              "tn": 322,
+              "precision": 0.19169329073482427,
+              "recall": 0.75,
+              "false_positive_rate": 0.44,
+              "alert_rate": 0.4778625954198473,
+              "f1": 0.3053435114503817
+            },
+            "bust": {
+              "tp": 227,
+              "fp": 412,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.35524256651017216,
+              "recall": 0.9869565217391304,
+              "false_positive_rate": 0.9694117647058823,
+              "alert_rate": 0.9755725190839695,
+              "f1": 0.522439585730725
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10143007826256624,
+              "bust_brier": 0.1712229421928441,
+              "mean_boom_probability": 0.1174012217366752,
+              "actual_boom_rate": 0.12213740458015267,
+              "mean_bust_probability": 0.3198817833338206,
+              "actual_bust_rate": 0.3511450381679389
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.08215229081943255,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.2150942198273788,
+              0.041939335256085196
+            ],
+            "fraction_delta_below_zero": 0.904
+          }
+        },
+        "actionable": {
+          "reference": {
+            "rows": 432,
+            "mae": 6.154218519217699,
+            "rmse": 7.643633727403191,
+            "mean_bias": 0.6334225867745137,
+            "pinball": {
+              "0.1": 1.260082301264167,
+              "0.5": 3.0771092596088496,
+              "0.9": 1.450764620182781
+            },
+            "coverage_p10_p90": 0.7916666666666666,
+            "mean_width": 19.704838729652927,
+            "interval_score_80": 27.108469214469483,
+            "weighted_interval_score": 3.8586374540371984,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.09490740740740741,
+                "at_or_below": 0.09490740740740741,
+                "distance_from_nominal": 0.005092592592592593
+              },
+              "0.5": {
+                "below": 0.5439814814814815,
+                "at_or_below": 0.5439814814814815,
+                "distance_from_nominal": 0.04398148148148151
+              },
+              "0.9": {
+                "below": 0.8865740740740741,
+                "at_or_below": 0.8865740740740741,
+                "distance_from_nominal": 0.013425925925925952
+              }
+            },
+            "boom": {
+              "tp": 56,
+              "fp": 242,
+              "fn": 13,
+              "tn": 121,
+              "precision": 0.18791946308724833,
+              "recall": 0.8115942028985508,
+              "false_positive_rate": 0.6666666666666666,
+              "alert_rate": 0.6898148148148148,
+              "f1": 0.30517711171662126
+            },
+            "bust": {
+              "tp": 90,
+              "fp": 326,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.21634615384615385,
+              "recall": 0.967741935483871,
+              "false_positive_rate": 0.9616519174041298,
+              "alert_rate": 0.9629629629629629,
+              "f1": 0.35363457760314343
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1297343471421797,
+              "bust_brier": 0.16069914179135067,
+              "mean_boom_probability": 0.1482466374269346,
+              "actual_boom_rate": 0.1597222222222222,
+              "mean_bust_probability": 0.19844807584824697,
+              "actual_bust_rate": 0.2152777777777778
+            }
+          },
+          "candidate": {
+            "rows": 432,
+            "mae": 6.111923917926411,
+            "rmse": 7.61648412761069,
+            "mean_bias": 0.69065855614691,
+            "pinball": {
+              "0.1": 1.260082301264167,
+              "0.5": 3.0559619589632057,
+              "0.9": 1.450764620182781
+            },
+            "coverage_p10_p90": 0.7916666666666666,
+            "mean_width": 19.704838729652927,
+            "interval_score_80": 27.108469214469483,
+            "weighted_interval_score": 3.84453925360677,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.09490740740740741,
+                "at_or_below": 0.09490740740740741,
+                "distance_from_nominal": 0.005092592592592593
+              },
+              "0.5": {
+                "below": 0.5439814814814815,
+                "at_or_below": 0.5439814814814815,
+                "distance_from_nominal": 0.04398148148148151
+              },
+              "0.9": {
+                "below": 0.8865740740740741,
+                "at_or_below": 0.8865740740740741,
+                "distance_from_nominal": 0.013425925925925952
+              }
+            },
+            "boom": {
+              "tp": 57,
+              "fp": 242,
+              "fn": 12,
+              "tn": 121,
+              "precision": 0.19063545150501673,
+              "recall": 0.8260869565217391,
+              "false_positive_rate": 0.6666666666666666,
+              "alert_rate": 0.6921296296296297,
+              "f1": 0.30978260869565216
+            },
+            "bust": {
+              "tp": 90,
+              "fp": 326,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.21634615384615385,
+              "recall": 0.967741935483871,
+              "false_positive_rate": 0.9616519174041298,
+              "alert_rate": 0.9629629629629629,
+              "f1": 0.35363457760314343
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.13064558919653685,
+              "bust_brier": 0.15844570595432672,
+              "mean_boom_probability": 0.15483519525986883,
+              "actual_boom_rate": 0.1597222222222222,
+              "mean_bust_probability": 0.2037448205654675,
+              "actual_bust_rate": 0.2152777777777778
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.04229460129128675,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.16767217925791808,
+              0.08000676780790843
+            ],
+            "fraction_delta_below_zero": 0.7455
+          }
+        },
+        "industry_sized": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.149097443827241,
+            "rmse": 7.671181071009681,
+            "mean_bias": 0.39149974610535776,
+            "pinball": {
+              "0.1": 1.2806440860494326,
+              "0.5": 3.0745487219136205,
+              "0.9": 1.441096105977069
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.733388383105567,
+            "interval_score_80": 27.21740192026501,
+            "weighted_interval_score": 3.8641926092934145,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.5361111111111111,
+                "at_or_below": 0.5361111111111111,
+                "distance_from_nominal": 0.036111111111111094
+              },
+              "0.9": {
+                "below": 0.8777777777777778,
+                "at_or_below": 0.8777777777777778,
+                "distance_from_nominal": 0.022222222222222254
+              }
+            },
+            "boom": {
+              "tp": 53,
+              "fp": 216,
+              "fn": 10,
+              "tn": 81,
+              "precision": 0.1970260223048327,
+              "recall": 0.8412698412698413,
+              "false_positive_rate": 0.7272727272727273,
+              "alert_rate": 0.7472222222222222,
+              "f1": 0.3192771084337349
+            },
+            "bust": {
+              "tp": 61,
+              "fp": 283,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.17732558139534885,
+              "recall": 0.953125,
+              "false_positive_rate": 0.956081081081081,
+              "alert_rate": 0.9555555555555556,
+              "f1": 0.29901960784313725
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14104263577229975,
+              "bust_brier": 0.14331411722287093,
+              "mean_boom_probability": 0.16076617208242033,
+              "actual_boom_rate": 0.175,
+              "mean_bust_probability": 0.1789283348776302,
+              "actual_bust_rate": 0.17777777777777778
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 6.114460104705054,
+            "rmse": 7.651860223283331,
+            "mean_bias": 0.43127619741089784,
+            "pinball": {
+              "0.1": 1.2806440860494326,
+              "0.5": 3.057230052352527,
+              "0.9": 1.441096105977069
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.733388383105567,
+            "interval_score_80": 27.21740192026501,
+            "weighted_interval_score": 3.85264682958602,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.525,
+                "at_or_below": 0.525,
+                "distance_from_nominal": 0.025000000000000022
+              },
+              "0.9": {
+                "below": 0.8777777777777778,
+                "at_or_below": 0.8777777777777778,
+                "distance_from_nominal": 0.022222222222222254
+              }
+            },
+            "boom": {
+              "tp": 54,
+              "fp": 216,
+              "fn": 9,
+              "tn": 81,
+              "precision": 0.2,
+              "recall": 0.8571428571428571,
+              "false_positive_rate": 0.7272727272727273,
+              "alert_rate": 0.75,
+              "f1": 0.32432432432432434
+            },
+            "bust": {
+              "tp": 61,
+              "fp": 283,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.17732558139534885,
+              "recall": 0.953125,
+              "false_positive_rate": 0.956081081081081,
+              "alert_rate": 0.9555555555555556,
+              "f1": 0.29901960784313725
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1422533446987109,
+              "bust_brier": 0.14180727687339434,
+              "mean_boom_probability": 0.16843384185000976,
+              "actual_boom_rate": 0.175,
+              "mean_bust_probability": 0.1850208887170055,
+              "actual_bust_rate": 0.17777777777777778
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.03463733912218683,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.17982265680134,
+              0.10076375944697392
+            ],
+            "fraction_delta_below_zero": 0.6775
+          }
+        },
+        "industry_sized_qb": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.149097443827241,
+            "rmse": 7.671181071009681,
+            "mean_bias": 0.39149974610535776,
+            "pinball": {
+              "0.1": 1.2806440860494326,
+              "0.5": 3.0745487219136205,
+              "0.9": 1.441096105977069
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.733388383105567,
+            "interval_score_80": 27.21740192026501,
+            "weighted_interval_score": 3.8641926092934145,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.5361111111111111,
+                "at_or_below": 0.5361111111111111,
+                "distance_from_nominal": 0.036111111111111094
+              },
+              "0.9": {
+                "below": 0.8777777777777778,
+                "at_or_below": 0.8777777777777778,
+                "distance_from_nominal": 0.022222222222222254
+              }
+            },
+            "boom": {
+              "tp": 53,
+              "fp": 216,
+              "fn": 10,
+              "tn": 81,
+              "precision": 0.1970260223048327,
+              "recall": 0.8412698412698413,
+              "false_positive_rate": 0.7272727272727273,
+              "alert_rate": 0.7472222222222222,
+              "f1": 0.3192771084337349
+            },
+            "bust": {
+              "tp": 61,
+              "fp": 283,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.17732558139534885,
+              "recall": 0.953125,
+              "false_positive_rate": 0.956081081081081,
+              "alert_rate": 0.9555555555555556,
+              "f1": 0.29901960784313725
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14104263577229975,
+              "bust_brier": 0.14331411722287093,
+              "mean_boom_probability": 0.16076617208242033,
+              "actual_boom_rate": 0.175,
+              "mean_bust_probability": 0.1789283348776302,
+              "actual_bust_rate": 0.17777777777777778
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 6.114460104705054,
+            "rmse": 7.651860223283331,
+            "mean_bias": 0.43127619741089784,
+            "pinball": {
+              "0.1": 1.2806440860494326,
+              "0.5": 3.057230052352527,
+              "0.9": 1.441096105977069
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.733388383105567,
+            "interval_score_80": 27.21740192026501,
+            "weighted_interval_score": 3.85264682958602,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.525,
+                "at_or_below": 0.525,
+                "distance_from_nominal": 0.025000000000000022
+              },
+              "0.9": {
+                "below": 0.8777777777777778,
+                "at_or_below": 0.8777777777777778,
+                "distance_from_nominal": 0.022222222222222254
+              }
+            },
+            "boom": {
+              "tp": 54,
+              "fp": 216,
+              "fn": 9,
+              "tn": 81,
+              "precision": 0.2,
+              "recall": 0.8571428571428571,
+              "false_positive_rate": 0.7272727272727273,
+              "alert_rate": 0.75,
+              "f1": 0.32432432432432434
+            },
+            "bust": {
+              "tp": 61,
+              "fp": 283,
+              "fn": 3,
+              "tn": 13,
+              "precision": 0.17732558139534885,
+              "recall": 0.953125,
+              "false_positive_rate": 0.956081081081081,
+              "alert_rate": 0.9555555555555556,
+              "f1": 0.29901960784313725
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1422533446987109,
+              "bust_brier": 0.14180727687339434,
+              "mean_boom_probability": 0.16843384185000976,
+              "actual_boom_rate": 0.175,
+              "mean_bust_probability": 0.1850208887170055,
+              "actual_bust_rate": 0.17777777777777778
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.03463733912218683,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.17982265680134,
+              0.10076375944697392
+            ],
+            "fraction_delta_below_zero": 0.6775
+          }
+        }
+      }
+    },
+    {
+      "season": 2022,
+      "train_seasons": [
+        2018,
+        2019,
+        2020,
+        2021
+      ],
+      "reference_training_digest": "b4560be22f9f26266af4852709b11050eebd1ad9135503377dd387616d7e1448",
+      "candidate_training_digest": "fefce6577c3bec6c07979c1d8db09d7e90921ad5f612675f811fda793314263c",
+      "union_training_digest": "cf601a13b281923410a15648082386aa42cf67aa8ce8557c4a33b880be4be5b5",
+      "input_quality": {
+        "rows": 633,
+        "expected_features": 30,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 10,
+          "explosive_plays_avg": 10,
+          "team_pass_rate_avg": 10,
+          "offense_pct_avg": 10,
+          "recent4_Fpts_avg": 10,
+          "recent4_attempts_avg": 10,
+          "recent4_passing_yards_avg": 10,
+          "recent4_carries_avg": 10,
+          "recent4_rushing_yards_avg": 10
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "cohorts": {
+        "all_observed": {
+          "reference": {
+            "rows": 633,
+            "mae": 5.704902110446055,
+            "rmse": 7.213716784439021,
+            "mean_bias": 0.08697826086985067,
+            "pinball": {
+              "0.1": 1.1173733769802041,
+              "0.5": 2.8524510552230273,
+              "0.9": 1.4084172854109323
+            },
+            "coverage_p10_p90": 0.7962085308056872,
+            "mean_width": 19.13939609353201,
+            "interval_score_80": 25.257906623911367,
+            "weighted_interval_score": 3.5854944784094425,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.11532385466034756,
+                "at_or_below": 0.12164296998420221,
+                "distance_from_nominal": 0.015323854660347552
+              },
+              "0.5": {
+                "below": 0.5371248025276462,
+                "at_or_below": 0.5371248025276462,
+                "distance_from_nominal": 0.03712480252764616
+              },
+              "0.9": {
+                "below": 0.9115323854660348,
+                "at_or_below": 0.9115323854660348,
+                "distance_from_nominal": 0.011532385466034745
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 206,
+              "fn": 18,
+              "tn": 364,
+              "precision": 0.17928286852589642,
+              "recall": 0.7142857142857143,
+              "false_positive_rate": 0.36140350877192984,
+              "alert_rate": 0.39652448657187994,
+              "f1": 0.28662420382165604
+            },
+            "bust": {
+              "tp": 214,
+              "fp": 406,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.34516129032258064,
+              "recall": 1.0,
+              "false_positive_rate": 0.9689737470167065,
+              "alert_rate": 0.9794628751974723,
+              "f1": 0.513189448441247
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.07903539036527274,
+              "bust_brier": 0.17173480191786283,
+              "mean_boom_probability": 0.10907071006898901,
+              "actual_boom_rate": 0.0995260663507109,
+              "mean_bust_probability": 0.3259033596209447,
+              "actual_bust_rate": 0.3380726698262243
+            }
+          },
+          "candidate": {
+            "rows": 633,
+            "mae": 5.606733544603896,
+            "rmse": 7.100425730415441,
+            "mean_bias": 0.15466352253283944,
+            "pinball": {
+              "0.1": 1.1173733769802041,
+              "0.5": 2.803366772301948,
+              "0.9": 1.4084172854109323
+            },
+            "coverage_p10_p90": 0.7962085308056872,
+            "mean_width": 19.13939609353201,
+            "interval_score_80": 25.257906623911367,
+            "weighted_interval_score": 3.5527716231287236,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.11532385466034756,
+                "at_or_below": 0.12164296998420221,
+                "distance_from_nominal": 0.015323854660347552
+              },
+              "0.5": {
+                "below": 0.5434439178515008,
+                "at_or_below": 0.5434439178515008,
+                "distance_from_nominal": 0.04344391785150081
+              },
+              "0.9": {
+                "below": 0.9115323854660348,
+                "at_or_below": 0.9115323854660348,
+                "distance_from_nominal": 0.011532385466034745
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 204,
+              "fn": 18,
+              "tn": 366,
+              "precision": 0.18072289156626506,
+              "recall": 0.7142857142857143,
+              "false_positive_rate": 0.35789473684210527,
+              "alert_rate": 0.3933649289099526,
+              "f1": 0.28846153846153844
+            },
+            "bust": {
+              "tp": 214,
+              "fp": 406,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.34516129032258064,
+              "recall": 1.0,
+              "false_positive_rate": 0.9689737470167065,
+              "alert_rate": 0.9794628751974723,
+              "f1": 0.513189448441247
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.07907231362553464,
+              "bust_brier": 0.1713638292448073,
+              "mean_boom_probability": 0.10735254715394421,
+              "actual_boom_rate": 0.0995260663507109,
+              "mean_bust_probability": 0.32398356693947367,
+              "actual_bust_rate": 0.3380726698262243
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.0981685658421577,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.19547366225492796,
+              -0.010646122376363256
+            ],
+            "fraction_delta_below_zero": 0.9895
+          }
+        },
+        "actionable": {
+          "reference": {
+            "rows": 432,
+            "mae": 6.028587724292583,
+            "rmse": 7.529909655871954,
+            "mean_bias": 0.3903737390721026,
+            "pinball": {
+              "0.1": 1.2058107077919962,
+              "0.5": 3.0142938621462916,
+              "0.9": 1.4271129176977657
+            },
+            "coverage_p10_p90": 0.8055555555555556,
+            "mean_width": 19.613660181819963,
+            "interval_score_80": 26.329236254897623,
+            "weighted_interval_score": 3.7648116584240365,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.09027777777777778,
+                "at_or_below": 0.09027777777777778,
+                "distance_from_nominal": 0.00972222222222223
+              },
+              "0.5": {
+                "below": 0.5486111111111112,
+                "at_or_below": 0.5486111111111112,
+                "distance_from_nominal": 0.04861111111111116
+              },
+              "0.9": {
+                "below": 0.8958333333333334,
+                "at_or_below": 0.8958333333333334,
+                "distance_from_nominal": 0.004166666666666652
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 201,
+              "fn": 15,
+              "tn": 171,
+              "precision": 0.18292682926829268,
+              "recall": 0.75,
+              "false_positive_rate": 0.5403225806451613,
+              "alert_rate": 0.5694444444444444,
+              "f1": 0.29411764705882354
+            },
+            "bust": {
+              "tp": 96,
+              "fp": 323,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.22911694510739858,
+              "recall": 1.0,
+              "false_positive_rate": 0.9613095238095238,
+              "alert_rate": 0.9699074074074074,
+              "f1": 0.37281553398058254
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10808827545980065,
+              "bust_brier": 0.16335885067109845,
+              "mean_boom_probability": 0.14368221856776375,
+              "actual_boom_rate": 0.1388888888888889,
+              "mean_bust_probability": 0.21448344291062116,
+              "actual_bust_rate": 0.2222222222222222
+            }
+          },
+          "candidate": {
+            "rows": 432,
+            "mae": 5.8553202300787675,
+            "rmse": 7.388147858772401,
+            "mean_bias": 0.13066762917987187,
+            "pinball": {
+              "0.1": 1.2058107077919962,
+              "0.5": 2.9276601150393837,
+              "0.9": 1.4271129176977657
+            },
+            "coverage_p10_p90": 0.8055555555555556,
+            "mean_width": 19.613660181819963,
+            "interval_score_80": 26.329236254897623,
+            "weighted_interval_score": 3.7070558270194294,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.09027777777777778,
+                "at_or_below": 0.09027777777777778,
+                "distance_from_nominal": 0.00972222222222223
+              },
+              "0.5": {
+                "below": 0.5324074074074074,
+                "at_or_below": 0.5324074074074074,
+                "distance_from_nominal": 0.03240740740740744
+              },
+              "0.9": {
+                "below": 0.8958333333333334,
+                "at_or_below": 0.8958333333333334,
+                "distance_from_nominal": 0.004166666666666652
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 199,
+              "fn": 15,
+              "tn": 173,
+              "precision": 0.18442622950819673,
+              "recall": 0.75,
+              "false_positive_rate": 0.5349462365591398,
+              "alert_rate": 0.5648148148148148,
+              "f1": 0.29605263157894735
+            },
+            "bust": {
+              "tp": 96,
+              "fp": 323,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.22911694510739858,
+              "recall": 1.0,
+              "false_positive_rate": 0.9613095238095238,
+              "alert_rate": 0.9699074074074074,
+              "f1": 0.37281553398058254
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10815128234745047,
+              "bust_brier": 0.15968902125325996,
+              "mean_boom_probability": 0.14203343197151214,
+              "actual_boom_rate": 0.1388888888888889,
+              "mean_bust_probability": 0.22060175610485627,
+              "actual_bust_rate": 0.2222222222222222
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.17326749421381715,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.25339873800123836,
+              -0.0956374358674515
+            ],
+            "fraction_delta_below_zero": 1.0
+          }
+        },
+        "industry_sized": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.000916562853718,
+            "rmse": 7.508471518701675,
+            "mean_bias": 0.3535655492445934,
+            "pinball": {
+              "0.1": 1.2164233033820353,
+              "0.5": 3.000458281426859,
+              "0.9": 1.4311649155502162
+            },
+            "coverage_p10_p90": 0.8111111111111111,
+            "mean_width": 19.795780005992288,
+            "interval_score_80": 26.475882189322515,
+            "weighted_interval_score": 3.7653643335727405,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.5472222222222223,
+                "at_or_below": 0.5472222222222223,
+                "distance_from_nominal": 0.047222222222222276
+              },
+              "0.9": {
+                "below": 0.8944444444444445,
+                "at_or_below": 0.8944444444444445,
+                "distance_from_nominal": 0.005555555555555536
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 196,
+              "fn": 11,
+              "tn": 108,
+              "precision": 0.18672199170124482,
+              "recall": 0.8035714285714286,
+              "false_positive_rate": 0.6447368421052632,
+              "alert_rate": 0.6694444444444444,
+              "f1": 0.30303030303030304
+            },
+            "bust": {
+              "tp": 67,
+              "fp": 280,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.1930835734870317,
+              "recall": 1.0,
+              "false_positive_rate": 0.9556313993174061,
+              "alert_rate": 0.9638888888888889,
+              "f1": 0.32367149758454106
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11885329944182127,
+              "bust_brier": 0.14675331411244721,
+              "mean_boom_probability": 0.16171429067171791,
+              "actual_boom_rate": 0.15555555555555556,
+              "mean_bust_probability": 0.18929071268480277,
+              "actual_bust_rate": 0.18611111111111112
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 5.8316558656992585,
+            "rmse": 7.397476666543696,
+            "mean_bias": 0.05781191445306762,
+            "pinball": {
+              "0.1": 1.2164233033820353,
+              "0.5": 2.9158279328496293,
+              "0.9": 1.4311649155502162
+            },
+            "coverage_p10_p90": 0.8111111111111111,
+            "mean_width": 19.795780005992288,
+            "interval_score_80": 26.475882189322515,
+            "weighted_interval_score": 3.708944101187921,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.5277777777777778,
+                "at_or_below": 0.5277777777777778,
+                "distance_from_nominal": 0.02777777777777779
+              },
+              "0.9": {
+                "below": 0.8944444444444445,
+                "at_or_below": 0.8944444444444445,
+                "distance_from_nominal": 0.005555555555555536
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 194,
+              "fn": 11,
+              "tn": 110,
+              "precision": 0.18828451882845187,
+              "recall": 0.8035714285714286,
+              "false_positive_rate": 0.6381578947368421,
+              "alert_rate": 0.6638888888888889,
+              "f1": 0.3050847457627119
+            },
+            "bust": {
+              "tp": 67,
+              "fp": 280,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.1930835734870317,
+              "recall": 1.0,
+              "false_positive_rate": 0.9556313993174061,
+              "alert_rate": 0.9638888888888889,
+              "f1": 0.32367149758454106
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11887495533030325,
+              "bust_brier": 0.14406982848030106,
+              "mean_boom_probability": 0.1598219208947953,
+              "actual_boom_rate": 0.15555555555555556,
+              "mean_bust_probability": 0.19501532067658656,
+              "actual_bust_rate": 0.18611111111111112
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.16926069715445952,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.25937945002860097,
+              -0.0837918072744286
+            ],
+            "fraction_delta_below_zero": 1.0
+          }
+        },
+        "industry_sized_qb": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.000916562853718,
+            "rmse": 7.508471518701675,
+            "mean_bias": 0.3535655492445934,
+            "pinball": {
+              "0.1": 1.2164233033820353,
+              "0.5": 3.000458281426859,
+              "0.9": 1.4311649155502162
+            },
+            "coverage_p10_p90": 0.8111111111111111,
+            "mean_width": 19.795780005992288,
+            "interval_score_80": 26.475882189322515,
+            "weighted_interval_score": 3.7653643335727405,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.5472222222222223,
+                "at_or_below": 0.5472222222222223,
+                "distance_from_nominal": 0.047222222222222276
+              },
+              "0.9": {
+                "below": 0.8944444444444445,
+                "at_or_below": 0.8944444444444445,
+                "distance_from_nominal": 0.005555555555555536
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 196,
+              "fn": 11,
+              "tn": 108,
+              "precision": 0.18672199170124482,
+              "recall": 0.8035714285714286,
+              "false_positive_rate": 0.6447368421052632,
+              "alert_rate": 0.6694444444444444,
+              "f1": 0.30303030303030304
+            },
+            "bust": {
+              "tp": 67,
+              "fp": 280,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.1930835734870317,
+              "recall": 1.0,
+              "false_positive_rate": 0.9556313993174061,
+              "alert_rate": 0.9638888888888889,
+              "f1": 0.32367149758454106
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11885329944182127,
+              "bust_brier": 0.14675331411244721,
+              "mean_boom_probability": 0.16171429067171791,
+              "actual_boom_rate": 0.15555555555555556,
+              "mean_bust_probability": 0.18929071268480277,
+              "actual_bust_rate": 0.18611111111111112
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 5.8316558656992585,
+            "rmse": 7.397476666543696,
+            "mean_bias": 0.05781191445306762,
+            "pinball": {
+              "0.1": 1.2164233033820353,
+              "0.5": 2.9158279328496293,
+              "0.9": 1.4311649155502162
+            },
+            "coverage_p10_p90": 0.8111111111111111,
+            "mean_width": 19.795780005992288,
+            "interval_score_80": 26.475882189322515,
+            "weighted_interval_score": 3.708944101187921,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.08333333333333333,
+                "at_or_below": 0.08333333333333333,
+                "distance_from_nominal": 0.016666666666666677
+              },
+              "0.5": {
+                "below": 0.5277777777777778,
+                "at_or_below": 0.5277777777777778,
+                "distance_from_nominal": 0.02777777777777779
+              },
+              "0.9": {
+                "below": 0.8944444444444445,
+                "at_or_below": 0.8944444444444445,
+                "distance_from_nominal": 0.005555555555555536
+              }
+            },
+            "boom": {
+              "tp": 45,
+              "fp": 194,
+              "fn": 11,
+              "tn": 110,
+              "precision": 0.18828451882845187,
+              "recall": 0.8035714285714286,
+              "false_positive_rate": 0.6381578947368421,
+              "alert_rate": 0.6638888888888889,
+              "f1": 0.3050847457627119
+            },
+            "bust": {
+              "tp": 67,
+              "fp": 280,
+              "fn": 0,
+              "tn": 13,
+              "precision": 0.1930835734870317,
+              "recall": 1.0,
+              "false_positive_rate": 0.9556313993174061,
+              "alert_rate": 0.9638888888888889,
+              "f1": 0.32367149758454106
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11887495533030325,
+              "bust_brier": 0.14406982848030106,
+              "mean_boom_probability": 0.1598219208947953,
+              "actual_boom_rate": 0.15555555555555556,
+              "mean_bust_probability": 0.19501532067658656,
+              "actual_bust_rate": 0.18611111111111112
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.16926069715445952,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.25937945002860097,
+              -0.0837918072744286
+            ],
+            "fraction_delta_below_zero": 1.0
+          }
+        }
+      }
+    },
+    {
+      "season": 2023,
+      "train_seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ],
+      "reference_training_digest": "45c86712ca4f1a397fc92571da3aeaf4c4a5bbba185a7a11eab01f240147d76d",
+      "candidate_training_digest": "2bab1fe97c6fdf44879b2f254ba6f07963f253f8d0c3394b2a9eb4b8a7fd048e",
+      "union_training_digest": "d25d674ea19cc63a1568d9ae3a531673d4185c096ddbc234821f86683b36f1ee",
+      "input_quality": {
+        "rows": 663,
+        "expected_features": 30,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 12,
+          "explosive_plays_avg": 12,
+          "team_pass_rate_avg": 12,
+          "offense_pct_avg": 12,
+          "recent4_Fpts_avg": 12,
+          "recent4_attempts_avg": 12,
+          "recent4_passing_yards_avg": 12,
+          "recent4_carries_avg": 12,
+          "recent4_rushing_yards_avg": 12
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "cohorts": {
+        "all_observed": {
+          "reference": {
+            "rows": 663,
+            "mae": 5.928080568645065,
+            "rmse": 7.460909779622243,
+            "mean_bias": -0.2531677062489125,
+            "pinball": {
+              "0.1": 1.2097258500835437,
+              "0.5": 2.9640402843225324,
+              "0.9": 1.436063845161053
+            },
+            "coverage_p10_p90": 0.7405731523378583,
+            "mean_width": 18.99403427253974,
+            "interval_score_80": 26.45789695244597,
+            "weighted_interval_score": 3.739886653044753,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.15384615384615385,
+                "at_or_below": 0.16138763197586728,
+                "distance_from_nominal": 0.05384615384615385
+              },
+              "0.5": {
+                "below": 0.5203619909502263,
+                "at_or_below": 0.5203619909502263,
+                "distance_from_nominal": 0.020361990950226283
+              },
+              "0.9": {
+                "below": 0.8944193061840121,
+                "at_or_below": 0.8944193061840121,
+                "distance_from_nominal": 0.005580693815987914
+              }
+            },
+            "boom": {
+              "tp": 43,
+              "fp": 197,
+              "fn": 19,
+              "tn": 404,
+              "precision": 0.17916666666666667,
+              "recall": 0.6935483870967742,
+              "false_positive_rate": 0.3277870216306156,
+              "alert_rate": 0.36199095022624433,
+              "f1": 0.2847682119205298
+            },
+            "bust": {
+              "tp": 254,
+              "fp": 354,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.41776315789473684,
+              "recall": 0.9844961240310077,
+              "false_positive_rate": 0.8740740740740741,
+              "alert_rate": 0.9170437405731523,
+              "f1": 0.5866050808314087
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.08069493532247984,
+              "bust_brier": 0.18882301715212896,
+              "mean_boom_probability": 0.10276357045768743,
+              "actual_boom_rate": 0.09351432880844646,
+              "mean_bust_probability": 0.35703629105680906,
+              "actual_bust_rate": 0.3891402714932127
+            }
+          },
+          "candidate": {
+            "rows": 663,
+            "mae": 5.868599645322128,
+            "rmse": 7.332798296626041,
+            "mean_bias": -0.20825197642265272,
+            "pinball": {
+              "0.1": 1.2011606535663708,
+              "0.5": 2.934299822661064,
+              "0.9": 1.436063845161053
+            },
+            "coverage_p10_p90": 0.7435897435897436,
+            "mean_width": 19.008644972628847,
+            "interval_score_80": 26.372244987274243,
+            "weighted_interval_score": 3.714349547592325,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.15082956259426847,
+                "at_or_below": 0.1583710407239819,
+                "distance_from_nominal": 0.05082956259426846
+              },
+              "0.5": {
+                "below": 0.5113122171945701,
+                "at_or_below": 0.5113122171945701,
+                "distance_from_nominal": 0.011312217194570096
+              },
+              "0.9": {
+                "below": 0.8944193061840121,
+                "at_or_below": 0.8944193061840121,
+                "distance_from_nominal": 0.005580693815987914
+              }
+            },
+            "boom": {
+              "tp": 43,
+              "fp": 198,
+              "fn": 19,
+              "tn": 403,
+              "precision": 0.17842323651452283,
+              "recall": 0.6935483870967742,
+              "false_positive_rate": 0.32945091514143093,
+              "alert_rate": 0.363499245852187,
+              "f1": 0.2838283828382838
+            },
+            "bust": {
+              "tp": 254,
+              "fp": 354,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.41776315789473684,
+              "recall": 0.9844961240310077,
+              "false_positive_rate": 0.8740740740740741,
+              "alert_rate": 0.9170437405731523,
+              "f1": 0.5866050808314087
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.0795518622154426,
+              "bust_brier": 0.18662865921074528,
+              "mean_boom_probability": 0.10080330777454201,
+              "actual_boom_rate": 0.09351432880844646,
+              "mean_bust_probability": 0.35485828039786516,
+              "actual_bust_rate": 0.3891402714932127
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.05948092332293749,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.1904996919956702,
+              0.07811510791173484
+            ],
+            "fraction_delta_below_zero": 0.8045
+          }
+        },
+        "actionable": {
+          "reference": {
+            "rows": 432,
+            "mae": 6.125306500071191,
+            "rmse": 7.679514366781431,
+            "mean_bias": -0.07360764711878531,
+            "pinball": {
+              "0.1": 1.2883391785792369,
+              "0.5": 3.0626532500355954,
+              "0.9": 1.4040300508701238
+            },
+            "coverage_p10_p90": 0.7870370370370371,
+            "mean_width": 19.753196866905267,
+            "interval_score_80": 26.92369229449361,
+            "weighted_interval_score": 3.8366816529899714,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10185185185185185,
+                "at_or_below": 0.10185185185185185,
+                "distance_from_nominal": 0.0018518518518518406
+              },
+              "0.5": {
+                "below": 0.5023148148148148,
+                "at_or_below": 0.5023148148148148,
+                "distance_from_nominal": 0.0023148148148147696
+              },
+              "0.9": {
+                "below": 0.8888888888888888,
+                "at_or_below": 0.8888888888888888,
+                "distance_from_nominal": 0.011111111111111183
+              }
+            },
+            "boom": {
+              "tp": 42,
+              "fp": 191,
+              "fn": 13,
+              "tn": 186,
+              "precision": 0.18025751072961374,
+              "recall": 0.7636363636363637,
+              "false_positive_rate": 0.506631299734748,
+              "alert_rate": 0.5393518518518519,
+              "f1": 0.2916666666666667
+            },
+            "bust": {
+              "tp": 105,
+              "fp": 272,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.27851458885941643,
+              "recall": 0.963302752293578,
+              "false_positive_rate": 0.8421052631578947,
+              "alert_rate": 0.8726851851851852,
+              "f1": 0.43209876543209874
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10810360224780514,
+              "bust_brier": 0.18393089497021567,
+              "mean_boom_probability": 0.14066014994689022,
+              "actual_boom_rate": 0.12731481481481483,
+              "mean_bust_probability": 0.22788649226593455,
+              "actual_bust_rate": 0.2523148148148148
+            }
+          },
+          "candidate": {
+            "rows": 432,
+            "mae": 6.026457451333818,
+            "rmse": 7.508560551601649,
+            "mean_bias": -0.3808217716116213,
+            "pinball": {
+              "0.1": 1.2883391785792369,
+              "0.5": 3.013228725666909,
+              "0.9": 1.4040300508701238
+            },
+            "coverage_p10_p90": 0.7870370370370371,
+            "mean_width": 19.753196866905267,
+            "interval_score_80": 26.92369229449361,
+            "weighted_interval_score": 3.803731970077514,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10185185185185185,
+                "at_or_below": 0.10185185185185185,
+                "distance_from_nominal": 0.0018518518518518406
+              },
+              "0.5": {
+                "below": 0.4791666666666667,
+                "at_or_below": 0.4791666666666667,
+                "distance_from_nominal": 0.020833333333333315
+              },
+              "0.9": {
+                "below": 0.8888888888888888,
+                "at_or_below": 0.8888888888888888,
+                "distance_from_nominal": 0.011111111111111183
+              }
+            },
+            "boom": {
+              "tp": 42,
+              "fp": 192,
+              "fn": 13,
+              "tn": 185,
+              "precision": 0.1794871794871795,
+              "recall": 0.7636363636363637,
+              "false_positive_rate": 0.5092838196286472,
+              "alert_rate": 0.5416666666666666,
+              "f1": 0.2906574394463668
+            },
+            "bust": {
+              "tp": 105,
+              "fp": 272,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.27851458885941643,
+              "recall": 0.963302752293578,
+              "false_positive_rate": 0.8421052631578947,
+              "alert_rate": 0.8726851851851852,
+              "f1": 0.43209876543209874
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10635388671646341,
+              "bust_brier": 0.1810498376445972,
+              "mean_boom_probability": 0.13865098170803328,
+              "actual_boom_rate": 0.12731481481481483,
+              "mean_bust_probability": 0.23586269642485982,
+              "actual_bust_rate": 0.2523148148148148
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.09884904873737274,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.25196487872927814,
+              0.050427934389547235
+            ],
+            "fraction_delta_below_zero": 0.8985
+          }
+        },
+        "industry_sized": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.038012890458178,
+            "rmse": 7.600433151124601,
+            "mean_bias": 0.1736730463139399,
+            "pinball": {
+              "0.1": 1.2679688109198233,
+              "0.5": 3.019006445229089,
+              "0.9": 1.3763336324515343
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.82591522793022,
+            "interval_score_80": 26.44302443371358,
+            "weighted_interval_score": 3.775539259066964,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10277777777777777,
+                "at_or_below": 0.10277777777777777,
+                "distance_from_nominal": 0.002777777777777768
+              },
+              "0.5": {
+                "below": 0.5083333333333333,
+                "at_or_below": 0.5083333333333333,
+                "distance_from_nominal": 0.008333333333333304
+              },
+              "0.9": {
+                "below": 0.8972222222222223,
+                "at_or_below": 0.8972222222222223,
+                "distance_from_nominal": 0.002777777777777768
+              }
+            },
+            "boom": {
+              "tp": 41,
+              "fp": 184,
+              "fn": 7,
+              "tn": 128,
+              "precision": 0.18222222222222223,
+              "recall": 0.8541666666666666,
+              "false_positive_rate": 0.5897435897435898,
+              "alert_rate": 0.625,
+              "f1": 0.30036630036630035
+            },
+            "bust": {
+              "tp": 81,
+              "fp": 224,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.26557377049180325,
+              "recall": 0.9529411764705882,
+              "false_positive_rate": 0.8145454545454546,
+              "alert_rate": 0.8472222222222222,
+              "f1": 0.4153846153846154
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11176716832712105,
+              "bust_brier": 0.17460046586689695,
+              "mean_boom_probability": 0.15650028938734606,
+              "actual_boom_rate": 0.13333333333333333,
+              "mean_bust_probability": 0.20133596884618266,
+              "actual_bust_rate": 0.2361111111111111
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 5.938448658654604,
+            "rmse": 7.463045123667758,
+            "mean_bias": -0.19919885527493378,
+            "pinball": {
+              "0.1": 1.2679688109198233,
+              "0.5": 2.969224329327302,
+              "0.9": 1.3763336324515343
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.82591522793022,
+            "interval_score_80": 26.44302443371358,
+            "weighted_interval_score": 3.7423511817991066,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10277777777777777,
+                "at_or_below": 0.10277777777777777,
+                "distance_from_nominal": 0.002777777777777768
+              },
+              "0.5": {
+                "below": 0.48333333333333334,
+                "at_or_below": 0.48333333333333334,
+                "distance_from_nominal": 0.016666666666666663
+              },
+              "0.9": {
+                "below": 0.8972222222222223,
+                "at_or_below": 0.8972222222222223,
+                "distance_from_nominal": 0.002777777777777768
+              }
+            },
+            "boom": {
+              "tp": 41,
+              "fp": 185,
+              "fn": 7,
+              "tn": 127,
+              "precision": 0.18141592920353983,
+              "recall": 0.8541666666666666,
+              "false_positive_rate": 0.592948717948718,
+              "alert_rate": 0.6277777777777778,
+              "f1": 0.29927007299270075
+            },
+            "bust": {
+              "tp": 81,
+              "fp": 224,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.26557377049180325,
+              "recall": 0.9529411764705882,
+              "false_positive_rate": 0.8145454545454546,
+              "alert_rate": 0.8472222222222222,
+              "f1": 0.4153846153846154
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10957491169790796,
+              "bust_brier": 0.17151012548578698,
+              "mean_boom_probability": 0.15412465547452683,
+              "actual_boom_rate": 0.13333333333333333,
+              "mean_bust_probability": 0.2089085863220532,
+              "actual_bust_rate": 0.2361111111111111
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.09956423180357449,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.2783655769485861,
+              0.06896934707106728
+            ],
+            "fraction_delta_below_zero": 0.8645
+          }
+        },
+        "industry_sized_qb": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.038012890458178,
+            "rmse": 7.600433151124601,
+            "mean_bias": 0.1736730463139399,
+            "pinball": {
+              "0.1": 1.2679688109198233,
+              "0.5": 3.019006445229089,
+              "0.9": 1.3763336324515343
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.82591522793022,
+            "interval_score_80": 26.44302443371358,
+            "weighted_interval_score": 3.775539259066964,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10277777777777777,
+                "at_or_below": 0.10277777777777777,
+                "distance_from_nominal": 0.002777777777777768
+              },
+              "0.5": {
+                "below": 0.5083333333333333,
+                "at_or_below": 0.5083333333333333,
+                "distance_from_nominal": 0.008333333333333304
+              },
+              "0.9": {
+                "below": 0.8972222222222223,
+                "at_or_below": 0.8972222222222223,
+                "distance_from_nominal": 0.002777777777777768
+              }
+            },
+            "boom": {
+              "tp": 41,
+              "fp": 184,
+              "fn": 7,
+              "tn": 128,
+              "precision": 0.18222222222222223,
+              "recall": 0.8541666666666666,
+              "false_positive_rate": 0.5897435897435898,
+              "alert_rate": 0.625,
+              "f1": 0.30036630036630035
+            },
+            "bust": {
+              "tp": 81,
+              "fp": 224,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.26557377049180325,
+              "recall": 0.9529411764705882,
+              "false_positive_rate": 0.8145454545454546,
+              "alert_rate": 0.8472222222222222,
+              "f1": 0.4153846153846154
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.11176716832712105,
+              "bust_brier": 0.17460046586689695,
+              "mean_boom_probability": 0.15650028938734606,
+              "actual_boom_rate": 0.13333333333333333,
+              "mean_bust_probability": 0.20133596884618266,
+              "actual_bust_rate": 0.2361111111111111
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 5.938448658654604,
+            "rmse": 7.463045123667758,
+            "mean_bias": -0.19919885527493378,
+            "pinball": {
+              "0.1": 1.2679688109198233,
+              "0.5": 2.969224329327302,
+              "0.9": 1.3763336324515343
+            },
+            "coverage_p10_p90": 0.7944444444444444,
+            "mean_width": 19.82591522793022,
+            "interval_score_80": 26.44302443371358,
+            "weighted_interval_score": 3.7423511817991066,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10277777777777777,
+                "at_or_below": 0.10277777777777777,
+                "distance_from_nominal": 0.002777777777777768
+              },
+              "0.5": {
+                "below": 0.48333333333333334,
+                "at_or_below": 0.48333333333333334,
+                "distance_from_nominal": 0.016666666666666663
+              },
+              "0.9": {
+                "below": 0.8972222222222223,
+                "at_or_below": 0.8972222222222223,
+                "distance_from_nominal": 0.002777777777777768
+              }
+            },
+            "boom": {
+              "tp": 41,
+              "fp": 185,
+              "fn": 7,
+              "tn": 127,
+              "precision": 0.18141592920353983,
+              "recall": 0.8541666666666666,
+              "false_positive_rate": 0.592948717948718,
+              "alert_rate": 0.6277777777777778,
+              "f1": 0.29927007299270075
+            },
+            "bust": {
+              "tp": 81,
+              "fp": 224,
+              "fn": 4,
+              "tn": 51,
+              "precision": 0.26557377049180325,
+              "recall": 0.9529411764705882,
+              "false_positive_rate": 0.8145454545454546,
+              "alert_rate": 0.8472222222222222,
+              "f1": 0.4153846153846154
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10957491169790796,
+              "bust_brier": 0.17151012548578698,
+              "mean_boom_probability": 0.15412465547452683,
+              "actual_boom_rate": 0.13333333333333333,
+              "mean_bust_probability": 0.2089085863220532,
+              "actual_bust_rate": 0.2361111111111111
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.09956423180357449,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.2783655769485861,
+              0.06896934707106728
+            ],
+            "fraction_delta_below_zero": 0.8645
+          }
+        }
+      }
+    },
+    {
+      "season": 2024,
+      "train_seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "reference_training_digest": "5358a375de9e314534878092e49579dc0d7193f5e2c4e88cbd9c4dd6e9b73bd1",
+      "candidate_training_digest": "e0116ef9283c69b0694cad29af7a8a79f3e8794e887042f29bce7a2c6a784fb1",
+      "union_training_digest": "898761ef4fbf50a2ed282773ad197e0f7747650cc2dff1cc09134205382a0bf3",
+      "input_quality": {
+        "rows": 664,
+        "expected_features": 30,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 11,
+          "explosive_plays_avg": 11,
+          "team_pass_rate_avg": 11,
+          "offense_pct_avg": 11,
+          "recent4_Fpts_avg": 11,
+          "recent4_attempts_avg": 11,
+          "recent4_passing_yards_avg": 11,
+          "recent4_carries_avg": 11,
+          "recent4_rushing_yards_avg": 11
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "cohorts": {
+        "all_observed": {
+          "reference": {
+            "rows": 664,
+            "mae": 6.064161241940753,
+            "rmse": 7.7477043903992415,
+            "mean_bias": -0.428288968741646,
+            "pinball": {
+              "0.1": 1.167410391892619,
+              "0.5": 3.0320806209703766,
+              "0.9": 1.4934250009091883
+            },
+            "coverage_p10_p90": 0.7605421686746988,
+            "mean_width": 19.178433499473993,
+            "interval_score_80": 26.608353928018072,
+            "weighted_interval_score": 3.795277342514789,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.13253012048192772,
+                "at_or_below": 0.14006024096385541,
+                "distance_from_nominal": 0.032530120481927716
+              },
+              "0.5": {
+                "below": 0.5225903614457831,
+                "at_or_below": 0.5225903614457831,
+                "distance_from_nominal": 0.02259036144578308
+              },
+              "0.9": {
+                "below": 0.8930722891566265,
+                "at_or_below": 0.8930722891566265,
+                "distance_from_nominal": 0.0069277108433735135
+              }
+            },
+            "boom": {
+              "tp": 55,
+              "fp": 241,
+              "fn": 24,
+              "tn": 344,
+              "precision": 0.1858108108108108,
+              "recall": 0.6962025316455697,
+              "false_positive_rate": 0.41196581196581195,
+              "alert_rate": 0.4457831325301205,
+              "f1": 0.29333333333333333
+            },
+            "bust": {
+              "tp": 234,
+              "fp": 389,
+              "fn": 4,
+              "tn": 37,
+              "precision": 0.3756019261637239,
+              "recall": 0.9831932773109243,
+              "false_positive_rate": 0.9131455399061033,
+              "alert_rate": 0.9382530120481928,
+              "f1": 0.5435540069686411
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.09923193406936409,
+              "bust_brier": 0.17221594979971913,
+              "mean_boom_probability": 0.11224697461955727,
+              "actual_boom_rate": 0.11897590361445783,
+              "mean_bust_probability": 0.338136422558482,
+              "actual_bust_rate": 0.35843373493975905
+            }
+          },
+          "candidate": {
+            "rows": 664,
+            "mae": 5.992572661870568,
+            "rmse": 7.602043677783725,
+            "mean_bias": -0.23824987976650436,
+            "pinball": {
+              "0.1": 1.1763788051739563,
+              "0.5": 2.996286330935284,
+              "0.9": 1.4934250009091883
+            },
+            "coverage_p10_p90": 0.7560240963855421,
+            "mean_width": 19.149902130176688,
+            "interval_score_80": 26.698038060831447,
+            "weighted_interval_score": 3.777393424678953,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.13704819277108435,
+                "at_or_below": 0.14457831325301204,
+                "distance_from_nominal": 0.03704819277108434
+              },
+              "0.5": {
+                "below": 0.5331325301204819,
+                "at_or_below": 0.5331325301204819,
+                "distance_from_nominal": 0.033132530120481896
+              },
+              "0.9": {
+                "below": 0.8930722891566265,
+                "at_or_below": 0.8930722891566265,
+                "distance_from_nominal": 0.0069277108433735135
+              }
+            },
+            "boom": {
+              "tp": 57,
+              "fp": 242,
+              "fn": 22,
+              "tn": 343,
+              "precision": 0.19063545150501673,
+              "recall": 0.7215189873417721,
+              "false_positive_rate": 0.41367521367521365,
+              "alert_rate": 0.4503012048192771,
+              "f1": 0.30158730158730157
+            },
+            "bust": {
+              "tp": 234,
+              "fp": 388,
+              "fn": 4,
+              "tn": 38,
+              "precision": 0.3762057877813505,
+              "recall": 0.9831932773109243,
+              "false_positive_rate": 0.9107981220657277,
+              "alert_rate": 0.9367469879518072,
+              "f1": 0.5441860465116279
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.09865677738016719,
+              "bust_brier": 0.17158843246136737,
+              "mean_boom_probability": 0.11113134805630902,
+              "actual_boom_rate": 0.11897590361445783,
+              "mean_bust_probability": 0.3344190697615179,
+              "actual_bust_rate": 0.35843373493975905
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.07158858007018477,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.19777842698679027,
+              0.05641193370961683
+            ],
+            "fraction_delta_below_zero": 0.8665
+          }
+        },
+        "actionable": {
+          "reference": {
+            "rows": 432,
+            "mae": 6.38120306770074,
+            "rmse": 7.943294726171215,
+            "mean_bias": -0.14328430325574407,
+            "pinball": {
+              "0.1": 1.3092256219701912,
+              "0.5": 3.19060153385037,
+              "0.9": 1.4959962996399738
+            },
+            "coverage_p10_p90": 0.7777777777777778,
+            "mean_width": 19.7582271339035,
+            "interval_score_80": 28.052219216101655,
+            "weighted_interval_score": 3.997215636973691,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10185185185185185,
+                "at_or_below": 0.10185185185185185,
+                "distance_from_nominal": 0.0018518518518518406
+              },
+              "0.5": {
+                "below": 0.5254629629629629,
+                "at_or_below": 0.5254629629629629,
+                "distance_from_nominal": 0.02546296296296291
+              },
+              "0.9": {
+                "below": 0.8796296296296297,
+                "at_or_below": 0.8796296296296297,
+                "distance_from_nominal": 0.020370370370370372
+              }
+            },
+            "boom": {
+              "tp": 52,
+              "fp": 229,
+              "fn": 17,
+              "tn": 134,
+              "precision": 0.18505338078291814,
+              "recall": 0.7536231884057971,
+              "false_positive_rate": 0.6308539944903582,
+              "alert_rate": 0.6504629629629629,
+              "f1": 0.29714285714285715
+            },
+            "bust": {
+              "tp": 86,
+              "fp": 305,
+              "fn": 4,
+              "tn": 37,
+              "precision": 0.21994884910485935,
+              "recall": 0.9555555555555556,
+              "false_positive_rate": 0.8918128654970761,
+              "alert_rate": 0.9050925925925926,
+              "f1": 0.3575883575883576
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.13124436078982832,
+              "bust_brier": 0.1652039545404126,
+              "mean_boom_probability": 0.15260515808525138,
+              "actual_boom_rate": 0.1597222222222222,
+              "mean_bust_probability": 0.20199245465706017,
+              "actual_bust_rate": 0.20833333333333334
+            }
+          },
+          "candidate": {
+            "rows": 432,
+            "mae": 6.216071425358027,
+            "rmse": 7.76587466561095,
+            "mean_bias": -0.25899362456461966,
+            "pinball": {
+              "0.1": 1.3092256219701912,
+              "0.5": 3.1080357126790137,
+              "0.9": 1.4959962996399738
+            },
+            "coverage_p10_p90": 0.7777777777777778,
+            "mean_width": 19.7582271339035,
+            "interval_score_80": 28.052219216101655,
+            "weighted_interval_score": 3.9421717561927863,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10185185185185185,
+                "at_or_below": 0.10185185185185185,
+                "distance_from_nominal": 0.0018518518518518406
+              },
+              "0.5": {
+                "below": 0.5185185185185185,
+                "at_or_below": 0.5185185185185185,
+                "distance_from_nominal": 0.01851851851851849
+              },
+              "0.9": {
+                "below": 0.8796296296296297,
+                "at_or_below": 0.8796296296296297,
+                "distance_from_nominal": 0.020370370370370372
+              }
+            },
+            "boom": {
+              "tp": 54,
+              "fp": 230,
+              "fn": 15,
+              "tn": 133,
+              "precision": 0.19014084507042253,
+              "recall": 0.782608695652174,
+              "false_positive_rate": 0.6336088154269972,
+              "alert_rate": 0.6574074074074074,
+              "f1": 0.3059490084985836
+            },
+            "bust": {
+              "tp": 86,
+              "fp": 305,
+              "fn": 4,
+              "tn": 37,
+              "precision": 0.21994884910485935,
+              "recall": 0.9555555555555556,
+              "false_positive_rate": 0.8918128654970761,
+              "alert_rate": 0.9050925925925926,
+              "f1": 0.3575883575883576
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.13038788939788723,
+              "bust_brier": 0.1625619003836968,
+              "mean_boom_probability": 0.1515450921345693,
+              "actual_boom_rate": 0.1597222222222222,
+              "mean_bust_probability": 0.2061405535206761,
+              "actual_bust_rate": 0.20833333333333334
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.16513164234271333,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.30618141650445907,
+              -0.02480694193303166
+            ],
+            "fraction_delta_below_zero": 0.994
+          }
+        },
+        "industry_sized": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.439869257575836,
+            "rmse": 8.05586350029858,
+            "mean_bias": 0.11317687086889133,
+            "pinball": {
+              "0.1": 1.3194495621577451,
+              "0.5": 3.219934628787918,
+              "0.9": 1.524665005881007
+            },
+            "coverage_p10_p90": 0.7777777777777778,
+            "mean_width": 19.828146091651412,
+            "interval_score_80": 28.44114568038752,
+            "weighted_interval_score": 4.042699464551114,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10833333333333334,
+                "at_or_below": 0.10833333333333334,
+                "distance_from_nominal": 0.008333333333333331
+              },
+              "0.5": {
+                "below": 0.5361111111111111,
+                "at_or_below": 0.5361111111111111,
+                "distance_from_nominal": 0.036111111111111094
+              },
+              "0.9": {
+                "below": 0.8861111111111111,
+                "at_or_below": 0.8861111111111111,
+                "distance_from_nominal": 0.01388888888888895
+              }
+            },
+            "boom": {
+              "tp": 50,
+              "fp": 211,
+              "fn": 11,
+              "tn": 88,
+              "precision": 0.19157088122605365,
+              "recall": 0.819672131147541,
+              "false_positive_rate": 0.705685618729097,
+              "alert_rate": 0.725,
+              "f1": 0.3105590062111801
+            },
+            "bust": {
+              "tp": 66,
+              "fp": 253,
+              "fn": 4,
+              "tn": 37,
+              "precision": 0.20689655172413793,
+              "recall": 0.9428571428571428,
+              "false_positive_rate": 0.8724137931034482,
+              "alert_rate": 0.8861111111111111,
+              "f1": 0.3393316195372751
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.13690515138960901,
+              "bust_brier": 0.15617646981415723,
+              "mean_boom_probability": 0.1691503221659198,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.17904919130088592,
+              "actual_bust_rate": 0.19444444444444445
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 6.262894536404079,
+            "rmse": 7.864989701612005,
+            "mean_bias": -0.017517589403140417,
+            "pinball": {
+              "0.1": 1.3194495621577451,
+              "0.5": 3.1314472682020393,
+              "0.9": 1.524665005881007
+            },
+            "coverage_p10_p90": 0.7777777777777778,
+            "mean_width": 19.828146091651412,
+            "interval_score_80": 28.44114568038752,
+            "weighted_interval_score": 3.983707890827194,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10833333333333334,
+                "at_or_below": 0.10833333333333334,
+                "distance_from_nominal": 0.008333333333333331
+              },
+              "0.5": {
+                "below": 0.5305555555555556,
+                "at_or_below": 0.5305555555555556,
+                "distance_from_nominal": 0.030555555555555558
+              },
+              "0.9": {
+                "below": 0.8861111111111111,
+                "at_or_below": 0.8861111111111111,
+                "distance_from_nominal": 0.01388888888888895
+              }
+            },
+            "boom": {
+              "tp": 52,
+              "fp": 212,
+              "fn": 9,
+              "tn": 87,
+              "precision": 0.19696969696969696,
+              "recall": 0.8524590163934426,
+              "false_positive_rate": 0.7090301003344481,
+              "alert_rate": 0.7333333333333333,
+              "f1": 0.32
+            },
+            "bust": {
+              "tp": 66,
+              "fp": 253,
+              "fn": 4,
+              "tn": 37,
+              "precision": 0.20689655172413793,
+              "recall": 0.9428571428571428,
+              "false_positive_rate": 0.8724137931034482,
+              "alert_rate": 0.8861111111111111,
+              "f1": 0.3393316195372751
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1360356516244545,
+              "bust_brier": 0.15317886715737636,
+              "mean_boom_probability": 0.16772255849154183,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.18260578019872845,
+              "actual_bust_rate": 0.19444444444444445
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.17697472117175833,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.3203512973435857,
+              -0.023642500112814782
+            ],
+            "fraction_delta_below_zero": 0.993
+          }
+        },
+        "industry_sized_qb": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.439869257575836,
+            "rmse": 8.05586350029858,
+            "mean_bias": 0.11317687086889133,
+            "pinball": {
+              "0.1": 1.3194495621577451,
+              "0.5": 3.219934628787918,
+              "0.9": 1.524665005881007
+            },
+            "coverage_p10_p90": 0.7777777777777778,
+            "mean_width": 19.828146091651412,
+            "interval_score_80": 28.44114568038752,
+            "weighted_interval_score": 4.042699464551114,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10833333333333334,
+                "at_or_below": 0.10833333333333334,
+                "distance_from_nominal": 0.008333333333333331
+              },
+              "0.5": {
+                "below": 0.5361111111111111,
+                "at_or_below": 0.5361111111111111,
+                "distance_from_nominal": 0.036111111111111094
+              },
+              "0.9": {
+                "below": 0.8861111111111111,
+                "at_or_below": 0.8861111111111111,
+                "distance_from_nominal": 0.01388888888888895
+              }
+            },
+            "boom": {
+              "tp": 50,
+              "fp": 211,
+              "fn": 11,
+              "tn": 88,
+              "precision": 0.19157088122605365,
+              "recall": 0.819672131147541,
+              "false_positive_rate": 0.705685618729097,
+              "alert_rate": 0.725,
+              "f1": 0.3105590062111801
+            },
+            "bust": {
+              "tp": 66,
+              "fp": 253,
+              "fn": 4,
+              "tn": 37,
+              "precision": 0.20689655172413793,
+              "recall": 0.9428571428571428,
+              "false_positive_rate": 0.8724137931034482,
+              "alert_rate": 0.8861111111111111,
+              "f1": 0.3393316195372751
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.13690515138960901,
+              "bust_brier": 0.15617646981415723,
+              "mean_boom_probability": 0.1691503221659198,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.17904919130088592,
+              "actual_bust_rate": 0.19444444444444445
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 6.262894536404079,
+            "rmse": 7.864989701612005,
+            "mean_bias": -0.017517589403140417,
+            "pinball": {
+              "0.1": 1.3194495621577451,
+              "0.5": 3.1314472682020393,
+              "0.9": 1.524665005881007
+            },
+            "coverage_p10_p90": 0.7777777777777778,
+            "mean_width": 19.828146091651412,
+            "interval_score_80": 28.44114568038752,
+            "weighted_interval_score": 3.983707890827194,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.10833333333333334,
+                "at_or_below": 0.10833333333333334,
+                "distance_from_nominal": 0.008333333333333331
+              },
+              "0.5": {
+                "below": 0.5305555555555556,
+                "at_or_below": 0.5305555555555556,
+                "distance_from_nominal": 0.030555555555555558
+              },
+              "0.9": {
+                "below": 0.8861111111111111,
+                "at_or_below": 0.8861111111111111,
+                "distance_from_nominal": 0.01388888888888895
+              }
+            },
+            "boom": {
+              "tp": 52,
+              "fp": 212,
+              "fn": 9,
+              "tn": 87,
+              "precision": 0.19696969696969696,
+              "recall": 0.8524590163934426,
+              "false_positive_rate": 0.7090301003344481,
+              "alert_rate": 0.7333333333333333,
+              "f1": 0.32
+            },
+            "bust": {
+              "tp": 66,
+              "fp": 253,
+              "fn": 4,
+              "tn": 37,
+              "precision": 0.20689655172413793,
+              "recall": 0.9428571428571428,
+              "false_positive_rate": 0.8724137931034482,
+              "alert_rate": 0.8861111111111111,
+              "f1": 0.3393316195372751
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1360356516244545,
+              "bust_brier": 0.15317886715737636,
+              "mean_boom_probability": 0.16772255849154183,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.18260578019872845,
+              "actual_bust_rate": 0.19444444444444445
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.17697472117175833,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.3203512973435857,
+              -0.023642500112814782
+            ],
+            "fraction_delta_below_zero": 0.993
+          }
+        }
+      }
+    },
+    {
+      "season": 2025,
+      "train_seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "reference_training_digest": "a58669c7e1887eed784d47a9c926dbccc1f97dde349adcbb0eefe19e302d8707",
+      "candidate_training_digest": "58b1a5cc9eeb4f4a53af77de808fdf91c9fbc77cd44011f76c62d9d331172148",
+      "union_training_digest": "95548ff363112e6b421854d131701fbf7dfbd69fc12e140f6299347de5ec8fe7",
+      "input_quality": {
+        "rows": 664,
+        "expected_features": 30,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 14,
+          "explosive_plays_avg": 14,
+          "team_pass_rate_avg": 14,
+          "offense_pct_avg": 14,
+          "recent4_Fpts_avg": 14,
+          "recent4_attempts_avg": 14,
+          "recent4_passing_yards_avg": 14,
+          "recent4_carries_avg": 14,
+          "recent4_rushing_yards_avg": 14
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "cohorts": {
+        "all_observed": {
+          "reference": {
+            "rows": 664,
+            "mae": 6.380146305675668,
+            "rmse": 8.145689816521088,
+            "mean_bias": -0.08616116664537282,
+            "pinball": {
+              "0.1": 1.2557392755087586,
+              "0.5": 3.190073152837834,
+              "0.9": 1.5276826099965362
+            },
+            "coverage_p10_p90": 0.7228915662650602,
+            "mean_width": 19.17715521137792,
+            "interval_score_80": 27.83421885505295,
+            "weighted_interval_score": 3.9823300255620864,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.16114457831325302,
+                "at_or_below": 0.17771084337349397,
+                "distance_from_nominal": 0.06114457831325301
+              },
+              "0.5": {
+                "below": 0.5301204819277109,
+                "at_or_below": 0.5301204819277109,
+                "distance_from_nominal": 0.030120481927710885
+              },
+              "0.9": {
+                "below": 0.8840361445783133,
+                "at_or_below": 0.8840361445783133,
+                "distance_from_nominal": 0.015963855421686768
+              }
+            },
+            "boom": {
+              "tp": 53,
+              "fp": 220,
+              "fn": 27,
+              "tn": 364,
+              "precision": 0.19413919413919414,
+              "recall": 0.6625,
+              "false_positive_rate": 0.3767123287671233,
+              "alert_rate": 0.411144578313253,
+              "f1": 0.3002832861189802
+            },
+            "bust": {
+              "tp": 246,
+              "fp": 371,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.3987034035656402,
+              "recall": 0.9723320158102767,
+              "false_positive_rate": 0.902676399026764,
+              "alert_rate": 0.9292168674698795,
+              "f1": 0.5655172413793104
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.10237880795821708,
+              "bust_brier": 0.18269871969064624,
+              "mean_boom_probability": 0.10324539037736452,
+              "actual_boom_rate": 0.12048192771084337,
+              "mean_bust_probability": 0.3422928395237478,
+              "actual_bust_rate": 0.3810240963855422
+            }
+          },
+          "candidate": {
+            "rows": 664,
+            "mae": 6.301492850827869,
+            "rmse": 7.952989417037174,
+            "mean_bias": 0.27887723949402476,
+            "pinball": {
+              "0.1": 1.2646946442243314,
+              "0.5": 3.1507464254139346,
+              "0.9": 1.5276826099965362
+            },
+            "coverage_p10_p90": 0.7198795180722891,
+            "mean_width": 19.14985140260197,
+            "interval_score_80": 27.923772542208678,
+            "weighted_interval_score": 3.9620824530898684,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.16415662650602408,
+                "at_or_below": 0.18072289156626506,
+                "distance_from_nominal": 0.06415662650602408
+              },
+              "0.5": {
+                "below": 0.5421686746987951,
+                "at_or_below": 0.5421686746987951,
+                "distance_from_nominal": 0.04216867469879515
+              },
+              "0.9": {
+                "below": 0.8840361445783133,
+                "at_or_below": 0.8840361445783133,
+                "distance_from_nominal": 0.015963855421686768
+              }
+            },
+            "boom": {
+              "tp": 53,
+              "fp": 219,
+              "fn": 27,
+              "tn": 365,
+              "precision": 0.1948529411764706,
+              "recall": 0.6625,
+              "false_positive_rate": 0.375,
+              "alert_rate": 0.40963855421686746,
+              "f1": 0.30113636363636365
+            },
+            "bust": {
+              "tp": 246,
+              "fp": 371,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.3987034035656402,
+              "recall": 0.9723320158102767,
+              "false_positive_rate": 0.902676399026764,
+              "alert_rate": 0.9292168674698795,
+              "f1": 0.5655172413793104
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1023601704935728,
+              "bust_brier": 0.1795996925667377,
+              "mean_boom_probability": 0.10449656603308029,
+              "actual_boom_rate": 0.12048192771084337,
+              "mean_bust_probability": 0.337326054745643,
+              "actual_bust_rate": 0.3810240963855422
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.07865345484779979,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.15300547767387404,
+              -0.006151050570099165
+            ],
+            "fraction_delta_below_zero": 0.983
+          }
+        },
+        "actionable": {
+          "reference": {
+            "rows": 432,
+            "mae": 6.713391760939094,
+            "rmse": 8.369531582986644,
+            "mean_bias": 0.2756509545206152,
+            "pinball": {
+              "0.1": 1.4309679900308079,
+              "0.5": 3.356695880469547,
+              "0.9": 1.4894099819133564
+            },
+            "coverage_p10_p90": 0.7314814814814815,
+            "mean_width": 19.716350632398306,
+            "interval_score_80": 29.20377971944165,
+            "weighted_interval_score": 4.184715901609141,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.1388888888888889,
+                "at_or_below": 0.1388888888888889,
+                "distance_from_nominal": 0.03888888888888889
+              },
+              "0.5": {
+                "below": 0.5069444444444444,
+                "at_or_below": 0.5069444444444444,
+                "distance_from_nominal": 0.00694444444444442
+              },
+              "0.9": {
+                "below": 0.8703703703703703,
+                "at_or_below": 0.8703703703703703,
+                "distance_from_nominal": 0.029629629629629672
+              }
+            },
+            "boom": {
+              "tp": 51,
+              "fp": 212,
+              "fn": 20,
+              "tn": 149,
+              "precision": 0.19391634980988592,
+              "recall": 0.7183098591549296,
+              "false_positive_rate": 0.5872576177285319,
+              "alert_rate": 0.6087962962962963,
+              "f1": 0.30538922155688625
+            },
+            "bust": {
+              "tp": 99,
+              "fp": 286,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.2571428571428571,
+              "recall": 0.9339622641509434,
+              "false_positive_rate": 0.8773006134969326,
+              "alert_rate": 0.8912037037037037,
+              "f1": 0.40325865580448067
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.13809091771651014,
+              "bust_brier": 0.18214478485717608,
+              "mean_boom_probability": 0.1390176504940921,
+              "actual_boom_rate": 0.16435185185185186,
+              "mean_bust_probability": 0.2173370558067057,
+              "actual_bust_rate": 0.24537037037037038
+            }
+          },
+          "candidate": {
+            "rows": 432,
+            "mae": 6.5417578691074665,
+            "rmse": 8.15029821045597,
+            "mean_bias": 0.45040978613755933,
+            "pinball": {
+              "0.1": 1.4309679900308079,
+              "0.5": 3.2708789345537332,
+              "0.9": 1.4894099819133564
+            },
+            "coverage_p10_p90": 0.7314814814814815,
+            "mean_width": 19.716350632398306,
+            "interval_score_80": 29.20377971944165,
+            "weighted_interval_score": 4.127504604331931,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.1388888888888889,
+                "at_or_below": 0.1388888888888889,
+                "distance_from_nominal": 0.03888888888888889
+              },
+              "0.5": {
+                "below": 0.5115740740740741,
+                "at_or_below": 0.5115740740740741,
+                "distance_from_nominal": 0.01157407407407407
+              },
+              "0.9": {
+                "below": 0.8703703703703703,
+                "at_or_below": 0.8703703703703703,
+                "distance_from_nominal": 0.029629629629629672
+              }
+            },
+            "boom": {
+              "tp": 51,
+              "fp": 211,
+              "fn": 20,
+              "tn": 150,
+              "precision": 0.1946564885496183,
+              "recall": 0.7183098591549296,
+              "false_positive_rate": 0.5844875346260388,
+              "alert_rate": 0.6064814814814815,
+              "f1": 0.3063063063063063
+            },
+            "bust": {
+              "tp": 99,
+              "fp": 286,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.2571428571428571,
+              "recall": 0.9339622641509434,
+              "false_positive_rate": 0.8773006134969326,
+              "alert_rate": 0.8912037037037037,
+              "f1": 0.40325865580448067
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.13819412402371942,
+              "bust_brier": 0.17710877013197596,
+              "mean_boom_probability": 0.14161289400496024,
+              "actual_boom_rate": 0.16435185185185186,
+              "mean_bust_probability": 0.21782202292864983,
+              "actual_bust_rate": 0.24537037037037038
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.17163389183162714,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.29481000695906573,
+              -0.05181234849078032
+            ],
+            "fraction_delta_below_zero": 0.9975
+          }
+        },
+        "industry_sized": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.755980295376888,
+            "rmse": 8.367365472750857,
+            "mean_bias": 0.5526680271605245,
+            "pinball": {
+              "0.1": 1.4612148715888837,
+              "0.5": 3.377990147688444,
+              "0.9": 1.4436164421314632
+            },
+            "coverage_p10_p90": 0.7361111111111112,
+            "mean_width": 19.868195302507495,
+            "interval_score_80": 29.048313137203472,
+            "weighted_interval_score": 4.188547640939194,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.14444444444444443,
+                "at_or_below": 0.14444444444444443,
+                "distance_from_nominal": 0.044444444444444425
+              },
+              "0.5": {
+                "below": 0.5111111111111111,
+                "at_or_below": 0.5111111111111111,
+                "distance_from_nominal": 0.011111111111111072
+              },
+              "0.9": {
+                "below": 0.8805555555555555,
+                "at_or_below": 0.8805555555555555,
+                "distance_from_nominal": 0.019444444444444486
+              }
+            },
+            "boom": {
+              "tp": 50,
+              "fp": 203,
+              "fn": 11,
+              "tn": 96,
+              "precision": 0.1976284584980237,
+              "recall": 0.819672131147541,
+              "false_positive_rate": 0.6789297658862876,
+              "alert_rate": 0.7027777777777777,
+              "f1": 0.3184713375796178
+            },
+            "bust": {
+              "tp": 77,
+              "fp": 236,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.24600638977635783,
+              "recall": 0.9166666666666666,
+              "false_positive_rate": 0.855072463768116,
+              "alert_rate": 0.8694444444444445,
+              "f1": 0.3879093198992443
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14093950163535254,
+              "bust_brier": 0.17791285673292245,
+              "mean_boom_probability": 0.15532255989774815,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.19399488087196481,
+              "actual_bust_rate": 0.23333333333333334
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 6.584087322320203,
+            "rmse": 8.145615464432355,
+            "mean_bias": 0.6895819245404518,
+            "pinball": {
+              "0.1": 1.4612148715888837,
+              "0.5": 3.2920436611601014,
+              "0.9": 1.4436164421314632
+            },
+            "coverage_p10_p90": 0.7361111111111112,
+            "mean_width": 19.868195302507495,
+            "interval_score_80": 29.048313137203472,
+            "weighted_interval_score": 4.131249983253633,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.14444444444444443,
+                "at_or_below": 0.14444444444444443,
+                "distance_from_nominal": 0.044444444444444425
+              },
+              "0.5": {
+                "below": 0.5166666666666667,
+                "at_or_below": 0.5166666666666667,
+                "distance_from_nominal": 0.01666666666666672
+              },
+              "0.9": {
+                "below": 0.8805555555555555,
+                "at_or_below": 0.8805555555555555,
+                "distance_from_nominal": 0.019444444444444486
+              }
+            },
+            "boom": {
+              "tp": 50,
+              "fp": 202,
+              "fn": 11,
+              "tn": 97,
+              "precision": 0.1984126984126984,
+              "recall": 0.819672131147541,
+              "false_positive_rate": 0.6755852842809364,
+              "alert_rate": 0.7,
+              "f1": 0.3194888178913738
+            },
+            "bust": {
+              "tp": 77,
+              "fp": 236,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.24600638977635783,
+              "recall": 0.9166666666666666,
+              "false_positive_rate": 0.855072463768116,
+              "alert_rate": 0.8694444444444445,
+              "f1": 0.3879093198992443
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1409516686775052,
+              "bust_brier": 0.17375216557432654,
+              "mean_boom_probability": 0.15877416142820863,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.19589375561519795,
+              "actual_bust_rate": 0.23333333333333334
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.1718929730566838,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.3244114192373033,
+              -0.022541808504171066
+            ],
+            "fraction_delta_below_zero": 0.9905
+          }
+        },
+        "industry_sized_qb": {
+          "reference": {
+            "rows": 360,
+            "mae": 6.755980295376888,
+            "rmse": 8.367365472750857,
+            "mean_bias": 0.5526680271605245,
+            "pinball": {
+              "0.1": 1.4612148715888837,
+              "0.5": 3.377990147688444,
+              "0.9": 1.4436164421314632
+            },
+            "coverage_p10_p90": 0.7361111111111112,
+            "mean_width": 19.868195302507495,
+            "interval_score_80": 29.048313137203472,
+            "weighted_interval_score": 4.188547640939194,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.14444444444444443,
+                "at_or_below": 0.14444444444444443,
+                "distance_from_nominal": 0.044444444444444425
+              },
+              "0.5": {
+                "below": 0.5111111111111111,
+                "at_or_below": 0.5111111111111111,
+                "distance_from_nominal": 0.011111111111111072
+              },
+              "0.9": {
+                "below": 0.8805555555555555,
+                "at_or_below": 0.8805555555555555,
+                "distance_from_nominal": 0.019444444444444486
+              }
+            },
+            "boom": {
+              "tp": 50,
+              "fp": 203,
+              "fn": 11,
+              "tn": 96,
+              "precision": 0.1976284584980237,
+              "recall": 0.819672131147541,
+              "false_positive_rate": 0.6789297658862876,
+              "alert_rate": 0.7027777777777777,
+              "f1": 0.3184713375796178
+            },
+            "bust": {
+              "tp": 77,
+              "fp": 236,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.24600638977635783,
+              "recall": 0.9166666666666666,
+              "false_positive_rate": 0.855072463768116,
+              "alert_rate": 0.8694444444444445,
+              "f1": 0.3879093198992443
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.14093950163535254,
+              "bust_brier": 0.17791285673292245,
+              "mean_boom_probability": 0.15532255989774815,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.19399488087196481,
+              "actual_bust_rate": 0.23333333333333334
+            }
+          },
+          "candidate": {
+            "rows": 360,
+            "mae": 6.584087322320203,
+            "rmse": 8.145615464432355,
+            "mean_bias": 0.6895819245404518,
+            "pinball": {
+              "0.1": 1.4612148715888837,
+              "0.5": 3.2920436611601014,
+              "0.9": 1.4436164421314632
+            },
+            "coverage_p10_p90": 0.7361111111111112,
+            "mean_width": 19.868195302507495,
+            "interval_score_80": 29.048313137203472,
+            "weighted_interval_score": 4.131249983253633,
+            "quantile_calibration": {
+              "0.1": {
+                "below": 0.14444444444444443,
+                "at_or_below": 0.14444444444444443,
+                "distance_from_nominal": 0.044444444444444425
+              },
+              "0.5": {
+                "below": 0.5166666666666667,
+                "at_or_below": 0.5166666666666667,
+                "distance_from_nominal": 0.01666666666666672
+              },
+              "0.9": {
+                "below": 0.8805555555555555,
+                "at_or_below": 0.8805555555555555,
+                "distance_from_nominal": 0.019444444444444486
+              }
+            },
+            "boom": {
+              "tp": 50,
+              "fp": 202,
+              "fn": 11,
+              "tn": 97,
+              "precision": 0.1984126984126984,
+              "recall": 0.819672131147541,
+              "false_positive_rate": 0.6755852842809364,
+              "alert_rate": 0.7,
+              "f1": 0.3194888178913738
+            },
+            "bust": {
+              "tp": 77,
+              "fp": 236,
+              "fn": 7,
+              "tn": 40,
+              "precision": 0.24600638977635783,
+              "recall": 0.9166666666666666,
+              "false_positive_rate": 0.855072463768116,
+              "alert_rate": 0.8694444444444445,
+              "f1": 0.3879093198992443
+            },
+            "quantile_probability_proxy": {
+              "assumption": "Quantile-matched piecewise normal; not a validated probability head.",
+              "boom_brier": 0.1409516686775052,
+              "bust_brier": 0.17375216557432654,
+              "mean_boom_probability": 0.15877416142820863,
+              "actual_boom_rate": 0.16944444444444445,
+              "mean_bust_probability": 0.19589375561519795,
+              "actual_bust_rate": 0.23333333333333334
+            }
+          },
+          "paired_mae": {
+            "mean_mae_delta": -0.1718929730566838,
+            "week_blocks": 18,
+            "repeats": 2000,
+            "ci95": [
+              -0.3244114192373033,
+              -0.022541808504171066
+            ],
+            "fraction_delta_below_zero": 0.9905
+          }
+        }
+      }
+    }
+  ],
+  "diagnostic_gate": {
+    "legacy_composite_gate": {
+      "passed": true,
+      "required_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "complete": true,
+      "seasons_improved": 6,
+      "mean_composite_delta": -0.01526614676553432,
+      "worst_boom_recall_delta": 0.0,
+      "holdout_2025_composite_delta": -0.007865345484779795,
+      "holdout_2025_boom_recall_delta": 0.0,
+      "eligible_for_publication": true
+    },
+    "additional_failures": [],
+    "research_qualified": true,
+    "production_eligible": true
+  },
+  "union_feature_cols": [
+    "passing_yards_avg",
+    "pass_tds_avg",
+    "ints_avg",
+    "completions_avg",
+    "pass_attmpt_avg",
+    "rush_attmpt_avg",
+    "rushing_yards_avg",
+    "rush_tds_avg",
+    "fumbles_avg",
+    "passing_epa_avg",
+    "rushing_epa_avg",
+    "target_share_avg",
+    "wopr_avg",
+    "opponent_pass_epa_allowed",
+    "days_rest",
+    "is_home",
+    "carry_share_avg",
+    "rz_carries_avg",
+    "explosive_plays_avg",
+    "team_pass_rate_avg",
+    "implied_team_total_avg",
+    "total_line_avg",
+    "offense_pct_avg",
+    "injury_opportunity_boost_hist_avg",
+    "recent4_Fpts_avg",
+    "recent4_attempts_avg",
+    "recent4_passing_yards_avg",
+    "recent4_carries_avg",
+    "recent4_rushing_yards_avg",
+    "game_implied_team_total",
+    "game_total_line",
+    "game_spread"
+  ],
+  "candidate_policy": "pregame_season_recent4_market_p50_v1",
+  "pregame_safe": true,
+  "training_config": "default",
+  "training_specification": {
+    "sklearn_version": "1.6.1",
+    "backend": "sklearn",
+    "boom_weight_p90": 1.0,
+    "boom_threshold": 25.0,
+    "regressors": {
+      "0.1": {
+        "alpha": 0.1,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.5": {
+        "alpha": 0.5,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.9": {
+        "alpha": 0.9,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      }
+    }
+  },
+  "feature_cols": [
+    "passing_yards_avg",
+    "pass_tds_avg",
+    "ints_avg",
+    "completions_avg",
+    "pass_attmpt_avg",
+    "rush_attmpt_avg",
+    "rushing_yards_avg",
+    "rush_tds_avg",
+    "fumbles_avg",
+    "passing_epa_avg",
+    "rushing_epa_avg",
+    "target_share_avg",
+    "wopr_avg",
+    "opponent_pass_epa_allowed",
+    "days_rest",
+    "is_home",
+    "carry_share_avg",
+    "rz_carries_avg",
+    "explosive_plays_avg",
+    "team_pass_rate_avg",
+    "implied_team_total_avg",
+    "total_line_avg",
+    "offense_pct_avg",
+    "injury_opportunity_boost_hist_avg",
+    "recent4_Fpts_avg",
+    "recent4_attempts_avg",
+    "recent4_passing_yards_avg",
+    "recent4_carries_avg",
+    "recent4_rushing_yards_avg",
+    "game_implied_team_total",
+    "game_total_line",
+    "game_spread"
+  ],
+  "training_through_2024_digest": "95548ff363112e6b421854d131701fbf7dfbd69fc12e140f6299347de5ec8fe7",
+  "gate": {
+    "passed": true,
+    "required_seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "complete": true,
+    "seasons_improved": 6,
+    "mean_composite_delta": -0.01526614676553432,
+    "worst_boom_recall_delta": 0.0,
+    "holdout_2025_composite_delta": -0.007865345484779795,
+    "holdout_2025_boom_recall_delta": 0.0,
+    "eligible_for_publication": true
+  },
+  "fallback_policy": "pregame_season_recent4_p50_v1"
+}

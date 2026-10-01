@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 from uuid import uuid4
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -287,6 +288,27 @@ def build_all_datasets(
     output_dir.mkdir(parents=True, exist_ok=True)
     weekly = load_weekly_player_stats(seasons)
     schedules = load_schedules(seasons)
+    # Save the same fresh game context used by ETL for gated training and
+    # upcoming inference. An isolated research rebuild keeps its own snapshot.
+    schedule_targets = [output_dir / "nfl_schedules.parquet"]
+    if output_dir.resolve() == PROCESSED_DATA_DIR.resolve():
+        from src.core.schedule_utils import SCHEDULE_CACHE
+        schedule_targets.append(SCHEDULE_CACHE)
+    snapshot = schedules.assign(market_fetched_at_utc=datetime.now(timezone.utc).isoformat())
+    for schedule_path in schedule_targets if not schedules.empty else []:
+        schedule_path.parent.mkdir(parents=True, exist_ok=True)
+        prior = pd.read_parquet(schedule_path) if schedule_path.exists() else pd.DataFrame()
+        if not prior.empty:
+            # A current-season refresh must not discard earlier training years.
+            snapshot_for_path = pd.concat([prior[~prior.season.isin(seasons)], snapshot], ignore_index=True)
+        else:
+            snapshot_for_path = snapshot
+        temporary = schedule_path.with_name(f"{schedule_path.name}.{uuid4().hex}.tmp")
+        try:
+            write_parquet(snapshot_for_path, temporary)
+            temporary.replace(schedule_path)
+        finally:
+            temporary.unlink(missing_ok=True)
     pbp = load_play_by_play(seasons)
     team_epa = load_team_epa(seasons, pbp=pbp)
     # Import after module initialization: candidate_etl uses our loaders. An

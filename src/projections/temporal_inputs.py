@@ -15,9 +15,11 @@ PREGAME_POLICY = "pregame_v1"
 RECENT_POLICY = "pregame_recent4_v1"
 RECENT_SEASON_POLICY = "pregame_season_recent4_v1"
 RECENT_MEDIAN_POLICY = "pregame_season_recent4_p50_v1"
+MARKET_MEDIAN_POLICY = "pregame_season_recent4_market_p50_v1"
 RECENT_POLICIES = (RECENT_POLICY, RECENT_SEASON_POLICY, RECENT_MEDIAN_POLICY)
-SEASON_RECENT_POLICIES = (RECENT_SEASON_POLICY, RECENT_MEDIAN_POLICY)
-INPUT_POLICIES = (PREGAME_POLICY, *RECENT_POLICIES)
+GATED_POLICIES = (*RECENT_POLICIES, MARKET_MEDIAN_POLICY)
+SEASON_RECENT_POLICIES = (RECENT_SEASON_POLICY, RECENT_MEDIAN_POLICY, MARKET_MEDIAN_POLICY)
+INPUT_POLICIES = (PREGAME_POLICY, *GATED_POLICIES)
 UNAVAILABLE_TRACKING = ("separation_at_throw_avg", "defender_closing_speed_avg")
 EPA_COLS = ("opponent_pass_epa_allowed", "opponent_rush_epa_allowed")
 RECENT_SOURCES = {
@@ -38,14 +40,22 @@ def policy_feature_cols(position: str, base_cols: list[str], policy: str) -> lis
     cols = [c for c in base_cols if c not in (*UNAVAILABLE_TRACKING, "target_quality_avg")]
     if position == "wr":
         cols.append("target_quality_raw_avg")
-    if policy in RECENT_POLICIES:
+    if policy in GATED_POLICIES:
         cols.extend(recent_feature_cols(position))
+    if policy == MARKET_MEDIAN_POLICY:
+        from src.core.game_market import MARKET_COLS
+        cols.extend(MARKET_COLS)
     return list(dict.fromkeys(cols))
 
 
 def quantile_feature_subsets(position: str, feature_cols: list[str], policy: str) -> dict[float, list[str]] | None:
-    if policy != RECENT_MEDIAN_POLICY:
+    if policy not in (RECENT_MEDIAN_POLICY, MARKET_MEDIAN_POLICY):
         return None
+    if policy == MARKET_MEDIAN_POLICY:
+        from src.core.game_market import MARKET_COLS
+        tail_cols = [c for c in feature_cols if c not in recent_feature_cols(position) + MARKET_COLS]
+        return {.1: tail_cols, .9: tail_cols,
+                .5: [c for c in feature_cols if c not in ("implied_team_total_avg", "total_line_avg")]}
     tail_cols = [c for c in feature_cols if c not in recent_feature_cols(position)]
     return {.1: tail_cols, .9: tail_cols}
 
@@ -113,7 +123,16 @@ def recent_usage_frame(history: pd.DataFrame, position: str, *, completed: bool 
     return out
 
 
-def training_inputs(data: pd.DataFrame, position: str, policy: str) -> pd.DataFrame:
+def _market_inputs(rows: pd.DataFrame, schedules: pd.DataFrame | None = None) -> pd.DataFrame:
+    from src.core.game_market import attach_game_market
+    if schedules is None:
+        from src.core.schedule_utils import _load_schedules
+        schedules = _load_schedules(rows.season.dropna().astype(int).unique().tolist(), allow_fetch=False)
+    return attach_game_market(rows, schedules)
+
+
+def training_inputs(data: pd.DataFrame, position: str, policy: str,
+                    schedules: pd.DataFrame | None = None) -> pd.DataFrame:
     if policy not in INPUT_POLICIES:
         raise ValueError(f"Unknown model input policy: {policy}")
     out = attach_pregame_defense(data, data)
@@ -124,10 +143,13 @@ def training_inputs(data: pd.DataFrame, position: str, policy: str) -> pd.DataFr
         out["target_quality_raw_avg"] = out.groupby("player_id")["target_quality_raw_lead"].transform(
             lambda s: s.shift(1).expanding(min_periods=1).mean()
         )
-    return recent_usage_frame(out, position, season_bounded=policy in SEASON_RECENT_POLICIES) if policy in RECENT_POLICIES else out
+    if policy in GATED_POLICIES:
+        out = recent_usage_frame(out, position, season_bounded=policy in SEASON_RECENT_POLICIES)
+    return _market_inputs(out, schedules) if policy == MARKET_MEDIAN_POLICY else out
 
 
-def inference_inputs(rows: pd.DataFrame, history: pd.DataFrame, position: str, policy: str) -> pd.DataFrame:
+def inference_inputs(rows: pd.DataFrame, history: pd.DataFrame, position: str, policy: str,
+                     schedules: pd.DataFrame | None = None) -> pd.DataFrame:
     if policy not in INPUT_POLICIES:
         raise ValueError(f"Unknown model input policy: {policy}")
     out = attach_pregame_defense(rows, history)
@@ -143,7 +165,7 @@ def inference_inputs(rows: pd.DataFrame, history: pd.DataFrame, position: str, p
             raise ValueError("Rebuild raw target quality before versioned WR inference")
         raw = prior.groupby("player_id")["target_quality_raw_lead"].mean()
         out["target_quality_raw_avg"] = out["player_id"].map(raw)
-    if policy not in RECENT_POLICIES:
+    if policy not in GATED_POLICIES:
         return out
     inclusive = recent_usage_frame(prior, position, completed=True, season_bounded=policy in SEASON_RECENT_POLICIES)
     if policy in SEASON_RECENT_POLICIES:
@@ -156,7 +178,7 @@ def inference_inputs(rows: pd.DataFrame, history: pd.DataFrame, position: str, p
         out[col] = out["player_id"].map(lookup[col])
     # Estimated roster players have no personal recent games. Keep these gaps
     # visible to the audit before compatibility feature imputation.
-    return out
+    return _market_inputs(out, schedules) if policy == MARKET_MEDIAN_POLICY else out
 
 
 def feature_digest(X: pd.DataFrame, y: pd.Series) -> str:

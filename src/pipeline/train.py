@@ -24,7 +24,8 @@ from src.config import (
 )
 from src.core.features import get_position_features, prepare_feature_matrix
 from src.projections.temporal_inputs import (
-    INPUT_POLICIES, PREGAME_POLICY, RECENT_POLICIES, feature_digest, policy_feature_cols, quantile_feature_subsets, training_inputs,
+    INPUT_POLICIES, PREGAME_POLICY, GATED_POLICIES, MARKET_MEDIAN_POLICY, RECENT_MEDIAN_POLICY,
+    feature_digest, policy_feature_cols, quantile_feature_subsets, training_inputs,
 )
 from src.ml.quantile import interval_coverage, predict_quantiles, train_quantile_models, training_specification
 from src.ml.training_config import (
@@ -66,7 +67,7 @@ def train_position_model(
     df = load_training_data(position, data_dir)
     # Transform full chronological history before selecting training seasons.
     # The transforms themselves exclude each game's own/future observations.
-    df = training_inputs(df, position, input_policy)
+    df = _policy_inputs(df, position, input_policy, data_dir)
     train_df = df[df["season"].isin(train_seasons) & df["Fpts"].notna()].copy()
     train_df = train_df.sort_values(["player_id", "season", "week"])
 
@@ -78,7 +79,7 @@ def train_position_model(
     X = prepare_feature_matrix(train_df, position, feature_cols_override=feature_cols)
     y = train_df["Fpts"].values
     digest = feature_digest(X, train_df["Fpts"])
-    if input_policy in RECENT_POLICIES:
+    if input_policy in GATED_POLICIES:
         evidence = json.loads(gate_report.read_text()) if gate_report else {}
         if not (evidence.get("gate", {}).get("eligible_for_publication") and evidence.get("pregame_safe")
                 and evidence.get("candidate_policy") == input_policy and evidence.get("position") == position
@@ -86,6 +87,10 @@ def train_position_model(
                 and evidence.get("training_specification") == training_specification(cfg, position)
                 and evidence.get("training_through_2024_digest") == digest):
             raise ValueError("Recent usage requires a passed gate matching this data, feature contract and training preset")
+        if input_policy == MARKET_MEDIAN_POLICY:
+            from src.analytics.forecast_candidate_eval import diagnostic_gate
+            if not diagnostic_gate(evidence.get("comparisons", []))["research_qualified"]:
+                raise ValueError("Game-market promotion requires passing point, interval and boom/bust diagnostics")
     train_mask, val_mask = chronological_validation_split(train_df)
     head_features = quantile_feature_subsets(position, feature_cols, input_policy)
     X_train, X_val = X.loc[train_mask], X.loc[val_mask]
@@ -133,6 +138,11 @@ def train_position_model(
     # game, rather than permanently discarding the validation season.
     quantile_models = train_quantile_models(X, y, PREDICTION_QUANTILES, training_config=cfg, position=position,
                                           feature_cols_by_alpha=head_features)
+    fallback_model = None
+    if input_policy == MARKET_MEDIAN_POLICY:
+        fallback_cols = policy_feature_cols(position, list(spec.feature_cols), RECENT_MEDIAN_POLICY)
+        fallback_model = train_quantile_models(X.loc[:, fallback_cols], y, quantiles=(.5,),
+                                              training_config=cfg, position=position)[.5]
 
     model_dir.mkdir(parents=True, exist_ok=True)
     model_path = model_dir / (model_filename or f"{position}_model.joblib")
@@ -152,6 +162,7 @@ def train_position_model(
             "train_seasons": sorted(train_df.season.unique().astype(int).tolist()),
             "training_digest": digest,
             "input_quality": metrics["input_quality"],
+            **({"market_fallback_model": fallback_model} if fallback_model is not None else {}),
         },
         temporary)
         temporary.replace(model_path)
@@ -226,25 +237,37 @@ def gated_training_options(position: str, data_dir: Path, train_seasons: list[in
     Source revisions or feature-flag changes require a new evaluation. Revert to
     the safe baseline on mismatch rather than silently claiming stale evidence.
     """
-    path = PROJECTION_MODEL_GATES_DIR / f"recent_usage_gate_{position}.json"
-    if not path.exists():
-        return {}
-    evidence = json.loads(path.read_text())
-    policy = evidence.get("candidate_policy")
-    if not evidence.get("gate", {}).get("eligible_for_publication") or policy not in RECENT_POLICIES:
-        return {}
-    data = training_inputs(load_training_data(position, data_dir), position, policy)
-    train = data[data.season.isin(train_seasons) & data.Fpts.notna()].sort_values(["player_id", "season", "week"])
-    cols = policy_feature_cols(position, list(get_position_features(position).feature_cols), policy)
-    X = prepare_feature_matrix(train, position, feature_cols_override=cols)
-    matches = (evidence.get("pregame_safe") and evidence.get("position") == position
-               and evidence.get("training_config") == cfg.name and evidence.get("feature_cols") == cols
-               and evidence.get("training_specification") == training_specification(cfg, position)
-               and evidence.get("training_through_2024_digest") == feature_digest(X, train.Fpts))
-    if not matches:
-        print(f"{position}: recent-usage evidence does not match current inputs; using {PREGAME_POLICY}")
-        return {}
-    return {"input_policy": policy, "gate_report": path}
+    for name in ("game_market_gate", "recent_usage_gate"):
+        path = PROJECTION_MODEL_GATES_DIR / f"{name}_{position}.json"
+        if not path.exists():
+            continue
+        evidence = json.loads(path.read_text())
+        policy = evidence.get("candidate_policy")
+        if not evidence.get("gate", {}).get("eligible_for_publication") or policy not in GATED_POLICIES:
+            continue
+        if policy == MARKET_MEDIAN_POLICY:
+            from src.analytics.forecast_candidate_eval import diagnostic_gate
+            if not diagnostic_gate(evidence.get("comparisons", []))["research_qualified"]:
+                continue
+        data = _policy_inputs(load_training_data(position, data_dir), position, policy, data_dir)
+        train = data[data.season.isin(train_seasons) & data.Fpts.notna()].sort_values(["player_id", "season", "week"])
+        cols = policy_feature_cols(position, list(get_position_features(position).feature_cols), policy)
+        X = prepare_feature_matrix(train, position, feature_cols_override=cols)
+        matches = (evidence.get("pregame_safe") and evidence.get("position") == position
+                   and evidence.get("training_config") == cfg.name and evidence.get("feature_cols") == cols
+                   and evidence.get("training_specification") == training_specification(cfg, position)
+                   and evidence.get("training_through_2024_digest") == feature_digest(X, train.Fpts))
+        if matches:
+            return {"input_policy": policy, "gate_report": path}
+        print(f"{position}: {name} evidence does not match current inputs; checking next qualified policy")
+    return {}
+
+
+def _policy_inputs(data: pd.DataFrame, position: str, policy: str, data_dir: Path) -> pd.DataFrame:
+    schedule = data_dir / "nfl_schedules.parquet"
+    if policy == MARKET_MEDIAN_POLICY and schedule.exists():
+        return training_inputs(data, position, policy, schedules=pd.read_parquet(schedule))
+    return training_inputs(data, position, policy)
 
 
 def train_all(
@@ -299,7 +322,7 @@ def main() -> None:
     parser.add_argument("--input-policy", choices=INPUT_POLICIES, default=PREGAME_POLICY)
     parser.add_argument("--gate-report", type=Path, help="Exact-data gate evidence required for the recent-usage candidate")
     args = parser.parse_args()
-    if args.input_policy in RECENT_POLICIES:
+    if args.input_policy in GATED_POLICIES:
         if args.position == "all":
             parser.error("Recent-usage promotion requires an individual position and its matching gate report")
         cfg = {"rb": RB_P90_BOOM_WEIGHT_3, "wr": WR_P90_BOOM_WEIGHT_3}.get(args.position, DEFAULT_TRAINING_CONFIG) if args.calibrated else DEFAULT_TRAINING_CONFIG
