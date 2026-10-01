@@ -221,6 +221,7 @@ export default function AccountAuth({
           <label>
             <span className="hub-field-label">{AUTH_COPY.displayName}</span>
             <input
+              type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder={AUTH_COPY.displayName}

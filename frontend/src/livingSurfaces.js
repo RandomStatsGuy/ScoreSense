@@ -31,6 +31,7 @@ export const SHARED = Object.freeze({
   ],
   theme: ["frontend/public/theme-init.js", "frontend/src/layout/ThemeToggle.jsx", "frontend/src/themePresentation.js", "frontend/src/AppearanceProvider.jsx", "frontend/src/AppearanceSettings.jsx", "frontend/src/layout/AppearanceLink.jsx", "frontend/src/styles/appearance.css"],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
+  standalone: ["frontend/src/layout/StandalonePageShell.jsx", "frontend/src/styles/standalone-dialogs.css", "frontend/src/styles/auth-session.css"],
   // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
   ownerLabel: "frontend/src/DraftHub/hubTeamLabel.js",
