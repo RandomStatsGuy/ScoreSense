@@ -181,7 +181,7 @@ QB_POOL = _pool(
 )
 
 
-def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
     assert allow_compute is False, "command center must not live-compute weekly projections"
     pos = str(position).lower()
     if pos == "wr":
@@ -196,7 +196,7 @@ def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, 
     return df
 
 
-def _empty_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+def _empty_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
     return pd.DataFrame()
 
 
@@ -822,7 +822,7 @@ def test_name_fallback_joins_sleeper_prefixed_roster_ids(hub_db, before_nfl_week
     )
     qb.attrs["built_at"] = "2026-08-21T12:00:00+00:00"
 
-    def _load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+    def _load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
         assert allow_compute is False
         pos = str(position).lower()
         if pos == "wr":

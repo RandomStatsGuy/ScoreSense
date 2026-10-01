@@ -39,7 +39,7 @@ def test_cold_cache_computes_via_process_pool(monkeypatch):
     state = {"warm": False}
     compute_calls = []
 
-    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
         assert allow_compute is False, "API should never compute inline when season/week are set"
         return _rows() if state["warm"] else pd.DataFrame()
 
@@ -61,7 +61,7 @@ def test_cold_cache_computes_via_process_pool(monkeypatch):
 
 
 def test_cache_hit_skips_process_pool(monkeypatch):
-    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
         return _rows()
 
     def fail_executor():
@@ -75,7 +75,7 @@ def test_cache_hit_skips_process_pool(monkeypatch):
 
 
 def test_missing_artifacts_raise_503(monkeypatch):
-    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
         return pd.DataFrame()
 
     def fake_compute(position, season, week, apply_injury):

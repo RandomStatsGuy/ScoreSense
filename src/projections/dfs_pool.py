@@ -17,6 +17,12 @@ POOL_VERSION = "dfs-deep-pool-v1"
 BUNDLE_PATH = MODEL_DIR / "dfs_special_teams.joblib"
 
 
+def pool_fingerprint():
+    from src.projections.weekly_cache import weekly_fingerprint
+    revision = BUNDLE_PATH.stat().st_mtime_ns if BUNDLE_PATH.exists() else None
+    return f"{POOL_VERSION}:{weekly_fingerprint()}:{revision}"
+
+
 def artifact_path(season, week, injury=True):
     return DFS_PREDICTIONS_DIR / f"{season}_w{week}_{'inj' if injury else 'raw'}.parquet"
 
@@ -25,11 +31,19 @@ def load_dfs_pool(season, week, injury=True):
     path = artifact_path(season, week, injury)
     if not path.exists():
         return pd.DataFrame()
-    frame = pd.read_parquet(path)
+    try:
+        frame = pd.read_parquet(path)
+    except (OSError, ValueError):
+        return pd.DataFrame()
     if frame.attrs.get("pool_version") != POOL_VERSION:
         return pd.DataFrame()
     if frame.attrs.get("season") != season or frame.attrs.get("week") != week:
         return pd.DataFrame()
+    frame.attrs["projection_stale"] = (
+        frame.attrs.get("fingerprint") != pool_fingerprint()
+        or bool(frame.attrs.get("special_history_refresh_failed"))
+        or (week > 1 and frame.attrs.get("special_history_current_season_available") is False)
+    )
     return frame
 
 
@@ -107,6 +121,8 @@ def refresh_dfs_pool(season, week):
                      "built_at": datetime.now(timezone.utc).isoformat(), "special_history_last_season": int(history.season.max()),
                      "special_history_last_week": int(history.loc[history.season.eq(history.season.max()), "week"].max()) if "week" in history else None,
                      "special_history_current_season_available": bool(history.attrs.get("current_season_available", False))}
+        out.attrs['special_history_refresh_failed'] = bool(history.attrs.get('input_refresh_failed', False))
+        out.attrs["fingerprint"] = pool_fingerprint()
         if out.player_id.duplicated().any():
             raise ValueError("Duplicate identities in DFS projection pool")
         outputs.append((injury, out))

@@ -7,7 +7,7 @@ import logging
 import time
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
@@ -730,6 +730,7 @@ def hub_list_roster(
 @router.get("/week")
 def hub_weekly_command_center(
     response: Response,
+    background_tasks: BackgroundTasks = None,
     season: Optional[int] = Query(None, description="NFL season (defaults from hub + mlready)"),
     week: Optional[int] = Query(None, description="NFL week (defaults from mlready context)"),
     apply_injury_adjustments: bool = Query(True),
@@ -763,6 +764,10 @@ def hub_weekly_command_center(
                 league_cards=league_cards,
                 timings=timer.phases if HUB_TIMING else None,
             )
+    meta = payload.get('meta') or {}
+    if meta.get('missing_positions') or meta.get('projection_stale'):
+        from app.projection_recovery import queue_projection_recovery
+        meta['projection_recovery'] = queue_projection_recovery(background_tasks, meta['season'], meta['week'], ['weekly'])
     return jsonable_encoder(payload)
 
 
@@ -2531,14 +2536,19 @@ def hub_league_rosters(
 
 
 @router.get("/league/{league_id}/trade-outlook")
-def hub_trade_outlook(league_id: str, _user=Depends(require_hub_user)) -> dict:
+def hub_trade_outlook(league_id: str, background_tasks: BackgroundTasks = None, _user=Depends(require_hub_user)) -> dict:
     ctx = _ctx_for_league(_sub(_user), league_id)
     require_league_member(ctx)
     from src.draft_hub.trade_outlook import build_trade_outlook
-    return build_trade_outlook({
+    payload = build_trade_outlook({
         "league": storage.get_league(league_id),
         "teams": [{"roster": rows} for rows in storage.list_league_rosters_by_team(league_id).values()],
     })
+    from app.projection_recovery import queue_projection_recovery
+    payload['recovery'] = queue_projection_recovery(
+        background_tasks, payload.get('season'), payload.get('week'), payload.pop('rebuild_kinds', []),
+    )
+    return payload
 
 
 @router.get("/league/{league_id}/trades")

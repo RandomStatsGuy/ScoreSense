@@ -53,6 +53,7 @@ let entries = Array.from({ length: 120 }, (_, i) => ({
 }));
 let builds = [];
 const mode = new URLSearchParams(location.search).get("state");
+window.__dfsPoolReads = 0;
 if (mode === "empty") entries = [];
 function fixturePlayers(site) {
   const single = /showdown|fanduel_single/.test(site || "");
@@ -92,8 +93,10 @@ window.fetch = async (url, options = {}) => {
       slates: [{ slate_id: "preview", name: mode === "coverage" && !/showdown|fanduel_single/.test(u) ? "Sunday main · sample slate" : "SF at LAR · sample slate" }],
     });
   if (mode === "loading" && (u.includes("/salaries/") || u.includes("/pool?"))) await new Promise(resolve => setTimeout(resolve, 1200));
-  if (u.includes("/salaries/") || u.includes("/pool?"))
-    return (mode === "error" || window.__dfsRefreshFail)
+  if (u.includes("/salaries/") || u.includes("/pool?")) {
+    window.__dfsPoolReads++;
+    const recovering = mode === "recovering" && window.__dfsPoolReads === 1;
+    return (mode === "error" || mode === "forecast-error" || window.__dfsRefreshFail)
       ? respond(
           {
             detail: "Sample salary service failure. Import a CSV to continue.",
@@ -101,7 +104,7 @@ window.fetch = async (url, options = {}) => {
           503,
         )
       : respond({
-          players: mode === "empty" ? [] : fixturePlayers(new URL(u, location.origin).searchParams.get("site")),
+          players: mode === "empty" || recovering ? [] : fixturePlayers(new URL(u, location.origin).searchParams.get("site")),
           salaries: fixturePlayers(new URL(u, location.origin).searchParams.get("site")).map(p => ({
             dfs_id: p.dfs_id, cpt_dfs_id: p.cpt_dfs_id, salary: p.salary, cpt_salary: p.cpt_salary,
             player_name: p.Player, team: p.Team, position: p.Position,
@@ -109,8 +112,10 @@ window.fetch = async (url, options = {}) => {
           salary_snapshot: { id: (u.includes("draftkings_showdown") ? "a" : "b").repeat(64) },
           slate: { name: mode === "coverage" && !/showdown|fanduel_single/.test(u) ? "Sunday main · sample slate" : "SF at LAR · sample slate" },
           stats: { matched: 8, slate_players: 8 },
-          meta: { refresh: { status: window.__dfsServerStale ? "error" : "ok", stale: Boolean(window.__dfsServerStale), last_success_at: new Date(Date.now() - 60000).toISOString(), refresh_interval_seconds: 300, season: 2026, week: 1 } },
+          meta: { projection_recovery: { status: recovering ? "queued" : "idle" }, projection_stale: mode === "saved",
+            refresh: { status: window.__dfsServerStale ? "error" : "ok", stale: Boolean(window.__dfsServerStale), last_success_at: new Date(Date.now() - 60000).toISOString(), refresh_interval_seconds: 300, season: 2026, week: 1 } },
         });
+  }
   if (u.includes("/vegas?")) return respond({ games: [
     { game_id: "sf-la", away: "SF", home: "LAR", total_line: 49.5, spread_line: 2.5, away_implied: 23.5, home_implied: 26, first_seen_total_line: 47.5, first_seen_spread_line: 1.5, weekday: "Sunday", kickoff_et: "2026-09-27T16:25:00-04:00" },
     { game_id: "buf-kc", away: "BUF", home: "KC", total_line: 48, spread_line: -1, away_implied: 24.5, home_implied: 23.5, first_seen_total_line: 49, first_seen_spread_line: 1, weekday: "Sunday", kickoff_et: "2026-09-27T16:25:00-04:00" },

@@ -83,6 +83,24 @@ def test_empty_projection_index_is_cached(monkeypatch):
     assert k_def_projection_index() == {}
 
 
+def test_projection_index_updates_when_saved_player_feed_changes(monkeypatch, tmp_path):
+    import src.draft_hub.k_def_pool_cache as kdef
+
+    cache = tmp_path / 'sleeper_players.json'
+    cache.write_text('{}', encoding='utf-8')
+    monkeypatch.setattr('src.integrations.sleeper.PLAYERS_CACHE', cache)
+    frame = pd.DataFrame([{'sleeper_id':'old', 'full_name':'Old Kicker', 'team':'BUF',
+                           'position':'K', 'search_rank':10}])
+    monkeypatch.setattr(kdef, '_sleeper_players_df', lambda **kw: frame.copy())
+    invalidate_k_def_cache()
+    assert set(k_def_projection_index()) == {'old'}
+    frame.loc[0, 'sleeper_id'] = 'new'
+    frame.loc[0, 'full_name'] = 'New Kicker'
+    cache.write_text('{"new":{}}', encoding='utf-8')
+    assert set(k_def_projection_index()) == {'new'}
+    invalidate_k_def_cache()
+
+
 def test_overlay_k_def_projections_fills_zeros(monkeypatch):
     index = {
         "k1": {

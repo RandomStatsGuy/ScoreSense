@@ -420,6 +420,8 @@ Game center labels current forecasts separately from the pregame baselines froze
 
 ### Refresh behavior
 
+Projection reads recover missing or invalidated artifacts automatically through the shared background worker. Retain the last successful forecast for the exact requested season, week, and injury mode while replacements rebuild, label saved/stale data, and retry failed updates. Never reuse another week's DFS forecast or turn missing forecasts into zero. Shared weekly, season, and rest-of-season forecasts retain all NFL rostered skill players, including injured players and modeled bench profiles. Players without individual history use the existing labeled Roster estimate profile; inactive status remains separate from forecast coverage. NFL and Sleeper identity changes invalidate the shared artifacts. Trades warms rest-of-season forecasts alongside weekly forecasts and uses the existing labeled K/DEF rank-curve estimates for specialists. DFS skill coverage does not depend on successful specialty-model refreshes.
+
 An interrupted projection refresh is a persisted failure, not a permanent running marker. Admins can Retry refresh directly from the shared status banner in any product area. Retry uses the existing no-retrain pipeline and preserves the last successful data timestamp until completion; it does not deploy or change league state.
 
 Weekly's notes chip rebuilds notes from existing weekly artifacts and reports missing projections promptly. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.

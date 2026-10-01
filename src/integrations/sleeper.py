@@ -819,6 +819,7 @@ def _rookie_stub_from_template(
         stub["player_name"] = sleeper_row["full_name"]
     stub["team"] = sleeper_row["team"]
     stub["position"] = skill_pos.upper()
+    stub["_projection_injury_status"] = str(sleeper_row.get("injury_status") or "")
     gsis = str(sleeper_row.get("gsis_id") or "").strip()
     stub["player_id"] = gsis or f"sleeper-{sleeper_row['sleeper_id']}"
     stub["season"] = season
@@ -883,6 +884,8 @@ def apply_sleeper_roster_overlay(
     if "_vet_backup_label" not in out.columns:
         out["_vet_backup_label"] = ""
 
+    out["_projection_injury_status"] = ""
+
     keep_mask: list[bool] = []
     teams_updated = 0
     removed_unrostered = 0
@@ -911,7 +914,11 @@ def apply_sleeper_roster_overlay(
 
         sleeper_team = str(sleeper_row.get("team") or "").strip().upper()
         sleeper_status = str(sleeper_row.get("status") or "").strip()
-        if not sleeper_team or sleeper_status in EXCLUDED_SLEEPER_STATUSES:
+        out.at[idx, "_projection_injury_status"] = str(sleeper_row.get("injury_status") or "")
+        if sleeper_status == "Inactive" and not out.at[idx, "_projection_injury_status"]:
+            out.at[idx, "_projection_injury_status"] = "Inactive"
+        rostered_inactive = sleeper_status == "Inactive" and bool(sleeper_row.get("_projection_rostered", False))
+        if not sleeper_team or (sleeper_status in EXCLUDED_SLEEPER_STATUSES and not rostered_inactive):
             keep_mask.append(False)
             removed_unrostered += 1
             continue
@@ -949,11 +956,12 @@ def apply_sleeper_roster_overlay(
 
     rookies_added = 0
     emerging_added = 0
-    if (add_rookies or add_emerging or add_missing) and not out.empty:
+    if add_rookies or add_emerging or add_missing:
         allowed = _sleeper_positions_for(position)
-        season_val = int(season or out["season"].iloc[0])
+        template_pool = out if not out.empty else roster_df
+        season_val = int(season or template_pool["season"].iloc[0])
         week_val = int(target_week)
-        template, medians = _backup_feature_template(out, position)
+        template, medians = _backup_feature_template(template_pool, position)
 
         extra_rows: list[pd.Series] = []
         if "years_exp" in sleeper_df.columns:
@@ -969,7 +977,9 @@ def apply_sleeper_roster_overlay(
             candidates = sleeper_df[
                 sleeper_df["position"].isin(allowed)
                 & sleeper_df["team"].astype(str).str.strip().astype(bool)
-                & (~sleeper_df["status"].fillna("").isin(EXCLUDED_SLEEPER_STATUSES))
+                & (~sleeper_df["status"].fillna("").isin(EXCLUDED_SLEEPER_STATUSES)
+                   | (sleeper_df["status"].eq("Inactive")
+                      & sleeper_df.get("_projection_rostered", pd.Series(False, index=sleeper_df.index)).fillna(False)))
                 & mask
             ]
             for _, sleeper_row in candidates.iterrows():

@@ -232,7 +232,8 @@ export default function useDfsBuilder(projMeta) {
     setSalaries(data.salaries || []);
     setSalarySnapshot(data.salary_snapshot || null);
     setStats(data.stats || null);
-    setPoolFreshness({ checkedAt: Date.now(), refresh: data.meta?.refresh || null, failed: false });
+    setPoolFreshness({ checkedAt: Date.now(), refresh: data.meta?.refresh || null,
+      recovery: data.meta?.projection_recovery, projectionStale: data.meta?.projection_stale, failed: false });
     setSlateName(data.slate?.name || name || "");
     if (background) {
       setNotice(data.meta?.refresh?.stale || data.meta?.refresh?.status === "error" ? C.projectionRefreshFailed : C.liveRefreshed);
@@ -265,6 +266,8 @@ export default function useDfsBuilder(projMeta) {
       ),
     });
     let pending = false;
+    let timer;
+    let checkDelay = 300000;
     const load = (background = false) => {
       if (pending || (background && (document.hidden || activeWork.current))) return;
       pending = true;
@@ -272,6 +275,7 @@ export default function useDfsBuilder(projMeta) {
         signal: abort.signal,
       })
         .then((d) => {
+          checkDelay = ['queued','running','busy'].includes(d.meta?.projection_recovery?.status) ? 5000 : 300000;
           if (!abort.signal.aborted && (!background || !activeWork.current)) {
             acceptPool(d, undefined, background);
             setError("");
@@ -302,9 +306,13 @@ export default function useDfsBuilder(projMeta) {
           if (!abort.signal.aborted && !background) setBusy(false);
         });
     };
-    load();
-    const timer = setInterval(() => load(true), 300000);
-    return () => { clearInterval(timer); abort.abort(); };
+    const schedule = () => {
+      timer = setTimeout(() => {
+        Promise.resolve(load(true)).finally(() => { if (!abort.signal.aborted) schedule(); });
+      }, checkDelay);
+    };
+    Promise.resolve(load()).finally(() => { if (!abort.signal.aborted) schedule(); });
+    return () => { clearTimeout(timer); abort.abort(); };
   }, [
     context.site,
     context.season,

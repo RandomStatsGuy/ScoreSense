@@ -33,10 +33,17 @@ const blocks=teamNames.map((name,i)=>({team:{id:i?'team'+i:'mine',name:params.ha
 const players=Object.fromEntries(blocks.flatMap((b,i)=>b.roster.map((r,j)=>[r.player_id,{remaining_points:100+j*14+i*8,annual_points:160+j*20+i*8}])));
 if(state==='empty')blocks.splice(1);
 blocks[0].roster.push({id:1000,player_id:'cut-player',player_name:'Former Player',position:'WR',salary:50,contract_years:2,roster_status:'cut_before_draft',dead_cap_amount:25,contract:{years_remaining:2}});
-window.fixtureWrites=[];window.fixtureRequests=[];
+window.fixtureWrites=[];window.fixtureRequests=[];window.forecastReads=0;
 window.fetch=async(input,options={})=>{
  const path=String(input);window.fixtureRequests.push(path);
- if(path.endsWith('/trade-outlook'))return Response.json({players:state==='missing'?{}:players,basis:'PPR',week:4,season:2026});
+ if(path.endsWith('/trade-outlook')){
+  window.forecastReads++;
+  if(state==='forecast-error')return Response.json({detail:'Forecast service unavailable'},{status:503});
+  return Response.json({players:state==='missing'||(state==='recovering'&&window.forecastReads===1)?{}:players,
+   missing_player_ids:state==='missing'?['0-0']:[],
+   recovery:{status:state==='recovering'&&window.forecastReads===1?'queued':'idle'},
+   stale:state==='saved',basis:'PPR',week:4,season:2026});
+ }
  if(path.includes('/rosters')){
   if(state==='loading')return new Promise(()=>{});
   if(state==='error')return Response.json({detail:'Roster service unavailable'},{status:503});

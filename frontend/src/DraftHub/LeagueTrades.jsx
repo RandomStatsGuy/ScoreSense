@@ -266,11 +266,31 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
 
   useEffect(()=>{
     const controller=new AbortController();setOutlook(null);
-    if(leagueId)apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trade-outlook`,{signal:controller.signal})
-      .then(async res=>{if(!res.ok)throw new Error('Outlook unavailable');return res.json();})
-      .then(data=>{if(!controller.signal.aborted)setOutlook(data);})
-      .catch(()=>{if(!controller.signal.aborted)setOutlook({players:{}});});
-    return()=>controller.abort();
+    let timer;
+    const load = async () => {
+      if (controller.signal.aborted || !leagueId) return;
+      let delay = 60000;
+      try {
+        const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trade-outlook`,{signal:controller.signal});
+        if (!res.ok) throw new Error(await parseApiError(res));
+        const data = await res.json();
+        if (controller.signal.aborted) return;
+        setOutlook(data);
+        if (['queued','running','busy'].includes(data.recovery?.status)) delay = 5000;
+      } catch (error) {
+        if (!controller.signal.aborted) setOutlook(previous => ({...previous,players:previous?.players||{},error:true}));
+      }
+      if (!controller.signal.aborted) timer = setTimeout(() => {
+        const check = () => {
+          if (controller.signal.aborted) return;
+          if (document.visibilityState === 'hidden') timer = setTimeout(check, 60000);
+          else load();
+        };
+        check();
+      }, delay);
+    };
+    load();
+    return()=>{controller.abort();clearTimeout(timer);};
   },[leagueId]);
 
   const loadProposals = useCallback(async (signal) => {
@@ -1107,7 +1127,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
 
       {tab==='builder'&&!loading&&!error&&<div className="ss-trade-builder" id="trades-panel-builder">
        {builderStep==='partner'?<>
-        {teams.filter(t=>t.id!==myTeamId).length?<TradeDiscovery teams={teams} myTeamId={myTeamId} rosterByTeam={rosterByTeam} statsByTeam={statsByTeam} salaryCap={capLimit} salaryLeague={salaryLeague} ranks={positionRanks} positions={rankPositions} search={partnerSearch} onSearch={setPartnerSearch} onChoose={id=>{setSourceReviewId(null);setParties([emptyParty(myTeamId),emptyParty(id)]);setDeadCapAssignments([]);setSearch('');setBuilderStep('players');}}/>:<div className="hub-insights-empty-state"><p>{formatCopy.noPartners}</p><button type="button" className="btn-primary" onClick={()=>onNavigate?.('office-members')}>{formatCopy.inviteManagers}</button></div>}
+        {teams.filter(t=>t.id!==myTeamId).length?<TradeDiscovery outlook={outlook} teams={teams} myTeamId={myTeamId} rosterByTeam={rosterByTeam} statsByTeam={statsByTeam} salaryCap={capLimit} salaryLeague={salaryLeague} ranks={positionRanks} positions={rankPositions} search={partnerSearch} onSearch={setPartnerSearch} onChoose={id=>{setSourceReviewId(null);setParties([emptyParty(myTeamId),emptyParty(id)]);setDeadCapAssignments([]);setSearch('');setBuilderStep('players');}}/>:<div className="hub-insights-empty-state"><p>{formatCopy.noPartners}</p><button type="button" className="btn-primary" onClick={()=>onNavigate?.('office-members')}>{formatCopy.inviteManagers}</button></div>}
        </>:<>
         <nav className="ss-trade-progress" aria-label="Trade progress"><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>Partner</button><span aria-hidden="true">→</span><span aria-current="step">Players</span><span aria-hidden="true">→</span><span>Review</span></nav>
         <div className="ss-trade-chosen"><strong>{partnerNames.join(' · ')}</strong><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>{DISCOVERY.back}</button></div>
