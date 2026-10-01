@@ -106,10 +106,20 @@ def predict_from_features(
     position: str,
     model_dir: Path | None = None,
     apply_injury_adjustments: bool = True,
+    history: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     bundle = load_model(position, model_dir)
     quantile_models = bundle.get("quantile_models") or {0.5: bundle.get("model")}
     feature_cols = bundle.get("feature_cols")
+    policy = bundle.get("input_policy")
+    if policy:
+        from src.projections.temporal_inputs import inference_inputs
+        if history is None:
+            raise ValueError("Versioned model inputs require completed-game history")
+        df = inference_inputs(df, history, _normalize_position(position), policy)
+    if feature_cols and any(c in feature_cols for c in ("fp_consensus_ppr", "fp_ecr")):
+        from src.integrations.fantasypros_enrich import attach_target_week_consensus
+        df = attach_target_week_consensus(df, _normalize_position(position))
     X = prepare_feature_matrix(
         df,
         position,
@@ -195,6 +205,7 @@ def predict_upcoming_week(
         position,
         model_dir,
         apply_injury_adjustments=apply_injury_adjustments,
+        history=df,
     )
 
     from src.integrations.sleeper import apply_vet_backup_projection_scale

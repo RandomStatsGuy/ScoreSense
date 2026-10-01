@@ -107,6 +107,7 @@ def _load_or_predict_weekly(
             position,
             model_dir,
             apply_injury_adjustments=apply_injury_adjustments,
+            history=df,
         )
         weekly = apply_vet_backup_projection_scale(weekly, roster)
     return weekly

@@ -108,6 +108,7 @@ CACHE_DIR = DATA_DIR / "cache"
 
 LEGACY_MODEL_DIR = PROJECT_ROOT / "legacy" / "data" / "Model"
 MODEL_DIR = PROJECT_ROOT / "artifacts" / "models" / "v2"
+PROJECTION_MODEL_GATES_DIR = PROJECT_ROOT / "artifacts" / "evaluations" / "model_gates"
 LEGACY_PREDICTIONS_DIR = PROJECT_ROOT / "legacy" / "data" / "Predictions"
 PREDICTIONS_DIR = PROJECT_ROOT / "artifacts" / "predictions"
 DRAFT_POOL_DIR = PROJECT_ROOT / "artifacts" / "draft_pool"

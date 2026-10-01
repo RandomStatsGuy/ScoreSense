@@ -34,12 +34,26 @@ def build_quantile_regressor(
     )
 
 
+def training_specification(config: TrainingConfig, position: str) -> dict:
+    """Freeze effective fit parameters and implementation version for a gate."""
+    import sklearn
+    from src.config import BOOM_THRESHOLDS
+
+    overrides = config.resolve_regressor_overrides_by_alpha()
+    return {"sklearn_version": sklearn.__version__, "backend": config.p50_backend,
+        "boom_weight_p90": config.boom_weight_p90,
+        "boom_threshold": BOOM_THRESHOLDS.get(position, 20.),
+        "regressors": {str(q): build_quantile_regressor(q, **overrides.get(q, {})).get_params()
+                       for q in DEFAULT_QUANTILES}}
+
+
 def train_quantile_models(
     X: pd.DataFrame,
     y: np.ndarray,
     quantiles: tuple[float, ...] = DEFAULT_QUANTILES,
     training_config: TrainingConfig | None = None,
     position: str = "wr",
+    feature_cols_by_alpha: dict[float, list[str]] | None = None,
 ) -> Dict[float, GradientBoostingRegressor]:
     """
     Train one GBR per quantile level.
@@ -59,7 +73,8 @@ def train_quantile_models(
             fit_kwargs["sample_weight"] = sample_weights_by_alpha[alpha]
         overrides = regressor_overrides_by_alpha.get(alpha, {})
         model = build_quantile_regressor(alpha, **overrides)
-        model.fit(X, y, **fit_kwargs)
+        model_X = X.loc[:, feature_cols_by_alpha[alpha]] if feature_cols_by_alpha and alpha in feature_cols_by_alpha else X
+        model.fit(model_X, y, **fit_kwargs)
         models[alpha] = model
     return models
 
@@ -166,7 +181,11 @@ def predict_quantiles(
     preds = pd.DataFrame(index=X.index)
     for alpha, model in sorted(models.items()):
         col = f"q{int(alpha * 100)}"
-        preds[col] = model.predict(X)
+        # Versioned bundles may retain the long-history tails while giving the
+        # median recent-role features. Respect each fitted head's exact contract.
+        names = getattr(model, "feature_names_in_", None)
+        model_X = X.loc[:, list(names)] if names is not None else X
+        preds[col] = model.predict(model_X)
     preds = repair_quantile_order(preds)
     if "q50" in preds.columns:
         preds["point"] = preds["q50"]

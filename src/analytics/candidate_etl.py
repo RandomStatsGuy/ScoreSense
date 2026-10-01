@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,7 @@ from src.etl.nflverse_etl import (
     _team_targets,
     load_schedules,
     load_weekly_player_stats,
+    load_play_by_play,
 )
 from src.core.features import add_rolling_averages, safe_div
 from src.analytics.ngs_candidate_etl import load_ngs_receiving_weekly, merge_ngs_onto_spine
@@ -44,31 +46,8 @@ def _load_snap_counts(seasons: list[int]) -> pd.DataFrame:
     return agg
 
 
-def _load_pbp_features(seasons: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    nfl = _import_nfl_data_py()
-    pbp = nfl.import_pbp_data(
-        years=seasons,
-        columns=[
-            "season",
-            "week",
-            "posteam",
-            "defteam",
-            "play_type",
-            "pass",
-            "rush",
-            "pass_attempt",
-            "rush_attempt",
-            "complete_pass",
-            "yards_gained",
-            "air_yards",
-            "touchdown",
-            "yardline_100",
-            "receiver_player_id",
-            "rusher_player_id",
-            "pass_oe",
-        ],
-        downcast=True,
-    )
+def _load_pbp_features(seasons: list[int], pbp: pd.DataFrame | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    pbp = load_play_by_play(seasons) if pbp is None else pbp
     pbp = pbp[pbp["play_type"].isin(["pass", "run"])].copy()
     pass_plays = pbp[pbp["pass_attempt"] == 1].copy()
     pass_plays["is_deep"] = pass_plays["air_yards"] >= 20
@@ -233,19 +212,25 @@ def build_candidate_features(
     position: str,
     seasons: list[int] | None = None,
     output_dir: Path | None = None,
+    *,
+    weekly: pd.DataFrame | None = None,
+    schedules: pd.DataFrame | None = None,
+    pbp: pd.DataFrame | None = None,
+    snap_counts: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     seasons = seasons or DEFAULT_ETL_SEASONS
     output_dir = output_dir or CANDIDATE_DATA_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    weekly = load_weekly_player_stats(seasons)
-    schedules = load_schedules(seasons)
-    team_week, opp_week, player_pbp = _load_pbp_features(seasons)
+    weekly = load_weekly_player_stats(seasons) if weekly is None else weekly
+    schedules = load_schedules(seasons) if schedules is None else schedules
+    team_week, opp_week, player_pbp = _load_pbp_features(seasons, pbp=pbp)
     implied = _schedule_implied_totals(schedules)
 
     try:
-        snaps = _load_snap_counts(seasons)
-    except Exception:
+        snaps = _load_snap_counts(seasons) if snap_counts is None else snap_counts
+    except Exception as exc:
+        print(f"Snap source unavailable; retaining missing observations: {exc}")
         snaps = pd.DataFrame(columns=["season", "week", "player_id", "offense_snaps", "offense_pct"])
 
     df = _position_filter(weekly, position)
@@ -328,7 +313,12 @@ def build_candidate_features(
     out = df[list(dict.fromkeys(keep))].copy()
 
     path = output_dir / f"candidate_features_{position}.parquet"
-    write_parquet(out, path)
+    temporary = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+    try:
+        write_parquet(out, temporary)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
     print(f"Wrote {position} candidates: {len(out):,} rows -> {path}")
     return out
 

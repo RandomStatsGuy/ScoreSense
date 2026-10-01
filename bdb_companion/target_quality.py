@@ -22,19 +22,20 @@ def _import_nfl_data_py():
     return nfl
 
 
-def build_pbp_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
+def build_pbp_target_quality(seasons: list[int] | None = None, pbp: pd.DataFrame | None = None) -> pd.DataFrame:
     """Fallback target quality from nflverse play-by-play (pre-NGS)."""
     seasons = seasons or DEFAULT_ETL_SEASONS
-    nfl = _import_nfl_data_py()
-
-    pbp = nfl.import_pbp_data(
-        years=seasons,
-        columns=[
-            "season", "week", "receiver_player_id", "receiver",
-            "air_yards", "cpoe", "epa", "xyac_epa", "pass_touchdown", "pass",
-        ],
-        downcast=True,
-    )
+    if pbp is None:
+        nfl = _import_nfl_data_py()
+        pbp = nfl.import_pbp_data(
+            years=seasons,
+            columns=[
+                "season", "week", "receiver_player_id", "receiver",
+                "air_yards", "cpoe", "epa", "xyac_epa", "pass_touchdown", "pass",
+            ],
+            include_participation=False,
+            downcast=False,
+        )
     pbp = pbp[pbp["receiver_player_id"].notna() & (pbp["pass"] == 1)].copy()
     pbp["target_quality_raw"] = (
         pbp["air_yards"].fillna(0) * 0.05
@@ -44,8 +45,9 @@ def build_pbp_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
     )
 
     agg = (
-        pbp.groupby(["season", "week", "receiver_player_id", "receiver"], as_index=False)
+        pbp.groupby(["season", "week", "receiver_player_id"], as_index=False)
         .agg(
+            receiver=("receiver", "first"),
             targets=("pass", "count"),
             avg_air_yards=("air_yards", "mean"),
             avg_cpoe=("cpoe", "mean"),
@@ -54,6 +56,9 @@ def build_pbp_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
         )
         .rename(columns={"receiver_player_id": "player_id"})
     )
+    # Keep a source observation whose scale is independent of future seasons.
+    # Legacy score remains for legacy bundles; new policies use the raw average.
+    agg["target_quality_raw"] = agg["target_quality_score"]
     std = agg["target_quality_score"].std()
     if std and std > 0:
         agg["target_quality_score"] = (
@@ -63,16 +68,19 @@ def build_pbp_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
     return agg
 
 
-def build_target_quality(seasons: list[int] | None = None) -> pd.DataFrame:
+def build_target_quality(seasons: list[int] | None = None, pbp: pd.DataFrame | None = None) -> pd.DataFrame:
     """Prefer NGS tracking features; fall back to pbp proxies."""
     ngs = build_ngs_features()
     if not ngs.empty:
         ngs = ngs.copy()
+        raw = build_pbp_target_quality(seasons, pbp=pbp)
+        ngs = ngs.merge(raw[["player_id", "season", "week", "target_quality_raw"]],
+                        on=["player_id", "season", "week"], how="outer", validate="one_to_one")
         ngs["data_source"] = "ngs_tracking"
         if "receiver" not in ngs.columns:
             ngs["receiver"] = ngs["player_id"]
         return ngs
-    return build_pbp_target_quality(seasons)
+    return build_pbp_target_quality(seasons, pbp=pbp)
 
 
 def merge_target_quality_into_wr_features(
@@ -89,15 +97,19 @@ def merge_target_quality_into_wr_features(
         c
         for c in (
             "target_quality_score",
+            "target_quality_raw",
             "separation_at_throw",
             "defender_closing_speed",
         )
         if c in tq.columns
     ]
-    merged = wr_df.merge(tq[merge_cols + metric_cols], on=merge_cols, how="left")
+    if tq.duplicated(merge_cols).any():
+        raise ValueError("Target quality contains duplicate player-game keys")
+    merged = wr_df.merge(tq[merge_cols + metric_cols], on=merge_cols, how="left", validate="many_to_one")
 
     for col in metric_cols:
         merged[col] = merged[col].fillna(0)
+        merged[f"{col}_lead"] = merged[col]
         merged = add_rolling_averages(merged, "player_id", [col])
         if col == "target_quality_score" and "target_quality_score_avg" in merged.columns:
             merged["target_quality_avg"] = merged["target_quality_score_avg"]
@@ -106,7 +118,8 @@ def merge_target_quality_into_wr_features(
         if col == "defender_closing_speed" and "defender_closing_speed_avg" in merged.columns:
             pass
 
-    return merged.fillna(0)
+    # A missing snap observation must remain missing after this unrelated merge.
+    return merged
 
 
 def save_target_quality_report(output_dir: Path | None = None) -> Path:

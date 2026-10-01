@@ -4,7 +4,7 @@ import hashlib
 
 from src.config import CACHE_DIR, ROOKIE_ROLE_OVERRIDES_PATH
 
-PROJECTION_INPUT_POLICY = "completed_profiles_current_roles_v1"
+PROJECTION_INPUT_POLICY = "completed_profiles_current_roles_exact_week_consensus_v2"
 
 
 def projection_input_revisions() -> list[str]:
@@ -15,4 +15,8 @@ def projection_input_revisions() -> list[str]:
     if schedule.exists():
         stat = schedule.stat()
         parts.append(f"schedule:{stat.st_mtime_ns}:{stat.st_size}")
+    consensus = CACHE_DIR / "fantasypros" / "revision.txt"
+    if consensus.exists():
+        stat = consensus.stat()
+        parts.append(f"consensus:{stat.st_mtime_ns}:{stat.st_size}")
     return parts

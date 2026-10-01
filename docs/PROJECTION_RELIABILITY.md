@@ -1,5 +1,9 @@
 # Projection reliability repair — 2026-10-01
 
+The subsequent rebuild, qualified recent-form models and service coverage replay
+are documented in [Pregame rebuild](PROJECTION_PREGAME_REBUILD.md). The results
+below describe the first repair, before that rebuild.
+
 This first repair fixes shared input construction and role handling. It does
 not replace the production model bundles or establish that the rankings and
 point scale are calibrated. Weekly, DFS, Fantasy, preseason and ROS consumers
