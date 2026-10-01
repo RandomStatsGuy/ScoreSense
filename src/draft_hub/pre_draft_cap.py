@@ -53,6 +53,9 @@ def pre_draft_cut_dead_cap_at_offset(
         return 0.0
     if year_offset != 0:
         return 0.0
+    stored = (row.get("contract") or {}).get("dead_cap_amount")
+    if stored is not None:
+        return float(stored)
     sal = cap_hit(row, 0)
     if sal <= 0:
         return 0.0
@@ -91,7 +94,11 @@ def contract_on_cut_status_change(
         contract["cut_dead_cap_years"] = 1
         return contract
     if roster_status == ROSTER_ACTIVE:
+        if contract.get("dead_cap_transferred") or contract.get("dead_cap_sources"):
+            raise ValueError("Transferred dead cap cannot be undone as a player cut")
         contract.pop("cut_dead_cap_years", None)
+        contract.pop("dead_cap_amount", None)
+        contract.pop("dead_cap_sources", None)
         return contract
     return None
 
@@ -237,6 +244,7 @@ def pre_draft_cap_summary(
                 "cut_refund_pct": float(rules.contracts.cut_refund_pct),
                 "can_undo_cut": row.get("can_undo_cut", True),
                 "claimed_by_owner": row.get("claimed_by_owner"),
+                "contract": row.get("contract"),
             }
             for row in cuts
         ],

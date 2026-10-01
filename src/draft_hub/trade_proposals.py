@@ -101,7 +101,16 @@ def normalize_parties(
                 sends_out.append({"player_id": pid, "to_team_id": to_id})
         drops = [str(d if isinstance(d, str) else d.get("player_id")) for d in (party.get("drops") or [])]
         drops = [d for d in drops if d]
-        norm.append({"team_id": tid, "sends": sends_out, "drops": drops})
+        transfers = []
+        for leg in party.get("dead_cap_transfers") or []:
+            to_id = str(leg.get("to_team_id") or "")
+            if to_id not in team_ids or to_id == tid:
+                raise ValueError("Dead-cap recipient must be another team in the trade")
+            transfers.append({"roster_slot_id": int(leg["roster_slot_id"]),
+                              "player_id": str(leg["player_id"]), "to_team_id": to_id,
+                              "amount": float(leg["amount"])})
+        norm.append({"team_id": tid, "sends": sends_out, "drops": drops,
+                     "dead_cap_transfers": transfers})
 
     assignments = list(dead_cap_assignments or [])
     drop_keys: set[tuple[str, str]] = set()
@@ -149,6 +158,8 @@ def simulate_rosters(
     owner: dict[str, str] = {}
     for tid, rows in sim.items():
         for r in rows:
+            if not is_active_for_pre_draft(r):
+                continue
             owner[str(r["player_id"])] = tid
 
     # Apply sends
@@ -160,7 +171,7 @@ def simulate_rosters(
             if owner.get(pid) != from_tid:
                 raise ValueError(f"Player {pid} is not on team {from_tid}")
             rows = sim[from_tid]
-            idx = next(i for i, r in enumerate(rows) if str(r["player_id"]) == pid)
+            idx = next(i for i, r in enumerate(rows) if str(r["player_id"]) == pid and is_active_for_pre_draft(r))
             row = rows.pop(idx)
             row["team_id"] = to_tid
             sim[to_tid].append(row)
@@ -178,7 +189,7 @@ def simulate_rosters(
             if owner.get(pid) != from_tid:
                 raise ValueError(f"Drop {pid} is not on team {from_tid}")
             rows = sim[from_tid]
-            idx = next(i for i, r in enumerate(rows) if str(r["player_id"]) == pid)
+            idx = next(i for i, r in enumerate(rows) if str(r["player_id"]) == pid and is_active_for_pre_draft(r))
             row = rows.pop(idx)
             assignee = assign_map.get((from_tid, pid), from_tid)
             amount = drop_dead_cap_amount(rules, row)
@@ -192,7 +203,17 @@ def simulate_rosters(
             sim[assignee].append(row)
             owner[pid] = assignee
 
-    return sim
+    from src.draft_hub.dead_cap_transfers import transfer_obligation
+    all_rows = [r for rows in sim.values() for r in rows]
+    season = int((storage.get_league(league_id) or {}).get("season") or 0)
+    seen_obligations = set()
+    for party in parties:
+        for leg in party.get("dead_cap_transfers") or []:
+            if leg["roster_slot_id"] in seen_obligations:
+                raise ValueError("Choose one recipient per dead-cap obligation")
+            seen_obligations.add(leg["roster_slot_id"])
+            transfer_obligation(all_rows, leg, from_team_id=party["team_id"], rules=rules, season=season)
+    return {tid: [r for r in all_rows if r["team_id"] == tid] for tid in team_ids}
 
 
 def validate_simulated_trade(
@@ -238,12 +259,6 @@ def validate_simulated_trade(
             continue
 
         spent = sum(float(cap_hit(r, 0) or 0) for r in scoped)
-        if draft_completed:
-            remaining = float(rules.salary_cap) - spent
-            if remaining < -0.01:
-                errors.append(f"{label}: over cap by ${abs(remaining):.0f}")
-            continue
-
         cuts = [r for r in rows if str(r.get("roster_status")) == ROSTER_CUT_BEFORE_DRAFT]
         dead = total_pre_draft_dead_cap(rules, cuts, year_offset=0)
         remaining = float(rules.salary_cap) - spent - dead
@@ -284,7 +299,15 @@ def validate_trade_package(
         raise ValueError("League not found")
     rules = LeagueRules.model_validate(league["rules"])
     capabilities = league_capabilities(rules)
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+    if resolve_sleeper_league_id(league_id) and any(p.get("drops") for p in parties):
+        raise ValueError("Cut players in Sleeper and record their cut in Roster management before trading existing dead cap")
     norm, assignments = normalize_parties(parties, dead_cap_assignments=dead_cap_assignments)
+    league_team_ids = {str(t["id"]) for t in storage.list_league_teams(league_id)}
+    if any(p["team_id"] not in league_team_ids for p in norm):
+        raise ValueError("Every trade participant must belong to this league")
+    if rules.draft_type != "auction" and any(p["dead_cap_transfers"] for p in norm):
+        raise ValueError("Dead-cap transfers are available only in salary leagues")
     assignments = (
         enrich_dead_cap_amounts(rules, league_id, norm, assignments)
         if capabilities["uses_salaries"]
@@ -320,6 +343,8 @@ def validate_trade_package(
         owned: dict[str, dict[str, Any]] = {}
         for rows in by_team.values():
             for row in rows:
+                if not is_active_for_pre_draft(row):
+                    continue
                 pid = str(row.get("player_id") or "")
                 if pid:
                     owned[pid] = row
@@ -383,8 +408,24 @@ def execute_multiparty_trade(
     dead_cap_assignments: list[dict[str, Any]] | None = None,
     *,
     proposal_id: str | None = None,
+    sleeper_confirmed: bool = False,
 ) -> dict[str, Any]:
     """Hard-validate then apply transfers + drops. Raises ValueError on failure."""
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+    linked = bool(resolve_sleeper_league_id(league_id))
+    expected_owners = []
+    synced_parties = parties if linked and sleeper_confirmed else None
+    if linked and any(p.get("sends") or p.get("drops") for p in parties):
+        if not sleeper_confirmed:
+            raise ValueError("Player moves must be completed in Sleeper and confirmed by sync")
+        by_team = storage.list_league_rosters_by_team(league_id)
+        for party in parties:
+            for leg in party.get("sends") or []:
+                expected_owners.append({"player_id": leg["player_id"], "team_id": leg["to_team_id"]})
+                if not any(str(r["player_id"]) == str(leg["player_id"]) and is_active_for_pre_draft(r)
+                           for r in by_team.get(leg["to_team_id"], [])):
+                    raise ValueError("Sleeper player destinations do not match this proposal; sync the league first")
+        parties = [{**p, "sends": []} for p in parties]
     check = validate_trade_package(league_id, parties, dead_cap_assignments)
     if not check["ok"]:
         raise ValueError("; ".join(check["errors"]) or "Trade failed validation")
@@ -418,30 +459,42 @@ def execute_multiparty_trade(
             slot = storage.get_roster_slot(ws_id, pid)
             if not slot or str(slot.get("team_id")) != from_tid:
                 raise ValueError(f"Drop {pid} not on expected team")
+            cut_contract = contract_on_cut_status_change(slot, roster_status=ROSTER_CUT_BEFORE_DRAFT)
+            if assignee != from_tid:
+                amount = drop_dead_cap_amount(rules, slot)
+                cut_contract.update({"dead_cap_amount": amount, "dead_cap_transferred": True,
+                    "dead_cap_sources": [{"origin_slot_id": slot["id"], "origin_team_id": from_tid,
+                        "player_id": pid, "player_name": slot.get("player_name"), "season": int(league["season"]),
+                        "amount": amount, "history": [{"from_team_id": from_tid, "to_team_id": assignee,
+                            "amount": amount, "season": int(league["season"]), "proposal_id": proposal_id}]}]})
             moves.append(
                 {
                     "player_id": pid,
                     "from_team_id": from_tid,
                     "team_id": assignee,
                     "roster_status": ROSTER_CUT_BEFORE_DRAFT,
-                    "contract": contract_on_cut_status_change(
-                        slot, roster_status=ROSTER_CUT_BEFORE_DRAFT
-                    ),
+                    "contract": cut_contract,
                 }
             )
 
     team_ids = _party_team_ids(norm)
+    log_parties = synced_parties or norm
     storage.apply_trade_plan(
         ws_id,
         moves,
+        dead_cap_parties=norm,
+        dead_cap_rules=rules,
+        dead_cap_season=int(league["season"]),
+        proposal_id=proposal_id,
+        expected_owners=expected_owners,
         trade_log={
             "league_id": league_id,
             "team_a_id": team_ids[0],
             "team_b_id": team_ids[1] if len(team_ids) > 1 else team_ids[0],
-            "send_a": [s["player_id"] for p in norm for s in p["sends"] if p["team_id"] == team_ids[0]],
-            "send_b": [s["player_id"] for p in norm for s in p["sends"] if p["team_id"] != team_ids[0]],
+            "send_a": [s["player_id"] for p in log_parties for s in p.get("sends", []) if p["team_id"] == team_ids[0]],
+            "send_b": [s["player_id"] for p in log_parties for s in p.get("sends", []) if p["team_id"] != team_ids[0]],
             "proposal_id": proposal_id,
-            "parties": norm,
+            "parties": log_parties,
             "dead_cap_assignments": assignments,
         },
     )
@@ -499,12 +552,23 @@ def propose_trade(
     parties: list[dict[str, Any]],
     dead_cap_assignments: list[dict[str, Any]] | None = None,
     note: str | None = None,
+    source_review_id: str | None = None,
 ) -> dict[str, Any]:
+    if source_review_id:
+        review = storage.get_trade_proposal(source_review_id)
+        if not review or review["league_id"] != league_id or review["status"] != "cap_review":
+            raise ValueError("Sleeper cap review is no longer open")
+        if any(p.get("sends") or p.get("drops") for p in parties):
+            raise ValueError("Synced player moves are already complete; record cap terms only")
+        if {p["team_id"] for p in parties} != {p["team_id"] for p in review["parties"]}:
+            raise ValueError("Cap terms must include every team in the Sleeper review")
     check = validate_trade_package(league_id, parties, dead_cap_assignments)
     if not check["ok"]:
         raise ValueError("; ".join(check["errors"]))
     team_ids = _party_team_ids(check["parties"])
-    if proposer_team_id not in team_ids:
+    league = storage.get_league(league_id) or {}
+    commissioner_review = bool(source_review_id and created_by_sub == league.get("commissioner_sub"))
+    if proposer_team_id not in team_ids and not commissioner_review:
         raise ValueError("Your team must be a party to the trade")
     acceptances = {tid: ("accepted" if tid == proposer_team_id else "pending") for tid in team_ids}
     return storage.create_trade_proposal(
@@ -515,6 +579,7 @@ def propose_trade(
         acceptances=acceptances,
         note=note,
         status="pending",
+        source_review_id=source_review_id,
     )
 
 
@@ -547,6 +612,9 @@ def respond_to_proposal(
     acceptances[team_id] = "accepted"
     updated = storage.update_trade_proposal(proposal_id, acceptances=acceptances)
     if updated and all(acceptances.get(tid) == "accepted" for tid in team_ids):
+        from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+        if resolve_sleeper_league_id(prop["league_id"]) and any(p.get("sends") for p in prop["parties"]):
+            return storage.update_trade_proposal(proposal_id, status="awaiting_sleeper", acceptances=acceptances)
         # Auto-execute when unanimous
         try:
             execute_multiparty_trade(
@@ -562,6 +630,8 @@ def respond_to_proposal(
                 acceptances=acceptances,
                 note=f"Accepted but execute failed: {exc}",
             ) or updated
+        if prop.get("source_review_id"):
+            storage.update_trade_proposal(prop["source_review_id"], status="reviewed")
         return storage.update_trade_proposal(
             proposal_id, status="executed", acceptances=acceptances
         ) or updated
@@ -587,6 +657,8 @@ def force_execute_proposal(
         prop["dead_cap_assignments"],
         proposal_id=proposal_id,
     )
+    if prop.get("source_review_id"):
+        storage.update_trade_proposal(prop["source_review_id"], status="reviewed")
     team_ids = _party_team_ids(prop["parties"])
     acceptances = {tid: "accepted" for tid in team_ids}
     return storage.update_trade_proposal(
@@ -598,7 +670,7 @@ def cancel_proposal(proposal_id: str, *, user_sub: str, is_commissioner: bool) -
     prop = storage.get_trade_proposal(proposal_id)
     if not prop:
         raise ValueError("Proposal not found")
-    if prop["status"] != "pending":
+    if prop["status"] not in {"pending", "awaiting_sleeper"}:
         raise ValueError(f"Cannot cancel a {prop['status']} proposal")
     if is_commissioner or str(prop.get("created_by_sub")) == str(user_sub):
         return storage.update_trade_proposal(proposal_id, status="cancelled") or prop
