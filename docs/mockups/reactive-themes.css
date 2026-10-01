@@ -52,6 +52,7 @@ legend { padding:0; margin-bottom:var(--space-2); font-size:var(--text-sm); font
 .scene-stage { position:relative; isolation:isolate; height:280px; }
 .scene-stage svg { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:min(100%,420px); height:auto; aspect-ratio:420/270; overflow:visible; }
 .scene-ground { opacity:.8; }
+.scene-drag-area { position:absolute; z-index:2; pointer-events:none; border:1px dashed color-mix(in srgb,var(--accent) 65%,transparent); background:color-mix(in srgb,var(--accent) 5%,transparent); border-radius:6px; }
 .scene-interaction { position:absolute; z-index:4; width:var(--control-h-lg); height:var(--control-h-lg); padding:0; margin:-22px 0 0 -22px; border:1px dashed transparent; border-radius:50%; background:transparent; touch-action:none; cursor:grab; }
 .scene-interaction:hover,.scene-interaction:focus-visible { background:color-mix(in srgb,var(--bg-elevated) 28%,transparent); border-color:var(--accent); }
 .scene-interaction:active { cursor:grabbing; transform:none; }
@@ -66,6 +67,10 @@ legend { padding:0; margin-bottom:var(--space-2); font-size:var(--text-sm); font
 .playing .companion-paw { transform:rotate(-24deg) translateY(-3px); }
 .playing .companion-arm { transform:translateY(-5px) rotate(-5deg); transform-origin:center; transform-box:fill-box; }
 .playing .companion-head { transform:rotate(-3deg); transform-box:fill-box; transform-origin:50% 85%; }
+.snack-grin { display:none; }
+.snack-happy .snack-grin { display:block; }
+.snack-happy .snack-smile { display:none; }
+.snack-happy .snack-hand { transform:translate(4px,-8px); }
 .appearance-details { padding:var(--space-3); background:var(--bg-subtle); border-radius:var(--radius-md); font-size:var(--text-sm); }
 .appearance-details summary { cursor:pointer; display:flex; align-items:center; min-height:var(--control-h-lg); }
 .preview-footnote { font-size:var(--text-xs); color:var(--text-muted); line-height:1.5; margin:var(--space-4) 0 0; }
