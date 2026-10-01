@@ -57,6 +57,12 @@ def test_list_roster_skips_live_sleeper_by_default(hub_db, monkeypatch):
 
 
 def test_value_overlay_requires_warm_pool(hub_client, hub_db, monkeypatch):
+    import pandas as pd
+    monkeypatch.setattr("src.draft_hub.value_sheet.load_draft_pool", lambda *_a, **_k: pd.DataFrame([
+        {"player_id": "p1", "Player": "Player One", "Position": "WR", "Team": "KC", "Season Proj": 200}
+    ]))
+    monkeypatch.setattr("src.integrations.roster_identity.apply_roster_identity_with_attrs", lambda frame, *_a, **_k: frame)
+    monkeypatch.setattr("src.draft_hub.value_sheet.load_k_def_rows", lambda *_a, **_k: [])
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
     from src.draft_hub.value_sheet import invalidate_pool_payload_cache
 
@@ -74,7 +80,12 @@ def test_value_overlay_requires_warm_pool(hub_client, hub_db, monkeypatch):
     assert body.get("hub_context")
 
 
-def test_peek_pool_payload_cache_after_build(hub_db):
+def test_peek_pool_payload_cache_after_build(hub_db, monkeypatch):
+    import pandas as pd
+    monkeypatch.setattr("src.draft_hub.value_sheet.load_draft_pool", lambda *_a, **_k: pd.DataFrame([
+        {"player_id": "p1", "Player": "Player One", "Position": "WR", "Team": "KC", "Season Proj": 200}
+    ]))
+    monkeypatch.setattr("src.draft_hub.value_sheet.load_k_def_rows", lambda *_a, **_k: [])
     from src.draft_hub.value_sheet import invalidate_pool_payload_cache
 
     invalidate_pool_payload_cache()

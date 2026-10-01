@@ -6,6 +6,7 @@ import json
 import re
 import sqlite3
 import threading
+import time
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -888,6 +889,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         )"""
     )
     _safe_add_column(conn, "league_week_scoring_run", "final", "INTEGER NOT NULL DEFAULT 1")
+    conn.execute("""CREATE TABLE IF NOT EXISTS native_score_refresh (
+        league_id TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending', attempted_at REAL NOT NULL DEFAULT 0,
+        lease_until REAL NOT NULL DEFAULT 0, error TEXT,
+        PRIMARY KEY(league_id, season, week))""")
     conn.execute("""CREATE TABLE IF NOT EXISTS player_season_week (
         source TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
         payload_json TEXT NOT NULL, PRIMARY KEY(source,season,week))""")
@@ -5997,6 +6003,7 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_player_week_score",
             "league_team_week_score",
             "league_week_scoring_run",
+            "native_score_refresh",
             "league_week_correction",
             "team_vibe_aura",
             "insights_cap_cache",
@@ -7000,10 +7007,20 @@ def close_fa_bids_for_player(
             )
 
 
-def get_week_scoring_run(league_id: str, season: int, week: int) -> dict[str, Any] | None:
+def get_native_week_snapshot(league_id: str, season: int, week: int) -> dict[str, Any]:
+    """One SQLite read transaction: never mix totals from different publications."""
+    key = (league_id, int(season), int(week))
     with get_conn() as conn:
-        row = conn.execute("SELECT * FROM league_week_scoring_run WHERE league_id=? AND season=? AND week=?",
-                           (league_id, season, week)).fetchone()
+        conn.execute("BEGIN")
+        run = conn.execute("SELECT * FROM league_week_scoring_run WHERE league_id=? AND season=? AND week=?", key).fetchone()
+        result = {}
+        for name, table in (("lineups", "league_week_lineup"), ("teams", "league_team_week_score"), ("players", "league_player_week_score")):
+            result[name] = [dict(row) for row in conn.execute(f"SELECT * FROM {table} WHERE league_id=? AND season=? AND week=?", key)]
+    result["run"] = _week_scoring_run_dict(run)
+    return result
+
+
+def _week_scoring_run_dict(row) -> dict[str, Any] | None:
     if row is None:
         return None
     result = dict(row)
@@ -7012,7 +7029,15 @@ def get_week_scoring_run(league_id: str, season: int, week: int) -> dict[str, An
     return result
 
 
-def save_native_week_scores(league_id, season, week, player_rows, team_rows, scoring, *, final=True):
+def get_week_scoring_run(league_id: str, season: int, week: int) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM league_week_scoring_run WHERE league_id=? AND season=? AND week=?",
+                           (league_id, season, week)).fetchone()
+    return _week_scoring_run_dict(row)
+
+
+def save_native_week_scores(league_id, season, week, player_rows, team_rows, scoring, *, final=True,
+                            automatic=False, expected_lineups=None, expected_scored_at=None, refresh_lease=None):
     """Publish a calculation and its rules snapshot atomically.
 
     A live in-week snapshot keeps leftover lineup edits open. A final
@@ -7026,6 +7051,20 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
         league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
         if league is None or league["sleeper_league_id"]:
             raise ValueError("Native scoring is unavailable for this league.")
+        if automatic:
+            if refresh_lease is not None:
+                lease = conn.execute("SELECT status,lease_until FROM native_score_refresh WHERE league_id=? AND season=? AND week=?", key).fetchone()
+                if not lease or lease['status'] != 'running' or lease['lease_until'] != refresh_lease or refresh_lease <= time.time():
+                    raise ValueError("Score refresh lease expired; no results were replaced.")
+            run = conn.execute("SELECT final, scoring_json, scored_at FROM league_week_scoring_run WHERE league_id=? AND season=? AND week=?", key).fetchone()
+            if (run and (run["final"] or json.loads(run["scoring_json"]) != scoring)) or (run['scored_at'] if run else None) != expected_scored_at:
+                raise ValueError("Saved results changed during refresh; no results were replaced.")
+        if expected_lineups is not None:
+            rows = conn.execute("SELECT * FROM league_week_lineup WHERE league_id=? AND season=? AND week=?", key).fetchall()
+            def signature(items):
+                return sorted((str(r["team_id"]), str(r["player_id"]), str(r["slot"]), str(r["lineup_role"])) for r in items)
+            if signature(rows) != signature(expected_lineups):
+                raise ValueError("Lineups changed during calculation; retry the refresh.")
         if conn.execute("""SELECT 1 FROM league_week_correction WHERE league_id=? AND season=? AND week=?
                         AND published_at IS NOT NULL AND COALESCE(json_extract(preview_json, '$.mode'), 'results') != 'lineup'""", key).fetchone():
             raise ValueError("This week has a published commissioner correction. Preview a new correction to change its results.")

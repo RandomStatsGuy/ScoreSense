@@ -15,10 +15,17 @@ import "./styles/fantasy-header.css";
 import "./styles/standalone-dialogs.css";
 import "./styles/color-theme.css";
 import "./styles/appearance.css";
+import { startClientVersionWatcher } from "./clientVersion";
+import { startFantasyDiagnostics } from "./fantasyPerformance";
+import FantasyPerformanceListener from "./FantasyPerformanceListener";
+
+startFantasyDiagnostics();
+if (import.meta.env.PROD) startClientVersionWatcher();
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
+      <FantasyPerformanceListener />
       <AnalyticsListener />
       <PageRecoveryBoundary><AuthGate>
         <AppearanceProvider><AppAppearanceLayer><AppRouter /></AppAppearanceLayer></AppearanceProvider>

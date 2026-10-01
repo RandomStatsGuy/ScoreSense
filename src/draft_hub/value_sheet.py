@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import json
-import time
+import copy
+from threading import RLock
 from typing import Any
 
 import pandas as pd
+from src.core.shared_computation import SharedComputation
 
 from src.draft_hub.auction_values import build_player_values
 from src.draft_hub.draft_pool_cache import load_draft_pool
 from src.draft_hub.league_capabilities import uses_contracts
 from src.draft_hub.roster_identity_match import (
-    find_matching_roster_slot,
+    RosterIdentityIndex,
     identity_token_set,
     overlay_identity_from_pool_row,
     roster_identity_tokens,
@@ -21,12 +23,17 @@ from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.tier_generator import generate_tiers
 
-_POOL_PAYLOAD_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
-_POOL_PAYLOAD_TTL_SEC = 900
+from src.draft_hub.value_snapshot import load_snapshot, save_snapshot, source_revision, PoolSnapshotUnavailable
+
+_POOL_PAYLOAD_CACHE: dict[str, tuple[str, dict[str, Any]]] = {}
+_POOL_PAYLOAD_MAX_ENTRIES = 64
+_POOL_PAYLOAD_LOCK = RLock()
+_POOL_PAYLOAD_FLIGHTS = SharedComputation()
 
 
 def invalidate_pool_payload_cache() -> None:
-    _POOL_PAYLOAD_CACHE.clear()
+    with _POOL_PAYLOAD_LOCK:
+        _POOL_PAYLOAD_CACHE.clear()
 
 
 def _pool_payload_cache_key(
@@ -36,9 +43,13 @@ def _pool_payload_cache_key(
     *,
     team_count: int,
 ) -> str:
+    # Defaults may contain ints in float fields; loaded DB rules contain floats.
+    # Canonicalize both so startup and request paths identify the same snapshot.
+    rules = LeagueRules.model_validate(rules.model_dump())
     range_sig = json.dumps(
         sorted(
-            (str(r.get("player_id") or ""), float(r.get("min_sal") or 0), float(r.get("max_sal") or 0))
+            (str(r.get("player_id") or ""), float(r.get("min_sal") or 0), float(r.get("max_sal") or 0),
+             str(r.get("source") or ""), str(r.get("tier") or ""))
             for r in salary_ranges
             if r.get("player_id")
         ),
@@ -125,10 +136,48 @@ def peek_pool_payload_cache(
 ) -> dict[str, Any] | None:
     """Return cached pool payload without building (overlay hot path)."""
     cache_key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
-    cached = _POOL_PAYLOAD_CACHE.get(cache_key)
-    if cached and (time.time() - cached[0]) < _POOL_PAYLOAD_TTL_SEC:
-        return cached[1]
+    revision = source_revision(season)
+    cached = _peek_memory_payload(cache_key, revision)
+    if cached is not None:
+        return cached
+    persisted = _POOL_PAYLOAD_FLIGHTS.run(
+        ("snapshot", cache_key, revision),
+        lambda: _read_snapshot_payload(cache_key, revision),
+    )
+    return copy.deepcopy(persisted) if persisted is not None else None
+
+
+def _read_snapshot_payload(cache_key: str, revision: str) -> dict | None:
+    cached = _peek_memory_payload(cache_key, revision)
+    if cached is not None:
+        return cached
+    persisted = load_snapshot(cache_key, revision)
+    if persisted is not None:
+        _remember_payload(cache_key, revision, persisted)
+        return persisted
     return None
+
+
+def _remember_payload(key: str, revision: str, payload: dict) -> None:
+    isolated = copy.deepcopy(payload)
+    with _POOL_PAYLOAD_LOCK:
+        if key not in _POOL_PAYLOAD_CACHE and len(_POOL_PAYLOAD_CACHE) >= _POOL_PAYLOAD_MAX_ENTRIES:
+            _POOL_PAYLOAD_CACHE.pop(next(iter(_POOL_PAYLOAD_CACHE)))
+        _POOL_PAYLOAD_CACHE[key] = (revision, isolated)
+
+
+def _peek_memory_payload(key: str, revision: str) -> dict | None:
+    with _POOL_PAYLOAD_LOCK:
+        cached = _POOL_PAYLOAD_CACHE.get(key)
+    if cached and cached[0] == revision:
+        return copy.deepcopy(cached[1])
+    return None
+
+
+def read_draft_pool_payload(season: int, rules: LeagueRules, salary_ranges: list[dict[str, Any]],
+                            *, team_count: int = 12) -> dict[str, Any]:
+    """HTTP path: snapshot first; unseen configurations use disk inputs only."""
+    return build_draft_pool_payload(season, rules, salary_ranges, team_count=team_count, artifact_only=True)
 
 
 def build_draft_pool_payload(
@@ -137,6 +186,37 @@ def build_draft_pool_payload(
     salary_ranges: list[dict[str, Any]],
     *,
     team_count: int = 12,
+    artifact_only: bool = False,
+) -> dict[str, Any]:
+    """Share preparation per configuration, source revision, and read authority."""
+    # Freeze inputs before deriving a key; callers cannot change a producer's
+    # rules/ranges while another request joins its result.
+    rules = rules.model_copy(deep=True)
+    salary_ranges = copy.deepcopy(salary_ranges)
+    key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
+    revision = source_revision(season)
+    cached = _peek_memory_payload(key, revision)
+    if cached is not None:
+        return cached
+    # HTTP readers must never join an offline producer allowed to fetch rosters
+    # or run inference. Neither ownership nor viewer data enters this result.
+    result = _POOL_PAYLOAD_FLIGHTS.run(
+        ("build", key, revision, artifact_only),
+        lambda: _build_draft_pool_payload(
+            season, rules, salary_ranges, team_count=team_count,
+            artifact_only=artifact_only,
+        ),
+    )
+    return copy.deepcopy(result)
+
+
+def _build_draft_pool_payload(
+    season: int,
+    rules: LeagueRules,
+    salary_ranges: list[dict[str, Any]],
+    *,
+    team_count: int,
+    artifact_only: bool,
 ) -> dict[str, Any]:
     """
     League-agnostic valuation layer (projections + fair values).
@@ -144,12 +224,19 @@ def build_draft_pool_payload(
     Safe to cache client-side until season, rules, or salary ranges change.
     """
     cache_key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
-    now = time.time()
-    cached = _POOL_PAYLOAD_CACHE.get(cache_key)
-    if cached and (now - cached[0]) < _POOL_PAYLOAD_TTL_SEC:
-        return cached[1]
-
-    pool = load_draft_pool(season)
+    cached = peek_pool_payload_cache(season, rules, salary_ranges, team_count=team_count)
+    if cached is not None:
+        return cached
+    initial_revision = source_revision(season)
+    if artifact_only:
+        from src.integrations.roster_identity import apply_roster_identity_with_attrs
+        pool = load_draft_pool(season, allow_compute=False, apply_identity=False)
+        if pool.empty:
+            raise PoolSnapshotUnavailable("Fantasy projections are unavailable. A projection refresh is required.")
+        pool = apply_roster_identity_with_attrs(pool, None, season=season, week=1, allow_refresh=False)
+    else:
+        pool = load_draft_pool(season)
+    revision = source_revision(season)
     model_values, range_map = _valuation_maps(pool, rules, salary_ranges, team_count=team_count)
 
     rows: list[dict[str, Any]] = []
@@ -200,7 +287,10 @@ def build_draft_pool_payload(
             }
         )
 
-    rows.extend(load_k_def_rows(rules, salary_ranges, team_count=team_count))
+    if artifact_only:
+        rows.extend(load_k_def_rows(rules, salary_ranges, team_count=team_count, allow_fetch=False))
+    else:
+        rows.extend(load_k_def_rows(rules, salary_ranges, team_count=team_count))
     from src.draft_hub.draft_pool_cache import missing_tight_ends, position_counts
     from src.draft_hub.jsonutil import json_safe
 
@@ -227,7 +317,11 @@ def build_draft_pool_payload(
         "pool_warnings": warnings,
         "rows": rows,
     }
-    _POOL_PAYLOAD_CACHE[cache_key] = (now, payload)
+    # A producer may replace inputs while we build. Never label that result as
+    # the new revision; the next read must prepare it from the new inputs.
+    if source_revision(season) == revision and (not artifact_only or initial_revision == revision):
+        _remember_payload(cache_key, revision, payload)
+        save_snapshot(cache_key, revision, payload)
     return payload
 
 
@@ -269,6 +363,8 @@ def build_value_overlay(
     targets = targets or set()
     my_sleeper_tokens = identity_token_set(sleeper_player_ids)
     league_sleeper_tokens = identity_token_set(league_sleeper_player_ids)
+    league_index = RosterIdentityIndex(owned_league, occupying_only=False)
+    mine_index = RosterIdentityIndex(owned_mine, occupying_only=False)
 
     rows: list[dict[str, Any]] = []
     for base in pool_payload.get("rows") or []:
@@ -278,16 +374,8 @@ def build_value_overlay(
         fair_value = base.get("fair_value")
         on_sleeper = bool(pool_tokens & my_sleeper_tokens)
         on_league_sleeper = bool(pool_tokens & league_sleeper_tokens)
-        league_row = find_matching_roster_slot(
-            owned_league,
-            identity,
-            occupying_only=False,
-        )
-        mine_row = find_matching_roster_slot(
-            owned_mine,
-            identity,
-            occupying_only=False,
-        )
+        league_row = league_index.find(identity)
+        mine_row = mine_index.find(identity)
         status, is_available, roster_sal = _player_status(
             pid,
             league_row=league_row,

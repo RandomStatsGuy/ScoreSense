@@ -214,6 +214,15 @@ See also [DEPLOY_VPS.md](./DEPLOY_VPS.md) (nginx/A-record alternative) and [DEPL
 
 ## Retained frontend assets
 
-Use `deploy.ps1` / `deploy/server/deploy-on-server.sh` for releases. Before replacing the running API container, the script archives its exact built assets in the persistent `artifacts/frontend_assets/` directory. The new API serves a missing hashed asset from this archive, preserving open clients across a release. Archived assets are retained for seven days after retirement; expired files are pruned on the next deployment. The shell and service worker continue to revalidate.
+Use `deploy.ps1` / `deploy/server/deploy-on-server.sh` for releases. Before replacing the previous API container, the script archives its exact built assets in the persistent `artifacts/frontend_assets/` directory. Container discovery includes stopped containers: GitHub deployment stops the API for its SQLite backup before invoking this script. The new API serves a missing hashed asset from this archive, preserving open clients across a release. Archived assets are retained for seven days after retirement; expired files are pruned on the next deployment. The shell and service worker continue to revalidate.
 
 A direct `docker compose up --build` bypasses the archive step. This recovery does not repair an asset that was already missing from the running release, and clients older than the retention window may still need to reload. No new JavaScript is substituted under an old hash.
+
+The client release watcher also checks immediately on Vite asset-preload errors.
+On safe pages it can reload once for a transient failure in the same build, or
+move to the current release using its existing bounded version recovery. It
+waits for service-worker update handling and requires a successful version check.
+Hidden pages, protected editable routes, focused inputs, open dialogs, and pending
+API writes block automatic reloads. The page recovery screen retains its manual
+reload action. A same-build failure after the one recovery remains manual; an
+offline version request never triggers a reload loop.

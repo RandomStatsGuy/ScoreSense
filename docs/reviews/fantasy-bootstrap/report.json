@@ -1,0 +1,716 @@
+[
+  {
+    "width": 1280,
+    "moduleStartedBeforeWorkspaceMs": 1200,
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "11 targets ≥ 32"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "diagnostics": [
+      {
+        "event": "session",
+        "visit": null,
+        "destination": null,
+        "build": "dev",
+        "viewport": 1280,
+        "navigation": "navigate"
+      },
+      {
+        "event": "route-start",
+        "visit": 1,
+        "destination": "week"
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 7.5,
+        "status": 200,
+        "transferMs": 2.3,
+        "transferBytes": 360582,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "css",
+        "durationMs": 7.4,
+        "status": 200,
+        "transferMs": 1.6,
+        "transferBytes": 514573,
+        "serverMs": null
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "presets",
+        "method": "GET",
+        "durationMs": 1.1,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 4,
+        "status": 200,
+        "transferMs": 1.3,
+        "transferBytes": 56996,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 3.6,
+        "status": 200,
+        "transferMs": 0.7,
+        "transferBytes": 644,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 6.8,
+        "status": 200,
+        "transferMs": 0.3,
+        "transferBytes": 3476,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 7.2,
+        "status": 200,
+        "transferMs": 0.6,
+        "transferBytes": 1856,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 8.4,
+        "status": 200,
+        "transferMs": 0.7,
+        "transferBytes": 20140,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 8.3,
+        "status": 200,
+        "transferMs": 0.7,
+        "transferBytes": 5150,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 8.9,
+        "status": 200,
+        "transferMs": 0.3,
+        "transferBytes": 2173,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "css",
+        "durationMs": 6.6,
+        "status": 200,
+        "transferMs": 0.2,
+        "transferBytes": 1040,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 9.4,
+        "status": 200,
+        "transferMs": 0.3,
+        "transferBytes": 946,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 9.4,
+        "status": 200,
+        "transferMs": 0.2,
+        "transferBytes": 4425,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "css",
+        "durationMs": 6.6,
+        "status": 200,
+        "transferMs": 0.3,
+        "transferBytes": 22094,
+        "serverMs": null
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "workspace",
+        "method": "GET",
+        "durationMs": 1209.6,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 1.7,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 1.4,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 1.2,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "cap-sheet",
+        "method": "GET",
+        "durationMs": 1.1,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "week",
+        "method": "GET",
+        "durationMs": 0.6,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "live-scoring",
+        "method": "GET",
+        "durationMs": 0.3,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 0.9,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "ready",
+        "visit": 1,
+        "destination": "week",
+        "phase": "lineup",
+        "durationMs": 1346.2,
+        "visibility": "visible"
+      },
+      {
+        "event": "ready",
+        "visit": 1,
+        "destination": "week",
+        "phase": "matchup",
+        "durationMs": 1346.4,
+        "visibility": "visible"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "moduleStartedBeforeWorkspaceMs": 1208,
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": false,
+        "selector": "fantasy-chat-dismiss fantasy-chat-dismiss--on-bubble",
+        "detail": "height=29 < 44"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ],
+    "diagnostics": [
+      {
+        "event": "session",
+        "visit": null,
+        "destination": null,
+        "build": "dev",
+        "viewport": 390,
+        "navigation": "navigate"
+      },
+      {
+        "event": "route-start",
+        "visit": 1,
+        "destination": "week"
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 6.5,
+        "status": 200,
+        "transferMs": 2,
+        "transferBytes": 360582,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "css",
+        "durationMs": 6.7,
+        "status": 200,
+        "transferMs": 1.7,
+        "transferBytes": 514573,
+        "serverMs": null
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "presets",
+        "method": "GET",
+        "durationMs": 0.2,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 4,
+        "status": 200,
+        "transferMs": 1.4,
+        "transferBytes": 56996,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 3.6,
+        "status": 200,
+        "transferMs": 0.6,
+        "transferBytes": 644,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 6.7,
+        "status": 200,
+        "transferMs": 0.7,
+        "transferBytes": 3476,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 7.3,
+        "status": 200,
+        "transferMs": 0.8,
+        "transferBytes": 1856,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 7.6,
+        "status": 200,
+        "transferMs": 0.7,
+        "transferBytes": 20140,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 7.7,
+        "status": 200,
+        "transferMs": 0.7,
+        "transferBytes": 5150,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "css",
+        "durationMs": 6.1,
+        "status": 200,
+        "transferMs": 0.2,
+        "transferBytes": 1040,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 9.5,
+        "status": 200,
+        "transferMs": 0.4,
+        "transferBytes": 2173,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 9.5,
+        "status": 200,
+        "transferMs": 0.4,
+        "transferBytes": 946,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "js",
+        "durationMs": 9.5,
+        "status": 200,
+        "transferMs": 0.3,
+        "transferBytes": 4425,
+        "serverMs": null
+      },
+      {
+        "event": "resource",
+        "visit": 1,
+        "destination": "week",
+        "kind": "css",
+        "durationMs": 6.2,
+        "status": 200,
+        "transferMs": 0.2,
+        "transferBytes": 22094,
+        "serverMs": null
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "workspace",
+        "method": "GET",
+        "durationMs": 1211.6,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 1.6,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 1.3,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 1.3,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "cap-sheet",
+        "method": "GET",
+        "durationMs": 1.2,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "week",
+        "method": "GET",
+        "durationMs": 0.6,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "live-scoring",
+        "method": "GET",
+        "durationMs": 0.3,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "api-headers",
+        "visit": 1,
+        "destination": "week",
+        "kind": "other",
+        "method": "GET",
+        "durationMs": 0.8,
+        "serverMs": 40,
+        "status": 200,
+        "outcome": "response"
+      },
+      {
+        "event": "ready",
+        "visit": 1,
+        "destination": "week",
+        "phase": "lineup",
+        "durationMs": 1357.9,
+        "visibility": "visible"
+      },
+      {
+        "event": "ready",
+        "visit": 1,
+        "destination": "week",
+        "phase": "matchup",
+        "durationMs": 1358,
+        "visibility": "visible"
+      }
+    ]
+  }
+]

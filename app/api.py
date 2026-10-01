@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+import re
 import urllib.parse
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,7 +14,8 @@ from typing import Any, Optional
 import pandas as pd
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from app.hub_http_timing import HubServerTimingMiddleware
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
@@ -139,14 +141,20 @@ from src.projections.ros_cache import load_ros_prediction
 from app.hub_routes import router as hub_router
 from app.admin_routes import router as admin_router
 from app.support_routes import router as support_router
+from src.draft_hub.value_snapshot import PoolSnapshotUnavailable
 from app.auth import admin_configured
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
+    from src.draft_hub.week_context_warmup import warm_fantasy_week_context
+    await asyncio.to_thread(warm_fantasy_week_context)
+    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+    await asyncio.to_thread(warm_fantasy_value_snapshots)
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
+    from app.native_scoring_ticker import native_scoring_ticker_loop
 
     from app.dfs_refresh_ticker import dfs_refresh_ticker_loop
     dfs_ticker = asyncio.create_task(dfs_refresh_ticker_loop(), name="dfs-refresh")
@@ -154,12 +162,13 @@ async def lifespan(app: FastAPI):
     sleeper_ticker = asyncio.create_task(
         sleeper_sync_ticker_loop(), name="sleeper-roster-sync-ticker"
     )
+    scoring_ticker = asyncio.create_task(native_scoring_ticker_loop(), name="native-scoring-ticker")
     try:
         yield
     finally:
-        for task in (ticker, sleeper_ticker, dfs_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
             task.cancel()
-        for task in (ticker, sleeper_ticker, dfs_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
             try:
                 await task
             except asyncio.CancelledError:
@@ -173,6 +182,14 @@ app = FastAPI(
     version="4.0.0",
     lifespan=lifespan,
 )
+
+app.add_middleware(HubServerTimingMiddleware)
+
+
+@app.exception_handler(PoolSnapshotUnavailable)
+async def unavailable_pool_snapshot(_request, exc):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -250,6 +267,19 @@ def _collect_route_paths(routes) -> set[str]:
         if nested:
             paths.update(_collect_route_paths(nested))
     return paths
+
+
+@app.get("/api/client-version")
+def client_version(response: Response) -> dict[str, str]:
+    """Expose the deployed HTML build without letting browser or edge caches retain it."""
+    index = FRONTEND_DIST / "index.html"
+    if not index.is_file():
+        raise HTTPException(status_code=404, detail="Frontend not built")
+    match = re.search(r'<meta name="scoresense-build" content="([a-f0-9-]+)"', index.read_text(encoding="utf-8"))
+    if not match:
+        raise HTTPException(status_code=503, detail="Frontend version unavailable")
+    response.headers.update(_FRONTEND_NO_CACHE_HEADERS)
+    return {"version": match.group(1)}
 
 
 @app.get("/api/health")

@@ -457,6 +457,7 @@ def test_build_command_center_payload(hub_db):
     from src.draft_hub.hub_context import resolve_hub_context
 
     ctx = resolve_hub_context(comm)
+    timings = {}
     with patch(
         "src.draft_hub.weekly_command_center.load_weekly_prediction",
         side_effect=_fake_load,
@@ -467,7 +468,9 @@ def test_build_command_center_payload(hub_db):
         "src.projections.projection_movement.build_projection_movement_payload",
         return_value={"available": False, "changes": [], "meta": {}},
     ):
-        payload = build_weekly_command_center(ctx, season=2026, week=1)
+        payload = build_weekly_command_center(ctx, season=2026, week=1, timings=timings)
+
+    assert {"build.context", "build.roster", "build.projections", "build.enrich", "build.lineup", "build.call_facts", "build.movement"} <= timings.keys()
 
     assert payload["meta"]["season"] == 2026
     assert payload["meta"]["week"] == 1
@@ -548,6 +551,20 @@ def test_league_week_cards_match_sleeper_prefix_both_ways(hub_db, monkeypatch):
     )
     assert cards["4034"]["p50"] == 14.2
     assert cards["sleeper-8151"]["p50"] == 11.0
+
+
+def test_empty_week_skips_context_sources():
+    with patch(
+        "src.draft_hub.weekly_command_center._load_vegas_teams",
+        side_effect=AssertionError("unnecessary Vegas read"),
+    ), patch(
+        "src.draft_hub.weekly_command_center._load_prior_ppg_index",
+        side_effect=AssertionError("unnecessary PPG read"),
+    ), patch(
+        "src.draft_hub.weekly_command_center._load_def_vs_pos",
+        side_effect=AssertionError("unnecessary defense read"),
+    ):
+        assert attach_call_facts([], season=2026, week=1) == []
 
 
 def test_attach_call_facts_uses_injected_vegas_ppg_and_dvp():

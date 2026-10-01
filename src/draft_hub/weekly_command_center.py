@@ -9,6 +9,10 @@ from __future__ import annotations
 
 import math
 import re
+import time
+from collections import OrderedDict
+from copy import deepcopy
+from threading import RLock
 from typing import Any, Iterable
 
 import numpy as np
@@ -68,6 +72,23 @@ _MLREADY_SLIM_CACHE: dict[str, tuple[tuple[str, int], pd.DataFrame]] = {}
 _PRIOR_PPG_CACHE: dict[int, tuple[tuple[str, ...], dict[str, Any]]] = {}
 _DEF_VS_POS_CACHE: dict[tuple[int, int], tuple[tuple[str, ...], dict[tuple[str, str], dict[str, Any]]]] = {}
 _VEGAS_CACHE: dict[tuple[int, int], dict[str, dict[str, Any]]] = {}
+_WEEK_CONTEXT_CACHE: OrderedDict[tuple, tuple[dict, dict]] = OrderedDict()
+_WEEK_CONTEXT_LOCK = RLock()
+
+
+def invalidate_weekly_context_cache() -> None:
+    with _WEEK_CONTEXT_LOCK:
+        _WEEK_CONTEXT_CACHE.clear()
+
+
+def _weekly_context_revision(season: int, week: int, apply_injury: bool) -> tuple:
+    from src.core.artifact_revision import artifact_revision
+    from src.core.schedule_utils import SCHEDULE_CACHE
+    from src.integrations.roster_identity import identity_stamp
+    from src.projections.weekly_cache import _artifact_paths, weekly_fingerprint
+
+    paths = [path for pos in ARTIFACT_POSITIONS for path in _artifact_paths(pos, season, week, apply_injury)]
+    return (season, week, apply_injury, weekly_fingerprint(), identity_stamp(season), artifact_revision(SCHEDULE_CACHE, *paths))
 _MLREADY_SLIM_COLS = (
     "player_id",
     "player_name",
@@ -156,10 +177,46 @@ def _load_projection_index(
     *,
     apply_injury_adjustments: bool,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Shared read model, revised by source files rather than roster or lineup writes.
+
+    All callers receive isolated dictionaries. A single builder per process prevents
+    simultaneous Home, matchup and lineup reads rebuilding the same player context.
+    """
+    revision = _weekly_context_revision(season, week, apply_injury_adjustments)
+    with _WEEK_CONTEXT_LOCK:
+        hit = _WEEK_CONTEXT_CACHE.get(revision)
+        if hit is None:
+            hit = _build_projection_index(season, week, apply_injury_adjustments=apply_injury_adjustments)
+            _WEEK_CONTEXT_CACHE[revision] = hit
+            while len(_WEEK_CONTEXT_CACHE) > 12:
+                _WEEK_CONTEXT_CACHE.popitem(last=False)
+        _WEEK_CONTEXT_CACHE.move_to_end(revision)
+    # Entries contain scalars. Clone each entry once and preserve its aliases.
+    index, meta = hit
+    copies: dict[int, dict] = {}
+    def copy_entry(entry: dict) -> dict:
+        if id(entry) not in copies:
+            copies[id(entry)] = dict(entry)
+        return copies[id(entry)]
+    result_index = {key: copy_entry(entry) for key, entry in index.items()}
+    result_meta = {key: deepcopy(value) for key, value in meta.items() if not key.startswith("_by_")}
+    result_meta["_by_name_team"] = {key: copy_entry(entry) for key, entry in meta.get("_by_name_team", {}).items()}
+    for name in ("_by_name", "_by_roster_name"):
+        result_meta[name] = {key: [copy_entry(entry) for entry in entries] for key, entries in meta.get(name, {}).items()}
+    return result_index, result_meta
+
+
+def _build_projection_index(
+    season: int,
+    week: int,
+    *,
+    apply_injury_adjustments: bool,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Map player_id / name → projection fields from weekly artifacts (no live compute)."""
     index: dict[str, dict[str, Any]] = {}
     by_name_team: dict[str, dict[str, Any]] = {}
     by_name: dict[str, list[dict[str, Any]]] = {}
+    by_roster_name: dict[str, list[dict[str, Any]]] = {}
     built_ats: list[str] = []
     available_positions: list[str] = []
     missing_positions: list[str] = []
@@ -180,7 +237,7 @@ def _load_projection_index(
         if built:
             built_ats.append(str(built))
         ranks = position_rank_map(preds)
-        for _, row in preds.iterrows():
+        for row in preds.to_dict(orient="records"):
             pid = str(row.get("player_id") or "").strip()
             p10 = _pick_num(row, _P10_KEYS)
             p50 = _pick_num(row, _P50_KEYS)
@@ -217,6 +274,9 @@ def _load_projection_index(
                 by_name_team[f"{nk}|{team_key}"] = entry
             if nk:
                 by_name.setdefault(nk, []).append(entry)
+            full_name = roster_name_key(player_name)
+            if full_name:
+                by_roster_name.setdefault(full_name, []).append(entry)
 
     meta = {
         "available": bool(available_positions),
@@ -225,6 +285,7 @@ def _load_projection_index(
         "projections_built_at": max(built_ats) if built_ats else None,
         "_by_name_team": by_name_team,
         "_by_name": by_name,
+        "_by_roster_name": by_roster_name,
     }
     return index, meta
 
@@ -234,6 +295,7 @@ def _lookup_projection(
     proj_index: dict[str, dict[str, Any]],
     by_name_team: dict[str, dict[str, Any]],
     by_name: dict[str, list[dict[str, Any]]],
+    by_roster_name: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     pid = str(slot.get("player_id") or "").strip()
     if pid and pid in proj_index:
@@ -274,7 +336,8 @@ def _lookup_projection(
     pos = normalize_position(slot.get("position"))
     candidates = {}
     if full_name:
-        for entries in by_name.values():
+        groups = [by_roster_name.get(full_name, [])] if by_roster_name is not None else by_name.values()
+        for entries in groups:
             for entry in entries:
                 if roster_name_key(str(entry.get("player_name") or "")) != full_name:
                     continue
@@ -313,6 +376,7 @@ def _enrich_roster_players(
     bye_teams: set[str] | None = None,
     by_name_team: dict[str, dict[str, Any]] | None = None,
     by_name: dict[str, list[dict[str, Any]]] | None = None,
+    by_roster_name: dict[str, list[dict[str, Any]]] | None = None,
 ) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     by_name_team = by_name_team or {}
@@ -324,7 +388,7 @@ def _enrich_roster_players(
         if not pid:
             continue
         pos = normalize_position(slot.get("position"))
-        proj = _lookup_projection(slot, proj_index, by_name_team, by_name)
+        proj = _lookup_projection(slot, proj_index, by_name_team, by_name, by_roster_name)
         opponent = proj.get("opponent")
         team = str(slot.get("team") or proj.get("team") or "")
         injury_status = str(proj.get("injury_status") or "")
@@ -572,6 +636,8 @@ def attach_call_facts(
     def_vs_pos: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Attach Ticket-sheet facts. Soft-fail: missing sources leave fields empty."""
+    if not cards:
+        return cards
     if vegas_teams is None:
         vegas_teams = _load_vegas_teams(season, week)
     if prior_ppg is None:
@@ -943,6 +1009,8 @@ def _roster_projection_changes(
     apply_injury_adjustments: bool,
 ) -> dict[str, Any]:
     """Attach SCORE-7 movement for roster players (soft-fail if artifact missing)."""
+    if not players:
+        return {"available": False, "items": [], "note": "No roster players to compare."}
     try:
         from src.projections.projection_movement import build_projection_movement_payload
     except Exception:
@@ -1037,8 +1105,18 @@ def build_weekly_command_center(
     apply_injury_adjustments: bool = True,
     bench_over_starter_threshold: float = DEFAULT_BENCH_OVER_STARTER_THRESHOLD,
     league_cards: bool = False,
+    timings: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Build the Your Week payload for the signed-in Hub user's active team."""
+    phase_start = time.perf_counter() if timings is not None else 0.0
+
+    def mark_phase(name: str) -> None:
+        nonlocal phase_start
+        if timings is not None:
+            now = time.perf_counter()
+            timings[f"build.{name}"] = round((now - phase_start) * 1000, 1)
+            phase_start = now
+
     hub_season = int(ctx["season"]) if ctx.get("season") is not None else None
     try:
         resolved_season, resolved_week = resolve_week_context(
@@ -1050,23 +1128,28 @@ def build_weekly_command_center(
 
     rules = LeagueRules.model_validate(ctx.get("rules") or {})
     _, flex_eligible = _flex_rule(rules)
+    mark_phase("context")
 
     # DB-only roster — never live_sleeper on dashboard load.
     roster_rows = list_roster_for_context(ctx, live_sleeper=False)
+    mark_phase("roster")
     proj_index, proj_meta = _load_projection_index(
         resolved_season,
         resolved_week,
         apply_injury_adjustments=apply_injury_adjustments,
     )
+    mark_phase("projections")
     players = _enrich_roster_players(
         roster_rows,
         proj_index,
         by_name_team=proj_meta.pop("_by_name_team", {}) or {},
         by_name=proj_meta.pop("_by_name", {}) or {},
+        by_roster_name=proj_meta.pop("_by_roster_name", None),
     )
     from src.draft_hub.k_def_pool_cache import overlay_k_def_week_projections
 
     overlay_k_def_week_projections(players)
+    mark_phase("enrich")
     from src.draft_hub.hub_scoring import resolve_week_lineup
 
     starters, bench, lineup_meta = resolve_week_lineup(
@@ -1076,11 +1159,13 @@ def build_weekly_command_center(
         season=resolved_season,
         week=resolved_week,
     )
+    mark_phase("lineup")
     attach_call_facts(
         [*starters, *bench],
         season=resolved_season,
         week=resolved_week,
     )
+    mark_phase("call_facts")
 
     decisions = build_lineup_decisions(
         starters,
@@ -1109,6 +1194,14 @@ def build_weekly_command_center(
     # League without sleeper link is also an unlinked-league style state for UI.
     if ctx.get("mode") == "league" and not sync.get("linked"):
         unlinked = True
+
+    projection_changes = _roster_projection_changes(
+        [*starters, *bench],
+        resolved_season,
+        resolved_week,
+        apply_injury_adjustments=apply_injury_adjustments,
+    )
+    mark_phase("movement")
 
     return {
         "hub_context": {
@@ -1175,12 +1268,7 @@ def build_weekly_command_center(
         },
         "decisions": decisions,
         "wide_ranges": wide_ranges,
-        "projection_changes": _roster_projection_changes(
-            [*starters, *bench],
-            resolved_season,
-            resolved_week,
-            apply_injury_adjustments=apply_injury_adjustments,
-        ),
+        "projection_changes": projection_changes,
         "counts": {
             "roster": len(players),
             "starters": len(starters),

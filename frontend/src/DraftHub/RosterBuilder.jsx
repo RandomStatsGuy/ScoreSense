@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useFantasyReady from "../useFantasyReady";
 import { parseApiError } from "../format";
 import { createPortal } from "react-dom";
 import useModalFocus from "../ui/useModalFocus";
@@ -347,6 +348,7 @@ function ContractSidePanelBody({
 }
 
 export default function RosterBuilder({
+  cacheScope,
   roster,
   onChanged,
   valueRows,
@@ -364,6 +366,7 @@ export default function RosterBuilder({
   onFocusConsumed,
 }) {
   const [playerId, setPlayerId] = useState("");
+  useFantasyReady("roster", "roster-data", !loading && Array.isArray(roster));
   const [salary, setSalary] = useState("");
   const [years, setYears] = useState(1);
   const [error, setError] = useState("");
@@ -1003,7 +1006,7 @@ export default function RosterBuilder({
       <button type="button" aria-pressed={roomTab === "room"} onClick={() => setRoomTab("room")}>{MY_TEAM_COPY.room}</button>
       <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{usesSalaries ? MY_TEAM_COPY.manage : MY_TEAM_COPY.playerDetails}</button>
     </div>
-    {roomTab === "room" ? <TeamRoom leagueId={hubContext.league_id} teamId={hubContext.team_id}
+    {roomTab === "room" ? <TeamRoom key={`${hubContext.league_id}:${hubContext.team_id}`} cacheScope={cacheScope} leagueId={hubContext.league_id} teamId={hubContext.team_id}
       onContract={usesSalaries ? (pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); } : null}
       onAppearance={() => { setRoomTab("manage"); setLookOpen(true); }}
       onLineup={() => onNavigate?.("week")} /> : rosterPage}

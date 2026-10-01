@@ -82,6 +82,34 @@ export const WEEK_BOARD_COPY = {
 
 export const WEEK_BOUNDS = { min: 1, max: 22 };
 export const ROSTER_STALE_HOURS = 48;
+
+/** Apply the server's committed lineup while retaining the existing projection cards. */
+export function applySavedLineup(payload, result) {
+  if (!payload || !Array.isArray(result?.lineup)) return payload;
+  const players = indexByPlayerId([...(payload.roster?.starters || []), ...(payload.roster?.bench || [])]);
+  const starters = [];
+  const bench = [];
+  for (const row of result.lineup) {
+    const card = {
+      ...players.get(String(row.player_id)), ...row,
+      team: row.nfl_team || row.team || players.get(String(row.player_id))?.team,
+      lineup_locked: Boolean(row.locked),
+    };
+    (row.lineup_role === "starter" ? starters : bench).push(card);
+  }
+  const cards = indexByPlayerId([...starters, ...bench]);
+  const updateFlags = (rows) => (rows || []).filter((row) => cards.has(String(row.player_id)))
+    .map((row) => ({ ...row, slot: cards.get(String(row.player_id)).slot }));
+  return {
+    ...payload,
+    meta: { ...payload.meta, lineup_source: "hub", lineup_persisted: true, lineup_locked: Boolean(result.locked) },
+    roster: { ...payload.roster, starters, bench, on_bye: updateFlags(payload.roster?.on_bye), injured: updateFlags(payload.roster?.injured) },
+    // Advice belongs to the previous lineup; it is regenerated in the background.
+    decisions: [],
+    counts: { ...payload.counts, roster: starters.length + bench.length, starters: starters.length, bench: bench.length, decisions: 0 },
+    summary: { ...payload.summary, top_messages: [] },
+  };
+}
 export const VIBE_DELTA_FLOOR = 0.45;
 export const FLEX_ELIGIBLE = ["RB", "WR", "TE"];
 

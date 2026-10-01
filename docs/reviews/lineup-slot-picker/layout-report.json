@@ -1,6 +1,366 @@
 [
   {
     "width": 1280,
+    "state": "combined-week",
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "13 targets ≥ 32"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=939"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no strip menu host"
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "state": "score-pending",
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "13 targets ≥ 32"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=939"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no strip menu host"
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "state": "score-failed",
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "13 targets ≥ 32"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=939"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no strip menu host"
+      }
+    ]
+  },
+  {
+    "width": 1280,
     "state": "picker",
     "audit": [
       {
@@ -31,7 +391,7 @@
         "rule": "targets",
         "ok": true,
         "selector": "",
-        "detail": "13 targets ≥ 32"
+        "detail": "16 targets ≥ 32"
       },
       {
         "rule": "primaries",
@@ -103,7 +463,7 @@
         "rule": "targets",
         "ok": true,
         "selector": "",
-        "detail": "9 targets ≥ 32"
+        "detail": "12 targets ≥ 32"
       },
       {
         "rule": "primaries",
@@ -145,6 +505,366 @@
   },
   {
     "width": 390,
+    "state": "combined-week",
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "13 targets ≥ 44"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no strip menu host"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "state": "score-pending",
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "13 targets ≥ 44"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no strip menu host"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "state": "score-failed",
+    "audit": [
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "week-forecast",
+        "ok": true,
+        "selector": ".hub-week-forecast",
+        "detail": "matchup labels fit within two lines"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "13 targets ≥ 44"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "no strip menu host"
+      }
+    ]
+  },
+  {
+    "width": 390,
     "state": "picker",
     "audit": [
       {
@@ -175,7 +895,7 @@
         "rule": "targets",
         "ok": true,
         "selector": "",
-        "detail": "13 targets ≥ 44"
+        "detail": "16 targets ≥ 44"
       },
       {
         "rule": "primaries",
@@ -247,7 +967,7 @@
         "rule": "targets",
         "ok": true,
         "selector": "",
-        "detail": "9 targets ≥ 44"
+        "detail": "12 targets ≥ 44"
       },
       {
         "rule": "primaries",

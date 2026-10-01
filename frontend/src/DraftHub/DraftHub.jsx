@@ -5,6 +5,7 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { loadHubBootstrap } from "./hubBootstrap";
+import { fantasyPageModules, preloadFantasyPage } from "./fantasyPageModules";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
@@ -39,20 +40,20 @@ import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
 import { TeamIdentityProvider } from "./TeamIdentityContext";
 import { shouldApplyWorkspaceSave } from "./rulesPresentation";
 
-const LeagueInsights = lazy(() => import("./LeagueInsights"));
-const StrategyBoard = lazy(() => import("./StrategyBoard"));
-const DraftRoom = lazy(() => import("./DraftRoom"));
-const VibeRankings = lazy(() => import("./VibeRankings"));
-const HubSetup = lazy(() => import("./HubSetup"));
-const RulesWizard = lazy(() => import("./RulesWizard"));
-const ValueSheetTable = lazy(() => import("./ValueSheetTable"));
-const RosterBuilder = lazy(() => import("./RosterBuilder"));
-const CapPlanner = lazy(() => import("./CapPlanner"));
-const LeagueOffice = lazy(() => import("./LeagueOffice"));
-const LeagueTrades = lazy(() => import("./LeagueTrades"));
-const LeagueRostersBrowser = lazy(() => import("./LeagueRostersBrowser"));
-const WeeklyExperience = lazy(() => import("./WeeklyExperience"));
-const LeagueHome = lazy(() => import("./LeagueHome"));
+const LeagueInsights = lazy(fantasyPageModules.insights);
+const StrategyBoard = lazy(fantasyPageModules.value);
+const DraftRoom = lazy(fantasyPageModules.room);
+const VibeRankings = lazy(fantasyPageModules.vibes);
+const HubSetup = lazy(fantasyPageModules.setup);
+const RulesWizard = lazy(fantasyPageModules.rules);
+const ValueSheetTable = lazy(fantasyPageModules.available);
+const RosterBuilder = lazy(fantasyPageModules.roster);
+const CapPlanner = lazy(fantasyPageModules.planner);
+const LeagueOffice = lazy(fantasyPageModules.office);
+const LeagueTrades = lazy(fantasyPageModules.trades);
+const LeagueRostersBrowser = lazy(fantasyPageModules.rosters);
+const WeeklyExperience = lazy(fantasyPageModules.week);
+const LeagueHome = lazy(fantasyPageModules.home);
 
 const EMPTY_VALUE_ROWS = [];
 
@@ -76,6 +77,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   });
   const [workspace, setWorkspace] = useState(null);
+  useEffect(() => {
+    if (active && (demoMode || authenticated || hubAuthRequired === false)) {
+      void preloadFantasyPage(subView);
+    }
+  }, [active, authenticated, demoMode, hubAuthRequired, subView]);
   const [valueSheet, setValueSheet] = useState(null);
   const [roster, setRoster] = useState([]);
   const [capSheet, setCapSheet] = useState(null);
@@ -84,6 +90,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [error, setError] = useState("");
   const [leagueId, setLeagueId] = useState("");
   const [hubContext, setHubContext] = useState(null);
+  const cacheScope = user?.sub || (!authenticated ? "local" : null);
+  const poolScope = cacheScope
+    ? `${cacheScope}:${hubContext?.league_id || workspace?.hub_context?.league_id || "solo"}`
+    : "";
   const [leagueSyncing, setLeagueSyncing] = useState(false);
   const [leagueSyncMessage, setLeagueSyncMessage] = useState("");
   const [leagueSyncError, setLeagueSyncError] = useState("");
@@ -237,10 +247,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const refreshValueSheet = useCallback(async (season, rules, { forcePool = false, signal } = {}) => {
     setValueSheetLoading(true);
     const generation = hubCacheGeneration();
-    const key = valueSheetRequestKey(season, rules, { forcePool });
+    const key = valueSheetRequestKey(season, rules, { forcePool, scope: poolScope });
     try {
       const sheet = await runValueSheetRequest(key, async () => {
-        const cachedPool = !forcePool ? getCachedPool(season, rules) : null;
+        const cachedPool = !forcePool ? getCachedPool(season, rules, poolScope) : null;
         if (cachedPool) {
           const overlay = await loadValueOverlay(season);
           const merged = mergePoolAndOverlay(cachedPool, overlay);
@@ -253,7 +263,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         if (!res.ok) throw new Error(await parseApiError(res));
         const next = await res.json();
         if (generation !== hubCacheGeneration()) return null;
-        setCachedPool(season, rules, poolPayloadFromSheet(next));
+        setCachedPool(season, rules, poolPayloadFromSheet(next), poolScope);
         setCachedOverlay(season, next);
         if (next.hub_context) applyHubContext(next.hub_context);
         return next;
@@ -271,12 +281,12 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     } finally {
       if (!signal?.aborted) setValueSheetLoading(false);
     }
-  }, [loadValueOverlay, applyHubContext]);
+  }, [loadValueOverlay, applyHubContext, poolScope]);
 
   const refreshOverlayOnly = useCallback(async (season, rules, signal) => {
     setValueSheetLoading(true);
     try {
-      const pool = getCachedPool(season, rules);
+      const pool = getCachedPool(season, rules, poolScope);
       const overlay = await loadValueOverlay(season, signal);
       if (signal?.aborted) return null;
       const sheet = mergePoolAndOverlay(pool, overlay);
@@ -294,7 +304,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     } finally {
       setValueSheetLoading(false);
     }
-  }, [loadValueOverlay, applyHubContext]);
+  }, [loadValueOverlay, applyHubContext, poolScope]);
 
   const refreshRoster = useCallback(async (signal) => {
     setRosterLoading(true);
@@ -838,6 +848,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
       {(subView === "week" || subView === "game") && (
         <WeeklyExperience
+          cacheScope={cacheScope}
           requestedWeek={searchParams.get("matchupWeek") || searchParams.get("week")}
           requestedTeam={searchParams.get("matchupTeam")}
           hubContext={effectiveCtx}
@@ -866,6 +877,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
       {subView === "roster" && (
         <RosterBuilder
+          cacheScope={cacheScope}
           roster={roster}
           loading={rosterLoading}
           onChanged={onRosterChanged}

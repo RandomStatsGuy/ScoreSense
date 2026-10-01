@@ -283,6 +283,8 @@ def _run_weekly_refresh(
     draft_season = int(get_draft_meta("qb")["default_season"])
     save_pool_artifact(draft_season)
     draft_pool_status = pool_artifact_status(draft_season)
+    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+    draft_pool_status["value_snapshots"] = warm_fantasy_value_snapshots()
     draft_counts = draft_pool_status.get("position_counts", {})
     try:
         from src.integrations.fantasypros import fantasypros_api_key_configured, prefetch_draft_season_ecr

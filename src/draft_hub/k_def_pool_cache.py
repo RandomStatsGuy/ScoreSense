@@ -299,6 +299,7 @@ def load_k_def_rows(
     salary_ranges: list[dict[str, Any]],
     *,
     team_count: int,
+    allow_fetch: bool = True,
 ) -> list[dict[str, Any]]:
     global _PROJ_INDEX
     roster = rules.roster or {}
@@ -309,7 +310,9 @@ def load_k_def_rows(
     if not k_on and not def_on:
         return []
 
-    key = _cache_key(rules, team_count, k_on, def_on)
+    from src.integrations.sleeper import PLAYERS_CACHE
+    from src.core.artifact_revision import artifact_revision
+    key = f"{_cache_key(rules, team_count, k_on, def_on)}:{artifact_revision(PLAYERS_CACHE)}"
     now = time.time()
     with _LOCK:
         hit = _CACHE.get(key)
@@ -320,7 +323,7 @@ def load_k_def_rows(
     from src.integrations.sleeper import players_dataframe
 
     range_map = {str(r["player_id"]): r for r in salary_ranges if r.get("player_id")}
-    df = players_dataframe()
+    df = players_dataframe() if allow_fetch else players_dataframe(allow_refresh=False)
     if df.empty:
         return []
 

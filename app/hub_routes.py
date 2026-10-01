@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any, Optional
@@ -223,12 +224,12 @@ from src.draft_hub.sleeper_link import (
 from src.draft_hub.storage import user_sub_from_patron
 from src.draft_hub.tier_generator import generate_tiers
 from src.draft_hub.timing import HubTimer
+from src.config import HUB_TIMING
 from src.draft_hub.value_sheet import (
     _load_draft_pool,
-    build_draft_pool_payload,
+    read_draft_pool_payload,
     build_value_overlay,
     build_value_overlay_sheet,
-    build_value_sheet,
     peek_pool_payload_cache,
 )
 from src.draft_hub.ws_manager import draft_room_manager
@@ -577,7 +578,7 @@ def hub_draft_pool(
             rules = LeagueRules.model_validate(ctx["rules"])
             ranges = storage.list_salary_ranges(ctx.get("personal_workspace_id") or ws_id)
         with timer.phase("draft_pool"):
-            payload = build_draft_pool_payload(
+            payload = read_draft_pool_payload(
                 target_season,
                 rules,
                 ranges,
@@ -650,7 +651,7 @@ def hub_value_sheet(
             if overlay_only:
                 pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count)
                 if pool_payload is None:
-                    pool_payload = build_draft_pool_payload(
+                    pool_payload = read_draft_pool_payload(
                         target_season, rules, ranges, team_count=team_count
                     )
                 sheet = build_value_overlay(
@@ -664,16 +665,11 @@ def hub_value_sheet(
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
             else:
-                sheet = build_value_sheet(
-                    target_season,
-                    rules,
-                    ranges,
-                    roster,
-                    league_roster=league_roster,
-                    my_team_id=team_id,
-                    sleeper_player_ids=sleeper_ids,
+                pool_payload = read_draft_pool_payload(target_season, rules, ranges, team_count=team_count)
+                sheet = build_value_overlay(
+                    pool_payload, rules, roster, league_roster=league_roster,
+                    my_team_id=team_id, sleeper_player_ids=sleeper_ids,
                     league_sleeper_player_ids=league_sleeper_ids,
-                    team_count=team_count,
                     draft_completed=bool(ctx.get("draft_completed")),
                 )
             sheet["sleeper"] = get_sleeper_context(sub)
@@ -765,6 +761,7 @@ def hub_weekly_command_center(
                 apply_injury_adjustments=apply_injury_adjustments,
                 bench_over_starter_threshold=bench_over_starter_threshold,
                 league_cards=league_cards,
+                timings=timer.phases if HUB_TIMING else None,
             )
     return jsonable_encoder(payload)
 
@@ -3776,7 +3773,7 @@ def hub_league_live_scoring(
     response: Response,
     league_id: str,
     week: Optional[int] = Query(None, description="NFL week override"),
-    refresh: bool = Query(False, description="Bypass cached live scoring (60s TTL)"),
+    refresh: bool = Query(False, description="Request updated scoring; native leagues return the saved snapshot while refresh runs"),
     home_view: bool = Query(False, description="Use Home Wednesday matchup window"),
     _user=Depends(require_hub_user),
 ) -> dict:
@@ -5504,14 +5501,14 @@ async def hub_ws(
         league_id, websocket, staff=user_is_draft_staff(league_id, sub)
     )
     try:
-        state = get_room_state(league_id, sub)
+        state = await asyncio.to_thread(get_room_state, league_id, sub)
         await websocket.send_json({"type": "state", "payload": state})
         while True:
             msg = await websocket.receive_text()
             if msg == "ping":
                 await websocket.send_text("pong")
             elif msg == "refresh":
-                state = check_timers(league_id, sub)
+                state = await asyncio.to_thread(check_timers, league_id, sub)
                 await websocket.send_json({"type": "state", "payload": state})
     except WebSocketDisconnect:
         pass
@@ -5520,7 +5517,9 @@ async def hub_ws(
 
 
 async def broadcast_room(league_id: str) -> None:
-    state = check_timers(league_id)
+    # The command/ticker already advanced the clock. Broadcast its committed
+    # state without advancing it a second time on the event loop.
+    state = await asyncio.to_thread(get_room_state, league_id)
     await draft_room_manager.broadcast(league_id, {"type": "state", "payload": state})
 
 

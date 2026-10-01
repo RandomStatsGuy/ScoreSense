@@ -245,8 +245,7 @@ def maybe_bot_nominate(league_id: str) -> dict[str, Any] | None:
 
     if not storage.league_test_mode(league_id):
         return None
-    state = get_room_state(league_id)
-    session = state.get("session") or {}
+    session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "nominating":
         return None
 
@@ -274,8 +273,7 @@ def maybe_autodraft_nominate(league_id: str) -> dict[str, Any] | None:
     """On-clock human with autodraft enabled — queue, then format-aware pick."""
     from src.draft_hub.draft_state import _current_nominator_team_id, nominate
 
-    state = get_room_state(league_id)
-    session = state.get("session") or {}
+    session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "nominating" or session.get("paused"):
         return None
     nominator_id = _current_nominator_team_id(session)
@@ -306,8 +304,7 @@ def maybe_bot_pick(league_id: str) -> dict[str, Any] | None:
 
     if not storage.league_test_mode(league_id):
         return None
-    state = get_room_state(league_id)
-    session = state.get("session") or {}
+    session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "picking":
         return None
     league = storage.get_league(league_id)
@@ -333,8 +330,7 @@ def maybe_autodraft_pick(league_id: str) -> dict[str, Any] | None:
     """On-clock human with autodraft enabled — queue, then format-aware pick."""
     from src.draft_hub.draft_state import _current_nominator_team_id, make_pick
 
-    state = get_room_state(league_id)
-    session = state.get("session") or {}
+    session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "picking" or session.get("paused"):
         return None
     league = storage.get_league(league_id)
@@ -444,8 +440,7 @@ def _blocks_luxury_min_steal(
 
 
 def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
-    state = get_room_state(league_id)
-    session = state.get("session") or {}
+    session = storage.get_draft_session(league_id) or {}
     if session.get("status") != "bidding":
         return None
     if not storage.league_test_mode(league_id):
@@ -453,12 +448,15 @@ def maybe_bot_bid(league_id: str) -> dict[str, Any] | None:
 
     high_team_id = session.get("high_bidder_team_id")
     high_bid = float(session.get("high_bid") or 0)
-    teams = state.get("teams") or []
+    teams = storage.list_league_teams(league_id)
     bots = [t for t in teams if t.get("is_bot")]
     if not bots:
         return None
 
-    rules = LeagueRules.model_validate(state["league"]["rules"])
+    league = storage.get_league(league_id)
+    if not league:
+        return None
+    rules = LeagueRules.model_validate(league["rules"])
     min_bid = float(rules.auction.min_bid)
     nominee = session.get("current_nominee") or {}
 

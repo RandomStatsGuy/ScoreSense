@@ -4,7 +4,8 @@ import "./styles/page-recovery.css";
 
 // Suspense handles pending imports; this handles rejected imports and render errors.
 // A full reload fetches the current asset manifest instead of retrying React.lazy's
-// cached rejection. Keep recovery user-initiated to avoid offline reload loops.
+// cached rejection. The version watcher may perform one bounded asset recovery
+// on a safe route; editable screens retain this explicit reload action.
 export default class PageRecoveryBoundary extends React.Component {
   state = { failed: false };
 
