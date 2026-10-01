@@ -229,11 +229,13 @@ def test_constitution_covers_chat_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     dock = _read("frontend", "src", "DraftHub", "FantasyChatDock.jsx")
     assert "FantasyChatDock" in product
-    assert "edge launcher" in product
-    assert "side drawer" in product
+    assert "detached bottom-right bubble" in product
+    assert "centered floating conversation" in product
     assert "locker rail" in product
-    assert "flush edge launcher" in dock
-    assert "Do not show this launcher on Home" in dock
+    launcher = _read("frontend", "src", "DraftHub", "ChatLauncher.jsx")
+    assert '"./ChatLauncher"' in dock
+    assert "CHAT_HOLD_MS" in launcher
+    assert "communication.setBubble(true)" in launcher
 
 
 def test_constitution_covers_compact_tile_spacing() -> None:

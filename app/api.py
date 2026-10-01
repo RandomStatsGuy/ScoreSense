@@ -140,6 +140,7 @@ from src.integrations.dfs_slates import (
 from src.core.schedule_utils import teams_on_bye
 from src.projections.ros_cache import load_ros_prediction, compute_ros_artifact
 from app.hub_routes import router as hub_router
+from app.hub_chat_routes import router as hub_chat_router
 from app.admin_routes import router as admin_router
 from app.support_routes import router as support_router
 from src.draft_hub.value_snapshot import PoolSnapshotUnavailable
@@ -203,6 +204,7 @@ app.add_middleware(
 )
 
 app.include_router(hub_router)
+app.include_router(hub_chat_router)
 app.include_router(admin_router)
 app.include_router(support_router)
 app.include_router(dfs_results_router)
@@ -317,6 +319,7 @@ def client_recovery(return_to: str = "/hub/home") -> HTMLResponse:
 def health() -> dict:
     route_paths = _collect_route_paths(app.routes)
     route_paths.update(_collect_route_paths(hub_router.routes))
+    route_paths.update(_collect_route_paths(hub_chat_router.routes))
     return {
         "status": "ok",
         "version": app.version,

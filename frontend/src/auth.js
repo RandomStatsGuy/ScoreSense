@@ -110,7 +110,8 @@ export async function apiFetch(url, options = {}) {
     throw error;
   } finally { finishWrite(); }
   if (res.ok && !["GET", "HEAD"].includes((rest.method || "GET").toUpperCase())
-      && /^\/api\/(hub|auth)\//.test(String(url))) {
+      && /^\/api\/(hub|auth)\//.test(String(url))
+      && !/^\/api\/hub\/(?:notifications\/|league\/[^/]+\/(?:chat\/|notifications\/))/.test(String(url))) {
     invalidateLeagueRosterRequests();
     invalidateHomeCache();
     invalidateWeeklySnapshot();

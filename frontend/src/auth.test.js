@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { apiFetch, clearGuestSession, loginWithGoogle, setGuestSession, setToken } from "./auth.js";
+import { getHomeCache, setHomeCache } from "./DraftHub/hubDataCache.js";
 
 const mem = {};
 globalThis.localStorage = {
@@ -132,4 +133,19 @@ test("apiFetch sets JSON content-type for JSON bodies", async () => {
   } finally {
     globalThis.fetch = orig;
   }
+});
+
+test("chat reads and reactions preserve roster caches; roster writes invalidate them", async () => {
+  const original=globalThis.fetch;
+  globalThis.fetch=async()=>new Response('{}',{status:200});
+  const key='lg-1:team:league';
+  try {
+    setHomeCache(key,{roster:'cached'});
+    for(const url of ['/api/hub/league/lg-1/chat/read','/api/hub/league/lg-1/chat/messages/m/reactions','/api/hub/notifications/preferences']) {
+      await apiFetch(url,{method:'POST',body:'{}'});
+      assert.equal(getHomeCache(key)?.data.roster,'cached');
+    }
+    await apiFetch('/api/hub/league/lg-1/roster',{method:'POST',body:'{}'});
+    assert.equal(getHomeCache(key),null);
+  } finally { globalThis.fetch=original; }
 });
