@@ -85,8 +85,8 @@ test("cozy mixes dust motes, fur tufts, and yarn with the right palettes", () =>
   assert.ok(variants.has(0) && variants.has(1) && variants.has(2), "all three cozy kinds spawn");
   for (const p of cozy) {
     if (p.variant === 1) {
-      assert.ok(FUR_COLORS.some(([a, b]) => a === p.colors[0] && b === p.colors[1]));
-      assert.equal(p.spinMode, "rock", "fur drifts with a lazy rock");
+      assert.ok(YARN_COLORS.some(([a, b]) => a === p.colors[0] && b === p.colors[1]));
+      assert.equal(p.spinMode, "rock", "mouse toys drift with a lazy rock");
     }
     if (p.variant === 2) {
       assert.ok(YARN_COLORS.some(([a, b]) => a === p.colors[0] && b === p.colors[1]));

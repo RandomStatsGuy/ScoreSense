@@ -7,7 +7,7 @@ export const THEME_COPY = Object.freeze({
 
 export const APPEARANCE_COPY = Object.freeze({
   title: "Appearance",
-  support: "A coordinated theme across Projections, Fantasy, and Tools.",
+  support: "Choose your colors and how much company to keep across the app.",
   mode: "Color mode",
   modes: [
     { id: "system", title: "System" },
@@ -26,6 +26,24 @@ export const APPEARANCE_COPY = Object.freeze({
   atmosphereSupport: "Keep the cats, falling snow, or leaves behind the page.",
   motion: "Motion",
   motionSupport: "Let the scene drift and react to your cursor.",
+  falling: "Falling decorations",
+  fallingSupport: "Yarn and toys, snow, leaves, or footballs.",
+  companions: "Companions",
+  companionsSupport: "Cute friends and their little habitats.",
+  reactions: "Playful reactions",
+  reactionsSupport: "Only when you move their toy.",
+  preview: "Appearance preview",
+  toyHelp: "Drag inside the square, or use arrow keys, Enter, or Space. Let go to watch the toy settle.",
+  toys: { yarn: "Left cat’s hanging yarn", mouse: "Right cat’s hanging mouse toy", snowball: "Snowman’s snowball", acorn: "Squirrel’s acorn", skittles: "Marshawn’s Skittles" },
+  scenes: {
+    cozy: { title: "Cat-tree corners", hint: "Move a hanging toy to wake its cat." },
+    snow: { title: "Snowbank friend", hint: "Roll the snowball to get a mitten wave." },
+    leaves: { title: "Acorn lookout", hint: "Move the acorn to catch a curious eye." },
+    footballs: { title: "Marshawn’s snack break", hint: "Bring Marshawn some Skittles for a big grin." },
+  },
+  companionsOff: "Companions are off. Your colors and falling decorations keep their own settings.",
+  reactionsOff: "Reactions are off. Your companions stay still.",
+  reducedSupport: "Reduced motion is on. Your companions stay still.",
   detail: "More scene options",
   saved: "Appearance saved.",
   saving: "Saving appearance…",
@@ -33,5 +51,5 @@ export const APPEARANCE_COPY = Object.freeze({
   failed: "Could not save appearance. Your previous settings are restored.",
   loadFailed: "Could not load your saved appearance. Try again before changing it.",
   retry: "Try again",
-  still: "Turning off motion keeps a still scene. Reduced-motion settings are respected. Draft workspaces stay clear.",
+  still: "Keep just the falling decorations, a still companion scene, or only the colors. Reduced motion keeps every scene still. Draft workspaces stay clear.",
 });

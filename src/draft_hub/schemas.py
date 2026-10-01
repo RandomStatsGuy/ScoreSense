@@ -566,6 +566,9 @@ class AtmospherePrefsUpdate(BaseModel):
     atmosphere: Optional[str] = None
     atmosphere_enabled: Optional[bool] = None
     atmosphere_motion: Optional[bool] = None
+    atmosphere_falling: Optional[bool] = None
+    atmosphere_companions: Optional[bool] = None
+    atmosphere_reactions: Optional[bool] = None
     atmosphere_pile: Optional[bool] = None
     atmosphere_wash: Optional[bool] = None
     atmosphere_intensity: Optional[str] = None

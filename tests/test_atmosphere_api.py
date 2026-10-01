@@ -83,6 +83,23 @@ def test_atmosphere_switch_preserves_theme_and_is_account_scoped(hub_db):
     assert other["atmosphere_enabled"] is True
 
 
+def test_companion_layers_persist_independently_and_remain_account_scoped(hub_db):
+    client = _client_for("companion-owner")
+    saved = client.patch("/api/hub/prefs", json={
+        "atmosphere": "cozy", "atmosphere_falling": True,
+        "atmosphere_companions": False, "atmosphere_reactions": False,
+    })
+    assert saved.status_code == 200
+    prefs = client.patch("/api/hub/prefs", json={"atmosphere_reactions": True}).json()["prefs"]
+    assert prefs["atmosphere_falling"] is True
+    assert prefs["atmosphere_companions"] is False
+    assert prefs["atmosphere_reactions"] is True
+    assert client.get("/api/hub/prefs").json()["prefs"] == prefs
+    other = _client_for("companion-other").get("/api/hub/prefs").json()["prefs"]
+    assert other["atmosphere"] == "none"
+    assert other["atmosphere_companions"] is True
+
+
 def test_team_identity_owner_can_edit_member_cannot(hub_db):
     comm, member, league = _seed_league(hub_db)
     comm_team = storage.get_team_by_user(league["id"], comm)

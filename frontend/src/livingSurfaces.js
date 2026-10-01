@@ -394,8 +394,8 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/account",
     page: "frontend/src/AccountSettingsPage.jsx",
     copy: "frontend/src/themePresentation.js",
-    also: ["frontend/src/AccountAuth.jsx", "frontend/src/AppearanceSettings.jsx", "frontend/src/AppearanceProvider.jsx", "frontend/src/DraftHub/AtmosphereLayer.jsx", "frontend/src/DraftHub/atmosphereCatalog.js", "frontend/src/styles/appearance.css"],
-    doNot: "Account-only. Do not add Account to top-level nav. Approved September 30 Appearance applies cohesive vibrant themes across the app. Keep System/Light/Dark separate from the account theme; atmosphere and motion are independent. Preserve recognizable cats, snow, and leaves, readable boards, reduced motion, and draft workspace clarity. Failed saves restore the previous choice.",
+    also: ["frontend/src/AccountAuth.jsx", "frontend/src/AppearanceSettings.jsx", "frontend/src/AppearanceProvider.jsx", "frontend/src/DraftHub/AtmosphereLayer.jsx", "frontend/src/DraftHub/CompanionScene.jsx", "frontend/src/DraftHub/atmosphereCatalog.js", "frontend/src/styles/appearance.css"],
+    doNot: "Account-only. Do not add Account to top-level nav. Approved September 30 Appearance applies cohesive vibrant themes across the app. Keep System/Light/Dark separate from the account theme; falling decorations, companions, and toy-only reactions are independent. Use the approved A cat-tree, snowman, squirrel, and Marshawn/Skittles scenes, bounded square dragging and release physics. Preserve recognizable artwork, readable boards, reduced motion, and draft workspace clarity. Failed saves restore the previous choice.",
   }),
   "account.report": S({
     label: "Report a bug",

@@ -46,6 +46,17 @@ def test_merge_atmosphere_prefs_tailoring_options():
     assert merge_atmosphere_prefs({"atmosphere_intensity": "chaos"})["atmosphere_intensity"] == "standard"
 
 
+def test_legacy_still_preferences_migrate_without_enabling_motion():
+    prefs = merge_atmosphere_prefs({"atmosphere": "cozy", "atmosphere_motion": False})
+    assert prefs["atmosphere_falling"] is False
+    assert prefs["atmosphere_reactions"] is False
+    assert prefs["atmosphere_companions"] is True
+    next_prefs = merge_atmosphere_prefs({**prefs, "atmosphere_motion": True, "atmosphere_companions": False})
+    assert next_prefs["atmosphere_falling"] is False
+    assert next_prefs["atmosphere_reactions"] is False
+    assert next_prefs["atmosphere_companions"] is False
+
+
 def test_merge_team_identity_caps_lockers_and_presets():
     merged = merge_team_identity(
         {
