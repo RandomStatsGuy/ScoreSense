@@ -39,7 +39,7 @@ _RETURN_ROOM_STATE: contextvars.ContextVar[bool] = contextvars.ContextVar(
 
 @contextlib.contextmanager
 def suppress_room_state() -> Iterator[None]:
-    """Skip get_room_state rebuilds on nominate/award/pick during instant sims."""
+    """Run draft commands without constructing their presentation payloads."""
     token = _RETURN_ROOM_STATE.set(False)
     try:
         yield
@@ -572,7 +572,7 @@ def start_draft(
         raise ValueError("Only commissioner can start draft")
     session = storage.get_draft_session(league_id) or {}
     if session.get("status") in ("nominating", "bidding", "picking"):
-        return get_room_state(league_id, user_sub)
+        return _emit_state(league_id, user_sub)
     offline = str(conduct or "live").strip().lower() == "offline"
     starts = league.get("draft_starts_at")
     if starts and not force and not offline:
@@ -620,7 +620,7 @@ def start_draft(
         "start",
         {"by": user_sub, "draft_type": draft_type_of(rules)},
     )
-    return get_room_state(league_id, user_sub)
+    return _emit_state(league_id, user_sub)
 
 
 def pause_draft(league_id: str, user_sub: str) -> dict[str, Any]:
@@ -795,7 +795,7 @@ def end_draft(league_id: str, user_sub: str, *, force: bool = False) -> dict[str
             "expired": year_tick.get("expired"),
         }
     storage.append_draft_event(league_id, "end", payload)
-    state = get_room_state(league_id, user_sub)
+    state = _emit_state(league_id, user_sub)
     if year_tick:
         state["contract_year_tick"] = json_safe(year_tick)
     return state
@@ -1261,7 +1261,7 @@ def award_nominee(league_id: str, user_sub: str | None = None) -> dict[str, Any]
     if not league or not session:
         raise ValueError("Invalid session")
     if bool(league.get("draft_completed")) or session.get("status") == "completed":
-        return get_room_state(league_id, user_sub)
+        return _emit_state(league_id, user_sub)
     nominee = session.get("current_nominee")
     winner_id = session.get("high_bidder_team_id")
     amount = session.get("high_bid")
@@ -1485,7 +1485,7 @@ def _expire_nomination(league_id: str, user_sub: str | None = None) -> dict[str,
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
     if not league or not session or session.get("status") != "nominating":
-        return get_room_state(league_id, user_sub)
+        return _emit_state(league_id, user_sub)
     rules = LeagueRules.model_validate(league["rules"])
     nominator_id = _current_nominator_team_id(session)
     team = storage.get_team(nominator_id) if nominator_id else None
@@ -1496,7 +1496,7 @@ def _expire_nomination(league_id: str, user_sub: str | None = None) -> dict[str,
     if payload and sub:
         try:
             nominate(league_id, sub, payload, from_pool=True)
-            return get_room_state(league_id, user_sub)
+            return _emit_state(league_id, user_sub)
         except ValueError:
             pass
     _advance_nominator(league_id)
@@ -1514,7 +1514,7 @@ def _expire_nomination(league_id: str, user_sub: str | None = None) -> dict[str,
             "team_name": (team or {}).get("name"),
         },
     )
-    return get_room_state(league_id, user_sub)
+    return _emit_state(league_id, user_sub)
 
 
 def _expire_pick(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
@@ -1524,7 +1524,7 @@ def _expire_pick(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
     if not league or not session or session.get("status") != "picking":
-        return get_room_state(league_id, user_sub)
+        return _emit_state(league_id, user_sub)
     rules = LeagueRules.model_validate(league["rules"])
     nominator_id = _current_nominator_team_id(session, rules)
     team = storage.get_team(nominator_id) if nominator_id else None
@@ -1535,7 +1535,7 @@ def _expire_pick(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     if payload and sub:
         try:
             make_pick(league_id, sub, payload, from_pool=True)
-            return get_room_state(league_id, user_sub)
+            return _emit_state(league_id, user_sub)
         except ValueError:
             pass
     _advance_nominator(league_id)
@@ -1553,7 +1553,7 @@ def _expire_pick(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
             "team_name": (team or {}).get("name"),
         },
     )
-    return get_room_state(league_id, user_sub)
+    return _emit_state(league_id, user_sub)
 
 
 
@@ -1563,7 +1563,8 @@ def tick_scheduled_starts() -> list[str]:
     started: list[str] = []
     for league_id, commissioner_sub in storage.list_due_scheduled_drafts():
         try:
-            start_draft(league_id, commissioner_sub)
+            with suppress_room_state():
+                start_draft(league_id, commissioner_sub)
             started.append(league_id)
         except ValueError:
             continue
@@ -1579,7 +1580,7 @@ def tick_expired_drafts() -> list[str]:
         if league_id in changed or league_id in SIMULATING_LEAGUE_IDS:
             continue
         before = _session_timer_fingerprint(storage.get_draft_session(league_id))
-        check_timers(league_id)
+        advance_draft_clock(league_id)
         after = _session_timer_fingerprint(storage.get_draft_session(league_id))
         if before != after:
             changed.append(league_id)
@@ -1587,6 +1588,18 @@ def tick_expired_drafts() -> list[str]:
 
 
 def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
+    """Advance the clock, then build exactly one view for the caller."""
+    advance_draft_clock(league_id)
+    return get_room_state(league_id, user_sub)
+
+
+def advance_draft_clock(league_id: str) -> None:
+    """Apply due transitions without building a room or a viewer's state."""
+    with suppress_room_state():
+        _advance_draft_clock(league_id)
+
+
+def _advance_draft_clock(league_id: str) -> None:
     """Auto-pass expired bids/nominations/picks; bots may act in test mode."""
     from src.draft_hub.test_draft import (
         SIMULATING_LEAGUE_IDS,
@@ -1598,59 +1611,59 @@ def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     )
 
     if league_id in SIMULATING_LEAGUE_IDS:
-        return get_room_state(league_id, user_sub)
+        return
 
     league = storage.get_league(league_id)
     session = storage.get_draft_session(league_id)
     if not league or not session:
-        return get_room_state(league_id, user_sub)
+        return
     if league.get("draft_completed") or leftover_live_after_complete(league, session):
-        return get_room_state(league_id, user_sub)
+        heal_completed_draft_room(league_id)
+        return
     if str(session.get("conduct") or "live") == "offline":
-        return get_room_state(league_id, user_sub)
+        return
     if session.get("paused"):
-        return get_room_state(league_id, user_sub)
+        return
     now = datetime.now(timezone.utc)
     status = session.get("status")
     test_mode = storage.league_test_mode(league_id)
     if test_mode and status in ("nominating", "bidding", "picking"):
         rules = LeagueRules.model_validate(league["rules"])
         if _maybe_end_if_rosters_full(league_id, league, rules) is not None:
-            return get_room_state(league_id, user_sub)
-    # Bot actions build state under the bot's identity — rebuild with the
-    # caller's sub or the polling client would adopt the bot's viewer/team.
+            return
     if status == "nominating" and test_mode:
         bot_state = maybe_bot_nominate(league_id)
-        if bot_state:
-            return get_room_state(league_id, user_sub)
+        if bot_state is not None:
+            return
     if status == "nominating":
         auto_state = maybe_autodraft_nominate(league_id)
-        if auto_state:
-            return get_room_state(league_id, user_sub)
+        if auto_state is not None:
+            return
     if status == "picking" and test_mode:
         bot_state = maybe_bot_pick(league_id)
-        if bot_state:
-            return get_room_state(league_id, user_sub)
+        if bot_state is not None:
+            return
     if status == "picking":
         auto_state = maybe_autodraft_pick(league_id)
-        if auto_state:
-            return get_room_state(league_id, user_sub)
+        if auto_state is not None:
+            return
     if status == "bidding" and session.get("bid_deadline"):
         deadline = _parse_utc(session["bid_deadline"])
         if now >= deadline:
-            return award_nominee(league_id, user_sub)
+            award_nominee(league_id)
+            return
         if _bot_delay_elapsed(session, LeagueRules.model_validate(league["rules"])):
             bot_state = maybe_bot_bid(league_id)
-            if bot_state:
-                return get_room_state(league_id, user_sub)
+            if bot_state is not None:
+                return
     session = storage.get_draft_session(league_id) or session
     status = session.get("status")
     if status == "nominating" and session.get("nomination_deadline"):
         deadline = _parse_utc(session["nomination_deadline"])
         if now >= deadline:
-            return _expire_nomination(league_id, user_sub)
+            _expire_nomination(league_id)
+            return
     if status == "picking" and session.get("nomination_deadline"):
         deadline = _parse_utc(session["nomination_deadline"])
         if now >= deadline:
-            return _expire_pick(league_id, user_sub)
-    return get_room_state(league_id, user_sub)
+            _expire_pick(league_id)
