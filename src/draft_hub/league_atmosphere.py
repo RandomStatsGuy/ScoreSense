@@ -73,6 +73,7 @@ VICTORY_EMOTES: dict[str, dict[str, str]] = {
 def default_atmosphere_prefs() -> dict[str, Any]:
     return {
         "atmosphere": "none",
+        "atmosphere_enabled": True,
         # Independent layers so the experience can be tailored:
         # falling particles / ground pile / background color wash.
         "atmosphere_motion": True,
@@ -104,7 +105,7 @@ def merge_atmosphere_prefs(raw: Any) -> dict[str, Any]:
     if theme not in ATMOSPHERE_THEMES:
         theme = "none"
     base["atmosphere"] = theme
-    for key in ("atmosphere_motion", "atmosphere_pile", "atmosphere_wash"):
+    for key in ("atmosphere_enabled", "atmosphere_motion", "atmosphere_pile", "atmosphere_wash"):
         if key in raw:
             base[key] = _coerce_bool(raw.get(key), base[key])
     intensity = str(raw.get("atmosphere_intensity") or "").strip().lower()
@@ -247,9 +248,9 @@ def detect_image_type(payload: bytes, content_type: str | None = None) -> str | 
 def atmosphere_catalog() -> dict[str, Any]:
     return {
         "atmosphere": [
-            {"id": "none", "title": "Off", "support": "Keep Fantasy quiet. Recommended default."},
-            {"id": "snow", "title": "Snow", "support": "A faint winter drift behind the page."},
-            {"id": "leaves", "title": "Fall leaves", "support": "A light autumn fall, never in front of the board."},
+            {"id": "none", "title": "Classic", "support": "The original ScoreSense palette."},
+            {"id": "snow", "title": "Snowfall", "support": "Icy blue, falling flakes, and soft snowbanks."},
+            {"id": "leaves", "title": "Autumn", "support": "Copper, rust, and tumbling leaves."},
             {"id": "footballs", "title": "Footballs", "support": "Soft footballs drifting in the background."},
             {"id": "cozy", "title": "Cozy den", "support": "Lamplight, drifting fur and yarn — and ragdolls who notice your cursor."},
         ],

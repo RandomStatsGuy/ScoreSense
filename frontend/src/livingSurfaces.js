@@ -22,11 +22,12 @@ export const SHARED = Object.freeze({
   tokens: [
     "frontend/src/styles/tokens.css",
     "frontend/src/styles/color-theme.css",
+    "frontend/src/styles/appearance.css",
     "frontend/src/styles/product-hierarchy.css",
     "frontend/src/styles/product-rhythm.css",
     "frontend/src/styles/fantasy-phone.css",
   ],
-  theme: ["frontend/public/theme-init.js", "frontend/src/layout/ThemeToggle.jsx", "frontend/src/themePresentation.js"],
+  theme: ["frontend/public/theme-init.js", "frontend/src/layout/ThemeToggle.jsx", "frontend/src/themePresentation.js", "frontend/src/AppearanceProvider.jsx", "frontend/src/AppearanceSettings.jsx", "frontend/src/layout/AppearanceLink.jsx", "frontend/src/styles/appearance.css"],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
@@ -390,8 +391,9 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "account",
     route: "/account",
     page: "frontend/src/AccountSettingsPage.jsx",
-    also: ["frontend/src/AccountAuth.jsx"],
-    doNot: "Account-only. Do not add Account to top-level nav.",
+    copy: "frontend/src/themePresentation.js",
+    also: ["frontend/src/AccountAuth.jsx", "frontend/src/AppearanceSettings.jsx", "frontend/src/AppearanceProvider.jsx", "frontend/src/DraftHub/AtmosphereLayer.jsx", "frontend/src/DraftHub/atmosphereCatalog.js", "frontend/src/styles/appearance.css"],
+    doNot: "Account-only. Do not add Account to top-level nav. Approved September 30 Appearance applies cohesive vibrant themes across the app. Keep System/Light/Dark separate from the account theme; atmosphere and motion are independent. Preserve recognizable cats, snow, and leaves, readable boards, reduced motion, and draft workspace clarity. Failed saves restore the previous choice.",
   }),
   "account.report": S({
     label: "Report a bug",

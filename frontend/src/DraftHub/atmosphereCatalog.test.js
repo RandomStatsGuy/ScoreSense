@@ -8,6 +8,7 @@ import {
   identityMediaUrl,
   lockerNameplate,
   mergeAtmospherePrefs,
+  serializeAtmospherePrefs,
   mergeFocus,
   mergeTeamIdentity,
   shouldShowAtmosphere,
@@ -69,6 +70,19 @@ test("mergeTeamIdentity keeps locker picks short and valid", () => {
   assert.equal(merged.photo_preset, "storm");
   assert.equal(merged.room_theme, "locker");
   assert.deepEqual(merged.locker_player_ids, ["a", "b", "c", "d", "e", "f", "g", "h"]);
+});
+
+test("disabling atmosphere preserves the palette and round-trips scene options", () => {
+  const original = mergeAtmospherePrefs({ atmosphere: "cozy", atmosphere_motion: false, atmosphere_intensity: "lively" });
+  const disabled = applyAtmospherePatch(original, { atmosphere_enabled: false });
+  assert.equal(disabled.enabled, false);
+  assert.equal(disabled.atmosphere, "cozy");
+  assert.deepEqual(mergeAtmospherePrefs(serializeAtmospherePrefs(disabled)), disabled);
+  const restored = applyAtmospherePatch(disabled, { atmosphere_enabled: true });
+  assert.equal(restored.enabled, true);
+  assert.equal(restored.motion, false);
+  assert.equal(restored.intensity, "lively");
+  assert.equal(mergeAtmospherePrefs({ atmosphere: "snow" }).enabled, true);
 });
 
 test("atmosphere stays off in live draft; reduced motion only freezes it", () => {

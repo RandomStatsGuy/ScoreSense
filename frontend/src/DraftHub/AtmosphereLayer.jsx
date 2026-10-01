@@ -518,7 +518,7 @@ function useCursorLife(containerRef, active) {
 
 /* ---------------- the layer ---------------- */
 
-export default function AtmosphereLayer({ theme = "none", liveDraft = false, prefsOverride = null }) {
+export default function AtmosphereLayer({ theme = "none", liveDraft = false, prefsOverride = null, className = "", fieldOnly = false, sceneOnly = false }) {
   const [fetchedPrefs, setFetchedPrefs] = useState(() => mergeAtmospherePrefs({ atmosphere: theme }));
   const reducedMotion = usePrefersReducedMotion();
   const containerRef = useRef(null);
@@ -558,33 +558,33 @@ export default function AtmosphereLayer({ theme = "none", liveDraft = false, pre
   const prefs = prefsOverride || fetchedPrefs;
 
   const activeTheme = prefs.atmosphere;
-  const active = shouldShowAtmosphere(activeTheme, { liveDraft });
+  const active = prefs.enabled !== false && shouldShowAtmosphere(activeTheme, { liveDraft });
   /** Reduced motion freezes the scene: no falling particles, static pile,
    * sleeping cats — the wash and pile still set the mood. */
   const motionOn = active && prefs.motion && !reducedMotion;
   const preset = intensityPreset(prefs.intensity);
 
   const particles = useMemo(
-    () => (motionOn ? buildAtmosphereParticles(activeTheme, { density: preset.density }) : []),
-    [motionOn, activeTheme, preset.density],
+    () => (motionOn && !sceneOnly ? buildAtmosphereParticles(activeTheme, { density: preset.density }) : []),
+    [motionOn, activeTheme, preset.density, sceneOnly],
   );
   const pileClusters = useMemo(
-    () => (active && prefs.pile ? buildPileClusters(activeTheme) : []),
-    [active, prefs.pile, activeTheme],
+    () => (active && prefs.pile && !fieldOnly ? buildPileClusters(activeTheme) : []),
+    [active, prefs.pile, activeTheme, fieldOnly],
   );
 
-  useCursorLife(containerRef, motionOn && (particles.length > 0 || activeTheme === "cozy"));
+  useCursorLife(containerRef, motionOn && (particles.length > 0 || (!fieldOnly && activeTheme === "cozy")));
 
   if (!active) return null;
 
   return (
     <div
       ref={containerRef}
-      className={`hub-atmosphere hub-atmosphere--${activeTheme}`}
+      className={`hub-atmosphere hub-atmosphere--${activeTheme}${motionOn ? "" : " hub-atmosphere--still"} ${className}`.trim()}
       style={{ "--atm-alpha": preset.opacity }}
       aria-hidden="true"
     >
-      {prefs.wash && (
+      {prefs.wash && !sceneOnly && (
         <div className={`hub-atmosphere-wash hub-atmosphere-wash--${activeTheme}`} />
       )}
 
@@ -633,7 +633,7 @@ export default function AtmosphereLayer({ theme = "none", liveDraft = false, pre
           ))}
         </div>
       )}
-      {activeTheme === "cozy" && (
+      {activeTheme === "cozy" && !fieldOnly && (
         <div className="hub-atmosphere-cats">
           <span
             className="hub-atmosphere-cat hub-atmosphere-cat--left"

@@ -62,6 +62,27 @@ def test_prefs_partial_patch_preserves_other_options(hub_db):
     assert stored["atmosphere_intensity"] == "lively"
 
 
+def test_atmosphere_switch_preserves_theme_and_is_account_scoped(hub_db):
+    client = _client_for("appearance-owner")
+    client.patch("/api/hub/prefs", json={
+        "atmosphere": "cozy", "atmosphere_motion": False, "atmosphere_intensity": "lively",
+    })
+    disabled = client.patch("/api/hub/prefs", json={"atmosphere_enabled": False})
+    assert disabled.status_code == 200
+    prefs = disabled.json()["prefs"]
+    assert prefs["atmosphere"] == "cozy"
+    assert prefs["atmosphere_enabled"] is False
+    assert prefs["atmosphere_motion"] is False
+    assert prefs["atmosphere_intensity"] == "lively"
+    assert client.get("/api/hub/prefs").json()["prefs"] == prefs
+    restored = client.patch("/api/hub/prefs", json={"atmosphere_enabled": True}).json()["prefs"]
+    assert restored["atmosphere_enabled"] is True
+    assert restored["atmosphere_motion"] is False
+    other = _client_for("appearance-other").get("/api/hub/prefs").json()["prefs"]
+    assert other["atmosphere"] == "none"
+    assert other["atmosphere_enabled"] is True
+
+
 def test_team_identity_owner_can_edit_member_cannot(hub_db):
     comm, member, league = _seed_league(hub_db)
     comm_team = storage.get_team_by_user(league["id"], comm)

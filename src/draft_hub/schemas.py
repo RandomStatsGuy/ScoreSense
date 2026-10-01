@@ -555,6 +555,7 @@ class WaiverPriorityRequest(BaseModel):
 
 class AtmospherePrefsUpdate(BaseModel):
     atmosphere: Optional[str] = None
+    atmosphere_enabled: Optional[bool] = None
     atmosphere_motion: Optional[bool] = None
     atmosphere_pile: Optional[bool] = None
     atmosphere_wash: Optional[bool] = None
