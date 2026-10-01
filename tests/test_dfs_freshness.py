@@ -62,6 +62,7 @@ def refresh_env(tmp_path, monkeypatch):
     monkeypatch.setattr(weekly_cache, "load_weekly_prediction", model)
     monkeypatch.setattr(weekly_cache, "invalidate_weekly_cache", lambda: None)
     monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", lambda *a: {"rows": 100, "built_at": "test"})
+    monkeypatch.setattr("src.projections.ros_cache.load_ros_prediction", lambda *a, **k: pd.DataFrame([{"ROS P50": 100}]))
     return poll, model
 
 
@@ -90,7 +91,7 @@ def test_refresh_attempts_other_positions_after_one_fails(refresh_env):
     model.side_effect = [RuntimeError("bad model")] + [pd.DataFrame([{"x": 1}])] * 4
     result = dfs_refresh.run_dfs_refresh()
     assert result["status"] == "error"
-    assert set(result["positions"]) == {"rb", "wr", "dfs"}
+    assert set(result["positions"]) == {"rb", "wr", "dfs", "ros_qb", "ros_rb", "ros_wr"}
     assert result["last_success_at"] is None
 
 

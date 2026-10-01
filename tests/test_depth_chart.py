@@ -427,7 +427,7 @@ def test_draft_preseason_ind_starter_is_daniel_jones():
     draft = predict_draft_season("qb", season=2026)
     ind = draft[draft["Team"] == "IND"].sort_values("Season Proj", ascending=False)
     depth = (draft.attrs.get("depth_chart") or {})
-    assert depth.get("keep_per_team") == 2
+    assert not depth.get("applied")
     assert len(ind) >= 1
     assert ind.iloc[0]["Player"] == "Daniel Jones"
     # Draft depth keeps QB2; Richardson may remain as a scaled backup.

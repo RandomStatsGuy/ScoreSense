@@ -138,7 +138,7 @@ from src.integrations.dfs_slates import (
     pick_default_slate,
 )
 from src.core.schedule_utils import teams_on_bye
-from src.projections.ros_cache import load_ros_prediction
+from src.projections.ros_cache import load_ros_prediction, compute_ros_artifact
 from app.hub_routes import router as hub_router
 from app.admin_routes import router as admin_router
 from app.support_routes import router as support_router
@@ -1385,6 +1385,7 @@ def _predict_response(
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
     player_ids: Optional[list[str]] = None,
+    background_tasks: BackgroundTasks = None,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
@@ -1397,6 +1398,7 @@ def _predict_response(
                 week=week,
                 apply_injury_adjustments=apply_injury_adjustments,
                 allow_compute=False,
+                allow_stale=True,
             )
             if preds.empty:
                 # Cold cache: run inference in the shared process pool so it
@@ -1440,6 +1442,10 @@ def _predict_response(
         if preds.attrs.get("roster_identity"):
             meta["roster_identity"] = preds.attrs.get("roster_identity")
         note = str(preds.attrs.get("projection_note") or "")
+    meta['projection_stale'] = bool(preds.attrs.get('projection_stale'))
+    if meta['projection_stale'] and season is not None and week is not None:
+        from app.projection_recovery import queue_projection_recovery
+        meta['projection_recovery'] = queue_projection_recovery(background_tasks, season, week, ['weekly'])
     projections = _json_safe_records(preds)
     ids = parse_compare_player_ids(player_ids)
     if ids:
@@ -1528,6 +1534,7 @@ def _ros_response(
     season: Optional[int] = None,
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
+    background_tasks: BackgroundTasks = None,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
@@ -1538,7 +1545,12 @@ def _ros_response(
             season=season,
             week=week,
             apply_injury_adjustments=apply_injury_adjustments,
+            allow_stale=True,
+            allow_compute=False if season is not None and week is not None else True,
         )
+        if preds.empty and season is not None and week is not None:
+            get_process_executor().submit(compute_ros_artifact, position, int(season), int(week), apply_injury_adjustments).result()
+            preds = load_ros_prediction(position, season, week, apply_injury_adjustments=apply_injury_adjustments, allow_compute=False)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     meta = {}
@@ -1572,6 +1584,10 @@ def _ros_response(
             )
     else:
         note = "No projections available."
+    meta['projection_stale'] = bool(preds.attrs.get('projection_stale'))
+    if meta['projection_stale'] and season is not None and week is not None:
+        from app.projection_recovery import queue_projection_recovery
+        meta['projection_recovery'] = queue_projection_recovery(background_tasks, season, week, ['ros'])
     return {
         "position": position,
         "count": len(preds),
@@ -1582,7 +1598,7 @@ def _ros_response(
 
 
 @app.post("/api/predict")
-def predict(request: ProjectionRequest, _user=Depends(require_patron)) -> dict:
+def predict(request: ProjectionRequest, background_tasks: BackgroundTasks = None, _user=Depends(require_patron)) -> dict:
     ids = list(request.player_ids or [])
     if request.ids:
         ids.extend(parse_compare_player_ids(request.ids))
@@ -1592,6 +1608,7 @@ def predict(request: ProjectionRequest, _user=Depends(require_patron)) -> dict:
         request.week,
         request.apply_injury_adjustments,
         player_ids=ids or None,
+        background_tasks=background_tasks,
     )
 
 
@@ -1680,6 +1697,7 @@ def predict_get(
         None,
         description="Optional comma-separated player_id filter (SCORE-4)",
     ),
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
     return _predict_response(
@@ -1688,6 +1706,7 @@ def predict_get(
         week,
         apply_injury_adjustments,
         player_ids=parse_compare_player_ids(ids) or None,
+        background_tasks=background_tasks,
     )
 
 
@@ -1796,14 +1815,16 @@ def draft_meta(position: str, _user=Depends(require_patron)) -> dict:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-def _draft_response(position: str, season: Optional[int] = None) -> dict:
+def _draft_response(position: str, season: Optional[int] = None, background_tasks: BackgroundTasks = None) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
     try:
-        preds = draft_pool_for_position(position, season) if season else predict_draft_season(position, season=season)
+        preds = draft_pool_for_position(position, season, allow_compute=False) if season else predict_draft_season(position, season=season)
         if preds.empty and season:
-            preds = predict_draft_season(position, season=season)
+            from src.draft_hub.draft_pool_cache import load_draft_pool
+            get_process_executor().submit(load_draft_pool, int(season)).result()
+            preds = draft_pool_for_position(position, season, allow_compute=False)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -1832,7 +1853,11 @@ def _draft_response(position: str, season: Optional[int] = None) -> dict:
         "depth_chart": depth_chart,
         "season_quantile_method": season_quantile_method,
         "season_coverage_meta": season_coverage_meta,
+        "projection_stale": bool(preds.attrs.get('projection_stale')),
     }
+    if meta['projection_stale'] and season:
+        from app.projection_recovery import queue_projection_recovery
+        meta['projection_recovery'] = queue_projection_recovery(background_tasks, season, 1, ['draft'])
     return {
         "position": position,
         "count": len(preds),
@@ -1846,9 +1871,10 @@ def _draft_response(position: str, season: Optional[int] = None) -> dict:
 def draft_get(
     position: str,
     season: Optional[int] = None,
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
-    return _draft_response(position, season)
+    return _draft_response(position, season, background_tasks)
 
 
 @app.get("/api/ros/{position}")
@@ -1857,9 +1883,10 @@ def ros_get(
     season: Optional[int] = None,
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
-    return _ros_response(position, season, week, apply_injury_adjustments)
+    return _ros_response(position, season, week, apply_injury_adjustments, background_tasks)
 
 
 @app.get("/api/lineup/formats")
@@ -1873,6 +1900,7 @@ def lineup_pool(
     week: Optional[int] = None,
     site: str = "seasonal",
     apply_injury_adjustments: bool = True,
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
     try:
@@ -1887,6 +1915,7 @@ def lineup_pool(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    _queue_lineup_recovery(meta, background_tasks)
     records = _json_safe_records(pool)
     for rec in records:
         rec["player_id"] = str(rec.get("player_id") or "")
@@ -1953,6 +1982,13 @@ def lineup_vegas(
         "teams": board["teams"],
         "note": note,
     }
+
+
+def _queue_lineup_recovery(meta, background_tasks):
+    from app.projection_recovery import queue_projection_recovery
+    meta["projection_recovery"] = queue_projection_recovery(
+        background_tasks, meta.get("season"), meta.get("week"), meta.pop("rebuild_kinds", []),
+    )
 
 
 def _lineup_salary_response(
@@ -2051,6 +2087,7 @@ def lineup_load_salaries(
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
     force_refresh: bool = False,
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
     site = site.lower()
@@ -2092,6 +2129,7 @@ def lineup_load_salaries(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    _queue_lineup_recovery(meta, background_tasks)
     return _lineup_salary_response(merged, meta, salaries, stats, slate=slate_meta)
 
 
@@ -2102,6 +2140,7 @@ async def lineup_import_salaries(
     season: Optional[int] = None,
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
     site = site.lower()
@@ -2126,6 +2165,7 @@ async def lineup_import_salaries(
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    _queue_lineup_recovery(meta, background_tasks)
     return _lineup_salary_response(merged, meta, salaries, stats)
 
 
@@ -2242,17 +2282,26 @@ def lineup_optimize(
 @app.get("/api/bestball/board")
 def bestball_board(
     season: Optional[int] = None,
+    background_tasks: BackgroundTasks = None,
     _user=Depends(require_patron),
 ) -> dict:
     try:
         from src.projections.draft_meta import get_draft_meta
 
-        meta_defaults = get_draft_meta("qb")
-        season = season or meta_defaults.get("default_season")
-        board, meta = build_bestball_board(int(season))
+        if season is None:
+            season = get_draft_meta("qb").get("default_season")
+        try:
+            board, meta = build_bestball_board(int(season))
+        except FileNotFoundError:
+            from src.draft_hub.draft_pool_cache import load_draft_pool
+            get_process_executor().submit(load_draft_pool, int(season)).result()
+            board, meta = build_bestball_board(int(season))
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    if meta.get('projection_stale'):
+        from app.projection_recovery import queue_projection_recovery
+        meta['projection_recovery'] = queue_projection_recovery(background_tasks, season, 1, ['draft'])
     records = _json_safe_records(board) if not board.empty else []
     return {
         "meta": meta,

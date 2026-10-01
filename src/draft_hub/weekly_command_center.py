@@ -191,6 +191,7 @@ def _build_projection_index(
     built_ats: list[str] = []
     available_positions: list[str] = []
     missing_positions: list[str] = []
+    stale_positions: list[str] = []
 
     for pos in ARTIFACT_POSITIONS:
         preds = load_weekly_prediction(
@@ -199,11 +200,14 @@ def _build_projection_index(
             week=week,
             apply_injury_adjustments=apply_injury_adjustments,
             allow_compute=False,
+            allow_stale=True,
         )
         if preds.empty:
             missing_positions.append(pos)
             continue
         available_positions.append(pos)
+        if preds.attrs.get("projection_stale"):
+            stale_positions.append(pos)
         built = preds.attrs.get("built_at")
         if built:
             built_ats.append(str(built))
@@ -253,6 +257,7 @@ def _build_projection_index(
         "available": bool(available_positions),
         "available_positions": available_positions,
         "missing_positions": missing_positions,
+        "stale_positions": stale_positions,
         "projections_built_at": max(built_ats) if built_ats else None,
         "_by_name_team": by_name_team,
         "_by_name": by_name,
@@ -1202,6 +1207,7 @@ def build_weekly_command_center(
             "context_built_at": proj_meta.get("context_built_at"),
             "available_positions": proj_meta.get("available_positions") or [],
             "missing_positions": proj_meta.get("missing_positions") or [],
+            "projection_stale": bool(proj_meta.get("stale_positions")),
             "bench_over_starter_threshold": float(bench_over_starter_threshold),
             "starter_inference": (
                 "hub_lineup"

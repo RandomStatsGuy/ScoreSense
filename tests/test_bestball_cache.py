@@ -72,14 +72,20 @@ def test_board_uses_current_artifact_and_preserves_combined_receiver_ranks(sampl
     assert (again["Season Proj"] > 0).all()
 
 
-@pytest.mark.parametrize("state", ["missing", "stale", "wrong-season"])
+@pytest.mark.parametrize("state", ["missing", "wrong-season"])
 def test_unavailable_cache_does_not_fall_back_to_inference(sample_pool, monkeypatch, state):
     if state != "missing":
         draft_pool_cache.save_pool_artifact(2026, sample_pool)
-    if state == "stale":
-        monkeypatch.setattr(draft_pool_cache, "pool_fingerprint", lambda: "changed")
     with pytest.raises(FileNotFoundError, match="Season projections are not ready"):
         board.build_bestball_board(2027 if state == "wrong-season" else 2026)
+
+
+def test_saved_same_season_board_remains_available_during_rebuild(sample_pool, monkeypatch):
+    draft_pool_cache.save_pool_artifact(2026, sample_pool)
+    monkeypatch.setattr(draft_pool_cache, 'pool_fingerprint', lambda: 'changed')
+    result,meta=board.build_bestball_board(2026)
+    assert len(result)==4
+    assert meta['projection_stale']
 
 
 def test_new_artifact_is_used_after_refresh(sample_pool, monkeypatch):

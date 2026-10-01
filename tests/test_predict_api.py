@@ -1,30 +1,23 @@
-"""Weekly predict API depth-chart metadata."""
-
-from app.api import _predict_response
-
-
-def test_weekly_predict_includes_depth_chart_meta():
-    try:
-        response = _predict_response("qb", season=2026, week=1, apply_injury_adjustments=False)
-    except Exception:
-        return
-    if response["count"] == 0:
-        return
-    meta = response["meta"]
-    assert "depth_chart" in meta
-    assert isinstance(meta["depth_chart"], dict)
-    if meta.get("preseason_mode"):
-        assert meta["depth_chart"].get("applied") is True
+"""The weekly board exposes shared coverage metadata without running inference."""
+import pandas as pd
+import pytest
+import app.api as api
 
 
-def test_weekly_rb_depth_chart_meta():
-    try:
-        response = _predict_response("rb", season=2026, week=1, apply_injury_adjustments=False)
-    except Exception:
-        return
-    if response["count"] == 0:
-        return
-    depth = response["meta"].get("depth_chart") or {}
-    if response["meta"].get("preseason_mode"):
-        assert depth.get("applied") is True
-        assert depth.get("keep_per_team") == 3
+@pytest.mark.parametrize('position',['qb','rb','wr'])
+def test_weekly_predict_preserves_full_roster_metadata(monkeypatch,position):
+    frame=pd.DataFrame([{'Player':'Test Player','Team':'BUF','Season':2026,'Week':1,
+                         'Projected Points':10,'Low (P10)':2,'High (P90)':20}])
+    frame.attrs.update(preseason_mode=True,inference_meta={
+        'feature_season':2025,'depth_mode':'coverage',
+        'roster_overlay':{'applied':True,'rookies_added':1},'depth_chart':{'applied':False},
+    })
+    def load(*args,**kwargs):
+        assert kwargs['allow_compute'] is False
+        return frame.copy()
+    monkeypatch.setattr(api,'load_weekly_prediction',load)
+    response=api._predict_response(position,season=2026,week=1)
+    assert response['count']==1
+    assert response['meta']['roster_overlay']['applied']
+    assert not response['meta']['depth_chart']['applied']
+    assert response['meta']['feature_season']==2025

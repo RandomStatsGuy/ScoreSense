@@ -203,6 +203,24 @@ def k_def_week_bands(
     }
 
 
+def find_k_def_projection(row: dict[str, Any], index: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    """Resolve the same specialist across saved roster and DFS identity forms."""
+    from src.core.team_codes import normalize_team_for_match
+    from src.draft_hub.player_name_match import roster_name_key
+
+    pid = str(row.get('player_id') or '').removeprefix('sleeper-')
+    if pid in index:
+        return index[pid]
+    pos, team = normalize_position(row.get('position')), normalize_team_for_match(row.get('team') or '')
+    if pos == 'DEF' and not team and pid.startswith('dst:'):
+        team = normalize_team_for_match(pid.removeprefix('dst:'))
+    key = roster_name_key(row.get('player_name') or row.get('player'))
+    matches = [hit for hit in index.values() if normalize_position(hit.get('position')) == pos
+               and normalize_team_for_match(hit.get('team')) == team
+               and (pos == 'DEF' or (key and roster_name_key(hit.get('player_name')) == key))]
+    return matches[0] if len(matches) == 1 else None
+
+
 def overlay_k_def_week_projections(
     cards: list[dict[str, Any]],
     *,
@@ -228,7 +246,7 @@ def overlay_k_def_week_projections(
             continue
         if _positive(card.get("p50")) is not None:
             continue
-        hit = index.get(str(card.get("player_id") or ""))
+        hit = find_k_def_projection(card, index)
         if not hit:
             continue
         bands = k_def_week_bands(hit, games=games_n)
@@ -259,7 +277,7 @@ def overlay_k_def_projections(rows: list[dict[str, Any]]) -> list[dict[str, Any]
         current = row.get("season_p50") if row.get("season_p50") is not None else row.get("season_proj")
         if _positive(current) is not None:
             continue
-        hit = index.get(str(row.get("player_id") or ""))
+        hit = find_k_def_projection(row, index)
         if not hit:
             continue
         row["season_proj"] = hit.get("season_proj")

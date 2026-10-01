@@ -15,6 +15,7 @@ from src.core.artifact_revision import artifact_revision
 
 from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR, SEASON_QUANTILE_METHOD
 from src.draft_hub.auction_values import RISK_WEIGHT
+from src.projections.artifact_snapshot import read_cached_frame, read_cached_metadata
 
 _POOL_CACHE: dict[int, tuple[tuple, pd.DataFrame]] = {}
 _POOL_COMPUTE_LOCK = threading.Lock()
@@ -25,7 +26,7 @@ POSITION_LOGIC_VERSION = "wr_te_v1"
 SKILL_POSITIONS = ("QB", "RB", "WR", "TE", "K", "DEF")
 
 
-def _with_roster_identity(pool: pd.DataFrame, season: int, *, cache_key: str | None = None) -> pd.DataFrame:
+def _with_roster_identity(pool: pd.DataFrame, season: int, *, cache_key: str | None = None, allow_refresh: bool = True) -> pd.DataFrame:
     from src.integrations.roster_identity import apply_roster_identity_with_attrs
 
     return apply_roster_identity_with_attrs(
@@ -34,6 +35,7 @@ def _with_roster_identity(pool: pd.DataFrame, season: int, *, cache_key: str | N
         season=int(season),
         week=1,
         cache_key=cache_key,
+        allow_refresh=allow_refresh,
     )
 
 
@@ -49,7 +51,7 @@ def pool_fingerprint() -> str:
     """Hash of feature + model + rookie-override mtimes — invalidates artifacts when inputs change."""
     parts: list[str] = [
         # Bump when projection post-processing changes (e.g. vet backup scaling).
-        "proj_logic:vet_backup_v2",
+        "proj_logic:complete_roster_v3",
         # SCORE-2: schedule-aware MC season P10/P50/P90 aggregator vs legacy x17 scale.
         f"season_quantile_method:{SEASON_QUANTILE_METHOD}",
         # SCORE-3: risk-adjusted auction value weight / scoring logic version.
@@ -57,6 +59,8 @@ def pool_fingerprint() -> str:
         "raav_risk_logic:v1",
         f"pos_logic:{POSITION_LOGIC_VERSION}",
     ]
+    from src.projections.roster_coverage import roster_input_revisions
+    parts.extend(roster_input_revisions())
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
         if feat.exists():
@@ -174,8 +178,9 @@ def save_pool_artifact(season: int, pool: pd.DataFrame | None = None, sidecar: d
         pool, sidecar = _compute_pool(season)
     else:
         sidecar = sidecar or {}
+    if pool.empty:
+        raise ValueError("Empty draft projection output; previous artifact preserved")
     parquet_path, meta_path = _artifact_paths(season)
-    pool.to_parquet(parquet_path, index=False)
     counts = position_counts(pool)
     # Sidecar first so a stale attrs built_at cannot clobber the refresh time.
     meta: dict[str, Any] = {
@@ -188,21 +193,31 @@ def save_pool_artifact(season: int, pool: pd.DataFrame | None = None, sidecar: d
         "rows": int(len(pool)),
         "built_at": datetime.now(timezone.utc).isoformat(),
     }
-    meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
+    from uuid import uuid4
+
+    for path, write in (
+        (parquet_path, lambda temp: pool.to_parquet(temp, index=False)),
+        (meta_path, lambda temp: temp.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")),
+    ):
+        temp = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+        try:
+            write(temp)
+            temp.replace(path)
+        finally:
+            temp.unlink(missing_ok=True)
     fp = pool_fingerprint()
     _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
     return parquet_path
 
 
-def load_draft_pool(
-    season: int, *, allow_compute: bool = True, apply_identity: bool = True
+def _load_draft_pool(
+    season: int, *, allow_compute: bool = True, apply_identity: bool = True, allow_stale: bool = False
 ) -> pd.DataFrame:
     """
     Load merged QB/RB/WR draft pool.
 
     Order: in-process cache → valid parquet artifact → live inference (persisted).
-    Set both flags false for artifact-only readers: the serve-time identity
-    overlay can refresh external rosters even when model computation is disabled.
+    Artifact-only readers also use local identity snapshots without fetching.
     """
     fp = pool_fingerprint()
     parquet_path, meta_path = _artifact_paths(season)
@@ -212,7 +227,7 @@ def load_draft_pool(
         copied = pool.copy()
         if not apply_identity:
             return copied
-        return _with_roster_identity(copied, season, cache_key=f"pool:{season}:{memory_fp}")
+        return _with_roster_identity(copied, season, cache_key=f"pool:{season}:{memory_fp}", allow_refresh=allow_compute)
 
     cached = _POOL_CACHE.get(season)
     if cached is not None and cached[0] == memory_fp:
@@ -220,17 +235,25 @@ def load_draft_pool(
 
     parquet_path, meta_path = _artifact_paths(season)
     if parquet_path.exists() and meta_path.exists():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            meta = {}
+        meta = read_cached_metadata(meta_path)
         if _artifact_is_current(meta, fp):
-            pool = pd.read_parquet(parquet_path)
-            if _artifact_is_current(meta, fp, pool):
+            pool = read_cached_frame(parquet_path)
+            if not pool.empty and _artifact_is_current(meta, fp, pool):
+                pool.attrs['built_at'] = meta.get('built_at')
                 _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
                 return finish(pool)
 
     if not allow_compute:
+        if allow_stale and parquet_path.exists() and meta_path.exists():
+            try:
+                meta = read_cached_metadata(meta_path)
+                if meta.get("season") == season and meta.get("pos_logic") == POSITION_LOGIC_VERSION:
+                    previous = read_cached_frame(parquet_path)
+                    if not previous.empty:
+                        previous.attrs.update(projection_stale=True, built_at=meta.get("built_at"))
+                        return finish(previous)
+            except (OSError, ValueError):
+                pass
         return pd.DataFrame()
 
     with _POOL_COMPUTE_LOCK:
@@ -238,19 +261,31 @@ def load_draft_pool(
         if cached is not None and cached[0] == memory_fp:
             return finish(cached[1])
         if parquet_path.exists() and meta_path.exists():
-            try:
-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                meta = {}
+            meta = read_cached_metadata(meta_path)
             if _artifact_is_current(meta, fp):
-                pool = pd.read_parquet(parquet_path)
-                if _artifact_is_current(meta, fp, pool):
+                pool = read_cached_frame(parquet_path)
+                if not pool.empty and _artifact_is_current(meta, fp, pool):
+                    pool.attrs['built_at'] = meta.get('built_at')
                     _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
                     return finish(pool)
 
         pool, sidecar = _compute_pool(season)
         save_pool_artifact(season, pool, sidecar)
         return finish(pool)
+
+
+def load_draft_pool(
+    season: int, *, allow_compute: bool = True, apply_identity: bool = True, allow_stale: bool = False,
+) -> pd.DataFrame:
+    try:
+        return _load_draft_pool(season, allow_compute=allow_compute, apply_identity=apply_identity, allow_stale=allow_stale)
+    except Exception:
+        if allow_stale:
+            previous = _load_draft_pool(season, allow_compute=False, apply_identity=False, allow_stale=True)
+            if not previous.empty:
+                previous.attrs['projection_stale'] = True
+                return previous
+        raise
 
 
 def load_pool_meta(season: int) -> dict[str, Any]:
@@ -263,16 +298,17 @@ def load_pool_meta(season: int) -> dict[str, Any]:
         return {}
 
 
-def draft_pool_for_position(position: str, season: int) -> pd.DataFrame:
+def draft_pool_for_position(position: str, season: int, *, allow_compute: bool = True, allow_stale: bool = True) -> pd.DataFrame:
     """Return one position slice from the materialized draft pool."""
     pos = position.lower()
     label = {"qb": "QB", "rb": "RB", "wr": "WR", "te": "TE", "k": "K", "def": "DEF", "dst": "DEF"}.get(
         pos, pos.upper()
     )
-    pool = load_draft_pool(season)
+    pool = load_draft_pool(season, allow_compute=allow_compute, allow_stale=allow_stale)
     if pool.empty or "Position" not in pool.columns:
         return pd.DataFrame()
-    part = pool[pool["Position"].astype(str).str.upper() == label].copy()
+    labels = {"WR", "TE"} if pos in {"wr", "rec", "wr_te"} else {label}
+    part = pool[pool["Position"].astype(str).str.upper().isin(labels)].copy()
     meta = load_pool_meta(season)
     if meta:
         part.attrs["feature_season"] = meta.get("feature_season")

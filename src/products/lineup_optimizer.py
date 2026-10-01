@@ -133,33 +133,59 @@ def build_lineup_pool(
         # that join discards affordable players and useful stack partners.
         top_per_position = 0
 
-    path = data_dir / "qb_mlready.parquet"
-    if not path.exists():
-        path = data_dir / "qb_mlready.csv"
-    df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
-    season, week = resolve_projection_context(df, season, week)
+    if season is None or week is None:
+        path = data_dir / "qb_mlready.parquet"
+        if not path.exists():
+            path = data_dir / "qb_mlready.csv"
+        df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
+        season, week = resolve_projection_context(df, season, week)
 
     from src.projections.dfs_pool import load_dfs_pool
     deep_pool = load_dfs_pool(int(season), int(week), apply_injury_adjustments) if site_cfg.get("base_site") else pd.DataFrame()
     frames: list[pd.DataFrame] = []
     projection_sources = {}
-    for position in (("qb", "rb", "wr") if deep_pool.empty else ()):
+    rebuild_kinds = []
+    if site_cfg.get("base_site") and (deep_pool.empty or deep_pool.attrs.get("projection_stale")):
+        rebuild_kinds.append("dfs")
+    for position in (("qb", "rb", "wr") if deep_pool.empty or deep_pool.attrs.get("projection_stale") else ()):
         preds = load_weekly_prediction(
             position,
             season=season,
             week=week,
             apply_injury_adjustments=apply_injury_adjustments,
+            allow_compute=False,
+            allow_stale=True,
         )
-        projection_sources[position] = {"built_at": preds.attrs.get("built_at"), "rows": len(preds)}
+        projection_sources[position] = {"built_at": preds.attrs.get("built_at"), "rows": len(preds),
+                                        "stale": bool(preds.attrs.get("projection_stale"))}
+        columns = ("Projected Points", "Low (P10)", "High (P90)")
+        has_inputs = all(column in preds for column in columns) and np.isfinite(
+            preds[list(columns)].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)
+        ).all(axis=1).any()
+        if not has_inputs or preds.attrs.get("projection_stale"):
+            rebuild_kinds.append("weekly")
         if position == "qb":
             preds["Position"] = "QB"
         elif "Position" not in preds.columns:
             preds["Position"] = position.upper()
         frames.append(preds)
 
-    pool = deep_pool.copy() if not deep_pool.empty else pd.concat(frames, ignore_index=True)
+    if deep_pool.empty:
+        pool = pd.concat(frames, ignore_index=True)
+    elif frames:
+        # Skill coverage remains independent of a failed specialty refresh.
+        # Prefer current shared skill rows over a stale specialty pool.
+        current = [frame for frame in frames if not frame.empty and not frame.attrs.get("projection_stale")]
+        preferred = pd.concat(current, ignore_index=True) if current else pd.DataFrame()
+        pool = pd.concat([preferred, deep_pool, *frames], ignore_index=True).drop_duplicates("player_id", keep="first")
+    else:
+        pool = deep_pool.copy()
     if not deep_pool.empty:
-        projection_sources["dfs"] = {"built_at": deep_pool.attrs.get("built_at"), "rows": len(deep_pool)}
+        projection_sources["dfs"] = {"built_at": deep_pool.attrs.get("built_at"), "rows": len(deep_pool),
+                                     "stale": bool(deep_pool.attrs.get("projection_stale"))}
+    for column in ("Position", "player_id", "Player", "Team", "Projected Points", "Low (P10)", "High (P90)"):
+        if column not in pool:
+            pool[column] = pd.Series(dtype="object")
     if site_cfg.get("base_site") != "draftkings" and "projection_site" in pool:
         pool = pool[pool["projection_site"].isna() | pool["projection_site"].isin(["", "dk_fd_kicking"])].copy()
     pool["Position"] = pool["Position"].map(_normalize_pos)
@@ -201,6 +227,8 @@ def build_lineup_pool(
         "count": len(pool),
         "site": site,
         "projection_sources": projection_sources,
+        "projection_stale": any(source["stale"] for source in projection_sources.values()),
+        "rebuild_kinds": sorted(set(rebuild_kinds)),
         "roster_format": site_cfg["roster"],
         "salary_cap": site_cfg["salary_cap"],
     }

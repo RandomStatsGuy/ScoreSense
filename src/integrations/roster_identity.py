@@ -28,7 +28,7 @@ BOARD_ALLOWED: dict[str, frozenset[str]] = {
 }
 
 SKILL_POSITIONS = frozenset({"QB", "RB", "FB", "WR", "TE"})
-DROP_STATUSES = frozenset({"CUT"})
+DROP_STATUSES = frozenset({"CUT", "RET"})
 SLEEPER_EXCLUDED = frozenset({"Inactive", "Retired"})
 IDENTITY_CACHE_TTL_SECONDS = 300
 _OVERLAY_CACHE: dict[str, tuple[str, float, pd.DataFrame]] = {}

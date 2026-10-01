@@ -3,16 +3,17 @@ import IdentityCropMedia from './IdentityCropMedia';
 import { identityMediaUrl, mergeTeamIdentity, HUB_MEDIA_HERO_WIDTH, HUB_MEDIA_MARK_WIDTH, initialsFromName } from './atmosphereCatalog';
 import { hubTeamParts, hubTeamLabel } from './hubTeamLabel';
 import { fmtSal } from './rosterFormat';
-import { TRADE_DISCOVERY_COPY as C } from './leagueTradesPresentation';
+import { TRADE_DISCOVERY_COPY as C, tradeForecastStatus } from './leagueTradesPresentation';
 import { currentTradeCap } from './tradeOutlook';
 
-export default function TradeDiscovery({teams,myTeamId,rosterByTeam,statsByTeam,salaryCap,salaryLeague,ranks,positions,search,onSearch,onChoose}) {
+export default function TradeDiscovery({outlook,teams,myTeamId,rosterByTeam,statsByTeam,salaryCap,salaryLeague,ranks,positions,search,onSearch,onChoose}) {
  const {identities}=useTeamIdentities();
  const query=search.trim().toLowerCase();
  const partners=teams.filter(t=>t.id&&t.id!==myTeamId).filter(t=>`${hubTeamLabel(t)} ${(rosterByTeam[t.id]||[]).map(r=>r.player_name).join(' ')}`.toLowerCase().includes(query));
  return <section className="ss-trade-discovery">
   <input type="search" className="search-input" aria-label={C.searchLabel} placeholder={C.search} value={search} onChange={e=>onSearch(e.target.value)}/>
   <p className="ss-trade-rank-caption">{C.ranks} · {teams.length} teams · PPR</p>
+  {tradeForecastStatus(outlook) && <p role="status" className="chart-note">{tradeForecastStatus(outlook)}</p>}
   <div className="ss-trade-team-grid">{partners.map(team=>{
    const look=mergeTeamIdentity(identityFor(identities,team)),parts=hubTeamParts(team);
    const cap=currentTradeCap(rosterByTeam[team.id]||[],statsByTeam[team.id],salaryCap);

@@ -154,7 +154,11 @@ def predict_from_features(
         multiplier = 1.0 + result[OPPORTUNITY_ADJUSTMENT_COL].clip(0, 0.35)
         for col in ("Projected Points", "Low (P10)", "High (P90)"):
             result[col] = result[col] * multiplier
-        result = _attach_sleeper_injury_status(result)
+    result = _attach_sleeper_injury_status(result)
+    if "_projection_injury_status" in df.columns:
+        # Identity can change team labels; use the status that travelled with
+        # that identity, including when opportunity adjustments are turned off.
+        result["Injury Status"] = df["_projection_injury_status"].fillna("").values
 
     # SCORE-50: opportunity / status transforms must leave floor ≤ proj ≤ ceiling.
     result = repair_projection_quantiles(
@@ -171,7 +175,7 @@ def predict_upcoming_week(
     data_dir: Path | None = None,
     model_dir: Path | None = None,
     apply_injury_adjustments: bool = True,
-    depth_mode: str = "starter",
+    depth_mode: str = "coverage",
 ) -> pd.DataFrame:
     """Predict fantasy points for the next week using latest processed data."""
     data_dir = data_dir or PROCESSED_DATA_DIR

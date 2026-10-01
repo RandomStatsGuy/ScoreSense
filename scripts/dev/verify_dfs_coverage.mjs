@@ -32,9 +32,9 @@ try {
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.addInitScript(() => {
-      const original = window.setInterval;
-      window.setInterval = (fn, ms, ...args) => {
-        if (ms === 300000) window.__dfsRefreshTick = fn;
+      const original = window.setTimeout;
+      window.setTimeout = (fn, ms, ...args) => {
+        if (ms === 300000 || ms === 5000) window.__dfsRefreshTick = fn;
         return original(fn, ms, ...args);
       };
     });

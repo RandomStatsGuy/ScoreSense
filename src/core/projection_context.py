@@ -192,7 +192,9 @@ def build_inference_roster(
     """
     Roster for weekly inference, with Sleeper overlay when projecting a future season.
 
-    depth_mode: ``starter`` (weekly slate) or ``draft`` (auction / preseason boards).
+    ``coverage`` and ``dfs`` retain all rostered players, including profiles
+    estimated from the established low-usage template when history is missing.
+    ``starter`` and ``draft`` remain available for explicitly selective boards.
     """
     from src.integrations.sleeper import apply_sleeper_roster_overlay
 
@@ -203,7 +205,13 @@ def build_inference_roster(
         "roster_overlay": {"applied": False},
         "depth_mode": depth_mode,
     }
-    if depth_mode == "dfs" or (meta["preseason_mode"] and meta["feature_season"] < season):
+    full_roster = depth_mode in {"coverage", "dfs"}
+    if full_roster or (meta["preseason_mode"] and meta["feature_season"] < season):
+        coverage_options = {}
+        if full_roster:
+            from src.projections.roster_coverage import projection_roster_players
+
+            coverage_options = {"sleeper_df": projection_roster_players(season), "add_missing": True}
         roster, overlay = apply_sleeper_roster_overlay(
             roster,
             position,
@@ -211,7 +219,7 @@ def build_inference_roster(
             target_week=target_week,
             add_rookies=True,
             add_emerging=depth_mode == "draft",
-            **({"add_missing": True} if depth_mode == "dfs" else {}),
+            **coverage_options,
         )
         meta["roster_overlay"] = overlay
 
@@ -225,7 +233,7 @@ def build_inference_roster(
     )
     meta["roster_identity"] = identity
 
-    if meta["preseason_mode"] and depth_mode != "dfs":
+    if meta["preseason_mode"] and not full_roster:
         from src.core.depth_chart import filter_depth_chart_starters
 
         roster, depth_meta = filter_depth_chart_starters(
