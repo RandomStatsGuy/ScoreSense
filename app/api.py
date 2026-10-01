@@ -149,12 +149,13 @@ from app.auth import admin_configured
 async def lifespan(app: FastAPI):
     init_process_executor(max_workers=1)
     from src.draft_hub.week_context_warmup import warm_fantasy_week_context
-    await asyncio.to_thread(warm_fantasy_week_context)
+    await submit_cpu_job(warm_fantasy_week_context)
     from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
     await asyncio.to_thread(warm_fantasy_value_snapshots)
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
     from app.native_scoring_ticker import native_scoring_ticker_loop
+    from app.fantasy_context_ticker import fantasy_context_ticker_loop
 
     from app.dfs_refresh_ticker import dfs_refresh_ticker_loop
     dfs_ticker = asyncio.create_task(dfs_refresh_ticker_loop(), name="dfs-refresh")
@@ -163,12 +164,13 @@ async def lifespan(app: FastAPI):
         sleeper_sync_ticker_loop(), name="sleeper-roster-sync-ticker"
     )
     scoring_ticker = asyncio.create_task(native_scoring_ticker_loop(), name="native-scoring-ticker")
+    context_ticker = asyncio.create_task(fantasy_context_ticker_loop(), name="fantasy-context-ticker")
     try:
         yield
     finally:
-        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker, context_ticker):
             task.cancel()
-        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker, context_ticker):
             try:
                 await task
             except asyncio.CancelledError:

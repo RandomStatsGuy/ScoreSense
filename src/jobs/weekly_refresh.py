@@ -335,6 +335,9 @@ def _run_weekly_refresh(
     except Exception as exc:
         player_context_status = {"status": "error", "detail": str(exc)}
 
+    from src.draft_hub.prepared_week_context import prewarm_week_context
+    fantasy_week_context = prewarm_week_context(season, week)
+
     status = {
         "started_at": started,
         "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -346,6 +349,7 @@ def _run_weekly_refresh(
             pos: len(df) for pos, df in predictions.items()
         },
         "weekly_predictions_prewarm": weekly_prewarm,
+        "fantasy_week_context": fantasy_week_context,
         "projection_movement": projection_movement_status,
         "ros_predictions_prewarm": ros_prewarm,
         "injury_overlay_prewarm": injury_overlay_status,

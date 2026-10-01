@@ -315,10 +315,16 @@ def rebuild_weekly_predictions(
 ) -> dict[str, int]:
     """Force-rebuild weekly artifacts (Hub Refresh projections / jobs)."""
     invalidate_weekly_cache()
-    return prewarm_weekly_predictions(
+    counts = prewarm_weekly_predictions(
         int(season),
         int(week),
         positions=positions,
         injury_variants=injury_variants,
         force=True,
     )
+    from src.draft_hub.prepared_week_context import prepare_week_context
+    for apply_injury in injury_variants:
+        status = prepare_week_context(int(season), int(week), apply_injury)
+        if status["status"] not in ("prepared", "current"):
+            raise RuntimeError("Weekly player context is not ready: " + status["status"])
+    return counts

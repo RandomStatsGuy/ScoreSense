@@ -59,6 +59,7 @@ New Cloud agents should find API `:8000` and Vite `:5173` already starting (`.cu
 |---------|--------|
 | Draft pool artifact | `src/draft_hub/draft_pool_cache.py` → `artifacts/draft_pool/` |
 | Weekly prediction artifact | `src/projections/weekly_cache.py` → `artifacts/weekly_predictions/` |
+| Prepared Fantasy week context | `src/draft_hub/prepared_week_context.py` → `artifacts/fantasy_week_context/`; page reads never build shared player data |
 | Pool vs overlay split | `build_draft_pool_payload()` + `build_value_overlay()` in `value_sheet.py` |
 | Model cache | `predict.load_model()` in-process, mtime-keyed |
 | CPU offload | `app/process_pool.py` global executor — not per-route pools |

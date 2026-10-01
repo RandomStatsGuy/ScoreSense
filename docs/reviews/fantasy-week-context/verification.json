@@ -1,0 +1,59 @@
+{
+  "date": "2026-09-30",
+  "platform": "Windows, repository Python virtual environment",
+  "baseCommit": "d2cbc89b802bb51d36ceb95f8be2dbf749131ab7",
+  "targeted": {
+    "passed": 188,
+    "failed": 0,
+    "seconds": 68.17,
+    "modules": [
+      "test_prepared_week_context", "test_fantasy_read_context",
+      "test_weekly_command_center", "test_hub_scoring",
+      "test_league_live_scoring", "test_weekly_refresh_status",
+      "test_vibe_rankings", "test_weekly_cache", "test_hub_perf"
+    ]
+  },
+  "broadRun": {
+    "command": "python -m pytest tests/ -q --tb=short --maxfail=10",
+    "passed": 1462,
+    "skipped": 2,
+    "failed": 10,
+    "seconds": 550.90,
+    "completed": false,
+    "failureDetails": [
+      {
+        "test": "test_home_and_freshness_skip_workbook_parse_and_live_sleeper",
+        "observedMs": 3420,
+        "budgetMs": 2000,
+        "isolatedRerun": "passed",
+        "finalTargetedRerun": "passed",
+        "note": "Timing-sensitive Home test. This read uses include_week=false and does not exercise the prepared context. The failed timing is retained here; the full run is not claimed green."
+      },
+      {
+        "modules": ["test_render_blueprint", "test_resolve_python"],
+        "failed": 9,
+        "cause": "Seven POSIX start-script tests cannot execute directly on Windows; two resolver tests encounter Windows paths passed to bash/WSL. All nine also fail on unchanged master."
+      }
+    ]
+  },
+  "remainingModules": {
+    "selection": "test_*.py files sorted after tests/test_resolve_python.py",
+    "passed": 420,
+    "failed": 0,
+    "seconds": 172.98
+  },
+  "unchangedMasterShellReproduction": {
+    "modules": ["test_render_blueprint", "test_resolve_python"],
+    "passed": 5,
+    "failed": 10,
+    "seconds": 1.11,
+    "note": "Tests and referenced shell files extracted from the base commit into an isolated directory. Reproduces the nine shell failures seen in the broad run, plus a third resolver test that the maxfail stop had not reached."
+  },
+  "scope": {
+    "frontendChanged": false,
+    "productionDeployed": false,
+    "productionPageLoadVerification": "pending deployment",
+    "comparison": "comparison.json uses an isolated database copy on the production machine; it measures backend reads, not HTTP or browser latency"
+  },
+  "note": "Runs overlap; pass counts must not be summed as unique tests. Final targeted tests include all final snapshot reader, schema validation and fixture changes."
+}

@@ -81,17 +81,22 @@ this item before proceeding to lineup rendering or browser profiling.
    artifact reads with `allow_compute=False` also prohibit identity-source refresh.
    They use the most recent saved nflverse and Sleeper snapshots. If a snapshot
    is missing, identity overlay leaves the artifact identity intact.
-2. `_load_projection_index` serves a shared process read model keyed by season,
+2. `_load_projection_index` reads a durable prepared player snapshot keyed by season,
    week, injury mode, model/input fingerprint, weekly artifact revisions, roster
    identity revisions, and schedule revision. Lineup writes do not invalidate this
-   global data. File replacements do. Concurrent callers share one builder, cache
-   size is bounded, and each caller receives isolated scalar player cards and name
+   global data. File replacements queue background preparation. OS file locks
+   coalesce worker builds, atomic publication preserves the last complete snapshot,
+   the read cache is bounded, and callers receive isolated scalar player cards and name
    indexes. Full-name aliases retain the existing uniqueness, team, and position
    checks; they never guess by surname.
-3. API startup warms the current week and call-fact sources before accepting
-   traffic. This moves cold initialization into deployment readiness. Warmup logs
-   and soft-fails if data is unavailable; it does not create lineups or run models.
-   Artifact replacement can still cause a fresh read-model build after startup.
+3. API startup prepares current weeks and call facts in the shared CPU worker
+   before accepting traffic. Weekly/preseason jobs publish replacements, and a
+   bounded background pass follows source changes and pending historical weeks.
+   HTTP reads retain the last complete snapshot during preparation; missing
+   contexts remain unavailable and queue a hint, with no request-time rebuild.
+   Warmup logs unavailable data; it does not create lineups or run models.
+   See [prepared weekly context](FANTASY_WEEK_CONTEXT.md) for refresh semantics,
+   operational preparation, and the isolated production-data comparison.
 4. Lineup PUT/POST validates and persists the command and returns committed rows.
    The client merges those rows into its existing projection cards and releases
    the picker immediately. Advice refresh runs separately and cannot undo a later
