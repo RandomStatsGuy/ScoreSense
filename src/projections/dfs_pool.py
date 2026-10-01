@@ -39,7 +39,11 @@ def load_dfs_pool(season, week, injury=True):
         return pd.DataFrame()
     if frame.attrs.get("season") != season or frame.attrs.get("week") != week:
         return pd.DataFrame()
-    frame.attrs["projection_stale"] = frame.attrs.get("fingerprint") != pool_fingerprint()
+    frame.attrs["projection_stale"] = (
+        frame.attrs.get("fingerprint") != pool_fingerprint()
+        or bool(frame.attrs.get("special_history_refresh_failed"))
+        or (week > 1 and frame.attrs.get("special_history_current_season_available") is False)
+    )
     return frame
 
 

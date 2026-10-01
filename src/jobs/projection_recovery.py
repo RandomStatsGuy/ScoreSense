@@ -19,7 +19,9 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                             raise ValueError("Empty draft pool")
                     elif kind == "dfs":
                         from src.projections.dfs_pool import refresh_dfs_pool
-                        refresh_dfs_pool(season, week)
+                        result = refresh_dfs_pool(season, week)
+                        if result.get('historical_inputs_only') or result.get('special_history_refresh_failed'):
+                            raise ValueError("Specialist inputs could not refresh; saved forecasts remain available")
                     elif kind == "specialists":
                         from src.draft_hub.k_def_pool_cache import k_def_projection_index
                         from src.core.schedule_utils import _load_schedules

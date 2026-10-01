@@ -156,6 +156,32 @@ def test_stale_dfs_special_pool_does_not_hide_new_shared_skill_forecasts(monkeyp
     assert pool.loc[pool.player_id.eq('qb'),'Projected Points'].item()==20
 
 
+def test_dfs_feed_failure_keeps_saved_pool_labeled_stale(tmp_path, monkeypatch):
+    from src.projections import dfs_pool
+
+    monkeypatch.setattr(dfs_pool, 'DFS_PREDICTIONS_DIR', tmp_path)
+    monkeypatch.setattr(dfs_pool, 'pool_fingerprint', lambda: 'current')
+    frame = pd.DataFrame([{'player_id':'dst:BUF', 'Projected Points':7}])
+    frame.attrs.update(pool_version=dfs_pool.POOL_VERSION, season=2026, week=4,
+                       fingerprint='current', special_history_refresh_failed=True,
+                       special_history_current_season_available=False)
+    frame.to_parquet(dfs_pool.artifact_path(2026,4))
+    saved = dfs_pool.load_dfs_pool(2026,4)
+    assert saved.iloc[0]['Projected Points'] == 7
+    assert saved.attrs['projection_stale']
+
+
+def test_dfs_recovery_reports_feed_failure_so_it_retries(monkeypatch):
+    from contextlib import nullcontext
+    from src.jobs import projection_recovery
+
+    monkeypatch.setattr(projection_recovery, 'refresh_lock', lambda *a: nullcontext())
+    monkeypatch.setattr('src.projections.dfs_pool.refresh_dfs_pool',
+                        lambda *a: {'special_history_refresh_failed':True})
+    result = projection_recovery.rebuild_projection_context(2026,4,('dfs',))
+    assert result == {'status':'error', 'failed':['dfs']}
+
+
 def test_explicit_context_dfs_reads_artifacts_without_feature_file_or_inference(tmp_path,monkeypatch):
     from src.products import lineup_optimizer
     calls=[]
