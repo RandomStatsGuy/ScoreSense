@@ -316,7 +316,5 @@
 }
 
 @media (max-width: 768px) {
-  .app.app--compact-league { padding-top: 0; padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right)); }
-  .app-header--compact-league .app-header-shell { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .is-header-slot .hub-league-context-name { font-weight: var(--font-weight-normal); }
 }

@@ -594,6 +594,29 @@ export function measureScript() {
       results.push({ rule: "icons", ok: true, selector: "", detail: "control icons bounded with intrinsic dimensions" });
     }
 
+    // All three product areas use the same compact phone header primitive.
+    if (window.innerWidth <= 768) document.querySelectorAll(".app-header-shell").forEach((header) => {
+      const box = header.getBoundingClientRect();
+      const title = header.querySelector(".app-header-mobile-title");
+      if (!box.width || !box.height || !title) return;
+      const cs = getComputedStyle(header);
+      const type = getComputedStyle(title);
+      const rootStyle = getComputedStyle(document.documentElement);
+      const expectedRadius = parseFloat(rootStyle.getPropertyValue("--radius-lg"));
+      const probe = document.createElement("span");
+      probe.style.fontSize = "var(--text-xl)";
+      header.appendChild(probe);
+      const expectedSize = parseFloat(getComputedStyle(probe).fontSize);
+      probe.remove();
+      const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius].map(parseFloat);
+      const sameCorners = radii.every(radius => Math.abs(radius - expectedRadius) <= 1);
+      const boldTitle = Number(type.fontWeight) === Number(rootStyle.getPropertyValue("--font-weight-bold"));
+      const balancedInsets = Math.abs(parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) <= 1 && Math.abs(parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) <= 1;
+      const row = header.querySelector(".app-header-mobile-top");
+      const divider = row && parseFloat(getComputedStyle(row).borderBottomWidth) > 0;
+      results.push({ rule: "phone-chrome", ok: sameCorners && boldTitle && balancedInsets && box.height <= 72 && !divider && Math.abs(parseFloat(type.fontSize) - expectedSize) <= 1, selector: ".app-header-shell", detail: `${px(box.height)}px; corners ${radii.join("/")}; title ${type.fontSize}; ${divider ? "extra divider" : "shared hierarchy"}` });
+    });
+
     document.querySelectorAll(".phone-header[data-compact-header]").forEach((header) => {
       const box = header.getBoundingClientRect();
       if (!box.width || !box.height) return;

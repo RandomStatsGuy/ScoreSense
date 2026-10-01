@@ -37,7 +37,7 @@ export default function HubSubnav({
   const closePicker = () => setPickerOpen(false);
   const pickerItems = leaguePicker
     ? secondary
-    : [...primary, { id: "league-menu", label: FANTASY_HEADER_COPY.league }];
+    : [{ id: "league-menu", label: FANTASY_HEADER_COPY.league }, ...primary];
   React.useEffect(() => {
     if (pickerOnly) return undefined;
     const active = navRef.current?.querySelector(".app-section-subnav-btn.active, .app-section-subnav-btn[aria-current='page']");

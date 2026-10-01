@@ -1520,7 +1520,7 @@ export default function App() {
                 hubContext={hubContext}
                 onNavigate={setHubSubView}
                 mobileLayout={mobileLayout}
-                pickerOnly={mobileLayout && ["home", "week", "game", "roster", "available", "trades", "planner"].includes(hubSubView)}
+                pickerOnly={mobileLayout}
                 pickerOpen={mobileLayout ? mobileDestOpen : undefined}
                 onPickerOpenChange={mobileLayout ? setMobileDestOpen : undefined}
               />

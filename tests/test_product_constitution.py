@@ -194,7 +194,10 @@ def test_constitution_covers_phone_chrome() -> None:
     product = _read("docs", "PRODUCT.md")
     phone_css = _read("frontend", "src", "styles", "fantasy-phone.css")
     craft = _read(".cursor", "rules", "frontend-craft.mdc")
-    assert "last destination you used in that area" in product
+    assert "Entering Fantasy from another area lands on Home" in product
+    assert "Projections and Tools return to the last destination" in product
+    assert "League is first in Fantasy’s phone picker, with Home first within League" in product
+    assert "Hide Strategy and Draft" in product
     assert "Rules Save writes the league on the form" in product
     assert "Practice rooms never become the strip focus" in product
     assert "On phone, the header is the current destination" in product

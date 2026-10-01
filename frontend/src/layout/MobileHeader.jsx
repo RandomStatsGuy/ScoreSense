@@ -35,7 +35,7 @@ export default function MobileHeader({
           onClick={onTitleClick}
         >
           <span className="app-header-mobile-title">{title}</span>
-          <span className="app-header-mobile-title-caret" aria-hidden="true">{compactLeague ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg> : "▾"}</span>
+          <span className="app-header-mobile-title-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
         </button>
       ) : (
         <h1 className="app-header-mobile-title">{title}</h1>

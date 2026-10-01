@@ -33,6 +33,7 @@ export function filterHubSubviews(hubContext) {
   const inLeague = hubContext?.mode === "league" || Boolean(hubContext?.league_id);
   const usesSalaries = leagueUsesSalaries(hubContext);
   return HUB_SUBVIEWS.filter((v) => {
+    if (inLeague && hubContext?.draft_completed && v.group === "prep") return false;
     if (v.id === "game") return false; // Compatibility URL is served by This Week.
     if (v.commissionerOnly && !hubContext?.is_commissioner) return false;
     if (v.leagueOnly && !inLeague) return false;
@@ -63,6 +64,7 @@ export function primaryHubSubviews(hubContext) {
 }
 
 export function secondaryHubSubviews(hubContext) {
-  const primary = new Set(primaryHubSubviews(hubContext).map(item => item.id));
+  // Home anchors League even when it is also prominent before the draft.
+  const primary = new Set(primaryHubSubviews(hubContext).map(item => item.id).filter(id => id !== "home"));
   return filterHubSubviews(hubContext).filter(item => !primary.has(item.id) && item.id !== "game");
 }
