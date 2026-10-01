@@ -59,9 +59,22 @@ def run_dfs_refresh():
                     status["positions"]["dfs"] = refresh_dfs_pool(season, week)
                     if status["positions"]["dfs"].get("historical_inputs_only"):
                         errors.append("dfs_current_season_history")
+                    if status["positions"]["dfs"].get("special_history_refresh_failed"):
+                        errors.append("dfs_history_refresh")
                 except Exception:
                     errors.append("dfs")
                     logger.exception("Deep DFS projection refresh failed")
+                # Build depth coverage first, then warm the ROS artifacts used by Trades.
+                from src.projections.ros_cache import load_ros_prediction
+                for position in ("qb", "rb", "wr"):
+                    try:
+                        frame = load_ros_prediction(position, season, week)
+                        if frame.empty:
+                            raise RuntimeError("Empty ROS output")
+                        status["positions"][f"ros_{position}"] = {"rows": len(frame), "built_at": frame.attrs.get("built_at")}
+                    except Exception:
+                        errors.append(f"ros_{position}")
+                        logger.exception("ROS refresh failed for %s", position)
                 if errors:
                     raise RuntimeError("Projection refresh failed: " + ", ".join(errors))
                 status["status"] = "ok"

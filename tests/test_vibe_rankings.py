@@ -173,7 +173,7 @@ QB_POOL = _pool(
 )
 
 
-def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
     assert allow_compute is False, "vibes must not live-compute weekly projections"
     pos = str(position).lower()
     if pos == "wr":

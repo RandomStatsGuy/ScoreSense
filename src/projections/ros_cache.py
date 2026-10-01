@@ -15,6 +15,7 @@ from src.core.artifact_revision import artifact_revision
 
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, ROS_PREDICTIONS_DIR
 from src.projections.ros_projections import predict_rest_of_season
+from src.projections.artifact_snapshot import read_cached_frame, read_cached_metadata
 
 _ROS_CACHE: dict[str, tuple[tuple, pd.DataFrame]] = {}
 _ROS_COMPUTE_LOCK = threading.Lock()
@@ -27,11 +28,12 @@ def _with_roster_identity(
     week: int | None,
     *,
     cache_key: str | None = None,
+    allow_refresh: bool = True,
 ) -> pd.DataFrame:
     from src.integrations.roster_identity import apply_roster_identity_with_attrs
 
     return apply_roster_identity_with_attrs(
-        df, position, season=season, week=week, cache_key=cache_key
+        df, position, season=season, week=week, cache_key=cache_key, allow_refresh=allow_refresh
     )
 
 
@@ -51,11 +53,13 @@ def _artifact_paths(position: str, season: int, week: int, apply_injury: bool) -
 
 
 # Bump when ROS aggregation semantics change (e.g. SCORE-32 opportunity decay).
-ROS_AGGREGATION_VERSION = "ros_opp_decay_v1"
+ROS_AGGREGATION_VERSION = "ros_opp_decay_v2_deep_coverage"
 
 
 def ros_fingerprint() -> str:
+    from src.projections.roster_coverage import roster_input_revisions
     parts: list[str] = [f"agg:{ROS_AGGREGATION_VERSION}"]
+    parts.extend(roster_input_revisions())
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
         if feat.exists():
@@ -67,7 +71,7 @@ def ros_fingerprint() -> str:
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 
-def load_ros_prediction(
+def _load_ros_prediction(
     position: str,
     season: int | None = None,
     week: int | None = None,
@@ -99,23 +103,26 @@ def load_ros_prediction(
                 int(season),
                 int(week),
                 cache_key=f"ros:{key}:{memory_fp}",
+                allow_refresh=allow_compute,
             )
 
         if parquet_path.exists() and meta_path.exists():
-            try:
-                meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                meta = {}
-            if meta.get("fingerprint") == fp:
-                df = pd.read_parquet(parquet_path)
-                _ROS_CACHE[key] = (memory_fp, df.copy())
-                return _with_roster_identity(
-                    df,
-                    pos,
-                    int(season),
-                    int(week),
-                    cache_key=f"ros:{key}:{memory_fp}",
-                )
+            meta = read_cached_metadata(meta_path)
+            if (meta.get("fingerprint") == fp
+                and (meta.get('season'),meta.get('week'),meta.get('position'),meta.get('apply_injury_adjustments'))
+                    == (int(season),int(week),pos,apply_injury_adjustments)):
+                df = read_cached_frame(parquet_path)
+                if not df.empty:
+                    df.attrs['built_at'] = meta.get('built_at')
+                    _ROS_CACHE[key] = (memory_fp, df.copy())
+                    return _with_roster_identity(
+                        df,
+                        pos,
+                        int(season),
+                        int(week),
+                        cache_key=f"ros:{key}:{memory_fp}",
+                        allow_refresh=allow_compute,
+                    )
 
     if not allow_compute:
         return pd.DataFrame()
@@ -125,27 +132,28 @@ def load_ros_prediction(
             cached = _ROS_CACHE.get(key)
             if cached is not None and cached[0] == memory_fp:
                 return _with_roster_identity(
-                cached[1].copy(),
-                pos,
-                int(season),
-                int(week),
-                cache_key=f"ros:{key}:{memory_fp}",
-            )
-            if parquet_path.exists() and meta_path.exists():
-                try:
-                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                except (json.JSONDecodeError, OSError):
-                    meta = {}
-                if meta.get("fingerprint") == fp:
-                    df = pd.read_parquet(parquet_path)
-                    _ROS_CACHE[key] = (memory_fp, df.copy())
-                    return _with_roster_identity(
-                    df,
+                    cached[1].copy(),
                     pos,
                     int(season),
                     int(week),
                     cache_key=f"ros:{key}:{memory_fp}",
                 )
+            if parquet_path.exists() and meta_path.exists():
+                meta = read_cached_metadata(meta_path)
+                if (meta.get("fingerprint") == fp
+                    and (meta.get('season'),meta.get('week'),meta.get('position'),meta.get('apply_injury_adjustments'))
+                        == (int(season),int(week),pos,apply_injury_adjustments)):
+                    df = read_cached_frame(parquet_path)
+                    if not df.empty:
+                        df.attrs['built_at'] = meta.get('built_at')
+                        _ROS_CACHE[key] = (memory_fp, df.copy())
+                        return _with_roster_identity(
+                            df,
+                            pos,
+                            int(season),
+                            int(week),
+                            cache_key=f"ros:{key}:{memory_fp}",
+                        )
 
         df = predict_rest_of_season(
             pos,
@@ -163,6 +171,40 @@ def load_ros_prediction(
         )
 
 
+def load_ros_prediction(
+    position: str, season: int | None = None, week: int | None = None, *,
+    apply_injury_adjustments: bool = True, allow_compute: bool = True,
+    force: bool = False, allow_stale: bool = False,
+) -> pd.DataFrame:
+    """Retain the requested-context ROS snapshot after a failed replacement."""
+    failure = None
+    try:
+        frame = _load_ros_prediction(
+            position, season, week, apply_injury_adjustments=apply_injury_adjustments,
+            allow_compute=allow_compute, force=force,
+        )
+        if not frame.empty or not allow_stale:
+            return frame
+    except Exception as exc:
+        if not allow_stale:
+            raise
+        failure = exc
+    if season is not None and week is not None:
+        from src.projections.artifact_snapshot import read_snapshot
+
+        frame = read_snapshot(
+            *_artifact_paths(position, season, week, apply_injury_adjustments),
+            season=season, week=week, position=position.lower(), injury=apply_injury_adjustments,
+            fingerprint=ros_fingerprint(), required_columns=('ROS P10', 'ROS P50', 'ROS P90'),
+        )
+        if not frame.empty:
+            frame.attrs['projection_stale'] = True
+            return frame
+    if failure:
+        raise failure
+    return pd.DataFrame()
+
+
 def save_ros_artifact(
     position: str,
     season: int,
@@ -170,8 +212,11 @@ def save_ros_artifact(
     apply_injury_adjustments: bool,
     df: pd.DataFrame,
 ) -> Path:
+    if df.empty:
+        raise ValueError("Empty ROS projection output; previous artifact preserved")
+    from uuid import uuid4
+
     parquet_path, meta_path = _artifact_paths(position, season, week, apply_injury_adjustments)
-    df.to_parquet(parquet_path, index=False)
     meta: dict[str, Any] = {
         "position": position.lower(),
         "season": season,
@@ -181,7 +226,17 @@ def save_ros_artifact(
         "rows": int(len(df)),
         "built_at": datetime.now(timezone.utc).isoformat(),
     }
-    meta_path.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
+    df.attrs["built_at"] = meta["built_at"]
+    for path, write in (
+        (parquet_path, lambda temp: df.to_parquet(temp, index=False)),
+        (meta_path, lambda temp: temp.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")),
+    ):
+        temp = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+        try:
+            write(temp)
+            temp.replace(path)
+        finally:
+            temp.unlink(missing_ok=True)
     key = _cache_key(position, season, week, apply_injury_adjustments)
     _ROS_CACHE[key] = ((meta["fingerprint"], artifact_revision(parquet_path, meta_path)), df.copy())
     return parquet_path
@@ -192,6 +247,11 @@ def invalidate_ros_cache() -> None:
     from src.integrations.roster_identity import invalidate_identity_overlay_cache
 
     invalidate_identity_overlay_cache()
+
+
+def compute_ros_artifact(position: str, season: int, week: int, apply_injury: bool = True) -> int:
+    """CPU worker entry point for cold ROS reads."""
+    return len(load_ros_prediction(position, season, week, apply_injury_adjustments=apply_injury))
 
 
 def prewarm_ros_predictions(

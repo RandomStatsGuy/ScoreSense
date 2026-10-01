@@ -97,7 +97,7 @@ def _load_or_predict_weekly(
         apply_injury_adjustments=apply_injury_adjustments,
     )
     if weekly.empty:
-        roster, _inference_meta = build_inference_roster(df, position, season, target_week)
+        roster, _inference_meta = build_inference_roster(df, position, season, target_week, depth_mode="coverage")
         weekly = predict_from_features(
             roster,
             position,
@@ -317,6 +317,8 @@ def predict_rest_of_season(
         }
     )
     out_norm = ensure_opportunity_adjustment_columns(out)
+    if "projection_source" in out.columns:
+        result["projection_source"] = out["projection_source"]
     if OPPORTUNITY_ADJUSTMENT_COL in out_norm.columns:
         result[OPPORTUNITY_ADJUSTMENT_COL] = out_norm[OPPORTUNITY_ADJUSTMENT_COL].fillna(0.0)
         result[OPPORTUNITY_ADJUSTMENT_LEGACY_COL] = result[OPPORTUNITY_ADJUSTMENT_COL]

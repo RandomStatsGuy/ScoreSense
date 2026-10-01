@@ -1208,12 +1208,14 @@ export function dfsPoolCoverage(players = []) {
   return groups;
 }
 
-export function dfsPoolFreshness({ source, busy, checkedAt, refresh, failed, season, week, now = Date.now() }) {
+export function dfsPoolFreshness({ source, busy, checkedAt, refresh, failed, recovery, projectionStale, season, week, now = Date.now() }) {
   const c = DFS_WORKSPACE_COPY;
   if (source === "upload") return { tone: "neutral", label: c.uploadedPool, detail: c.uploadedPoolHelp };
   if (busy && !checkedAt) return { tone: "neutral", label: c.freshnessLoading, detail: "" };
   if (failed) return { tone: "warning", label: checkedAt ? c.freshnessFailed : c.freshnessLoadFailed, detail: checkedAt ? c.originalInputs : "" };
   if (!checkedAt) return { tone: "neutral", label: c.freshnessPending, detail: "" };
+  if (['queued','running','busy'].includes(recovery?.status)) return { tone: "warning", label: "Updating projections", detail: "Any saved forecasts stay available while this slate updates." };
+  if (projectionStale || recovery?.status === 'error') return { tone: "warning", label: c.freshnessStale, detail: "Using saved forecasts for this slate. The update will retry automatically." };
   const interval = Number(refresh?.refresh_interval_seconds) > 0 ? Number(refresh.refresh_interval_seconds) : 300;
   const timestamp = Date.parse(refresh?.last_success_at);
   const contextMismatch = (refresh?.season != null && Number(refresh.season) !== Number(season)) || (refresh?.week != null && Number(refresh.week) !== Number(week));

@@ -15,6 +15,7 @@ from src.draft_hub.schemas import LeagueRules
 
 _CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 _PROJ_INDEX: dict[str, dict[str, Any]] | None = None
+_PROJ_REVISION: tuple | None = None
 _LOCK = threading.Lock()
 _TTL_SEC = 3600
 K_DEF_QUANTILE_METHOD = "k_def_rank_v1"
@@ -27,10 +28,11 @@ _PROJ_CURVE = {
 
 
 def invalidate_k_def_cache() -> None:
-    global _PROJ_INDEX
+    global _PROJ_INDEX, _PROJ_REVISION
     with _LOCK:
         _CACHE.clear()
         _PROJ_INDEX = None
+        _PROJ_REVISION = None
 
 
 def _has_nfl_team(series: pd.Series) -> pd.Series:
@@ -137,7 +139,7 @@ def _sleeper_players_df(*, allow_fetch: bool) -> pd.DataFrame:
     if not allow_fetch and _PLAYERS_DF_CACHE is None and not PLAYERS_CACHE.exists():
         return pd.DataFrame()
     try:
-        return players_dataframe(force_refresh=False)
+        return players_dataframe(force_refresh=False, allow_refresh=allow_fetch)
     except Exception:
         return pd.DataFrame()
 
@@ -183,11 +185,20 @@ def build_k_def_projection_index(df: pd.DataFrame, *, games: int = GAMES_PER_SEA
 
 def k_def_projection_index(*, allow_fetch: bool = False) -> dict[str, dict[str, Any]]:
     """Lookup of K/DEF quantiles. Prefers in-process pool rows, then Sleeper cache."""
-    global _PROJ_INDEX
+    global _PROJ_INDEX, _PROJ_REVISION
+    from src.integrations.sleeper import PLAYERS_CACHE
+    from src.core.artifact_revision import artifact_revision
+
+    revision = artifact_revision(PLAYERS_CACHE)
     with _LOCK:
+        if _PROJ_REVISION is not None and _PROJ_REVISION != revision:
+            _PROJ_INDEX = None
+        _PROJ_REVISION = revision
         if _PROJ_INDEX is not None:
             return dict(_PROJ_INDEX)
         for _key, (_ts, rows) in _CACHE.items():
+            if not _key.endswith(f':{revision}'):
+                continue
             built = _index_from_rows(rows)
             if built:
                 _PROJ_INDEX = built
@@ -226,6 +237,24 @@ def k_def_week_bands(
     }
 
 
+def find_k_def_projection(row: dict[str, Any], index: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    """Resolve the same specialist across saved roster and DFS identity forms."""
+    from src.core.team_codes import normalize_team_for_match
+    from src.draft_hub.player_name_match import roster_name_key
+
+    pid = str(row.get('player_id') or '').removeprefix('sleeper-')
+    if pid in index:
+        return index[pid]
+    pos, team = normalize_position(row.get('position')), normalize_team_for_match(row.get('team') or '')
+    if pos == 'DEF' and not team and pid.startswith('dst:'):
+        team = normalize_team_for_match(pid.removeprefix('dst:'))
+    key = roster_name_key(row.get('player_name') or row.get('player'))
+    matches = [hit for hit in index.values() if normalize_position(hit.get('position')) == pos
+               and normalize_team_for_match(hit.get('team')) == team
+               and (pos == 'DEF' or (key and roster_name_key(hit.get('player_name')) == key))]
+    return matches[0] if len(matches) == 1 else None
+
+
 def overlay_k_def_week_projections(
     cards: list[dict[str, Any]],
     *,
@@ -251,7 +280,7 @@ def overlay_k_def_week_projections(
             continue
         if _positive(card.get("p50")) is not None:
             continue
-        hit = index.get(str(card.get("player_id") or ""))
+        hit = find_k_def_projection(card, index)
         if not hit:
             continue
         bands = k_def_week_bands(hit, games=games_n)
@@ -282,7 +311,7 @@ def overlay_k_def_projections(rows: list[dict[str, Any]]) -> list[dict[str, Any]
         current = row.get("season_p50") if row.get("season_p50") is not None else row.get("season_proj")
         if _positive(current) is not None:
             continue
-        hit = index.get(str(row.get("player_id") or ""))
+        hit = find_k_def_projection(row, index)
         if not hit:
             continue
         row["season_proj"] = hit.get("season_proj")

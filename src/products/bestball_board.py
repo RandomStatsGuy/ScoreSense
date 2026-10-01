@@ -61,10 +61,10 @@ def _load_adp_proxy(season: int, position: str) -> pd.DataFrame:
 def build_bestball_board(season: int) -> tuple[pd.DataFrame, dict]:
     """Build from current projection/ECR artifacts, never live inference or ECR fetches.
 
-    Preseason/weekly refresh jobs own materialization. A cold or stale pool is
-    reported as unavailable so a page visit cannot start three model runs.
+    Jobs and the API's shared CPU worker own materialization. A matching-season
+    saved pool remains usable while its replacement rebuilds.
     """
-    pool = load_draft_pool(int(season), allow_compute=False, apply_identity=False)
+    pool = load_draft_pool(int(season), allow_compute=False, apply_identity=False, allow_stale=True)
     if pool.empty:
         raise FileNotFoundError("Season projections are not ready yet. Please try again later.")
     positions = pool["Position"].astype(str).str.upper()
@@ -115,5 +115,6 @@ def build_bestball_board(season: int) -> tuple[pd.DataFrame, dict]:
         "adp_source": "FantasyPros week-1 ECR (cached) when available",
         "fp_prefetch": None,
         "projection_source": "draft_pool_cache",
+        "projection_stale": bool(pool.attrs.get("projection_stale")),
     }
     return board, meta

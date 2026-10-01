@@ -23,7 +23,7 @@ def test_cache_reader_never_requests_inference_or_identity(monkeypatch,tmp_path)
     monkeypatch.setattr(trade,'ROS_PREDICTIONS_DIR',tmp_path)
     monkeypatch.setattr('src.core.schedule_utils.current_projection_week',lambda season:4)
     result=trade.build_trade_outlook(overview([{'player_id':'x'}]))
-    assert calls==[(2026,{'allow_compute':False,'apply_identity':False})]
+    assert calls==[(2026,{'allow_compute':False,'apply_identity':False,'allow_stale':True})]
     assert result['players']['x']['remaining_points'] is None
 
 def test_ros_artifact_and_fingerprint(monkeypatch,tmp_path):
@@ -33,11 +33,31 @@ def test_ros_artifact_and_fingerprint(monkeypatch,tmp_path):
     monkeypatch.setattr('src.core.schedule_utils.current_projection_week',lambda season:4)
     monkeypatch.setattr('src.projections.ros_cache.ros_fingerprint',lambda:'current')
     stem=tmp_path/'2026_w4_qb'
-    stem.with_suffix('.meta.json').write_text(json.dumps({'fingerprint':'current'}))
+    meta={'fingerprint':'current','season':2026,'week':4,'position':'qb','apply_injury_adjustments':True}
+    stem.with_suffix('.meta.json').write_text(json.dumps(meta))
     pd.DataFrame([{'player_id':'x','ROS P50':220}]).to_parquet(stem.with_suffix('.parquet'))
     assert trade.build_trade_outlook(overview([{'player_id':'x'}]))['players']['x']['remaining_points']==220
-    stem.with_suffix('.meta.json').write_text(json.dumps({'fingerprint':'stale'}))
-    assert trade.build_trade_outlook(overview([{'player_id':'x'}]))['players']['x']['remaining_points'] is None
+    stem.with_suffix('.meta.json').write_text(json.dumps({**meta,'fingerprint':'stale'}))
+    result=trade.build_trade_outlook(overview([{'player_id':'x'}]))
+    assert result['players']['x']['remaining_points']==220
+    assert result['stale'] and 'ros' in result['rebuild_kinds']
+
+
+def test_cold_specialist_inputs_request_recovery_without_fetching(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(trade, 'load_draft_pool', lambda *a, **kw: pd.DataFrame())
+    monkeypatch.setattr(trade, 'ROS_PREDICTIONS_DIR', tmp_path)
+    monkeypatch.setattr('src.core.schedule_utils.current_projection_week', lambda season: 4)
+    monkeypatch.setattr('src.core.schedule_utils.SCHEDULE_CACHE', tmp_path / 'missing.parquet')
+    monkeypatch.setattr('src.integrations.sleeper.players_dataframe', lambda **kw: pd.DataFrame())
+    monkeypatch.setattr('src.projections.weekly_cache.load_weekly_prediction', lambda *a, **kw: pd.DataFrame())
+    monkeypatch.setattr('src.draft_hub.k_def_pool_cache.k_def_projection_index',
+                        lambda **kw: calls.append(kw) or {})
+    result = trade.build_trade_outlook(overview([{'player_id':'k', 'position':'K', 'team':'BUF'}]))
+    assert calls == [{'allow_fetch':False}]
+    assert 'specialists' in result['rebuild_kinds']
+    assert result['players']['k']['remaining_points'] is None
+
 
 def test_endpoint_requires_membership_and_reads_only_local_rows(hub_db,monkeypatch):
     from fastapi.testclient import TestClient

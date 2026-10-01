@@ -140,6 +140,20 @@ export const TRADE_DISCOVERY_COPY = {
  missing:'—',noMatches:'No matching teams',review:'Review trade',close:'Close trade review',
  note:'Add a note',afterAccept:'Moves after everyone accepts.',back:'Change partner',advanced:'Advanced moves',
  projectionDetails:'Projection details',
- rosterMethod:'PPR model projections for remaining games. Starters use the best eligible lineup; bench points cover the remaining roster. Missing forecasts stay unavailable.',
- method:'PPR model projections. Season points cover remaining games. Starters use the best eligible lineup; bench points cover the remaining roster. Contract estimates repeat the full-season outlook for future contracted years; they do not predict aging. Points per dollar compare incoming and outgoing season points against current salaries. Missing forecasts stay unavailable.',
+ forecastLoading:'Loading position forecasts…',
+ forecastError:'Forecast update failed. We will retry automatically.',
+ forecastRebuilding:'Updating forecasts. Any saved forecasts remain available while the update runs.',
+ forecastStale:'Using saved forecasts while updated forecasts rebuild.',
+ forecastMissing:n=>`${n} ${n===1?'player still needs':'players still need'} a forecast. Affected position ranks are unavailable.`,
+ rosterMethod:'PPR forecasts for remaining games. Skill positions use model projections; K and DEF use rank-curve estimates. Starters use the best eligible lineup; bench points cover the remaining roster. Missing forecasts stay unavailable.',
+ method:'PPR forecasts. Skill positions use model projections; K and DEF use rank-curve estimates. Season points cover remaining games. Starters use the best eligible lineup; bench points cover the remaining roster. Contract estimates repeat the full-season outlook for future contracted years; they do not predict aging. Points per dollar compare incoming and outgoing season points against current salaries. Missing forecasts stay unavailable.',
 };
+
+export function tradeForecastStatus(outlook) {
+ if (!outlook) return TRADE_DISCOVERY_COPY.forecastLoading;
+ if (outlook.error || outlook.recovery?.status === 'error') return TRADE_DISCOVERY_COPY.forecastError;
+ if (['queued','running','busy'].includes(outlook.recovery?.status)) return TRADE_DISCOVERY_COPY.forecastRebuilding;
+ if (outlook.stale) return TRADE_DISCOVERY_COPY.forecastStale;
+ if (outlook.missing_player_ids?.length) return TRADE_DISCOVERY_COPY.forecastMissing(outlook.missing_player_ids.length);
+ return '';
+}

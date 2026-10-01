@@ -115,7 +115,7 @@ QB_POOL = _pool(
 )
 
 
-def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+def _fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
     pos = position.lower()
     if pos == "wr":
         return WR_POOL.copy()

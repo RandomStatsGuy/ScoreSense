@@ -63,7 +63,7 @@ def predict_draft_season(
 
     target_week = 1
     roster, inference_meta = build_inference_roster(
-        df, position, season, target_week, depth_mode="draft"
+        df, position, season, target_week, depth_mode="coverage"
     )
     feature_season = int(inference_meta["feature_season"])
     roster_overlay = inference_meta.get("roster_overlay") or {"applied": False}
@@ -235,6 +235,8 @@ def predict_draft_season(
 
     if "player_id" in weekly.columns:
         result["player_id"] = weekly["player_id"]
+    if "projection_source" in weekly.columns:
+        result["projection_source"] = weekly["projection_source"]
     # predict_from_features copies mlready `position` onto capital `Position`.
     if "Position" in weekly.columns:
         result["position"] = weekly["Position"]

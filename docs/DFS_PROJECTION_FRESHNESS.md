@@ -1,12 +1,18 @@
 # DFS projection coverage and refresh
 
-## Coverage is incomplete
+## Shared player coverage
 
-QB/RB/WR model artifacts supply QB/RB/WR/TE rows (TE shares the receiver pipeline). The salary join retains unmodeled slate rows. Kickers have no built-in model; defenses currently use a labeled fixed 7/4/11 estimate. New players without a usable feature profile and unmatched identities can lack projections. Preseason depth selection can also omit newcomers. The earlier league-wide top-40 cutoff has already been removed for DFS.
+The shared QB/RB/WR artifacts include all NFL rostered QB/RB/FB/WR/TE players (TE shares the receiver pipeline). Starter selection does not prune the inference pool. Current NFL identities reconcile Sleeper team, position and status; rostered injured players retain season/ROS forecasts. Players without individual history use the established low-usage profile and keep the **Roster estimate** label. The season receiver endpoint includes tight ends. Weekly, ROS, Season, Fantasy and DFS share this coverage, and saved roster revisions invalidate their artifacts.
+
+The deep DFS artifact adds current starting kickers with **Historical estimate** ranges and DraftKings defenses from the evaluated special-teams model. FanDuel defense estimates retain their **Fixed estimate** label. Skills remain available from the shared weekly artifact when specialty refresh fails. A transient special-teams feed failure can retain historical model inputs; the refresh remains failed/overdue rather than claiming current observations. The salary join retains unresolved slate identities and unavailable players. Unknown inputs never become zero.
 
 `stats.projection_coverage` on salary load/import and `meta.projection_coverage` after optimizer overrides list every salary-backed player missing any finite floor/median/ceiling input. Modeled, fixed, and complete-input counts are distinct. Imported inputs do not count as modeled. The player-pool estimate count and Captain picker now require all three finite inputs; the solver also rejects infinity. A successful optimization only covers its eligible inputs, not a guarantee of optimality across every real player.
 
-This PR does not invent kicker numbers, fit a defense model, or certify complete current live slate coverage. Those require validated input coverage and model evaluation. Existing projection CSV imports can supply missing estimates while retaining their Imported label.
+Missing, damaged or invalidated artifacts recover through the existing shared CPU worker. The last successful forecast stays available only for its exact season, week and injury mode while a replacement runs. Empty replacement outputs preserve prior artifacts. Trade reads also recover missing specialist identities or schedules, and specialist indexes follow saved player-feed revisions.
+
+The saved NFL roster audit measures numeric coverage separately from weekly availability. Unsigned, cut and retired players can legitimately lack a forecast. Ambiguous identities remain unresolved until verified; existing projection CSV imports can supply complete estimates with their **Imported** label. This audit does not certify a live provider's salary catalog.
+
+After materializing a context, run `python scripts/ops/audit_projection_coverage.py --season 2026 --week 4 --output outputs/projection-coverage.json` with `PYTHONPATH=.`. It reads local artifacts and reports each missing rostered skill player for Weekly, Season, ROS and DFS; it exits nonzero if any are missing and performs no inference or network fetches.
 
 ## Five-minute lifecycle
 
@@ -16,7 +22,7 @@ The API starts a DFS refresh task 30 seconds after boot, then targets a 300-seco
 
 `cache/dfs_refresh.json` records attempts, partial-position results, errors and the last fully successful pass. Pool metadata exposes public refresh status and each position's artifact build time. No-success or over-ten-minute last success is marked stale. A failed feed does not advance projection success. A failed position does not prevent attempts for the others. Empty inference output preserves the previous artifact. Weekly parquet/JSON files are individually replaced atomically; the pair and all positions are not a transactional snapshot.
 
-Salary cache hits expire at five minutes for both providers. Expired fetch failures propagate; an old salary file is not relabeled fresh. Uploaded salary catalogs stay frozen. The visible live DFS page checks its selected pool every five minutes, skips hidden tabs and in-progress builds/comparisons, serializes requests, and cancels on context changes/unmount. Successful background checks update the pool/catalog but retain lineups, saved builds, locks, settings and imported overrides. Comparisons invalidate when their inputs change. The UI distinguishes a failed pool request from overdue/failed server projection refresh. Existing builds are not automatically regenerated.
+Salary cache hits expire at five minutes for both providers. Expired fetch failures propagate; an old salary file is not relabeled fresh. Uploaded salary catalogs stay frozen. The visible live DFS page checks its selected pool every five minutes, or every five seconds while a requested-context recovery is running. It skips hidden tabs and in-progress builds/comparisons, serializes requests, and cancels on context changes/unmount. Successful background checks update the pool/catalog but retain lineups, saved builds, locks, settings and imported overrides. Comparisons invalidate when their inputs change. The UI distinguishes a failed pool request from overdue/failed server projection refresh. Existing builds are not automatically regenerated.
 
 Fresh computation is not proof that upstream data is current: weekly feature ETL, nflverse roster/depth data, schedules and models keep their existing update pipelines. This cadence specifically refreshes the player feed, inference, requested salary catalog and live page. Official site scoring and exact live lock validation remain pending.
 
