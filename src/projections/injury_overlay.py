@@ -197,7 +197,7 @@ def _load_roster_features(
     *,
     data_dir: Path | None = None,
 ) -> pd.DataFrame:
-    """Load mlready feature rows for opportunity allocation (team-scoped)."""
+    """Build the same completed-game roster used by weekly forecasts."""
     data_dir = data_dir or PROCESSED_DATA_DIR
     frames: list[pd.DataFrame] = []
     teams_upper = {t.upper() for t in teams} if teams else None
@@ -208,10 +208,9 @@ def _load_roster_features(
         if not path.exists():
             continue
         df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
-        if "season" in df.columns:
-            df = df[df["season"].astype(int) == int(season)]
-        if "week" in df.columns:
-            df = df[df["week"].astype(int) == int(week)]
+        from src.core.projection_context import build_inference_roster
+
+        df, _ = build_inference_roster(df, pos, season, week, depth_mode="coverage")
         if teams_upper is not None and "team" in df.columns:
             df = df[df["team"].astype(str).str.upper().isin(teams_upper)]
         if df.empty:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
@@ -17,13 +18,6 @@ from src.core.features import (
     get_position_features,
     safe_div,
 )
-
-try:
-    from src.analytics.candidate_etl import build_candidate_features
-    from src.analytics.historical_injury import add_historical_injury_features
-except ImportError:
-    build_candidate_features = None
-    add_historical_injury_features = None
 
 try:
     from bdb_companion.target_quality import merge_target_quality_into_wr_features
@@ -234,7 +228,7 @@ def build_position_dataset(
     }
     df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
 
-    lead_rename = {c: f"{c}_lead" for c in spec.stat_cols if c in df.columns}
+    lead_rename = {c: f"{c}_lead" for c in (*spec.stat_cols, *share_cols) if c in df.columns}
     df = df.rename(columns=lead_rename)
 
     keep = [
@@ -268,8 +262,12 @@ def build_all_datasets(
     seasons = seasons or DEFAULT_ETL_SEASONS
     output_dir = output_dir or PROCESSED_DATA_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    if enrich_analytics and build_candidate_features is not None:
+    # Import after module initialization: candidate_etl uses our loaders. An
+    # eager import here silently disabled both enrichers on the normal job path.
+    if enrich_analytics:
+        from src.analytics.candidate_etl import build_candidate_features, merge_candidate_frame
+        from src.analytics.historical_injury import add_historical_injury_features
+        from src.config import CANDIDATE_DATA_DIR
         print("Building analytics candidate features...")
         for position in FEATURE_REGISTRY:
             build_candidate_features(position, seasons)
@@ -281,22 +279,19 @@ def build_all_datasets(
     paths: dict[str, Path] = {}
     for position in FEATURE_REGISTRY:
         dataset = build_position_dataset(weekly, schedules, team_epa, position)
-        if enrich_analytics and build_candidate_features is not None:
-            from src.analytics.candidate_etl import merge_candidates_into_mlready
-            from src.config import CANDIDATE_DATA_DIR
-
-            try:
-                path = output_dir / f"{position}_mlready.parquet"
-                write_parquet(dataset, path)
-                dataset = merge_candidates_into_mlready(position, output_dir, CANDIDATE_DATA_DIR)
-            except FileNotFoundError:
-                pass
-        if enrich_analytics and add_historical_injury_features is not None:
+        if enrich_analytics:
+            candidates = pd.read_parquet(CANDIDATE_DATA_DIR / f"candidate_features_{position}.parquet")
+            dataset = merge_candidate_frame(dataset, candidates)
             dataset = add_historical_injury_features(dataset)
         if position == "wr" and merge_target_quality_into_wr_features is not None:
             dataset = merge_target_quality_into_wr_features(dataset)
         path = output_dir / f"{position}_mlready.parquet"
-        write_parquet(dataset, path)
+        temporary = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+        try:
+            write_parquet(dataset, temporary)
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
         paths[position] = path
         print(f"Wrote {position}: {len(dataset):,} rows -> {path}")
         del dataset

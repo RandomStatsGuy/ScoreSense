@@ -1,5 +1,10 @@
 # ScoreSense Evaluation
 
+The 2024 tables below are legacy results and predate the corrected season split,
+baseline fallback and defensive-EPA timing. For the 2026 input audit and the
+limited 2025 repair comparisons, see [Projection reliability](PROJECTION_RELIABILITY.md).
+These comparisons do not promote a replacement production model.
+
 Walk-forward backtest results on **2024** holdout (trained on 2018–2023).
 
 Regenerate:
