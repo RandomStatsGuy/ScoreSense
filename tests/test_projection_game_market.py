@@ -112,7 +112,8 @@ def test_market_gate_rejects_false_alarms_and_falls_back_to_recent_gate(tmp_path
     (tmp_path / "recent_usage_gate_qb.json").write_text(json.dumps(valid))
     invalid = {**valid, "candidate_policy": MARKET_MEDIAN_POLICY, "comparisons": []}
     (tmp_path / "game_market_gate_qb.json").write_text(json.dumps(invalid))
-    chosen = train.gated_training_options("qb", tmp_path, [2024, 2025], train.DEFAULT_TRAINING_CONFIG)
+    chosen = train.gated_training_options("qb", tmp_path, [2024, 2025], train.DEFAULT_TRAINING_CONFIG,
+                                          require_qualified=True)
     assert chosen["input_policy"] == RECENT_MEDIAN_POLICY
 
 

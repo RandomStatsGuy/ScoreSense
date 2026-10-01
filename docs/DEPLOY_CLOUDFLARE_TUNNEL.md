@@ -222,6 +222,36 @@ To serve `https://fourthdownlabs.com` (marketing page):
 See also [DEPLOY_VPS.md](./DEPLOY_VPS.md) (nginx/A-record alternative) and [DEPLOY.md](./DEPLOY.md) (Patreon flow).
 
 
+## Activating projection model changes
+
+Deployment preserves the server's processed data, fitted model bundles and
+projection caches. Merging or deploying a model-code change does not retrain
+those bundles. After deploying qualified projection changes, run a full refresh
+on the VPS:
+
+```bash
+cd /root/scoresense
+docker compose -f deploy/docker-compose.prod.yml run --rm --build refresh
+```
+
+`--build` also protects manual runs after deployments made outside the supported
+script. The supported deployment script explicitly builds both `api` and
+`refresh`: the worker is behind the `cron` profile and an untargeted build can
+leave its previous image in place. The app's Refresh button uses existing models
+and does not replace this retraining step. A cold full refresh can take tens of
+minutes because it rebuilds historical inputs, fits the serving bundles, and
+warms weekly, season and Fantasy artifacts.
+
+Check `data/cache/last_refresh.json` for the current stage and a successful
+completion, then inspect `artifacts/models/v2/training_summary.json` for the
+serving models' `input_policy`, training seasons and digest. Each deployed gate
+must match the rebuilt historical matrix and training preset. A full refresh
+fails before fitting when none of a position's configured qualified policies
+matches; it preserves the previous serving model bundles instead of silently
+publishing an unqualified baseline. Re-run qualification against the changed
+inputs to resolve that error. Do not treat a successful image build, health
+check, or an old model's validation MAE as evidence of model activation.
+
 ## Retained frontend assets
 
 Use `deploy.ps1` / `deploy/server/deploy-on-server.sh` for releases. Before replacing the previous API container, the script archives its exact built assets in the persistent `artifacts/frontend_assets/` directory. Container discovery includes stopped containers: GitHub deployment stops the API for its SQLite backup before invoking this script. The new API serves a missing hashed asset from this archive, preserving open clients across a release. Archived assets are retained for seven days after retirement; expired files are pruned on the next deployment. The shell and service worker continue to revalidate.

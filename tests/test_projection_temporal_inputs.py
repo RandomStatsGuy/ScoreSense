@@ -223,6 +223,55 @@ def test_auto_training_gate_accepts_matching_data_and_rejects_revision(tmp_path,
     data.loc[0, "Fpts"] = 50.
     data.to_parquet(tmp_path / "qb_mlready.parquet")
     assert train.gated_training_options("qb", tmp_path, [2024, 2025], train.DEFAULT_TRAINING_CONFIG) == {}
+    with pytest.raises(ValueError, match="QB refresh cannot use the configured qualified model"):
+        train.gated_training_options("qb", tmp_path, [2024, 2025], train.DEFAULT_TRAINING_CONFIG,
+                                     require_qualified=True)
+
+
+def test_full_refresh_preflights_all_serving_contracts_before_any_fit(tmp_path, monkeypatch):
+    from src.pipeline import train
+    previous = tmp_path / "qb_model.joblib"
+    previous.write_bytes(b"previous qualified model")
+    checks = []
+    def options(position, data_dir, seasons, config, *, require_qualified):
+        assert require_qualified
+        checks.append((position, config.name))
+        if position == "rb":
+            raise ValueError("RB refresh cannot use the configured qualified model")
+        return {"input_policy": RECENT_MEDIAN_POLICY}
+    monkeypatch.setattr(train, "gated_training_options", options)
+    monkeypatch.setattr(train, "train_position_model", lambda *a, **kw: pytest.fail("Fitting before serving qualification"))
+    with pytest.raises(ValueError, match="RB refresh"):
+        train.train_all(data_dir=tmp_path, model_dir=tmp_path)
+    assert checks == [("qb", "default"), ("rb", "rb_p90_boom_3")]
+    assert previous.read_bytes() == b"previous qualified model"
+    assert list(tmp_path.iterdir()) == [previous]
+
+
+def test_preflight_policies_apply_to_serving_bundles_with_their_actual_presets(tmp_path, monkeypatch):
+    from src.pipeline import train
+    checks, fits = [], []
+    def options(position, data_dir, seasons, config, *, require_qualified):
+        checks.append((position, config.name, require_qualified))
+        return {"input_policy": RECENT_MEDIAN_POLICY, "gate_report": tmp_path / f"{position}.json"}
+    monkeypatch.setattr(train, "gated_training_options", options)
+    monkeypatch.setattr(train, "train_position_model", lambda pos, **kw: fits.append((pos, kw.get("input_policy"))) or {})
+    monkeypatch.setattr(train, "train_rb_calibrated_model", lambda *a, **kw: fits.append(("rb_calibrated", kw["input_policy"])) or {})
+    monkeypatch.setattr(train, "train_wr_calibrated_model", lambda *a, **kw: fits.append(("wr_calibrated", kw["input_policy"])) or {})
+    train.train_all(data_dir=tmp_path, model_dir=tmp_path)
+    assert checks == [("qb", "default", True), ("rb", "rb_p90_boom_3", True), ("wr", "wr_p90_boom_3", True)]
+    assert fits == [("qb", RECENT_MEDIAN_POLICY), ("rb", None), ("wr", None),
+                    ("rb_calibrated", RECENT_MEDIAN_POLICY), ("wr_calibrated", RECENT_MEDIAN_POLICY)]
+
+
+def test_unknown_qualified_policy_cannot_silently_publish_the_baseline(tmp_path, monkeypatch):
+    import json
+    from src.pipeline import train
+    monkeypatch.setattr(train, "PROJECTION_MODEL_GATES_DIR", tmp_path)
+    (tmp_path / "recent_usage_gate_wr.json").write_text(json.dumps({
+        "gate": {"eligible_for_publication": True}, "candidate_policy": "unrecognized_future_policy"}))
+    with pytest.raises(ValueError, match="WR refresh"):
+        train.gated_training_options("wr", tmp_path, [2024], train.WR_P90_BOOM_WEIGHT_3, require_qualified=True)
 
 
 def test_weekly_loader_prefers_consistent_current_schema_and_logs_fallback(monkeypatch, capsys):
