@@ -116,7 +116,7 @@ function render() {
   document.body.classList.toggle('still',reduced.matches);
   stage.innerHTML = fallingField()+svg(scene)+'<div class="scene-drag-area" aria-hidden="true" hidden></div>'+(!scene&&!state.falling?'<div class="scene-empty">Just your colors.</div>':'');
   document.getElementById('scene-title').textContent=sceneNames[state.theme] || 'Classic';
-  document.getElementById('scene-instruction').textContent=state.theme==='none'?'The original ScoreSense palette.':canReact?`${instructions[state.theme]} Move within the square, then let go. Arrow keys work too.`:hasCompanions?'A quiet little scene. No reactions.':state.falling?'Only subtle falling decorations.':'The same palette across the app.';
+  document.getElementById('scene-instruction').textContent=state.theme==='none'?'The original ScoreSense palette.':canReact?`${instructions[state.theme]} Move the toy, then let go. Arrow keys work too.`:hasCompanions?'A quiet little scene. No reactions.':state.falling?'Only subtle falling decorations.':'The same palette across the app.';
   document.getElementById('reactions').disabled = !hasCompanions || reduced.matches;
   ['falling','companions'].forEach(id=>document.getElementById(id).disabled=state.theme==='none');
   document.getElementById('layer-status').textContent = reduced.matches?'Reduced motion is on. Your scene stays still.':state.theme==='none'?'Classic colors.':`${state.falling?'Falling decorations':'No falling decorations'} · ${hasCompanions?'Companions':'No companions'}${hasCompanions?canReact?' · Reactions on':' · Reactions off':''}`;
