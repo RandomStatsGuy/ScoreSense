@@ -25,6 +25,15 @@ def _pool(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _prepare_fixture_week():
+    """Publish fake source data before exercising HTTP/read payload composition."""
+    from src.draft_hub.prepared_week_context import prepare_week_context
+    with patch("src.draft_hub.weekly_command_center._load_prior_ppg_index", return_value={}), \
+         patch("src.draft_hub.weekly_command_center._load_def_vs_pos", return_value={}), \
+         patch("src.draft_hub.weekly_command_center._load_vegas_teams", return_value={}):
+        prepare_week_context(2026, 1)
+
+
 WR_POOL = _pool(
     [
         {
@@ -468,6 +477,7 @@ def test_build_command_center_payload(hub_db):
         "src.projections.projection_movement.build_projection_movement_payload",
         return_value={"available": False, "changes": [], "meta": {}},
     ):
+        _prepare_fixture_week()
         payload = build_weekly_command_center(ctx, season=2026, week=1, timings=timings)
 
     assert {"build.context", "build.roster", "build.projections", "build.enrich", "build.lineup", "build.call_facts", "build.movement"} <= timings.keys()
@@ -523,6 +533,7 @@ def test_league_cards_opt_in_for_trade_week_preview(hub_db):
         "src.projections.projection_movement.build_projection_movement_payload",
         return_value={"available": False, "changes": [], "meta": {}},
     ):
+        _prepare_fixture_week()
         default = build_weekly_command_center(ctx, season=2026, week=1)
         enriched = build_weekly_command_center(ctx, season=2026, week=1, league_cards=True)
 
@@ -646,6 +657,7 @@ def test_hub_only_week_persists_lineup(hub_db, before_nfl_week_one):
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
     ):
+        _prepare_fixture_week()
         payload = build_weekly_command_center(ctx, season=2026, week=1)
 
     assert payload["meta"]["lineup_source"] == "hub"
@@ -667,6 +679,7 @@ def test_missing_artifacts_graceful(hub_db):
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
     ):
+        _prepare_fixture_week()
         payload = build_weekly_command_center(ctx, season=2026, week=1)
 
     assert payload["meta"]["projections_available"] is False
@@ -688,6 +701,7 @@ def test_empty_roster_unlinked_solo(hub_db):
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
     ):
+        _prepare_fixture_week()
         payload = build_weekly_command_center(ctx, season=2026, week=1)
 
     assert payload["status"]["empty_roster"] is True
@@ -709,6 +723,7 @@ def test_api_hub_week_endpoint(hub_db):
         ), patch(
             "src.draft_hub.league_sleeper_sync.compose_team_roster_from_live_snapshot",
         ) as live_sleeper:
+            _prepare_fixture_week()
             res = client.get("/api/hub/week", params={"season": 2026, "week": 1})
             assert res.status_code == 200
             data = res.json()
@@ -743,6 +758,7 @@ def test_list_roster_for_context_not_called_with_live_sleeper(hub_db):
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
     ):
+        _prepare_fixture_week()
         build_weekly_command_center(ctx, season=2026, week=1)
     roster_fn.assert_called_once()
     assert roster_fn.call_args.kwargs.get("live_sleeper") is False
@@ -839,6 +855,7 @@ def test_name_fallback_joins_sleeper_prefixed_roster_ids(hub_db, before_nfl_week
         "src.draft_hub.weekly_command_center.resolve_week_context",
         return_value=(2026, 1),
     ):
+        _prepare_fixture_week()
         payload = build_weekly_command_center(ctx, season=2026, week=1)
 
     starters = payload["roster"]["starters"] + payload["roster"]["bench"]

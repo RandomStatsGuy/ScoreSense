@@ -5,16 +5,22 @@ import time
 import pandas as pd
 
 
-def test_projection_context_single_builder_and_isolated_callers(monkeypatch):
+def test_projection_context_prepared_once_and_isolated_callers(monkeypatch):
     from src.draft_hub import weekly_command_center as wc
+    from src.draft_hub import prepared_week_context as pc
     revision = [1]
     calls = []
     monkeypatch.setattr(wc, "_weekly_context_revision", lambda *args: tuple(revision))
     def build(*args, **kwargs):
         calls.append(1)
         time.sleep(.02)
-        return {"p": {"p50": 18}}, {"_by_name": {"name": [{"p50": 18}]}}
+        entry = {"p50": 18}
+        return {"p": entry}, {"_by_name": {"name": [entry]}, "available_positions": ["qb"]}
     monkeypatch.setattr(wc, "_build_projection_index", build)
+    monkeypatch.setattr(wc, "_load_prior_ppg_index", lambda *_: {})
+    monkeypatch.setattr(wc, "_load_def_vs_pos", lambda *_: {})
+    monkeypatch.setattr(wc, "_load_vegas_teams", lambda *_: {})
+    pc.prepare_week_context(2026, 4)
     def read():
         return wc._load_projection_index(2026, 4, apply_injury_adjustments=True)
     with ThreadPoolExecutor(max_workers=6) as pool:
@@ -23,6 +29,9 @@ def test_projection_context_single_builder_and_isolated_callers(monkeypatch):
     results[0][0]["p"]["p50"] = 99
     assert read()[0]["p"]["p50"] == 18
     revision[0] += 1
+    read()
+    assert len(calls) == 1
+    pc.prepare_week_context(2026, 4)
     read()
     assert len(calls) == 2
 

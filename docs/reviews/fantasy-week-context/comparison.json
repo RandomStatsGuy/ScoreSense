@@ -1,0 +1,115 @@
+{
+  "isolatedDatabaseCopy": true,
+  "productionDatabaseWrites": false,
+  "externalRequestsDisabled": true,
+  "sameRosterLineupProjectionsAndDecisions": true,
+  "candidateDatabaseUnchanged": true,
+  "preparation": {
+    "status": "prepared",
+    "players": 459
+  },
+  "preparationMs": 2227.0,
+  "preparationSourceCaches": "warmed by baseline; not a cold preparation benchmark",
+  "samples": [
+    {
+      "label": "deployed-cold",
+      "wallMs": 5996.4,
+      "phasesMs": {
+        "build.context": 68.2,
+        "build.roster": 10.0,
+        "build.projections": 5273.5,
+        "build.enrich": 48.7,
+        "build.lineup": 35.6,
+        "build.call_facts": 504.2,
+        "build.movement": 55.9
+      },
+      "rosterCount": 13
+    },
+    {
+      "label": "deployed-warm-1",
+      "wallMs": 211.3,
+      "phasesMs": {
+        "build.context": 46.6,
+        "build.roster": 20.5,
+        "build.projections": 7.4,
+        "build.enrich": 0.6,
+        "build.lineup": 68.7,
+        "build.call_facts": 6.8,
+        "build.movement": 60.4
+      },
+      "rosterCount": 13
+    },
+    {
+      "label": "deployed-warm-2",
+      "wallMs": 152.4,
+      "phasesMs": {
+        "build.context": 71.8,
+        "build.roster": 11.3,
+        "build.projections": 2.9,
+        "build.enrich": 0.5,
+        "build.lineup": 30.9,
+        "build.call_facts": 2.0,
+        "build.movement": 32.8
+      },
+      "rosterCount": 13
+    },
+    {
+      "label": "candidate-first-durable-read",
+      "wallMs": 129.1,
+      "phasesMs": {
+        "build.context": 34.1,
+        "build.roster": 9.8,
+        "build.projections": 11.8,
+        "build.enrich": 0.7,
+        "build.lineup": 36.0,
+        "build.call_facts": 2.6,
+        "build.movement": 33.9
+      },
+      "rosterCount": 13
+    },
+    {
+      "label": "candidate-warm-1",
+      "wallMs": 117.3,
+      "phasesMs": {
+        "build.context": 34.1,
+        "build.roster": 9.9,
+        "build.projections": 4.2,
+        "build.enrich": 0.6,
+        "build.lineup": 32.7,
+        "build.call_facts": 2.4,
+        "build.movement": 33.1
+      },
+      "rosterCount": 13
+    },
+    {
+      "label": "candidate-warm-2",
+      "wallMs": 114.2,
+      "phasesMs": {
+        "build.context": 33.5,
+        "build.roster": 9.5,
+        "build.projections": 4.1,
+        "build.enrich": 0.6,
+        "build.lineup": 32.1,
+        "build.call_facts": 1.8,
+        "build.movement": 32.3
+      },
+      "rosterCount": 13
+    },
+    {
+      "label": "candidate-source-changed",
+      "wallMs": 114.3,
+      "phasesMs": {
+        "build.context": 32.6,
+        "build.roster": 9.5,
+        "build.projections": 4.2,
+        "build.enrich": 0.6,
+        "build.lineup": 32.3,
+        "build.call_facts": 1.8,
+        "build.movement": 33.0
+      },
+      "rosterCount": 13
+    }
+  ],
+  "candidateStatus": "ready",
+  "changedSourceStatus": "refreshing"
+}

@@ -47,10 +47,25 @@ def auth_db(tmp_path, monkeypatch):
     return tmp_path
 
 
+@pytest.fixture
+def prepare_weekly_context():
+    """Publish mocked weekly source data before a payload or HTTP read."""
+    from unittest.mock import patch
+    from src.draft_hub.prepared_week_context import prepare_week_context
+    def prepare(season=2026, week=1):
+        with patch("src.draft_hub.weekly_command_center._load_prior_ppg_index", return_value={}), \
+             patch("src.draft_hub.weekly_command_center._load_def_vs_pos", return_value={}), \
+             patch("src.draft_hub.weekly_command_center._load_vegas_teams", return_value={}):
+            return prepare_week_context(season, week)
+    return prepare
+
+
 @pytest.fixture(autouse=True)
 def _isolate_materialized_caches(tmp_path, monkeypatch):
     from src.draft_hub import value_snapshot
     monkeypatch.setattr(value_snapshot, "SNAPSHOT_DIR", tmp_path / "value_snapshots")
+    from src.draft_hub import prepared_week_context
+    monkeypatch.setattr(prepared_week_context, "FANTASY_WEEK_CONTEXT_DIR", tmp_path / "fantasy_week_context")
     from src.draft_hub.weekly_command_center import invalidate_weekly_context_cache
     from src.draft_hub import contract_sync, draft_pool_cache
     from src.draft_hub.value_sheet import invalidate_pool_payload_cache
