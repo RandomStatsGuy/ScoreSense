@@ -22,11 +22,12 @@ export const SHARED = Object.freeze({
   tokens: [
     "frontend/src/styles/tokens.css",
     "frontend/src/styles/color-theme.css",
+    "frontend/src/styles/appearance.css",
     "frontend/src/styles/product-hierarchy.css",
     "frontend/src/styles/product-rhythm.css",
     "frontend/src/styles/fantasy-phone.css",
   ],
-  theme: ["frontend/public/theme-init.js", "frontend/src/layout/ThemeToggle.jsx", "frontend/src/themePresentation.js"],
+  theme: ["frontend/public/theme-init.js", "frontend/src/layout/ThemeToggle.jsx", "frontend/src/themePresentation.js", "frontend/src/AppearanceProvider.jsx", "frontend/src/AppearanceSettings.jsx", "frontend/src/layout/AppearanceLink.jsx", "frontend/src/styles/appearance.css"],
   primitives: "frontend/src/DraftHub/HubUILayout.jsx",
   // Request painted size via HubMediaImg / identityMediaUrl (?w=48|96|256).
   media: "frontend/src/DraftHub/HubMediaImg.jsx",
@@ -190,7 +191,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LeagueTrades.jsx",
     copy: "frontend/src/DraftHub/leagueTradesPresentation.js",
     also: ["frontend/src/DraftHub/TradeDiscovery.jsx", "frontend/src/DraftHub/TradeImpactGrid.jsx", "frontend/src/DraftHub/tradeOutlook.js", "frontend/src/styles/league-trades.css"],
-    doNot: "Team discovery is the landing view: two wide saved-image banner cards per row, team name first and owner below, searchable by team, manager or player. Each card compares projected Starter and Bench positional strength across the league and shows Available Cap only in salary leagues. Tapping a team opens both rosters with square selection controls. A live 2×2 grid shows remaining-season points, contract-life points, starter/bench changes and points per dollar; pick leagues omit contract life and points per dollar. The same grid sits in the mobile bottom-sheet Review. Missing forecasts stay unavailable. Rank uses an optimal eligible projected lineup, not salary or player counts. Forecasts are PPR research; future contract years use an explicitly labeled same-pace estimate, not a dynasty model. Use a compact title/actions without an experience hero. Multi-team routing, cuts and dead-cap assignment stay in disclosures. Auto-check each package and gate Propose on a pass; verdict sits beside the primary. Review or Propose is the only primary. Inbox and Ideas remain secondary. Trades cap is current active roster salary including expiring contracts, distinct from My team draft-surviving committed salary.",
+    doNot: "Multi-team sends require explicit recipients. Dead-cap transfers preserve source and history. Sleeper owns linked player moves; cap agreements wait for synced destinations and untracked moves require cap review. Team discovery is the landing view: two wide saved-image banner cards per row, team name first and owner below, searchable by team, manager or player. Each card compares projected Starter and Bench positional strength across the league and shows Available Cap only in salary leagues. Tapping a team opens both rosters with square selection controls. A live 2×2 grid shows remaining-season points, contract-life points, starter/bench changes and points per dollar; pick leagues omit contract life and points per dollar. The same grid sits in the mobile bottom-sheet Review. Missing forecasts stay unavailable. Rank uses an optimal eligible projected lineup, not salary or player counts. Forecasts are PPR research; future contract years use an explicitly labeled same-pace estimate, not a dynasty model. Use a compact title/actions without an experience hero. Multi-team routing, cuts and dead-cap assignment stay in disclosures. Auto-check each package and gate Propose on a pass; verdict sits beside the primary. Review or Propose is the only primary. Inbox and Ideas remain secondary. Trades cap is current active roster salary including expiring contracts, distinct from My team draft-surviving committed salary.",
   }),
   "hub.rules": S({
     label: "Rules",
@@ -390,8 +391,9 @@ export const LIVING_SURFACES = Object.freeze({
     chrome: "account",
     route: "/account",
     page: "frontend/src/AccountSettingsPage.jsx",
-    also: ["frontend/src/AccountAuth.jsx"],
-    doNot: "Account-only. Do not add Account to top-level nav.",
+    copy: "frontend/src/themePresentation.js",
+    also: ["frontend/src/AccountAuth.jsx", "frontend/src/AppearanceSettings.jsx", "frontend/src/AppearanceProvider.jsx", "frontend/src/DraftHub/AtmosphereLayer.jsx", "frontend/src/DraftHub/atmosphereCatalog.js", "frontend/src/styles/appearance.css"],
+    doNot: "Account-only. Do not add Account to top-level nav. Approved September 30 Appearance applies cohesive vibrant themes across the app. Keep System/Light/Dark separate from the account theme; atmosphere and motion are independent. Preserve recognizable cats, snow, and leaves, readable boards, reduced motion, and draft workspace clarity. Failed saves restore the previous choice.",
   }),
   "account.report": S({
     label: "Report a bug",

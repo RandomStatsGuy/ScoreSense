@@ -5335,7 +5335,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: 0.85rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 @media (min-width: 1100px) {
@@ -5497,6 +5497,25 @@
   flex-shrink: 0;
 }
 
+.hub-trade-leg-row label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.hub-trade-leg-row input[type="number"] {
+  width: 8ch;
+  min-height: var(--control-h-sm);
+}
+
+@media (max-width: 768px) {
+  .hub-trade-leg-row input[type="number"] {
+    min-height: var(--control-h-lg);
+  }
+}
+
 .hub-trade-salary {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -5584,6 +5603,7 @@
 
 .hub-trade-primary {
   min-width: 10.5rem;
+  min-height: var(--control-h-lg);
 }
 
 .hub-trade-filter-hint,

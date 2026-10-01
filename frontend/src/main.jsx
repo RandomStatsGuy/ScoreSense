@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import AnalyticsListener from "./AnalyticsListener";
 import AppRouter from "./AppRouter";
+import { AppearanceProvider, AppAppearanceLayer } from "./AppearanceProvider";
 import AuthGate from "./AuthGate";
 import PageRecoveryBoundary from "./PageRecoveryBoundary";
 import "./styles.css";
@@ -13,6 +14,7 @@ import "./styles/fantasy-phone.css";
 import "./styles/fantasy-header.css";
 import "./styles/standalone-dialogs.css";
 import "./styles/color-theme.css";
+import "./styles/appearance.css";
 import { startClientVersionWatcher } from "./clientVersion";
 import { startFantasyDiagnostics } from "./fantasyPerformance";
 import FantasyPerformanceListener from "./FantasyPerformanceListener";
@@ -26,7 +28,7 @@ createRoot(document.getElementById("root")).render(
       <FantasyPerformanceListener />
       <AnalyticsListener />
       <PageRecoveryBoundary><AuthGate>
-        <AppRouter />
+        <AppearanceProvider><AppAppearanceLayer><AppRouter /></AppAppearanceLayer></AppearanceProvider>
       </AuthGate></PageRecoveryBoundary>
     </BrowserRouter>
   </React.StrictMode>

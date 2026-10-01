@@ -10,6 +10,7 @@ import {
   joinSalarySchedule,
   previewSchedule,
   rosterSlotKey,
+  preDraftCutDeadCap,
 } from "./rosterFormat.js";
 
 test("rosterSlotKey is empty when the row is missing", () => {
@@ -49,8 +50,8 @@ test("active contract if-undone value is a dash, not a label prefix", () => {
 
 test("contract types are rookie deal, vet deal, and extension", () => {
   assert.deepEqual(CONTRACT_TYPE_OPTIONS.map((o) => o.label), [
-    "Rookie contract",
-    "Veteran contract",
+    "Rookie deal",
+    "Vet deal",
     "Extension",
   ]);
   assert.equal(contractTypeLabel("extension"), "Extension");
@@ -85,6 +86,13 @@ test("flat salary schedules render as one figure", () => {
       salary: 12,
       veteran_salary_static: true,
     }),
-    "Veteran contract · 2y · $12",
+    "Vet deal · 2y · $12",
   );
+});
+
+test("shared dead-cap displays use the allocated amount after a trade", () => {
+  const row = { ...ZAMIR, contract: { dead_cap_amount: 2, dead_cap_sources: [] } };
+  assert.equal(preDraftCutDeadCap(row, RULES), 2);
+  assert.equal(contractDeadCapStory(row, RULES).dead, 2);
+  assert.equal(contractDeadCapStory(row, RULES).cutBullet, "$2 dead cap carried after trade");
 });

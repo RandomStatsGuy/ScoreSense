@@ -92,6 +92,54 @@ def test_propose_accept_executes(hub_db):
     assert storage.get_roster_slot(ws["id"], "p-b")["team_id"] == team_a["id"]
 
 
+def test_three_team_cycle_waits_for_every_acceptance(hub_db):
+    league, a, b, ws, comm, member = _two_team_league(hub_db)
+    c = storage.join_league("third-member", league["room_code"], "Team C")
+    storage.add_roster_slot(ws["id"], {
+        "player_id": "p-c", "player_name": "Player C", "team": "SEA",
+        "position": "TE", "salary": 20, "contract_years": 2,
+    }, team_id=c["id"])
+    storage.update_roster_slot(ws["id"], "p-b", contract_years=2, any_team=True)
+    parties = [
+        {"team_id": a["id"], "sends": [{"player_id": "p-a", "to_team_id": b["id"]}]},
+        {"team_id": b["id"], "sends": [{"player_id": "p-b", "to_team_id": c["id"]}]},
+        {"team_id": c["id"], "sends": [{"player_id": "p-c", "to_team_id": a["id"]}]},
+    ]
+    check = validate_trade_package(league["id"], parties)
+    assert check["ok"], check["errors"]
+    assert check["preview"][a["id"]]["committed"] == 20
+    assert check["preview"][b["id"]]["committed"] == 40
+    assert check["preview"][c["id"]]["committed"] == 35
+    prop = propose_trade(league["id"], created_by_sub=comm,
+                         proposer_team_id=a["id"], parties=parties)
+    updated = respond_to_proposal(prop["id"], team_id=b["id"], approve=True, user_sub=member)
+    assert updated["status"] == "pending"
+    assert storage.get_roster_slot(ws["id"], "p-a")["team_id"] == a["id"]
+    updated = respond_to_proposal(prop["id"], team_id=c["id"], approve=True, user_sub="third-member")
+    assert updated["status"] == "executed"
+    for pid, target in [("p-a", b), ("p-b", c), ("p-c", a)]:
+        assert storage.get_roster_slot(ws["id"], pid)["team_id"] == target["id"]
+
+
+def test_trade_roster_view_is_db_only_and_counts_expiring_contracts(hub_db, monkeypatch):
+    from src.draft_hub import insights_cache
+    league, a, b, ws, comm, member = _two_team_league(hub_db)
+    monkeypatch.setattr(insights_cache, "read_fair_values", lambda *args: {})
+    def no_warm(*args):
+        raise AssertionError("Trade roster reads must not warm projections")
+    monkeypatch.setattr(insights_cache, "build_and_store_fair_values", no_warm)
+    client = _client_for(member)
+    try:
+        res = client.get(f"/api/hub/league/{league['id']}/rosters?trade_view=1")
+        assert res.status_code == 200
+        stats = next(t["stats"] for t in res.json()["teams"] if t["team"]["id"] == b["id"])
+        assert stats["committed"] == 35
+        assert stats["unspent"] == 165
+        assert stats["by_position_count"] == {"RB": 1}
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
 def test_dead_cap_assign_on_drop(hub_db):
     league, team_a, team_b, ws, comm, member = _two_team_league(hub_db, a_salary=50, b_salary=10)
     # A drops p-a and assigns dead cap to B; B sends p-b to A

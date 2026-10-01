@@ -168,7 +168,7 @@ def merge_sleeper_team_roster(
     season = int(season or 2026)
     added = 0
     updated = 0
-    slots = _workspace_slots(workspace_id)
+    slots = [r for r in _workspace_slots(workspace_id) if storage.roster_row_occupies(r)]
     for p in players:
         pid = str(p["player_id"])
         existing = find_matching_roster_slot(slots, p, team_id=str(team_id), occupying_only=True)
@@ -712,6 +712,8 @@ def detect_and_apply_sleeper_trades(
                         "to_team_id": new_team,
                     }
                 )
+    from src.draft_hub.sleeper_trade_review import record_synced_moves
+    record_synced_moves(workspace_id, moves)
     return moves
 
 
@@ -861,6 +863,8 @@ def reconcile_league_roster_assignments(league_id: str) -> dict[str, Any]:
 
     moved = 0
     for slot in storage.list_league_roster(ws_id):
+        if not storage.roster_row_occupies(slot):
+            continue
         # Cap-sheet / manual / draft rows are the hub source of truth. Moving them
         # onto Sleeper-name matches swapped Disappointment ↔ Thanks noob noob when
         # those Sleeper display names drifted from manager_team_map.yaml.

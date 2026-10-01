@@ -13,6 +13,7 @@ export function packageFingerprint(parties, deadCapAssignments) {
         to_team_id: s.to_team_id,
       })),
       drops: [...(p.drops || [])],
+      dead_cap_transfers: p.dead_cap_transfers || [],
     })),
     dead: (deadCapAssignments || []).map((a) => ({
       player_id: a.player_id,
@@ -42,7 +43,11 @@ export function partnerCardMeta({ stats, insight, byPos, includeCap = true } = {
   return parts.join(" · ");
 }
 
-export function sendGetCopy({ isYours, playerName, destName, srcName }) {
+export function sendGetCopy({ isYours, playerName, destName, srcName, multiTeam = false }) {
+  if (multiTeam) return {
+    button: TRADES_COPY.sendVerb,
+    aria: TRADES_COPY.sendTo(playerName, destName || TRADES_COPY.chooseRecipient),
+  };
   if (isYours) {
     return {
       button: TRADES_COPY.sendBtnYours,
@@ -53,6 +58,12 @@ export function sendGetCopy({ isYours, playerName, destName, srcName }) {
     button: TRADES_COPY.getBtnTheirs,
     aria: TRADES_COPY.getFrom(playerName, srcName),
   };
+}
+
+export function retainTradeRecipients(parties) {
+  const ids = new Set(parties.map(p => p.team_id).filter(Boolean));
+  return parties.map(p => ({ ...p, sends: p.sends.filter(s => ids.has(s.to_team_id)),
+    dead_cap_transfers: (p.dead_cap_transfers || []).filter(s => ids.has(s.to_team_id)) }));
 }
 
 export function packageLegFlow(leg, teamName, dropVerb = TRADES_COPY.cutVerb) {

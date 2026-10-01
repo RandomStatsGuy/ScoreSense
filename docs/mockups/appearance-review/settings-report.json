@@ -1,0 +1,165 @@
+{
+  "browserErrors": [],
+  "checks": [
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "cozy",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "cozy",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "leaves",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "leaves",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "footballs",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 1280,
+      "theme": "footballs",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "cozy",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "cozy",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "snow",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "snow",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "leaves",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "leaves",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "footballs",
+      "mode": "light",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "actualPath": "/account",
+      "width": 390,
+      "theme": "footballs",
+      "mode": "dark",
+      "ok": true,
+      "failures": [],
+      "overflow": false
+    }
+  ]
+}

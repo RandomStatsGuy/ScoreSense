@@ -63,6 +63,10 @@ export function projectTeamTradeStats({
   });
 
   let deadDelta = 0;
+  (parties || []).forEach(p => (p.dead_cap_transfers || []).forEach(leg => {
+    if (p.team_id === teamId) deadDelta -= Number(leg.amount || 0);
+    if (leg.to_team_id === teamId) deadDelta += Number(leg.amount || 0);
+  }));
   (deadCapAssignments || []).forEach((a) => {
     if (a.assigned_to_team_id !== teamId) return;
     const stillDropped = (parties || []).some(

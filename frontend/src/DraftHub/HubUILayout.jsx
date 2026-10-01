@@ -233,7 +233,7 @@ export function HubFilterChip({
   );
 }
 
-export function HubFilterMenu({ label, value, options, onChange, className = "", disabled = false }) {
+export function HubFilterMenu({ label, value, options, onChange, className = "", disabled = false, ariaLabel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const selected = options.find((opt) => String(opt.id ?? "") === String(value ?? ""));
@@ -263,7 +263,7 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
         className="hub-filter-menu-trigger"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={`${label}: ${display}`}
+        aria-label={`${ariaLabel || label}: ${display}`}
         disabled={disabled}
         onClick={() => {
           if (!disabled) setOpen((v) => !v);

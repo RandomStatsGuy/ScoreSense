@@ -44,7 +44,7 @@ Source: `frontend/src/DraftHub/hubSubnav.js`, `frontend/src/appNavigation.js`.
 
 Priority: fun → easy → clear → selective → respectful. Fun is consequence and rhythm, not decoration.
 
-- Dark or approved soft-canvas light mode, matte, editorial, layered. Shared color-theme tokens; desktop sun/moon and phone More switches persist per browser. Keep team/matchup artwork navy. No neon-terminal chrome. No casino glow.
+- Dark or approved soft-canvas light mode, matte, editorial, layered. Approved Appearance themes add coordinated light/dark palettes and recognizable cats, snow, and leaves across the app. Use shared tokens; keep status semantics and uploaded artwork. Account owns themes and independent atmosphere/motion controls; System/Light/Dark stays browser-local. See PRODUCT.md. No neon-terminal chrome. No casino glow.
 - Tokens only: `frontend/src/styles/tokens.css`, `product-hierarchy.css`, `product-rhythm.css`, `fantasy-phone.css`.
 - Blue (`--experience-blue` / `--accent`) = current context and the next action. Nothing else.
 - Teal = healthy/saved. Amber = attention. Red = destructive/blocking, plus the live auction clock under 5s. Gold = awards only — never the live high-bid figure.
@@ -56,6 +56,8 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Copy lives in `*Presentation.js`. Explain the action and its actual effect in plain language; the cost of getting it wrong is confusion, not drama; do not invent consequences or scold the user. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 
 ## Product rules you may not bypass
+
+- Sleeper owns linked-league player moves; ScoreSense proposals wait for synced destinations before applying agreed cap terms. Synced moves require a separate cap review because Sleeper cannot reveal dead-cap agreements. Preserve the source player, season, amount and transfer history of split dead-cap obligations.
 
 - Non-salary leagues never show salary, cap, contract, dead-cap, or points-per-dollar concepts. Use roster space, roster limits, and positional impact instead.
 - Only native-scoring leagues use automatic calculation; linked Sleeper leagues keep their scoring host. Expose native scoring weights in Rules for commissioners. Refresh native league scores frequently during games and finalize automatically after the week's last game ends (normally Monday night); live updates must not lock unstarted players or finalize standings, and missing inputs must surface as failures. See the implementation status in docs/PRODUCT.md.

@@ -11,6 +11,7 @@ from src.draft_hub.pre_draft_cap import (
     is_active_for_pre_draft,
     retained_through_draft,
     total_pre_draft_dead_cap,
+    pre_draft_cut_dead_cap_at_offset,
     years_remaining,
 )
 from src.draft_hub.rules_engine import normalize_position
@@ -21,6 +22,7 @@ def enrich_league_roster_overview(
     overview: dict[str, Any],
     *,
     fair_map: dict[str, float] | None = None,
+    current_roster: bool = False,
 ) -> dict[str, Any]:
     league = overview.get("league") or {}
     rules = LeagueRules.model_validate(league.get("rules") or {})
@@ -57,7 +59,7 @@ def enrich_league_roster_overview(
             )
             fp_per_dollar = round(fair / sal, 2) if marketable and sal > 0 else None
             active = is_active_for_pre_draft(row)
-            if retained_through_draft(row, draft_completed=draft_completed):
+            if (active and years_remaining(row) > 0 if current_roster else retained_through_draft(row, draft_completed=draft_completed)):
                 committed += sal
                 pos = normalize_position(row.get("position"))
                 by_pos_spend[pos] = by_pos_spend.get(pos, 0.0) + sal
@@ -87,6 +89,8 @@ def enrich_league_roster_overview(
                     "contract_type": ctype,
                     "years_remaining": years_remaining(row),
                     "expire_chip": expire_chip,
+                    "dead_cap_amount": pre_draft_cut_dead_cap_at_offset(rules, row),
+                    "dead_cap_sources": (row.get("contract") or {}).get("dead_cap_sources", []),
                 }
             )
 

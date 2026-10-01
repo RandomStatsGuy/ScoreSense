@@ -243,7 +243,7 @@ function ContractSidePanelBody({
               <span className="mobile-stat-label">{deadStory.isCut ? "Dead cap" : "Dead cap if cut"}</span>
               <strong>{deadStory.deadLabel}</strong>
             </div>
-            {deadStory.isCut && (
+            {deadStory.isCut && !deadStory.transferred && (
               <div className="hub-roster-contract-panel-stat">
                 <span className="mobile-stat-label">Salary restored if cut is undone</span>
                 <strong>{fmtSal(deadStory.salary)}</strong>
@@ -321,7 +321,7 @@ function ContractSidePanelBody({
             {isCut ? (
               <span className="hub-btn-support">
                 {r.can_undo_cut === false
-                  ? MY_TEAM_COPY.undoCutClosedSupport(r.claimed_by_owner)
+                    ? deadStory.transferred ? MY_TEAM_COPY.undoCutTransferred : MY_TEAM_COPY.undoCutClosedSupport(r.claimed_by_owner)
                   : deadStory.undoSupport}
               </span>
             ) : null}

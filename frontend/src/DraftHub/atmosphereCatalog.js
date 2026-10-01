@@ -41,15 +41,16 @@ export const DEFAULT_IDENTITY = {
 export const ATMOSPHERE_CHANGED_EVENT = "scoresense-atmosphere-changed";
 
 export const ATMOSPHERE_COPY = {
-  none: { title: "Off", support: "Keep Fantasy quiet. Recommended default." },
-  snow: { title: "Snow", support: "A faint winter drift behind the page." },
-  leaves: { title: "Fall leaves", support: "A light autumn fall, never in front of the board." },
+  none: { title: "Classic", support: "The original ScoreSense palette." },
+  snow: { title: "Snowfall", support: "Icy blue, falling flakes, and soft snowbanks." },
+  leaves: { title: "Autumn", support: "Copper, rust, and tumbling leaves." },
   footballs: { title: "Footballs", support: "Soft footballs drifting in the background." },
   cozy: { title: "Cozy den", support: "Lamplight, drifting fur and yarn — and ragdolls who notice your cursor." },
 };
 
 /** Copy for the tailoring controls under the theme picker. */
 export const ATMOSPHERE_OPTION_COPY = {
+  intensityTitle: "Intensity",
   motion: { title: "Falling animation", support: "Particles drift down the page and react to your cursor." },
   pile: { title: "Ground pile", support: "Let it collect along the bottom of the page." },
   wash: { title: "Color wash", support: "Tint the background to match the theme." },
@@ -140,6 +141,7 @@ export function mergeAtmospherePrefs(raw) {
   const intensity = String(raw?.atmosphere_intensity || "standard").toLowerCase();
   return {
     atmosphere: ATMOSPHERE_THEMES.includes(theme) ? theme : "none",
+    enabled: coerceBool(raw?.atmosphere_enabled, true),
     motion: coerceBool(raw?.atmosphere_motion, true),
     pile: coerceBool(raw?.atmosphere_pile, true),
     wash: coerceBool(raw?.atmosphere_wash, true),
@@ -152,6 +154,7 @@ export function applyAtmospherePatch(prefs, patch) {
   const current = prefs && typeof prefs === "object" ? prefs : mergeAtmospherePrefs(null);
   return mergeAtmospherePrefs({
     atmosphere: current.atmosphere,
+    atmosphere_enabled: current.enabled ?? true,
     atmosphere_motion: current.motion,
     atmosphere_pile: current.pile,
     atmosphere_wash: current.wash,
@@ -163,6 +166,17 @@ export function applyAtmospherePatch(prefs, patch) {
 export function notifyAtmosphereChanged() {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(ATMOSPHERE_CHANGED_EVENT));
+}
+
+export function serializeAtmospherePrefs(prefs) {
+  return {
+    atmosphere: prefs.atmosphere,
+    atmosphere_enabled: prefs.enabled,
+    atmosphere_motion: prefs.motion,
+    atmosphere_pile: prefs.pile,
+    atmosphere_wash: prefs.wash,
+    atmosphere_intensity: prefs.intensity,
+  };
 }
 
 export function mergeTeamIdentity(raw) {

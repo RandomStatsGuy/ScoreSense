@@ -1,6 +1,7 @@
 import { successfulRefreshRevision } from "../refreshStatus";
 import React from "react";
 import ThemeToggle from "./ThemeToggle";
+import AppearanceLink from "./AppearanceLink";
 import MobileBottomSheet from "./MobileBottomSheet";
 import LegalLinks from "../LegalLinks";
 import { STUDIO_NAME } from "../brand";
@@ -36,6 +37,7 @@ export default function MobileMenuSheet({
     >
       <div className="app-mobile-sheet-list">
         <ThemeToggle menu />
+        {authenticated && <AppearanceLink menu onClick={onClose} />}
         {authReady && !authenticated ? (
           <>
             <button

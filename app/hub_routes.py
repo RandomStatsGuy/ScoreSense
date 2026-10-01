@@ -2125,7 +2125,10 @@ def hub_update_roster(body: RosterUpdateRequest, _user=Depends(require_hub_user)
             salary_schedule=body.salary_schedule,
         )
     elif body.roster_status is not None:
-        contract = contract_on_cut_status_change(existing, roster_status=body.roster_status)
+        try:
+            contract = contract_on_cut_status_change(existing, roster_status=body.roster_status)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if type_field and not can_apply_type and ctx.get("mode") == "league":
         # Already persisted pending above.
@@ -2466,6 +2469,7 @@ def hub_league_rosters(
     response: Response,
     league_id: str,
     refresh: bool = Query(False, description="Bypass cached league rosters payload"),
+    trade_view: bool = Query(False, description="Current roster totals with cached valuations only"),
     _user=Depends(require_hub_user),
 ) -> dict:
     """All-team roster browser — any league member (read-only)."""
@@ -2476,7 +2480,7 @@ def hub_league_rosters(
     source_version = hub_storage.roster_source_version(league_id)
     from src.draft_hub.insights_cache import FAIR_VALUE_ALGO
 
-    cache_key = f"{league_id}:{source_version}:{FAIR_VALUE_ALGO}:enriched"
+    cache_key = f"{league_id}:{source_version}:{FAIR_VALUE_ALGO}:enriched:{trade_view}"
     if not refresh:
         cached = _LEAGUE_ROSTERS_CACHE.get(cache_key)
         if cached and (time.time() - cached[0]) < _LEAGUE_ROSTERS_CACHE_TTL:
@@ -2507,10 +2511,10 @@ def hub_league_rosters(
             league_meta = overview.get("league") or {}
             season_int = int(league_meta.get("season") or 0)
             fair_map = read_fair_values(league_id, season_int) if season_int else None
-            if not fair_map and season_int:
+            if not fair_map and season_int and not trade_view:
                 with timer.phase("fair-warm"):
                     fair_map = build_and_store_fair_values(league_id, overview, season_int)
-            overview = enrich_league_roster_overview(overview, fair_map=fair_map or {})
+            overview = enrich_league_roster_overview(overview, fair_map=fair_map or {}, current_roster=trade_view)
             overview["estimate_context"]["built_at"] = (
                 read_fair_values_built_at(league_id, season_int) if fair_map and season_int else None
             )
@@ -2546,6 +2550,9 @@ def hub_list_trade_proposals(
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     proposals = storage.list_trade_proposals(league_id, status=status)
+    if status == "pending":
+        proposals += storage.list_trade_proposals(league_id, status="awaiting_sleeper")
+        proposals += storage.list_trade_proposals(league_id, status="cap_review")
     return {"proposals": proposals, "count": len(proposals), "hub_context": ctx}
 
 
@@ -2572,12 +2579,41 @@ async def hub_create_trade_proposal(
             parties=parties,
             dead_cap_assignments=assignments,
             note=body.note,
+            source_review_id=body.source_review_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _invalidate_league_rosters_from_ctx(ctx)
     await broadcast_room(league_id)
     return {"proposal": proposal, "hub_context": ctx}
+
+
+@router.post("/league/{league_id}/trades/{proposal_id}/settle")
+def hub_settle_sleeper_trade(league_id: str, proposal_id: str, _user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.sleeper_trade_review import settle_sleeper_proposal
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    prop = storage.get_trade_proposal(proposal_id)
+    if not prop or prop["league_id"] != league_id:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    try:
+        result = settle_sleeper_proposal(proposal_id, user_sub=_sub(_user))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _invalidate_league_rosters_from_ctx(ctx)
+    return {"proposal": result}
+
+
+@router.post("/league/{league_id}/trades/{proposal_id}/reviewed")
+def hub_close_sleeper_cap_review(league_id: str, proposal_id: str, _user=Depends(require_hub_user)) -> dict:
+    from src.draft_hub.sleeper_trade_review import close_cap_review
+    _ctx_for_league(_sub(_user), league_id)
+    prop = storage.get_trade_proposal(proposal_id)
+    if not prop or prop["league_id"] != league_id:
+        raise HTTPException(status_code=404, detail="Review not found")
+    try:
+        return {"proposal": close_cap_review(proposal_id, user_sub=_sub(_user))}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/league/{league_id}/trades/{proposal_id}")
