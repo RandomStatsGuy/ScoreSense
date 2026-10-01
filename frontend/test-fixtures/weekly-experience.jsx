@@ -1,7 +1,14 @@
+import "../src/styles.css";
+import "../src/styles/fantasy.css";
+import "../src/styles/product-hierarchy.css";
+import "../src/styles/product-rhythm.css";
+import "../src/styles/fantasy-phone.css";
+import "../src/styles/color-theme.css";
+import "../src/styles/fantasy-header.css";
 // Production lineup components with isolated, deterministic writes; never contacts a league.
 import React, {useState} from "react";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
-import {LeagueChromeProvider} from "../src/DraftHub/LeagueChromeContext";
+import {LeagueChromeProvider} from "../src/DraftHub/leagueChromeContext";
 import MobileHeader from "../src/layout/MobileHeader";
 import MobileShell from "../src/layout/MobileShell";
 import MobileMenuSheet from "../src/layout/MobileMenuSheet";
@@ -12,15 +19,9 @@ import WeeklyExperience from "../src/DraftHub/WeeklyExperience";
 import HubSubnav from "../src/DraftHub/HubSubnav.jsx";
 import {MemoryRouter} from "react-router-dom";
 import {TeamIdentityProvider} from "../src/DraftHub/TeamIdentityContext";
-import "../src/styles/fantasy-header.css";
-import "../src/styles.css";
-import "../src/styles/fantasy.css";
-import "../src/styles/product-hierarchy.css";
-import "../src/styles/product-rhythm.css";
-import "../src/styles/fantasy-phone.css";
-import "../src/styles/color-theme.css";
 
 const params = new URLSearchParams(location.search);
+document.documentElement.dataset.theme = params.get("theme") || "light";
 const state = params.get("state") || "ready";
 const recorded = ["live", "native-progress", "final"].includes(state);
 const player = (id, name, position, team, p50, slot = "BN") => ({
@@ -58,10 +59,10 @@ window.fetch = async (input, options = {}) => {
     if(state === "score-error") return Response.json({detail:"Matchup unavailable"},{status:503});
     const week = Number(new URL(path, location.origin).searchParams.get("week") || 2);
     const mine={roster_id:"1",hub_team_id:"mine",owner_name:"Tessa",team_name:"Tessa's Revenge",is_viewer:true,points:recorded ? 42.3 : 0,
-      starters:data.roster.starters.map(p=>({player_id:p.player_id,name:p.player_name,position:p.position,team:p.team,proj:state === "missing" ? null : p.p50,points:0})),bench_players:[]};
+      starters:data.roster.starters.map(p=>({player_id:p.player_id,name:p.player_name,position:p.position,team:p.team,proj:state === "missing" ? null : p.p50,pregame_projection:p.p50-1,game_state:state === "final" ? "final" : recorded ? "live" : "pregame",points:recorded ? 10.5 : null})),bench_players:[]};
     if (state === "specialists") mine.starters.push({name:"Kicker",position:"K",proj:8.4,projection_source:"rank_curve"});
     const other={roster_id:"2",hub_team_id:"other",owner_name:params.has("long-opponent") ? "Alexandria Montgomery with a very long fantasy name" : "Alex",team_name:"Sunday Rivals",points:recorded ? 37.8 : 0,
-      starters:[{name:"Josh Allen",position:"QB",team:"BUF",proj:21,points:10},{name:"Saquon Barkley",position:"RB",team:"PHI",proj:20,points:5},{name:"Justin Jefferson",position:"WR",team:"MIN",proj:18,points:0},{name:"Trey McBride",position:"TE",team:"ARI",proj:12,points:0}],bench_players:[]};
+      starters:[{name:"Josh Allen",position:"QB",team:"BUF",proj:21,points:10,pregame_projection:20,game_state:state === "final" ? "final" : recorded ? "live" : "pregame"},{name:"Saquon Barkley",position:"RB",team:"PHI",proj:20,points:5},{name:"Justin Jefferson",position:"WR",team:"MIN",proj:18,points:0},{name:"Trey McBride",position:"TE",team:"ARI",proj:12,points:0}],bench_players:[]};
     const refreshStates = {
       upcoming: {week_started:false,refresh:{status:"failed",error:"no_stats"}},
       "stats-unavailable": {week_started:true,refresh:{status:"failed",error:"no_stats"}},
@@ -71,7 +72,7 @@ window.fetch = async (input, options = {}) => {
     return Response.json({available:true,source:"hub",reason:"hub",placeholder:!recorded,live:state==="live",week_complete:state==="final",season:2026,week,current_week:state === "native-progress" ? week + 1 : 2,max_week:18,
       ...(refreshStates[state] ? {scoring_control:{host:"native",scored:false,final:false,...refreshStates[state]}} : {}),
       ...(["native-progress", "final"].includes(state) ? {scoring_control:{host:"native",scored:true,final:state === "final",live:state !== "final",slate_complete:state === "final"}} : {}),
-      viewer_matchup_id:"one",starting_slots:["QB","RB","WR","FLEX"],matchups:[{matchup_id:"one",teams:[mine,other]},{matchup_id:"two",teams:[{roster_id:"3",owner_name:"Sam",points:60},{roster_id:"4",owner_name:"Jamie",points:52}]}],standings:[]});
+      viewer_matchup_id:"one",starting_slots:["QB","RB","WR","FLEX"],matchups:[{matchup_id:"one",teams:[mine,other]},{matchup_id:"two",teams:[{roster_id:"3",hub_team_id:"third",owner_name:"Sam",team_name:"Ragdollin With Mahomies",points:60,starters:mine.starters.map(p=>({...p,name:p.position === "QB" ? "Patrick Mahomes" : p.name,team:p.position === "QB" ? "KC" : p.team,proj:21.5}))},{roster_id:"4",hub_team_id:"fourth",owner_name:"Jamie",team_name:"Owner of Solar Panels",points:52,starters:other.starters}]}],standings:[]});
   }
   if (path.includes("freshness")) return Response.json({sleeper:{linked:state === "linked"},projections:{available:true}});
   if (path.includes("identities")) return Response.json({identities:{}});

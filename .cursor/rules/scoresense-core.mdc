@@ -98,4 +98,4 @@ Approved My team scoring A: saved team banner/crop, team name first, owner small
 
 Approved Game center B: selected jersey duel, full starter comparison, compact heading, and team-uploaded banners faded into each scoreboard half. This extends My team’s navy/brass room artwork exception to `hub.game`. Preserve Account themes and authenticated media/crops. See `docs/PRODUCT.md`.
 
-Approved September 28 weekly-first Fantasy: in-season primary navigation is This Week, My team, Free agents, and League. This Week combines matchup forecasts, lineup edits and interactive results; old Game center URLs remain valid. Cap and contracts stay salary-only. See docs/PRODUCT.md.
+Approved September 28 weekly-first Fantasy: in-season primary navigation is This Week, My team, Free agents, and League. This Week combines prominent matchup totals, full readable banner names, forecast-first player headlines, lineup edits and compact clickable league games; other-team browsing stays read-only and routine kickoff notes stay muted; old Game center URLs remain valid. Cap and contracts stay salary-only. See docs/PRODUCT.md.
