@@ -67,11 +67,14 @@ def predict_draft_season(
     )
     feature_season = int(inference_meta["feature_season"])
     roster_overlay = inference_meta.get("roster_overlay") or {"applied": False}
+    from src.core.schedule_utils import attach_schedule_context
+    roster = attach_schedule_context(roster, season, target_week)
     weekly = predict_from_features(
         roster,
         position,
         model_dir,
         apply_injury_adjustments=False,
+        history=df,
     )
 
     games = (

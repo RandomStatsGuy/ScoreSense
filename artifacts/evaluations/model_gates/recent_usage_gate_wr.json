@@ -1,0 +1,645 @@
+{
+  "position": "wr",
+  "candidate_policy": "pregame_season_recent4_p50_v1",
+  "baseline_policy": "pregame_v1",
+  "training_config": "wr_p90_boom_3",
+  "feature_cols": [
+    "receiving_yards_avg",
+    "receiving_tds_avg",
+    "receptions_avg",
+    "targets_avg",
+    "fumbles_avg",
+    "receiving_epa_avg",
+    "air_yards_avg",
+    "target_share_avg",
+    "air_yards_share_avg",
+    "wopr_avg",
+    "opponent_pass_epa_allowed",
+    "days_rest",
+    "is_home",
+    "explosive_plays_avg",
+    "target_share_avg_volatility",
+    "implied_team_total_avg",
+    "offense_pct_avg",
+    "routes_avg",
+    "rz_targets_avg",
+    "injury_opportunity_boost_hist_avg",
+    "target_quality_raw_avg",
+    "recent4_Fpts_avg",
+    "recent4_targets_avg",
+    "recent4_receptions_avg",
+    "recent4_receiving_yards_avg",
+    "recent4_receiving_air_yards_avg"
+  ],
+  "cohort": "All observed regular-season player-stat rows, including zero and negative scores; inactive roster weeks are not reconstructed.",
+  "pregame_safe": true,
+  "comparisons": [
+    {
+      "season": 2019,
+      "training_max_season": 2018,
+      "baseline": {
+        "rows": 3377,
+        "mae": 4.4483046386725515,
+        "boom_recall": 0.7759336099585062,
+        "composite": 0.5344570198838526,
+        "mean_bias": -1.455506694510568,
+        "top12_overlap": 0.25490196078431376,
+        "coverage_p10_p90": 0.8167012140953509,
+        "pinball": {
+          "0.1": 0.6606912176193631,
+          "0.5": 2.2241523193362758,
+          "0.9": 1.393055537162464
+        },
+        "input_quality": {
+          "rows": 3377,
+          "expected_features": 21,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 104,
+            "target_share_avg_volatility": 300,
+            "implied_team_total_avg": 104,
+            "offense_pct_avg": 109,
+            "routes_avg": 104,
+            "rz_targets_avg": 104,
+            "target_quality_raw_avg": 104
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      },
+      "recent": {
+        "rows": 3377,
+        "mae": 4.387871079432108,
+        "boom_recall": 0.7759336099585062,
+        "composite": 0.5284136639598083,
+        "mean_bias": -1.3485982036652515,
+        "top12_overlap": 0.2549019607843137,
+        "coverage_p10_p90": 0.8167012140953509,
+        "pinball": {
+          "0.1": 0.6607152127682886,
+          "0.5": 2.193935539716054,
+          "0.9": 1.393055537162464
+        },
+        "input_quality": {
+          "rows": 3377,
+          "expected_features": 26,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 104,
+            "target_share_avg_volatility": 300,
+            "implied_team_total_avg": 104,
+            "offense_pct_avg": 109,
+            "routes_avg": 104,
+            "rz_targets_avg": 104,
+            "target_quality_raw_avg": 104,
+            "recent4_Fpts_avg": 104,
+            "recent4_targets_avg": 104,
+            "recent4_receptions_avg": 104,
+            "recent4_receiving_yards_avg": 104,
+            "recent4_receiving_air_yards_avg": 104
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      }
+    },
+    {
+      "season": 2020,
+      "training_max_season": 2019,
+      "baseline": {
+        "rows": 3449,
+        "mae": 4.56126592322409,
+        "boom_recall": 0.8603773584905661,
+        "composite": 0.5119756489261825,
+        "mean_bias": -1.861448406387622,
+        "top12_overlap": 0.2696078431372549,
+        "coverage_p10_p90": 0.8666280081182952,
+        "pinball": {
+          "0.1": 0.6963785714645205,
+          "0.5": 2.280632961612045,
+          "0.9": 1.386440260623236
+        },
+        "input_quality": {
+          "rows": 3449,
+          "expected_features": 21,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 80,
+            "target_share_avg_volatility": 218,
+            "implied_team_total_avg": 80,
+            "offense_pct_avg": 85,
+            "routes_avg": 80,
+            "rz_targets_avg": 80,
+            "target_quality_raw_avg": 80
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      },
+      "recent": {
+        "rows": 3449,
+        "mae": 4.463320466002835,
+        "boom_recall": 0.8603773584905661,
+        "composite": 0.5021811032040571,
+        "mean_bias": -1.7419475831134903,
+        "top12_overlap": 0.2696078431372549,
+        "coverage_p10_p90": 0.8672078863438678,
+        "pinball": {
+          "0.1": 0.6955353430255546,
+          "0.5": 2.2316602330014175,
+          "0.9": 1.386440260623236
+        },
+        "input_quality": {
+          "rows": 3449,
+          "expected_features": 26,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 80,
+            "target_share_avg_volatility": 218,
+            "implied_team_total_avg": 80,
+            "offense_pct_avg": 85,
+            "routes_avg": 80,
+            "rz_targets_avg": 80,
+            "target_quality_raw_avg": 80,
+            "recent4_Fpts_avg": 80,
+            "recent4_targets_avg": 80,
+            "recent4_receptions_avg": 80,
+            "recent4_receiving_yards_avg": 80,
+            "recent4_receiving_air_yards_avg": 80
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      }
+    },
+    {
+      "season": 2021,
+      "training_max_season": 2020,
+      "baseline": {
+        "rows": 3690,
+        "mae": 4.3311126363215475,
+        "boom_recall": 0.8653061224489796,
+        "composite": 0.4869888146525629,
+        "mean_bias": -1.1589569232261978,
+        "top12_overlap": 0.25925925925925924,
+        "coverage_p10_p90": 0.8685636856368564,
+        "pinball": {
+          "0.1": 0.6448599151176031,
+          "0.5": 2.1655563181607738,
+          "0.9": 1.3711198887289568
+        },
+        "input_quality": {
+          "rows": 3690,
+          "expected_features": 21,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 85,
+            "target_share_avg_volatility": 241,
+            "implied_team_total_avg": 85,
+            "offense_pct_avg": 90,
+            "routes_avg": 85,
+            "rz_targets_avg": 85,
+            "target_quality_raw_avg": 85
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      },
+      "recent": {
+        "rows": 3690,
+        "mae": 4.17695021250347,
+        "boom_recall": 0.8653061224489796,
+        "composite": 0.47157257227075505,
+        "mean_bias": -1.2184613915901512,
+        "top12_overlap": 0.29166666666666674,
+        "coverage_p10_p90": 0.8688346883468835,
+        "pinball": {
+          "0.1": 0.6447884188924875,
+          "0.5": 2.088475106251735,
+          "0.9": 1.370143465480055
+        },
+        "input_quality": {
+          "rows": 3690,
+          "expected_features": 26,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 85,
+            "target_share_avg_volatility": 241,
+            "implied_team_total_avg": 85,
+            "offense_pct_avg": 90,
+            "routes_avg": 85,
+            "rz_targets_avg": 85,
+            "target_quality_raw_avg": 85,
+            "recent4_Fpts_avg": 85,
+            "recent4_targets_avg": 85,
+            "recent4_receptions_avg": 85,
+            "recent4_receiving_yards_avg": 85,
+            "recent4_receiving_air_yards_avg": 85
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      }
+    },
+    {
+      "season": 2022,
+      "training_max_season": 2021,
+      "baseline": {
+        "rows": 3594,
+        "mae": 4.215693725428861,
+        "boom_recall": 0.8447488584474886,
+        "composite": 0.4836698291638906,
+        "mean_bias": -1.1575297345194246,
+        "top12_overlap": 0.33796296296296297,
+        "coverage_p10_p90": 0.8764607679465777,
+        "pinball": {
+          "0.1": 0.6368521277230057,
+          "0.5": 2.1078468627144304,
+          "0.9": 1.3566480920665884
+        },
+        "input_quality": {
+          "rows": 3594,
+          "expected_features": 21,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 73,
+            "target_share_avg_volatility": 201,
+            "implied_team_total_avg": 73,
+            "offense_pct_avg": 74,
+            "routes_avg": 73,
+            "rz_targets_avg": 73,
+            "target_quality_raw_avg": 73
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      },
+      "recent": {
+        "rows": 3594,
+        "mae": 4.092875753933976,
+        "boom_recall": 0.8447488584474886,
+        "composite": 0.47138803201440216,
+        "mean_bias": -1.1659896142675472,
+        "top12_overlap": 0.3333333333333333,
+        "coverage_p10_p90": 0.8767390094602114,
+        "pinball": {
+          "0.1": 0.6366411064453946,
+          "0.5": 2.046437876966988,
+          "0.9": 1.3566480920665884
+        },
+        "input_quality": {
+          "rows": 3594,
+          "expected_features": 26,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 73,
+            "target_share_avg_volatility": 201,
+            "implied_team_total_avg": 73,
+            "offense_pct_avg": 74,
+            "routes_avg": 73,
+            "rz_targets_avg": 73,
+            "target_quality_raw_avg": 73,
+            "recent4_Fpts_avg": 73,
+            "recent4_targets_avg": 73,
+            "recent4_receptions_avg": 73,
+            "recent4_receiving_yards_avg": 73,
+            "recent4_receiving_air_yards_avg": 73
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      }
+    },
+    {
+      "season": 2023,
+      "training_max_season": 2022,
+      "baseline": {
+        "rows": 3664,
+        "mae": 4.206740407086068,
+        "boom_recall": 0.8927038626609443,
+        "composite": 0.4635924956442291,
+        "mean_bias": -0.9586715495232071,
+        "top12_overlap": 0.31481481481481477,
+        "coverage_p10_p90": 0.8755458515283843,
+        "pinball": {
+          "0.1": 0.6400585148162874,
+          "0.5": 2.103370203543034,
+          "0.9": 1.3363478318684634
+        },
+        "input_quality": {
+          "rows": 3664,
+          "expected_features": 21,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 73,
+            "target_share_avg_volatility": 206,
+            "implied_team_total_avg": 73,
+            "offense_pct_avg": 78,
+            "routes_avg": 73,
+            "rz_targets_avg": 73,
+            "target_quality_raw_avg": 73
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      },
+      "recent": {
+        "rows": 3664,
+        "mae": 4.0109282824565735,
+        "boom_recall": 0.8927038626609443,
+        "composite": 0.44401128318127964,
+        "mean_bias": -1.1492619526849333,
+        "top12_overlap": 0.32407407407407407,
+        "coverage_p10_p90": 0.8755458515283843,
+        "pinball": {
+          "0.1": 0.6401742772878788,
+          "0.5": 2.0054641412282868,
+          "0.9": 1.3363478318684634
+        },
+        "input_quality": {
+          "rows": 3664,
+          "expected_features": 26,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 73,
+            "target_share_avg_volatility": 206,
+            "implied_team_total_avg": 73,
+            "offense_pct_avg": 78,
+            "routes_avg": 73,
+            "rz_targets_avg": 73,
+            "target_quality_raw_avg": 73,
+            "recent4_Fpts_avg": 73,
+            "recent4_targets_avg": 73,
+            "recent4_receptions_avg": 73,
+            "recent4_receiving_yards_avg": 73,
+            "recent4_receiving_air_yards_avg": 73
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      }
+    },
+    {
+      "season": 2024,
+      "training_max_season": 2023,
+      "baseline": {
+        "rows": 3664,
+        "mae": 4.2667221654755085,
+        "boom_recall": 0.8483606557377049,
+        "composite": 0.48732795425246894,
+        "mean_bias": -1.2142200221296844,
+        "top12_overlap": 0.27314814814814814,
+        "coverage_p10_p90": 0.8722707423580786,
+        "pinball": {
+          "0.1": 0.6370297995723154,
+          "0.5": 2.1333610827377543,
+          "0.9": 1.3378984725914385
+        },
+        "input_quality": {
+          "rows": 3664,
+          "expected_features": 21,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 74,
+            "target_share_avg_volatility": 205,
+            "implied_team_total_avg": 74,
+            "offense_pct_avg": 79,
+            "routes_avg": 74,
+            "rz_targets_avg": 74,
+            "target_quality_raw_avg": 74
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      },
+      "recent": {
+        "rows": 3664,
+        "mae": 4.0514987673864695,
+        "boom_recall": 0.8483606557377049,
+        "composite": 0.465805614443565,
+        "mean_bias": -1.3194409832401515,
+        "top12_overlap": 0.2731481481481482,
+        "coverage_p10_p90": 0.8728165938864629,
+        "pinball": {
+          "0.1": 0.6362892711895116,
+          "0.5": 2.0257493836932348,
+          "0.9": 1.3378984725914385
+        },
+        "input_quality": {
+          "rows": 3664,
+          "expected_features": 26,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 74,
+            "target_share_avg_volatility": 205,
+            "implied_team_total_avg": 74,
+            "offense_pct_avg": 79,
+            "routes_avg": 74,
+            "rz_targets_avg": 74,
+            "target_quality_raw_avg": 74,
+            "recent4_Fpts_avg": 74,
+            "recent4_targets_avg": 74,
+            "recent4_receptions_avg": 74,
+            "recent4_receiving_yards_avg": 74,
+            "recent4_receiving_air_yards_avg": 74
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      }
+    },
+    {
+      "season": 2025,
+      "training_max_season": 2024,
+      "baseline": {
+        "rows": 3798,
+        "mae": 4.011651559640514,
+        "boom_recall": 0.9383886255924171,
+        "composite": 0.42580970572708454,
+        "mean_bias": -0.9130000345325338,
+        "top12_overlap": 0.23148148148148145,
+        "coverage_p10_p90": 0.892838335966298,
+        "pinball": {
+          "0.1": 0.6045603162349849,
+          "0.5": 2.005825779820257,
+          "0.9": 1.3094404749886468
+        },
+        "input_quality": {
+          "rows": 3798,
+          "expected_features": 21,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 72,
+            "target_share_avg_volatility": 210,
+            "implied_team_total_avg": 72,
+            "offense_pct_avg": 80,
+            "routes_avg": 72,
+            "rz_targets_avg": 72,
+            "target_quality_raw_avg": 72
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      },
+      "recent": {
+        "rows": 3798,
+        "mae": 3.8079999254976715,
+        "boom_recall": 0.9383886255924171,
+        "composite": 0.40544454231280025,
+        "mean_bias": -1.0225863163225393,
+        "top12_overlap": 0.2638888888888889,
+        "coverage_p10_p90": 0.892838335966298,
+        "pinball": {
+          "0.1": 0.6047644362002367,
+          "0.5": 1.9039999627488358,
+          "0.9": 1.3094404749886468
+        },
+        "input_quality": {
+          "rows": 3798,
+          "expected_features": 26,
+          "missing_columns": [],
+          "null_counts": {
+            "explosive_plays_avg": 72,
+            "target_share_avg_volatility": 210,
+            "implied_team_total_avg": 72,
+            "offense_pct_avg": 80,
+            "routes_avg": 72,
+            "rz_targets_avg": 72,
+            "target_quality_raw_avg": 72,
+            "recent4_Fpts_avg": 72,
+            "recent4_targets_avg": 72,
+            "recent4_receptions_avg": 72,
+            "recent4_receiving_yards_avg": 72,
+            "recent4_receiving_air_yards_avg": 72
+          },
+          "all_zero_columns": [
+            "injury_opportunity_boost_hist_avg"
+          ],
+          "complete": false
+        }
+      }
+    }
+  ],
+  "gate": {
+    "passed": true,
+    "required_seasons": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "complete": true,
+    "seasons_improved": 6,
+    "mean_composite_delta": -0.014106582241553256,
+    "worst_boom_recall_delta": 0.0,
+    "holdout_2025_composite_delta": -0.020365163414284293,
+    "holdout_2025_boom_recall_delta": 0.0,
+    "eligible_for_publication": true
+  },
+  "training_through_2024_digest": "45d78ebb39bc07fa901bb1da14a7cbff56ca71f521a678263c8a2c5f65f4c7f7",
+  "training_specification": {
+    "sklearn_version": "1.6.1",
+    "backend": "sklearn",
+    "boom_weight_p90": 3.0,
+    "boom_threshold": 20.0,
+    "regressors": {
+      "0.1": {
+        "alpha": 0.1,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.5": {
+        "alpha": 0.5,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "0.9": {
+        "alpha": 0.9,
+        "ccp_alpha": 0.0,
+        "criterion": "friedman_mse",
+        "init": null,
+        "learning_rate": 0.05,
+        "loss": "quantile",
+        "max_depth": 4,
+        "max_features": null,
+        "max_leaf_nodes": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "n_estimators": 200,
+        "n_iter_no_change": null,
+        "random_state": 42,
+        "subsample": 0.8,
+        "tol": 0.0001,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      }
+    }
+  }
+}

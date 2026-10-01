@@ -19,6 +19,7 @@ STAT_AVG_RENAMES = {
     "carries": "rush_attmpt_avg",
     "rushing_tds": "rush_tds_avg",
     "receiving_air_yards": "air_yards_avg",
+    "target_quality_score": "target_quality_avg",
 }
 
 

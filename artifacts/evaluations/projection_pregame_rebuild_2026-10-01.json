@@ -1,0 +1,1097 @@
+{
+  "date": "2026-10-01",
+  "policy": "pregame_season_recent4_p50_v1",
+  "deployment": "Code and frozen gate evidence only; production models/data/caches were not replaced.",
+  "versions": {
+    "python": "3.11.13",
+    "pandas": "3.0.5",
+    "numpy": "2.4.6",
+    "sklearn": "1.6.1",
+    "joblib": "1.6.0"
+  },
+  "source": {
+    "seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "current_observed_weeks": [
+      1,
+      2,
+      3
+    ],
+    "weekly": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.parquet",
+    "pbp": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_{season}.parquet",
+    "participation_requested": false,
+    "pbp_downcast": false,
+    "local_file_fingerprints": {
+      "rebuilt-processed/qb_mlready.parquet": {
+        "bytes": 1234192,
+        "sha256": "62b1ce1ad6c29b8be6ecc45a2de1dbc654fc241ecaba95dbb8e64cea8930b71a"
+      },
+      "rebuilt-processed/rb_mlready.parquet": {
+        "bytes": 3117077,
+        "sha256": "a613fb12cf84082398c8e0b43e4bfc38543f08023490da1945719ba2aeb7354b"
+      },
+      "rebuilt-processed/wr_mlready.parquet": {
+        "bytes": 10483392,
+        "sha256": "d0e45ccd8e4f0743b350b5dafea069be087051a52ce29fd7740d8033d7abe077"
+      },
+      "qualified-models/qb_model.joblib": {
+        "bytes": 1129286,
+        "sha256": "4d82cac4418cc939a630399e8d17c5aff671b905f37bb9e061dea9f6226bfcea"
+      },
+      "qualified-models/rb_model_calibrated.joblib": {
+        "bytes": 1263746,
+        "sha256": "76bb3d4214cc0d2017e0ea6db37f94b289590c968ad66d2ade63b41fd57c07a7"
+      },
+      "qualified-models/wr_model_calibrated.joblib": {
+        "bytes": 1222145,
+        "sha256": "7c15b74082d28b45a2b84a81c5d3d1d2a05ef936ebce3ed259e4b10372444383"
+      },
+      "snapshot/cache/nflverse_roster_2026.parquet": {
+        "bytes": 65974,
+        "sha256": "eb0cd1693be123b8bdddb55c9a9d96c706ad45f642d8d1fa03097dc35a98b467"
+      },
+      "snapshot/cache/nfl_schedules.parquet": {
+        "bytes": 44114,
+        "sha256": "c6c9db55fdae1fbac5de8de98295b02dd0c5dc49814416f0a4f2427e855cddc8"
+      },
+      "snapshot/cache/sleeper_players.json": {
+        "bytes": 15996553,
+        "sha256": "737f6df0b00ee8f62bec75812756e79776e5f6e5c40e1966ed003da8f9008742"
+      }
+    }
+  },
+  "qualification": {
+    "qb": {
+      "gate": {
+        "passed": true,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 6,
+        "mean_composite_delta": -0.02356448219588227,
+        "worst_boom_recall_delta": 0.0,
+        "holdout_2025_composite_delta": -0.03164382497949503,
+        "holdout_2025_boom_recall_delta": 0.0,
+        "eligible_for_publication": true
+      },
+      "training_through_2024_digest": "a58669c7e1887eed784d47a9c926dbccc1f97dde349adcbb0eefe19e302d8707",
+      "training_specification": {
+        "sklearn_version": "1.6.1",
+        "backend": "sklearn",
+        "boom_weight_p90": 1.0,
+        "boom_threshold": 25.0,
+        "regressors": {
+          "0.1": {
+            "alpha": 0.1,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          },
+          "0.5": {
+            "alpha": 0.5,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          },
+          "0.9": {
+            "alpha": 0.9,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          }
+        }
+      },
+      "feature_cols": [
+        "passing_yards_avg",
+        "pass_tds_avg",
+        "ints_avg",
+        "completions_avg",
+        "pass_attmpt_avg",
+        "rush_attmpt_avg",
+        "rushing_yards_avg",
+        "rush_tds_avg",
+        "fumbles_avg",
+        "passing_epa_avg",
+        "rushing_epa_avg",
+        "target_share_avg",
+        "wopr_avg",
+        "opponent_pass_epa_allowed",
+        "days_rest",
+        "is_home",
+        "carry_share_avg",
+        "rz_carries_avg",
+        "explosive_plays_avg",
+        "team_pass_rate_avg",
+        "implied_team_total_avg",
+        "total_line_avg",
+        "offense_pct_avg",
+        "injury_opportunity_boost_hist_avg",
+        "recent4_Fpts_avg",
+        "recent4_attempts_avg",
+        "recent4_passing_yards_avg",
+        "recent4_carries_avg",
+        "recent4_rushing_yards_avg"
+      ],
+      "comparison_2025": {
+        "season": 2025,
+        "training_max_season": 2024,
+        "baseline": {
+          "rows": 664,
+          "mae": 6.696584555470618,
+          "boom_recall": 0.6625,
+          "composite": 0.8046584555470617,
+          "mean_bias": -0.015929052555007466,
+          "top12_overlap": 0.4722222222222222,
+          "coverage_p10_p90": 0.7168674698795181,
+          "pinball": {
+            "0.1": 1.2692392488253965,
+            "0.5": 3.348292277735309,
+            "0.9": 1.5276826099965362
+          },
+          "input_quality": {
+            "rows": 664,
+            "expected_features": 24,
+            "missing_columns": [],
+            "null_counts": {
+              "rz_carries_avg": 14,
+              "explosive_plays_avg": 14,
+              "team_pass_rate_avg": 14,
+              "implied_team_total_avg": 14,
+              "total_line_avg": 14,
+              "offense_pct_avg": 14
+            },
+            "all_zero_columns": [
+              "injury_opportunity_boost_hist_avg"
+            ],
+            "complete": false
+          }
+        },
+        "recent": {
+          "rows": 664,
+          "mae": 6.380146305675668,
+          "boom_recall": 0.6625,
+          "composite": 0.7730146305675667,
+          "mean_bias": -0.08616116664537282,
+          "top12_overlap": 0.46759259259259267,
+          "coverage_p10_p90": 0.7228915662650602,
+          "pinball": {
+            "0.1": 1.2557392755087586,
+            "0.5": 3.190073152837834,
+            "0.9": 1.5276826099965362
+          },
+          "input_quality": {
+            "rows": 664,
+            "expected_features": 29,
+            "missing_columns": [],
+            "null_counts": {
+              "rz_carries_avg": 14,
+              "explosive_plays_avg": 14,
+              "team_pass_rate_avg": 14,
+              "implied_team_total_avg": 14,
+              "total_line_avg": 14,
+              "offense_pct_avg": 14,
+              "recent4_Fpts_avg": 14,
+              "recent4_attempts_avg": 14,
+              "recent4_passing_yards_avg": 14,
+              "recent4_carries_avg": 14,
+              "recent4_rushing_yards_avg": 14
+            },
+            "all_zero_columns": [
+              "injury_opportunity_boost_hist_avg"
+            ],
+            "complete": false
+          }
+        }
+      }
+    },
+    "rb": {
+      "gate": {
+        "passed": true,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 6,
+        "mean_composite_delta": -0.013981993699055034,
+        "worst_boom_recall_delta": 0.0,
+        "holdout_2025_composite_delta": -0.012189781824795354,
+        "holdout_2025_boom_recall_delta": 0.0,
+        "eligible_for_publication": true
+      },
+      "training_through_2024_digest": "ed4d5c60a3a4c9e7560d5a3789f11f503e0fa7e778a0a80d7d68e088c485af95",
+      "training_specification": {
+        "sklearn_version": "1.6.1",
+        "backend": "sklearn",
+        "boom_weight_p90": 3.0,
+        "boom_threshold": 20.0,
+        "regressors": {
+          "0.1": {
+            "alpha": 0.1,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          },
+          "0.5": {
+            "alpha": 0.5,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          },
+          "0.9": {
+            "alpha": 0.9,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          }
+        }
+      },
+      "feature_cols": [
+        "receiving_yards_avg",
+        "receiving_tds_avg",
+        "receptions_avg",
+        "targets_avg",
+        "rush_attmpt_avg",
+        "rushing_yards_avg",
+        "rush_tds_avg",
+        "fumbles_avg",
+        "rushing_epa_avg",
+        "receiving_epa_avg",
+        "target_share_avg",
+        "carry_share_avg",
+        "opponent_rush_epa_allowed",
+        "days_rest",
+        "is_home",
+        "team_pass_rate_avg",
+        "opponent_pass_rate_allowed_avg",
+        "rz_targets_avg",
+        "carry_share_avg_trend",
+        "implied_team_total_avg",
+        "offense_pct_avg",
+        "offense_snaps_avg",
+        "rz_carries_avg",
+        "injury_opportunity_boost_hist_avg",
+        "recent4_Fpts_avg",
+        "recent4_carries_avg",
+        "recent4_rushing_yards_avg",
+        "recent4_targets_avg",
+        "recent4_receptions_avg"
+      ],
+      "comparison_2025": {
+        "season": 2025,
+        "training_max_season": 2024,
+        "baseline": {
+          "rows": 1646,
+          "mae": 4.194531740856902,
+          "boom_recall": 0.916030534351145,
+          "composite": 0.45304096034523217,
+          "mean_bias": -1.2704502042171322,
+          "top12_overlap": 0.4305555555555556,
+          "coverage_p10_p90": 0.8547995139732685,
+          "pinball": {
+            "0.1": 0.6754199564300895,
+            "0.5": 2.097265870428451,
+            "0.9": 1.4228628398062038
+          },
+          "input_quality": {
+            "rows": 1646,
+            "expected_features": 24,
+            "missing_columns": [],
+            "null_counts": {
+              "team_pass_rate_avg": 36,
+              "opponent_pass_rate_allowed_avg": 36,
+              "rz_targets_avg": 36,
+              "carry_share_avg_trend": 156,
+              "implied_team_total_avg": 36,
+              "offense_pct_avg": 37,
+              "offense_snaps_avg": 37,
+              "rz_carries_avg": 36
+            },
+            "all_zero_columns": [
+              "injury_opportunity_boost_hist_avg"
+            ],
+            "complete": false
+          }
+        },
+        "recent": {
+          "rows": 1646,
+          "mae": 4.072633922608948,
+          "boom_recall": 0.916030534351145,
+          "composite": 0.4408511785204368,
+          "mean_bias": -1.3327686256575506,
+          "top12_overlap": 0.43518518518518523,
+          "coverage_p10_p90": 0.8547995139732685,
+          "pinball": {
+            "0.1": 0.6756000764590039,
+            "0.5": 2.036316961304474,
+            "0.9": 1.4228628398062038
+          },
+          "input_quality": {
+            "rows": 1646,
+            "expected_features": 29,
+            "missing_columns": [],
+            "null_counts": {
+              "team_pass_rate_avg": 36,
+              "opponent_pass_rate_allowed_avg": 36,
+              "rz_targets_avg": 36,
+              "carry_share_avg_trend": 156,
+              "implied_team_total_avg": 36,
+              "offense_pct_avg": 37,
+              "offense_snaps_avg": 37,
+              "rz_carries_avg": 36,
+              "recent4_Fpts_avg": 36,
+              "recent4_carries_avg": 36,
+              "recent4_rushing_yards_avg": 36,
+              "recent4_targets_avg": 36,
+              "recent4_receptions_avg": 36
+            },
+            "all_zero_columns": [
+              "injury_opportunity_boost_hist_avg"
+            ],
+            "complete": false
+          }
+        }
+      }
+    },
+    "wr": {
+      "gate": {
+        "passed": true,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 6,
+        "mean_composite_delta": -0.014106582241553256,
+        "worst_boom_recall_delta": 0.0,
+        "holdout_2025_composite_delta": -0.020365163414284293,
+        "holdout_2025_boom_recall_delta": 0.0,
+        "eligible_for_publication": true
+      },
+      "training_through_2024_digest": "45d78ebb39bc07fa901bb1da14a7cbff56ca71f521a678263c8a2c5f65f4c7f7",
+      "training_specification": {
+        "sklearn_version": "1.6.1",
+        "backend": "sklearn",
+        "boom_weight_p90": 3.0,
+        "boom_threshold": 20.0,
+        "regressors": {
+          "0.1": {
+            "alpha": 0.1,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          },
+          "0.5": {
+            "alpha": 0.5,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          },
+          "0.9": {
+            "alpha": 0.9,
+            "ccp_alpha": 0.0,
+            "criterion": "friedman_mse",
+            "init": null,
+            "learning_rate": 0.05,
+            "loss": "quantile",
+            "max_depth": 4,
+            "max_features": null,
+            "max_leaf_nodes": null,
+            "min_impurity_decrease": 0.0,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "min_weight_fraction_leaf": 0.0,
+            "n_estimators": 200,
+            "n_iter_no_change": null,
+            "random_state": 42,
+            "subsample": 0.8,
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": 0,
+            "warm_start": false
+          }
+        }
+      },
+      "feature_cols": [
+        "receiving_yards_avg",
+        "receiving_tds_avg",
+        "receptions_avg",
+        "targets_avg",
+        "fumbles_avg",
+        "receiving_epa_avg",
+        "air_yards_avg",
+        "target_share_avg",
+        "air_yards_share_avg",
+        "wopr_avg",
+        "opponent_pass_epa_allowed",
+        "days_rest",
+        "is_home",
+        "explosive_plays_avg",
+        "target_share_avg_volatility",
+        "implied_team_total_avg",
+        "offense_pct_avg",
+        "routes_avg",
+        "rz_targets_avg",
+        "injury_opportunity_boost_hist_avg",
+        "target_quality_raw_avg",
+        "recent4_Fpts_avg",
+        "recent4_targets_avg",
+        "recent4_receptions_avg",
+        "recent4_receiving_yards_avg",
+        "recent4_receiving_air_yards_avg"
+      ],
+      "comparison_2025": {
+        "season": 2025,
+        "training_max_season": 2024,
+        "baseline": {
+          "rows": 3798,
+          "mae": 4.011651559640514,
+          "boom_recall": 0.9383886255924171,
+          "composite": 0.42580970572708454,
+          "mean_bias": -0.9130000345325338,
+          "top12_overlap": 0.23148148148148145,
+          "coverage_p10_p90": 0.892838335966298,
+          "pinball": {
+            "0.1": 0.6045603162349849,
+            "0.5": 2.005825779820257,
+            "0.9": 1.3094404749886468
+          },
+          "input_quality": {
+            "rows": 3798,
+            "expected_features": 21,
+            "missing_columns": [],
+            "null_counts": {
+              "explosive_plays_avg": 72,
+              "target_share_avg_volatility": 210,
+              "implied_team_total_avg": 72,
+              "offense_pct_avg": 80,
+              "routes_avg": 72,
+              "rz_targets_avg": 72,
+              "target_quality_raw_avg": 72
+            },
+            "all_zero_columns": [
+              "injury_opportunity_boost_hist_avg"
+            ],
+            "complete": false
+          }
+        },
+        "recent": {
+          "rows": 3798,
+          "mae": 3.8079999254976715,
+          "boom_recall": 0.9383886255924171,
+          "composite": 0.40544454231280025,
+          "mean_bias": -1.0225863163225393,
+          "top12_overlap": 0.2638888888888889,
+          "coverage_p10_p90": 0.892838335966298,
+          "pinball": {
+            "0.1": 0.6047644362002367,
+            "0.5": 1.9039999627488358,
+            "0.9": 1.3094404749886468
+          },
+          "input_quality": {
+            "rows": 3798,
+            "expected_features": 26,
+            "missing_columns": [],
+            "null_counts": {
+              "explosive_plays_avg": 72,
+              "target_share_avg_volatility": 210,
+              "implied_team_total_avg": 72,
+              "offense_pct_avg": 80,
+              "routes_avg": 72,
+              "rz_targets_avg": 72,
+              "target_quality_raw_avg": 72,
+              "recent4_Fpts_avg": 72,
+              "recent4_targets_avg": 72,
+              "recent4_receptions_avg": 72,
+              "recent4_receiving_yards_avg": 72,
+              "recent4_receiving_air_yards_avg": 72
+            },
+            "all_zero_columns": [
+              "injury_opportunity_boost_hist_avg"
+            ],
+            "complete": false
+          }
+        }
+      }
+    }
+  },
+  "rejected_candidates": {
+    "rebuilt-recent-qb": {
+      "candidate_policy": "pregame_recent4_v1",
+      "position": "qb",
+      "gate": {
+        "passed": false,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 6,
+        "mean_composite_delta": -0.030080335121362694,
+        "worst_boom_recall_delta": -0.032258064516129115
+      },
+      "evaluated_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "boom_recall_deltas": {
+        "2019": 0.06666666666666671,
+        "2020": 0.0714285714285714,
+        "2021": -0.025000000000000022,
+        "2022": 0.09523809523809523,
+        "2023": -0.032258064516129115,
+        "2024": 0.012658227848101222,
+        "2025": -0.03749999999999998
+      }
+    },
+    "rebuilt-recent-rb": {
+      "candidate_policy": "pregame_recent4_v1",
+      "position": "rb",
+      "gate": {
+        "passed": false,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 5,
+        "mean_composite_delta": -0.014776550247825418,
+        "worst_boom_recall_delta": -0.032258064516129004
+      },
+      "evaluated_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "boom_recall_deltas": {
+        "2019": 0.03546099290780147,
+        "2020": 0.02857142857142858,
+        "2021": -0.032258064516129004,
+        "2022": -0.007299270072992692,
+        "2023": 0.007352941176470673,
+        "2024": -0.007246376811594235,
+        "2025": 0.0
+      }
+    },
+    "rebuilt-recent-wr": {
+      "candidate_policy": "pregame_recent4_v1",
+      "position": "wr",
+      "gate": {
+        "passed": true,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 6,
+        "mean_composite_delta": -0.023635771369468612,
+        "worst_boom_recall_delta": 0.0
+      },
+      "evaluated_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "boom_recall_deltas": {
+        "2019": 0.053941908713692976,
+        "2020": 0.018867924528301883,
+        "2021": 0.01632653061224487,
+        "2022": 0.0,
+        "2023": 0.03433476394849777,
+        "2024": 0.03688524590163933,
+        "2025": -0.042654028436018954
+      }
+    },
+    "season-recent-qb": {
+      "candidate_policy": "pregame_season_recent4_v1",
+      "position": "qb",
+      "gate": {
+        "passed": false,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 5,
+        "mean_composite_delta": -0.027980216231432004,
+        "worst_boom_recall_delta": -0.09677419354838712
+      },
+      "evaluated_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "boom_recall_deltas": {
+        "2019": 0.08000000000000002,
+        "2020": 0.061224489795918324,
+        "2021": -0.012500000000000067,
+        "2022": 0.04761904761904756,
+        "2023": -0.09677419354838712,
+        "2024": 0.0,
+        "2025": 0.0
+      }
+    },
+    "season-recent-rb": {
+      "candidate_policy": "pregame_season_recent4_v1",
+      "position": "rb",
+      "gate": {
+        "passed": false,
+        "required_seasons": [
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ],
+        "complete": true,
+        "seasons_improved": 5,
+        "mean_composite_delta": -0.01481686503746297,
+        "worst_boom_recall_delta": -0.05161290322580636
+      },
+      "evaluated_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "boom_recall_deltas": {
+        "2019": 0.028368794326241176,
+        "2020": 0.0357142857142857,
+        "2021": -0.05161290322580636,
+        "2022": 0.007299270072992692,
+        "2023": 0.0,
+        "2024": -0.007246376811594235
+      }
+    }
+  },
+  "selection_note": "Multiple policies were explored, including 2025 checks; 2025 is not an untouched/preregistered holdout.",
+  "external_reference": {
+    "season": 2026,
+    "week": 4,
+    "scoring": "PPR",
+    "projections": [
+      {
+        "player_name": "Josh Allen",
+        "team": "BUF",
+        "fantasypros_proj": 22.77,
+        "fp_fetched_at_utc": "2026-10-01T21:56:39.218520+00:00",
+        "fp_scoring": "PPR"
+      },
+      {
+        "player_name": "Jaxon Smith-Njigba",
+        "team": "SEA",
+        "fantasypros_proj": 22.26,
+        "fp_fetched_at_utc": "2026-10-01T21:56:39.218520+00:00",
+        "fp_scoring": "PPR"
+      },
+      {
+        "player_name": "Aaron Jones Sr.",
+        "team": "MIN",
+        "fantasypros_proj": 15.08,
+        "fp_fetched_at_utc": "2026-10-01T21:56:39.218520+00:00",
+        "fp_scoring": "PPR"
+      },
+      {
+        "player_name": "Alvin Kamara",
+        "team": "NO",
+        "fantasypros_proj": 9.91,
+        "fp_fetched_at_utc": "2026-10-01T21:56:39.218520+00:00",
+        "fp_scoring": "PPR"
+      },
+      {
+        "player_name": "Kendre Miller",
+        "team": "NO",
+        "fantasypros_proj": 6.44,
+        "fp_fetched_at_utc": "2026-10-01T21:56:39.218520+00:00",
+        "fp_scoring": "PPR"
+      },
+      {
+        "player_name": "Fernando Mendoza",
+        "team": "LV",
+        "fantasypros_proj": 0.23,
+        "fp_fetched_at_utc": "2026-10-01T21:56:39.218520+00:00",
+        "fp_scoring": "PPR"
+      }
+    ],
+    "note": "Diagnostic exact-week comparison; does not qualify a consensus blend or establish statistical equivalence with P50."
+  },
+  "service_replay": {
+    "season_year": 2026,
+    "week": 4,
+    "source": "Offline replay using saved public NFL/Sleeper identities and schedules",
+    "limitations": [
+      "Skill positions only; K/DST estimates were not retrained or audited here.",
+      "Coverage does not validate accuracy or production cache freshness.",
+      "Current identities are used for coverage, including the preseason replay."
+    ],
+    "qb": {
+      "rows": 115,
+      "input_quality": {
+        "rows": 115,
+        "expected_features": 29,
+        "missing_columns": [],
+        "null_counts": {
+          "recent4_Fpts_avg": 28,
+          "recent4_attempts_avg": 28,
+          "recent4_passing_yards_avg": 28,
+          "recent4_carries_avg": 28,
+          "recent4_rushing_yards_avg": 28
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "selected": [
+        {
+          "Player": "Josh Allen",
+          "Low (P10)": 11.178751477643393,
+          "Projected Points": 21.6404556874709,
+          "High (P90)": 34.18186276054659,
+          "Opportunity Adjustment": 0.0,
+          "projection_source": "ScoreSense"
+        },
+        {
+          "Player": "Fernando Mendoza",
+          "Low (P10)": 0.0,
+          "Projected Points": 0.33,
+          "High (P90)": 2.781,
+          "Opportunity Adjustment": 0.0,
+          "projection_source": "Roster estimate"
+        }
+      ]
+    },
+    "rb": {
+      "rows": 200,
+      "input_quality": {
+        "rows": 200,
+        "expected_features": 29,
+        "missing_columns": [],
+        "null_counts": {
+          "carry_share_avg_trend": 37,
+          "offense_pct_avg": 2,
+          "offense_snaps_avg": 2,
+          "recent4_Fpts_avg": 32,
+          "recent4_carries_avg": 32,
+          "recent4_rushing_yards_avg": 32,
+          "recent4_targets_avg": 32,
+          "recent4_receptions_avg": 32
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "selected": [
+        {
+          "Player": "Aaron Jones",
+          "Low (P10)": 2.052827753841871,
+          "Projected Points": 15.510459730148941,
+          "High (P90)": 31.588139682218568,
+          "Opportunity Adjustment": 0.1712027434335037,
+          "projection_source": "ScoreSense"
+        },
+        {
+          "Player": "Alvin Kamara",
+          "Low (P10)": 7.128274439700327,
+          "Projected Points": 10.4509416169134,
+          "High (P90)": 37.228982051813645,
+          "Opportunity Adjustment": 0.2175163425705882,
+          "projection_source": "ScoreSense"
+        },
+        {
+          "Player": "Kendre Miller",
+          "Low (P10)": 0.207,
+          "Projected Points": 3.453,
+          "High (P90)": 18.769,
+          "Opportunity Adjustment": 0.1561283970006666,
+          "projection_source": "ScoreSense"
+        }
+      ]
+    },
+    "wr": {
+      "rows": 516,
+      "input_quality": {
+        "rows": 516,
+        "expected_features": 26,
+        "missing_columns": [],
+        "null_counts": {
+          "target_share_avg_volatility": 64,
+          "offense_pct_avg": 3,
+          "target_quality_raw_avg": 130,
+          "recent4_Fpts_avg": 130,
+          "recent4_targets_avg": 130,
+          "recent4_receptions_avg": 130,
+          "recent4_receiving_yards_avg": 130,
+          "recent4_receiving_air_yards_avg": 130
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "selected": [
+        {
+          "Player": "Jaxon Smith-Njigba",
+          "Low (P10)": 4.338475133412619,
+          "Projected Points": 14.156629308918864,
+          "High (P90)": 30.619704846997507,
+          "Opportunity Adjustment": 0.0,
+          "projection_source": "ScoreSense"
+        }
+      ]
+    },
+    "coverage": {
+      "weekly": {
+        "expected": 798,
+        "projected": 798,
+        "missing_count": 0,
+        "missing": []
+      },
+      "season": {
+        "expected": 798,
+        "projected": 798,
+        "missing_count": 0,
+        "missing": []
+      },
+      "ros": {
+        "expected": 798,
+        "projected": 798,
+        "missing_count": 0,
+        "missing": []
+      },
+      "dfs_skill": {
+        "expected": 798,
+        "projected": 798,
+        "missing_count": 0,
+        "missing": []
+      },
+      "trades_skill": {
+        "expected": 798,
+        "projected": 798,
+        "missing_count": 0,
+        "missing": []
+      }
+    }
+  },
+  "validation": {
+    "windows_compatible_suite_before_final_refinements": {
+      "passed": 2008,
+      "skipped": 2
+    },
+    "final_focused_runs_passed": [
+      73,
+      153,
+      49
+    ],
+    "focused_runs_overlap": true,
+    "unchanged_windows_incompatible_files": [
+      "test_render_blueprint.py",
+      "test_resolve_python.py"
+    ],
+    "previous_windows_shell_failures": 10
+  },
+  "remaining": [
+    "Production rebuild/retrain/materialization required.",
+    "Inactive roster weeks and participation probabilities were not evaluated by the observed-games gate.",
+    "K/DST not included in this service coverage replay.",
+    "Some starter medians remain far from external forecasts; P90 ranges remain wide.",
+    "Historical injury context is all-zero; BDB tracking columns unavailable.",
+    "Legacy Vegas implied-total spread sign needs a versioned correction and renewed gate."
+  ]
+}

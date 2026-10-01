@@ -2,7 +2,25 @@
 
 This document describes **production training inputs** — the columns fed into quantile GBM models at train and inference time. It does not list experimental **candidate-only** features (see [FEATURE_SCREENING.md](FEATURE_SCREENING.md)).
 
-Models are trained on walk-forward seasons 2018–2023; validation and dashboard backtests use 2024 holdout. Ground-truth column lists are saved in `artifacts/models/v2/{position}_metrics.json` after each train.
+Saved legacy bundles declare their own training seasons and feature contracts.
+The current training default is 2018–2024, with chronological validation followed
+by a refit on all eligible rows. Ground-truth column lists and input policy are
+saved in each bundle and its metrics after training.
+
+## Versioned pregame contracts
+
+New training uses `pregame_v1`: strictly earlier opponent-game EPA, raw shifted
+target quality for WR, and no unavailable BDB tracking columns. Existing bundles
+without `input_policy` keep their original contracts. Weekly, season, ROS and DFS
+skill forecasts share this policy through `predict_from_features`.
+
+Qualified `pregame_season_recent4_p50_v1` adds five recent scoring/usage columns
+to P50 only. P10/P90 retain the baseline columns. The saved contracts contain
+29 QB, 29 RB and 26 WR/TE union columns when the optional FP feature flag is off.
+Automatic training selects this policy only for exact matching frozen gate inputs;
+otherwise it fits the safe baseline. See [the gate and limitations](PROJECTION_PREGAME_REBUILD.md).
+The feature lists below describe legacy registry inputs rather than overriding a
+versioned bundle's saved `feature_cols` / per-head contracts.
 
 ## How features are assembled
 
@@ -27,7 +45,7 @@ All rolling features use **pre-game discipline**: `shift(1)` expanding averages 
 
 | Source | Examples | ETL |
 |--------|----------|-----|
-| **nflverse weekly** | Passing/rushing/receiving volume, EPA, fumbles | `import_weekly_data()` |
+| **nflverse weekly** | Passing/rushing/receiving volume, EPA, fumbles | Current `stats_player_week` release; logged `import_weekly_data()` fallback |
 | **nflverse PBP** | Team pass rate, red-zone usage, explosive plays, opponent EPA | `candidate_etl.py`, `load_team_epa()` |
 | **Vegas schedules** | Implied team total, total line, spread | `candidate_etl._schedule_implied_totals()` |
 | **Snap counts** | `offense_pct_avg`, `offense_snaps_avg` | `import_snap_counts()` |
@@ -137,3 +155,18 @@ All positions use the same quantile GBM config in `src/ml/quantile.py`:
 - [FEATURE_SCREENING.md](FEATURE_SCREENING.md) — how candidate features are screened and promoted
 - [EVALUATION.md](EVALUATION.md) — backtest methodology
 - [WR_UPSIDE_CALIBRATION.md](WR_UPSIDE_CALIBRATION.md) — next pipeline sprint (rank/P90 tuning)
+## Target-game market median policy
+
+`pregame_season_recent4_market_p50_v1` is qualified for QB only. P50 replaces
+historical `implied_team_total_avg`/`total_line_avg` inputs with the target game's
+`game_implied_team_total`, `game_total_line`, and `game_spread`. Positive nflverse
+spread favors the home team, so its implied total is `(total + spread)/2` and the
+away team's is `(total - spread)/2`.
+[Source definition](https://nflreadr.nflverse.com/articles/dictionary_schedules.html).
+Training and inference share the same pure season/week/team join. It uses saved
+schedule quotes without reading game scores or fetching on the inference path.
+Historical evaluations use closing-line proxies; an upcoming forecast uses the
+currently saved observations. Missing/invalid quotes route to the bundle's
+qualified recent-form P50. Floors/ceilings retain the prior long-history inputs,
+including legacy market averages, pending separate risk qualification.
+See [EVALUATION.md](EVALUATION.md) for the exact-data gate and limitations.
