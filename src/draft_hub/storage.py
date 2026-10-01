@@ -618,6 +618,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_trade_proposal_league ON trade_proposal(league_id, status)"
     )
+    proposal_cols = {r[1] for r in conn.execute("PRAGMA table_info(trade_proposal)")}
+    if "source_review_id" not in proposal_cols:
+        conn.execute("ALTER TABLE trade_proposal ADD COLUMN source_review_id TEXT")
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_roster_workspace ON roster_slot(workspace_id)"
     )
@@ -2456,11 +2459,31 @@ def apply_trade_plan(
     moves: list[dict[str, Any]],
     *,
     trade_log: dict[str, Any] | None = None,
+    dead_cap_parties: list[dict[str, Any]] | None = None,
+    dead_cap_rules: LeagueRules | None = None,
+    dead_cap_season: int = 0,
+    proposal_id: str | None = None,
+    expected_owners: list[dict[str, str]] | None = None,
 ) -> None:
     """Apply every trade roster write in one transaction. Raises ValueError if a row is missing."""
-    if not moves:
+    has_dead_transfers = any(p.get("dead_cap_transfers") for p in dead_cap_parties or [])
+    if not moves and not has_dead_transfers and not trade_log:
         return
     with get_conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        for owner in expected_owners or []:
+            rows = conn.execute("SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
+                                (workspace_id, owner["player_id"], owner["team_id"])).fetchall()
+            if not any(roster_row_occupies(row) for row in rows):
+                raise ValueError("Sleeper player destinations changed; sync the league first")
+        if proposal_id:
+            proposal_row = conn.execute("SELECT * FROM trade_proposal WHERE id = ?", (proposal_id,)).fetchone()
+            if not proposal_row or proposal_row["status"] not in {"pending", "accepted", "awaiting_sleeper"}:
+                raise ValueError("Trade proposal has already been resolved")
+            if proposal_row["source_review_id"]:
+                review = conn.execute("SELECT status FROM trade_proposal WHERE id = ?", (proposal_row["source_review_id"],)).fetchone()
+                if not review or review["status"] != "cap_review":
+                    raise ValueError("Sleeper cap review has already been resolved")
         for move in moves:
             pid = str(move["player_id"])
             rows = conn.execute(
@@ -2473,7 +2496,7 @@ def apply_trade_plan(
                 prefer="occupying",
                 require_team=True,
             )
-            if not row:
+            if not row or not roster_row_occupies(row):
                 raise ValueError(f"Failed to move {pid}")
             updates = ["team_id = ?"]
             params: list[Any] = [move["team_id"]]
@@ -2500,6 +2523,32 @@ def apply_trade_plan(
                 f"UPDATE roster_slot SET {', '.join(updates)} WHERE id = ?",
                 params,
             )
+        if has_dead_transfers:
+            from src.draft_hub.dead_cap_transfers import transfer_obligation
+            from src.draft_hub.trade_proposals import validate_simulated_trade
+
+            team_ids = {p["team_id"] for p in dead_cap_parties}
+            db_rows = conn.execute("SELECT * FROM roster_slot WHERE workspace_id = ?", (workspace_id,)).fetchall()
+            snapshot = [_roster_dict(r, default_step=float(dead_cap_rules.contracts.extension_step_up))
+                        for r in db_rows if r["team_id"] in team_ids]
+            originals = {r["id"]: json.dumps(r.get("contract"), sort_keys=True) for r in snapshot}
+            for party in dead_cap_parties:
+                for leg in party.get("dead_cap_transfers") or []:
+                    transfer_obligation(snapshot, leg, from_team_id=party["team_id"],
+                                        rules=dead_cap_rules, season=dead_cap_season, proposal_id=proposal_id)
+            league_row = conn.execute("SELECT l.draft_completed FROM league l JOIN team t ON t.league_id = l.id WHERE t.id = ?",
+                                      (next(iter(team_ids)),)).fetchone()
+            errors = validate_simulated_trade(dead_cap_rules,
+                {tid: [r for r in snapshot if r["team_id"] == tid] for tid in team_ids},
+                draft_completed=bool(league_row and league_row["draft_completed"]))
+            if errors:
+                raise ValueError("; ".join(errors))
+            for row in snapshot:
+                if row["id"] < 0:
+                    _insert_roster_slot_conn(conn, workspace_id, row, row["team_id"])
+                elif json.dumps(row.get("contract"), sort_keys=True) != originals[row["id"]]:
+                    conn.execute("UPDATE roster_slot SET contract_json = ? WHERE id = ?",
+                                 (json.dumps(row["contract"]), row["id"]))
         if trade_log:
             extra = {
                 "proposal_id": trade_log.get("proposal_id"),
@@ -2523,6 +2572,11 @@ def apply_trade_plan(
                     _utcnow(),
                 ),
             )
+        if proposal_id:
+            conn.execute("UPDATE trade_proposal SET status = 'executed', updated_at = ? WHERE id = ?", (_utcnow(), proposal_id))
+            if proposal_row["source_review_id"]:
+                conn.execute("UPDATE trade_proposal SET status = 'reviewed', updated_at = ? WHERE id = ?",
+                             (_utcnow(), proposal_row["source_review_id"]))
         _bump_live_for_workspace_conn(conn, workspace_id)
 
 
@@ -2565,6 +2619,7 @@ def _proposal_dict(row: sqlite3.Row) -> dict[str, Any]:
         "status": row["status"],
         "parties": json.loads(row["parties_json"] or "[]"),
         "dead_cap_assignments": json.loads(row["dead_cap_assignments_json"] or "[]"),
+        "source_review_id": row["source_review_id"],
         "acceptances": json.loads(row["acceptances_json"] or "{}"),
         "note": row["note"],
         "created_at": row["created_at"],
@@ -2581,6 +2636,7 @@ def create_trade_proposal(
     acceptances: dict[str, str] | None = None,
     note: str | None = None,
     status: str = "pending",
+    source_review_id: str | None = None,
 ) -> dict[str, Any]:
     pid = str(uuid.uuid4())
     now = _utcnow()
@@ -2590,8 +2646,8 @@ def create_trade_proposal(
         conn.execute(
             """INSERT INTO trade_proposal
                (id, league_id, created_by_sub, status, parties_json, dead_cap_assignments_json,
-                acceptances_json, note, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                acceptances_json, note, created_at, updated_at, source_review_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 pid,
                 league_id,
@@ -2603,6 +2659,7 @@ def create_trade_proposal(
                 note,
                 now,
                 now,
+                source_review_id,
             ),
         )
         row = conn.execute("SELECT * FROM trade_proposal WHERE id = ?", (pid,)).fetchone()
@@ -2849,6 +2906,17 @@ def update_league_season(league_id: str, season: int) -> dict[str, Any] | None:
         new_season = int(season)
         old_season = int(prior["season"] or 0)
         if new_season > old_season:
+            # Cut obligations end with their season; retain provenance for audit.
+            cuts = conn.execute("""SELECT r.id, r.contract_json FROM roster_slot r
+                JOIN team t ON t.id = r.team_id WHERE t.league_id = ?
+                AND r.roster_status = 'cut_before_draft'""", (league_id,)).fetchall()
+            for cut in cuts:
+                contract = json.loads(cut["contract_json"] or "{}")
+                contract["dead_cap_amount"] = 0
+                contract["dead_cap_expired_season"] = old_season
+                conn.execute("UPDATE roster_slot SET contract_json = ? WHERE id = ?",
+                             (json.dumps(contract), cut["id"]))
+            conn.execute("UPDATE league SET live_roster_revision = COALESCE(live_roster_revision, 0) + 1 WHERE id = ?", (league_id,))
             conn.execute(
                 "UPDATE league SET season = ?, draft_completed = 0 WHERE id = ?",
                 (new_season, league_id),
@@ -3930,7 +3998,10 @@ def enrich_cut_claim_flags(
             out.append(row)
             continue
         claimed = occupying_by_pid.get(str(row.get("player_id") or ""))
-        extra: dict[str, Any] = {"can_undo_cut": claimed is None}
+        contract = row.get("contract") or {}
+        extra: dict[str, Any] = {"can_undo_cut": claimed is None
+                                and not contract.get("dead_cap_transferred")
+                                and not contract.get("dead_cap_sources")}
         if claimed:
             extra["claimed_by_team_id"] = claimed.get("team_id")
             tid = str(claimed.get("team_id") or "")
@@ -4009,7 +4080,7 @@ def move_roster_player(workspace_id: str, player_id: str, to_team_id: str) -> di
             (workspace_id, player_id),
         ).fetchall()
         row = _pick_roster_sqlite_row(rows, prefer="occupying")
-        if not row:
+        if not row or not roster_row_occupies(row):
             return None
         if str(row["team_id"] or "") == str(to_team_id):
             return _roster_dict(row)

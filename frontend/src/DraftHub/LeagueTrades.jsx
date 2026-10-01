@@ -16,7 +16,7 @@ import {
   HubLoadingSkeleton,
   HubPage,
 } from "./HubUILayout";
-import { getInsightsSection, setInsightsSection, loadLeagueRosterRequest } from "./hubDataCache";
+import { getInsightsSection, setInsightsSection, loadLeagueRosterRequest, invalidateInsightsAfterCapSync } from "./hubDataCache";
 import { isAbortError } from "../fetchAbort";
 import { loadTradeBootstrap } from "./tradeBootstrap";
 import { confirmDialog } from "../ui/confirm";
@@ -35,6 +35,7 @@ import {
   packageFingerprint,
   packageLegFlow,
   sendGetCopy,
+  retainTradeRecipients,
   validationBanner,
 } from "./tradeBuilderHelpers";
 import { projectTradeWeekLineup } from "./tradeWeekPreview";
@@ -50,7 +51,7 @@ import {
 const MAX_PARTIES = 4;
 
 function emptyParty(teamId) {
-  return { team_id: teamId || "", sends: [], drops: [] };
+  return { team_id: teamId || "", sends: [], drops: [], dead_cap_transfers: [] };
 }
 
 function Chip({ label, tone }) {
@@ -138,20 +139,23 @@ function TradePlayerRow({
   sending,
   dropping,
   canSend,
+  canDrop = true,
   onSend,
   onDrop,
   tradeLocked = false,
   isYours,
   destName,
   srcName,
+  multiTeam = false, recipientId = "", recipientOptions = [], onRecipientChange,
   salaryLeague = true,
   copy = TRADES_COPY,
 }) {
   const yrs = row.years_remaining ?? row.contract?.years_remaining ?? row.contract_years;
-  const sendCopy=sendGetCopy({isYours,playerName:row.player_name||row.player_id,destName,srcName});
-  return <li className={`ss-trade-player-row${sending?' is-sending':''}${dropping?' is-dropping':''}`}>
+  const sendCopy=sendGetCopy({isYours,playerName:row.player_name||row.player_id,destName,srcName,multiTeam});
+  return <li className={`ss-trade-player-row${sending?' is-sending':''}${dropping?' is-dropping':''}${multiTeam?' has-recipient':''}`}>
    <div className="ss-trade-player-name"><PlayerCell name={row.player_name} team={row.team} playerId={row.player_id} position={row.position} media={media} size="sm" showTeam clickable narrativeScope="season"/></div>
    {salaryLeague&&<span className="ss-trade-player-cost">{fmtSal(row.salary)}<small>{yrs??'—'} yrs</small></span>}
+   {multiTeam && <HubFilterMenu className="ss-trade-recipient" label="To" ariaLabel={copy.recipientFor(row.player_name || row.player_id)} value={recipientId} options={[{id:"",label:copy.chooseRecipient},...recipientOptions]} onChange={onRecipientChange} disabled={tradeLocked} />}
    <button type="button" className="ss-trade-square" disabled={!canSend||tradeLocked} onClick={onSend} aria-pressed={sending} aria-label={sendCopy.aria} title={sendCopy.aria}>{sending?'✓':'+'}</button>
   </li>;
 }
@@ -174,6 +178,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const [validationErrors, setValidationErrors] = useState([]);
   const [validationMessage, setValidationMessage] = useState("");
   const [proposeNote, setProposeNote] = useState("");
+  const [sourceReviewId, setSourceReviewId] = useState(null);
   const [posFilter, setPosFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [partnerSearch, setPartnerSearch] = useState("");
@@ -196,6 +201,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const isCommissioner = Boolean(hubContext?.is_commissioner);
   const rules = hubContext?.rules || null;
   const salaryLeague = usesSalaries;
+  const sleeperLinked = Boolean(hubContext?.sleeper_league_id);
   const formatCopy = tradesCopyForFormat(!salaryLeague);
   const acquisitionWindow = hubContext?.acquisition_window || null;
   const tradeBanner = tradesWindowBanner(acquisitionWindow);
@@ -221,6 +227,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     });
     return m;
   }, [rosters]);
+  const deadCapByTeam = useMemo(() => Object.fromEntries(rosters.map(b => [b.team?.id,
+    (b.roster || []).filter(r => r.roster_status === "cut_before_draft" && r.dead_cap_amount > 0)])), [rosters]);
+  const deadCapBySlot = useMemo(() => Object.fromEntries(Object.values(deadCapByTeam).flat().map(r => [r.id, r])), [deadCapByTeam]);
   const rowByPlayer = useMemo(() => {
     const m = {};
     Object.values(rosterByTeam).forEach((rows) => {
@@ -244,8 +253,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
 
   const loadRosters = useCallback(async (signal) => {
     if (!leagueId) return;
-    const data = await loadLeagueRosterRequest(cacheScope, leagueId, async () => {
-      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters`);
+    const data = await loadLeagueRosterRequest(cacheScope ? `${cacheScope}:trades` : null, leagueId, async () => {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/rosters?trade_view=1`);
       if (!res.ok) throw new Error(await parseApiError(res));
       return res.json();
     });
@@ -446,8 +455,12 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         });
       });
     });
+    parties.forEach(p => (p.dead_cap_transfers || []).forEach(s => legs.push({
+      from: p.team_id, to: s.to_team_id, deadCap: true, amount: s.amount,
+      player_id: `dead-${s.roster_slot_id}`, name: deadCapBySlot[s.roster_slot_id]?.player_name || s.player_id,
+    })));
     return legs;
-  }, [parties, rowByPlayer]);
+  }, [parties, rowByPlayer, deadCapBySlot]);
 
   const projectedByTeam = useMemo(() => {
     const out = {};
@@ -549,6 +562,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         team_id: p.team_id,
         sends: p.sends,
         drops: p.drops,
+        dead_cap_transfers: p.dead_cap_transfers || [],
       })),
     dead_cap_assignments: deadCapAssignments.filter((a) =>
       parties.some((p) => p.team_id === a.from_team_id && p.drops.includes(a.player_id)),
@@ -636,6 +650,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         body: JSON.stringify({
           ...buildPayload(),
           note: proposeNote.trim() || undefined,
+          source_review_id: sourceReviewId || undefined,
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
@@ -643,6 +658,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       setTab("inbox");
       setBuilderStep("partner");
       setProposeNote("");
+      setSourceReviewId(null);
       setParties([emptyParty(myTeamId), emptyParty("")]);
       setDeadCapAssignments([]);
       await loadProposals();
@@ -666,7 +682,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       );
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      setMsg(data.proposal?.status === "executed" ? "Trade executed." : approve ? "Accepted." : "Rejected.");
+      setMsg(data.proposal?.status === "awaiting_sleeper" ? formatCopy.sleeperAccepted
+        : data.proposal?.status === "executed" ? "Trade executed." : approve ? "Accepted." : "Rejected.");
+      invalidateInsightsAfterCapSync(leagueId);
       await loadProposals();
       await loadRosters();
     } catch (e) {
@@ -691,6 +709,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       );
       if (!res.ok) throw new Error(await parseApiError(res));
       setMsg("Trade force-applied.");
+      invalidateInsightsAfterCapSync(leagueId);
       await loadProposals();
       await loadRosters();
     } catch (e) {
@@ -716,7 +735,31 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     }
   };
 
+  const resolveSleeper = async (proposalId, action) => {
+    setBusy(proposalId);
+    setError("");
+    try {
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/trades/${encodeURIComponent(proposalId)}/${action}`, { method: "POST" });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      invalidateInsightsAfterCapSync(leagueId);
+      await loadProposals();
+      await loadRosters();
+    } catch (e) { setError(e.message); }
+    finally { setBusy(""); }
+  };
+
+  const loadCapReview = proposal => {
+    const ordered = [...proposal.parties].sort((a, b) => (b.team_id === myTeamId) - (a.team_id === myTeamId));
+    setParties(ordered.map(p => emptyParty(p.team_id)));
+    setDeadCapAssignments([]);
+    setSourceReviewId(proposal.id);
+    setTab("builder");
+    setBuilderStep("players");
+    setProposeNote(proposal.note || "");
+  };
+
   const loadSuggestion = (suggestion) => {
+    setSourceReviewId(null);
     const partnerId = suggestion.partner_team_id;
     const next = [
       {
@@ -749,6 +792,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   );
 
   const togglePartner = (teamId) => {
+    if (sourceReviewId) return;
     if (!teamId || teamId === myTeamId) return;
     setParties((prev) => {
       const mine = {
@@ -765,8 +809,12 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       } else {
         nextPartners = [...partners, emptyParty(teamId)];
       }
-      const next = [mine, ...(nextPartners.length ? nextPartners : [emptyParty("")])];
+      const next = retainTradeRecipients([mine, ...(nextPartners.length ? nextPartners : [emptyParty("")])]);
       syncDeadCapDefaults(next);
+      setDeadCapAssignments(prev => prev.map(a => ({ ...a,
+        assigned_to_team_id: next.some(p => p.team_id === a.assigned_to_team_id)
+          ? a.assigned_to_team_id : a.from_team_id,
+      })));
       return next;
     });
   };
@@ -794,7 +842,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       {activeParties.map((party) => {
         const idx = party.idx;
         const others = parties.filter((p, i) => i !== idx && p.team_id).map((p) => p.team_id);
-        const defaultTo = others[0] || "";
+        const defaultTo = activeParties.length > 2 ? "" : others[0] || "";
         const rows = filterRows(rosterByTeam[party.team_id] || []);
         const incoming = receivingFor(party.team_id);
         const teamProjected = party.team_id ? projectedByTeam[party.team_id] : null;
@@ -802,7 +850,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         return (
           <div key={idx} className="hub-trade-party-col panel">
             <div className="hub-trade-party-head">
-              <strong className="hub-trade-party-name">{isYours?'You send':'You get'}</strong><span className="table-meta">{teamName(party.team_id)}</span>
+              <strong className="hub-trade-party-name">{activeParties.length > 2 ? teamName(party.team_id) : isYours?'You send':'You get'}</strong>{activeParties.length <= 2 && <span className="table-meta">{teamName(party.team_id)}</span>}
             </div>
 
             <ul className="hub-trade-player-list">
@@ -811,6 +859,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
               )}
               {rows.map((r) => {
                 const sending = party.sends.some((s) => s.player_id === r.player_id);
+                const recipientId = party.sends.find(s => s.player_id === r.player_id)?.to_team_id || defaultTo;
                 const dropping = party.drops.includes(r.player_id);
                 return (
                   <TradePlayerRow
@@ -819,22 +868,71 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                     media={media}
                     sending={sending}
                     dropping={dropping}
-                    canSend={Boolean(defaultTo)}
+                    canSend={Boolean(recipientId) && !sourceReviewId}
+                    canDrop={!sleeperLinked && !sourceReviewId}
                     isYours={isYours}
-                    destName={teamName(defaultTo)}
+                    destName={recipientId ? teamName(recipientId) : ""}
                     srcName={teamName(party.team_id)}
+                    multiTeam={activeParties.length > 2 && !sourceReviewId}
+                    recipientId={recipientId}
+                    recipientOptions={others.map(id => ({ id, label: teamName(id) }))}
+                    onRecipientChange={to => {
+                      setParties(prev => {
+                        const next = prev.map((p, i) => i !== idx ? p : {
+                          ...p,
+                          sends: [...p.sends.filter(s => s.player_id !== r.player_id),
+                            ...(to ? [{ player_id: r.player_id, to_team_id: to }] : [])],
+                          drops: to ? p.drops.filter(pid => pid !== r.player_id) : p.drops,
+                        });
+                        syncDeadCapDefaults(next);
+                        return next;
+                      });
+                    }}
                     salaryLeague={salaryLeague}
                     copy={formatCopy}
                     tradeLocked={!playerTradeableInWindow(r, acquisitionWindow)}
-                    onSend={() => toggleSend(idx, r.player_id, defaultTo)}
+                    onSend={() => toggleSend(idx, r.player_id, recipientId)}
                     onDrop={() => toggleDrop(idx, r.player_id)}
                   />
                 );
               })}
             </ul>
 
+            {salaryLeague && (deadCapByTeam[party.team_id] || []).length > 0 && <div className="hub-trade-legs">
+              <strong>{formatCopy.deadCapTitle}</strong>
+              <p className="chart-note">{formatCopy.deadCapSupport}</p>
+              {(deadCapByTeam[party.team_id] || []).map(row => {
+                const leg = (party.dead_cap_transfers || []).find(s => s.roster_slot_id === row.id);
+                const update = (to, amount) => setParties(prev => prev.map((p, i) => i !== idx ? p : {
+                  ...p, dead_cap_transfers: [...(p.dead_cap_transfers || []).filter(s => s.roster_slot_id !== row.id),
+                    ...(to ? [{ roster_slot_id: row.id, player_id: row.player_id, to_team_id: to, amount }] : [])],
+                }));
+                return <div key={row.id} className="hub-trade-leg-row">
+                  <span>{row.player_name} · {fmtSal(row.dead_cap_amount)} dead cap</span>
+                  {row.dead_cap_sources?.length > 0 && <details>
+                    <summary>{formatCopy.deadCapHistory}</summary>
+                    {row.dead_cap_sources.map((source, n) => <div key={n}>
+                      <p className="chart-note">{formatCopy.deadCapSource(source.player_name || row.player_name,
+                        fmtSal(source.amount), teamName(source.origin_team_id), source.season)}</p>
+                      {(source.history || []).map((h, j) => <p key={j} className="chart-note">
+                        {fmtSal(h.amount)} · {teamName(h.from_team_id)} → {teamName(h.to_team_id)}
+                      </p>)}
+                    </div>)}
+                  </details>}
+                  <HubFilterMenu label="To" ariaLabel={formatCopy.recipientFor(row.player_name)} value={leg?.to_team_id || ""}
+                    options={[{ id: "", label: formatCopy.chooseRecipient }, ...others.map(id => ({ id, label: teamName(id) }))]}
+                    onChange={to => update(to, leg?.amount ?? row.dead_cap_amount)} />
+                  {leg && <label>{formatCopy.deadCapAmount}
+                    <input type="number" min="1" step="1" max={row.dead_cap_amount}
+                      aria-label={`${formatCopy.deadCapAmount} from ${row.player_name}`}
+                      value={leg.amount} onChange={e => update(leg.to_team_id, Number(e.target.value))} />
+                  </label>}
+                </div>;
+              })}
+            </div>}
+
             <details className="ss-trade-advanced"><summary>{DISCOVERY.advanced}</summary>
-             <div className="ss-trade-cut-options">{rows.map(row=><button key={row.player_id} type="button" className="btn-ghost ss-trade-action" onClick={()=>toggleDrop(idx,row.player_id)} aria-pressed={party.drops.includes(row.player_id)}>{party.drops.includes(row.player_id)?'Undo ':''}{salaryLeague?'Cut':'Drop'} {row.player_name}</button>)}</div>
+             <div className="ss-trade-cut-options">{!sleeperLinked && !sourceReviewId && rows.map(row=><button key={row.player_id} type="button" className="btn-ghost ss-trade-action" onClick={()=>toggleDrop(idx,row.player_id)} aria-pressed={party.drops.includes(row.player_id)}>{party.drops.includes(row.player_id)?'Undo ':''}{salaryLeague?'Cut':'Drop'} {row.player_name}</button>)}</div>
             {incoming.length > 0 && (
               <div className="hub-trade-legs hub-trade-receiving">
                 <strong>{formatCopy.getVerb}</strong>
@@ -953,8 +1051,10 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
             <li key={`${leg.drop ? "cut" : "send"}-${leg.from}-${leg.player_id}`}>
               <span className="hub-roster-pos-tag">{leg.position || "?"}</span>
               <strong>{leg.name}</strong>
-              {salaryLeague && <span className="hub-trade-salary-inline">{fmtSal(leg.salary)}</span>}
-              <span className="hub-trade-leg-flow">{packageLegFlow(leg, teamName, formatCopy.cutVerb)}</span>
+              {salaryLeague && !leg.deadCap && <span className="hub-trade-salary-inline">{fmtSal(leg.salary)}</span>}
+              <span className="hub-trade-leg-flow">{leg.deadCap
+                ? formatCopy.deadCapFlow(leg.name, fmtSal(leg.amount), teamName(leg.from), teamName(leg.to))
+                : packageLegFlow(leg, teamName, formatCopy.cutVerb)}</span>
             </li>
           ))}
         </ul>
@@ -997,6 +1097,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           {error}
         </div>
       )}
+      {sleeperLinked && <HubAlert variant="info">{formatCopy.sleeperSupport}</HubAlert>}
       {msg && tab !== "builder" && (
         <HubAlert variant="ready">{msg}</HubAlert>
       )}
@@ -1006,7 +1107,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
 
       {tab==='builder'&&!loading&&!error&&<div className="ss-trade-builder" id="trades-panel-builder">
        {builderStep==='partner'?<>
-        {teams.filter(t=>t.id!==myTeamId).length?<TradeDiscovery teams={teams} myTeamId={myTeamId} rosterByTeam={rosterByTeam} statsByTeam={statsByTeam} salaryCap={capLimit} salaryLeague={salaryLeague} ranks={positionRanks} positions={rankPositions} search={partnerSearch} onSearch={setPartnerSearch} onChoose={id=>{setParties([emptyParty(myTeamId),emptyParty(id)]);setDeadCapAssignments([]);setSearch('');setBuilderStep('players');}}/>:<div className="hub-insights-empty-state"><p>{formatCopy.noPartners}</p><button type="button" className="btn-primary" onClick={()=>onNavigate?.('office-members')}>{formatCopy.inviteManagers}</button></div>}
+        {teams.filter(t=>t.id!==myTeamId).length?<TradeDiscovery teams={teams} myTeamId={myTeamId} rosterByTeam={rosterByTeam} statsByTeam={statsByTeam} salaryCap={capLimit} salaryLeague={salaryLeague} ranks={positionRanks} positions={rankPositions} search={partnerSearch} onSearch={setPartnerSearch} onChoose={id=>{setSourceReviewId(null);setParties([emptyParty(myTeamId),emptyParty(id)]);setDeadCapAssignments([]);setSearch('');setBuilderStep('players');}}/>:<div className="hub-insights-empty-state"><p>{formatCopy.noPartners}</p><button type="button" className="btn-primary" onClick={()=>onNavigate?.('office-members')}>{formatCopy.inviteManagers}</button></div>}
        </>:<>
         <nav className="ss-trade-progress" aria-label="Trade progress"><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>Partner</button><span aria-hidden="true">→</span><span aria-current="step">Players</span><span aria-hidden="true">→</span><span>Review</span></nav>
         <div className="ss-trade-chosen"><strong>{partnerNames.join(' · ')}</strong><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>{DISCOVERY.back}</button></div>
@@ -1023,7 +1124,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
        <TradeVerdict status={validationStatus} errors={validationErrors} message={validationMessage}/>
        <details className="ss-trade-advanced"><summary>{DISCOVERY.note}</summary><textarea aria-label={formatCopy.proposeNoteLabel} value={proposeNote} onChange={e=>setProposeNote(e.target.value)} className="hub-trade-note" rows={3}/></details>
        <details className="ss-trade-advanced"><summary>{DISCOVERY.projectionDetails}</summary><p className="chart-note">{salaryLeague?DISCOVERY.method:DISCOVERY.rosterMethod}</p></details>
-       <button type="button" className="btn-primary" disabled={!canPropose||!hasPartner} onClick={propose}>{busy==='propose'?formatCopy.proposing:formatCopy.proposeTrade} →</button><p className="chart-note">{DISCOVERY.afterAccept}</p>
+       <button type="button" className="btn-primary" disabled={!canPropose||!hasPartner} onClick={propose}>{busy==='propose'?formatCopy.proposing:formatCopy.proposeTrade} →</button><p className="chart-note">{sourceReviewId ? formatCopy.capAgreementNotifyLine : sleeperLinked ? formatCopy.sleeperNotifyLine : DISCOVERY.afterAccept}</p>
       </div></dialog>,document.body)}
 
       {tab === "inbox" && !secondaryLoading && !secondaryError.inbox && (
@@ -1038,7 +1139,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
             <div key={p.id} className="hub-insights-suggestion hub-trade-proposal-card">
               <div className="hub-trade-proposal-head">
                 <span className={`hub-trade-status hub-trade-status-${p.status}`}>
-                  {p.status}
+                  {p.status === "awaiting_sleeper" ? formatCopy.waitingSleeper
+                    : p.status === "cap_review" ? formatCopy.syncedMoves : p.status}
                 </span>
                 {p.note ? <span className="table-meta">{p.note}</span> : null}
               </div>
@@ -1058,7 +1160,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                           <li key={s.player_id}>
                             <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
                             <PlayerCell
-                              name={row?.player_name || s.player_id}
+                              name={row?.player_name || s.player_name || s.player_id}
                               team={row?.team}
                               playerId={s.player_id}
                               media={media}
@@ -1078,6 +1180,10 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                       {formatCopy.cutVerb}: {(party.drops || []).map((pid) => playerLabel(party.team_id, pid)).join(", ")}
                     </p>
                   )}
+                  {(party.dead_cap_transfers || []).map(leg => <p key={leg.roster_slot_id} className="table-meta">
+                    {formatCopy.deadCapFlow(deadCapBySlot[leg.roster_slot_id]?.player_name || leg.player_id,
+                      fmtSal(leg.amount), teamName(party.team_id), teamName(leg.to_team_id))}
+                  </p>)}
                 </div>
               ))}
               {weekStripReady && p.acceptances?.[myTeamId] === "pending" && (
@@ -1088,7 +1194,16 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 />
               )}
               <div className="hub-insights-suggestion-actions">
-                {p.acceptances?.[myTeamId] === "pending" && (
+                {p.status === "awaiting_sleeper" && (isCommissioner || p.parties.some(x => x.team_id === myTeamId)) &&
+                  <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)}
+                    onClick={() => resolveSleeper(p.id, "settle")}>{formatCopy.settleCap}</button>}
+                {p.status === "cap_review" && (isCommissioner || p.parties.some(x => x.team_id === myTeamId)) && <>
+                  <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)}
+                    onClick={() => loadCapReview(p)}>{formatCopy.reviewCapTerms}</button>
+                  {isCommissioner && <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)}
+                    onClick={() => resolveSleeper(p.id, "reviewed")}>{formatCopy.closeCapReview}</button>}
+                </>}
+                {p.status === "pending" && p.acceptances?.[myTeamId] === "pending" && (
                   <>
                     <button
                       type="button"
@@ -1108,7 +1223,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                     </button>
                   </>
                 )}
-                {(isCommissioner || (p.parties || []).some((x) => x.team_id === myTeamId)) && (
+                {p.status !== "cap_review" && (isCommissioner || (p.parties || []).some((x) => x.team_id === myTeamId)) && (
                   <button
                     type="button"
                     className="btn-ghost btn-sm"
@@ -1118,7 +1233,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                     Cancel
                   </button>
                 )}
-                {isCommissioner && (
+                {isCommissioner && p.status === "pending" && !sleeperLinked && (
                   <button
                     type="button"
                     className="btn-ghost btn-sm"

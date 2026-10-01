@@ -88,12 +88,13 @@ def filter_team_sleeper_roster(
         return roster
 
     if team.get("sleeper_roster_id") and not allowed:
-        return [r for r in roster if str(r.get("source") or "") != "sleeper"]
+        return [r for r in roster if str(r.get("source") or "") != "sleeper"
+                or r.get("roster_status") == "cut_before_draft"]
 
     filtered: list[dict[str, Any]] = []
     for row in roster:
         source = str(row.get("source") or "")
-        if source != "sleeper":
+        if source != "sleeper" or row.get("roster_status") == "cut_before_draft":
             filtered.append(row)
             continue
         pid = str(row.get("player_id") or "")

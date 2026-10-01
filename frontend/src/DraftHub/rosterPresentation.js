@@ -65,6 +65,7 @@ export const MY_TEAM_COPY = {
   cutLabel: "Cut",
   undoCut: "Undo cut",
   undoCutClosed: "Undo cut is closed",
+  undoCutTransferred: "Dead-cap responsibility changed in a trade. Adjust it through Trades.",
   undoCutClosedSupport: (owner) => (
     owner
       ? `They're on ${owner}'s roster.`

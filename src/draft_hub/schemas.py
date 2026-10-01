@@ -368,10 +368,18 @@ class TradeSendLeg(BaseModel):
     to_team_id: str
 
 
+class DeadCapTransfer(BaseModel):
+    roster_slot_id: int = Field(gt=0)
+    player_id: str
+    to_team_id: str
+    amount: float = Field(gt=0, allow_inf_nan=False, multiple_of=1)
+
+
 class TradePartyInput(BaseModel):
     team_id: str
     sends: list[Union[TradeSendLeg, str]] = Field(default_factory=list)
     drops: list[str] = Field(default_factory=list)
+    dead_cap_transfers: list[DeadCapTransfer] = Field(default_factory=list)
 
 
 class DeadCapAssignment(BaseModel):
@@ -386,6 +394,7 @@ class TradeProposalCreate(BaseModel):
     dead_cap_assignments: list[DeadCapAssignment] = Field(default_factory=list)
     note: Optional[str] = None
     validate_only: bool = False
+    source_review_id: Optional[str] = None
 
 
 class TradeProposalRespond(BaseModel):

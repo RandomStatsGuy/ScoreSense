@@ -6,6 +6,7 @@ import {
   packageLegFlow,
   partnerCardMeta,
   sendGetCopy,
+  retainTradeRecipients,
   validationBanner,
 } from "./tradeBuilderHelpers.js";
 import { TRADES_COPY } from "./leagueTradesPresentation.js";
@@ -94,4 +95,20 @@ test("notifyPartnerNames prefers owner name", () => {
     ),
     ["Alex"],
   );
+});
+
+test("three-team sends name the recipient rather than implying Get for your team", () => {
+  assert.deepEqual(sendGetCopy({ isYours: false, multiTeam: true,
+    playerName: "Player B", srcName: "B", destName: "C" }),
+  { button: "Send", aria: "Send Player B to C" });
+});
+
+test("removing a partner clears its incoming legs and preserves other destinations", () => {
+  const result = retainTradeRecipients([
+    { team_id: "a", sends: [{ player_id: "p1", to_team_id: "c" },
+      { player_id: "p2", to_team_id: "b" }], drops: [] },
+    { team_id: "b", sends: [{ player_id: "p3", to_team_id: "a" }], drops: [] },
+  ]);
+  assert.deepEqual(result[0].sends, [{ player_id: "p2", to_team_id: "b" }]);
+  assert.equal(result[1].sends[0].to_team_id, "a");
 });
