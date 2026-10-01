@@ -4989,13 +4989,8 @@ async def hub_post_chat_message(
     elif kind_norm != "league":
         raise HTTPException(status_code=400, detail="Invalid chat channel")
     try:
-        message = storage.post_chat_message(
-            league_id,
-            kind_norm,
-            author_sub=sub,
-            team_id=ctx.get("team_id"),
-            body=body.body,
-        )
+        from src.draft_hub import chat
+        message = chat.post_message(league_id, sub, kind_norm, body.body, [])
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     await draft_room_manager.broadcast(

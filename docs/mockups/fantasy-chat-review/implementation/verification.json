@@ -1,0 +1,114 @@
+{
+  "selected_design": "A",
+  "status": "Implemented; draft PR against develop",
+  "ui": {
+    "widths": [
+      320,
+      390,
+      1280
+    ],
+    "themes": [
+      "dark",
+      "light"
+    ],
+    "passed": [
+      "Centered dialog",
+      "Click opens; hold reveals X",
+      "Full bubble dismissal and settings restore",
+      "Navigation and Rules action clearance",
+      "Mentions and sending",
+      "Failed sends preserve text",
+      "Reaction add/remove",
+      "Direct conversations",
+      "Account preference persistence",
+      "Normal chat badge without toast",
+      "Trade toast and notification read state",
+      "Escape and focus restoration",
+      "Loading/error/empty states",
+      "Home thread",
+      "Compact draft component",
+      "Regular member controls"
+    ],
+    "screenshots_use": "Isolated sample messages; separate live-empty screenshots use the running API",
+    "exact_pr_build": {
+      "widths": [
+        320,
+        390,
+        1280
+      ],
+      "passed": [
+        "Centered chat, notification and settings layouts",
+        "Compact mobile header bell spacing",
+        "Click, hold, full hide and restore",
+        "Mentions, reactions and direct messages",
+        "Preferences, unread badge and on-site alerts",
+        "Focus return and Escape",
+        "Loading, error, failed send and light theme",
+        "Navigation and Rules save clearance"
+      ],
+      "not_run_in_compiled_mode": [
+        "Home integration",
+        "Source-only compact/member fixtures"
+      ],
+      "source_fixture_coverage": "Home, compact draft and regular-member chat passed in the original workspace before isolation. Full active live auction remains untested."
+    }
+  },
+  "tests": {
+    "backend_and_static": {
+      "passed": 81,
+      "failed": 0
+    },
+    "focused_frontend": {
+      "passed": 39,
+      "failed": 1,
+      "existing_failure": "My team living-surface description; reproduced against unchanged origin/develop"
+    },
+    "full_frontend": {
+      "passed": 932,
+      "failed": 3,
+      "unrelated_failures": [
+        "Auction contract label",
+        "Accuracy copy",
+        "My team living-surface description"
+      ]
+    },
+    "production_build": "PASS",
+    "chat_and_auth_frontend": {
+      "passed": 18,
+      "failed": 0
+    }
+  },
+  "layout": {
+    "chat_notifications_settings": {
+      "390": "PASS",
+      "1280": "PASS"
+    },
+    "compact_draft_and_member_chat": {
+      "390": "PASS",
+      "1280": "PASS"
+    },
+    "page_wide_audit": {
+      "390": {
+        "routes": 33,
+        "passed": 21,
+        "failed": 12
+      },
+      "1280": {
+        "routes": 33,
+        "passed": 16,
+        "failed": 17
+      },
+      "details": [
+        "page-audit-390.json",
+        "page-audit-1280.json"
+      ],
+      "existing_issues": "Other page button sizes, table layout, and duplicate primaries; desktop Home also counts its existing header Sign in action as a second primary."
+    }
+  },
+  "data": "Existing local My Auction room 3F2UF8; no remirror. The local room has one claimed manager, so multi-manager UI states use isolated fixtures. Private ACL, staff revocation, and team owner replacement are covered by backend tests.",
+  "not_checked": [
+    "Full active live auction flow (compact chat checked separately)",
+    "Production deployment"
+  ],
+  "review_context": "Tests and production build rerun in an isolated worktree based on origin/develop (4794e929). Exact build browser review uses existing local API with isolated messages. The broad page audit files retain the original workspace audit; they are not exact PR-build page audits."
+}

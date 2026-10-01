@@ -660,6 +660,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_chat_message_channel ON league_chat_message(channel_id, created_at)"
     )
+    from src.draft_hub.chat import install_schema
+    install_schema(conn)
     conn.execute(
         """CREATE TABLE IF NOT EXISTS fa_bid (
             id TEXT PRIMARY KEY,
@@ -4961,6 +4963,8 @@ def clear_chat_messages(league_id: str, kind: str) -> dict[str, Any]:
     channels = ensure_chat_channels(league_id)
     channel = channels[kind]
     with get_conn() as conn:
+        from src.draft_hub.chat import clear_channel_metadata
+        clear_channel_metadata(conn, channel["id"])
         cur = conn.execute(
             "DELETE FROM league_chat_message WHERE channel_id = ?",
             (channel["id"],),
@@ -5979,6 +5983,10 @@ def delete_league(league_id: str) -> dict[str, Any]:
         ]
         if channel_ids:
             placeholders = ",".join("?" * len(channel_ids))
+            from src.draft_hub.chat import clear_channel_metadata
+            for channel_id in channel_ids:
+                clear_channel_metadata(conn, channel_id)
+                conn.execute("DELETE FROM chat_read_cursor WHERE channel_id=?", (channel_id,))
             conn.execute(
                 f"DELETE FROM league_chat_message WHERE channel_id IN ({placeholders})",
                 channel_ids,
@@ -5991,6 +5999,7 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "trade_proposal",
             "league_invite",
             "league_chat_channel",
+            "site_notification",
             "fa_bid",
             "waiver_claim",
             "waiver_priority",

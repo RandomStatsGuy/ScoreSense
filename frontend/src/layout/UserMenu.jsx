@@ -1,6 +1,7 @@
 import { successfulRefreshRevision } from "../refreshStatus";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { NotificationSettingsAction } from "../DraftHub/CommunicationPanel";
 
 /**
  * Desktop account dropdown. Consolidates Account, Report a bug, Model accuracy,
@@ -156,6 +157,7 @@ export default function UserMenu({
           <button type="button" role="menuitem" className="user-menu-item" onClick={run(onAccount)}>
             Account settings
           </button>
+          <NotificationSettingsAction role="menuitem" className="user-menu-item" onBeforeOpen={()=>setOpen(false)} />
           <button type="button" role="menuitem" className="user-menu-item" onClick={run(onGoToReport)}>
             Report a bug
           </button>

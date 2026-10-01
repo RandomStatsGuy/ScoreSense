@@ -3,6 +3,7 @@ import React from "react";
 import ThemeToggle from "./ThemeToggle";
 import AppearanceLink from "./AppearanceLink";
 import MobileBottomSheet from "./MobileBottomSheet";
+import { NotificationSettingsAction } from "../DraftHub/CommunicationPanel";
 import LegalLinks from "../LegalLinks";
 import { STUDIO_NAME } from "../brand";
 import { formatRelativeTime } from "../format";
@@ -36,6 +37,7 @@ export default function MobileMenuSheet({
       className="app-mobile-sheet-menu"
     >
       <div className="app-mobile-sheet-list">
+        <NotificationSettingsAction className="app-mobile-sheet-item" onBeforeOpen={onClose} />
         <ThemeToggle menu />
         {authenticated && <AppearanceLink menu onClick={onClose} />}
         {authReady && !authenticated ? (

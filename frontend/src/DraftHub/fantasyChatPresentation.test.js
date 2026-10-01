@@ -17,6 +17,10 @@ import {
   readChatLauncherEdge,
   writeChatLauncherDismissed,
   writeChatLauncherEdge,
+  matchingChatMembers,
+  messageMentionIds,
+  incomingSiteAlerts,
+  unreadChatLabel,
 } from "./fantasyChatPresentation.js";
 
 test("chat copy names the conversation, not Draft Hub", () => {
@@ -101,14 +105,14 @@ test("dragging dock drops parent transform so the launcher stays viewport-fixed"
   assert.match(css, /safe-area-inset-bottom/);
 });
 
-test("phone CSS parks dismiss on the bubble, not off the right edge", () => {
+test("approved bubble clears the phone navigation and dialog centers", () => {
   const css = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../styles/fantasy-phone.css"),
+    join(dirname(fileURLToPath(import.meta.url)), "../styles/fantasy-chat.css"),
     "utf8",
-  ) + readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../styles/fantasy.css"), "utf8");
-  assert.match(css, /\.fantasy-chat-dismiss--on-bubble\s*,|\.fantasy-chat-dismiss--on-bubble\s*\{/);
-  assert.match(css, /\.fantasy-chat-dismiss--on-bubble[\s\S]*position:\s*absolute/);
-  assert.match(css, /8\.85rem \+ env\(safe-area-inset-bottom/);
+  );
+  assert.match(css, /\.communication-backdrop\s*\{[^}]*place-items:center/s);
+  assert.match(css, /\.fantasy-chat-hide-a\s*\{[^}]*position:absolute/s);
+  assert.match(css, /5rem \+ var\(--space-4\) \+ env\(safe-area-inset-bottom/);
 });
 
 test("Home hides the edge launcher because the locker is the house", () => {
@@ -122,4 +126,17 @@ test("chat poll backs off when the tab is hidden", () => {
   assert.equal(chatPollMs({ compact: true }), 4_000);
   assert.equal(chatPollMs({ hidden: true }), CHAT_POLL_HIDDEN_MS);
   assert.equal(chatPollMs({ compact: true, hidden: true }), CHAT_POLL_HIDDEN_MS);
+});
+
+test("mentions match owner names and team names but exclude the author", () => {
+  const people=[{id:'me',name:'Jordan Davis'}, {id:'j',name:'Jo (A+B)',team_name:'Red Zone'}, {id:'c',name:'Casey',team_name:'Jordan fans'}];
+  assert.deepEqual(matchingChatMembers(people,'jordan','me').map(p=>p.id),['c']);
+  assert.deepEqual(messageMentionIds('@Jo (A+B) hello',people),['j']);
+  assert.deepEqual(messageMentionIds('@CaseyExtra is different',people),[]);
+});
+
+test("site alerts require an enabled category and an unseen unread event", () => {
+  const alerts=[{id:'old',kind:'direct'}, {id:'read',kind:'direct',read_at:'now'}, {id:'league',kind:'league'}, {id:'new',kind:'trade'}];
+  assert.deepEqual(incomingSiteAlerts(alerts,new Set(['old']),{direct:true,trade:true,league:false}).map(a=>a.id),['new']);
+  assert.equal(unreadChatLabel(140),'99+');
 });
