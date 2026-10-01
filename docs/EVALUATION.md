@@ -1,9 +1,11 @@
 # ScoreSense Evaluation
 
 The 2024 tables below are legacy results and predate the corrected season split,
-baseline fallback and defensive-EPA timing. For the 2026 input audit and the
-limited 2025 repair comparisons, see [Projection reliability](PROJECTION_RELIABILITY.md).
-These comparisons do not promote a replacement production model.
+baseline fallback and defensive-EPA timing. For current evidence, see
+[Projection reliability](PROJECTION_RELIABILITY.md) and the
+[2019–2025 paired pregame gate](PROJECTION_PREGAME_REBUILD.md). The latter qualifies
+recent scoring/usage for P50 on exact matching training inputs; production
+rebuild/retraining and additional scale/rank/tail calibration work remain.
 
 Walk-forward backtest results on **2024** holdout (trained on 2018–2023).
 

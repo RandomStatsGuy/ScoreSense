@@ -33,6 +33,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [EVALUATION.md](./EVALUATION.md) | Backtest and season-long metrics (canonical numbers) |
 | [MODEL_FEATURES.md](./MODEL_FEATURES.md) | Production training columns |
 | [FEATURE_SCREENING.md](./FEATURE_SCREENING.md) | Candidate promotion gate |
+| [PROJECTION_PREGAME_REBUILD.md](./PROJECTION_PREGAME_REBUILD.md) | Rebuilt inputs, qualified recent-form P50 models and cross-service coverage |
 | [SENTIMENT.md](./SENTIMENT.md) | YouTube narrative pipeline |
 | [WR_UPSIDE_CALIBRATION.md](./WR_UPSIDE_CALIBRATION.md) | WR P90 / rank lab notes |
 | [RB_P90_CALIBRATION.md](./RB_P90_CALIBRATION.md) | RB P90 deploy note |

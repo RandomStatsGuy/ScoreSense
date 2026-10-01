@@ -20,7 +20,7 @@ from src.core.features import (
 )
 
 try:
-    from bdb_companion.target_quality import merge_target_quality_into_wr_features
+    from bdb_companion.target_quality import build_target_quality, merge_target_quality_into_wr_features
 except ImportError:
     merge_target_quality_into_wr_features = None
 
@@ -44,6 +44,17 @@ def _normalize_weekly_columns(df: pd.DataFrame) -> pd.DataFrame:
         out = out.drop(columns=["recent_team"])
     if "passing_interceptions" in out.columns and "interceptions" not in out.columns:
         out["interceptions"] = out["passing_interceptions"]
+    # nflverse reports separate rushing/receiving/sack fumbles in older schemas
+    # and totals in the newer feed. Do not turn every player's fumbles into zero.
+    for dest, total, components in (
+        ("fumbles", "fumbles_total", ("rushing_fumbles", "receiving_fumbles", "sack_fumbles")),
+        ("fumbles_lost", "fumbles_lost_total", ("rushing_fumbles_lost", "receiving_fumbles_lost", "sack_fumbles_lost")),
+    ):
+        present = [c for c in components if c in out]
+        values = out[present].sum(axis=1, min_count=1) if present else pd.Series(np.nan, index=out.index)
+        if total in out:
+            values = out[total].combine_first(values)
+        out[dest] = out[dest].combine_first(values) if dest in out else values
     if "opponent_team" in out.columns:
         if "opponent" not in out.columns:
             out["opponent"] = out["opponent_team"]
@@ -52,15 +63,17 @@ def _normalize_weekly_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _load_weekly_season(season: int) -> pd.DataFrame:
-    nfl = _import_nfl_data_py()
+    # Prefer the current release for every year, not only years where the old
+    # player_stats feed happens to fail. This keeps appearance/zero-score cohorts
+    # and feature-gate fingerprints reproducible across local and production jobs.
+    url = ("https://github.com/nflverse/nflverse-data/releases/download/"
+           f"stats_player/stats_player_week_{season}.parquet")
     try:
-        return _normalize_weekly_columns(nfl.import_weekly_data(years=[season], downcast=True))
-    except Exception:
-        alt_url = (
-            "https://github.com/nflverse/nflverse-data/releases/download/"
-            f"stats_player/stats_player_week_{season}.parquet"
-        )
-        return _normalize_weekly_columns(pd.read_parquet(alt_url))
+        return _normalize_weekly_columns(pd.read_parquet(url))
+    except Exception as exc:
+        print(f"Current weekly feed unavailable for {season}; trying legacy source: {exc}")
+        nfl = _import_nfl_data_py()
+        return _normalize_weekly_columns(nfl.import_weekly_data(years=[season], downcast=False))
 
 
 def load_weekly_player_stats(seasons: list[int]) -> pd.DataFrame:
@@ -78,22 +91,31 @@ def load_schedules(seasons: list[int]) -> pd.DataFrame:
     return schedules
 
 
-def load_team_epa(seasons: list[int]) -> pd.DataFrame:
-    """Aggregate opponent defensive EPA allowed by season/week/team."""
+def load_play_by_play(seasons: list[int]) -> pd.DataFrame:
+    """One shared PBP import for base and candidate features.
+
+    None of these aggregations needs participation. Requesting it can make a
+    valid current-season PBP feed fail when participation has not been published.
+    """
     nfl = _import_nfl_data_py()
-    pbp = nfl.import_pbp_data(
+    return nfl.import_pbp_data(
         years=seasons,
         columns=[
-            "season",
-            "week",
-            "defteam",
-            "epa",
-            "play_type",
-            "pass",
-            "rush",
+            "season", "week", "posteam", "defteam", "epa", "play_type", "pass", "rush",
+            "pass_attempt", "rush_attempt", "complete_pass", "yards_gained", "air_yards",
+            "touchdown", "yardline_100", "receiver_player_id", "rusher_player_id", "pass_oe",
+            "receiver", "cpoe", "xyac_epa", "pass_touchdown",
         ],
-        downcast=True,
+        include_participation=False,
+        # Aggregate the published precision consistently. GBM casts its final
+        # matrix later; earlier downcasting changes means and source fingerprints.
+        downcast=False,
     )
+
+
+def load_team_epa(seasons: list[int], pbp: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Aggregate realized defensive EPA; versioned model inputs lag it later."""
+    pbp = load_play_by_play(seasons) if pbp is None else pbp
     pbp = pbp[pbp["play_type"].isin(["pass", "run"])].copy()
 
     pass_epa = (
@@ -258,33 +280,46 @@ def build_all_datasets(
     seasons: list[int] | None = None,
     output_dir: Path | None = None,
     enrich_analytics: bool = True,
+    candidate_dir: Path | None = None,
 ) -> dict[str, Path]:
     seasons = seasons or DEFAULT_ETL_SEASONS
     output_dir = output_dir or PROCESSED_DATA_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
+    weekly = load_weekly_player_stats(seasons)
+    schedules = load_schedules(seasons)
+    pbp = load_play_by_play(seasons)
+    team_epa = load_team_epa(seasons, pbp=pbp)
     # Import after module initialization: candidate_etl uses our loaders. An
     # eager import here silently disabled both enrichers on the normal job path.
     if enrich_analytics:
-        from src.analytics.candidate_etl import build_candidate_features, merge_candidate_frame
+        from src.analytics.candidate_etl import _load_snap_counts, build_candidate_features, merge_candidate_frame
         from src.analytics.historical_injury import add_historical_injury_features
         from src.config import CANDIDATE_DATA_DIR
+        candidate_dir = candidate_dir or CANDIDATE_DATA_DIR
+        try:
+            snaps = _load_snap_counts(seasons)
+        except Exception as exc:
+            print(f"Snap source unavailable; retaining missing observations: {exc}")
+            snaps = pd.DataFrame()
         print("Building analytics candidate features...")
         for position in FEATURE_REGISTRY:
-            build_candidate_features(position, seasons)
-
-    weekly = load_weekly_player_stats(seasons)
-    schedules = load_schedules(seasons)
-    team_epa = load_team_epa(seasons)
+            build_candidate_features(position, seasons, output_dir=candidate_dir,
+                                     weekly=weekly, schedules=schedules, pbp=pbp, snap_counts=snaps)
+    target_quality = None
+    if merge_target_quality_into_wr_features is not None:
+        target_quality = build_target_quality(seasons=seasons, pbp=pbp)
+    del pbp
+    release_memory()
 
     paths: dict[str, Path] = {}
     for position in FEATURE_REGISTRY:
         dataset = build_position_dataset(weekly, schedules, team_epa, position)
         if enrich_analytics:
-            candidates = pd.read_parquet(CANDIDATE_DATA_DIR / f"candidate_features_{position}.parquet")
+            candidates = pd.read_parquet(candidate_dir / f"candidate_features_{position}.parquet")
             dataset = merge_candidate_frame(dataset, candidates)
             dataset = add_historical_injury_features(dataset)
         if position == "wr" and merge_target_quality_into_wr_features is not None:
-            dataset = merge_target_quality_into_wr_features(dataset)
+            dataset = merge_target_quality_into_wr_features(dataset, target_quality=target_quality)
         path = output_dir / f"{position}_mlready.parquet"
         temporary = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
         try:
@@ -315,8 +350,9 @@ def main() -> None:
         default=PROCESSED_DATA_DIR,
         help="Output directory for processed datasets",
     )
+    parser.add_argument("--candidate-dir", type=Path, help="Optional isolated enrichment output directory")
     args = parser.parse_args()
-    build_all_datasets(seasons=args.seasons, output_dir=args.output_dir)
+    build_all_datasets(seasons=args.seasons, output_dir=args.output_dir, candidate_dir=args.candidate_dir)
 
 
 if __name__ == "__main__":

@@ -195,6 +195,10 @@ def _run_weekly_refresh(
 
     if retrain:
         _progress("training")
+        # Cached historical consensus must be joined before models are fitted.
+        # Fetching the current week still happens in the inputs stage below.
+        from src.integrations.fantasypros_enrich import enrich_all_mlready
+        enrich_all_mlready(seasons=seasons)
         train_all(train_seasons=DEFAULT_TRAIN_SEASONS)
         save_target_quality_report()
 

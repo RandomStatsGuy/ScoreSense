@@ -128,14 +128,16 @@ def test_normal_etl_import_does_not_silently_disable_enrichment(monkeypatch, tmp
     base = pd.DataFrame({"player_id": ["a"], "season": [2026], "week": [1], "Fpts": [10.]})
     calls = []
     monkeypatch.setattr("src.config.CANDIDATE_DATA_DIR", tmp_path)
-    def build(pos, seasons):
+    def build(pos, seasons, **kwargs):
         calls.append(pos)
         base.assign(routes_avg=24.).to_parquet(tmp_path / f"candidate_features_{pos}.parquet")
     monkeypatch.setattr(candidate_etl, "build_candidate_features", build)
     monkeypatch.setattr(historical_injury, "add_historical_injury_features", lambda d: d.assign(injury_opportunity_boost_hist_avg=.1))
     monkeypatch.setattr(etl, "load_weekly_player_stats", lambda s: base)
     monkeypatch.setattr(etl, "load_schedules", lambda s: pd.DataFrame())
-    monkeypatch.setattr(etl, "load_team_epa", lambda s: pd.DataFrame())
+    monkeypatch.setattr(etl, "load_play_by_play", lambda s: pd.DataFrame())
+    monkeypatch.setattr(etl, "load_team_epa", lambda s, **kw: pd.DataFrame())
+    monkeypatch.setattr(candidate_etl, "_load_snap_counts", lambda s: pd.DataFrame())
     monkeypatch.setattr(etl, "build_position_dataset", lambda *args: base.copy())
     monkeypatch.setattr(etl, "merge_target_quality_into_wr_features", None)
     paths = etl.build_all_datasets([2026], tmp_path / "processed")
@@ -154,7 +156,9 @@ def test_failed_etl_publication_preserves_last_good_processed_file(monkeypatch, 
     original = path.read_bytes()
     monkeypatch.setattr(etl, "load_weekly_player_stats", lambda s: data)
     monkeypatch.setattr(etl, "load_schedules", lambda s: pd.DataFrame())
-    monkeypatch.setattr(etl, "load_team_epa", lambda s: pd.DataFrame())
+    monkeypatch.setattr(etl, "load_play_by_play", lambda s: pd.DataFrame())
+    monkeypatch.setattr(etl, "load_team_epa", lambda s, **kw: pd.DataFrame())
+    monkeypatch.setattr(etl, "merge_target_quality_into_wr_features", None)
     monkeypatch.setattr(etl, "build_position_dataset", lambda *a: data)
     def broken_write(frame, target):
         target.write_bytes(b"incomplete write")

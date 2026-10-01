@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import os
 import time
+from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import pandas as pd
 import requests
@@ -50,7 +52,9 @@ def _fp_headers() -> dict[str, str]:
 def _extract_points_ppr(stats: dict) -> float | None:
     if not isinstance(stats, dict):
         return None
-    for key in ("points_ppr", "points", "points_half"):
+    # Requests explicitly use scoring=PPR. A half-PPR-only field is not a
+    # compatible substitute and must remain missing instead of changing scale.
+    for key in ("points_ppr", "points"):
         val = stats.get(key)
         if val is not None:
             try:
@@ -58,6 +62,50 @@ def _extract_points_ppr(stats: dict) -> float | None:
             except (TypeError, ValueError):
                 continue
     return None
+
+
+def _has_forecast_values(frame: pd.DataFrame, value_col: str | None = None) -> bool:
+    cols = [value_col] if value_col else ["fantasypros_proj", "fp_consensus_ppr", "fp_ecr"]
+    return any(c in frame and pd.to_numeric(frame[c], errors="coerce").replace(
+        [float("inf"), -float("inf")], float("nan")).notna().any() for c in cols)
+
+
+def _read_usable_week_cache(path: Path, value_col: str) -> pd.DataFrame | None:
+    if not path.exists():
+        return None
+    try:
+        cached = pd.read_parquet(path)
+        return cached if _has_forecast_values(cached, value_col) else None
+    except (OSError, ValueError):
+        return None
+
+
+def _write_week_cache(df: pd.DataFrame, path: Path) -> pd.DataFrame:
+    """Atomic observations with capture time; invalidate all consuming artifacts."""
+    col = "fantasypros_proj" if path.name.endswith("_proj.parquet") else "fp_ecr"
+    previous = _read_usable_week_cache(path, col)
+    if not _has_forecast_values(df):
+        if previous is not None:
+            print(f"Empty FP response for {path.name}; retaining the previous same-week observations")
+            return previous
+        # Do not make an empty response a permanent cache hit.
+        return df
+    out = df.assign(fp_fetched_at_utc=datetime.now(timezone.utc).isoformat(), fp_scoring="PPR")
+    keys = ["season", "week", "name_key", "team"]
+    if previous is not None and all(key in out and key in previous for key in keys):
+        # A partial refresh must retain earlier same-week observations with
+        # their original capture time. An explicit zero is a valid new forecast.
+        valid = pd.to_numeric(out[col], errors="coerce").replace(
+            [float("inf"), -float("inf")], float("nan")).notna()
+        out = pd.concat([out[valid], previous], ignore_index=True).drop_duplicates(keys, keep="first")
+    temporary = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+    try:
+        out.to_parquet(temporary, index=False)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    (FP_CACHE_DIR / "revision.txt").write_text(uuid4().hex, encoding="ascii")
+    return out
 
 
 def parse_fp_projections(payload: dict, season: int, week: int) -> pd.DataFrame:
@@ -183,8 +231,10 @@ def fetch_fp_weekly_projections(
 ) -> pd.DataFrame:
     FP_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     cache = FP_CACHE_DIR / f"{season}_week{week:02d}_proj.parquet"
-    if cache.exists() and not force_refresh:
-        return pd.read_parquet(cache)
+    if not force_refresh:
+        cached = _read_usable_week_cache(cache, "fantasypros_proj")
+        if cached is not None:
+            return cached
 
     pos_param = ":".join(positions)
     payload = _fp_get(
@@ -196,7 +246,7 @@ def fetch_fp_weekly_projections(
         },
     )
     df = parse_fp_projections(payload, season, week)
-    df.to_parquet(cache, index=False)
+    df = _write_week_cache(df, cache)
     time.sleep(REQUEST_SLEEP_SEC)
     return df
 
@@ -210,8 +260,10 @@ def fetch_fp_weekly_rankings(
     FP_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     pos_key = position.upper()
     cache = FP_CACHE_DIR / f"{season}_week{week:02d}_ecr_{pos_key}.parquet"
-    if cache.exists() and not force_refresh:
-        return pd.read_parquet(cache)
+    if not force_refresh:
+        cached = _read_usable_week_cache(cache, "fp_ecr")
+        if cached is not None:
+            return cached
 
     payload = _fp_get(
         f"{season}/consensus-rankings",
@@ -223,7 +275,7 @@ def fetch_fp_weekly_rankings(
         },
     )
     df = parse_fp_rankings(payload, season, week)
-    df.to_parquet(cache, index=False)
+    df = _write_week_cache(df, cache)
     time.sleep(REQUEST_SLEEP_SEC)
     return df
 
@@ -364,10 +416,10 @@ def attach_fantasypros_projections(
     return out
 
 
-def build_fp_enrichment_frame(season: int, position: str, cache_only: bool = True) -> pd.DataFrame:
+def build_fp_enrichment_frame(season: int, position: str, cache_only: bool = True, weeks: range | None = None) -> pd.DataFrame:
     """Combined FP projection + ECR frame for mlready enrichment."""
-    proj = load_fp_season_projections(season, cache_only=cache_only)
-    ecr = load_fp_season_rankings(season, cache_only=cache_only)
+    proj = load_fp_season_projections(season, weeks=weeks, cache_only=cache_only)
+    ecr = load_fp_season_rankings(season, weeks=weeks, cache_only=cache_only)
     if proj.empty and ecr.empty:
         return pd.DataFrame()
 
@@ -385,7 +437,7 @@ def build_fp_enrichment_frame(season: int, position: str, cache_only: bool = Tru
         base = proj.merge(
             ecr[["season", "week", "name_key", "team", "fp_ecr"]],
             on=["season", "week", "name_key", "team"],
-            how="left",
+            how="outer",
         )
         base["fp_consensus_ppr"] = base["fantasypros_proj"]
 
@@ -414,7 +466,7 @@ def prefetch_missing_fp_weeks(
     stats = {"season": season, "projections_fetched": 0, "rankings_fetched": 0, "errors": 0}
     for week in weeks:
         proj_cache = FP_CACHE_DIR / f"{season}_week{week:02d}_proj.parquet"
-        if not proj_cache.exists():
+        if _read_usable_week_cache(proj_cache, "fantasypros_proj") is None:
             try:
                 frame = fetch_fp_weekly_projections(season, week, force_refresh=True)
                 if not frame.empty:
@@ -425,7 +477,7 @@ def prefetch_missing_fp_weeks(
             time.sleep(REQUEST_SLEEP_SEC)
         if include_rankings:
             rank_cache = FP_CACHE_DIR / f"{season}_week{week:02d}_ecr_ALL.parquet"
-            if not rank_cache.exists():
+            if _read_usable_week_cache(rank_cache, "fp_ecr") is None:
                 try:
                     frame = fetch_fp_weekly_rankings(season, week, position="ALL", force_refresh=True)
                     if not frame.empty:
@@ -471,8 +523,8 @@ def prefetch_draft_season_ecr(draft_season: int, force_refresh: bool = False) ->
         return {"status": "skipped", "reason": "FANTASYPROS_API_KEY not set"}
 
     cache = FP_CACHE_DIR / f"{draft_season}_week01_ecr_ALL.parquet"
-    if cache.exists() and not force_refresh:
-        cached = pd.read_parquet(cache)
+    cached = _read_usable_week_cache(cache, "fp_ecr") if not force_refresh else None
+    if cached is not None:
         return {
             "status": "cached",
             "season": draft_season,
