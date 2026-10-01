@@ -74,7 +74,7 @@ async function navigate(route) {
 }
 async function measure(route, width, theme, mode) {
   const results = await page.evaluate(measureScript(), { minTarget: width === 390 ? 44 : 32, numericRe: NUMERIC_RE.source, barControlSelector: BAR_CONTROL_SELECTOR, tableDeadZonePx: TABLE_DEAD_ZONE_PX, columnPackRatio: COLUMN_PACK_RATIO, gutterSelectors: GUTTER_EDGE_SELECTORS });
-  const failures = results.filter((result) => !result.ok && ["type", "selects", "collisions", "grids", "atmosphere-ground", "companion-controls"].includes(result.rule));
+  const failures = results.filter((result) => !result.ok && ["type", "selects", "collisions", "grids", "atmosphere-ground", "companion-controls", "companion-bounds"].includes(result.rule));
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
   report.push({ route, actualPath: new URL(page.url()).pathname, width, theme, mode, ok: failures.length === 0 && !overflow, failures, overflow });
   assert.equal(overflow, false, `${route} ${width} ${theme} horizontal overflow`);
@@ -132,6 +132,17 @@ async function dragCorner(scene, toy, x, y) {
   }
   const area = await scene.locator('.companion-drag-area').boundingBox();
   assert.ok(Math.abs(area.width - area.height) < 1, 'movement area is a square');
+  const guidePaint = await scene.locator('.companion-drag-area').evaluate((area) => {
+    const style = getComputedStyle(area);
+    return {
+      borders: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+      background: style.backgroundColor,
+      image: style.backgroundImage,
+      shadow: style.boxShadow,
+      outline: style.outlineStyle,
+    };
+  });
+  assert.deepEqual(guidePaint, { borders: ['0px', '0px', '0px', '0px'], background: 'rgba(0, 0, 0, 0)', image: 'none', shadow: 'none', outline: 'none' }, 'movement limits stay invisible during dragging');
   await page.mouse.up();
 }
 

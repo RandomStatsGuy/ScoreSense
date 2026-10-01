@@ -242,6 +242,13 @@ export function measureScript() {
       return "";
     };
     const results = [];
+    document.querySelectorAll(".companion-drag-area").forEach((area) => {
+      const style = getComputedStyle(area);
+      const hiddenGuide = [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth].every((width) => parseFloat(width) === 0)
+        && ["transparent", "rgba(0, 0, 0, 0)"].includes(style.backgroundColor)
+        && style.backgroundImage === "none" && style.boxShadow === "none" && style.outlineStyle === "none";
+      results.push({ rule: "companion-bounds", ok: hiddenGuide, selector: ".companion-drag-area", detail: hiddenGuide ? "movement bounds remain invisible" : "movement bounds draw a visible guide" });
+    });
     // Wide screens exposed the old disconnected pile tiles. The shared scene
     // must have one continuous base, seated on its layout's bottom edge.
     document.querySelectorAll(".app-atmosphere-floor .companion-ground").forEach((ground) => {

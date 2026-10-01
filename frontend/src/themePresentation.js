@@ -33,7 +33,7 @@ export const APPEARANCE_COPY = Object.freeze({
   reactions: "Playful reactions",
   reactionsSupport: "Only when you move their toy.",
   preview: "Appearance preview",
-  toyHelp: "Drag inside the square, or use arrow keys, Enter, or Space. Let go to watch the toy settle.",
+  toyHelp: "Drag the toy, or use arrow keys, Enter, or Space. Let go to watch the toy settle.",
   toys: { yarn: "Left cat’s hanging yarn", mouse: "Right cat’s hanging mouse toy", snowball: "Snowman’s snowball", acorn: "Squirrel’s acorn", skittles: "Marshawn’s Skittles" },
   scenes: {
     cozy: { title: "Cat-tree corners", hint: "Move a hanging toy to wake its cat." },
