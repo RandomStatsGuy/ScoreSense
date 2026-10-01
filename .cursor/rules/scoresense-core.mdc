@@ -52,6 +52,7 @@ Priority: fun → easy → clear → selective → respectful. Fun is consequenc
 - Editorial pages use one hero stack: `HubExperienceHero` + `HubExperienceLayout` + `HubExperienceSummary` from `HubUILayout.jsx`. Strategy, Rosters, Trades and Cap are approved board-first exceptions — no hero band. Strategy is the board-first exception; do not add `HubExperienceHero` to Strategy to match other Fantasy destinations.
 - Mobile design/mocks: read `.cursor/rules/fantasy-mobile.mdc`; start from `docs/mockups/_mobile-starter.html` and shared `mobile-foundation.css`.
 - **Fix the primitive, not the page.** Shared CSS/components first. Measurable layout rules: `.cursor/rules/frontend-craft.mdc`.
+- Standalone forms center a bounded `StandaloneFormContent` column; headings, labels and fields stay left-aligned. Footer navigation centers; consent checkboxes sit beside their copy. Legal prose retains its reading width.
 - League-strip option menus paint above the Fantasy page below the strip. Raise `.hub-league-context-bar` (or portal the menu) — a later `.hub-page` at the same z-index covers overflowing menus.
 - Copy lives in `*Presentation.js`. Explain the action and its actual effect in plain language; the cost of getting it wrong is confusion, not drama; do not invent consequences or scold the user. No slogan that could sit on another app. No “Submit”, no “You do not have permission” (use “Commissioner managed”).
 

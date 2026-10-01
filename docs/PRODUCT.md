@@ -182,7 +182,7 @@ Rules:
 
 ## Page chrome
 
-Account settings, Terms, and Privacy use the shared standalone content layout: left-aligned reading widths and responsive insets, separate from the narrow sign-in card. Team appearance keeps its header, tabs, and Save visible while the editor body scrolls. Preset selection replaces an uploaded image in the unsaved preview. Appearance and confirmation dialogs trap keyboard focus, make the background inert, and restore focus on dismissal; a nested discard confirmation owns Escape until dismissed.
+Account settings, Report a bug, and Draft alert texts use a centered `StandaloneFormContent` column capped at `--form-content-max` (35rem), with left-aligned titles, headings, labels, field text, help, and actions. Field pairs use `StandaloneFormRow` and `--form-field-min` (14rem) for equal widths and control heights, stacking on phone. Session forms keep their existing narrower column. Terms and Privacy keep their reading width and left-aligned prose. Account legal links and standalone return navigation share a centered footer. Consent checkboxes sit beside the first line of their copy; SMS disclosures stay in one compact group. Team appearance keeps its header, tabs, and Save visible while the editor body scrolls. Preset selection replaces an uploaded image in the unsaved preview. Appearance and confirmation dialogs trap keyboard focus, make the background inert, and restore focus on dismissal; a nested discard confirmation owns Escape until dismissed.
 
 Editorial Fantasy and Tools pages use the shared experience stack:
 

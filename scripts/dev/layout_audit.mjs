@@ -265,6 +265,67 @@ export function measureScript() {
     const px = (n) => Math.round(n);
     const numericPat = new RegExp(numericRe, "i");
 
+    // Center standalone form columns, keep editable text aligned, and keep
+    // consent controls beside the first line of their wrapping copy.
+    const formVisible = (el) => {
+      const box = el?.getBoundingClientRect();
+      return box?.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden";
+    };
+    document.querySelectorAll(".standalone-content").forEach((panel) => {
+      if (!panel.querySelector(".account-auth-form") || !formVisible(panel)) return;
+      const column = panel.querySelector(".standalone-form-content");
+      const bounds = panel.getBoundingClientRect(), box = column?.getBoundingClientRect();
+      const probe = document.createElement("div");
+      probe.style.width = "var(--form-content-max)";
+      panel.appendChild(probe);
+      const limit = probe.getBoundingClientRect().width;
+      probe.remove();
+      const ok = Boolean(box) && box.width <= limit + 1 && Math.abs(box.left + box.width / 2 - (bounds.left + bounds.width / 2)) <= 1;
+      results.push({ rule: "form-columns", ok, selector: ".standalone-form-content", detail: ok ? "bounded column centered inside its card" : "form column is missing, too wide, or off center" });
+    });
+    document.querySelectorAll(".account-auth-form label:not(.legal-terms-checkbox)").forEach((label) => {
+      const control = label.querySelector('input:not([type="checkbox"]):not([type="radio"]), textarea');
+      if (!formVisible(control)) return;
+      const box = label.getBoundingClientRect(), field = control.getBoundingClientRect();
+      const ok = Math.abs(box.left - field.left) <= 1 && [label, control].every((el) => ["left", "start"].includes(getComputedStyle(el).textAlign));
+      results.push({ rule: "form-labels", ok, selector: ".account-auth-form label", detail: ok ? "label and field share a left edge" : "label or field text is centered or misaligned" });
+    });
+    document.querySelectorAll('.account-auth-form input:not([type="checkbox"]):not([type="radio"]), .account-auth-form textarea, .hub-filter-menu--field .hub-filter-menu-trigger').forEach((control) => {
+      if (!formVisible(control)) return;
+      const ok = control.getBoundingClientRect().height >= minTarget;
+      results.push({ rule: "form-controls", ok, selector: control.className || control.tagName, detail: ok ? "field uses the form control height" : "field is undersized or missing shared styling" });
+    });
+    document.querySelectorAll(".standalone-form-row").forEach((row) => {
+      const controls = [...row.querySelectorAll("input, .hub-filter-menu-trigger")].filter(formVisible);
+      const heights = controls.map(control => control.getBoundingClientRect().height);
+      const ok = heights.every(height => Math.abs(height - heights[0]) <= 1);
+      results.push({ rule: "form-controls", ok, selector: ".standalone-form-row", detail: ok ? "paired controls share one height" : `paired control heights: ${heights.map(height => height.toFixed(1)).join(", ")}` });
+    });
+    document.querySelectorAll(".account-auth-form .legal-terms-checkbox").forEach((label) => {
+      const checkbox = label.querySelector('input[type="checkbox"]'), copy = label.querySelector("span");
+      if (!formVisible(checkbox) || !formVisible(copy)) return;
+      const check = checkbox.getBoundingClientRect(), text = copy.getBoundingClientRect();
+      const ok = text.left > check.right && Math.abs(text.top - check.top) <= 4;
+      results.push({ rule: "consent-rows", ok, selector: ".legal-terms-checkbox", detail: ok ? "checkbox beside the first line of consent" : "checkbox is stacked above, overlaps, or drifts below its consent" });
+    });
+    document.querySelectorAll(".standalone-page-footer, .standalone-content .auth-panel-back-desktop").forEach((footer) => {
+      if (!formVisible(footer)) return;
+      const bounds = footer.getBoundingClientRect();
+      const ok = [...footer.children].filter(formVisible).every((el) => {
+        const box = el.getBoundingClientRect();
+        return Math.abs(box.left + box.width / 2 - (bounds.left + bounds.width / 2)) <= 1;
+      });
+      results.push({ rule: "form-footers", ok, selector: footer.className, detail: ok ? "footer navigation is centered" : "footer navigation is off center" });
+    });
+    document.querySelectorAll(".sms-opt-in-card").forEach((form) => {
+      const group = form.querySelector(".sms-opt-in-disclosures");
+      const ok = Boolean(group) && parseFloat(getComputedStyle(group).rowGap) <= 12 && [...group.children].every((el) => {
+        const style = getComputedStyle(el);
+        return parseFloat(style.marginTop) === 0 && parseFloat(style.marginBottom) === 0;
+      });
+      results.push({ rule: "form-disclosures", ok, selector: ".sms-opt-in-disclosures", detail: ok ? "SMS disclosures form one compact group" : "SMS disclosures are missing their compact group or have paragraph margins" });
+    });
+
     const bars = document.querySelectorAll(".hub-page-sticky, .hub-toolbar, thead");
     bars.forEach((el, i) => {
       const cs = getComputedStyle(el);

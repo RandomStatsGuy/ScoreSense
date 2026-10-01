@@ -8,7 +8,7 @@ function hasMobileNumber(value) {
   return String(value || "").replace(/\D/g, "").length >= 10;
 }
 
-export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/privacy" }) {
+export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/privacy", embedded = false, showIntro = true }) {
   const { user, refreshAuth } = useAuth();
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
@@ -54,8 +54,10 @@ export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/priva
 
   return (
     <form className="account-auth-form sms-opt-in-card" onSubmit={onSubmit}>
-      <h2 className="hub-panel-subtitle">{SMS_OPT_IN.title}</h2>
-      <p className="chart-note">{SMS_OPT_IN.support}</p>
+      {showIntro && <>
+        <h2 className="hub-panel-subtitle">{SMS_OPT_IN.title}</h2>
+        <p className="chart-note">{SMS_OPT_IN.support}</p>
+      </>}
       <label>
         <span className="hub-field-label">{SMS_OPT_IN.phoneLabel}</span>
         <input
@@ -76,15 +78,17 @@ export default function SmsOptInCard({ termsUrl = "/terms", privacyUrl = "/priva
         />
         <span>{SMS_OPT_IN.consent}</span>
       </label>
-      <p className="chart-note">{SMS_OPT_IN.frequency}</p>
-      <p className="chart-note">{SMS_OPT_IN.rates}</p>
-      <p className="chart-note">{SMS_OPT_IN.helpStop}</p>
-      <p className="chart-note">
-        <LegalAnchor href={terms}>{SMS_OPT_IN.termsLabel}</LegalAnchor>
-        {" · "}
-        <LegalAnchor href={privacy}>{SMS_OPT_IN.privacyLabel}</LegalAnchor>
-      </p>
-      <button type="submit" className="btn-primary btn-sm" disabled={busy}>
+      <div className="sms-opt-in-disclosures">
+        <p className="chart-note">{SMS_OPT_IN.frequency}</p>
+        <p className="chart-note">{SMS_OPT_IN.rates}</p>
+        <p className="chart-note">{SMS_OPT_IN.helpStop}</p>
+        <p className="chart-note">
+          <LegalAnchor href={terms}>{SMS_OPT_IN.termsLabel}</LegalAnchor>
+          {" · "}
+          <LegalAnchor href={privacy}>{SMS_OPT_IN.privacyLabel}</LegalAnchor>
+        </p>
+      </div>
+      <button type="submit" className={`${embedded ? "btn-ghost" : "btn-primary"} btn-sm`} disabled={busy}>
         {SMS_OPT_IN.submit}
       </button>
       {error && <div className="error">{error}</div>}

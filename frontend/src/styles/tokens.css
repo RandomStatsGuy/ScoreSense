@@ -7,6 +7,8 @@
   /* Layout breakpoints */
   --bp-mobile-shell: 768px;
   --bp-mobile-dense: 768px;
+  --form-content-max: 35rem;
+  --form-field-min: 14rem;
 
   /* Shared material palette for approved team and matchup rooms. */
   --team-room-light: #d7b47c;
