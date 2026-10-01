@@ -47,3 +47,27 @@ test("no-money leagues hide Cap and drop financial hints", () => {
   assert.equal(views.find((item) => item.id === "trades")?.hint, "Roster-checked deals");
   assert.equal(views.find((item) => item.id === "office")?.hint, "Members and access");
 });
+
+
+test("draft-only destinations follow the selected league phase and Home leads League", () => {
+  for (const uses_salaries of [true, false]) {
+    for (const draft_completed of [false, true, false]) {
+      const context = { mode: "league", league_id: "L", draft_completed, is_commissioner: true,
+        capabilities: { uses_salaries, uses_contracts: uses_salaries } };
+      const visible = filterHubSubviews(context).map(item => item.id);
+      assert.equal(visible.includes("value"), !draft_completed);
+      assert.equal(visible.includes("room"), !draft_completed);
+      assert.equal(secondaryHubSubviews(context)[0].id, "home");
+      for (const id of ["home", "vibes", "rosters", "trades", "rules", "office", "insights"]) {
+        assert.ok(visible.includes(id), `${id} remains useful after drafting`);
+      }
+    }
+  }
+});
+
+test("solo practice retains draft tools without exposing league-only destinations", () => {
+  const ids = filterHubSubviews({ mode: "solo", draft_completed: true }).map(item => item.id);
+  assert.ok(ids.includes("value") && ids.includes("room"));
+  assert.equal(ids.includes("office"), false);
+  assert.equal(ids.includes("rosters"), false);
+});

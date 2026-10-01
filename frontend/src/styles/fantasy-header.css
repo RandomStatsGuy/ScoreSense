@@ -58,6 +58,12 @@
  .hub-league-context-bar .hub-league-context-identity { flex: 1 1 auto; }
 }
 @media (max-width: 768px) {
+ /* One phone header treatment across Projections, Fantasy, and Tools. */
+ .app-header .app-header-shell { padding: var(--space-2) var(--space-3); gap: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-elevated); box-shadow: none; }
+ .app-header .app-header-mobile-top { gap: var(--space-3); min-height: var(--control-h-lg); padding: 0; border: 0; }
+ .app-header .app-header-mobile-title-btn { flex: 0 1 auto; gap: var(--space-2); min-height: var(--control-h-lg); padding: 0; }
+ .app-header-mobile-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); line-height: var(--line-tight); }
+ .app-header .app-header-mobile-title-caret { color: var(--text-secondary); flex: none; }
  .fantasy-header-menu-trigger { font-size: var(--rosters-meta,.875rem); }
  .fantasy-league-picker .fantasy-header-menu-panel { max-width: calc(100vw - var(--space-7)); }
 }

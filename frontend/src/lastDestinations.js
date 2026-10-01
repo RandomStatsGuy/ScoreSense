@@ -1,4 +1,4 @@
-/** Remember the last Projections / Fantasy / Tools destination across area switches. */
+/** Enter Fantasy on Home; remember Projections and Tools across area switches. */
 
 export const LAST_DESTINATIONS_KEY = "scoresense.lastDestinations";
 
@@ -76,6 +76,7 @@ export function destinationForSection(section, { current, storage } = {}) {
   if (current?.view === section) {
     return snapshotDestination(current) || DEFAULT_DESTINATIONS[section];
   }
+  if (section === "hub") return { ...DEFAULT_DESTINATIONS.hub };
   return readLastDestinations(storage)[section] || DEFAULT_DESTINATIONS[section];
 }
 

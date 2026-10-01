@@ -1,0 +1,2034 @@
+{
+  "ok": true,
+  "rows": [
+    {
+      "name": "projections.weekly.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.season.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.dfs.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.mock-draft.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.best-ball.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.home.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.value.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.room.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.week.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.vibes.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.game.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.roster.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.available.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rosters.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.planner.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.trades.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rules.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.office.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.insights.dark",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.weekly.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.season.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.dfs.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.mock-draft.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.best-ball.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.home.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.value.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.room.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.week.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.vibes.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.game.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.roster.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.available.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rosters.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.planner.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.trades.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rules.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.office.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.insights.dark",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.weekly.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.season.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.dfs.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.mock-draft.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.best-ball.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.home.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.value.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.room.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.week.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.vibes.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.game.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.roster.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.available.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rosters.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.planner.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.trades.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rules.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.office.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.insights.dark",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.weekly.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.season.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.dfs.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.mock-draft.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.best-ball.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.home.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.value.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.room.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.week.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.vibes.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.game.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.roster.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.available.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rosters.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.planner.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.trades.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rules.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.office.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.insights.light",
+      "width": 320,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.weekly.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.season.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.dfs.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.mock-draft.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.best-ball.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.home.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.value.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.room.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.week.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.vibes.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.game.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.roster.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.available.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rosters.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.planner.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.trades.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rules.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.office.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.insights.light",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.weekly.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "projections.season.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.dfs.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.mock-draft.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "tools.best-ball.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.home.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.value.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.room.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.week.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.vibes.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.game.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.roster.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.available.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rosters.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.planner.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.trades.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.rules.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.office.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "hub.insights.light",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "current-home",
+      "width": 390,
+      "checks": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "name": "current-home",
+      "width": 1280,
+      "checks": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

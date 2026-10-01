@@ -43,3 +43,6 @@ function Preview() {
   </div>;
 }
 createRoot(document.getElementById("root")).render(<Preview />);
+
+import "../src/styles/color-theme.css";
+import "../src/styles/appearance.css";

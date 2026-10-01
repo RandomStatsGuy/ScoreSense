@@ -1,0 +1,1025 @@
+{
+  "ok": true,
+  "report": [
+    {
+      "route": "/hub/home",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/strategy",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/free-agents",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/draft",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/week",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/vibes",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/game",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/rosters",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/cap",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/trades",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-mobile-top",
+          "detail": "44px; single header"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/rules",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/contracts",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/rosters",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/sheets",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/corrections",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/members",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/access",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/insights/overview",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/setup",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/tools/dfs",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/tools/mock-draft",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/tools/best-ball",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/projections/weekly",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/projections/season",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/model",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/admin",
+      "width": 390,
+      "results": [
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".app-header-shell",
+          "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/account",
+      "width": 390,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/report",
+      "width": 390,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/login",
+      "width": 390,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/register",
+      "width": 390,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/privacy",
+      "width": 390,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/terms",
+      "width": 390,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/sms-alerts",
+      "width": 390,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/home",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/strategy",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/free-agents",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/draft",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/week",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/vibes",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/game",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/rosters",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/cap",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/trades",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/rules",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/contracts",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/rosters",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/sheets",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/corrections",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/members",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/roster-management/access",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/insights/overview",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/hub/setup",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/tools/dfs",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/tools/mock-draft",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/tools/best-ball",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/projections/weekly",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/projections/season",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/model",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/admin",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/account",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/report",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/login",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/register",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/privacy",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/terms",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    },
+    {
+      "route": "/sms-alerts",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        }
+      ]
+    }
+  ]
+}
