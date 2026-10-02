@@ -205,6 +205,21 @@ def test_warmup_prepares_manager_ranges_with_league_rules(hub_db, pool, monkeypa
     assert storage.list_roster(ws["id"]) == []
 
 
+def test_explicit_warmup_prepares_each_configured_season_once(hub_db, pool, monkeypatch):
+    from src.draft_hub import storage, draft_pool_cache
+    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+    storage.get_or_create_workspace("older", season=2025)
+    storage.get_or_create_workspace("current", season=2026)
+    storage.create_league("current", name="Current league", season=2026, rules=LeagueRules(), team_count=10)
+    prepared = []
+    monkeypatch.setattr(draft_pool_cache, "load_draft_pool",
+                        lambda season, **kwargs: prepared.append(season) or pool.copy())
+    assert warm_fantasy_value_snapshots()["unavailable"] == 0
+    assert prepared == []  # startup never runs projection inference
+    assert warm_fantasy_value_snapshots(prepare_pools=True)["unavailable"] == 0
+    assert sorted(prepared) == [2025, 2026]
+
+
 def test_eight_concurrent_misses_share_one_preparation_and_isolate_responses(pool, monkeypatch):
     started, release = Event(), Event()
     joined = observe_waiters(monkeypatch, 7)

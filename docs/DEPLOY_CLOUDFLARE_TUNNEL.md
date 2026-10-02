@@ -267,6 +267,22 @@ publishing an unqualified baseline. Re-run qualification against the changed
 inputs to resolve that error. Do not treat a successful image build, health
 check, or an old model's validation MAE as evidence of model activation.
 
+When the fitted bundles are already current and only artifact/notes preparation
+failed, rebuild the caches without repeating training or transcript ingestion:
+
+```bash
+docker compose -f deploy/docker-compose.prod.yml run --rm --build refresh \
+  python -m src.jobs.weekly_refresh --no-retrain
+```
+
+The finalizing stage verifies all six weekly and ROS variants and the Fantasy
+pool against current inputs. Configured older league seasons get their own
+updated pool and valuation snapshots. It retries preparation when a source
+changes mid-run and fails instead of reporting completion with unreadable
+projection caches. Inspect warnings for optional note/overlay failures.
+Weekly's notes Refresh runs on the shared background worker, repairs stale or
+missing weekly variants with existing models, and polls its own job status.
+
 ## Retained frontend assets
 
 Use `deploy.ps1` / `deploy/server/deploy-on-server.sh` for releases. Before replacing the previous API container, the script archives its exact built assets in the persistent `artifacts/frontend_assets/` directory. Container discovery includes stopped containers: GitHub deployment stops the API for its SQLite backup before invoking this script. The new API serves a missing hashed asset from this archive, preserving open clients across a release. Archived assets are retained for seven days after retirement; expired files are pruned on the next deployment. The shell and service worker continue to revalidate.

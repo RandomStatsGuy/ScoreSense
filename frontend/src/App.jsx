@@ -102,7 +102,7 @@ import {
   rosPPG,
   rosSeasonP50,
 } from "./format";
-import { successfulRefreshRevision } from "./refreshStatus";
+import { successfulRefreshRevision, waitForContextRefresh } from "./refreshStatus";
 import useDataRevision, { publishDataRevision } from "./useDataRevision";
 import { REFRESH_COPY, refreshProgressLabel } from "./projectionsPresentation";
 import { leftSlateRowsFromChanges } from "./projectionMovement";
@@ -1251,12 +1251,20 @@ export default function App() {
   };
 
   const triggerWeeklyContextRefresh = async () => {
+    if (contextRefreshing) return;
     setContextRefreshing(true);
     setError("");
     try {
       const res = await apiFetch(weeklyContextRefreshPath({ season, week }), { method: "POST", signal: AbortSignal.timeout(30_000) });
       if (!res.ok) throw new Error(await parseApiError(res, BOARD_COPY.contextRefreshFailed));
+      const job = await res.json();
+      await waitForContextRefresh(job, async (statusUrl) => {
+        const statusRes = await apiFetch(statusUrl, { signal: AbortSignal.timeout(15_000) });
+        if (!statusRes.ok) throw new Error(await parseApiError(statusRes, BOARD_COPY.contextRefreshFailed));
+        return statusRes.json();
+      });
       setContextReloadToken((n) => n + 1);
+      publishDataRevision();
     } catch (err) {
       setError(err.name === "TimeoutError" ? REFRESH_COPY.notesTimeout : err.message || BOARD_COPY.contextRefreshFailed);
     } finally {

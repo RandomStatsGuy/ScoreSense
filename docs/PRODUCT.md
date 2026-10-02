@@ -426,7 +426,7 @@ Online document navigation fetches the current app shell; the saved shell is an 
 
 An interrupted projection refresh is a persisted failure, not a permanent running marker. Admins can Retry refresh directly from the shared status banner in any product area. Retry uses the existing no-retrain pipeline and preserves the last successful data timestamp until completion; it does not deploy or change league state.
 
-Weekly's notes chip rebuilds notes from existing weekly artifacts and reports missing projections promptly. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.
+Weekly's notes chip starts a background notes refresh. If its weekly artifacts are missing or stale, the worker repairs them with the existing models before rebuilding notes; it does not run ETL, retrain models, or backfill transcripts. The chip stays refreshing until that job finishes, then reloads the board and notes. Season's Refresh starts a background rebuild without retraining models or backfilling transcripts. Show the current step and keep browsing available. A failed attempt retains the last successful data timestamp.
 
 Open pages check refresh status periodically and on returning to the app. Completed rebuilds update projection boards and Best ball, and invalidate Fantasy projection caches without remounting its workspace. DFS offers Update player pool explicitly: it clears the current unsaved build, preserves user settings/imported estimates, and leaves saved build snapshots unchanged. Do not silently replace an active DFS build after a background refresh.
 
