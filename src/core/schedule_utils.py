@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from uuid import uuid4
 
 import pandas as pd
 
@@ -20,29 +21,71 @@ def _schedule_snapshot(path: str, mtime_ns: int, size: int) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
-def _load_schedules(seasons: list[int] | None = None, *, allow_fetch: bool = True) -> pd.DataFrame:
+def save_schedule_snapshot(schedules: pd.DataFrame, cache_path: Path = SCHEDULE_CACHE) -> bool:
+    """Atomically update supplied seasons, preserving every other cached season.
+
+    All schedule writers share the short OS-owned merge lock. A line refresh
+    in the API and a missing-season fetch in a worker must not lose each
+    other's seasons between reading and replacing the shared snapshot.
+    """
+    if schedules is None or schedules.empty or "season" not in schedules:
+        return False
+    from src.jobs.refresh_lock import refresh_lock
+
+    with refresh_lock(cache_path.with_suffix(".lock"), timeout=30):
+        merged = schedules
+        if cache_path.exists():
+            try:
+                cached = pd.read_parquet(cache_path)
+                kept = cached[~cached["season"].isin(schedules["season"].unique())]
+                if not kept.empty:
+                    merged = pd.concat([kept, schedules], ignore_index=True)
+            except (OSError, ValueError, KeyError):
+                pass  # An unreadable snapshot can be replaced with fresh rows.
+        temporary = cache_path.with_name(f"{cache_path.name}.{uuid4().hex}.tmp")
+        try:
+            merged.to_parquet(temporary, index=False)
+            temporary.replace(cache_path)
+        finally:
+            temporary.unlink(missing_ok=True)
+    return True
+
+
+def _read_schedule_snapshot() -> pd.DataFrame:
     if SCHEDULE_CACHE.exists():
         try:
             stat = SCHEDULE_CACHE.stat()
-            cached = _schedule_snapshot(str(SCHEDULE_CACHE), stat.st_mtime_ns, stat.st_size)
-            if seasons:
-                cached = cached[cached["season"].isin(seasons)]
-            if not cached.empty:
-                return cached.copy()
-        except Exception:
+            return _schedule_snapshot(str(SCHEDULE_CACHE), stat.st_mtime_ns, stat.st_size).copy()
+        except (OSError, ValueError):
             pass
+    return pd.DataFrame()
+
+
+def _load_schedules(seasons: list[int] | None = None, *, allow_fetch: bool = True) -> pd.DataFrame:
+    cached = _read_schedule_snapshot()
+    requested = list(dict.fromkeys(int(s) for s in seasons)) if seasons else None
+    if not cached.empty and "season" in cached:
+        available = cached if requested is None else cached[cached["season"].isin(requested)]
+        missing = [] if requested is None else sorted(set(requested) - set(available["season"]))
+        if not missing or not allow_fetch:
+            return available.copy()
+    else:
+        available = pd.DataFrame()
+        missing = requested or list(range(2018, 2027))
 
     if not allow_fetch:
-        return pd.DataFrame()
+        return available.copy()
 
     from src.etl.nflverse_etl import load_schedules
 
-    if seasons is None:
-        seasons = list(range(2018, 2027))
-    schedules = load_schedules(seasons)
-    SCHEDULE_CACHE.parent.mkdir(parents=True, exist_ok=True)
-    schedules.to_parquet(SCHEDULE_CACHE, index=False)
-    return schedules
+    schedules = load_schedules(missing)
+    if schedules is None or schedules.empty or "season" not in schedules:
+        return available.copy()
+    schedules = schedules[schedules["season"].isin(missing)]
+    if not save_schedule_snapshot(schedules, SCHEDULE_CACHE):
+        return available.copy()
+    merged = _read_schedule_snapshot()
+    return merged if requested is None else merged[merged["season"].isin(requested)].copy()
 
 
 def regular_season_weeks(season: int) -> list[int]:
