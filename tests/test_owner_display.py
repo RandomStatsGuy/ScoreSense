@@ -144,3 +144,28 @@ def test_attach_owner_names_falls_back_to_hub_name(monkeypatch):
     ]
     attach_owner_names_to_teams("lg-1", teams)
     assert teams[0]["owner_name"] == "Caleb K"
+
+
+def test_current_team_labels_do_not_reuse_swapped_historical_nicknames(monkeypatch):
+    from src.draft_hub import owner_display, storage, historic_insights
+
+    monkeypatch.setattr(storage, "get_league", lambda _: {"season": 2026})
+    monkeypatch.setattr(historic_insights, "list_history_seasons", lambda _: [2025])
+    monkeypatch.setattr(storage, "ensure_owner_season_map_seeded", lambda _: None)
+    historical = [
+        {"owner_label": "Josh C", "hub_team_name": "Disappointment", "source_kind": "contract_seed"},
+        {"owner_label": "Aaron D", "hub_team_name": "Thanks noob noob", "source_kind": "contract_seed"},
+    ]
+    monkeypatch.setattr(storage, "list_owner_season_map", lambda _, season_year: historical if season_year == 2025 else [])
+    monkeypatch.setattr(storage, "list_league_contract_rows", lambda _, season_year: [])
+    teams = [{"name": "Disappointment"}, {"name": "Thanks noob noob"}]
+    owner_display.attach_owner_names_to_teams("panda", teams)
+    assert [t["owner_name"] for t in teams] == ["Aaron D", "Josh C"]
+    past = owner_display.team_owner_map_for_league("panda", season_year=2025)
+    assert past["Disappointment"] == "Josh C"
+    assert past["Thanks noob noob"] == "Aaron D"
+    # A deliberate mapping for this season still overrides the YAML fallback.
+    monkeypatch.setattr(storage, "list_owner_season_map", lambda _, season_year: [
+        {"owner_label": "New owner", "hub_team_name": "Disappointment", "source_kind": "manual"},
+    ])
+    assert owner_display.team_owner_map_for_league("panda")["Disappointment"] == "New owner"

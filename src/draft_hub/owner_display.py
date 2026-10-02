@@ -139,7 +139,13 @@ def team_owner_map_for_league(
     league_id: str,
     season_year: int | str | None = None,
 ) -> dict[str, str]:
-    """Hub / Sleeper team name -> manager label for one season (default: latest)."""
+    """Hub / Sleeper team name -> manager label (default: current league season)."""
+    if season_year is None:
+        from src.draft_hub import storage
+
+        league = storage.get_league(league_id)
+        if league:
+            season_year = league.get("season")
     team_map, _ = scoring_owner_maps_for_league(league_id, season_year=season_year)
     return team_map
 
@@ -169,17 +175,10 @@ def scoring_owner_maps_for_league(
 
     if yr is not None:
         storage.ensure_owner_season_map_seeded(league_id)
-        apply_yr = yr
         map_rows = storage.list_owner_season_map(league_id, season_year=yr)
         contract_rows = storage.list_league_contract_rows(league_id, season_year=yr)
-        if not map_rows and not contract_rows and seasons:
-            prior = [int(s) for s in seasons if int(s) != yr]
-            if prior:
-                apply_yr = max(prior)
-                map_rows = storage.list_owner_season_map(league_id, season_year=apply_yr)
-                contract_rows = storage.list_league_contract_rows(
-                    league_id, season_year=apply_yr
-                )
+        # Nicknames can change owners between seasons. Never apply another
+        # season's nickname mapping to the year the caller requested.
         owner_season_teams: set[str] = set()
         for row in map_rows:
             owner = str(row.get("owner_label") or "").strip()
@@ -204,7 +203,6 @@ def scoring_owner_maps_for_league(
                 continue
             team_map[team] = owner
             team_map[team.lower()] = owner
-        yr = apply_yr
 
     if sleeper_league_id:
         try:

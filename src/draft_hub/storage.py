@@ -1512,6 +1512,81 @@ def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None 
         return _roster_dict(r)
 
 
+def record_dead_cap(
+    league_id: str, body: Any, *, edited_by_sub: str,
+) -> dict[str, Any]:
+    """Record a standalone cut obligation and its audit atomically.
+
+    Keep this in the existing cut ledger: no active roster spot, invented salary,
+    or player-pool dependency. Serialize the duplicate check with the insert.
+    """
+    import hashlib
+
+    from src.draft_hub.league_capabilities import uses_contracts
+    from src.draft_hub.roster_identity_match import find_matching_roster_slot, name_pos_key
+    from src.draft_hub.schemas import DeadCapRecordRequest
+
+    body = DeadCapRecordRequest.model_validate(body)
+    name = body.player_name.strip()
+    if not name:
+        raise ValueError("Enter a player name")
+    with get_conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        league_row = conn.execute("SELECT * FROM league WHERE id = ?", (league_id,)).fetchone()
+        if not league_row:
+            raise ValueError("League not found")
+        league = _league_dict(league_row)
+        if league["commissioner_sub"] != edited_by_sub:
+            raise ValueError("Commissioner only")
+        if not uses_contracts(league["rules"]):
+            raise ValueError("This league does not use contracts")
+        if int(league["season"]) != body.season:
+            raise ValueError("Record dead cap for the current league season")
+        team = conn.execute(
+            "SELECT id FROM team WHERE id = ? AND league_id = ?", (body.team_id, league_id),
+        ).fetchone()
+        if not team:
+            raise ValueError("Team not found in this league")
+        ws_id = roster_workspace_for_league(league)
+        rows = [_roster_dict(r) for r in conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id = ?", (ws_id,),
+        ).fetchall()]
+        incoming = {"player_id": body.player_id, "sleeper_player_id": body.sleeper_player_id,
+                    "player_name": name, "position": body.position}
+        identity = name_pos_key(incoming)
+        if not identity:
+            raise ValueError("Enter a player name and position")
+        cuts = [r for r in rows if r.get("team_id") == body.team_id
+                and r.get("roster_status") == "cut_before_draft"]
+        if find_matching_roster_slot(cuts, incoming, occupying_only=False):
+            raise ValueError("Dead cap is already recorded for this player on this team")
+        existing = find_matching_roster_slot(rows, incoming, occupying_only=False)
+        pid = (existing or {}).get("player_id") or body.player_id or (
+            f"dead-cap-{hashlib.sha256(identity.encode()).hexdigest()[:24]}"
+        )
+        now = _utcnow()
+        contract = {"contract_type": "veteran", "years_remaining": 1,
+                    "salary_schedule": [0], "cut_dead_cap_years": 1,
+                    "dead_cap_amount": body.amount, "dead_cap_recorded": True,
+                    "dead_cap_record": {"season": body.season, "team_id": body.team_id,
+                                        "amount": body.amount, "recorded_by": edited_by_sub,
+                                        "recorded_at": now}}
+        row = _insert_roster_slot_conn(conn, ws_id, {
+            "player_id": str(pid), "player_name": name, "position": body.position,
+            "sleeper_player_id": (existing or {}).get("sleeper_player_id") or body.sleeper_player_id,
+            "team": (existing or {}).get("team") or "", "salary": 0, "contract_years": 1,
+            "roster_status": "cut_before_draft", "source": "manual", "contract": contract,
+        }, body.team_id)
+        revisions = dict(_bump_live_for_workspace_conn(conn, ws_id))
+        _record_roster_edits_conn(
+            conn, league_id=league_id, roster_slot_id=int(row["id"]), player_id=str(pid),
+            changes=[("dead_cap_amount", None, body.amount)], edited_by_sub=edited_by_sub,
+            note=f"Recorded {body.season} dead cap for {name}",
+            live_revision=revisions.get(league_id, 0),
+        )
+        return {**_roster_dict(row), "can_undo_cut": False}
+
+
 def update_roster_slot(
     workspace_id: str,
     player_id: str,
@@ -4008,6 +4083,7 @@ def enrich_cut_claim_flags(
         claimed = occupying_by_pid.get(str(row.get("player_id") or ""))
         contract = row.get("contract") or {}
         extra: dict[str, Any] = {"can_undo_cut": claimed is None
+                                and not contract.get("dead_cap_recorded")
                                 and not contract.get("dead_cap_transferred")
                                 and not contract.get("dead_cap_sources")}
         if claimed:

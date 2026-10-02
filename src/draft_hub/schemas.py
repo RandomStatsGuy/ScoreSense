@@ -138,6 +138,18 @@ class RosterAddRequest(BaseModel):
     acquisition_type: Optional[str] = None
 
 
+class DeadCapRecordRequest(BaseModel):
+    """A current-season obligation, independent of active player availability."""
+
+    team_id: str = Field(min_length=1)
+    season: int
+    player_name: str = Field(min_length=1, max_length=150)
+    position: Literal["QB", "RB", "WR", "TE", "FB", "K", "DEF"]
+    amount: float = Field(gt=0, multiple_of=1, allow_inf_nan=False)
+    player_id: Optional[str] = None
+    sleeper_player_id: Optional[str] = None
+
+
 class RosterRemoveRequest(BaseModel):
     player_id: str
     roster_slot_id: Optional[int] = None

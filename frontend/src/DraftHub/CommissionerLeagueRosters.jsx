@@ -35,6 +35,8 @@ import {
 import {
   OFFICE_ACQUIRED_OPTIONS,
   OFFICE_CONTRACTS_COPY,
+  buildDeadCapRecordBody,
+  isRecordedDeadCap,
   applyPendingToBlock,
   applyPendingToRow,
   capFieldFigures,
@@ -133,6 +135,8 @@ function AddPlayerForm({
 }) {
   const showsMoney = useShowsMoney();
   const [query, setQuery] = useState("");
+  const [entryKind, setEntryKind] = useState("player");
+  const [position, setPosition] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [selected, setSelected] = useState(null);
   const [salary, setSalary] = useState("1");
@@ -144,7 +148,10 @@ function AddPlayerForm({
   const [adding, setAdding] = useState(false);
   const abortRef = useRef(null);
   const salaryMax = Number.isFinite(Number(maxSalary)) ? Number(maxSalary) : remaining;
-  const salaryError = showsMoney ? validateSalaryValue(salary, salaryMax) : "";
+  const recordingDeadCap = showsMoney && entryKind === "dead_cap";
+  const salaryError = recordingDeadCap
+    ? (!Number.isInteger(Number(salary)) || Number(salary) <= 0 ? OFFICE_CONTRACTS_COPY.deadCapAmountInvalid : "")
+    : showsMoney ? validateSalaryValue(salary, salaryMax) : "";
 
   useEffect(() => {
     const q = query.trim();
@@ -194,6 +201,7 @@ function AddPlayerForm({
   const pickSuggestion = (row) => {
     setSelected(row);
     setQuery(row.player_name || "");
+    if (["QB", "RB", "WR", "TE", "FB", "K", "DEF"].includes(row.position)) setPosition(row.position);
     setSuggestions([]);
     setOpenList(false);
     onError?.("");
@@ -201,6 +209,7 @@ function AddPlayerForm({
 
   const resetForm = () => {
     setQuery("");
+    setPosition("");
     setSelected(null);
     setSuggestions([]);
     setSalary("1");
@@ -215,7 +224,9 @@ function AddPlayerForm({
       onError?.(salaryError);
       return;
     }
-    const body = buildLiveRosterAddBody({
+    const body = recordingDeadCap ? buildDeadCapRecordBody({
+      query, suggestion: selected, amount: salary, position, season, teamId,
+    }) : buildLiveRosterAddBody({
       suggestion: selected,
       salary,
       years,
@@ -225,20 +236,22 @@ function AddPlayerForm({
       acquired: draftCompleted ? acquired : "",
     });
     if (!body) {
-      onError?.(showsMoney ? "Search and pick a player, then set salary and years." : OFFICE_CONTRACTS_COPY.pickPlayer);
+      onError?.(recordingDeadCap ? OFFICE_CONTRACTS_COPY.deadCapFieldsInvalid
+        : showsMoney ? "Search and pick a player, then set salary and years." : OFFICE_CONTRACTS_COPY.pickPlayer);
       return;
     }
     if (!force) setAdding(true);
     onError?.("");
     try {
-      const res = await apiFetch("/api/hub/roster", {
+      const res = await apiFetch(recordingDeadCap
+        ? `/api/hub/league/${encodeURIComponent(leagueId)}/dead-cap` : "/api/hub/roster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       if (res.status === 409) {
         const msg = await parseApiError(res);
-        if (!force && isRosterReassignConflict(msg)) {
+        if (!recordingDeadCap && !force && isRosterReassignConflict(msg)) {
           const ok = await confirmDialog({
             title: "Player already rostered",
             message: msg,
@@ -253,7 +266,8 @@ function AddPlayerForm({
         throw new Error(msg);
       }
       if (!res.ok) throw new Error(await parseApiError(res));
-      onNotice?.(`Added ${body.player_name} to ${teamName}.`);
+      onNotice?.(recordingDeadCap ? OFFICE_CONTRACTS_COPY.deadCapSaved(body.player_name, teamName, body.amount)
+        : `Added ${body.player_name} to ${teamName}.`);
       resetForm();
       onSaved?.({ syncHub: true });
     } catch (e) {
@@ -265,8 +279,18 @@ function AddPlayerForm({
 
   return (
     <div className="hub-league-add-player">
-      <h4 className="hub-league-add-player-title">Add player</h4>
+      <h4 className="hub-league-add-player-title">{recordingDeadCap ? OFFICE_CONTRACTS_COPY.recordDeadCap : OFFICE_CONTRACTS_COPY.addPlayer}</h4>
       <div className="hub-league-add-player-grid">
+        {showsMoney && <HubFilterMenu
+          label={OFFICE_CONTRACTS_COPY.entryKind}
+          value={entryKind}
+          options={[
+            { id: "player", label: OFFICE_CONTRACTS_COPY.addPlayer },
+            { id: "dead_cap", label: OFFICE_CONTRACTS_COPY.recordDeadCap },
+          ]}
+          onChange={(id) => { setEntryKind(id); resetForm(); onError?.(""); }}
+          disabled={adding}
+        />}
         <label className="hub-league-add-search">
           <span>Player</span>
           <input
@@ -276,7 +300,7 @@ function AddPlayerForm({
             aria-expanded={openList && suggestions.length > 0}
             aria-autocomplete="list"
             autoComplete="off"
-            placeholder="Search NFL players…"
+            placeholder={recordingDeadCap ? OFFICE_CONTRACTS_COPY.deadCapPlayerPlaceholder : "Search NFL players…"}
             value={query}
             disabled={adding}
             onChange={(e) => {
@@ -313,7 +337,14 @@ function AddPlayerForm({
             </ul>
           )}
         </label>
-        {showsMoney && draftCompleted ? (
+        {recordingDeadCap && <HubFilterMenu
+          label={OFFICE_CONTRACTS_COPY.position}
+          value={position}
+          options={[{ id: "", label: OFFICE_CONTRACTS_COPY.choosePosition }, ...["QB", "RB", "WR", "TE", "FB", "K", "DEF"].map((id) => ({ id, label: id }))]}
+          onChange={setPosition}
+          disabled={adding}
+        />}
+        {showsMoney && draftCompleted && !recordingDeadCap ? (
           <HubFilterMenu
             label={OFFICE_CONTRACTS_COPY.acquired}
             value={acquired}
@@ -322,7 +353,7 @@ function AddPlayerForm({
             disabled={adding}
           />
         ) : null}
-        {showsMoney && <HubFilterMenu
+        {showsMoney && !recordingDeadCap && <HubFilterMenu
           label="Type"
           value={contractType}
           options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
@@ -331,28 +362,28 @@ function AddPlayerForm({
         />}
         {showsMoney && <label>
           <span>
-            {draftCompleted
+            {recordingDeadCap ? OFFICE_CONTRACTS_COPY.deadCap : draftCompleted
               ? OFFICE_CONTRACTS_COPY.bidLabel
               : (stage?.salaryFieldLabel || (season ? `${season} $` : "Salary"))}
           </span>
           <input
             type="number"
             className="hub-roster-edit-input"
-            min={0}
-            max={salaryMax}
+            min={recordingDeadCap ? 1 : 0}
+            max={recordingDeadCap ? undefined : salaryMax}
             step={1}
             value={salary}
             disabled={adding}
             aria-invalid={Boolean(salaryError)}
             onChange={(e) => setSalary(e.target.value)}
           />
-          <span className="hub-cap-field-hint">
+          {!recordingDeadCap && <span className="hub-cap-field-hint">
             {draftCompleted
               ? OFFICE_CONTRACTS_COPY.bidSupport
               : capFieldFigures({ free: remaining, dead: 0 })}
-          </span>
+          </span>}
         </label>}
-        {showsMoney && <label>
+        {showsMoney && !recordingDeadCap && <label>
           <span>{stage?.yearsFieldLabel || "Yrs left"}</span>
           <input
             type="number"
@@ -368,13 +399,15 @@ function AddPlayerForm({
         <button
           type="button"
           className="btn-primary btn-sm"
-          disabled={adding || !selected || Boolean(salaryError)}
+          disabled={adding || (recordingDeadCap ? !query.trim() || !position : !selected) || Boolean(salaryError)}
           onClick={() => submit()}
         >
-          {adding ? "Adding…" : "Add to roster"}
+          {recordingDeadCap ? (adding ? OFFICE_CONTRACTS_COPY.recordingDeadCap : OFFICE_CONTRACTS_COPY.recordDeadCap)
+            : adding ? "Adding…" : "Add to roster"}
         </button>
       </div>
-      {selected && (
+      {recordingDeadCap && <p className="chart-note hub-league-add-selected">{OFFICE_CONTRACTS_COPY.deadCapHelp(season)}</p>}
+      {selected && !recordingDeadCap && (
         <p className="chart-note hub-league-add-selected">
           Adding {selected.player_name}
           {[selected.position, selected.team].filter(Boolean).length
@@ -456,7 +489,7 @@ function TeamRosterBlock({
     const pending = pendingByPlayer[rosterSlotKey(r)] || pendingByPlayer[r.player_id];
     const effective = applyPendingToRow(r, pending);
     return {
-      salary: String(effective.salary ?? ""),
+      salary: String(isRecordedDeadCap(effective) ? effective.contract.dead_cap_amount : effective.salary ?? ""),
       years: String(rowYears(effective)),
     };
   };
@@ -491,7 +524,7 @@ function TeamRosterBlock({
       danger: true,
     });
     if (!ok) return;
-    if (draftCompleted) {
+    if (draftCompleted || isRecordedDeadCap(r)) {
       try {
         await onWriteImmediate?.(r, { drop: true });
       } catch (e) {
@@ -569,7 +602,7 @@ function TeamRosterBlock({
       ? String(r.contract.inferred_from).replace("nfl_yr_", "NFL yr ")
       : null;
     const storedSchedule = scheduleText(effective, rules);
-    const livePreview = previewSchedule(
+    const livePreview = isRecordedDeadCap(effective) ? `${fmtSal(effective.contract.dead_cap_amount)} · ${effective.contract.dead_cap_record?.season || season} only` : previewSchedule(
       edit.salary,
       edit.years,
       stepUp,
@@ -599,7 +632,7 @@ function TeamRosterBlock({
       draftCompleted,
     });
     const dropCopy = dropButtonCopy(r, { queuedDrop, draftCompleted });
-    const cutControl = !queuedDrop ? (
+    const cutControl = !queuedDrop && !isRecordedDeadCap(r) ? (
       <button
         type="button"
         className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
@@ -737,7 +770,7 @@ function TeamRosterBlock({
                   <span className="hub-office-player-title">
                     <span className="mobile-player-card-name">{r.player_name}</span>
                     {showsMoney && <span className="hub-office-player-chips">
-                      <span className={contractTypeBadgeClass(vm.ctype)}>{contractTypeLabel(vm.ctype)}</span>
+                      <span className={contractTypeBadgeClass(vm.ctype)}>{isRecordedDeadCap(r) ? OFFICE_CONTRACTS_COPY.deadCap : contractTypeLabel(vm.ctype)}</span>
                       <StateChips
                         chip={vm.chip}
                         pendingType={vm.pendingType}
@@ -748,19 +781,19 @@ function TeamRosterBlock({
                 )}
                 meta={[r.team, r.position].filter(Boolean).join(" · ") || "—"}
                 heroValue={showsMoney ? fmtSal(vm.edit.salary) : (r.position || "—")}
-                heroLabel={showsMoney ? (stage?.salaryFieldLabel || `${season} $`) : "position"}
+                heroLabel={showsMoney ? (isRecordedDeadCap(r) ? OFFICE_CONTRACTS_COPY.deadCap : stage?.salaryFieldLabel || `${season} $`) : "position"}
                 expanded={showsMoney ? (
                   <div className="mobile-stat-grid hub-roster-mobile-grid">
-                    <HubFilterMenu
+                    {!isRecordedDeadCap(r) && <HubFilterMenu
                       label="Contract type"
                       value={vm.pendingType || vm.ctype}
                       options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
                       onChange={(id) => onTypeChange(r, id)}
                       disabled={vm.locked}
-                    />
+                    />}
                     <label className="hub-roster-mobile-field">
                       <span className="mobile-stat-label">
-                        {stage?.salaryFieldLabel || `Cap hit (${season} season)`}
+                        {isRecordedDeadCap(r) ? OFFICE_CONTRACTS_COPY.deadCap : stage?.salaryFieldLabel || `Cap hit (${season} season)`}
                       </span>
                       <input
                         type="number"
@@ -783,7 +816,7 @@ function TeamRosterBlock({
                       </span>
                       {vm.salaryError && <span className="hub-field-error">{vm.salaryError}</span>}
                     </label>
-                    <label className="hub-roster-mobile-field">
+                    {!isRecordedDeadCap(r) && <label className="hub-roster-mobile-field">
                       <span className="mobile-stat-label">
                         {stage?.yearsFieldLabel || "Yrs left"}
                       </span>
@@ -800,7 +833,7 @@ function TeamRosterBlock({
                           if (vm.pending?.years != null) flushField(r, { years: vm.pending.years });
                         }}
                       />
-                    </label>
+                    </label>}
                     <MobileStat
                       label="Schedule"
                       value={vm.livePreview || "—"}
@@ -867,18 +900,18 @@ function TeamRosterBlock({
                   {showsMoney && (
                     <>
                     <td>
-                      <HubFilterMenu
+                      {isRecordedDeadCap(r) ? OFFICE_CONTRACTS_COPY.deadCap : <HubFilterMenu
                         label="Type"
                         value={vm.pendingType || vm.ctype}
                         options={CONTRACT_TYPE_OPTIONS.map((o) => ({ id: o.value, label: o.label }))}
                         onChange={(id) => onTypeChange(r, id)}
                         disabled={vm.locked}
-                      />
+                      />}
                     </td>
                     <td>
                       <label className="hub-roster-field">
                         <span className="sr-only">
-                          {stage?.salaryFieldLabel || "Cap"} for {r.player_name}
+                          {isRecordedDeadCap(r) ? OFFICE_CONTRACTS_COPY.deadCap : stage?.salaryFieldLabel || "Cap"} for {r.player_name}
                         </span>
                         <input
                           type="number"
@@ -888,7 +921,7 @@ function TeamRosterBlock({
                           step={1}
                           value={vm.edit.salary}
                           disabled={vm.locked}
-                          aria-label={`${stage?.salaryFieldLabel || "Cap"} for ${r.player_name}`}
+                          aria-label={`${isRecordedDeadCap(r) ? OFFICE_CONTRACTS_COPY.deadCap : stage?.salaryFieldLabel || "Cap"} for ${r.player_name}`}
                           aria-describedby={`cap-hint-${r.player_id}`}
                           aria-invalid={Boolean(vm.salaryError)}
                           onChange={(e) => onQueue(r, { salary: e.target.value })}
@@ -914,7 +947,7 @@ function TeamRosterBlock({
                           min={1}
                           max={maxYears}
                           step={1}
-                          value={vm.edit.years}
+                          value={isRecordedDeadCap(r) ? "" : vm.edit.years}
                           disabled={vm.locked}
                           aria-label={`${stage?.yearsFieldLabel || "Years"} for ${r.player_name}`}
                           onChange={(e) => onQueue(r, { years: e.target.value })}
@@ -928,8 +961,10 @@ function TeamRosterBlock({
                     </>
                   )}
                   <td className="hub-roster-actions">
-                    {showsMoney && vm.cutControl}
-                    {vm.dropControl}
+                    <span className="hub-roster-action-group">
+                      {showsMoney && vm.cutControl}
+                      {vm.dropControl}
+                    </span>
                   </td>
                 </tr>
               );

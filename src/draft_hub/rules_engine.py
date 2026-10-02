@@ -40,11 +40,12 @@ def salary_roster_limits_relaxed(rules: LeagueRules) -> bool:
 
 
 def cap_relevant_roster(rules: LeagueRules, roster: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Limit cap math to positions governed by league roster rules (QB/RB/WR/TE)."""
+    """Count eligible players and recorded obligations independent of roster slots."""
     allowed = {k.upper() for k in roster_limits(rules)}
     if not allowed:
         return roster
-    return [r for r in roster if normalize_position(r.get("position")) in allowed]
+    return [r for r in roster if normalize_position(r.get("position")) in allowed
+            or (r.get("contract") or {}).get("dead_cap_recorded")]
 
 
 def _row_cap_charge(rules: LeagueRules, row: dict[str, Any]) -> tuple[float, bool]:
@@ -61,7 +62,9 @@ def _row_cap_charge(rules: LeagueRules, row: dict[str, Any]) -> tuple[float, boo
     if str(row.get("player_id") or "").startswith(DEADCAP_PLAYER_PREFIX):
         return float(cap_hit(row, 0)), False
     if str(row.get("roster_status") or "") == "cut_before_draft":
-        return float(cut_dead_cap(rules, cap_hit(row, 0))), False
+        from src.draft_hub.pre_draft_cap import pre_draft_cut_dead_cap_at_offset
+
+        return pre_draft_cut_dead_cap_at_offset(rules, row), False
     return 0.0, False
 
 
