@@ -1,6 +1,7 @@
 """Coalesce automatic recovery requests onto the existing shared CPU executor."""
 from __future__ import annotations
 
+import math
 import time
 from threading import Lock
 
@@ -11,6 +12,21 @@ _LOCK = Lock()
 _ACTIVE: set[tuple] = set()
 _RESULTS: dict[tuple, tuple[float, dict]] = {}
 RETRY_SECONDS = 60
+
+
+def projection_recovery_status(season, week, kinds):
+    """Observe the shared worker without enqueueing work or changing its state."""
+    if not kinds or not season or not week:
+        return {"status": "idle"}
+    key = (int(season), int(week), tuple(sorted(set(kinds))))
+    with _LOCK:
+        if key in _ACTIVE:
+            return {"status": "running"}
+        previous = _RESULTS.get(key)
+        if previous:
+            retry = max(0, math.ceil(RETRY_SECONDS - (time.monotonic() - previous[0])))
+            return {**previous[1], "retry_after_seconds": retry}
+    return {"status": "idle"}
 
 
 async def _rebuild(key):

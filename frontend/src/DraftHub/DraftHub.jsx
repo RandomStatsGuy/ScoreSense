@@ -244,7 +244,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     return data;
   }, []);
 
-  const refreshValueSheet = useCallback(async (season, rules, { forcePool = false, signal } = {}) => {
+  const refreshValueSheet = useCallback(async (season, rules, { forcePool = false, signal, throwOnError = false } = {}) => {
     setValueSheetLoading(true);
     const generation = hubCacheGeneration();
     const key = valueSheetRequestKey(season, rules, { forcePool, scope: poolScope });
@@ -273,6 +273,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       return sheet;
     } catch (e) {
       if (isAbortError(e) || signal?.aborted) return null;
+      if (throwOnError) throw e;
       const msg = connectionErrorMessage(e);
       if (!/sign in|login required|401/i.test(msg)) {
         setError(msg);
@@ -738,14 +739,18 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           showAttention
           currentView={subView}
           onRosterFocus={setRosterFocus}
-          onProjectionsRefresh={async () => {
+          onProjectionsRefresh={async ({ signal } = {}) => {
             clearHubDataCache();
-            await refreshValueSheet(
-              workspace?.season || effectiveCtx?.season,
-              workspace?.rules || effectiveCtx?.rules,
-              { forcePool: true },
+            const next = await refreshValueSheet(
+              effectiveCtx?.season || workspace?.season,
+              effectiveCtx?.rules || workspace?.rules,
+              { forcePool: true, signal, throwOnError: true },
             );
-            setWeekReloadToken((n) => n + 1);
+            if (next && !signal?.aborted) {
+              setError("");
+              if (!next.projection_stale) setWeekReloadToken((n) => n + 1);
+            }
+            return next;
           }}
         />
       )}
