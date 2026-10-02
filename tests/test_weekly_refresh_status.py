@@ -73,7 +73,9 @@ def test_running_worker_is_single_flight_and_dead_worker_is_reported(tmp_path, m
         wr._progress("weekly")
         assert wr.public_refresh_status()["status"] == "running"
         with patch.object(wr, "_execute_weekly_refresh") as execute:
-            assert wr.run_weekly_refresh(False)["status"] == "running"
+            result = wr.run_weekly_refresh(False)
+            assert result["status"] == "busy"
+            assert result["previous_refresh"]["status"] == "running"
             execute.assert_not_called()
     assert wr.public_refresh_status()["status"] == "error"
 
@@ -246,3 +248,138 @@ def test_delayed_worker_reclaims_its_marker_after_startup_grace(tmp_path, monkey
         return status
     monkeypatch.setattr(wr, "_run_weekly_refresh", inspect_running)
     wr.run_weekly_refresh(retrain=False, started_at=started)
+
+
+def test_manual_refresh_waits_for_background_job_without_replaying_old_error(tmp_path, monkeypatch, capsys):
+    from threading import Event, Thread
+    from src.jobs.refresh_lock import RefreshBusy
+    import pytest
+
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "last_refresh.json")
+    old = {"status": "error", "started_at": "old", "stage": "inputs",
+           "error": "Previous refresh was interrupted. Try again."}
+    wr._write_refresh_status(old)
+    ready, release = Event(), Event()
+
+    def background_job():
+        with wr.refresh_lock(wr.REFRESH_STATUS.with_suffix(".lock")):
+            ready.set()
+            release.wait(5)
+
+    holder = Thread(target=background_job)
+    holder.start()
+    assert ready.wait(5)
+    notices = []
+
+    def waiting(elapsed):
+        # Waiting must not overwrite the active job's status or claim to start.
+        assert wr.get_refresh_status()["started_at"] == "old"
+        assert "Projection refresh started" not in capsys.readouterr().err
+        notices.append(elapsed)
+        release.set()
+
+    def refresh(**kwargs):
+        current = wr.get_refresh_status()
+        assert current["status"] == "running"
+        assert current["started_at"] != "old"
+        assert current["error"] is None
+        # The manual job must retain exclusive ownership throughout execution.
+        with pytest.raises(RefreshBusy):
+            with wr.refresh_lock(wr.REFRESH_STATUS.with_suffix(".lock")):
+                pass
+        wr._write_refresh_status({**current, "status": "completed", "completed_at": "now"})
+        return wr.get_refresh_status()
+
+    monkeypatch.setattr(wr, "_run_weekly_refresh", refresh)
+    try:
+        result = wr.run_weekly_refresh(False, lock_timeout=2, on_lock_wait=waiting)
+    finally:
+        release.set()
+        holder.join(5)
+    assert not holder.is_alive()
+    assert notices
+    assert result["status"] == "completed"
+    assert result["started_at"] != "old"
+    assert "Projection refresh started" in capsys.readouterr().err
+
+
+def test_cli_lock_timeout_preserves_old_status_and_fails(tmp_path, monkeypatch, capsys):
+    import pytest
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "last_refresh.json")
+    monkeypatch.setattr(wr.sys, "argv", ["weekly_refresh", "--lock-timeout", "0.05"])
+    wr._write_refresh_status({"status": "completed", "started_at": "old", "completed_at": "yesterday"})
+    previous = wr.REFRESH_STATUS.read_bytes()
+    with wr.refresh_lock(wr.REFRESH_STATUS.with_suffix(".lock")):
+        with patch.object(wr, "_execute_weekly_refresh") as execute:
+            with pytest.raises(SystemExit) as exited:
+                wr.main()
+            execute.assert_not_called()
+    assert exited.value.code == 1
+    stdout, stderr = capsys.readouterr()
+    result = json.loads(stdout)
+    assert result["status"] == "busy"
+    assert result["previous_refresh"]["status"] == "completed"
+    assert "has not started" in stderr
+    assert wr.REFRESH_STATUS.read_bytes() == previous
+    # The waiter closes its handle on timeout, so later requests can acquire it.
+    with wr.refresh_lock(wr.REFRESH_STATUS.with_suffix(".lock")):
+        pass
+
+
+def test_busy_error_after_execution_starts_is_not_mislabeled_as_lock_contention(tmp_path, monkeypatch):
+    import pytest
+    from src.jobs.refresh_lock import RefreshBusy
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "last_refresh.json")
+    with patch.object(wr, "_run_weekly_refresh", side_effect=RefreshBusy("inner resource busy")):
+        with pytest.raises(RefreshBusy):
+            wr.run_weekly_refresh(False, lock_timeout=1)
+    status = wr.get_refresh_status()
+    assert status["status"] == "error"
+    assert status["error"] == "inner resource busy"
+
+
+def test_cli_defaults_to_waiting_and_preserves_mode_flags(monkeypatch, capsys):
+    monkeypatch.setattr(wr.sys, "argv", ["weekly_refresh", "--no-retrain", "--draft-only"])
+    with patch.object(wr, "run_weekly_refresh", return_value={"status": "completed"}) as run:
+        wr.main()
+    assert run.call_args.kwargs["lock_timeout"] == 1800
+    assert run.call_args.kwargs["retrain"] is False
+    assert run.call_args.kwargs["draft_only"] is True
+    assert callable(run.call_args.kwargs["on_lock_wait"])
+    assert json.loads(capsys.readouterr().out)["status"] == "completed"
+
+
+def test_cli_rejects_invalid_wait_limits_and_noncompleted_results(monkeypatch):
+    import pytest
+    for limit in ("-1", "nan", "inf"):
+        monkeypatch.setattr(wr.sys, "argv", ["weekly_refresh", "--lock-timeout", limit])
+        with patch.object(wr, "run_weekly_refresh") as run:
+            with pytest.raises(SystemExit) as exited:
+                wr.main()
+            assert exited.value.code == 2
+            run.assert_not_called()
+    monkeypatch.setattr(wr.sys, "argv", ["weekly_refresh"])
+    for status in ("error", "running", "busy", "never_run"):
+        with patch.object(wr, "run_weekly_refresh", return_value={"status": status}):
+            with pytest.raises(SystemExit) as exited:
+                wr.main()
+            assert exited.value.code == 1
+
+
+def test_refresh_route_reports_background_contention_instead_of_old_error(tmp_path, monkeypatch):
+    import asyncio
+    import pytest
+    from fastapi import HTTPException
+    from app import api
+    monkeypatch.setattr(wr, "REFRESH_STATUS", tmp_path / "last_refresh.json")
+    monkeypatch.setattr(api, "REFRESH_STATUS", wr.REFRESH_STATUS)
+    wr._write_refresh_status({"status": "error", "started_at": "old", "error": "Old failure"})
+    previous = wr.REFRESH_STATUS.read_bytes()
+    with wr.refresh_lock(wr.REFRESH_STATUS.with_suffix(".lock")):
+        with patch.object(api, "submit_cpu_job") as submit:
+            with pytest.raises(HTTPException) as rejected:
+                asyncio.run(api.refresh(retrain=False, _user={}))
+            submit.assert_not_called()
+    assert rejected.value.status_code == 409
+    assert "Another projection job" in rejected.value.detail
+    assert wr.REFRESH_STATUS.read_bytes() == previous
