@@ -12,6 +12,9 @@ import pandas as pd
 from src.config import FANTASY_SCORING
 
 FP_FEATURE_COLS = ("fp_consensus_ppr", "fp_ecr")
+# Least-squares trend fits differ at roughly 1e-16 across numerical runtimes.
+# Freeze this precision before both hashing and fitting, including inference.
+TREND_DECIMAL_PLACES = 10
 STAT_AVG_RENAMES = {
     "passing_tds": "pass_tds_avg",
     "interceptions": "ints_avg",
@@ -314,6 +317,10 @@ def prepare_feature_matrix(
             matrix[col] = df[col]
         else:
             matrix[col] = fill_value
+        if col.endswith("_trend"):
+            values = matrix[col].round(TREND_DECIMAL_PLACES)
+            # A rounded negative zero must fingerprint like positive zero.
+            matrix[col] = values.mask(values.eq(0), 0.0)
     matrix = matrix.fillna(fill_value)
     matrix.attrs["input_quality"] = feature_completeness(df, cols)
     return matrix

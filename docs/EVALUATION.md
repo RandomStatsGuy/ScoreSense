@@ -104,6 +104,28 @@ actual season totals inside `[Season P10, Season P90]`) by position/season, plus
 
 ## Pregame point and risk qualification (October 2026)
 
+### Portable usage-trend inputs
+
+A production refresh on October 2 (UTC) stopped at the RB qualification check. The
+Windows evaluation and Linux rebuild differed only in `carry_share_avg_trend`:
+the largest difference was `3.565e-16`. The 2018–2025 player-game keys, outcomes
+and other selected model inputs matched. QB and WR/TE qualification matched
+without changes. See the [input parity audit](../artifacts/evaluations/projection_input_parity_2026-10-02.json).
+
+ETL now computes equally spaced trend slopes with the closed-form OLS formula,
+without a numerical least-squares solver. Shared feature preparation rounds
+trend columns to ten decimal places and normalizes signed zero before training,
+inference and fingerprinting. Other feature values and outcomes retain their
+exact fingerprint checks. The audited frozen and production matrices, and the
+next ETL's deterministic slopes, match under this contract. The RB gate was
+rerun on the production snapshot and passed all six required seasons plus the
+2025 later-season check. Its recorded metrics are identical to the prior gate,
+including unchanged boom recall in all seven comparisons. Acceptance criteria
+are unchanged. An isolated check with the revised preparation and gate on the
+Linux VPS accepted all three current serving policies before fitting.
+
+### Forecast candidates
+
 `src.analytics.forecast_candidate_eval` compares a candidate with the qualified
 current-season recent-form P50 model on identical games. Every fold trains only
 on earlier seasons. It retains zero/negative observed scores, freezes the

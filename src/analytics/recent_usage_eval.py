@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -11,7 +12,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_pinball_loss
 
 from src.analytics.upside_eval import boom_recall
-from src.core.features import feature_completeness, get_position_features, prepare_feature_matrix
+from src.core.features import TREND_DECIMAL_PLACES, feature_completeness, get_position_features, prepare_feature_matrix
 from src.ml.quantile import interval_coverage, predict_quantiles, train_quantile_models, training_specification
 from src.ml.training_config import DEFAULT_TRAINING_CONFIG, RB_P90_BOOM_WEIGHT_3, WR_P90_BOOM_WEIGHT_3
 from src.pipeline.backtest import top_n_accuracy
@@ -57,7 +58,8 @@ def _metrics(rows: pd.DataFrame, preds: pd.DataFrame, position: str) -> dict:
 
 
 def evaluate_position(position: str, data_dir: Path, output: Path, seasons: list[int], candidate_policy: str = RECENT_POLICY) -> dict:
-    data = pd.read_parquet(data_dir / f"{position}_mlready.parquet")
+    source = data_dir / f"{position}_mlready.parquet"
+    data = pd.read_parquet(source)
     data = data[data.Fpts.notna()].sort_values(["player_id", "season", "week"]).reset_index(drop=True)
     baseline = training_inputs(data, position, PREGAME_POLICY)
     recent = training_inputs(data, position, candidate_policy)
@@ -65,6 +67,8 @@ def evaluate_position(position: str, data_dir: Path, output: Path, seasons: list
     candidate_cols = policy_feature_cols(position, list(get_position_features(position).feature_cols), candidate_policy)
     config = {"qb": DEFAULT_TRAINING_CONFIG, "rb": RB_P90_BOOM_WEIGHT_3, "wr": WR_P90_BOOM_WEIGHT_3}[position]
     report = {"position": position, "candidate_policy": candidate_policy, "baseline_policy": PREGAME_POLICY,
+              "source_sha256": {str(source): hashlib.sha256(source.read_bytes()).hexdigest()},
+              "feature_precision": {"trend_decimal_places": TREND_DECIMAL_PLACES, "signed_zero": "positive"},
               "training_config": config.name, "training_specification": training_specification(config, position),
               "feature_cols": candidate_cols,
               "cohort": "All observed regular-season player-stat rows, including zero and negative scores; inactive roster weeks are not reconstructed.",
