@@ -44,6 +44,7 @@ def sample_pool():
         "Position": ["QB", "RB", "WR", "TE", "K", "DEF"],
         "Team": ["KC", "BUF", "KC", "BUF", "KC", "BUF"],
         "Season Proj": [300.0, 200.0, 180.0, 190.0, 100.0, 90.0],
+        "Per-Game Proj": [300.0 / 17, 200.0 / 17, 180.0 / 17, 190.0 / 17, 100.0 / 17, 90.0 / 17],
     })
 
 

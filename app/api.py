@@ -191,7 +191,11 @@ app.add_middleware(HubServerTimingMiddleware)
 
 @app.exception_handler(PoolSnapshotUnavailable)
 async def unavailable_pool_snapshot(_request, exc):
-    return JSONResponse(status_code=503, content={"detail": str(exc)})
+    from app.projection_recovery import queue_projection_recovery
+    tasks = BackgroundTasks()
+    recovery = queue_projection_recovery(tasks, exc.season, 1, ["draft"])
+    return JSONResponse(status_code=503, content={"detail": str(exc), "projection_recovery": recovery},
+                        background=tasks, headers={"Retry-After": "60"})
 
 
 app.add_middleware(

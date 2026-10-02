@@ -7,7 +7,7 @@ from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.value_sheet import _pool_payload_cache_key, read_draft_pool_payload
 
 
-def warm_fantasy_value_snapshots(*, prepare_pools: bool = False) -> dict:
+def warm_fantasy_value_snapshots(*, prepare_pools: bool = False, season: int | None = None) -> dict:
     if not storage.DRAFT_HUB_DB.exists():
         return {"prepared": 0, "unavailable": 0}
     # Enumerate inputs without resolving focus, reconciling rosters, or creating
@@ -25,8 +25,11 @@ def warm_fantasy_value_snapshots(*, prepare_pools: bool = False) -> dict:
             JOIN league l ON l.id=t.league_id
         """).fetchall()
     prepared, unavailable, seen, inputs, failed_seasons = 0, 0, set(), [], set()
+    target_season = season
     for config in configs:
         season = config["season"]
+        if target_season is not None and season != target_season:
+            continue
         try:
             season = int(config["season"])
             rules = LeagueRules.model_validate(json.loads(config["rules_json"]))
@@ -61,7 +64,7 @@ def warm_fantasy_value_snapshots(*, prepare_pools: bool = False) -> dict:
             failed_seasons.add(season)
             continue
         try:
-            read_draft_pool_payload(season, rules, ranges, team_count=team_count)
+            read_draft_pool_payload(season, rules, ranges, team_count=team_count, allow_stale=False)
             prepared += 1
         except Exception:
             unavailable += 1

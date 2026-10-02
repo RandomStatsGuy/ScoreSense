@@ -14,9 +14,21 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
             for kind in kinds:
                 try:
                     if kind == "draft":
-                        from src.draft_hub.draft_pool_cache import load_draft_pool
-                        if load_draft_pool(season).empty:
-                            raise ValueError("Empty draft pool")
+                        from src.draft_hub.draft_pool_cache import load_draft_pool, pool_fingerprint
+                        from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+                        for _ in range(3):
+                            revision = pool_fingerprint()
+                            load_draft_pool(season, apply_identity=False)
+                            values = warm_fantasy_value_snapshots(season=season)
+                            if pool_fingerprint() != revision:
+                                continue
+                            if load_draft_pool(season, allow_compute=False, apply_identity=False).empty:
+                                raise ValueError("Empty draft pool")
+                            if values["unavailable"]:
+                                raise ValueError("Fantasy valuations remain unavailable")
+                            break
+                        else:
+                            raise ValueError("Draft inputs changed during recovery")
                     elif kind == "dfs":
                         from src.projections.dfs_pool import refresh_dfs_pool
                         result = refresh_dfs_pool(season, week)
