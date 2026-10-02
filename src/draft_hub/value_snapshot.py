@@ -12,11 +12,13 @@ from src.config import DRAFT_POOL_DIR
 from src.core.artifact_revision import artifact_revision
 
 SNAPSHOT_DIR = DRAFT_POOL_DIR / "value_snapshots"
-SNAPSHOT_VERSION = "value-payload-v1"
+SNAPSHOT_VERSION = "value-payload-v2"
 
 
 class PoolSnapshotUnavailable(ValueError):
-    pass
+    def __init__(self, message: str, *, season: int | None = None):
+        super().__init__(message)
+        self.season = season
 
 
 def source_revision(season: int) -> str:

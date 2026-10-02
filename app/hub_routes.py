@@ -562,9 +562,17 @@ def hub_put_workspace(body: WorkspaceUpdate, _user=Depends(require_hub_user)) ->
     return ws
 
 
+def _queue_fantasy_pool_recovery(payload, background_tasks, season):
+    """Keep saved valuations usable while the shared worker replaces forecasts."""
+    if payload.get("projection_stale"):
+        from app.projection_recovery import queue_projection_recovery
+        payload["projection_recovery"] = queue_projection_recovery(background_tasks, season, 1, ["draft"])
+
+
 @router.get("/draft-pool")
 def hub_draft_pool(
     response: Response,
+    background_tasks: BackgroundTasks = None,
     season: Optional[int] = None,
     _user=Depends(require_hub_user),
 ) -> dict:
@@ -584,6 +592,7 @@ def hub_draft_pool(
                 ranges,
                 team_count=_team_count_for_ctx(ctx),
             )
+            _queue_fantasy_pool_recovery(payload, background_tasks, target_season)
             payload["hub_context"] = ctx
     return payload
 
@@ -591,10 +600,11 @@ def hub_draft_pool(
 @router.get("/value-overlay")
 def hub_value_overlay(
     response: Response,
+    background_tasks: BackgroundTasks = None,
     season: Optional[int] = None,
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Roster availability overlay only — requires warm draft-pool cache (GET /draft-pool)."""
+    """Roster availability overlay over disk-backed saved projections."""
     with HubTimer("value-overlay", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
@@ -604,12 +614,13 @@ def hub_value_overlay(
             ranges = storage.list_salary_ranges(ctx.get("personal_workspace_id") or ctx["workspace_id"])
             team_count = _team_count_for_ctx(ctx)
         with timer.phase("pool_peek"):
-            pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count)
+            pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count,
+                                                  allow_stale=True)
             if pool_payload is None:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Draft pool cache is cold. Request GET /api/hub/draft-pool first.",
+                pool_payload = read_draft_pool_payload(
+                    target_season, rules, ranges, team_count=team_count,
                 )
+            _queue_fantasy_pool_recovery(pool_payload, background_tasks, target_season)
         with timer.phase("overlay_inputs"):
             roster, league_roster, team_id, sleeper_ids, league_sleeper_ids = _value_overlay_inputs(ctx, sub)
         with timer.phase("overlay_build"):
@@ -634,6 +645,7 @@ def hub_value_overlay(
 @router.get("/value-sheet")
 def hub_value_sheet(
     response: Response,
+    background_tasks: BackgroundTasks = None,
     season: Optional[int] = None,
     overlay_only: bool = False,
     _user=Depends(require_hub_user),
@@ -649,11 +661,13 @@ def hub_value_sheet(
             roster, league_roster, team_id, sleeper_ids, league_sleeper_ids = _value_overlay_inputs(ctx, sub)
         with timer.phase("build"):
             if overlay_only:
-                pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count)
+                pool_payload = peek_pool_payload_cache(target_season, rules, ranges, team_count=team_count,
+                                                      allow_stale=True)
                 if pool_payload is None:
                     pool_payload = read_draft_pool_payload(
                         target_season, rules, ranges, team_count=team_count
                     )
+                _queue_fantasy_pool_recovery(pool_payload, background_tasks, target_season)
                 sheet = build_value_overlay(
                     pool_payload,
                     rules,
@@ -666,6 +680,7 @@ def hub_value_sheet(
                 )
             else:
                 pool_payload = read_draft_pool_payload(target_season, rules, ranges, team_count=team_count)
+                _queue_fantasy_pool_recovery(pool_payload, background_tasks, target_season)
                 sheet = build_value_overlay(
                     pool_payload, rules, roster, league_roster=league_roster,
                     my_team_id=team_id, sleeper_player_ids=sleeper_ids,

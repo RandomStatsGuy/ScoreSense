@@ -285,6 +285,13 @@ needs a missing year's schedule. Schedule fetches, ETL and Vegas line updates
 merge under the same publication lock, so preparing an older season does not
 remove the current season's inputs. Valuation warnings identify the affected
 season and team count.
+Later roster or schedule updates can make a published Fantasy pool stale.
+Fantasy reads retain that season's saved projections and original timestamp
+while automatically queueing the shared background worker. The worker rebuilds
+the pool and its configured valuations without retraining. Missing or damaged
+snapshots remain a 503 with recovery queued; a refresh job requires fresh pools
+and valuations before reporting completion. Deploying this reader fix does not
+require another manual full refresh when a valid saved pool already exists.
 Weekly's notes Refresh runs on the shared background worker, repairs stale or
 missing weekly variants with existing models, and polls its own job status.
 
