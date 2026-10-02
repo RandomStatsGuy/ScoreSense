@@ -4366,7 +4366,12 @@ def hub_league_freshness(
     from src.draft_hub.hub_freshness import league_data_freshness
 
     include_detail = bool(ctx.get("is_commissioner"))
-    return league_data_freshness(league_id, include_contract_detail=include_detail)
+    payload = league_data_freshness(league_id, include_contract_detail=include_detail)
+    from app.projection_recovery import projection_recovery_status
+    projections = payload.get("projections")
+    if isinstance(projections, dict):
+        projections["recovery"] = projection_recovery_status(projections.get("season"), 1, ["draft"])
+    return payload
 
 
 class ContractSyncBody(BaseModel):

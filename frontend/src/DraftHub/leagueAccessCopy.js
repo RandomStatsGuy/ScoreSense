@@ -1,6 +1,13 @@
-/** User-facing copy for creating leagues and inviting managers. */
+/** User-facing copy for Fantasy league access and sync. */
 
 export const CREATE_LEAGUE_VALUE = "__create__";
+export const PROJECTION_SYNC_COPY = {
+  updating: "Updating projections…",
+  pending: "Updating projections. Your saved forecasts remain available.",
+  ready: "Projections are up to date.",
+  failed: "Projection sync could not finish. Your saved forecasts remain available. Try again.",
+  timeout: "Projection sync is taking longer than expected. Your saved forecasts remain available. Check again shortly.",
+};
 export const ACCESS_GUIDED_COPY = {
   connections: "Connections", title: "Know what is linked and what can write.",
   support: "Live connections refresh through Sync league. Imports are one-time snapshots that change when you apply another file.",

@@ -292,6 +292,12 @@ the pool and its configured valuations without retraining. Missing or damaged
 snapshots remain a 503 with recovery queued; a refresh job requires fresh pools
 and valuations before reporting completion. Deploying this reader fix does not
 require another manual full refresh when a valid saved pool already exists.
+Fantasy's **Sync projections** waits for the selected league's pool to become
+current, then reloads its values and timestamp. It keeps showing **Updating
+projections…** while the worker is running or waiting to retry a busy refresh.
+The original timestamp remains visible while saved forecasts are being served.
+Worker failures, request failures, or a wait longer than ten minutes show a
+retry message. A successful saved-data read alone does not complete the sync.
 Weekly's notes Refresh runs on the shared background worker, repairs stale or
 missing weekly variants with existing models, and polls its own job status.
 
