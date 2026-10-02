@@ -5,13 +5,13 @@ import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../fo
 import useMobileLayout from "../useMobileLayout";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
-import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY, SLEEPER_SYNC_PAUSE_COPY } from "./leagueAccessCopy";
+import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY, PROJECTION_SYNC_COPY, SLEEPER_SYNC_PAUSE_COPY } from "./leagueAccessCopy";
 import {
   getFreshnessCache,
   invalidateFreshnessCache,
   invalidateInsightsAfterCapSync,
 } from "./hubDataCache";
-import { ensureLeagueFreshness } from "./leagueFreshness";
+import { ensureLeagueFreshness, syncLeagueProjections } from "./leagueFreshness";
 import { fmtSal } from "./rosterFormat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
@@ -111,10 +111,21 @@ export default function LeagueContextBanner({
   const [freshnessLoading, setFreshnessLoading] = useState(false);
   const [freshnessError, setFreshnessError] = useState("");
   const [projRefreshing, setProjRefreshing] = useState(false);
+  const [projectionSyncMessage, setProjectionSyncMessage] = useState("");
+  const projectionSyncController = useRef(null);
 
   const leagueId = hubContext?.league_id;
   const isDemo = Boolean(hubContext?.demo);
   const isCommish = Boolean(hubContext?.is_commissioner);
+
+  useEffect(() => {
+    setProjectionSyncMessage("");
+    setProjRefreshing(false);
+    return () => {
+      projectionSyncController.current?.abort();
+      projectionSyncController.current = null;
+    };
+  }, [leagueId, hubContext?.season]);
 
   const loadFreshness = useCallback(async (signal) => {
     if (!leagueId || hubContext?.mode !== "league") {
@@ -187,23 +198,33 @@ export default function LeagueContextBanner({
   }, [leagueId, isDemo, loadFreshness]);
 
   const runProjectionsRefresh = useCallback(async () => {
-    if (!onProjectionsRefresh) {
-      invalidateFreshnessCache(leagueId);
-      await loadFreshness(undefined);
-      return;
-    }
+    if (!onProjectionsRefresh || isDemo || projectionSyncController.current) return;
+    const controller = new AbortController();
+    projectionSyncController.current = controller;
     setProjRefreshing(true);
     setFreshnessError("");
+    setProjectionSyncMessage(PROJECTION_SYNC_COPY.pending);
     try {
-      await onProjectionsRefresh();
+      const payload = await syncLeagueProjections(leagueId, {
+        refresh: onProjectionsRefresh,
+        signal: controller.signal,
+        onUpdate: setFreshness,
+      });
       invalidateFreshnessCache(leagueId);
-      await loadFreshness(undefined);
+      setFreshness(payload);
+      setProjectionSyncMessage(PROJECTION_SYNC_COPY.ready);
     } catch (e) {
-      setFreshnessError(connectionErrorMessage(e));
+      if (!controller.signal.aborted) {
+        setProjectionSyncMessage("");
+        setFreshnessError(connectionErrorMessage(e));
+      }
     } finally {
-      setProjRefreshing(false);
+      if (projectionSyncController.current === controller) {
+        projectionSyncController.current = null;
+        setProjRefreshing(false);
+      }
     }
-  }, [onProjectionsRefresh, leagueId, loadFreshness]);
+  }, [onProjectionsRefresh, leagueId, isDemo]);
 
   const runSleeperSync = useCallback(async () => {
     if (!leagueId || !onLeagueSync) return;
@@ -245,6 +266,8 @@ export default function LeagueContextBanner({
     if (item.action === "projections") {
       return {
         ...withTone,
+        label: projRefreshing ? PROJECTION_SYNC_COPY.updating : withTone.label,
+        actionLabel: projRefreshing ? PROJECTION_SYNC_COPY.updating : withTone.actionLabel,
         onAction: () => {
           setSyncOpen(true);
           runProjectionsRefresh();
@@ -328,7 +351,7 @@ export default function LeagueContextBanner({
           onSwitch={onLeagueSwitch}
           onCreateLeague={onCreateLeague}
           variant="compact"
-          disabled={busy}
+          disabled={syncing || switchBusy || sheetSyncing}
         />
       )}
       {!showSwitcher && <span className="hub-league-context-name">{leagueName}</span>}
@@ -470,14 +493,15 @@ export default function LeagueContextBanner({
               className={poolStale ? "btn-primary btn-sm" : "btn-ghost btn-sm"}
               onClick={runProjectionsRefresh}
               disabled={busy}
-              title="Reload draft-pool projections for this league"
+              title="Update projections for this league"
             >
-              {projRefreshing ? "Refreshing…" : "Sync projections"}
+              {projRefreshing ? PROJECTION_SYNC_COPY.updating : "Sync projections"}
             </button>
           </div>
 
-          {(syncMessage || syncError || freshnessError) && (
+          {(syncMessage || syncError || freshnessError || projectionSyncMessage) && (
             <div className="hub-league-context-sync-footer">
+              {projectionSyncMessage && <p className="chart-note" role="status" aria-live="polite">{projectionSyncMessage}</p>}
               {syncMessage && <p className="chart-note">{syncMessage}</p>}
               {(syncError || freshnessError) && (
                 <p className="error hub-league-context-sync-error">
@@ -538,6 +562,12 @@ export default function LeagueContextBanner({
     </div>
   ) : null;
 
+  const syncFeedback = (syncError || freshnessError || projectionSyncMessage) && !syncOpen ? (
+    <p className={`${syncError || freshnessError ? "error" : "chart-note"} hub-league-context-inline-error`} role="status" aria-live="polite">
+      {syncError || freshnessError || projectionSyncMessage}
+    </p>
+  ) : null;
+
   if (mobileLayout) {
     const strip = (
       <section
@@ -559,7 +589,7 @@ export default function LeagueContextBanner({
                 variant="list"
                 hideActiveHero
                 hideCreate
-                disabled={busy}
+                disabled={syncing || switchBusy || sheetSyncing}
                 onSelect={() => { if (compactMenuRef.current) compactMenuRef.current.open = false; }}
               />
             ) : null}
@@ -577,12 +607,10 @@ export default function LeagueContextBanner({
           </div>
         </details>
         {!compactHeader && attentionOneLine}
-        {(syncError || freshnessError) && !syncOpen ? (
-          <p className="error hub-league-context-inline-error">{syncError || freshnessError}</p>
-        ) : null}
+        {!(compactHeader && headerSlot) && syncFeedback}
       </section>
     );
-    return compactHeader && headerSlot ? createPortal(strip, headerSlot) : strip;
+    return compactHeader && headerSlot ? <>{createPortal(strip, headerSlot)}{syncFeedback}</> : strip;
   }
 
   return (
@@ -596,9 +624,7 @@ export default function LeagueContextBanner({
         {syncPopover}
       </div>
       {attentionRow}
-      {(syncError || freshnessError) && !syncOpen && (
-        <p className="error hub-league-context-inline-error">{syncError || freshnessError}</p>
-      )}
+      {syncFeedback}
     </section>
   );
 }
