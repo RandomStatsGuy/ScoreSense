@@ -1,0 +1,74 @@
+{
+  "reason": "Manual production refresh rejected machine-precision carry_share_avg_trend drift",
+  "trend_decimal_places": 10,
+  "positions": {
+    "qb": {
+      "rows_2018_2025": 5314,
+      "row_keys_match": true,
+      "targets_match": true,
+      "canonical_matrices_match": true,
+      "raw_differences": {},
+      "frozen_source_sha256": "62b1ce1ad6c29b8be6ecc45a2de1dbc654fc241ecaba95dbb8e64cea8930b71a",
+      "production_source_sha256": "cb3b597594617608baa9e3aca6b34168d9985b648718b4f87a11eeb0c3e349ed",
+      "frozen_gate_digest": "95548ff363112e6b421854d131701fbf7dfbd69fc12e140f6299347de5ec8fe7",
+      "canonical_training_digest": "95548ff363112e6b421854d131701fbf7dfbd69fc12e140f6299347de5ec8fe7"
+    },
+    "rb": {
+      "rows_2018_2025": 13460,
+      "row_keys_match": true,
+      "targets_match": true,
+      "canonical_matrices_match": true,
+      "raw_differences": {
+        "carry_share_avg_trend": {
+          "changed_rows": 11065,
+          "max_abs": 3.5648567431323386e-16,
+          "mean_abs": 5.5090081226027087e-17
+        }
+      },
+      "frozen_source_sha256": "a613fb12cf84082398c8e0b43e4bfc38543f08023490da1945719ba2aeb7354b",
+      "production_source_sha256": "426c88d1f207f5a4eace195e817a8d43303348911bc3eba63e487c59cb5a3ba5",
+      "frozen_gate_digest": "ed4d5c60a3a4c9e7560d5a3789f11f503e0fa7e778a0a80d7d68e088c485af95",
+      "canonical_training_digest": "028b07e41666662d5b9612c9b0219d418ae6616cff183781ca2e39bdc30324f7",
+      "deterministic_next_etl_matrix_matches": true
+    },
+    "wr": {
+      "rows_2018_2025": 29925,
+      "row_keys_match": true,
+      "targets_match": true,
+      "canonical_matrices_match": true,
+      "raw_differences": {},
+      "frozen_source_sha256": "d0e45ccd8e4f0743b350b5dafea069be087051a52ce29fd7740d8033d7abe077",
+      "production_source_sha256": "1d0329ac01073165632df4d3fb6b46628647cc595befc9a277eedf75667742af",
+      "frozen_gate_digest": "45d78ebb39bc07fa901bb1da14a7cbff56ca71f521a678263c8a2c5f65f4c7f7",
+      "canonical_training_digest": "45d78ebb39bc07fa901bb1da14a7cbff56ca71f521a678263c8a2c5f65f4c7f7"
+    }
+  },
+  "verification": {
+    "linux_exact_slope_windows": 1075,
+    "rb_walk_forward_gate": {
+      "passed": true,
+      "required_seasons": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "complete": true,
+      "seasons_improved": 6,
+      "mean_composite_delta": -0.013981993699055034,
+      "worst_boom_recall_delta": 0.0,
+      "holdout_2025_composite_delta": -0.012189781824795354,
+      "holdout_2025_boom_recall_delta": 0.0,
+      "eligible_for_publication": true
+    },
+    "walk_forward_metrics_unchanged": true,
+    "metric_differences": [],
+    "linux_serving_preflight": {
+      "qb": "pregame_season_recent4_market_p50_v1",
+      "rb": "pregame_season_recent4_p50_v1",
+      "wr": "pregame_season_recent4_p50_v1"
+    }
+  }
+}

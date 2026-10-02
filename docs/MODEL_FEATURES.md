@@ -17,8 +17,9 @@ skill forecasts share this policy through `predict_from_features`.
 Qualified `pregame_season_recent4_p50_v1` adds five recent scoring/usage columns
 to P50 only. P10/P90 retain the baseline columns. The saved contracts contain
 29 QB, 29 RB and 26 WR/TE union columns when the optional FP feature flag is off.
-Automatic training selects this policy only for exact matching frozen gate inputs;
-otherwise it fits the safe baseline. See [the gate and limitations](PROJECTION_PREGAME_REBUILD.md).
+Full refresh selects a configured qualified policy only when its frozen gate
+matches the prepared inputs and training preset. A mismatch stops before fitting
+and preserves the previous serving bundles. See [the gate and limitations](PROJECTION_PREGAME_REBUILD.md).
 The feature lists below describe legacy registry inputs rather than overriding a
 versioned bundle's saved `feature_cols` / per-head contracts.
 
@@ -38,6 +39,12 @@ prepare_feature_matrix()  →  quantile GBM (P10 / P50 / P90)
 ```
 
 All rolling features use **pre-game discipline**: `shift(1)` expanding averages so the current week is never included.
+
+Usage trends use closed-form OLS over the shifted four-observation window.
+`prepare_feature_matrix()` rounds `*_trend` columns to ten decimal places and
+normalizes signed zero before training, inference and fingerprinting. This
+removes numerical-runtime noise while retaining exact checks for other inputs
+and outcomes; see [the production parity audit](EVALUATION.md#portable-usage-trend-inputs).
 
 ---
 
