@@ -24,8 +24,9 @@ def warm_fantasy_value_snapshots(*, prepare_pools: bool = False) -> dict:
             FROM hub_workspace w JOIN team t ON t.user_sub=w.user_sub
             JOIN league l ON l.id=t.league_id
         """).fetchall()
-    prepared, unavailable, seen, pool_seasons = 0, 0, set(), set()
+    prepared, unavailable, seen, inputs, failed_seasons = 0, 0, set(), [], set()
     for config in configs:
+        season = config["season"]
         try:
             season = int(config["season"])
             rules = LeagueRules.model_validate(json.loads(config["rules_json"]))
@@ -35,16 +36,36 @@ def warm_fantasy_value_snapshots(*, prepare_pools: bool = False) -> dict:
             if key in seen:
                 continue
             seen.add(key)
-            # Only explicit refresh jobs may fit missing projection artifacts.
-            # Startup and HTTP readers remain artifact-only. Older configured
-            # league seasons need their own pool after a model/input revision.
-            if prepare_pools and season not in pool_seasons:
-                from src.draft_hub.draft_pool_cache import load_draft_pool
+            inputs.append((season, rules, ranges, team_count))
+        except Exception:
+            unavailable += 1
+            failed_seasons.add(season)
+            logging.getLogger(__name__).warning("Fantasy valuation configuration unavailable for season %s", season, exc_info=True)
+
+    # Discover every configured season's source inputs before making valuations.
+    # A later season can invalidate an earlier pool; the refresh finalizer then
+    # repeats preparation against the complete shared source revision.
+    pool_errors = set()
+    if prepare_pools:
+        from src.draft_hub.draft_pool_cache import load_draft_pool
+
+        for season in sorted({item[0] for item in inputs}):
+            try:
                 load_draft_pool(season, apply_identity=False)
-                pool_seasons.add(season)
+            except Exception:
+                pool_errors.add(season)
+                logging.getLogger(__name__).warning("Fantasy projection pool unavailable for season %s", season, exc_info=True)
+    for season, rules, ranges, team_count in inputs:
+        if season in pool_errors:
+            unavailable += 1
+            failed_seasons.add(season)
+            continue
+        try:
             read_draft_pool_payload(season, rules, ranges, team_count=team_count)
             prepared += 1
         except Exception:
             unavailable += 1
-            logging.getLogger(__name__).warning("Fantasy valuation snapshot unavailable", exc_info=True)
-    return {"prepared": prepared, "unavailable": unavailable}
+            failed_seasons.add(season)
+            logging.getLogger(__name__).warning(
+                "Fantasy valuation snapshot unavailable for season %s (%s teams)", season, team_count, exc_info=True)
+    return {"prepared": prepared, "unavailable": unavailable, "failed_seasons": sorted(failed_seasons, key=str)}

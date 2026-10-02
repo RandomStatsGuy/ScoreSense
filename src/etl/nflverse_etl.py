@@ -295,20 +295,10 @@ def build_all_datasets(
         from src.core.schedule_utils import SCHEDULE_CACHE
         schedule_targets.append(SCHEDULE_CACHE)
     snapshot = schedules.assign(market_fetched_at_utc=datetime.now(timezone.utc).isoformat())
+    from src.core.schedule_utils import save_schedule_snapshot
+
     for schedule_path in schedule_targets if not schedules.empty else []:
-        schedule_path.parent.mkdir(parents=True, exist_ok=True)
-        prior = pd.read_parquet(schedule_path) if schedule_path.exists() else pd.DataFrame()
-        if not prior.empty:
-            # A current-season refresh must not discard earlier training years.
-            snapshot_for_path = pd.concat([prior[~prior.season.isin(seasons)], snapshot], ignore_index=True)
-        else:
-            snapshot_for_path = snapshot
-        temporary = schedule_path.with_name(f"{schedule_path.name}.{uuid4().hex}.tmp")
-        try:
-            write_parquet(snapshot_for_path, temporary)
-            temporary.replace(schedule_path)
-        finally:
-            temporary.unlink(missing_ok=True)
+        save_schedule_snapshot(snapshot, schedule_path)
     pbp = load_play_by_play(seasons)
     team_epa = load_team_epa(seasons, pbp=pbp)
     # Import after module initialization: candidate_etl uses our loaders. An

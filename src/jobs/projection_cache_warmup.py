@@ -39,7 +39,9 @@ def finalize_projection_caches(season: int, week: int, draft_season: int) -> dic
         if not _artifacts_readable(season, week, draft_season):
             continue
         if values["unavailable"]:
-            raise RuntimeError("Fantasy valuation snapshots remain unavailable after projection refresh.")
+            seasons = ", ".join(str(s) for s in values.get("failed_seasons", []))
+            detail = f" Affected seasons: {seasons}." if seasons else ""
+            raise RuntimeError("Fantasy valuation snapshots remain unavailable after projection refresh." + detail)
         optional = {}
         for name, producer in (
             ("injury_overlay_prewarm", lambda s, w: prewarm_injury_overlays(s, w, force=True)),
