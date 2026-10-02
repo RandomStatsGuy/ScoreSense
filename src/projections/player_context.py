@@ -919,20 +919,35 @@ def refresh_player_context(
     *,
     force_injury_refresh: bool = False,
 ) -> dict[str, Any]:
-    """Rebuild this-week notes from cached weekly projections — no ETL."""
+    """Worker entry: repair weekly artifacts with existing models, then notes."""
+    from src.jobs.refresh_lock import refresh_lock
+    from src.jobs.weekly_refresh import REFRESH_STATUS
+    from src.projections.weekly_cache import prewarm_weekly_predictions
+    from src.draft_hub.prepared_week_context import prewarm_week_context
+
     resolved_season, resolved_week = season_week_context(season, week)
-    result = prewarm_player_context(
-        resolved_season,
-        resolved_week,
-        force_injury_refresh=force_injury_refresh,
-        allow_compute=False,
-    )
-    return {
-        "season": resolved_season,
-        "week": resolved_week,
-        **result,
-        "status": "completed",
-    }
+    with refresh_lock(REFRESH_STATUS.with_suffix(".lock")):
+        if force_injury_refresh:
+            build_injury_snapshot(season=resolved_season, week=resolved_week, force_refresh=True)
+        for _ in range(3):
+            revision = weekly_fingerprint()
+            counts = prewarm_weekly_predictions(resolved_season, resolved_week, force=False)
+            if weekly_fingerprint() != revision:
+                continue
+            if len(counts) != 6 or any(count <= 0 for count in counts.values()):
+                raise FileNotFoundError("Weekly projection artifacts are unavailable.")
+            result = prewarm_player_context(
+                resolved_season, resolved_week, force_injury_refresh=False, allow_compute=False,
+            )
+            context = prewarm_week_context(resolved_season, resolved_week)
+            if (weekly_fingerprint() != revision
+                    or any(item.get("status") not in ("prepared", "current") for item in context.values())):
+                continue
+            return {
+                "season": resolved_season, "week": resolved_week, **result,
+                "weekly_predictions_prewarm": counts, "status": "completed",
+            }
+    raise RuntimeError("Projection inputs changed while refreshing. Try Refresh again.")
 
 
 def invalidate_player_context_cache() -> None:

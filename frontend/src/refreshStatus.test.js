@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { refreshHasFinished, waitForRefreshComplete, successfulRefreshRevision } from "./refreshStatus.js";
+import { refreshHasFinished, waitForRefreshComplete, waitForContextRefresh, successfulRefreshRevision } from "./refreshStatus.js";
 
 test("refreshHasFinished is false for running or missing timestamps", () => {
   const cutoff = Date.parse("2026-08-17T12:00:00.000Z");
@@ -76,4 +76,24 @@ test("failed attempts and running jobs retain only the last successful revision"
   assert.equal(successfulRefreshRevision({ status: "error", completed_at: "2026-09-11", last_completed_at: "2026-09-10" }), "2026-09-10");
   assert.equal(successfulRefreshRevision({ status: "running", last_completed_at: "2026-09-10" }), "2026-09-10");
   assert.equal(successfulRefreshRevision({ status: "completed", completed_at: "2026-09-11" }), "2026-09-11");
+});
+
+test("notes refresh waits on its own job before the board reloads", async () => {
+  const started_at = new Date().toISOString();
+  const url = "/api/players/context/refresh/job123";
+  let polls = 0;
+  const result = await waitForContextRefresh({ status: "running", status_url: url, started_at }, async (path) => {
+    assert.equal(path, url);
+    polls += 1;
+    return polls === 1 ? { status: "running" } : { status: "completed", completed_at: started_at };
+  }, { sleep: async () => {}, timeoutMs: 1000 });
+  assert.equal(result.status, "completed");
+  assert.equal(polls, 2);
+});
+
+test("notes refresh reports failure, a missing job, and immediate completion", async () => {
+  await assert.rejects(waitForContextRefresh({ status: "error", error: "Worker failed" }), /Worker failed/);
+  await assert.rejects(waitForContextRefresh({ status: "running" }), /did not start/);
+  const completed = { status: "completed", rows: 830 };
+  assert.equal(await waitForContextRefresh(completed, () => assert.fail("already complete")), completed);
 });

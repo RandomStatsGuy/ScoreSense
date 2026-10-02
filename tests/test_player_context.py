@@ -121,7 +121,18 @@ def _fake_weekly_load(
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    import asyncio
+    from app import api, player_context_refresh as jobs
+    jobs._JOBS.clear()
+    def submit(producer, *args, **kwargs):
+        future = asyncio.get_running_loop().create_future()
+        try:
+            future.set_result(producer(*args, **kwargs))
+        except Exception as exc:
+            future.set_exception(exc)
+        return future
+    monkeypatch.setattr(api, "submit_cpu_job", submit)
     return TestClient(app)
 
 
@@ -313,6 +324,10 @@ def test_refresh_player_context_skips_mlready_when_slate_is_known():
             return_value={"status": "ok", "rows": 3, "built_at": "2026-09-06T21:00:00+00:00"},
         ) as prewarm,
         patch("src.projections.player_context.pd.read_parquet") as read_parquet,
+        patch("src.projections.weekly_cache.prewarm_weekly_predictions",
+              return_value={f"{pos}:inj{i}": 3 for pos in ("qb", "rb", "wr") for i in (0, 1)}),
+        patch("src.draft_hub.prepared_week_context.prewarm_week_context",
+              return_value={"inj1": {"status": "current"}, "inj0": {"status": "current"}}),
     ):
         out = refresh_player_context(season=2026, week=1)
     assert out["status"] == "completed"
@@ -383,7 +398,7 @@ def test_players_context_list_api(mock_list, client):
     assert kwargs.get("compact") is True
 
 
-@patch("app.api.refresh_player_context")
+@patch("app.player_context_refresh.refresh_player_context")
 def test_players_context_refresh_api(mock_refresh, client):
     mock_refresh.return_value = {
         "status": "completed",
@@ -409,8 +424,8 @@ def test_players_context_refresh_api(mock_refresh, client):
     assert mock_refresh.call_args.kwargs["week"] == 1
 
 
-@patch("app.api.refresh_player_context")
-def test_players_context_refresh_api_503_when_weekly_missing(mock_refresh, client):
+@patch("app.player_context_refresh.refresh_player_context")
+def test_players_context_refresh_api_reports_failed_job_when_weekly_missing(mock_refresh, client):
     mock_refresh.side_effect = FileNotFoundError(
         "Weekly prediction artifacts missing for 2026 week 1."
     )
@@ -421,7 +436,9 @@ def test_players_context_refresh_api_503_when_weekly_missing(mock_refresh, clien
         res = client.post("/api/players/context/refresh?season=2026&week=1")
     finally:
         app.dependency_overrides.clear()
-    assert res.status_code == 503
+    assert res.status_code == 200
+    assert res.json()["status"] == "error"
+    assert "Try Refresh again" in res.json()["error"]
 
 
 @patch("app.api.list_player_context")

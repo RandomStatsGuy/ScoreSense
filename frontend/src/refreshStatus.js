@@ -44,6 +44,18 @@ export async function waitForRefreshComplete({
   }
 }
 
+export async function waitForContextRefresh(job, fetchStatus, options = {}) {
+  if (job?.status === "error") throw new Error(job.error || "Notes did not refresh.");
+  if (job?.status === "completed") return job;
+  if (job?.status !== "running" || !job.status_url || !Number.isFinite(Date.parse(job.started_at))) {
+    throw new Error("Refresh did not start. Try Refresh again.");
+  }
+  return waitForRefreshComplete({
+    ...options, cutoffMs: Date.parse(job.started_at),
+    fetchStatus: () => fetchStatus(job.status_url),
+  });
+}
+
 /** Failed attempts must never advertise a new dataset. */
 export function successfulRefreshRevision(status) {
   return status?.last_completed_at || (status?.status === "completed" ? status.completed_at : null) || null;
