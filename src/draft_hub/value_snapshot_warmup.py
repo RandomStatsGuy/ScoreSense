@@ -7,7 +7,7 @@ from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.value_sheet import _pool_payload_cache_key, read_draft_pool_payload
 
 
-def warm_fantasy_value_snapshots() -> dict:
+def warm_fantasy_value_snapshots(*, prepare_pools: bool = False) -> dict:
     if not storage.DRAFT_HUB_DB.exists():
         return {"prepared": 0, "unavailable": 0}
     # Enumerate inputs without resolving focus, reconciling rosters, or creating
@@ -24,7 +24,7 @@ def warm_fantasy_value_snapshots() -> dict:
             FROM hub_workspace w JOIN team t ON t.user_sub=w.user_sub
             JOIN league l ON l.id=t.league_id
         """).fetchall()
-    prepared, unavailable, seen = 0, 0, set()
+    prepared, unavailable, seen, pool_seasons = 0, 0, set(), set()
     for config in configs:
         try:
             season = int(config["season"])
@@ -35,6 +35,13 @@ def warm_fantasy_value_snapshots() -> dict:
             if key in seen:
                 continue
             seen.add(key)
+            # Only explicit refresh jobs may fit missing projection artifacts.
+            # Startup and HTTP readers remain artifact-only. Older configured
+            # league seasons need their own pool after a model/input revision.
+            if prepare_pools and season not in pool_seasons:
+                from src.draft_hub.draft_pool_cache import load_draft_pool
+                load_draft_pool(season, apply_identity=False)
+                pool_seasons.add(season)
             read_draft_pool_payload(season, rules, ranges, team_count=team_count)
             prepared += 1
         except Exception:

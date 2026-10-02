@@ -229,8 +229,10 @@ def _run_weekly_refresh(
     if season <= 0 or week <= 0:
         season = int(state.get("season", seasons[-1]))
         week = int(state.get("week", 1)) or 1
+    draft_season = int(get_draft_meta("qb")["default_season"])
     _progress("inputs")
     fp_status = None
+    fp_draft_ecr = None
     try:
         from src.integrations.fantasypros import archive_fantasypros_week, fantasypros_api_key_configured
         from src.integrations.fantasypros_enrich import enrich_position_mlready
@@ -241,6 +243,12 @@ def _run_weekly_refresh(
                 enrich_position_mlready(position, seasons=[season])
     except Exception as exc:
         fp_status = {"status": "error", "detail": str(exc)}
+    try:
+        from src.integrations.fantasypros import fantasypros_api_key_configured, prefetch_draft_season_ecr
+        if fantasypros_api_key_configured():
+            fp_draft_ecr = prefetch_draft_season_ecr(draft_season)
+    except Exception as exc:
+        fp_draft_ecr = {"status": "error", "detail": str(exc)}
 
     sentiment_status = None
     if retrain and not offseason:
@@ -297,24 +305,13 @@ def _run_weekly_refresh(
     )
 
     draft_counts = {}
-    fp_draft_ecr = None
     draft_pool_status = None
     dfs_slate_status = None
     props_status = None
     _progress("draft")
-    draft_season = int(get_draft_meta("qb")["default_season"])
     save_pool_artifact(draft_season)
     draft_pool_status = pool_artifact_status(draft_season)
-    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
-    draft_pool_status["value_snapshots"] = warm_fantasy_value_snapshots()
     draft_counts = draft_pool_status.get("position_counts", {})
-    try:
-        from src.integrations.fantasypros import fantasypros_api_key_configured, prefetch_draft_season_ecr
-
-        if fantasypros_api_key_configured():
-            fp_draft_ecr = prefetch_draft_season_ecr(draft_season)
-    except Exception as exc:
-        fp_draft_ecr = {"status": "error", "detail": str(exc)}
     if not offseason:
         _progress("slates")
         try:
@@ -340,25 +337,10 @@ def _run_weekly_refresh(
     except Exception as exc:
         fantasy_media_digest_status = {"status": "error", "detail": str(exc)}
 
-    # After weekly inj/no_inj + sentiment/digests so media_context can be materialized.
-    injury_overlay_status = None
-    try:
-        from src.projections.injury_overlay import prewarm_injury_overlays
-
-        injury_overlay_status = prewarm_injury_overlays(season, week, force=True)
-    except Exception as exc:
-        injury_overlay_status = {"status": "error", "detail": str(exc)}
-
-    player_context_status = None
-    try:
-        from src.projections.player_context import prewarm_player_context
-
-        player_context_status = prewarm_player_context(season, week)
-    except Exception as exc:
-        player_context_status = {"status": "error", "detail": str(exc)}
-
-    from src.draft_hub.prepared_week_context import prewarm_week_context
-    fantasy_week_context = prewarm_week_context(season, week)
+    _progress("finalizing")
+    from src.jobs.projection_cache_warmup import finalize_projection_caches
+    finalized = finalize_projection_caches(season, week, draft_season)
+    draft_counts = finalized["draft_pool_artifact"].get("position_counts", {})
 
     status = {
         "started_at": started,
@@ -371,11 +353,8 @@ def _run_weekly_refresh(
             pos: len(df) for pos, df in predictions.items()
         },
         "weekly_predictions_prewarm": weekly_prewarm,
-        "fantasy_week_context": fantasy_week_context,
         "projection_movement": projection_movement_status,
         "ros_predictions_prewarm": ros_prewarm,
-        "injury_overlay_prewarm": injury_overlay_status,
-        "player_context_prewarm": player_context_status,
         "fantasypros_archive": fp_status,
         "fantasypros_draft_ecr": fp_draft_ecr,
         "dfs_slates": dfs_slate_status,
@@ -384,6 +363,7 @@ def _run_weekly_refresh(
         "fantasy_media_digest_prewarm": fantasy_media_digest_status,
         "draft_projections": draft_counts or None,
         "draft_pool_artifact": draft_pool_status,
+        **finalized,
         "status": "completed",
     }
     status["warnings"] = [key for key, value in status.items() if isinstance(value, dict) and value.get("status") == "error"]

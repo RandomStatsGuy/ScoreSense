@@ -15,10 +15,10 @@ from src.integrations.roster_identity import DROP_STATUSES, SKILL_POSITIONS, cel
 def roster_input_revisions() -> list[str]:
     """Local file revisions; new identities must invalidate all forecast caches."""
     from src.config import CACHE_DIR
-    from src.core.artifact_revision import artifact_revision
+    from src.core.artifact_revision import file_content_revision
 
     paths = [CACHE_DIR / 'sleeper_players.json', *sorted(CACHE_DIR.glob('nflverse_roster_*.parquet'))]
-    return [f'roster:{path.name}:{artifact_revision(path)}' for path in paths]
+    return [f'roster:{path.name}:{file_content_revision(path)}' for path in paths]
 
 
 def projection_roster_players(season: int, *, sleeper_df=None, nflverse_df=None) -> pd.DataFrame:

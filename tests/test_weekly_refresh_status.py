@@ -119,8 +119,12 @@ def test_manual_refresh_orders_inputs_before_all_projection_caches(tmp_path, mon
         mock("src.jobs.weekly_refresh.prewarm_ros_predictions", side_effect=event("ros", {}))
         mock("src.jobs.weekly_refresh.save_pool_artifact", side_effect=event("draft"))
         mock("src.jobs.weekly_refresh.pool_artifact_status", return_value={"cached": True, "position_counts": {"QB": 1}})
-        mock("src.draft_hub.value_snapshot_warmup.warm_fantasy_value_snapshots", side_effect=event("values", {"prepared": 1, "unavailable": 0}))
-        mock("src.integrations.fantasypros.prefetch_draft_season_ecr", return_value={})
+        finalized = {"weekly_predictions_prewarm": {}, "ros_predictions_prewarm": {},
+                     "draft_pool_artifact": {"position_counts": {"QB": 1}},
+                     "player_context_prewarm": {"status": "error", "detail": "notes unavailable"}}
+        finalizer = mock("src.jobs.projection_cache_warmup.finalize_projection_caches",
+                         side_effect=event("finalizing", finalized))
+        mock("src.integrations.fantasypros.prefetch_draft_season_ecr", side_effect=event("draft_inputs", {}))
         mock("src.integrations.dfs_slates.prefetch_all_main_slates", return_value={})
         mock("src.integrations.odds_api.odds_api_key_configured", return_value=False)
         sentiment = mock("src.jobs.sentiment_refresh.run_sentiment_refresh")
@@ -130,7 +134,8 @@ def test_manual_refresh_orders_inputs_before_all_projection_caches(tmp_path, mon
         mock("src.jobs.weekly_refresh.injured_players", return_value=[])
         report = mock("src.jobs.weekly_refresh.save_target_quality_report")
         result = wr.run_weekly_refresh(retrain=False, seasons=[2026])
-    assert events == ["inputs", "inputs", "inputs", "weekly", "ros", "draft", "values"]
+    assert events == ["inputs", "inputs", "inputs", "draft_inputs", "weekly", "ros", "draft", "finalizing"]
+    finalizer.assert_called_once_with(2026, 1, 2026)
     assert warm.call_args.kwargs["force"] is False  # predict_all already saved all six variants
     sentiment.assert_not_called()
     report.assert_not_called()

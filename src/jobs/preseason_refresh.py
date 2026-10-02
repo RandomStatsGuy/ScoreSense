@@ -98,28 +98,8 @@ def run_preseason_refresh(
     except Exception as exc:
         fantasy_media_digest_status = {"status": "error", "detail": str(exc)}
 
-    injury_overlay_status = None
-    try:
-        from src.projections.injury_overlay import prewarm_injury_overlays
-
-        injury_overlay_status = prewarm_injury_overlays(
-            weekly_season, weekly_week, force=True
-        )
-    except Exception as exc:
-        injury_overlay_status = {"status": "error", "detail": str(exc)}
-
-    player_context_status = None
-    try:
-        from src.projections.player_context import prewarm_player_context
-
-        player_context_status = prewarm_player_context(weekly_season, weekly_week)
-    except Exception as exc:
-        player_context_status = {"status": "error", "detail": str(exc)}
-
-    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
-    value_snapshot_status = warm_fantasy_value_snapshots()
-    from src.draft_hub.prepared_week_context import prewarm_week_context
-    fantasy_week_context = prewarm_week_context(weekly_season, weekly_week)
+    from src.jobs.projection_cache_warmup import finalize_projection_caches
+    finalized = finalize_projection_caches(weekly_season, weekly_week, draft_season)
 
     status = {
         "started_at": started,
@@ -128,15 +108,12 @@ def run_preseason_refresh(
         "draft_projections": draft_counts,
         "draft_paths": draft_paths,
         "draft_pool_artifact": pool_status,
-        "fantasy_value_snapshots": value_snapshot_status,
         "weekly_predictions_prewarm": weekly_prewarm,
-        "fantasy_week_context": fantasy_week_context,
         "ros_predictions_prewarm": ros_prewarm,
-        "injury_overlay_prewarm": injury_overlay_status,
-        "player_context_prewarm": player_context_status,
         "fantasypros_draft_ecr": fp_ecr_status,
         "sentiment_refresh": sentiment_status,
         "fantasy_media_digest_prewarm": fantasy_media_digest_status,
+        **finalized,
     }
     REFRESH_STATUS.write_text(json.dumps(status, indent=2))
     return status

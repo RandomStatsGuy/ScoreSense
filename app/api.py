@@ -101,7 +101,6 @@ from src.projections.weekly_cache import compute_weekly_artifact, load_weekly_pr
 from src.projections.player_context import (
     get_player_context,
     list_player_context,
-    refresh_player_context,
 )
 from src.projections.injury_overlay import (
     get_injury_overlay,
@@ -505,20 +504,23 @@ def players_context_list(
 
 
 @app.post("/api/players/context/refresh")
-def players_context_refresh(
-    season: Optional[int] = None,
-    week: Optional[int] = None,
+async def players_context_refresh(
+    season: Optional[int] = Query(None, ge=2000, le=2100),
+    week: Optional[int] = Query(None, ge=1, le=18),
     _user=Depends(require_patron),
 ) -> dict:
-    """Rebuild this-week notes from cached weekly projections. No ETL / train."""
-    from fastapi.encoders import jsonable_encoder
+    """Queue weekly artifact repair and notes without ETL or retraining."""
+    from app.player_context_refresh import start_context_refresh
+    return start_context_refresh(season, week, submit_cpu_job)
 
-    try:
-        return jsonable_encoder(refresh_player_context(season=season, week=week))
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail="Weekly projections are not ready. Refresh season projections first, then update the notes.") from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+@app.get("/api/players/context/refresh/{job_id}")
+async def players_context_refresh_status(job_id: str, _user=Depends(require_patron)) -> dict:
+    from app.player_context_refresh import context_refresh_status
+    status = context_refresh_status(job_id)
+    if status is None:
+        raise HTTPException(status_code=404, detail="Refresh status is unavailable. Try Refresh again.")
+    return status
 
 
 @app.get("/api/player/{player_id}/card")
