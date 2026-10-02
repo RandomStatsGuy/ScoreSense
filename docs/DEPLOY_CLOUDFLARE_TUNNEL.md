@@ -242,6 +242,21 @@ and does not replace this retraining step. A cold full refresh can take tens of
 minutes because it rebuilds historical inputs, fits the serving bundles, and
 warms weekly, season and Fantasy artifacts.
 
+The command waits up to 30 minutes for an automatic DFS refresh or projection
+recovery job to release the shared lock. While waiting, it prints a notice every
+30 seconds and leaves the previous refresh status intact; training has not
+started yet. After acquiring the lock, it prints the new start time and pipeline
+stages. To allow an hour for another job to finish, override the service command:
+
+```bash
+docker compose -f deploy/docker-compose.prod.yml run --rm --build refresh \
+  python -m src.jobs.weekly_refresh --lock-timeout 3600
+```
+
+A timeout returns `status: busy` and a nonzero exit code.
+Do not delete `data/cache/last_refresh.lock`: an active process owns the OS lock,
+and deleting the file can let two writers run at once.
+
 Check `data/cache/last_refresh.json` for the current stage and a successful
 completion, then inspect `artifacts/models/v2/training_summary.json` for the
 serving models' `input_policy`, training seasons and digest. Each deployed gate
