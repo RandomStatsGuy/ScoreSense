@@ -133,18 +133,21 @@ def peek_pool_payload_cache(
     salary_ranges: list[dict[str, Any]],
     *,
     team_count: int = 12,
+    allow_stale: bool = False,
 ) -> dict[str, Any] | None:
     """Return cached pool payload without building (overlay hot path)."""
     cache_key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
     revision = source_revision(season)
     cached = _peek_memory_payload(cache_key, revision)
-    if cached is not None:
+    if cached is not None and (allow_stale or not cached.get("projection_stale")):
         return cached
     persisted = _POOL_PAYLOAD_FLIGHTS.run(
         ("snapshot", cache_key, revision),
         lambda: _read_snapshot_payload(cache_key, revision),
     )
-    return copy.deepcopy(persisted) if persisted is not None else None
+    if persisted is not None and (allow_stale or not persisted.get("projection_stale")):
+        return copy.deepcopy(persisted)
+    return None
 
 
 def _read_snapshot_payload(cache_key: str, revision: str) -> dict | None:
@@ -175,9 +178,10 @@ def _peek_memory_payload(key: str, revision: str) -> dict | None:
 
 
 def read_draft_pool_payload(season: int, rules: LeagueRules, salary_ranges: list[dict[str, Any]],
-                            *, team_count: int = 12) -> dict[str, Any]:
+                            *, team_count: int = 12, allow_stale: bool = True) -> dict[str, Any]:
     """HTTP path: snapshot first; unseen configurations use disk inputs only."""
-    return build_draft_pool_payload(season, rules, salary_ranges, team_count=team_count, artifact_only=True)
+    return build_draft_pool_payload(season, rules, salary_ranges, team_count=team_count,
+                                    artifact_only=True, allow_stale=allow_stale)
 
 
 def build_draft_pool_payload(
@@ -187,6 +191,7 @@ def build_draft_pool_payload(
     *,
     team_count: int = 12,
     artifact_only: bool = False,
+    allow_stale: bool = False,
 ) -> dict[str, Any]:
     """Share preparation per configuration, source revision, and read authority."""
     # Freeze inputs before deriving a key; callers cannot change a producer's
@@ -196,15 +201,15 @@ def build_draft_pool_payload(
     key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
     revision = source_revision(season)
     cached = _peek_memory_payload(key, revision)
-    if cached is not None:
+    if cached is not None and (allow_stale or not cached.get("projection_stale")):
         return cached
     # HTTP readers must never join an offline producer allowed to fetch rosters
     # or run inference. Neither ownership nor viewer data enters this result.
     result = _POOL_PAYLOAD_FLIGHTS.run(
-        ("build", key, revision, artifact_only),
+        ("build", key, revision, artifact_only, allow_stale),
         lambda: _build_draft_pool_payload(
             season, rules, salary_ranges, team_count=team_count,
-            artifact_only=artifact_only,
+            artifact_only=artifact_only, allow_stale=allow_stale,
         ),
     )
     return copy.deepcopy(result)
@@ -217,6 +222,7 @@ def _build_draft_pool_payload(
     *,
     team_count: int,
     artifact_only: bool,
+    allow_stale: bool,
 ) -> dict[str, Any]:
     """
     League-agnostic valuation layer (projections + fair values).
@@ -224,15 +230,19 @@ def _build_draft_pool_payload(
     Safe to cache client-side until season, rules, or salary ranges change.
     """
     cache_key = _pool_payload_cache_key(season, rules, salary_ranges, team_count=team_count)
-    cached = peek_pool_payload_cache(season, rules, salary_ranges, team_count=team_count)
+    cached = peek_pool_payload_cache(season, rules, salary_ranges, team_count=team_count,
+                                    allow_stale=allow_stale)
     if cached is not None:
         return cached
     initial_revision = source_revision(season)
     if artifact_only:
         from src.integrations.roster_identity import apply_roster_identity_with_attrs
         pool = load_draft_pool(season, allow_compute=False, apply_identity=False)
+        if pool.empty and allow_stale:
+            pool = load_draft_pool(season, allow_compute=False, apply_identity=False, allow_stale=True)
         if pool.empty:
-            raise PoolSnapshotUnavailable("Fantasy projections are unavailable. A projection refresh is required.")
+            raise PoolSnapshotUnavailable("Fantasy projections are unavailable. A projection refresh is required.",
+                                          season=season)
         pool = apply_roster_identity_with_attrs(pool, None, season=season, week=1, allow_refresh=False)
     else:
         pool = load_draft_pool(season)
@@ -312,6 +322,9 @@ def _build_draft_pool_payload(
         "team_count": team_count,
         "count": len(rows),
         "pool_mode": "draft",
+        "projection_stale": bool(pool.attrs.get("projection_stale")),
+        "projection_built_at": pool.attrs.get("built_at"),
+        "projection_fingerprint": pool.attrs.get("artifact_fingerprint"),
         "position_counts": counts,
         "missing_tight_ends": missing_tight_ends(pool),
         "pool_warnings": warnings,
@@ -420,6 +433,9 @@ def build_value_overlay(
         "taken_count": len(rows) - available_count,
         "sleeper_linked_count": sum(1 for r in rows if r.get("on_sleeper")),
         "pool_mode": pool_payload.get("pool_mode", "draft"),
+        **{key: copy.deepcopy(pool_payload[key]) for key in (
+            "projection_stale", "projection_built_at", "projection_fingerprint", "projection_recovery"
+        ) if key in pool_payload},
         "rows": rows,
     }
 

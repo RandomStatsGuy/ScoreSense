@@ -207,8 +207,12 @@ def save_pool_artifact(season: int, pool: pd.DataFrame | None = None, sidecar: d
             temp.replace(path)
         finally:
             temp.unlink(missing_ok=True)
-    fp = pool_fingerprint()
-    _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
+    snapshot = pool.copy()
+    snapshot.attrs.update(built_at=meta["built_at"], projection_stale=False,
+                          artifact_fingerprint=meta["fingerprint"])
+    # A source update during publication must not tag the saved forecast with
+    # a later fingerprint than the metadata actually published beside it.
+    _POOL_CACHE[season] = ((meta["fingerprint"], artifact_revision(parquet_path, meta_path)), snapshot)
     return parquet_path
 
 
@@ -238,10 +242,11 @@ def _load_draft_pool(
     parquet_path, meta_path = _artifact_paths(season)
     if parquet_path.exists() and meta_path.exists():
         meta = read_cached_metadata(meta_path)
-        if _artifact_is_current(meta, fp):
+        if meta.get("season") == season and _artifact_is_current(meta, fp):
             pool = read_cached_frame(parquet_path)
             if not pool.empty and _artifact_is_current(meta, fp, pool):
-                pool.attrs['built_at'] = meta.get('built_at')
+                pool.attrs.update(built_at=meta.get("built_at"), projection_stale=False,
+                                  artifact_fingerprint=meta.get("fingerprint"))
                 _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
                 return finish(pool)
 
@@ -251,8 +256,12 @@ def _load_draft_pool(
                 meta = read_cached_metadata(meta_path)
                 if meta.get("season") == season and meta.get("pos_logic") == POSITION_LOGIC_VERSION:
                     previous = read_cached_frame(parquet_path)
-                    if not previous.empty:
-                        previous.attrs.update(projection_stale=True, built_at=meta.get("built_at"))
+                    required = {"Player", "Position", "Season Proj", "Per-Game Proj"}
+                    if (not previous.empty and required.issubset(previous.columns)
+                            and pd.to_numeric(previous["Season Proj"], errors="coerce").replace(
+                                [float("inf"), -float("inf")], float("nan")).notna().any()):
+                        previous.attrs.update(projection_stale=True, built_at=meta.get("built_at"),
+                                              artifact_fingerprint=meta.get("fingerprint"))
                         return finish(previous)
             except (OSError, ValueError):
                 pass
@@ -264,16 +273,17 @@ def _load_draft_pool(
             return finish(cached[1])
         if parquet_path.exists() and meta_path.exists():
             meta = read_cached_metadata(meta_path)
-            if _artifact_is_current(meta, fp):
+            if meta.get("season") == season and _artifact_is_current(meta, fp):
                 pool = read_cached_frame(parquet_path)
                 if not pool.empty and _artifact_is_current(meta, fp, pool):
-                    pool.attrs['built_at'] = meta.get('built_at')
+                    pool.attrs.update(built_at=meta.get("built_at"), projection_stale=False,
+                                      artifact_fingerprint=meta.get("fingerprint"))
                     _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
                     return finish(pool)
 
         pool, sidecar = _compute_pool(season)
         save_pool_artifact(season, pool, sidecar)
-        return finish(pool)
+        return finish(_POOL_CACHE[season][1])
 
 
 def load_draft_pool(

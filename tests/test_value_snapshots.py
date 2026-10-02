@@ -186,11 +186,18 @@ def test_unavailable_projection_http_returns_503_without_live_fallback(hub_db, m
     from app.api import app
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
     monkeypatch.setattr(values, "load_draft_pool", lambda *_a, **_k: pd.DataFrame())
+    from app import projection_recovery
+    projection_recovery._ACTIVE.clear()
+    projection_recovery._RESULTS.clear()
+    async def unavailable(*args):
+        return {"status": "error", "failed": ["draft"]}
+    monkeypatch.setattr(projection_recovery, "submit_cpu_job", unavailable)
     client = TestClient(app)
     for path in ["/api/hub/draft-pool", "/api/hub/value-sheet", "/api/hub/value-sheet?overlay_only=true"]:
         response = client.get(path)
         assert response.status_code == 503
         assert "projection refresh" in response.json()["detail"]
+    projection_recovery._RESULTS.clear()
 
 
 def test_warmup_prepares_manager_ranges_with_league_rules(hub_db, pool, monkeypatch):
