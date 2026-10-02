@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from contextlib import ExitStack
 import json
+import math
 import os
+import sys
 import tempfile
 import time
 from datetime import datetime, timezone
@@ -70,6 +73,7 @@ def record_refresh_job_result(future, *, started_at: str) -> None:
 
 def _progress(stage: str) -> None:
     _write_refresh_status({**get_refresh_status(), "stage": stage})
+    print(f"Projection refresh stage: {stage}", file=sys.stderr, flush=True)
 
 
 def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False) -> dict:
@@ -90,21 +94,34 @@ def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False) -> d
     return payload
 
 
-def run_weekly_refresh(retrain=True, seasons=None, draft_only=False, started_at=None) -> dict:
+def run_weekly_refresh(
+    retrain=True, seasons=None, draft_only=False, started_at=None,
+    *, lock_timeout=0, on_lock_wait=None,
+) -> dict:
     for attempt in range(50):
-        try:
-            with refresh_lock(REFRESH_STATUS.with_suffix(".lock")):
+        with ExitStack() as locks:
+            try:
+                locks.enter_context(refresh_lock(
+                    REFRESH_STATUS.with_suffix(".lock"),
+                    timeout=lock_timeout, on_wait=on_lock_wait,
+                ))
+            except RefreshBusy:
                 current = get_refresh_status()
-                if started_at and current.get("started_at") != started_at:
-                    return current  # a newer request superseded this queued task
-                return _execute_weekly_refresh(retrain, seasons, draft_only, started_at)
-        except RefreshBusy:
+                # A status reader can briefly own the lock before our queued task starts.
+                if started_at and current.get("stage") == "queued" and attempt < 49:
+                    time.sleep(0.1)
+                    continue
+                # DFS and context recovery share this lock but have separate status
+                # files. The last weekly result says nothing about this attempt.
+                return {
+                    "status": "busy", "stage": "waiting_for_lock",
+                    "error": "Another projection job is running. This refresh did not start.",
+                    "previous_refresh": current,
+                }
             current = get_refresh_status()
-            # A status reader can briefly own the lock before our queued task starts.
-            if started_at and current.get("stage") == "queued" and attempt < 49:
-                time.sleep(0.1)
-                continue
-            return current
+            if started_at and current.get("started_at") != started_at:
+                return current  # a newer request superseded this queued task
+            return _execute_weekly_refresh(retrain, seasons, draft_only, started_at)
 
 
 
@@ -143,6 +160,7 @@ def _execute_weekly_refresh(
     # actually starts; the run-id check above already excludes superseded jobs.
     _write_refresh_status({"status": "running", "stage": "starting", "started_at": started,
                            "error": None, "completed_at": None})
+    print(f"Projection refresh started: {started}", file=sys.stderr, flush=True)
 
     try:
         return _run_weekly_refresh(
@@ -397,9 +415,30 @@ def main() -> None:
         action="store_true",
         help="Rebuild ETL and draft projection CSVs only (skip train + weekly predict)",
     )
+    parser.add_argument(
+        "--lock-timeout", type=float, default=1800,
+        help="Seconds to wait for another projection job (default: 1800; 0 fails immediately)",
+    )
     args = parser.parse_args()
-    status = run_weekly_refresh(retrain=not args.no_retrain, draft_only=args.draft_only)
+    if not math.isfinite(args.lock_timeout) or args.lock_timeout < 0:
+        parser.error("--lock-timeout must be finite and nonnegative")
+    next_notice = 0
+
+    def waiting(elapsed):
+        nonlocal next_notice
+        if elapsed >= next_notice:
+            print(f"Waiting for another projection job to finish ({elapsed:.0f}s elapsed; "
+                  f"{args.lock_timeout:.0f}s limit). This refresh has not started yet.",
+                  file=sys.stderr, flush=True)
+            next_notice = elapsed + 30
+
+    status = run_weekly_refresh(
+        retrain=not args.no_retrain, draft_only=args.draft_only,
+        lock_timeout=args.lock_timeout, on_lock_wait=waiting,
+    )
     print(json.dumps(status, indent=2))
+    if status.get("status") != "completed":
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

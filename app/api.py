@@ -1329,7 +1329,10 @@ async def refresh(
         future.add_done_callback(partial(record_refresh_job_result, started_at=started["started_at"]))
         return started
     except RefreshBusy:
-        return get_refresh_status()
+        current = get_refresh_status()
+        if current.get("status") == "running":
+            return current
+        raise HTTPException(status_code=409, detail="Another projection job is running. Try again after it finishes.")
     except Exception as exc:
         record_refresh_failure("Could not start refresh. Try again.")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
