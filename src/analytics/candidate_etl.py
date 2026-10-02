@@ -187,6 +187,17 @@ def _schedule_implied_totals(schedules: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def _trend_slope(values) -> float:
+    """OLS on equally spaced observations without a platform-dependent solver."""
+    count = len(values)
+    if count < 2:
+        return 0.0
+    numerator = 0.0
+    for index, value in enumerate(values):
+        numerator += (2 * index - (count - 1)) * float(value)
+    return numerator / (count * (count * count - 1) / 6)
+
+
 def _usage_volatility_and_trend(df: pd.DataFrame, col: str) -> pd.DataFrame:
     out = df.copy()
     out = out.sort_values(["player_id", "season", "week"])
@@ -200,8 +211,7 @@ def _usage_volatility_and_trend(df: pd.DataFrame, col: str) -> pd.DataFrame:
     out[trend_col] = (
         out.groupby("player_id")[col]
         .apply(lambda s: s.shift(1).rolling(4, min_periods=2).apply(
-            lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) >= 2 else 0.0,
-            raw=False,
+            _trend_slope, raw=True,
         ))
         .reset_index(level=0, drop=True)
     )
