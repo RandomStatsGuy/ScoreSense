@@ -280,6 +280,11 @@ pool against current inputs. Configured older league seasons get their own
 updated pool and valuation snapshots. It retries preparation when a source
 changes mid-run and fails instead of reporting completion with unreadable
 projection caches. Inspect warnings for optional note/overlay failures.
+The shared schedule snapshot retains all cached seasons when an older league
+needs a missing year's schedule. Schedule fetches, ETL and Vegas line updates
+merge under the same publication lock, so preparing an older season does not
+remove the current season's inputs. Valuation warnings identify the affected
+season and team count.
 Weekly's notes Refresh runs on the shared background worker, repairs stale or
 missing weekly variants with existing models, and polls its own job status.
 

@@ -80,20 +80,9 @@ def refresh_schedule_season(
     fresh = fresh[fresh["season"] == season]
     if fresh.empty:
         return False
-    merged = fresh
-    if cache_path.exists():
-        try:
-            cached = pd.read_parquet(cache_path)
-            kept = cached[cached["season"] != season]
-            if not kept.empty:
-                merged = pd.concat([kept, fresh], ignore_index=True)
-        except Exception:  # unreadable cache: replace it with the fresh season
-            merged = fresh
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = cache_path.with_name(f"{cache_path.stem}.refresh{cache_path.suffix}")
-    merged.to_parquet(temp_path, index=False)
-    temp_path.replace(cache_path)
-    return True
+    from src.core.schedule_utils import save_schedule_snapshot
+
+    return save_schedule_snapshot(fresh, cache_path)
 
 
 def refresh_lines_if_stale(
