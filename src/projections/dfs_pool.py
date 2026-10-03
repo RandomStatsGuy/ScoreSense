@@ -1,6 +1,7 @@
 """Materialized, deep DFS-only pool; requests never fit models or fetch feeds."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -10,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from src.config import DFS_PREDICTIONS_DIR, MODEL_DIR
+from src.core.opportunity import OPPORTUNITY_ADJUSTMENT_COL, OPPORTUNITY_ADJUSTMENT_LEGACY_COL
 from src.core.team_codes import normalize_team_for_match
 from src.projections.dfs_special_teams import VERSION, QUANTILES, features_before, predict_heads
 
@@ -97,11 +99,29 @@ def special_team_predictions(history, matchups, roster, season, week, bundle):
     return pd.DataFrame(rows)
 
 
-def refresh_dfs_pool(season, week):
+def refresh_dfs_pool(season, week, *, skill_predictions: Mapping[bool, Mapping[str, pd.DataFrame]] | None = None):
+    """Publish both variants, optionally reusing this refresh's weekly inference.
+
+    Weekly coverage and DFS use the same full inference roster. Supplied frames
+    must be fresh, complete and for this context; never fill gaps with an old
+    artifact or repeat inference after a failed weekly refresh.
+    """
     from src.projections.predict import predict_upcoming_week
     from src.integrations.sleeper import players_dataframe
     from src.core.schedule_utils import week_matchups
     from src.jobs.dfs_special_history import refresh_special_history
+
+    if skill_predictions is not None:
+        for injury in (True, False):
+            for pos in ("qb", "rb", "wr"):
+                frame = skill_predictions.get(injury, {}).get(pos)
+                if frame is None or frame.empty:
+                    raise ValueError("Incomplete DFS skill-position output")
+                if (frame.attrs.get("projection_stale")
+                    or frame.attrs.get("inference_meta", {}).get("depth_mode") not in {"coverage", "dfs"}
+                    or any(col not in frame or not frame[col].eq(value).all()
+                           for col, value in (("Season", int(season)), ("Week", int(week))))):
+                    raise ValueError("DFS skill predictions must be fresh full-roster forecasts for this context")
 
     bundle = joblib.load(BUNDLE_PATH)
     history = refresh_special_history(season, bundle["history"])
@@ -111,8 +131,15 @@ def refresh_dfs_pool(season, week):
         raise ValueError("No special-teams predictions for requested context")
     outputs = []
     for injury in (True, False):
-        frames = [predict_upcoming_week(pos, season=season, week=week, apply_injury_adjustments=injury, depth_mode="dfs")
-                  for pos in ("qb", "rb", "wr")]
+        frames = ([skill_predictions[injury][pos] for pos in ("qb", "rb", "wr")]
+                  if skill_predictions is not None else
+                  [predict_upcoming_week(pos, season=season, week=week, apply_injury_adjustments=injury, depth_mode="dfs")
+                   for pos in ("qb", "rb", "wr")])
+        if skill_predictions is not None and not injury:
+            # The weekly reader adds zero-valued compatibility columns; keep
+            # the existing DFS raw schema, which has no opportunity adjustment.
+            frames = [frame.drop(columns=[OPPORTUNITY_ADJUSTMENT_COL, OPPORTUNITY_ADJUSTMENT_LEGACY_COL],
+                                 errors="ignore") for frame in frames]
         if any(f.empty for f in frames):
             raise ValueError("Incomplete DFS skill-position output")
         out = pd.concat([*frames, special], ignore_index=True)

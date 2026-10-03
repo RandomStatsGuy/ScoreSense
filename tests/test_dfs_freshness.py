@@ -61,7 +61,7 @@ def refresh_env(tmp_path, monkeypatch):
     monkeypatch.setattr(sleeper, "get_nfl_state", lambda **k: {"season": "2026", "week": 4, "season_type": "regular"})
     monkeypatch.setattr(weekly_cache, "load_weekly_prediction", model)
     monkeypatch.setattr(weekly_cache, "invalidate_weekly_cache", lambda: None)
-    monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", lambda *a: {"rows": 100, "built_at": "test"})
+    monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", lambda *a, **k: {"rows": 100, "built_at": "test"})
     monkeypatch.setattr("src.projections.ros_cache.load_ros_prediction", lambda *a, **k: pd.DataFrame([{"ROS P50": 100}]))
     return poll, model
 
@@ -73,6 +73,7 @@ def test_refresh_all_positions_and_rate_limits_across_calls(refresh_env):
     assert first["last_success_at"]
     assert [c.args[0] for c in model.call_args_list] == ["qb", "qb", "rb", "rb", "wr", "wr"]
     assert all(c.kwargs["force"] for c in model.call_args_list)
+    assert all(c.kwargs["apply_identity"] is False for c in model.call_args_list)
     assert dfs_refresh.run_dfs_refresh()["status"] == "not_due"
     assert poll.call_count == 1
 
@@ -121,8 +122,50 @@ def test_status_reports_staleness_and_hides_internal_errors(tmp_path, monkeypatc
 
 
 def test_missing_current_history_cannot_claim_fresh_success(refresh_env, monkeypatch):
-    monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", lambda *a: {"rows": 100, "historical_inputs_only": True})
+    monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", lambda *a, **k: {"rows": 100, "historical_inputs_only": True})
     result = dfs_refresh.run_dfs_refresh()
     assert result["status"] == "error"
     assert result["last_success_at"] is None
     assert result["positions"]["dfs"]["rows"] == 100
+
+
+@pytest.mark.parametrize("feed_status", ["ok", "error"])
+def test_refresh_gap_starts_at_completion_even_after_long_job(refresh_env, monkeypatch, feed_status):
+    poll, _ = refresh_env
+    now = [1000.0]
+    monkeypatch.setattr(dfs_refresh.time, "time", lambda: now[0])
+    def slow_poll(**kwargs):
+        now[0] += dfs_refresh.DFS_REFRESH_SECONDS * 2
+        return {"status": feed_status}
+    poll.side_effect = slow_poll
+    result = dfs_refresh.run_dfs_refresh()
+    assert result["status"] == feed_status
+    assert result["completed_epoch"] == now[0]
+    now[0] += dfs_refresh.DFS_REFRESH_SECONDS - 1
+    assert dfs_refresh.run_dfs_refresh()["status"] == "not_due"
+    assert poll.call_count == 1
+    now[0] += 1
+    assert dfs_refresh.run_dfs_refresh()["status"] == feed_status
+    assert poll.call_count == 2
+
+
+def test_refresh_does_not_reuse_partial_or_empty_raw_variant(refresh_env, monkeypatch):
+    _, model = refresh_env
+    frame = pd.DataFrame([{"player_id": "fresh"}])
+    model.side_effect = [frame, pd.DataFrame(), frame, frame, frame, frame]
+    pool = Mock(return_value={"rows": 100})
+    monkeypatch.setattr("src.projections.dfs_pool.refresh_dfs_pool", pool)
+    result = dfs_refresh.run_dfs_refresh()
+    assert result["status"] == "error"
+    assert result["last_success_at"] is None
+    supplied = pool.call_args.kwargs["skill_predictions"]
+    assert all("qb" not in supplied[injury] for injury in (True, False))
+    assert all(set(supplied[injury]) == {"rb", "wr"} for injury in (True, False))
+
+
+def test_legacy_status_start_time_still_rate_limits(refresh_env, monkeypatch):
+    now = time.time()
+    dfs_refresh.STATUS_PATH.write_text(json.dumps({"attempt_epoch": now, "status": "ok"}))
+    monkeypatch.setattr(dfs_refresh.time, "time", lambda: now + 1)
+    assert dfs_refresh.run_dfs_refresh()["status"] == "not_due"
+    refresh_env[0].assert_not_called()
