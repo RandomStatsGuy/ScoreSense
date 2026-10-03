@@ -10,11 +10,11 @@ async def dfs_refresh_ticker_loop():
         return
     await asyncio.sleep(30)
     while True:
-        started = asyncio.get_running_loop().time()
         try:
             await submit_cpu_job(run_dfs_refresh)
         except asyncio.CancelledError:
             raise
         except Exception:
             logging.getLogger(__name__).exception("DFS refresh worker failed")
-        await asyncio.sleep(max(1, DFS_REFRESH_SECONDS - (asyncio.get_running_loop().time() - started)))
+        # Leave a full quiet interval even when inference exceeds the interval.
+        await asyncio.sleep(DFS_REFRESH_SECONDS)

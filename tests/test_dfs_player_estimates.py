@@ -65,7 +65,8 @@ def test_unavailable_players_remain_visible_without_fake_zero_projection():
     assert pd.isna(rows.iloc[0]["Projected Points"])
 
 
-def test_dfs_roster_mode_bypasses_depth_cut_and_requests_missing_profiles(monkeypatch):
+@pytest.mark.parametrize("depth_mode", ["coverage", "dfs"])
+def test_dfs_roster_mode_bypasses_depth_cut_and_requests_missing_profiles(monkeypatch, depth_mode):
     from src.core.projection_context import build_inference_roster
     frame = pd.DataFrame([{"player_id": "x", "team": "KC", "position": "QB", "season": 2025, "week": 1}])
     seen = []
@@ -75,7 +76,7 @@ def test_dfs_roster_mode_bypasses_depth_cut_and_requests_missing_profiles(monkey
     monkeypatch.setattr("src.integrations.sleeper.apply_sleeper_roster_overlay", overlay)
     monkeypatch.setattr("src.integrations.roster_identity.apply_roster_identity_overlay", lambda data,*a,**k: (data,{}))
     monkeypatch.setattr("src.core.depth_chart.filter_depth_chart_starters", lambda *a,**k: (_ for _ in ()).throw(AssertionError("depth cut")))
-    out, _ = build_inference_roster(frame, "qb", 2026, 1, depth_mode="dfs")
+    out, _ = build_inference_roster(frame, "qb", 2026, 1, depth_mode=depth_mode)
     assert len(out) == 1
     assert seen[0]["add_missing"] is True
 
