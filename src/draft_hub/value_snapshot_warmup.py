@@ -1,4 +1,6 @@
 """Prepare existing Fantasy valuation configurations before serving pages."""
+
+from src.ops.job_diagnostics import observe_job
 import json
 import logging
 
@@ -7,6 +9,7 @@ from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.value_sheet import _pool_payload_cache_key, read_draft_pool_payload
 
 
+@observe_job("fantasy_valuations")
 def warm_fantasy_value_snapshots(*, prepare_pools: bool = False, season: int | None = None) -> dict:
     if not storage.DRAFT_HUB_DB.exists():
         return {"prepared": 0, "unavailable": 0}

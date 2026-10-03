@@ -18,9 +18,27 @@ def _testing_env() -> None:
 
 
 @pytest.fixture(autouse=True)
-def _reset_hub_db_init_flag():
-    """Schema init is gated by a module flag; reset so each test's tmp DB gets tables."""
+def _reset_hub_db_init_flag(tmp_path, monkeypatch):
+    """Isolate default paths too, including API startup's spawned workers."""
+    from src import config
     from src.draft_hub import storage
+    from src.auth import user_store
+
+    database_root = tmp_path / "databases"
+    monkeypatch.setenv("SCORESENSE_TEST_DATABASE_ROOT", str(database_root))
+    diagnostics_path = tmp_path / "job_diagnostics.sqlite3"
+    monkeypatch.setenv("JOB_DIAGNOSTICS_PATH", str(diagnostics_path))
+    monkeypatch.setenv("JOB_DIAGNOSTICS_ENABLED", "false")
+    monkeypatch.setattr(config, "JOB_DIAGNOSTICS_PATH", diagnostics_path)
+    monkeypatch.setattr(config, "JOB_DIAGNOSTICS_ENABLED", False)
+    for module, prefix, dirname, filename in (
+        (config, "DRAFT_HUB", "draft_hub", "draft_hub.db"),
+        (storage, "DRAFT_HUB", "draft_hub", "draft_hub.db"),
+        (config, "AUTH", "auth", "users.db"),
+        (user_store, "AUTH", "auth", "users.db"),
+    ):
+        monkeypatch.setattr(module, prefix + "_DIR", database_root / dirname)
+        monkeypatch.setattr(module, prefix + "_DB", database_root / dirname / filename)
 
     storage._DB_INITIALIZED = False
     yield
@@ -35,6 +53,21 @@ def hub_db(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, "DRAFT_HUB_DIR", tmp_path)
     storage._DB_INITIALIZED = False
     return tmp_path
+
+
+@pytest.fixture()
+def diagnostics_enabled(tmp_path, monkeypatch):
+    """Only explicit diagnostics tests write observations, always to a temp file."""
+    from src import config
+    from src.ops import job_diagnostics
+    path = tmp_path / "job_diagnostics.sqlite3"
+    monkeypatch.setattr(config, "JOB_DIAGNOSTICS_ENABLED", True)
+    monkeypatch.setattr(config, "JOB_DIAGNOSTICS_PATH", path)
+    # Spawned worker tests read configuration from their inherited environment.
+    monkeypatch.setenv("JOB_DIAGNOSTICS_ENABLED", "true")
+    monkeypatch.setenv("JOB_DIAGNOSTICS_PATH", str(path))
+    job_diagnostics._READY.discard(str(path.resolve()))
+    return path
 
 
 @pytest.fixture()

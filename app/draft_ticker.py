@@ -5,6 +5,8 @@ Bid and nomination deadlines must expire even when no browser is polling.
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import submit_thread_job
+
 import asyncio
 import logging
 import os
@@ -30,7 +32,7 @@ async def draft_ticker_loop() -> None:
         try:
             # Clock work uses SQLite and may run bot/player selection. Keep it
             # off the event loop that accepts and completes HTTP requests.
-            changed = await asyncio.to_thread(tick_expired_drafts)
+            changed = await submit_thread_job(tick_expired_drafts)
             for league_id in changed:
                 try:
                     await broadcast_room(league_id)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
+
 from contextlib import ExitStack
 import json
 import math
@@ -94,10 +96,12 @@ def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False) -> d
     return payload
 
 
+@observe_job("weekly_refresh")
 def run_weekly_refresh(
     retrain=True, seasons=None, draft_only=False, started_at=None,
     *, lock_timeout=0, on_lock_wait=None,
 ) -> dict:
+    annotate_job(retrain=bool(retrain))
     for attempt in range(50):
         with ExitStack() as locks:
             try:
@@ -193,7 +197,7 @@ def _run_weekly_refresh(
     # UI / --no-retrain reuses existing mlready. Full ETL is the hang on Refresh.
     if retrain or draft_only:
         _progress("datasets")
-        build_all_datasets(seasons=seasons)
+        call_phase("etl", build_all_datasets, seasons=seasons)
     invalidate_weekly_cache()
     invalidate_ros_cache()
     if draft_only:
@@ -217,7 +221,7 @@ def _run_weekly_refresh(
         # Fetching the current week still happens in the inputs stage below.
         from src.integrations.fantasypros_enrich import enrich_all_mlready
         enrich_all_mlready(seasons=seasons)
-        train_all(train_seasons=DEFAULT_TRAIN_SEASONS)
+        call_phase("train", train_all, train_seasons=DEFAULT_TRAIN_SEASONS)
         save_target_quality_report()
 
     state = get_nfl_state()
@@ -266,7 +270,8 @@ def _run_weekly_refresh(
         except Exception as exc:
             sentiment_status = {"status": "error", "detail": str(exc)}
     _progress("weekly")
-    predictions = predict_all_positions(season=season, week=week)
+    annotate_job(season=season, week=week)
+    predictions = call_phase("weekly_inference", predict_all_positions, season=season, week=week)
     weekly_prewarm = prewarm_weekly_predictions(
         season,
         week,
@@ -298,7 +303,7 @@ def _run_weekly_refresh(
     except Exception as exc:
         projection_movement_status = {"status": "error", "detail": str(exc)}
     _progress("season")
-    ros_prewarm = prewarm_ros_predictions(
+    ros_prewarm = call_phase("ros", prewarm_ros_predictions,
         season,
         week,
         force=True,

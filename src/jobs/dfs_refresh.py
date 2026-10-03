@@ -1,4 +1,6 @@
 """Current-week inference refresh with a five-minute completion gap. No training."""
+
+from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
 import json
 import logging
 import time
@@ -11,6 +13,7 @@ STATUS_PATH = CACHE_DIR / "dfs_refresh.json"
 logger = logging.getLogger(__name__)
 
 
+@observe_job("dfs_refresh", cadence_s=DFS_REFRESH_SECONDS)
 def run_dfs_refresh():
     from src.integrations.injury_poll import run_injury_poll
     from src.integrations.sleeper import get_nfl_state
@@ -45,13 +48,14 @@ def run_dfs_refresh():
                     save()
                     return status
                 status.update(season=season, week=week)
+                annotate_job(season=season, week=week, force=True)
                 invalidate_weekly_cache()
                 errors = []
                 skill_predictions = {True: {}, False: {}}
                 for position in ("qb", "rb", "wr"):
                     try:
-                        frame = load_weekly_prediction(position, season, week, force=True, apply_identity=False)
-                        raw = load_weekly_prediction(position, season, week, apply_injury_adjustments=False,
+                        frame = call_phase(f"weekly_{position}_inj", load_weekly_prediction, position, season, week, force=True, apply_identity=False)
+                        raw = call_phase(f"weekly_{position}_raw", load_weekly_prediction, position, season, week, apply_injury_adjustments=False,
                                                      force=True, apply_identity=False)
                         if frame.empty or raw.empty:
                             raise RuntimeError("Empty projection output")
@@ -63,7 +67,7 @@ def run_dfs_refresh():
                         logger.exception("DFS refresh failed for %s", position)
                 try:
                     from src.projections.dfs_pool import refresh_dfs_pool
-                    status["positions"]["dfs"] = refresh_dfs_pool(season, week, skill_predictions=skill_predictions)
+                    status["positions"]["dfs"] = call_phase("pool", refresh_dfs_pool, season, week, skill_predictions=skill_predictions)
                     if status["positions"]["dfs"].get("historical_inputs_only"):
                         errors.append("dfs_current_season_history")
                     if status["positions"]["dfs"].get("special_history_refresh_failed"):
@@ -75,7 +79,7 @@ def run_dfs_refresh():
                 from src.projections.ros_cache import load_ros_prediction
                 for position in ("qb", "rb", "wr"):
                     try:
-                        frame = load_ros_prediction(position, season, week)
+                        frame = call_phase(f"ros_{position}", load_ros_prediction, position, season, week)
                         if frame.empty:
                             raise RuntimeError("Empty ROS output")
                         status["positions"][f"ros_{position}"] = {"rows": len(frame), "built_at": frame.attrs.get("built_at")}

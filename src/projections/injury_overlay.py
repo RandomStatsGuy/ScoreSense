@@ -16,6 +16,8 @@ note noise is ignored; rapid updates are debounced.
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job
+
 import json
 import math
 from datetime import datetime, timezone
@@ -434,6 +436,7 @@ def _parse_drivers_cell(value: Any) -> list[str]:
     return []
 
 
+@observe_job("injury_overlay")
 def recompute_injury_overlays(
     season: int,
     week: int,
@@ -502,6 +505,8 @@ def recompute_injury_overlays(
             }
 
     changed = list(diff.get("changed_teams") or [])
+    annotate_job(season=int(season), week=int(week), force=force,
+                 input_revision=str(current.get("injury_snapshot_id") or ""), material_change=bool(changed), changed=len(changed))
     if not changed:
         return {
             "status": "skipped",

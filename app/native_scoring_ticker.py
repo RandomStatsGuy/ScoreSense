@@ -1,4 +1,6 @@
 """Native scoring refreshes use the application's shared CPU worker."""
+
+from src.ops.job_diagnostics import submit_thread_job
 import asyncio
 import logging
 from app.process_pool import submit_cpu_job
@@ -12,7 +14,7 @@ async def native_scoring_ticker_loop():
     while True:
         started = asyncio.get_running_loop().time()
         try:
-            await asyncio.to_thread(queue_current_native_weeks)
+            await submit_thread_job(queue_current_native_weeks)
         except asyncio.CancelledError:
             raise
         except Exception:
