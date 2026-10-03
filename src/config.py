@@ -262,6 +262,8 @@ def write_parquet(df, path) -> None:
     df.to_parquet(path, **PARQUET_WRITE_KWARGS)
 
 DFS_REFRESH_SECONDS = 300
+# Recheck feeds every five minutes; bound automatic reuse of identical forecasts.
+DFS_FORECAST_MAX_AGE_SECONDS = 900
 NATIVE_SCORING_REFRESH_ENABLED = os.getenv("NATIVE_SCORING_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 DFS_REFRESH_ENABLED = os.getenv("DFS_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 
