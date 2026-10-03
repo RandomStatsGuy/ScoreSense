@@ -98,6 +98,7 @@ from src.draft_hub.schemas import (
     FranchiseAddRequest,
     LeagueSizeUpdate,
     RosterAddRequest,
+    DeadCapRecordRequest,
     RosterRemoveRequest,
     RosterUpdateRequest,
     HistoricCorrectionRequest,
@@ -1517,6 +1518,23 @@ def _resolve_roster_add_team(ctx: dict[str, Any], requested_team_id: str | None)
     if own_team_id and str(own_team_id) == target_id:
         return target_id, "your team"
     return target_id, str(team.get("name") or "this team")
+
+
+@router.post("/league/{league_id}/dead-cap")
+def hub_record_dead_cap(
+    league_id: str, body: DeadCapRecordRequest, _user=Depends(require_hub_user),
+) -> dict:
+    sub = _sub(_user)
+    _assert_league_commissioner(league_id, sub)
+    try:
+        row = storage.record_dead_cap(league_id, body, edited_by_sub=sub)
+    except ValueError as exc:
+        message = str(exc)
+        raise HTTPException(
+            status_code=409 if "already recorded" in message else 400, detail=message,
+        ) from exc
+    _invalidate_league_rosters_from_ctx({"league_id": league_id})
+    return {"roster_slot": row}
 
 
 @router.post("/roster")

@@ -20,6 +20,16 @@ test("rosterSlotKey is empty when the row is missing", () => {
   assert.equal(rosterSlotKey({ id: 44, player_id: "p1" }), "slot-44");
 });
 
+test("recorded dead cap has no invented refund or contract to undo", () => {
+  const row = { salary: 0, contract_years: 1, roster_status: "cut_before_draft",
+    contract: { dead_cap_recorded: true, dead_cap_amount: 3 } };
+  const story = contractDeadCapStory(row, { contracts: { cut_refund_pct: 0.5 } });
+  assert.equal(story.dead, 3);
+  assert.equal(story.freed, 0);
+  assert.equal(story.ifUndoneLabel, "—");
+  assert.equal(story.cutBullet, "$3 recorded dead cap");
+});
+
 const RULES = { contracts: { cut_refund_pct: 0.5 } };
 const ZAMIR = { player_name: "Zamir White", salary: 10, roster_status: "cut_before_draft" };
 

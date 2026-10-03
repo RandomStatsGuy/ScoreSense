@@ -85,7 +85,37 @@ export const OFFICE_CONTRACTS_COPY = {
   sleeperLinked: (linked, total) => `Sleeper linked · ${linked}/${total} teams`,
   extendToKeep: "Extend to keep",
   expiring: "Expiring",
+  entryKind: "Record",
+  addPlayer: "Add player",
+  recordDeadCap: "Record dead cap",
+  recordingDeadCap: "Recording…",
+  deadCap: "Dead cap",
+  position: "Position",
+  choosePosition: "Choose position",
+  deadCapPlayerPlaceholder: "Search or enter a player name…",
+  deadCapHelp: (season) => `Counts toward ${season} cap only. Retired and unlisted players can be entered by name.`,
+  deadCapAmountInvalid: "Enter a positive whole-dollar dead-cap amount.",
+  deadCapFieldsInvalid: "Enter a player name, position, and dead-cap amount.",
+  deadCapSaved: (name, team, amount) => `Recorded ${fmtSal(amount)} dead cap for ${name} on ${team}.`,
+  removeDeadCap: "Remove dead cap",
 };
+
+export function buildDeadCapRecordBody({ query, suggestion, amount, position, season, teamId }) {
+  const name = String(query || "").trim();
+  const dollars = Number(amount);
+  if (!name || !position || !teamId || !Number.isInteger(Number(season))
+      || !Number.isInteger(dollars) || dollars <= 0) return null;
+  const selected = suggestion?.player_name === name ? suggestion : null;
+  return {
+    team_id: teamId, season: Number(season), player_name: name, position, amount: dollars,
+    ...(selected?.player_id ? { player_id: selected.player_id } : {}),
+    ...(selected?.sleeper_player_id ? { sleeper_player_id: selected.sleeper_player_id } : {}),
+  };
+}
+
+export function isRecordedDeadCap(row) {
+  return row?.roster_status === "cut_before_draft" && Boolean(row?.contract?.dead_cap_recorded);
+}
 
 export const OFFICE_ACQUIRED_OPTIONS = [
   { value: "draft", label: OFFICE_CONTRACTS_COPY.acquiredAuction },
@@ -203,6 +233,9 @@ export function dropButtonCopy(row, { queuedDrop = false, draftCompleted = false
     };
   }
   const name = row?.player_name || "player";
+  if (isRecordedDeadCap(row)) {
+    return { label: OFFICE_CONTRACTS_COPY.removeDeadCap, ariaLabel: `Remove recorded dead cap for ${name}` };
+  }
   if (draftCompleted) {
     return {
       label: OFFICE_CONTRACTS_COPY.dropNow,
@@ -220,6 +253,13 @@ export function dropButtonCopy(row, { queuedDrop = false, draftCompleted = false
 
 export function dropConfirmCopy(row, { draftCompleted = false } = {}) {
   const name = row?.player_name || "this player";
+  if (isRecordedDeadCap(row)) {
+    return {
+      title: `Remove dead cap for ${name}?`,
+      message: `Removes this recorded charge from the team's cap. Use this to correct an entry made in error.`,
+      confirmLabel: OFFICE_CONTRACTS_COPY.removeDeadCap,
+    };
+  }
   const freed = dropLeftoverFreed(row, draftCompleted);
   const leftoverLine = freed
     ? ` Leftover goes up ${fmtSal(freed)}.`

@@ -66,6 +66,7 @@ export const MY_TEAM_COPY = {
   undoCut: "Undo cut",
   undoCutClosed: "Undo cut is closed",
   undoCutTransferred: "Dead-cap responsibility changed in a trade. Adjust it through Trades.",
+  undoCutRecorded: "Recorded dead cap has no active contract to restore. A commissioner can correct it in Contracts.",
   undoCutClosedSupport: (owner) => (
     owner
       ? `They're on ${owner}'s roster.`

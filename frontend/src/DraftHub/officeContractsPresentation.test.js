@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   OFFICE_ACQUIRED_OPTIONS,
   OFFICE_CONTRACTS_COPY,
+  buildDeadCapRecordBody,
+  isRecordedDeadCap,
   applyPendingToBlock,
   capFieldFigures,
   contractStateChip,
@@ -26,6 +28,27 @@ import {
 } from "./officeContractsPresentation.js";
 
 const RULES = { contracts: { cut_refund_pct: 0.5, max_years: 3 } };
+
+test("dead cap can be recorded by name without a current player suggestion", () => {
+  const body = buildDeadCapRecordBody({ query: " James Conner ", amount: "3", position: "RB", season: 2026, teamId: "t1" });
+  assert.deepEqual(body, { team_id: "t1", season: 2026, player_name: "James Conner", position: "RB", amount: 3 });
+  for (const amount of ["", "0", "-1", "1.5", "NaN", "Infinity"]) {
+    assert.equal(buildDeadCapRecordBody({ query: "James Conner", amount, position: "RB", season: 2026, teamId: "t1" }), null);
+  }
+});
+
+test("standalone debt affects cap and offers removal, never an active contract", () => {
+  const row = { player_id: "conner", player_name: "James Conner", salary: 0, contract_years: 1,
+    roster_status: "cut_before_draft", contract: { dead_cap_recorded: true, dead_cap_amount: 3 } };
+  assert.equal(isRecordedDeadCap(row), true);
+  const stats = teamCapStats({ roster: [row] }, 200, RULES, true);
+  assert.equal(stats.deadCap, 3);
+  assert.equal(stats.committed, 0);
+  assert.equal(stats.playerCount, 0);
+  assert.equal(stats.remaining, 197);
+  assert.equal(dropButtonCopy(row).label, "Remove dead cap");
+  assert.equal(dropConfirmCopy(row).confirmLabel, "Remove dead cap");
+});
 const TEAM = {
   team: { id: "t1", name: "Alpha" },
   roster: [

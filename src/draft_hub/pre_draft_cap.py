@@ -94,6 +94,8 @@ def contract_on_cut_status_change(
         contract["cut_dead_cap_years"] = 1
         return contract
     if roster_status == ROSTER_ACTIVE:
+        if contract.get("dead_cap_recorded"):
+            raise ValueError("Recorded dead cap cannot be undone as a player cut")
         if contract.get("dead_cap_transferred") or contract.get("dead_cap_sources"):
             raise ValueError("Transferred dead cap cannot be undone as a player cut")
         contract.pop("cut_dead_cap_years", None)
@@ -234,6 +236,7 @@ def pre_draft_cap_summary(
         "expiring_after_draft": expiring,
         "pending_cuts": [
             {
+                "roster_status": ROSTER_CUT_BEFORE_DRAFT,
                 "player_id": row.get("player_id"),
                 "player_name": row.get("player_name"),
                 "position": normalize_position(row.get("position")),
