@@ -1,4 +1,6 @@
 """Refresh current-season observed special-teams outcomes, never on HTTP reads."""
+
+from src.ops.job_diagnostics import observe_job, annotate_job
 import io
 import pandas as pd
 import requests
@@ -25,9 +27,13 @@ def _refresh_special_history(season, retained):
     return out
 
 
+@observe_job("dfs_special_history")
 def refresh_special_history(season, retained):
+    annotate_job(season=int(season))
     try:
-        return _refresh_special_history(season, retained)
+        result = _refresh_special_history(season, retained)
+        annotate_job(rows=len(result))
+        return result
     except requests.RequestException:
         # Forecast the requested matchup from known historical inputs when a
         # transient feed outage occurs. Freshness remains explicitly failed.
@@ -35,4 +41,5 @@ def refresh_special_history(season, retained):
         logging.getLogger(__name__).warning('Current special-teams feed unavailable; retaining historical inputs', exc_info=True)
         out=retained.copy()
         out.attrs.update(current_season_available=False, input_refresh_failed=True)
+        annotate_job(failed=1)
         return out

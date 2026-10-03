@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import annotate_job
+
 import hashlib
 import json
 import threading
@@ -93,12 +95,15 @@ def _load_ros_prediction(
 
     pos = position.lower()
     fp = ros_fingerprint()
+    annotate_job(season=int(season), week=int(week), apply_injury=bool(apply_injury_adjustments),
+                 force=force, input_revision=fp, cache_hit=False)
     key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
     parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
     memory_fp = (fp, artifact_revision(parquet_path, meta_path))
     if not force:
         cached = _ROS_CACHE.get(key)
         if cached is not None and cached[0] == memory_fp:
+            annotate_job(cache_hit=True)
             return _with_roster_identity(
                 cached[1].copy(),
                 pos,
@@ -117,6 +122,7 @@ def _load_ros_prediction(
                 if not df.empty:
                     df.attrs['built_at'] = meta.get('built_at')
                     _ROS_CACHE[key] = (memory_fp, df.copy())
+                    annotate_job(cache_hit=True)
                     return _with_roster_identity(
                         df,
                         pos,
@@ -133,6 +139,7 @@ def _load_ros_prediction(
         if not force:
             cached = _ROS_CACHE.get(key)
             if cached is not None and cached[0] == memory_fp:
+                annotate_job(cache_hit=True)
                 return _with_roster_identity(
                     cached[1].copy(),
                     pos,
@@ -149,6 +156,7 @@ def _load_ros_prediction(
                     if not df.empty:
                         df.attrs['built_at'] = meta.get('built_at')
                         _ROS_CACHE[key] = (memory_fp, df.copy())
+                        annotate_job(cache_hit=True)
                         return _with_roster_identity(
                             df,
                             pos,
@@ -157,6 +165,7 @@ def _load_ros_prediction(
                             cache_key=f"ros:{key}:{memory_fp}",
                         )
 
+        annotate_job(computation_performed=True)
         df = predict_rest_of_season(
             pos,
             season=int(season),

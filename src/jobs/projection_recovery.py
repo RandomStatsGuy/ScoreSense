@@ -1,13 +1,17 @@
 """Rebuild missing requested-context artifacts off the request path; no training."""
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
+
 import logging
 
 from src.config import CACHE_DIR
 from src.jobs.refresh_lock import RefreshBusy, refresh_lock
 
 
+@observe_job("projection_repair")
 def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -> dict:
+    annotate_job(season=season, week=week, checked=len(kinds))
     errors = []
     try:
         with refresh_lock(CACHE_DIR / "last_refresh.lock"):
@@ -18,7 +22,7 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                         from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
                         for _ in range(3):
                             revision = pool_fingerprint()
-                            load_draft_pool(season, apply_identity=False)
+                            call_phase("draft_pool", load_draft_pool, season, apply_identity=False)
                             values = warm_fantasy_value_snapshots(season=season)
                             if pool_fingerprint() != revision:
                                 continue
@@ -31,7 +35,7 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                             raise ValueError("Draft inputs changed during recovery")
                     elif kind == "dfs":
                         from src.projections.dfs_pool import refresh_dfs_pool
-                        result = refresh_dfs_pool(season, week)
+                        result = call_phase("dfs", refresh_dfs_pool, season, week)
                         if result.get('historical_inputs_only') or result.get('special_history_refresh_failed'):
                             raise ValueError("Specialist inputs could not refresh; saved forecasts remain available")
                     elif kind == "specialists":
@@ -51,7 +55,8 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                         for position in ("qb", "rb", "wr"):
                             try:
                                 for injury in (True, False):
-                                    frame = loader(position, season, week, apply_injury_adjustments=injury,
+                                    frame = call_phase(f"{kind}_{position}_inj{int(injury)}", loader,
+                                                   position, season, week, apply_injury_adjustments=injury,
                                                    **({"force": True} if kind == "ros" else {}))
                                     if frame.empty:
                                         raise ValueError("Empty projection output")
@@ -63,4 +68,5 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                     logging.getLogger(__name__).exception("Projection recovery failed: %s", kind)
     except RefreshBusy:
         return {"status": "busy"}
+    annotate_job(failed=len(errors))
     return {"status": "error" if errors else "ok", "failed": errors}

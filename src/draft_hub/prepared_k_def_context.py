@@ -6,6 +6,8 @@ week. Readers never parse the full Sleeper catalog or run auction calculations.
 """
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job
+
 from datetime import datetime, timezone
 from functools import lru_cache
 import json
@@ -70,6 +72,7 @@ def load_k_def_context() -> dict[str, dict]:
     return {pid: dict(row) for pid, row in saved["index"].items()} if saved else {}
 
 
+@observe_job("fantasy_specialists.prepare")
 def prepare_k_def_context() -> dict:
     """Worker/job entry point: read saved public inputs and publish atomically."""
     from src.draft_hub.k_def_pool_cache import build_k_def_projection_index
@@ -78,6 +81,7 @@ def prepare_k_def_context() -> dict:
     try:
         with refresh_lock(path.with_suffix(".lock")):
             revision = source_revision()
+            annotate_job(input_revision=revision)
             previous = _snapshot()
             if previous and previous["revision"] == revision:
                 return {"status": "current"}

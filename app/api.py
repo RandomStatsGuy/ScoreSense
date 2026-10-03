@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import submit_thread_job
+
 import asyncio
 import json
 import math
@@ -152,7 +154,7 @@ async def lifespan(app: FastAPI):
     from src.draft_hub.week_context_warmup import warm_fantasy_week_context
     await submit_cpu_job(warm_fantasy_week_context)
     from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
-    await asyncio.to_thread(warm_fantasy_value_snapshots)
+    await submit_thread_job(warm_fantasy_value_snapshots)
     from app.draft_ticker import draft_ticker_loop
     from app.sleeper_sync_ticker import sleeper_sync_ticker_loop
     from app.native_scoring_ticker import native_scoring_ticker_loop

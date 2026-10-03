@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_async_job, submit_thread_job
+
 import asyncio
 import logging
 import time
@@ -5543,10 +5545,11 @@ async def hub_ws(
         await draft_room_manager.disconnect(league_id, websocket)
 
 
+@observe_async_job("draft_broadcast")
 async def broadcast_room(league_id: str) -> None:
     # The command/ticker already advanced the clock. Broadcast its committed
     # state without advancing it a second time on the event loop.
-    state = await asyncio.to_thread(get_room_state, league_id)
+    state = await submit_thread_job(get_room_state, league_id)
     await draft_room_manager.broadcast(league_id, {"type": "state", "payload": state})
 
 

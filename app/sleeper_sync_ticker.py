@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job, submit_thread_job
+
 import asyncio
 import logging
 import os
@@ -29,11 +31,14 @@ def _seconds(name: str, default: int) -> float:
         return float(default)
 
 
+@observe_job("sleeper_rosters")
 def sync_all_live_sleeper_leagues() -> dict[str, Any]:
     """Reconcile each linked league independently so one failure cannot stop the rest."""
     from app.hub_routes import _clear_insights_response_cache, _clear_league_rosters_cache
     from src.draft_hub import storage
     from src.draft_hub.cap_sheet_import import sync_league_rosters_and_contracts
+
+    annotate_job(cadence_s=_seconds("SLEEPER_ROSTER_SYNC_INTERVAL_SECONDS", DEFAULT_INTERVAL_SECONDS))
 
     if not _run_lock.acquire(blocking=False):
         return {"status": "already_running", "synced": 0, "failed": 0, "leagues": []}
@@ -42,6 +47,7 @@ def sync_all_live_sleeper_leagues() -> dict[str, Any]:
     failures: list[dict[str, str]] = []
     try:
         league_ids = storage.list_live_sleeper_league_ids()
+        annotate_job(checked=len(league_ids))
         for league_id in league_ids:
             try:
                 result = sync_league_rosters_and_contracts(league_id, None, None)
@@ -63,6 +69,8 @@ def sync_all_live_sleeper_leagues() -> dict[str, Any]:
             except Exception as exc:
                 failures.append({"league_id": league_id, "error": str(exc)})
                 logger.exception("Hourly Sleeper roster sync failed for %s", league_id)
+        annotate_job(added=sum(r["added"] for r in results), updated=sum(r["updated"] for r in results),
+                     waived=sum(r["waived"] for r in results), trades_applied=sum(r["trades_applied"] for r in results))
         return {
             "status": "complete",
             "synced": len(results),
@@ -86,7 +94,7 @@ async def sleeper_sync_ticker_loop() -> None:
     await asyncio.sleep(initial_delay)
     while True:
         try:
-            await asyncio.to_thread(sync_all_live_sleeper_leagues)
+            await submit_thread_job(sync_all_live_sleeper_leagues)
         except asyncio.CancelledError:
             raise
         except Exception:

@@ -6,6 +6,8 @@ one complete context; readers can use the previous context during a refresh.
 """
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job
+
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -164,6 +166,7 @@ def load_week_context(season: int, week: int, apply_injury: bool = True) -> tupl
     return index, meta, facts
 
 
+@observe_job("fantasy_context.prepare")
 def prepare_week_context(season: int, week: int, apply_injury: bool = True) -> dict:
     """Worker/job entry point. Publish only a complete, stable source revision."""
     from src.draft_hub import weekly_command_center as wc
@@ -183,6 +186,7 @@ def prepare_week_context(season: int, week: int, apply_injury: bool = True) -> d
     try:
         with refresh_lock(path.with_suffix(".lock")):
             revision = source_revision(*context)
+            annotate_job(season=int(season), week=int(week), apply_injury=bool(apply_injury), input_revision=revision)
             previous = _snapshot(path, context)
             if previous and previous["revision"] == revision:
                 path.with_suffix(".request").unlink(missing_ok=True)
@@ -246,6 +250,7 @@ def discover_contexts(*, current_only: bool = False) -> list[tuple[int, int, boo
     return list(contexts)
 
 
+@observe_job("fantasy_context.batch", cadence_s=CADENCE_SECONDS)
 def refresh_week_contexts(*, current_only: bool = False, max_preparations: int | None = 2) -> dict:
     results = {}
     preparations = 0
@@ -263,6 +268,9 @@ def refresh_week_contexts(*, current_only: bool = False, max_preparations: int |
         # migrations or a source replacement affecting many historical weeks.
         if max_preparations is not None and preparations >= max_preparations:
             break
+    annotate_job(checked=len(results), current=sum(item.get("status") == "current" for item in results.values()),
+                 prepared=sum(item.get("status") == "prepared" for item in results.values()),
+                 failed=sum(item.get("status") == "error" for item in results.values()))
     return results
 
 
