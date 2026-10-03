@@ -79,7 +79,7 @@ def prediction_env(tmp_path, monkeypatch):
     return heads
 
 
-def test_scheduled_refresh_reuses_six_passes_with_equivalent_dfs_output(prediction_env, tmp_path, monkeypatch):
+def test_scheduled_refresh_reuses_six_passes_with_equivalent_dfs_output(prediction_env, tmp_path, monkeypatch, diagnostics_enabled):
     # Establish the original standalone path for both variants before reuse.
     dfs_pool.refresh_dfs_pool(2026, 4)
     expected = {injury: dfs_pool.load_dfs_pool(2026, 4, injury) for injury in (True, False)}
@@ -105,6 +105,12 @@ def test_scheduled_refresh_reuses_six_passes_with_equivalent_dfs_output(predicti
         assert np.isnan(actual.loc[actual.player_id.eq("00-0000099"), "Projected Points"]).all()
         assert not actual.attrs["projection_stale"]
     assert not expected[True]["Projected Points"].equals(expected[False]["Projected Points"])
+    from src.ops.job_report import read_report
+    jobs = {item["job"]: item for item in read_report(diagnostics_enabled, limit=100)["jobs"]}
+    assert jobs["dfs_refresh"]["runs"] == 1
+    assert jobs["dfs_refresh.weekly_qb_raw"]["last_observed_metadata"]["force"] is True
+    assert jobs["dfs_refresh.weekly_qb_raw"]["last_observed_metadata"]["input_revision"]
+    assert jobs["dfs_refresh.pool"]["nested"] is True
 
 
 def test_reuse_bypasses_only_read_overlay_and_preserves_published_weekly_frame(prediction_env, tmp_path):
@@ -117,6 +123,21 @@ def test_reuse_bypasses_only_read_overlay_and_preserves_published_weekly_frame(p
     default = weekly_cache.load_weekly_prediction("qb", 2026, 4, allow_compute=False)
     assert set(default.player_id) == {"00-0000001", "00-0000002"}
     assert prediction_env.call_count == 1
+
+
+def test_mixed_cache_and_inference_phase_does_not_report_whole_job_skipped(prediction_env, diagnostics_enabled):
+    from src.ops.job_diagnostics import observe_job
+    from src.ops.job_report import read_report
+    weekly_cache.load_weekly_prediction("qb", 2026, 4, force=True, apply_identity=False)
+    @observe_job("mixed_prediction")
+    def job():
+        weekly_cache.load_weekly_prediction("qb", 2026, 4, apply_identity=False)
+        return weekly_cache.load_weekly_prediction("rb", 2026, 4, force=True, apply_identity=False)
+    assert not job().empty
+    observed = next(item for item in read_report(diagnostics_enabled)["jobs"] if item["job"] == "mixed_prediction")
+    assert observed["skips"] == 0
+    assert observed["last_observed_metadata"]["computation_performed"] is True
+    assert observed["last_observed_metadata"]["cache_hit"] is False
 
 
 def test_failed_weekly_variant_keeps_previous_dfs_pools_and_success(prediction_env, tmp_path, monkeypatch):

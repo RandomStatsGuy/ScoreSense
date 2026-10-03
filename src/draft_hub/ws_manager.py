@@ -8,6 +8,8 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from src.ops.job_diagnostics import annotate_job
+
 
 class DraftRoomManager:
     def __init__(self) -> None:
@@ -51,6 +53,7 @@ class DraftRoomManager:
             for ws, meta in items
             if not (staff_only and not meta.get("staff"))
         ]
+        annotate_job(recipients=len(targets))
         if targets:
             await asyncio.gather(*(send_safe(ws) for ws in targets))
         for ws in dead:

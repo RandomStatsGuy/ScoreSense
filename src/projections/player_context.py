@@ -14,6 +14,8 @@ Heavy excerpts/sources/summaries/drivers are lazy-loaded via
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
+
 import hashlib
 import json
 import math
@@ -913,6 +915,7 @@ def prewarm_player_context(
     }
 
 
+@observe_job("player_notes.refresh")
 def refresh_player_context(
     season: int | None = None,
     week: int | None = None,
@@ -926,17 +929,19 @@ def refresh_player_context(
     from src.draft_hub.prepared_week_context import prewarm_week_context
 
     resolved_season, resolved_week = season_week_context(season, week)
+    annotate_job(season=resolved_season, week=resolved_week, force=force_injury_refresh)
     with refresh_lock(REFRESH_STATUS.with_suffix(".lock")):
         if force_injury_refresh:
             build_injury_snapshot(season=resolved_season, week=resolved_week, force_refresh=True)
         for _ in range(3):
             revision = weekly_fingerprint()
-            counts = prewarm_weekly_predictions(resolved_season, resolved_week, force=False)
+            annotate_job(input_revision=revision)
+            counts = call_phase("weekly", prewarm_weekly_predictions, resolved_season, resolved_week, force=False)
             if weekly_fingerprint() != revision:
                 continue
             if len(counts) != 6 or any(count <= 0 for count in counts.values()):
                 raise FileNotFoundError("Weekly projection artifacts are unavailable.")
-            result = prewarm_player_context(
+            result = call_phase("notes", prewarm_player_context,
                 resolved_season, resolved_week, force_injury_refresh=False, allow_compute=False,
             )
             context = prewarm_week_context(resolved_season, resolved_week)

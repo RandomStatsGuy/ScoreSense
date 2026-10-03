@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import annotate_job
+
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -105,6 +107,8 @@ def _load_weekly_prediction(
 
     pos = position.lower()
     fp = weekly_fingerprint()
+    annotate_job(season=int(season), week=int(week), apply_injury=bool(apply_injury_adjustments),
+                 force=force, input_revision=fp, cache_hit=False)
     key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
     parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
 
@@ -121,6 +125,7 @@ def _load_weekly_prediction(
     if not force:
         cached = _WEEKLY_CACHE.get(key)
         if cached is not None and cached[0] == memory_fp:
+            annotate_job(cache_hit=True)
             out = cached[1].copy()
             for k, v in cached[1].attrs.items():
                 out.attrs[k] = v
@@ -140,11 +145,13 @@ def _load_weekly_prediction(
                     df.attrs["built_at"] = meta["built_at"]
                 if not df.empty:
                     _WEEKLY_CACHE[key] = (memory_fp, df.copy())
+                    annotate_job(cache_hit=True)
                     return with_identity(df)
 
     if not allow_compute:
         return pd.DataFrame()
 
+    annotate_job(computation_performed=True)
     df = ensure_opportunity_adjustment_columns(
         predict_upcoming_week(
             pos,

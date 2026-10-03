@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job
+
 import contextlib
 import contextvars
 import json
@@ -1571,6 +1573,7 @@ def tick_scheduled_starts() -> list[str]:
     return started
 
 
+@observe_job("draft_clock", cadence_s=1)
 def tick_expired_drafts() -> list[str]:
     """Advance every in-progress auction. Returns league ids whose state changed."""
     changed: list[str] = tick_scheduled_starts()

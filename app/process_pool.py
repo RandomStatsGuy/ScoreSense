@@ -9,6 +9,8 @@ from concurrent.futures.process import BrokenProcessPool
 from functools import partial
 from typing import Callable, TypeVar
 
+from src.ops.job_diagnostics import execute_job, future_observed, queue_job
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -57,7 +59,16 @@ def submit_cpu_job(func: Callable[..., T], *args, **kwargs) -> asyncio.Future:
     """Fire-and-forget CPU work on a separate OS process."""
     loop = asyncio.get_running_loop()
     executor = get_process_executor()
-    bound = partial(func, *args, **kwargs)
-    future = loop.run_in_executor(executor, bound)
+    ticket = queue_job(func)
+    bound = partial(execute_job, func, args, kwargs, ticket, "process")
+    try:
+        future = loop.run_in_executor(executor, bound)
+    except Exception as error:
+        from concurrent.futures import Future
+        failed = Future()
+        failed.set_exception(error)
+        future_observed(failed, ticket)
+        raise
+    future.add_done_callback(partial(future_observed, ticket=ticket))
     future.add_done_callback(partial(_log_future_error, executor=executor))
     return future

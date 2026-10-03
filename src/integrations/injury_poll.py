@@ -10,6 +10,8 @@ Manual refresh is rate-limited enqueue + immediate serve of the current snapshot
 
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
+
 import json
 import logging
 import threading
@@ -190,6 +192,7 @@ def get_injury_poll_status(*, now: datetime | None = None) -> dict[str, Any]:
     return _enrich_status(status, now=now)
 
 
+@observe_job("injury_poll")
 def run_injury_poll(
     force: bool = False,
     recompute_overlays: bool = True,
@@ -200,6 +203,7 @@ def run_injury_poll(
     Safe to call from a background worker / cron. Never invoked by browser request
     handlers synchronously on the hot path.
     """
+    annotate_job(force=force)
     if not _POLL_LOCK.acquire(blocking=False):
         status = get_injury_poll_status()
         status["status"] = "already_running"
@@ -219,7 +223,7 @@ def run_injury_poll(
             _save_status(status)
 
         try:
-            load_sleeper_players(force_refresh=True)
+            call_phase("players_feed", load_sleeper_players, force_refresh=True)
             # Refresh NFL state cache while we are already on the network path.
             try:
                 get_nfl_state(use_cache=False)
@@ -267,6 +271,7 @@ def run_injury_poll(
                 )
                 phase = resolve_injury_poll_phase()
                 cadence = cadence_seconds_for_phase(phase)
+                annotate_job(cadence_s=cadence)
                 status["phase"] = phase
                 status["cadence_seconds"] = cadence
                 due_at = _utc_now().timestamp() + cadence

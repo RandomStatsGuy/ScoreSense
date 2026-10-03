@@ -106,6 +106,22 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 CACHE_DIR = DATA_DIR / "cache"
 
+# Separate, best-effort operational observations. No application state lives here.
+def _diagnostics_number(name, default, minimum, maximum):
+    try:
+        return max(minimum, min(maximum, int(os.getenv(name, str(default)))))
+    except (ValueError, TypeError):
+        return default
+
+
+JOB_DIAGNOSTICS_ENABLED = os.getenv(
+    "JOB_DIAGNOSTICS_ENABLED", "false" if is_testing() else "true"
+).lower() in ("1", "true", "yes")
+JOB_DIAGNOSTICS_PATH = Path(os.getenv("JOB_DIAGNOSTICS_PATH", str(CACHE_DIR / "job_diagnostics.sqlite3")))
+JOB_DIAGNOSTICS_MAX_RUNS = _diagnostics_number("JOB_DIAGNOSTICS_MAX_RUNS", 2000, 128, 10000)
+JOB_DIAGNOSTICS_RETENTION_DAYS = _diagnostics_number("JOB_DIAGNOSTICS_RETENTION_DAYS", 7, 1, 30)
+JOB_DIAGNOSTICS_MAX_BYTES = _diagnostics_number("JOB_DIAGNOSTICS_MAX_BYTES", 32 * 1024 * 1024, 4 * 1024 * 1024, 64 * 1024 * 1024)
+
 LEGACY_MODEL_DIR = PROJECT_ROOT / "legacy" / "data" / "Model"
 MODEL_DIR = PROJECT_ROOT / "artifacts" / "models" / "v2"
 PROJECTION_MODEL_GATES_DIR = PROJECT_ROOT / "artifacts" / "evaluations" / "model_gates"
@@ -149,7 +165,11 @@ ROOKIE_ROLE_OVERRIDES_PATH = PROJECTIONS_DATA_DIR / "rookie_role_overrides.yaml"
 SENTIMENT_DIR = DATA_DIR / "sentiment"
 SENTIMENT_CACHE_DIR = CACHE_DIR / "sentiment"
 SENTIMENT_FEATURES_PATH = CANDIDATE_DATA_DIR / "sentiment_features.parquet"
-DRAFT_HUB_DIR = DATA_DIR / "draft_hub"
+# Explicit disposable paths survive Windows spawn and imported executor aliases.
+# This override is intentionally ignored outside test mode.
+_TEST_DATABASE_ROOT = os.getenv("SCORESENSE_TEST_DATABASE_ROOT", "") if is_testing() else ""
+_DATABASE_ROOT = Path(_TEST_DATABASE_ROOT) if _TEST_DATABASE_ROOT else DATA_DIR
+DRAFT_HUB_DIR = _DATABASE_ROOT / "draft_hub"
 DRAFT_HUB_DB = DRAFT_HUB_DIR / "draft_hub.db"
 DRAFT_HUB_PRESETS_DIR = DRAFT_HUB_DIR / "presets"
 MANAGER_TEAM_MAP_PATH = DRAFT_HUB_DIR / "manager_team_map.yaml"
@@ -157,7 +177,7 @@ DRAFT_WINNER_ALIASES_PATH = DRAFT_HUB_DIR / "draft_winner_aliases.yaml"
 LEAGUE_DRAFT_SOURCES_PATH = DRAFT_HUB_DIR / "league_draft_sources.yaml"
 OLD_LEAGUE_FILES_DIR = PROJECT_ROOT / "old_league_files"
 LEAGUE_CONTRACT_HISTORY_DIR = DATA_DIR / "league_contract_history"
-AUTH_DIR = DATA_DIR / "auth"
+AUTH_DIR = _DATABASE_ROOT / "auth"
 AUTH_DB = AUTH_DIR / "users.db"
 BDB_DIR = PROJECT_ROOT / "artifacts" / "bdb"
 NGS_RAW_DIR = DATA_DIR / "raw" / "ngs"

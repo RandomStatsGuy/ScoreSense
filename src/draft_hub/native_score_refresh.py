@@ -1,6 +1,8 @@
 """Durable, coalesced native score refreshes; HTTP reads never load statistics."""
 from __future__ import annotations
 
+from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
+
 import time
 from src.draft_hub import storage
 
@@ -50,6 +52,7 @@ def _finish(job: dict, status: str, error: str | None = None) -> None:
             (status, error, job['league_id'], job['season'], job['week'], job['lease_until']))
 
 
+@observe_job("native_scores.batch", cadence_s=CADENCE_SECONDS)
 def refresh_pending_scores(*, limit: int = 10) -> dict:
     """One bounded worker batch. Shared stats are loaded once per season/week."""
     from src.draft_hub.hub_scoring import apply_week_scores, load_week_stat_index, nfl_week_started, sleeper_hosts_scoring
@@ -57,16 +60,19 @@ def refresh_pending_scores(*, limit: int = 10) -> dict:
 
     indexes = {}
     completed = failed = 0
+    attempts = skipped = upcoming = 0
     for _ in range(limit):
         job = _claim(now=time.time())
         if job is None:
             break
+        attempts += 1
         league_id, season, week = job['league_id'], job['season'], job['week']
         try:
             league = storage.get_league(league_id)
             run = storage.get_week_scoring_run(league_id, season, week)
             if not league or not league.get('draft_completed') or sleeper_hosts_scoring(league) or (run and run.get('final')):
                 _finish(job, 'skipped')
+                skipped += 1
                 continue
             rules = LeagueRules.model_validate(league['rules'])
             if run and ScoringRules.model_validate(run['scoring']) != rules.scoring:
@@ -77,13 +83,14 @@ def refresh_pending_scores(*, limit: int = 10) -> dict:
                 # A future slate has no actual stats yet. The regular scheduler
                 # requeues this state, so scoring begins automatically at kickoff.
                 _finish(job, 'upcoming')
+                upcoming += 1
                 continue
             key = (season, week)
             if key not in indexes:
-                indexes[key] = load_week_stat_index(season, week)
+                indexes[key] = call_phase("load_stats", load_week_stat_index, season, week)
             # The weekly statistics feed does not confirm live game completion.
             # Automatic updates remain provisional; explicit calculate owns final publication.
-            result = apply_week_scores(league_id, season, week, stat_index=indexes[key],
+            result = call_phase("apply_scores", apply_week_scores, league_id, season, week, stat_index=indexes[key],
                                        slate_complete=False, automatic=True, refresh_lease=job['lease_until'])
             if result.get('scored'):
                 _finish(job, 'complete')
@@ -96,9 +103,11 @@ def refresh_pending_scores(*, limit: int = 10) -> dict:
             logging.getLogger(__name__).exception('Native score refresh failed for %s week %s', league_id, week)
             _finish(job, 'failed', 'refresh_failed')
             failed += 1
+    annotate_job(attempts=attempts, skipped=skipped, upcoming=upcoming)
     return {'completed': completed, 'failed': failed}
 
 
+@observe_job("native_scores.schedule", cadence_s=CADENCE_SECONDS)
 def queue_current_native_weeks() -> None:
     from src.draft_hub.league_live_scoring import resolve_current_week
     from src.draft_hub.hub_scoring import sleeper_hosts_scoring
@@ -111,6 +120,7 @@ def queue_current_native_weeks() -> None:
         unfinished = [dict(row) for row in conn.execute('SELECT league_id,season,week FROM league_week_scoring_run WHERE season=? AND final=0', (season,))]
     keys = {(league_id, season, int(week)) for league_id in ids}
     keys.update((r['league_id'], r['season'], r['week']) for r in unfinished)
+    annotate_job(checked=len(keys), season=season, week=int(week))
     for league_id, season, week in keys:
         league = storage.get_league(league_id)
         run = storage.get_week_scoring_run(league_id, season, week)
