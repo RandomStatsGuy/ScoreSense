@@ -18,6 +18,9 @@ def prediction_env(tmp_path, monkeypatch):
     monkeypatch.setattr(predict, "PROCESSED_DATA_DIR", tmp_path)
     monkeypatch.setattr(dfs_pool, "DFS_PREDICTIONS_DIR", tmp_path / "dfs")
     monkeypatch.setattr(dfs_pool, "pool_fingerprint", lambda: "fresh-inputs")
+    monkeypatch.setattr(dfs_refresh.dfs_inputs, "prepare_sources", lambda *a: None)
+    monkeypatch.setattr(dfs_refresh.dfs_inputs, "input_revision", lambda *a: "fixture-inputs")
+    monkeypatch.setattr("src.projections.ros_cache.ROS_PREDICTIONS_DIR", tmp_path / "ros")
     monkeypatch.setattr("src.projections.projection_movement.WEEKLY_PROJECTION_CHANGES_DIR", tmp_path / "movement")
     roster, nflverse, rookies = [], [], {}
     for index, pos in enumerate(("qb", "rb", "wr")):
@@ -89,7 +92,7 @@ def test_scheduled_refresh_reuses_six_passes_with_equivalent_dfs_output(predicti
     monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "status.json")
     monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **k: {"status": "ok"})
     monkeypatch.setattr("src.integrations.sleeper.get_nfl_state", lambda **k: {"season": 2026, "week": 4, "season_type": "regular"})
-    monkeypatch.setattr("src.projections.ros_cache.load_ros_prediction", lambda *a: pd.DataFrame([{"ROS P50": 100}]))
+    monkeypatch.setattr("src.projections.ros_cache.load_ros_prediction", lambda *a, **k: pd.DataFrame([{"ROS P50": 100}]))
     result = dfs_refresh.run_dfs_refresh()
     assert result["status"] == "ok"
     assert prediction_env.call_count == 6
@@ -149,7 +152,7 @@ def test_failed_weekly_variant_keeps_previous_dfs_pools_and_success(prediction_e
     status_path.write_text(json.dumps({"last_success_at": "previous-success"}))
     monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **k: {"status": "ok"})
     monkeypatch.setattr("src.integrations.sleeper.get_nfl_state", lambda **k: {"season": 2026, "week": 4, "season_type": "regular"})
-    monkeypatch.setattr("src.projections.ros_cache.load_ros_prediction", lambda *a: pd.DataFrame([{"ROS P50": 100}]))
+    monkeypatch.setattr("src.projections.ros_cache.load_ros_prediction", lambda *a, **k: pd.DataFrame([{"ROS P50": 100}]))
     head = prediction_env.side_effect
     prediction_env.reset_mock()
     def fail_raw_qb(models, x):
@@ -193,4 +196,53 @@ def test_invalid_reuse_preserves_both_previous_pools(prediction_env, monkeypatch
     with pytest.raises(ValueError):
         dfs_pool.refresh_dfs_pool(2026, 4, skill_predictions=frames)
     inference.assert_not_called()
+    assert {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)} == before
+
+
+def test_unchanged_refresh_uses_real_saved_readers_and_refreshes_specialists(prediction_env, tmp_path, monkeypatch):
+    from src.projections import ros_cache
+    monkeypatch.setattr(dfs_refresh, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "status.json")
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **k: {"status": "ok"})
+    monkeypatch.setattr("src.integrations.sleeper.get_nfl_state", lambda **k: {"season": 2026, "week": 4, "season_type": "regular"})
+    monkeypatch.setattr(ros_cache, "ros_fingerprint", lambda: "fresh-inputs")
+    ros_heads = Mock(side_effect=lambda *a, **k: pd.DataFrame([{"ROS P50": 100.0}]))
+    monkeypatch.setattr(ros_cache, "predict_rest_of_season", ros_heads)
+    now = [1800000000.0]
+    monkeypatch.setattr(dfs_refresh.time, "time", lambda: now[0])
+    assert dfs_refresh.run_dfs_refresh()["forecasts_reused"] is False
+    expected = {injury: dfs_pool.load_dfs_pool(2026, 4, injury) for injury in (True, False)}
+    assert prediction_env.call_count == 6 and ros_heads.call_count == 3
+    prediction_env.reset_mock()
+    ros_heads.reset_mock()
+    # Fresh specialist values must reach the pool while all six skill frames
+    # are read from their original materialized artifacts.
+    special_columns = ["player_id", "Player", "Position", "Team", "Projected Points", "Low (P10)", "High (P90)",
+                       "projection_source", "projection_model", "projection_site"]
+    special = Mock(side_effect=lambda *a: expected[True].loc[
+        expected[True].Position.isin(["K", "DST"]), special_columns].assign(**{"Projected Points": 7.0}))
+    monkeypatch.setattr(dfs_pool, "special_team_predictions", special)
+    now[0] += dfs_refresh.DFS_REFRESH_SECONDS
+    assert dfs_refresh.run_dfs_refresh()["forecasts_reused"] is True
+    prediction_env.assert_not_called()
+    ros_heads.assert_not_called()
+    special.assert_called_once()
+    for injury in (True, False):
+        actual = dfs_pool.load_dfs_pool(2026, 4, injury)
+        skill = actual[actual.Position.isin(["QB", "RB", "WR", "TE"])]
+        prior = expected[injury][expected[injury].Position.isin(["QB", "RB", "WR", "TE"])]
+        pd.testing.assert_frame_equal(skill.reset_index(drop=True), prior.reset_index(drop=True))
+        assert actual[actual.Position.isin(["K", "DST"])]["Projected Points"].eq(7).all()
+
+
+def test_changed_sources_after_specialist_assembly_preserve_both_real_pools(prediction_env):
+    dfs_pool.refresh_dfs_pool(2026, 4)
+    before = {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)}
+    frames = {injury: {pos: weekly_cache.load_weekly_prediction(pos, 2026, 4,
+        force=True, apply_injury_adjustments=injury, apply_identity=False) for pos in ("qb", "rb", "wr")}
+        for injury in (True, False)}
+    def changed():
+        raise RuntimeError("source changed before publication")
+    with pytest.raises(RuntimeError, match="source changed"):
+        dfs_pool.refresh_dfs_pool(2026, 4, skill_predictions=frames, validate_inputs=changed)
     assert {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)} == before

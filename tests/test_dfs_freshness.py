@@ -55,6 +55,9 @@ def refresh_env(tmp_path, monkeypatch):
     from src.projections import weekly_cache
     monkeypatch.setattr(dfs_refresh, "CACHE_DIR", tmp_path)
     monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "dfs.json")
+    monkeypatch.setattr(dfs_refresh.dfs_inputs, "prepare_sources", lambda *a: None)
+    monkeypatch.setattr(dfs_refresh.dfs_inputs, "input_revision", lambda *a: "fixture-inputs")
+    monkeypatch.setattr(dfs_refresh.dfs_inputs, "output_revisions", lambda *a: None)
     poll = Mock(return_value={"status": "ok"})
     model = Mock(return_value=pd.DataFrame([{"player_id": "x"}]))
     monkeypatch.setattr(injury_poll, "run_injury_poll", poll)
