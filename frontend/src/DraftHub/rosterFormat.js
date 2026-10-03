@@ -219,8 +219,9 @@ export function contractDeadCapStory(row, rules) {
   const salary = Number.isFinite(raw) ? Math.round(raw) : 0;
   const isCut = String(row?.roster_status || "") === "cut_before_draft";
   const transferred = isCut && Boolean(row?.contract?.dead_cap_transferred || row?.contract?.dead_cap_sources);
+  const recorded = isCut && Boolean(row?.contract?.dead_cap_recorded);
   const dead = isCut ? preDraftCutDeadCap(row, rules) : cutDeadCapAmount(salary, refundPct);
-  const freed = transferred ? 0 : salary - dead;
+  const freed = transferred || recorded ? 0 : salary - dead;
   const ifUndoneRoom = isCut ? -Math.round(salary) : 0;
   return {
     salary: Number.isFinite(salary) ? Math.round(salary) : 0,
@@ -228,11 +229,12 @@ export function contractDeadCapStory(row, rules) {
     freed,
     isCut,
     transferred,
+    recorded,
     ifUndoneRoom,
     deadLabel: fmtSal(dead),
-    ifUndoneLabel: isCut ? `room −${fmtSal(Math.abs(ifUndoneRoom || salary))}` : "—",
-    cutBullet: transferred ? `${fmtSal(dead)} dead cap carried after trade` : `frees ${fmtSal(freed)}, dead ${fmtSal(dead)}`,
-    railCut: `(+${fmtSal(dead)} dead, −${fmtSal(Math.round(salary))} room)`,
+    ifUndoneLabel: isCut && !recorded ? `room −${fmtSal(Math.abs(ifUndoneRoom || salary))}` : "—",
+    cutBullet: transferred ? `${fmtSal(dead)} dead cap carried after trade` : recorded ? `${fmtSal(dead)} recorded dead cap` : `frees ${fmtSal(freed)}, dead ${fmtSal(dead)}`,
+    railCut: recorded ? `${fmtSal(dead)} recorded dead cap` : `(+${fmtSal(dead)} dead, −${fmtSal(Math.round(salary))} room)`,
     undoSupport: `+${fmtSal(Math.round(salary))} room this season, ${fmtSal(dead)} dead cleared.`,
   };
 }

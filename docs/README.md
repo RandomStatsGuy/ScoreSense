@@ -20,7 +20,8 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [DRAFT_HUB.md](./DRAFT_HUB.md) | Hub API, SQLite storage, Sleeper link (internal name; UI says Fantasy) |
 | [FANTASY_PERFORMANCE_ARCHITECTURE.md](./FANTASY_PERFORMANCE_ARCHITECTURE.md) | Shared weekly reads, independent lineup commands, latency evidence and budgets |
 | [FANTASY_WEEK_CONTEXT.md](./FANTASY_WEEK_CONTEXT.md) | Prepared weekly player snapshots, background publication, refresh behavior and backend comparison |
-| [LINEUP_ROADMAP.md](./LINEUP_ROADMAP.md) | Tools backlog — DFS is shipped; props / best ball are not nav |
+| [LINEUP_ROADMAP.md](./LINEUP_ROADMAP.md) | Tools backlog - DFS is shipped; props / best ball are not nav |
+| [DFS_REFRESH_REUSE.md](./DFS_REFRESH_REUSE.md) | DFS input checks, forecast reuse eligibility, freshness and publication safeguards |
 | [MOBILE_APP.md](./MOBILE_APP.md) | PWA and Android TWA |
 | [Fantasy mobile design](../.cursor/rules/fantasy-mobile.mdc) | Approved mobile parameters, controls, and mock foundation |
 | [Fantasy mobile review](./FANTASY_MOBILE_REVIEW.md) | Page-by-page review queue and Home design decisions |

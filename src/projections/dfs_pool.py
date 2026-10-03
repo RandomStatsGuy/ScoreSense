@@ -99,7 +99,8 @@ def special_team_predictions(history, matchups, roster, season, week, bundle):
     return pd.DataFrame(rows)
 
 
-def refresh_dfs_pool(season, week, *, skill_predictions: Mapping[bool, Mapping[str, pd.DataFrame]] | None = None):
+def refresh_dfs_pool(season, week, *, skill_predictions: Mapping[bool, Mapping[str, pd.DataFrame]] | None = None,
+                     validate_inputs=None):
     """Publish both variants, optionally reusing this refresh's weekly inference.
 
     Weekly coverage and DFS use the same full inference roster. Supplied frames
@@ -153,6 +154,8 @@ def refresh_dfs_pool(season, week, *, skill_predictions: Mapping[bool, Mapping[s
         if out.player_id.duplicated().any():
             raise ValueError("Duplicate identities in DFS projection pool")
         outputs.append((injury, out))
+    if validate_inputs is not None:
+        validate_inputs()  # Validate both assembled variants before publishing either.
     DFS_PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
     for injury, out in outputs:
         path = artifact_path(season, week, injury)

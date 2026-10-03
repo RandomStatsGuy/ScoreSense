@@ -321,7 +321,8 @@ function ContractSidePanelBody({
             {isCut ? (
               <span className="hub-btn-support">
                 {r.can_undo_cut === false
-                    ? deadStory.transferred ? MY_TEAM_COPY.undoCutTransferred : MY_TEAM_COPY.undoCutClosedSupport(r.claimed_by_owner)
+                    ? deadStory.transferred ? MY_TEAM_COPY.undoCutTransferred
+                      : deadStory.recorded ? MY_TEAM_COPY.undoCutRecorded : MY_TEAM_COPY.undoCutClosedSupport(r.claimed_by_owner)
                   : deadStory.undoSupport}
               </span>
             ) : null}

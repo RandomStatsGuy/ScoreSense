@@ -2123,6 +2123,12 @@
   margin-left: 0.4rem;
 }
 
+.hub-roster-actions .hub-roster-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .hub-roster-builder .hub-roster-table {
   table-layout: auto;
   width: 100%;
