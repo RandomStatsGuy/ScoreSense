@@ -1,4 +1,4 @@
-"""Five-minute current-week inference refresh. No training or historical ETL."""
+"""Current-week inference refresh with a five-minute completion gap. No training."""
 import json
 import logging
 import time
@@ -22,7 +22,9 @@ def run_dfs_refresh():
                 previous = json.loads(STATUS_PATH.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 previous = {}
-            if 0 <= time.time() - previous.get("attempt_epoch", 0) < DFS_REFRESH_SECONDS:
+            # Legacy status files use the start time until their next completion.
+            last_refresh_epoch = previous.get("completed_epoch", previous.get("attempt_epoch", 0))
+            if 0 <= time.time() - last_refresh_epoch < DFS_REFRESH_SECONDS:
                 return {**previous, "status": "not_due"}
             status = {"attempt_epoch": time.time(), "started_at": datetime.now(timezone.utc).isoformat(),
                       "status": "running", "positions": {}, "last_success_at": previous.get("last_success_at")}
@@ -39,24 +41,29 @@ def run_dfs_refresh():
                 season, week = int(state["season"]), int(state.get("week") or 1)
                 if state.get("season_type") != "regular" or not 1 <= week <= 18:
                     status["status"] = "offseason"
+                    status["completed_epoch"] = time.time()
                     save()
                     return status
                 status.update(season=season, week=week)
                 invalidate_weekly_cache()
                 errors = []
+                skill_predictions = {True: {}, False: {}}
                 for position in ("qb", "rb", "wr"):
                     try:
-                        frame = load_weekly_prediction(position, season, week, force=True)
-                        load_weekly_prediction(position, season, week, apply_injury_adjustments=False, force=True)
-                        if frame.empty:
+                        frame = load_weekly_prediction(position, season, week, force=True, apply_identity=False)
+                        raw = load_weekly_prediction(position, season, week, apply_injury_adjustments=False,
+                                                     force=True, apply_identity=False)
+                        if frame.empty or raw.empty:
                             raise RuntimeError("Empty projection output")
+                        skill_predictions[True][position] = frame
+                        skill_predictions[False][position] = raw
                         status["positions"][position] = {"rows": len(frame), "built_at": frame.attrs.get("built_at")}
                     except Exception as exc:
                         errors.append(position)
                         logger.exception("DFS refresh failed for %s", position)
                 try:
                     from src.projections.dfs_pool import refresh_dfs_pool
-                    status["positions"]["dfs"] = refresh_dfs_pool(season, week)
+                    status["positions"]["dfs"] = refresh_dfs_pool(season, week, skill_predictions=skill_predictions)
                     if status["positions"]["dfs"].get("historical_inputs_only"):
                         errors.append("dfs_current_season_history")
                     if status["positions"]["dfs"].get("special_history_refresh_failed"):
@@ -82,6 +89,7 @@ def run_dfs_refresh():
             except Exception as exc:
                 status.update(status="error", error=str(exc))
                 logger.exception("DFS data refresh failed")
+            status["completed_epoch"] = time.time()
             save()
             return status
     except RefreshBusy:

@@ -90,6 +90,7 @@ def _load_weekly_prediction(
     apply_injury_adjustments: bool = True,
     allow_compute: bool = True,
     force: bool = False,
+    apply_identity: bool = True,
 ) -> pd.DataFrame:
     """Load cached weekly predictions or compute and persist."""
     if season is None or week is None:
@@ -106,6 +107,16 @@ def _load_weekly_prediction(
     fp = weekly_fingerprint()
     key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
     parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
+
+    def with_identity(frame: pd.DataFrame) -> pd.DataFrame:
+        if not apply_identity:
+            return frame
+        return _with_roster_identity(
+            frame, pos, int(season), int(week),
+            cache_key=f"weekly:{key}:{artifact_revision(parquet_path, meta_path)}:{fp}",
+            allow_refresh=allow_compute,
+        )
+
     memory_fp = (fp, artifact_revision(parquet_path, meta_path))
     if not force:
         cached = _WEEKLY_CACHE.get(key)
@@ -114,14 +125,7 @@ def _load_weekly_prediction(
             for k, v in cached[1].attrs.items():
                 out.attrs[k] = v
             return ensure_opportunity_adjustment_columns(
-                _with_roster_identity(
-                    out,
-                    pos,
-                    int(season),
-                    int(week),
-                    cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
-                    allow_refresh=allow_compute,
-                )
+                with_identity(out)
             )
 
         parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
@@ -136,14 +140,7 @@ def _load_weekly_prediction(
                     df.attrs["built_at"] = meta["built_at"]
                 if not df.empty:
                     _WEEKLY_CACHE[key] = (memory_fp, df.copy())
-                    return _with_roster_identity(
-                        df,
-                        pos,
-                        int(season),
-                        int(week),
-                        cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
-                        allow_refresh=allow_compute,
-                    )
+                    return with_identity(df)
 
     if not allow_compute:
         return pd.DataFrame()
@@ -162,26 +159,26 @@ def _load_weekly_prediction(
     # Mirror the artifact timestamp onto the in-process frame for API freshness.
     if "built_at" not in df.attrs:
         df.attrs["built_at"] = datetime.now(timezone.utc).isoformat()
-    return _with_roster_identity(
-        df,
-        pos,
-        int(season),
-        int(week),
-        cache_key=f"weekly:{key}:{artifact_revision(*_artifact_paths(pos, int(season), int(week), apply_injury_adjustments))}:{fp}",
-    )
+    return with_identity(df)
 
 
 def load_weekly_prediction(
     position: str, season: int | None = None, week: int | None = None, *,
     apply_injury_adjustments: bool = True, allow_compute: bool = True,
     force: bool = False, allow_stale: bool = False,
+    apply_identity: bool = True,
 ) -> pd.DataFrame:
-    """Keep the same-week snapshot usable when a replacement fails."""
+    """Keep the same-week snapshot usable when a replacement fails.
+
+    Refresh workers can reuse the inference frame before the read-time identity
+    overlay with ``apply_identity=False``; inference still resolves roster identity.
+    """
     failure = None
     try:
         frame = _load_weekly_prediction(
             position, season, week, apply_injury_adjustments=apply_injury_adjustments,
             allow_compute=allow_compute, force=force,
+            apply_identity=apply_identity,
         )
         if not frame.empty or not allow_stale:
             return frame
