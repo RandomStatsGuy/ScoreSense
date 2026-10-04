@@ -350,6 +350,13 @@ def _migrate(conn: sqlite3.Connection) -> None:
         )"""
     )
     conn.execute(
+        """CREATE TABLE IF NOT EXISTS sleeper_league_chain_cache (
+            sleeper_league_id TEXT PRIMARY KEY,
+            payload_json TEXT NOT NULL,
+            synced_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
         """CREATE TABLE IF NOT EXISTS sleeper_ownership_cache (
             sleeper_league_id TEXT PRIMARY KEY,
             payload_json TEXT NOT NULL,
@@ -5114,6 +5121,25 @@ def import_commissioner_league_sheet(
     return {"imported": sum(by_team.values()), "by_team": by_team, "teams": list(by_team.keys())}
 
 
+def upsert_sleeper_league_chain(sleeper_league_id: str, chain: list[dict[str, str]]) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO sleeper_league_chain_cache (sleeper_league_id, payload_json, synced_at)
+               VALUES (?, ?, ?) ON CONFLICT(sleeper_league_id) DO UPDATE SET
+               payload_json = excluded.payload_json, synced_at = excluded.synced_at""",
+            (str(sleeper_league_id), json.dumps(chain), _utcnow()),
+        )
+
+
+def get_sleeper_league_chain(sleeper_league_id: str) -> list[dict[str, str]]:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT payload_json FROM sleeper_league_chain_cache WHERE sleeper_league_id = ?",
+            (str(sleeper_league_id),),
+        ).fetchone()
+    return json.loads(row["payload_json"]) if row else []
+
+
 def upsert_sleeper_scoring_cache(sleeper_league_id: str, payload: dict[str, Any]) -> None:
     with get_conn() as conn:
         conn.execute(
@@ -5415,8 +5441,13 @@ def insights_source_version(league_id: str) -> str:
                FROM league_owner_season_map WHERE league_id = ?""",
             (str(league_id),),
         ).fetchone()["rev"]
+        team_labels = conn.execute(
+            "SELECT id, name, sleeper_team_name, sleeper_roster_id FROM team WHERE league_id = ? ORDER BY id",
+            (str(league_id),),
+        ).fetchall()
+    labels_version = json.dumps([list(r) for r in team_labels])
     raw = (
-        f"formula=owner_avg_pct_v1:live={live_rev}:hist={hist_rev}:"
+        f"labels={labels_version}:formula=owner_avg_pct_v1:live={live_rev}:hist={hist_rev}:"
         f"{roster_slots}:{contract_rows}:{manual_rows}:{import_rev}:{import_fp}:{osm}"
     )
     return hashlib.sha256(raw.encode()).hexdigest()[:16]

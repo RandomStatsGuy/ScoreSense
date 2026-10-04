@@ -23,6 +23,8 @@ import {
   scoringRaceRows,
   rankShowsTeam,
   teamDisplayName,
+  managerLabel,
+  scoringTeamKey,
 } from "./insightsPresentation.js";
 
 const teams = [
@@ -273,4 +275,16 @@ test("award catalog drops money awards for a league without them", () => {
   assert.ok(snake.includes("nomad"));
   assert.ok(snake.includes("loyalty"));
   assert.ok(snake.length < auction.length);
+});
+
+test("corrected manager labels override stale display labels", () => {
+  const row = { team_name: "Rivals", owner_label: "Taylor", display_name: "Former owner · Rivals" };
+  assert.equal(teamDisplayName(row, {}, true), "Taylor · Rivals");
+  assert.equal(managerLabel(row, {}, false), "Taylor");
+  assert.equal(teamDisplayName({ team_name: "Rivals", owner_name: "Rivals" }, {Rivals: "Morgan"}, false), "Morgan");
+});
+
+test("chart keys survive renames and distinguish matching nicknames", () => {
+  assert.equal(scoringTeamKey({owner_id: "a", team_name: "Before"}), scoringTeamKey({owner_id: "a", team_name: "After"}));
+  assert.notEqual(scoringTeamKey({owner_id: "a", team_name: "Same"}), scoringTeamKey({owner_id: "b", team_name: "Same"}));
 });

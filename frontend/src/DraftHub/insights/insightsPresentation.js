@@ -37,10 +37,13 @@ function careerOwnerLabel(row, team, owner) {
 
 export function teamDisplayName(row, ownerMap, yearSpecific) {
   const team = String(row?.team_name || row?.name || "").trim();
-  const owner = String(row?.owner_name || ownerFromMap(team, ownerMap) || "").trim();
+  const explicit = String(row?.owner_name || row?.owner_label || "").trim();
+  const owner = explicit && explicit.toLowerCase() !== team.toLowerCase()
+    ? explicit : String(ownerFromMap(team, ownerMap) || explicit).trim();
   if (yearSpecific) {
-    if (row?.display_name) return row.display_name;
-    if (!team) return owner || "—";
+    const named = careerOwnerLabel(row, team, owner);
+    if (!team) return named || "—";
+    if (named && named.toLowerCase() !== team.toLowerCase()) return `${named} · ${team}`;
     if (!owner || owner.toLowerCase() === team.toLowerCase()) return team;
     return `${owner} · ${team}`;
   }
@@ -50,17 +53,12 @@ export function teamDisplayName(row, ownerMap, yearSpecific) {
 }
 
 export function managerLabel(award, ownerMap, yearSpecific) {
-  const team = String(award?.team_name || "").trim();
-  const owner = String(award?.owner_name || ownerFromMap(team, ownerMap) || "").trim();
-  if (yearSpecific) {
-    if (award?.display_name) return award.display_name;
-    if (!team && owner) return owner;
-    if (!owner || owner.toLowerCase() === team.toLowerCase()) return team || owner;
-    return `${owner} · ${team}`;
-  }
-  const career = careerOwnerLabel(award, team, owner);
-  if (career) return career;
-  return team || owner || "—";
+  return teamDisplayName(award, ownerMap, yearSpecific);
+}
+
+/** A series belongs to a manager/roster, not a nickname that can change or repeat. */
+export function scoringTeamKey(row) {
+  return String(row?.owner_id || row?.roster_id || row?.team_id || row?.team_name || "");
 }
 
 /** True when the rank label is the owner and the team nickname can sit underneath. */
@@ -249,7 +247,7 @@ export function championRunnerLabel(row, ownerMap) {
 }
 
 export function overviewPlaque(mostTitles, champions, ownerMap) {
-  if (!mostTitles || !(Number(mostTitles.titles) > 1)) return null;
+  if (!mostTitles || !(Number(mostTitles.titles) > 0)) return null;
   const owner = teamDisplayName(mostTitles, ownerMap, false);
   const dynastyId = String(mostTitles.owner_id || "");
   const last = (champions || []).find((row) => {
@@ -305,6 +303,7 @@ export function scoringRaceRows(standings, { ownerMap, yearSpecific = false } = 
     const total = Number(team.total_points) || 0;
     return {
       teamId: team.team_id,
+      seriesKey: scoringTeamKey(team),
       teamName: team.team_name,
       label: teamDisplayName(team, ownerMap, yearSpecific),
       total,
@@ -387,6 +386,13 @@ export function awardCatalogFromRules(rules, catalog = DEFAULT_AWARD_CATALOG) {
 }
 
 export const INSIGHTS_COPY = {
+  contracts: {
+    heading: "Contract returns", loading: "Loading saved contracts…",
+    best: "Best contracts", worst: "Worst contracts", metric: "Actual fantasy points per dollar paid",
+    empty: "No matched salary and scoring history for this period. Sync the league to update saved scoring.",
+    methodology: "How contracts are ranked",
+    explanation: "Actual season fantasy points divided by saved annual salary. Selected seasons sum points and salary before dividing. Missing production is excluded; recorded zero points count. Renewals without a saved start year stay separate annual entries.",
+  },
   overview: {
     stories: "League stories",
     titleStory: (name) => `${name} sets the title pace`,
@@ -427,6 +433,11 @@ export const INSIGHTS_COPY = {
     openScoring: "Open scoring",
     empty: "No league history is available yet. Check the Sleeper connection or refresh league history.",
     loading: "Loading league history",
+    refresh: "Refresh history",
+    refreshing: "Refreshing…",
+    saved: (time) => time || "Saved history",
+    savedEmpty: "History updates when you sync the league.",
+    partial: "Some seasons need a refresh",
   },
   awards: {
     heading: "Award names",
@@ -446,6 +457,7 @@ export const INSIGHTS_COPY = {
     empty: "No spending data is available for this view.",
   },
   scoring: {
+    rank: "Rank",
     eyebrow: "Scoring",
     heading: "League scoring",
     support: "Compare points scored, records, and scoring consistency.",

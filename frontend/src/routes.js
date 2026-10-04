@@ -46,6 +46,7 @@ export const HUB_ID_TO_SLUG = {
 /** Insights URL slug ↔ internal tab id */
 export const INSIGHT_SLUG_TO_ID = {
   overview: "overview",
+  contracts: "contracts",
   spend: "cap",
   scoring: "scoring",
   history: "ownership",
@@ -79,7 +80,6 @@ export const OFFICE_ID_TO_SLUG = {
 export const LEGACY_DESK_TO_OFFICE = {
   desk: "current",
   salaries: "historic",
-  contracts: "historic",
 };
 
 export const WEEKLY_PANELS = new Set(["projections", "injuries", "fantasy"]);

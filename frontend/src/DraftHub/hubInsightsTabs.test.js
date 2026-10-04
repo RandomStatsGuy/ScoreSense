@@ -10,7 +10,7 @@ test("salary leagues keep the Spend tab", () => {
   const caps = { uses_salaries: true, uses_contracts: true };
   assert.deepEqual(
     visibleInsightsTabs(true, caps).map((t) => t.id),
-    ["overview", "cap", "scoring", "ownership"],
+    ["overview", "contracts", "cap", "scoring", "ownership"],
   );
   assert.equal(isInsightTabAllowed("cap", true, caps), true);
   // Legacy URLs still land on Spend.
@@ -33,5 +33,5 @@ test("no-money leagues drop Spend from Insights", () => {
 
 test("unknown capabilities behave like a salary league", () => {
   assert.equal(isInsightTabAllowed("cap", true), true);
-  assert.equal(visibleInsightsTabs(true).length, 4);
+  assert.equal(visibleInsightsTabs(true).length, 5);
 });

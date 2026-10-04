@@ -40,6 +40,7 @@ import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
 import { TeamIdentityProvider } from "./TeamIdentityContext";
 import { shouldApplyWorkspaceSave } from "./rulesPresentation";
 
+const loadLeagueInsights = fantasyPageModules.insights;
 const LeagueInsights = lazy(fantasyPageModules.insights);
 const StrategyBoard = lazy(fantasyPageModules.value);
 const DraftRoom = lazy(fantasyPageModules.room);
@@ -106,6 +107,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     setWeekReloadToken((n) => n + 1);
   }, [dataRevision]);
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
+  const insightTabRef = React.useRef(insightTab);
+  insightTabRef.current = insightTab;
   const subViewRef = React.useRef(subView);
   subViewRef.current = subView;
   /** Roster fetch runs once per boot, on first entry to a tab that reads it. */
@@ -190,9 +193,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   const loadWorkspace = useCallback(async (signal) => {
     const path = demoMode ? "/api/hub/demo/workspace" : "/api/hub/workspace";
-    const res = await apiFetch(path, { signal });
+    const includeInsights = !demoMode && subViewRef.current === "insights" && insightTabRef.current === "overview";
+    const res = await apiFetch(includeInsights ? `${path}?insights_overview=1` : path, { signal });
     if (!res.ok) throw new Error(await parseApiError(res));
-    return res.json();
+    const payload = await res.json();
+    return payload.insights_overview ? { ...payload, insights_prefetched_at: Date.now() } : payload;
   }, [demoMode]);
 
   const loadHubContext = useCallback(async (signal) => {
@@ -366,6 +371,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       if (!demoMode && !authenticated && hubAuthRequired !== false) {
         return;
       }
+      if (subViewRef.current === "insights") loadLeagueInsights().catch(() => {});
       const ws = await loadHubBootstrap({
         loadWorkspace: () => loadWorkspace(signal),
         loadPresets: demoMode ? null : async () => {
@@ -431,7 +437,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     if (!workspace || loading) return undefined;
     const controller = new AbortController();
     const inLeague = effectiveHubContext(hubContext, workspace)?.mode === "league";
-    if (!capSheet && (inLeague || TABS_NEED_CAP_SHEET.has(subView))) {
+    if (!capSheet && ((inLeague && subView !== "insights") || TABS_NEED_CAP_SHEET.has(subView))) {
       ensureCapSheet(controller.signal);
     }
     return () => controller.abort();
@@ -954,8 +960,11 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       {subView === "insights" && effectiveCtx?.mode === "league" && (
         <Suspense fallback={<InsightsFallback />}>
           <LeagueInsights
+            key={effectiveCtx.league_id}
             leagueId={effectiveCtx.league_id}
             hubContext={effectiveCtx}
+            bootstrapData={workspace?.insights_overview}
+            bootstrapAt={workspace?.insights_prefetched_at}
             onNavigate={setSubView}
             activeTab={insightTab}
             onActiveTabChange={onInsightTabChange}
