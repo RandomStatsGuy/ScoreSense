@@ -273,7 +273,7 @@ def _hub_teams_for_scoring(league_id: str) -> list[dict[str, Any]]:
 
 def _refresh_scoring_cache_for_league(league_id: str) -> None:
     from src.draft_hub.insights_cache import build_and_store_fair_values, invalidate_cap_cache
-    from src.draft_hub.league_history import refresh_sleeper_scoring_cache
+    from src.draft_hub.league_history import refresh_sleeper_scoring_cache, build_insights_landing, sleeper_league_season_chain
     from src.draft_hub.league_live_scoring import refresh_sleeper_live_scoring_cache, resolve_current_week
     from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
 
@@ -287,11 +287,13 @@ def _refresh_scoring_cache_for_league(league_id: str) -> None:
         return
     hub_teams = _hub_teams_for_scoring(league_id)
     try:
+        sleeper_league_season_chain(str(sleeper_lid), refresh=True)
         refresh_sleeper_scoring_cache(
             str(sleeper_lid),
             hub_teams=hub_teams,
         )
         _warm_scoring_derived_for_league(league_id, str(sleeper_lid), hub_teams)
+        build_insights_landing(str(sleeper_lid), hub_teams=hub_teams)
     except Exception:
         logger.warning("scoring cache refresh failed for league %s", league_id, exc_info=True)
     try:
@@ -433,7 +435,7 @@ def hub_presets(_user=Depends(require_hub_user)) -> dict:
 
 
 @router.get("/workspace")
-def hub_get_workspace(response: Response, _user=Depends(require_hub_user)) -> dict:
+def hub_get_workspace(response: Response, insights_overview: bool = False, _user=Depends(require_hub_user)) -> dict:
     with HubTimer("workspace", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
@@ -462,6 +464,10 @@ def hub_get_workspace(response: Response, _user=Depends(require_hub_user)) -> di
                     "hub_context": ctx,
                     "memberships": memberships,
                 }
+    if insights_overview and ctx.get("mode") == "league":
+        ws["insights_overview"] = hub_league_insights_overview(
+            response=response, league_id=str(ctx["league_id"]), refresh=False, _user=_user,
+        )
     return ws
 
 
@@ -2820,7 +2826,17 @@ def _insights_cache_key(
 
     sec = sections or "all"
     ver = source_version or storage.insights_source_version(league_id)
-    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}"
+    sleeper_id = str((storage.get_league(league_id) or {}).get("sleeper_league_id") or "")
+    chain = storage.get_sleeper_league_chain(sleeper_id) if sleeper_id else []
+    with storage.get_conn() as conn:
+        ids = [str(c["league_id"]) for c in chain] or [sleeper_id]
+        placeholders = ",".join("?" for _ in ids)
+        revisions = conn.execute(
+            f"SELECT sleeper_league_id, synced_at FROM sleeper_scoring_cache WHERE sleeper_league_id IN ({placeholders}) ORDER BY sleeper_league_id",
+            ids,
+        ).fetchall()
+    scoring_version = ";".join(f"{r[0]}={r[1]}" for r in revisions)
+    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}:{scoring_version}"
 
 
 def _enrich_cap_analytics(
@@ -3009,7 +3025,7 @@ def _warm_scoring_derived_for_league(
     display_season = str(scoring.get("requested_season") or scoring.get("season") or "current")
     owner_map, sleeper_owner_map = scoring_owner_maps_for_league(
         league_id,
-        season_year=display_season if display_season.isdigit() else None,
+        season_year=display_season if display_season.isdigit() or display_season == "all" else None,
         sleeper_league_id=scoring.get("sleeper_league_id") or str(sleeper_lid),
     )
     awards = build_scoring_awards(
@@ -3068,6 +3084,10 @@ def _hub_ownership_history_payload(
 
         filter_year = history_year if history_mode == "year" else None
         out = enrich_ownership_with_contracts(payload, league_id, season_year=filter_year)
+        from src.draft_hub.owner_display import scoring_owner_maps_for_league
+        out["owner_map"], _ = scoring_owner_maps_for_league(
+            league_id, season_year="all", sleeper_league_id=str(sleeper_lid) or None, cached_only=True,
+        )
         out["history_mode"] = history_mode
         out["history_season"] = history_year
         return out
@@ -3078,13 +3098,13 @@ def _hub_ownership_history_payload(
             "hint": "Link your Sleeper league on Setup or All teams to pull season-by-season ownership.",
         })
 
-    chain = sleeper_league_season_chain(str(sleeper_lid))
+    chain = sleeper_league_season_chain(str(sleeper_lid), cached_only=not refresh)
     available_seasons = [str(c["season"]) for c in chain]
     ownership["available_seasons"] = available_seasons
 
     if not refresh:
         cached = storage.get_sleeper_ownership_cache(str(sleeper_lid))
-        if cached and _scoring_cache_is_fresh(cached["synced_at"], OWNERSHIP_DB_MAX_AGE_HOURS):
+        if cached:
             sleeper_payload = {
                 **cached["payload"],
                 "synced_at": cached["synced_at"],
@@ -3123,10 +3143,13 @@ def _insights_landing_bundle(league_id: str, *, refresh: bool, award_titles):
         hub_teams=_hub_teams_for_scoring(league_id),
         refresh=refresh,
         award_titles=award_titles,
+        cached_only=not refresh,
     )
     owner_map, sleeper_map = scoring_owner_maps_for_league(
         league_id,
         sleeper_league_id=str(sleeper_lid) or None,
+        season_year="all",
+        cached_only=not refresh,
     )
     return enrich_insights_landing(landing, owner_map, sleeper_map), owner_map
 
@@ -3157,6 +3180,8 @@ def hub_league_insights(
     wanted_sections = _parse_insights_sections(sections)
     from src.draft_hub import storage as hub_storage
 
+    sub = _sub(_user)
+    ctx = _ctx_for_league(sub, league_id)
     source_version = hub_storage.insights_source_version(league_id)
     cache_key: str | None = None
     cache_ttl = _INSIGHTS_SCORING_CACHE_TTL if wanted_sections == {"scoring"} else _INSIGHTS_CACHE_TTL
@@ -3168,14 +3193,11 @@ def hub_league_insights(
             scoring_season=scoring_season,
             source_version=source_version,
         )
+        cache_key += f":{sub}:{team_id or ctx.get('team_id') or ''}:{cap_efficiency_season or ''}"
         cached = _INSIGHTS_RESPONSE_CACHE.get(cache_key)
         if cached and (time.time() - cached[0]) < cache_ttl:
             return cached[1]
     with HubTimer("league-insights", response) as timer:
-        with timer.phase("ctx"):
-            sub = _sub(_user)
-            ctx = _ctx_for_league(sub, league_id)
-
         # Cap-only Spend tab: serve SQLite materialization without reloading every roster.
         if (
             not refresh
@@ -3227,8 +3249,7 @@ def hub_league_insights(
 
         # Overview landing: champions / records / scoring leaders without roster rebuild.
         if (
-            not refresh
-            and not ownership_only
+            not ownership_only
             and wanted_sections == {"overview"}
         ):
             from src.draft_hub.insight_awards import award_catalog
@@ -3238,7 +3259,7 @@ def hub_league_insights(
                 league = storage.get_league(league_id) or {}
                 landing, owner_map = _insights_landing_bundle(
                     league_id,
-                    refresh=False,
+                    refresh=refresh,
                     award_titles=_league_award_titles(league),
                 )
                 payload = {
@@ -3450,6 +3471,7 @@ def hub_league_insights(
                             hub_teams=hub_teams,
                             refresh=refresh,
                             scoring_season=effective_scoring_season,
+                            cached_only=not refresh,
                         )
                         if sleeper_lid
                         else {
@@ -3510,8 +3532,9 @@ def hub_league_insights(
                         )
                         owner_map, sleeper_owner_map = scoring_owner_maps_for_league(
                             league_id,
-                            season_year=display_season if display_season.isdigit() else None,
+                            season_year=display_season if display_season.isdigit() or display_season == "all" else None,
                             sleeper_league_id=scoring.get("sleeper_league_id") or str(sleeper_lid or ""),
+                            cached_only=not refresh,
                         )
                         year_specific = scoring_year_specific(display_season, planning_season)
                         if scoring.get("standings"):
@@ -3660,6 +3683,20 @@ def hub_league_insights_overview(
     )
 
 
+@router.get("/league/{league_id}/insights/contracts")
+def hub_league_insights_contracts(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    from src.draft_hub.contract_returns import build_contract_returns
+    from src.draft_hub.league_capabilities import uses_salaries
+
+    league = storage.get_league(league_id) or {}
+    if not uses_salaries(league.get("rules") or {}):
+        raise HTTPException(status_code=404, detail="Contract rankings are unavailable for this league")
+    landing, owner_map = _insights_landing_bundle(league_id, refresh=False, award_titles=_league_award_titles(league))
+    return {"contracts": build_contract_returns(league_id), "landing": landing,
+            "owner_map": owner_map, "hub_context": ctx}
+
+
 @router.get("/league/{league_id}/insights/cap")
 def hub_league_insights_cap(
     response: Response,
@@ -3790,7 +3827,7 @@ def hub_league_scoring_awards(
                 )
                 owner_map, sleeper_owner_map = scoring_owner_maps_for_league(
                     league_id,
-                    season_year=display_season if display_season.isdigit() else None,
+                    season_year=display_season if display_season.isdigit() or display_season == "all" else None,
                     sleeper_league_id=scoring.get("sleeper_league_id") or str(sleeper_lid or ""),
                 )
                 planning_season = planning_season_for_user(sub, league)

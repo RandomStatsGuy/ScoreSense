@@ -129,7 +129,7 @@ export function RankBars({
           || (mineName && String(row.teamName) === String(mineName));
         return (
           <li
-            key={row.teamId || row.teamName || row.label}
+            key={row.owner_id || row.teamId || row.teamName || row.label}
             className={`hub-insights-rank-row${mine ? " is-mine" : ""}`}
             aria-label={`${row.label} ${formatValue(row) || ""}`.trim()}
           >
@@ -241,17 +241,17 @@ export function ScoringRace({
       </div>
       <ol className="hub-insights-rank-list">
         {rows.map((row) => {
-          const hidden = hiddenTeams?.has(row.teamName);
+          const hidden = hiddenTeams?.has(row.seriesKey);
           const mine = (mineId && String(row.teamId) === String(mineId))
             || (mineName && String(row.teamName) === String(mineName));
-          const hovered = hoveredName && hoveredName === row.teamName;
+          const hovered = hoveredName && hoveredName === row.seriesKey;
           return (
-            <li key={row.teamName || row.label}>
+            <li key={row.seriesKey || row.label}>
               <button
                 type="button"
                 className={`hub-insights-rank-row hub-insights-rank-row--button${mine ? " is-mine" : ""}${hidden ? " is-hidden" : ""}${hovered ? " is-hovered" : ""}`}
-                onClick={() => onToggleTeam?.(row.teamName)}
-                onMouseEnter={() => onHover?.(row.teamName)}
+                onClick={() => onToggleTeam?.(row.seriesKey)}
+                onMouseEnter={() => onHover?.(row.seriesKey)}
                 onMouseLeave={() => onHover?.("")}
                 aria-label={`${row.label} ${row.total}${row.gapFromFirst > 0 ? `, ${row.gapFromFirst} back` : ", lead"}`}
               >

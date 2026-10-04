@@ -9,6 +9,7 @@ import {
 
 export const INSIGHTS_TAB_SECTIONS = {
   overview: "overview",
+  contracts: "contracts",
   cap: "cap",
   scoring: "scoring",
   ownership: null,
@@ -61,15 +62,16 @@ export function mergeInsightsPayload(prev, next, opts = {}) {
     trade: (next.trade?.suggestions || []).length || (next.trade?.partners || []).length
       ? next.trade
       : (next.trade?.empty_reason != null ? next.trade : prev.trade),
-    scoring: next.scoring?.available ? next.scoring : (next.scoring?.season ? next.scoring : prev.scoring),
-    efficiency: (next.efficiency?.teams || []).length
+    scoring: sections === "scoring" ? next.scoring : next.scoring?.available ? next.scoring : (next.scoring?.season ? next.scoring : prev.scoring),
+    efficiency: sections === "scoring" ? next.efficiency : (next.efficiency?.teams || []).length
       ? next.efficiency
       : ((prev.efficiency?.teams || []).length ? prev.efficiency : next.efficiency),
     ownership: (next.ownership?.players || []).length ? next.ownership : prev.ownership,
-    landing: next.landing?.available || (next.landing?.champions || []).length
+    landing: sections === "overview" ? next.landing : next.landing?.available || (next.landing?.champions || []).length
       ? next.landing
       : (next.landing?.award_catalog ? next.landing : prev.landing),
     award_catalog: next.award_catalog || prev.award_catalog,
+    contracts: next.contracts ?? prev.contracts,
     draft_recap: next.draft_recap ?? prev.draft_recap,
   };
 }
@@ -77,16 +79,12 @@ export function mergeInsightsPayload(prev, next, opts = {}) {
 export function useInsightsData(leagueId, refs) {
   const loadGenerationRef = useRef(0);
   const loadCacheRef = useRef(new Map());
-  const scoringPrefetchRef = useRef(false);
-  const leagueIdRef = useRef(leagueId);
-  leagueIdRef.current = leagueId;
 
-  // Prefetch is one-shot per league; reset when the room changes so the next
-  // league can warm Scoring. Bump generation so in-flight loads/prefetches from
-  // the previous room cannot merge into or discard the new league's responses.
+  // Each league owns its cache and pending responses.
   useEffect(() => {
-    scoringPrefetchRef.current = false;
+    loadCacheRef.current.clear();
     loadGenerationRef.current += 1;
+    return () => { loadGenerationRef.current += 1; };
   }, [leagueId]);
 
   const resolveHistorySeason = useCallback((tab, opts = {}) => {
@@ -125,6 +123,8 @@ export function useInsightsData(leagueId, refs) {
     const seasonKey = cacheKey?.split(":").slice(1).join(":") || "current";
 
     if (!opts.refresh && cacheKey && loadCacheRef.current.has(cacheKey)) {
+      loadGenerationRef.current += 1;
+      setError?.("");
       const cached = loadCacheRef.current.get(cacheKey);
       setData?.((prev) => mergeInsightsPayload(prev || {}, cached, { sections }));
       if (!sections || sections.includes("cap")) {
@@ -151,13 +151,9 @@ export function useInsightsData(leagueId, refs) {
     const background = Boolean(
       opts.background || (opts.merge && dataRef?.current) || hasStale,
     );
-    // Background section loads must not bump generation — that discarded the
-    // in-flight overview when Scoring was prefetched in parallel.
-    const generation = background
-      ? loadGenerationRef.current
-      : ++loadGenerationRef.current;
-    // One in-flight load owns one indicator; clear the other so a discarded
-    // background prefetch cannot leave tabLoading stuck after a foreground load.
+    // Only the latest selected tab/season may publish data or loading state.
+    const generation = ++loadGenerationRef.current;
+    // One request owns the indicator for the currently selected view.
     if (background) {
       setTabLoading?.(true);
       setLoading?.(false);
@@ -196,6 +192,8 @@ export function useInsightsData(leagueId, refs) {
           ? "insights/scoring"
           : overviewOnly
             ? "insights/overview"
+            : sections === "contracts"
+              ? "insights/contracts"
             : "insights";
       const res = await apiFetch(`${root}/league/${encodeURIComponent(leagueId)}/${insightsRoute}${q}`);
       if (!res.ok) throw new Error(await parseApiError(res));
@@ -229,11 +227,14 @@ export function useInsightsData(leagueId, refs) {
           return resolveDefaultTeamPick(teams, hubContextRef.current);
         });
       }
+      return true;
     } catch (e) {
+      if (generation !== loadGenerationRef.current) return;
       const msg = connectionErrorMessage(e);
       setError?.(/internal server error|500/i.test(msg)
         ? "Insights failed to load. Try again in a moment or switch tabs."
         : msg);
+      return false;
     } finally {
       if (generation !== loadGenerationRef.current) return;
       setRefreshing?.(false);
@@ -244,35 +245,12 @@ export function useInsightsData(leagueId, refs) {
 
   const resetCache = useCallback(() => {
     loadCacheRef.current.clear();
-    scoringPrefetchRef.current = false;
     if (leagueId) clearInsightsSectionCache(leagueId);
   }, [leagueId]);
-
-  const prefetchScoring = useCallback(async (handlers) => {
-    if (!leagueId || scoringPrefetchRef.current) return;
-    scoringPrefetchRef.current = true;
-    const prefetchFor = leagueId;
-    // Fire Scoring at mount next to Overview — do not wait on /insights/status
-    // or the overview payload. Drop if the user switched leagues.
-    if (leagueIdRef.current !== prefetchFor) return;
-    await load(
-      {
-        sections: "scoring",
-        merge: true,
-        keepSeason: true,
-        keepChartHidden: true,
-        background: true,
-        activeTab: "scoring",
-      },
-      handlers,
-    );
-  }, [leagueId, load]);
 
   return {
     load,
     resetCache,
-    prefetchScoring,
-    scoringPrefetchRef,
     loadCacheRef,
   };
 }

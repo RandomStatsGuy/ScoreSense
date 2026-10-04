@@ -22,7 +22,7 @@ export const BAR_CONTROL_SELECTOR =
 export const TABLE_DEAD_ZONE_PX = 32;
 export const COLUMN_PACK_RATIO = 1.5;
 export const GUTTER_EDGE_SELECTORS = [
-  "[class*='hero']",
+  "[class*='hero']:not([class*='mobile-player-card-hero'])",
   ".hub-league-strip, .league-overflow-lead, .hub-league-bar",
   ".hub-experience-layout, .hub-home-club, .hub-table-card, .hub-experience-section, .hub-section",
 ];
@@ -813,8 +813,8 @@ export function measureScript() {
     );
 
     results.push(
-      document.scrollWidth > window.innerWidth + 1
-        ? { rule: "overflow", ok: false, selector: "document", detail: `scrollWidth=${document.scrollWidth} innerWidth=${window.innerWidth}` }
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1
+        ? { rule: "overflow", ok: false, selector: "document", detail: `scrollWidth=${Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)} innerWidth=${window.innerWidth}` }
         : { rule: "overflow", ok: true, selector: "", detail: "no horizontal overflow" },
     );
 

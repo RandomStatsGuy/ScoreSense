@@ -277,8 +277,8 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/insights/overview",
     page: "frontend/src/DraftHub/LeagueInsights.jsx",
     copy: "frontend/src/DraftHub/insights/insightsPresentation.js",
-    also: ["frontend/src/DraftHub/insights/InsightsOverview.jsx"],
-    doNot: "Gold is for awards only. Overview sells titles, records, and scoring — not Spend. Rank bars share a fixed track and a field scale, not a zero baseline or the value-label width. Scoring gaps from first; the leader reads Leader. Season counts are meta, not chips. Keep the tab strip live and below the hero band — never above it. Skeleton the plaque, year ribbon, and two boards — no think scrim. Award names live on Roster management. Follow approved September 16 A: three factual recorded-leader stories precede scoring; title history and career records are disclosures. Use only available data, with neutral empty states. Overview retains dynasty plaque, championship years, and two boards; do not stretch unequal panels to a shared bottom. List every manager by the name that persists across seasons; team nicknames sit under or after a middot — never as the only label.",
+    also: ["frontend/src/DraftHub/insights/InsightsOverview.jsx", "frontend/src/DraftHub/insights/InsightsHeader.jsx", "frontend/src/DraftHub/insights/InsightsContracts.jsx"],
+    doNot: "Follow approved October 4 B: compact phone tabs above period and icon refresh, accessible hidden phone title, championship years wrapping, and one combined record book. Persist manager identity across renames; nicknames stay secondary. Overview and Contracts share local All time, year, Last 3 years, and range filters. Rank actual fantasy points per saved annual salary; never use projections or sample contracts. Missing salary or production stays excluded. Hide salary tabs in non-salary leagues. Normal reads use saved SQLite history; only explicit refresh or sync contacts Sleeper. Gold is for titles and awards.",
   }),
   "hub.setup": S({
     label: "Setup",

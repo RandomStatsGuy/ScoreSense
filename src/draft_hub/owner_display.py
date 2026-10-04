@@ -155,6 +155,7 @@ def scoring_owner_maps_for_league(
     *,
     season_year: int | str | None = None,
     sleeper_league_id: str | None = None,
+    cached_only: bool = False,
 ) -> tuple[dict[str, str], dict[str, str]]:
     """
     Build lookups for scoring awards: team display name -> owner, Sleeper user_id -> owner.
@@ -192,7 +193,7 @@ def scoring_owner_maps_for_league(
                     owner_season_teams.add(team)
                     owner_season_teams.add(team.lower())
             uid = str(row.get("sleeper_user_id") or "").strip()
-            if uid and owner:
+            if uid and owner and owner.lower() != team.lower():
                 sleeper_map[uid] = owner
         for row in contract_rows:
             team = str(row.get("hub_team_name") or "").strip()
@@ -203,6 +204,46 @@ def scoring_owner_maps_for_league(
                 continue
             team_map[team] = owner
             team_map[team.lower()] = owner
+
+    # Career views retain managers from every season, including departed owners.
+    if str(season_year) == "all":
+        for row in storage.list_owner_season_map(league_id):
+            owner = str(row.get("owner_label") or "").strip()
+            team = str(row.get("hub_team_name") or "").strip()
+            uid = str(row.get("sleeper_user_id") or "").strip()
+            if team and owner:
+                team_map[team] = team_map[team.lower()] = owner
+            if uid and owner and owner.lower() != team.lower():
+                sleeper_map[uid] = owner
+
+    if sleeper_league_id and cached_only:
+        chain = storage.get_sleeper_league_chain(str(sleeper_league_id))
+        ids = [str(c["league_id"]) for c in chain] or [str(sleeper_league_id)]
+        saved_rows = []
+        for lid in ids:
+            saved = storage.get_sleeper_scoring_cache(lid)
+            saved_rows.extend((saved or {}).get("payload", {}).get("standings", []))
+        # Seed stable identities from exact names first, newest season first.
+        # A former nickname like "Crushing Disappointment" must not outrank
+        # an exact current "Panda Fraud" match for the same Sleeper user.
+        for row in saved_rows:
+            uid = str(row.get("owner_id") or "")
+            name = str(row.get("team_name") or "").strip()
+            owner = str(row.get("owner_name") or "").strip()
+            if not owner or owner.lower() == name.lower():
+                owner = team_map.get(name) or team_map.get(name.lower())
+            if uid and owner and owner.lower() != name.lower():
+                sleeper_map.setdefault(uid, str(owner))
+        for row in saved_rows:
+            uid = str(row.get("owner_id") or "")
+            name = str(row.get("team_name") or "").strip()
+            owner = sleeper_map.get(uid) or row.get("owner_name") or lookup_owner_label(name, team_map)
+            if owner:
+                if uid:
+                    sleeper_map[uid] = str(owner)
+                if name:
+                    team_map[name] = team_map[name.lower()] = str(owner)
+        return team_map, sleeper_map
 
     if sleeper_league_id:
         try:
@@ -308,7 +349,7 @@ def enrich_team_row(
         sleeper_user_id=owner_id,
         sleeper_owner_map=sleeper_owner_map,
     )
-    owner = resolve_owner(name, owner_label)
+    owner = resolve_owner(name, owner_label or row.get("owner_name") or row.get("owner_label"))
     out = dict(row)
     out["owner_name"] = owner
     out["display_name"] = format_manager_label(name, owner_label=owner, year_specific=year_specific)
@@ -334,6 +375,13 @@ def enrich_insights_landing(
     if not landing:
         return landing
     out = dict(landing)
+    out["season_summaries"] = [
+        {**summary, "standings": [
+            enrich_team_row(row, owner_map, sleeper_owner_map=sleeper_owner_map)
+            for row in summary.get("standings") or []
+        ]}
+        for summary in landing.get("season_summaries") or []
+    ]
     champs = []
     for row in landing.get("champions") or []:
         enriched = enrich_team_row(

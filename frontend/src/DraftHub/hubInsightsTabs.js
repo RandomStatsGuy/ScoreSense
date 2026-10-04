@@ -2,6 +2,7 @@
 
 export const INSIGHTS_TABS = [
   { id: "overview", label: "Overview", roles: ["owner", "commissioner"] },
+  { id: "contracts", label: "Contracts", roles: ["owner", "commissioner"], salaryOnly: true },
   { id: "cap", label: "Spend", roles: ["owner", "commissioner"], salaryOnly: true },
   { id: "scoring", label: "Scoring", roles: ["owner", "commissioner"] },
   { id: "ownership", label: "History", roles: ["owner", "commissioner"] },
@@ -10,7 +11,6 @@ export const INSIGHTS_TABS = [
 /** Legacy tab ids from old URLs. */
 export const INSIGHT_TAB_ALIASES = {
   salaries: "cap",
-  contracts: "cap",
   desk: "cap",
 };
 
