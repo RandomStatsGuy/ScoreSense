@@ -57,8 +57,193 @@
       "check": "Fantasy home action also bypasses the legacy cache",
       "width": 390,
       "pass": true
+    },
+    {
+      "check": "current worker's poisoned lazy asset survives ordinary reloads",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "check": "Reload page repairs cached lazy asset and preserves destination/auth/storage",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "check": "Fantasy home repairs the worker asset cache and preserves auth/storage",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "check": "current worker's poisoned lazy asset survives ordinary reloads",
+      "width": 390,
+      "pass": true
+    },
+    {
+      "check": "Reload page repairs cached lazy asset and preserves destination/auth/storage",
+      "width": 390,
+      "pass": true
+    },
+    {
+      "check": "Fantasy home repairs the worker asset cache and preserves auth/storage",
+      "width": 390,
+      "pass": true
     }
   ],
-  "recoveryRequests": 4,
-  "legacyWorker": "unchanged production build"
+  "layoutGate": [
+    "type",
+    "selects",
+    "collisions",
+    "grids"
+  ],
+  "layoutAudits": [
+    {
+      "route": "/hub/home (shared recovery fallback)",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "1 targets ≥ 32"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        }
+      ]
+    },
+    {
+      "route": "/hub/home (shared recovery fallback)",
+      "width": 390,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "0 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "1 targets ≥ 44"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "≥ 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        }
+      ]
+    }
+  ],
+  "recoveryRequests": 8,
+  "recoveryPreflights": 8,
+  "recoveryRef": null,
+  "lazyNetworkRequests": 6,
+  "legacyWorker": "legacy navigation fixture"
 }

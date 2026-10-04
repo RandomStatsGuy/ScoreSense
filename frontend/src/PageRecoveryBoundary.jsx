@@ -21,7 +21,11 @@ export default class PageRecoveryBoundary extends React.Component {
       <p>{C.support}</p>
       <div>
         <button type="button" onClick={() => recoverClientPage()}>{C.reload}</button>
-        <a href={clientRecoveryUrl({ pathname: "/hub/home" })}>{C.home}</a>
+        <a href={clientRecoveryUrl({ pathname: "/hub/home" })} onClick={event => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          void recoverClientPage(window.location, { pathname: "/hub/home" });
+        }}>{C.home}</a>
       </div>
     </main>;
   }
