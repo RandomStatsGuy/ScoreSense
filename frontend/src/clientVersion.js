@@ -69,15 +69,23 @@ export function startClientVersionWatcher() {
       if (!response.ok) return;
       const { version } = await response.json();
       if (!version || (version === currentVersion && !assetFailure) || !canReload()) return;
-      const previous = JSON.parse(sessionStorage.getItem(RELOAD_ATTEMPT_KEY) || "null");
+      const previousValue = sessionStorage.getItem(RELOAD_ATTEMPT_KEY);
+      const previous = JSON.parse(previousValue || "null");
       const attempts = previous?.version === version ? previous.count : 0;
       // One same-build recovery handles a transient CSS/import fetch failure.
       // Never loop offline or substitute new code under an old asset hash.
       if (version === currentVersion && attempts >= 1) return;
       if (attempts >= 3 || (attempts && Date.now() - previous.at < 30_000)) return;
       if (!(await waitForUpdatedServiceWorker()) || !canReload()) return;
+      const recoveryHref = window.location.href;
       sessionStorage.setItem(RELOAD_ATTEMPT_KEY, JSON.stringify({ version, count: attempts + 1, at: Date.now() }));
-      recoverClientPage();
+      const recovered = await recoverClientPage(window.location, window.location, {
+        shouldRecover: () => canReload() && window.location.href === recoveryHref,
+      });
+      if (!recovered) {
+        if (previousValue == null) sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
+        else sessionStorage.setItem(RELOAD_ATTEMPT_KEY, previousValue);
+      }
     } catch {
       // A deployment or network interruption is transient; the next check retries.
     } finally {
