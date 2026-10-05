@@ -395,14 +395,25 @@ export function contractCoverage(rows, years) {
   return [...seasons].sort(([a], [b]) => a - b).map(([year, week]) => `${year} through Week ${week}`).join("; ");
 }
 
+/** Explain imported salary gaps without implying a scoring sync can repair names. */
+export function contractHistoryNote(status, years) {
+  const selected = (status || []).filter(row => years.includes(Number(row.season)));
+  const invalid = selected.filter(row => row.excluded?.invalid_name > 0).map(row => row.season);
+  if (invalid.length) return `Some ${invalid.join(", ")} salary entries need review. Rankings include verified entries only.`;
+  const missing = selected.filter(row => !row.ranked && (row.excluded?.missing_identity || row.excluded?.needs_review)).map(row => row.season);
+  if (missing.length) return `${missing.join(", ")} needs verified player and salary history.`;
+  const scoring = selected.filter(row => row.excluded?.incomplete_scoring > 0).map(row => row.season);
+  return scoring.length ? `Scoring history is incomplete for ${scoring.join(", ")}. Refresh history to update it.` : "";
+}
+
 export const INSIGHTS_COPY = {
   contracts: {
     heading: "Contract returns", loading: "Loading saved contracts…",
     best: "Best contracts", worst: "Worst contracts", metric: "Actual fantasy points per dollar paid",
-    empty: "No matched salary and scoring history for this period. Sync the league to update saved scoring.",
+    empty: "No verified salary and scoring history for this period.",
     methodology: "How contracts are ranked",
     coverage: (coverage) => `Scoring included: ${coverage}.`,
-    excluded: (count) => `Across saved history, ${count} salary entries are excluded because their player, salary, or scoring history is incomplete.`,
+    excluded: (count) => `Across saved history, ${count} salary entries are omitted. Rankings exclude duplicates, dead-cap obligations, and incomplete player, salary, or scoring history.`,
     explanation: "Actual season fantasy points divided by saved annual salary. Selected seasons sum points and salary before dividing. Missing production is excluded; recorded zero points count. Renewals without a saved start year stay separate annual entries.",
   },
   overview: {
@@ -436,6 +447,9 @@ export const INSIGHTS_COPY = {
       if (runnerUp) bits.push(`def. ${runnerUp} that year`);
       return bits.join(" · ");
     },
+    recordBook: "Record book",
+    recordBookSupport: "Regular-season records · total fantasy points",
+    rankBy: "Rank managers by", recordSort: "Record", pointsSort: "Points",
     records: "All-time records",
     recordsSupport: "Regular-season records across all available seasons (W–L–T).",
     recordsEmpty: "Win-loss records fill in after scoring history refreshes.",

@@ -25,10 +25,12 @@
 .hub-insights-championships { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: var(--space-4); }
 .hub-insights-championships .hub-insights-years { display: grid; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); gap: var(--space-3); }
 .hub-insights-championships .hub-insights-year { min-width: 0; padding: var(--space-2) 0; background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; }
+.hub-insights-year-winner { display: grid; gap: var(--space-1); min-width: 0; }
 .hub-insights-championships .hub-insights-year strong { overflow-wrap: anywhere; }
 .hub-insights-record-list, .hub-insights-contract-list { list-style: none; padding: 0; margin: 0; }
-.hub-insights-record-sort { display: flex; gap: var(--space-2); margin-bottom: var(--space-3); }
-.hub-insights-record-sort button { min-height: 44px; }
+.hub-insights-record-controls { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+.hub-insights-record-sort { display: flex; gap: var(--space-1); }
+.hub-insights-record-controls button { min-height: var(--control-h-lg); }
 .hub-insights-record-list li { display: grid; grid-template-columns: var(--space-5) minmax(0, 1fr) 10rem 10rem; column-gap: var(--space-3); align-items: center; border-top: 1px solid var(--border); padding: var(--space-4) 0; }
 .hub-insights-record-identity, .hub-insights-contract-identity { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
 .hub-insights-record-identity > strong, .hub-insights-contract-identity > strong { font-size: var(--text-sm); }
@@ -53,13 +55,27 @@
   .hub-insights-period-context, .hub-insights-period summary > span:first-child { display: none; }
   .hub-insights-header-freshness { grid-row: 2; grid-column: 2; gap: var(--space-2); }
   .hub-insights-header-freshness > span { font-size: var(--text-xs); max-width: 6rem; }
-  .hub-insights-refresh { width: 44px; min-width: 44px; min-height: 44px; padding: 0; }
+  .hub-insights-refresh { width: 44px; min-width: 44px; min-height: 44px; padding: 0; border-color: transparent; border-radius: var(--radius-sm); background: transparent; }
   .hub-insights-refresh svg { display: block; }
   .hub-insights-refresh-label { display: none; }
   .hub-insights-period summary, .hub-insights-period-menu button { min-height: 44px; }
   .hub-insights-period summary { padding-inline: var(--space-2); gap: var(--space-2); }
   .hub-insights-championships { grid-template-columns: minmax(0, 1fr); }
-  .hub-insights-championships .hub-insights-years { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hub-insights-plaque { padding: var(--space-4); gap: var(--space-3); }
+  .hub-insights-plaque > div:first-child { min-width: 0; }
+  .hub-insights-plaque .hub-insights-plaque-kicker { font-size: var(--text-xs); letter-spacing: .08em; color: var(--experience-gold); margin-bottom: var(--space-2); }
+  .hub-insights-plaque h2 { font-size: var(--text-xl); }
+  .hub-insights-plaque-count { min-width: var(--space-8); }
+  .hub-insights-plaque-count strong { font-size: var(--text-2xl); }
+  .hub-insights-championships .hub-insights-years { grid-template-columns: minmax(0, 1fr); gap: 0; overflow: visible; }
+  .hub-insights-championships .hub-insights-year { display: grid; grid-template-columns: var(--space-7) minmax(0, 1fr); gap: var(--space-3); align-items: start; padding-block: var(--space-2); }
+  .hub-insights-year-winner span { margin-top: 0; }
+  .hub-insights-championships .hub-insights-year time { margin: 0; color: var(--text-muted); }
+  .hub-insights-record-book .hub-insights-talk-head { margin-bottom: var(--space-2); }
+  .hub-insights-record-description { display: none; }
+  .hub-insights-record-controls { margin-bottom: var(--space-2); }
+  .hub-insights-record-controls button { min-height: 44px; padding-inline: var(--space-2); border-radius: var(--radius-sm); font-size: var(--text-xs); }
+  .hub-insights-open-scoring { border-color: transparent; }
   .hub-insights-record-list li { grid-template-columns: var(--space-4) minmax(0, 1fr) max-content; row-gap: var(--space-2); }
   .hub-insights-record-points { max-width: 8rem; }
   .hub-insights-record-track { grid-column: 2 / -1; }

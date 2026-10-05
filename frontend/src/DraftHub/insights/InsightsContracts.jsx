@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { HubFilterMenu } from "../HubUILayout";
 import { contractRanks, periodYears } from "./insightsPeriods";
-import { contractCoverage, formatPoints, INSIGHTS_COPY } from "./insightsPresentation";
+import { contractHistoryNote, contractCoverage, formatPoints, INSIGHTS_COPY } from "./insightsPresentation";
 
 const money = (n) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 export default function InsightsContracts({ contracts, period, years, loading }) {
   const [position, setPosition] = useState("all");
   const copy = INSIGHTS_COPY.contracts;
   const ranks = useMemo(() => contractRanks(contracts?.rows, periodYears(years, period), position), [contracts, years, period, position]);
+  const note = contractHistoryNote(contracts?.season_status, periodYears(years, period));
   const coverage = contractCoverage(contracts?.rows, periodYears(years, period));
   const positions = [...new Set((contracts?.rows || []).map((r) => r.position).filter(Boolean))].sort();
   return <div className="hub-insights-contracts" aria-busy={loading}>
@@ -15,6 +16,7 @@ export default function InsightsContracts({ contracts, period, years, loading })
       <div><h2>{copy.heading}</h2><p className="table-meta" role="status">{loading ? copy.loading : `${ranks.count} contracts`}</p></div>
       <HubFilterMenu label="Position" value={position} onChange={setPosition} ariaLabel="Contract position" options={[{ id: "all", label: "All positions" }, ...positions.map((p) => ({ id: p, label: p }))]} />
     </div>
+    {!loading && note && <p className="chart-note hub-insights-contract-history-note" role="status">{note}</p>}
     <div className="hub-insights-contract-boards">
       {[{ title: copy.best, rows: ranks.best }, { title: copy.worst, rows: ranks.worst }].map((board) => <section className="hub-insights-overview-panel" key={board.title}>
         <div className="hub-insights-talk-head"><h3>{board.title}</h3><p>{copy.metric}</p></div>

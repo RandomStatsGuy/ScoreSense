@@ -23,13 +23,13 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
         </section> : <p className="chart-note">{copy.titlesEmpty}</p>}
         <section className="hub-insights-overview-panel">
           <div className="hub-insights-talk-head"><h3>{copy.titlesYears}</h3></div>
-          <div className="hub-insights-years">{years.map((r) => <article key={r.season} className={`hub-insights-year${r.dynasty ? " is-dynasty" : ""}`}><time dateTime={String(r.season)}>{r.season}</time><strong>{r.owner}</strong>{r.team && <span>{r.team}</span>}</article>)}</div>
+          <div className="hub-insights-years">{years.map((r) => <article key={r.season} className={`hub-insights-year${r.dynasty ? " is-dynasty" : ""}`}><time dateTime={String(r.season)}>{r.season}</time><div className="hub-insights-year-winner"><strong>{r.owner}</strong>{r.team && <span>{r.team}</span>}</div></article>)}</div>
           {!years.length && <p className="chart-note">{copy.titlesNone}</p>}
         </section>
       </div>
       <section className="hub-insights-overview-panel hub-insights-record-book" aria-label="Record book">
-        <div className="hub-insights-talk-head hub-insights-talk-head--row"><div><h2>Record book</h2><p>Regular-season records · total fantasy points</p></div><button type="button" className="btn-ghost btn-sm" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
-        <div className="hub-insights-record-sort" aria-label="Rank managers by"><button type="button" className="btn-ghost" aria-pressed={sort === "record"} onClick={() => setSort("record")}>Record</button><button type="button" className="btn-ghost" aria-pressed={sort === "points"} onClick={() => setSort("points")}>Points</button></div>
+        <div className="hub-insights-talk-head hub-insights-talk-head--row"><div><h2>{copy.recordBook}</h2><p className="hub-insights-record-description">{copy.recordBookSupport}</p></div></div>
+        <div className="hub-insights-record-controls"><div className="hub-insights-record-sort" aria-label={copy.rankBy}><button type="button" className="btn-ghost" aria-pressed={sort === "record"} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" aria-pressed={sort === "points"} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost btn-sm hub-insights-open-scoring" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
         <ol className="hub-insights-record-list">{records.map((row, index) => {
           const owner = teamDisplayName(row, ownerMap, false);
           const value = Number(sort === "record" ? row.win_pct : row.total_points) || 0;

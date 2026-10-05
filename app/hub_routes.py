@@ -2836,14 +2836,26 @@ def _insights_cache_key(
             ids,
         ).fetchall()
         ownership = conn.execute(
-            "SELECT synced_at FROM sleeper_ownership_cache WHERE sleeper_league_id = ?", (sleeper_id,),
-        ).fetchone()
+            f"SELECT sleeper_league_id, synced_at FROM sleeper_ownership_cache WHERE sleeper_league_id IN ({placeholders}) ORDER BY sleeper_league_id", ids,
+        ).fetchall()
         player_weeks = conn.execute(
             f"SELECT source, season, week, updated_at FROM player_season_week WHERE source IN ({placeholders}) ORDER BY source, season, week", ids,
         ).fetchall() if sec == "contracts" else []
+        name_aliases = conn.execute(
+            "SELECT alias_name, canonical_name, sleeper_player_id, position FROM league_player_name_alias WHERE league_id=? ORDER BY id",
+            (league_id,),
+        ).fetchall() if sec == "contracts" else []
+        native_runs = conn.execute(
+            "SELECT season, week, scored_at, final FROM league_week_scoring_run WHERE league_id=? ORDER BY season, week",
+            (league_id,),
+        ).fetchall() if sec == "contracts" else []
+    from hashlib import sha256
+    import json
+    contract_version = sha256(json.dumps([list(row) for row in [*name_aliases, *native_runs]]).encode()).hexdigest()[:16]
     scoring_version = ";".join(f"{r[0]}={r[1]}" for r in revisions)
     week_version = ";".join(":".join(str(x) for x in row) for row in player_weeks)
-    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}:{scoring_version}:{ownership[0] if ownership else ''}:{week_version}"
+    ownership_version = ";".join(f"{row[0]}={row[1]}" for row in ownership)
+    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}:{scoring_version}:{ownership_version}:{week_version}:{contract_version}"
 
 
 def _enrich_cap_analytics(
@@ -3705,7 +3717,7 @@ def hub_league_insights_contracts(league_id: str, response: Response, _user=Depe
     with HubTimer("insights-contracts", response) as timer:
         cache_key = _insights_cache_key(league_id, sections="contracts", history_season=None, scoring_season=None)
         cached = _INSIGHTS_RESPONSE_CACHE.get(cache_key)
-        if cached and time.time() - cached[0] < _INSIGHTS_SCORING_CACHE_TTL:
+        if cached and time.time() - cached[0] < _INSIGHTS_CACHE_TTL:
             return {**cached[1], "hub_context": ctx, "cache_status": {"contracts": "hit"}}
         with timer.phase("contracts"):
             contracts = build_contract_returns(league_id)
