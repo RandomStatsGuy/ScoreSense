@@ -538,7 +538,7 @@ export function measureScript() {
         const cells = rows.map((row) => rowCells(row)[c]).filter(Boolean);
         if (!cells.length) continue;
         const header = firstLine(cells[0]?.innerText || "");
-        const bodyTexts = cells.slice(1).map((cell) => firstLine(cell.innerText));
+        const bodyTexts = cells.slice(1).map((cell) => firstLine((cell.querySelector(".player-cell-name") || cell).innerText));
         const glyph = bodyTexts.length && bodyTexts.every((t) => /^[A-Z]{1,3}$|^[QDP]$/.test(t));
         const action = /action/i.test(header) || (!table.el.matches(".rosters-table") && /actions|contract/i.test(cells[0]?.className || ""));
         const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;

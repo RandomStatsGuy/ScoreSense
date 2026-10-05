@@ -163,7 +163,7 @@ test("career labels ignore a year-specific display_name", () => {
       owner_name: "Stephen P",
       display_name: "Stephen P · King Panda",
     }, null, true),
-    "Stephen P · King Panda",
+    "King Panda · Stephen P",
   );
 });
 
@@ -260,7 +260,7 @@ test("formatSpendValue and hero status stay screenshot-ready", () => {
   );
   assert.equal(
     teamDisplayName({ team_name: "White Supremacists" }, { "White Supremacists": "Caleb K" }, true),
-    "Caleb K · White Supremacists",
+    "White Supremacists · Caleb K",
   );
   assert.equal(rankShowsTeam({ label: "Caleb K", teamName: "White Supremacists" }), true);
   assert.equal(rankShowsTeam({ label: "Caleb K · White Supremacists", teamName: "White Supremacists" }), false);
@@ -280,7 +280,7 @@ test("award catalog drops money awards for a league without them", () => {
 
 test("corrected manager labels override stale display labels", () => {
   const row = { team_name: "Rivals", owner_label: "Taylor", display_name: "Former owner · Rivals" };
-  assert.equal(teamDisplayName(row, {}, true), "Taylor · Rivals");
+  assert.equal(teamDisplayName(row, {}, true), "Rivals · Taylor");
   assert.equal(managerLabel(row, {}, false), "Taylor");
   assert.equal(teamDisplayName({ team_name: "Rivals", owner_name: "Rivals" }, {Rivals: "Morgan"}, false), "Morgan");
 });
@@ -300,4 +300,10 @@ test("contract history gaps explain salary review only in the selected years", (
   assert.match(contractHistoryNote(status,[2023]), /verified player and salary history/);
   assert.match(contractHistoryNote(status,[2024]), /Refresh history/);
   assert.equal(contractHistoryNote(undefined,[2021]), "");
+});
+
+
+test("career labels read either season label order and keep the mapped real name", () => {
+  assert.equal(teamDisplayName({team_name:"Season team",display_name:"Season team · Josh C"},null,false),"Josh C");
+  assert.equal(teamDisplayName({team_name:"Season team",owner_name:"Josh C",display_name:"jdcarter40"},null,true),"Season team · Josh C");
 });

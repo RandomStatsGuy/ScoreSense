@@ -13,7 +13,7 @@ Agents: `.cursor/rules/scoresense-core.mdc` injects these rules on every turn. D
 
 ## Manager names
 
-Rules has a commissioner-only **Manager names** category. Commissioners link imported labels and saved Sleeper managers to registered accounts that have joined the league. Links use the account’s public display name for trophies, contract returns, and history; an all-season link may have a specific-year override. Historical team names, recorded results, franchise ownership, and access remain intact. Multiple imported labels may point to one account. Remove a link to restore the original label. Normal reads use local saved data; saves invalidate downstream names without contacting Sleeper. Scoring and Spend put one compact season menu beside the shared Insights refresh, avoiding nested filter cards and duplicate refresh actions on phone.
+Rules has a commissioner-only **Manager names** category. Commissioners link imported labels and saved Sleeper managers to registered accounts that have joined the league. Links keep the mapped real manager name (for example Josh C) for trophies, contract returns, and history; the linked account handle (for example jdcarter40) identifies the account and does not replace that name. Commissioners can set the display name, including for Sleeper links; an all-season link may have a specific-year override. Historical team names, recorded results, franchise ownership, and access remain intact. Multiple imported labels may point to one account. Remove a link to restore the original label. Normal reads use local saved data; saves invalidate downstream names without contacting Sleeper. Scoring and Spend put one compact season menu beside the shared Insights refresh, avoiding nested filter cards and duplicate refresh actions on phone.
 
 ## Product
 
@@ -143,7 +143,7 @@ Chat is **not** a pane or a Fantasy destination. The full thread lives on **Home
 
 ### Manager labels
 
-Fantasy lists people by **owner name**, except approved Trades discovery and My team banner identities lead with the team name and retain the owner underneath. A team nickname may sit underneath or after a middot. Never show a team nickname as the only identity when an owner is known.
+Fantasy single-season views lead with the **season team name** and attach the mapped real manager name underneath or after a middot. Cross-season Insights lead with the **mapped manager name**, with season team nicknames secondary. Never replace the mapped name with an account handle or omit a known manager. Position choices use QB, RB, WR, TE, K, DEF; kicker and defense always come last, with defense last by default.
 
 ---
 

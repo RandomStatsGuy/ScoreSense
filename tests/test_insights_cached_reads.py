@@ -118,7 +118,7 @@ def test_historic_nickname_fallback_cannot_replace_saved_manager_identity(saved_
     teams, owners = scoring_owner_maps_for_league(lid, season_year=2025, sleeper_league_id="current", cached_only=True)
     row = enrich_team_row(prior["standings"][0], teams, sleeper_owner_map=owners, year_specific=True)
     assert row["owner_name"] == "Manager 1"
-    assert row["display_name"] == "Manager 1 · Old name"
+    assert row["display_name"] == "Old name · Manager 1"
 
 
 def test_workspace_can_bundle_the_saved_overview_without_a_second_page_request(saved_history):

@@ -14,7 +14,7 @@ export function insightsBootstrapValid(leagueId, at) {
 }
 
 const INSIGHTS_SESSION_PREFIX = "ss_insights_";
-const INSIGHTS_CACHE_VERSION = 5;
+const INSIGHTS_CACHE_VERSION = 6;
 
 function rulesKey(rules) {
   if (!rules) return "";

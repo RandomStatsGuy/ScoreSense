@@ -47,7 +47,7 @@ def test_build_scoring_awards_includes_core_ids():
     assert "weekly_disaster" in ids
     assert "margin_massacre" in ids
     assert awards[0]["display_name"] == "Alpha"
-    assert awards[0]["team_name"] is None
+    assert awards[0]["team_name"] == "Alpha"
     king = next(a for a in awards if a["id"] == "points_king")
     assert king["title"] == "Most points"
     assert king.get("roast") in (None, "")
@@ -60,8 +60,8 @@ def test_build_scoring_awards_uses_owner_map():
         planning_season="2024",
     )
     king = next(a for a in awards if a["id"] == "points_king")
-    assert king["display_name"] == "Alice"
-    assert king["team_name"] is None
+    assert king["display_name"] == "Alpha · Alice"
+    assert king["team_name"] == "Alpha"
 
 
 def test_build_scoring_awards_year_specific_shows_team():
@@ -72,7 +72,7 @@ def test_build_scoring_awards_year_specific_shows_team():
         planning_season="2024",
     )
     king = next(a for a in awards if a["id"] == "points_king")
-    assert king["display_name"] == "Alice · Alpha"
+    assert king["display_name"] == "Alpha · Alice"
     assert king["team_name"] == "Alpha"
 
 
@@ -129,5 +129,11 @@ def test_build_scoring_awards_resolves_sleeper_owner_id():
         planning_season="2024",
     )
     king = next(a for a in awards if a["id"] == "points_king")
-    assert king["display_name"] == "Aaron D"
+    assert king["display_name"] == "Sad Panda · Aaron D"
     assert king["owner_name"] == "Aaron D"
+
+
+def test_all_time_scoring_awards_keep_manager_first():
+    scoring={**_sample_scoring(), 'requested_season':'all'}
+    king=next(a for a in build_scoring_awards(scoring,owner_map={'Alpha':'Josh C'}) if a['id']=='points_king')
+    assert king['display_name']=='Josh C' and king['team_name'] is None

@@ -58,7 +58,7 @@ test("Tax picks the rival with the most leftover at that hole", () => {
     rules: RULES,
     minBid: 1,
   });
-  assert.equal(map.te1.rival_owner_name, "Alex · Storm");
+  assert.equal(map.te1.rival_owner_name, "Storm · Alex");
   assert.equal(map.te1.rival_budget_remaining, 88);
   assert.equal(map.te1.rival_hole_position, "TE");
   assert.equal(map.rb1, undefined);

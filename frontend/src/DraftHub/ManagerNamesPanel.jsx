@@ -11,6 +11,7 @@ export default function ManagerNamesPanel({ leagueId, onDirtyChange }) {
   const [source, setSource] = useState("");
   const [custom, setCustom] = useState("");
   const [account, setAccount] = useState("");
+  const [managerName, setManagerName] = useState("");
   const [year, setYear] = useState(0);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -18,9 +19,9 @@ export default function ManagerNamesPanel({ leagueId, onDirtyChange }) {
   const [reload, setReload] = useState(0);
   const currentLeague = useRef(leagueId);
   currentLeague.current = leagueId;
-  const dirty = Boolean(source || custom || account || year);
+  const dirty = Boolean(source || custom || account || managerName || year);
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
-  const discard = () => { setSource(""); setCustom(""); setAccount(""); setYear(0); };
+  const discard = () => { setSource(""); setCustom(""); setAccount(""); setManagerName(""); setYear(0); };
   useEffect(() => {
     const controller = new AbortController();
     setData(null); setError(""); setStatus(""); discard();
@@ -43,7 +44,7 @@ export default function ManagerNamesPanel({ leagueId, onDirtyChange }) {
         method: mapId ? "DELETE" : "PUT",
         headers: { "Content-Type": "application/json" },
         ...(!mapId ? { body: JSON.stringify({ source_kind: selected?.source_kind || "owner_label",
-          source_key: selected?.source_key || custom.trim(), account_sub: account, season_year: Number(year) }) } : {}),
+          source_key: selected?.source_key || custom.trim(), account_sub: account, season_year: Number(year), manager_name: managerName.trim() }) } : {}),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       invalidate();
@@ -64,7 +65,7 @@ export default function ManagerNamesPanel({ leagueId, onDirtyChange }) {
     id: String(i), label: `${r.label} · ${r.source_kind === "sleeper_user_id" ? COPY.sleeper : COPY.imported}`,
   })), { id: "custom", label: COPY.custom }];
   const years = [...new Set((data?.sources || []).flatMap((r) => r.seasons))].sort((a,b) => b-a);
-  const ready = source !== "" && (source !== "custom" || custom.trim()) && account;
+  const ready = source !== "" && (source !== "custom" || custom.trim()) && account && managerName.trim();
   return <section className="hub-rules-section hub-manager-names" aria-labelledby="manager-names-title">
     <header className="hub-rules-section-head"><div><h3 id="manager-names-title">{COPY.title}</h3><p>{COPY.help}</p></div></header>
     {error && <div role="alert" className="error-banner"><p>{error}</p>{!data && <button className="btn-ghost btn-sm" type="button" onClick={() => setReload((n) => n+1)}>{COPY.retry}</button>}</div>}
@@ -73,10 +74,20 @@ export default function ManagerNamesPanel({ leagueId, onDirtyChange }) {
       <p className="chart-note">{COPY.effect}</p>
       {data.accounts.length ? <>
         <div className="hub-rules-field-grid">
-          <HubFilterMenu label={COPY.source} value={source} options={sources} onChange={setSource} disabled={busy} ariaLabel={COPY.source} />
-          {source === "custom" && <label><span>{COPY.customLabel}</span><input type="text" maxLength={120} value={custom} disabled={busy} onChange={(e) => setCustom(e.target.value)} /></label>}
-          <HubFilterMenu label={COPY.account} value={account} options={[{ id: "", label: COPY.accountPlaceholder }, ...data.accounts.map((a) => ({ id: a.account_sub, label: a.display_name, detail: a.team_name }))]} onChange={setAccount} disabled={busy} ariaLabel={COPY.account} />
+          <HubFilterMenu label={COPY.source} value={source} options={sources} onChange={(next) => {
+            setSource(next);
+            const selected = data.sources[Number(next)];
+            setManagerName(next === "custom" || next === "" ? "" : selected?.label || "");
+          }} disabled={busy} ariaLabel={COPY.source} />
+          {source === "custom" && <label><span>{COPY.customLabel}</span><input type="text" maxLength={120} value={custom} disabled={busy} onChange={(e) => { setCustom(e.target.value); setManagerName(e.target.value); }} /></label>}
+          <HubFilterMenu label={COPY.account} value={account} options={[{ id: "", label: COPY.accountPlaceholder }, ...data.accounts.map((a) => ({ id: a.account_sub, label: a.display_name, detail: a.team_name }))]} onChange={(next) => {
+            setAccount(next);
+            const previous = data.mappings.find((r) => r.account_sub === next && Number(r.season_year) === Number(year))
+              || data.mappings.find((r) => r.account_sub === next && !r.season_year);
+            if (previous?.manager_name) setManagerName(previous.manager_name);
+          }} disabled={busy} ariaLabel={COPY.account} />
           <HubFilterMenu label={COPY.period} value={year} options={[{ id: 0, label: COPY.all }, ...years.map((y) => ({ id: y, label: String(y) }))]} onChange={setYear} disabled={busy} ariaLabel={COPY.period} />
+          <label><span>{COPY.managerName}</span><input type="text" aria-label={COPY.managerName} aria-describedby="manager-display-help" maxLength={120} value={managerName} disabled={busy} onChange={(e) => setManagerName(e.target.value)} /><small id="manager-display-help">{COPY.managerNameHelp}</small></label>
         </div>
         <div className="hub-manager-name-actions">
           <button type="button" className="btn-ghost btn-sm" disabled={!dirty || busy} onClick={discard}>{COPY.discard}</button>
@@ -86,7 +97,7 @@ export default function ManagerNamesPanel({ leagueId, onDirtyChange }) {
       <p className="chart-note">{COPY.accountHelp}</p>
       <h4>{COPY.savedTitle}</h4>
       {data.mappings.length ? <ul className="hub-manager-name-links">{data.mappings.map((r) => <li key={r.id}>
-        <div><strong>{r.source_label} → {r.display_name || COPY.missingAccount}</strong><small>{r.season_year || COPY.all} · {r.source_kind === "sleeper_user_id" ? COPY.sleeper : COPY.imported}</small></div>
+        <div><strong>{r.manager_name || r.source_label}</strong><small>{r.source_label} → {r.display_name || COPY.missingAccount}</small><small>{r.season_year || COPY.all} · {r.source_kind === "sleeper_user_id" ? COPY.sleeper : COPY.imported}</small></div>
         <button type="button" className="btn-ghost btn-sm" disabled={busy} aria-label={`${COPY.remove} ${r.source_label}`} onClick={() => change(r.id)}>{COPY.remove}</button>
       </li>)}</ul> : <div className="hub-empty-state"><p>{COPY.empty}</p></div>}
     </>}

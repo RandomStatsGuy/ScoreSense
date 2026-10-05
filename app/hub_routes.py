@@ -2869,9 +2869,7 @@ def _enrich_cap_analytics(
 ) -> dict:
     from src.draft_hub.owner_display import enrich_team_row, team_owner_map_for_league
 
-    if analytics.get("identity") == "owner":
-        return {**analytics, "teams": analytics.get("teams") or []}
-    owner_map = team_owner_map_for_league(league_id, season_year=season_year)
+    owner_map = team_owner_map_for_league(league_id, season_year="all" if analytics.get("identity") == "owner" else season_year)
     teams = [
         enrich_team_row(t, owner_map, year_specific=year_specific)
         for t in (analytics.get("teams") or [])
@@ -3572,25 +3570,24 @@ def hub_league_insights(
                                 for s in scoring["standings"]
                             ]
                         scoring["owner_map"] = owner_map
-                        if prebuilt_awards is not None:
-                            scoring["awards"] = prebuilt_awards
-                        else:
-                            scoring["awards"] = build_scoring_awards(
-                                scoring,
-                                efficiency=efficiency,
-                                owner_map=owner_map,
-                                sleeper_owner_map=sleeper_owner_map,
-                                planning_season=planning_season,
-                            )
-                            if resolved_sleeper:
-                                from src.draft_hub.insights_cache import write_scoring_derived
+                        # Cached efficiency retains the math; names and awards are
+                        # derived from the selected season's current local identity links.
+                        efficiency = {**efficiency, "teams": [enrich_team_row(t, owner_map,
+                            year_specific=year_specific, sleeper_owner_map=sleeper_owner_map)
+                            for t in efficiency.get("teams") or []]}
+                        scoring["awards"] = build_scoring_awards(
+                            scoring, efficiency=efficiency, owner_map=owner_map,
+                            sleeper_owner_map=sleeper_owner_map, planning_season=planning_season,
+                        )
+                        if prebuilt_awards is None and resolved_sleeper:
+                            from src.draft_hub.insights_cache import write_scoring_derived
 
-                                write_scoring_derived(
-                                    resolved_sleeper,
-                                    season_key,
-                                    awards=scoring["awards"],
-                                    efficiency=efficiency,
-                                )
+                            write_scoring_derived(
+                                resolved_sleeper,
+                                season_key,
+                                awards=scoring["awards"],
+                                efficiency=efficiency,
+                            )
                 except Exception as exc:
                     logging.getLogger(__name__).exception(
                         "insights scoring block failed league=%s", league_id,
@@ -4607,6 +4604,7 @@ class ManagerAccountMapUpsert(BaseModel):
     source_key: str
     account_sub: str
     season_year: int = 0
+    manager_name: str | None = None
 
 
 @router.get("/league/{league_id}/manager-accounts")
@@ -4624,7 +4622,7 @@ def hub_manager_accounts_save(league_id: str, body: ManagerAccountMapUpsert,
     require_commissioner(ctx)
     from src.draft_hub.manager_accounts import save
     try:
-        row = save(league_id, body.source_kind, body.source_key, body.account_sub, body.season_year)
+        row = save(league_id, body.source_kind, body.source_key, body.account_sub, body.season_year, body.manager_name)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     _clear_insights_response_cache(league_id)

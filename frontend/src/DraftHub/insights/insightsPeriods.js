@@ -1,3 +1,4 @@
+import { normalizeHubPosition } from "../hubPositions.js";
 import { scoringTeamKey } from "./insightsPresentation.js";
 
 export function periodYears(years, period = { mode: "all" }) {
@@ -53,7 +54,7 @@ export function landingForPeriod(landing, period) {
 export function contractRanks(rows, years, position = "all") {
   const deals = new Map();
   for (const row of rows || []) {
-    if (!years.includes(Number(row.season)) || (position !== "all" && row.position !== position)) continue;
+    if (!years.includes(Number(row.season)) || (position !== "all" && normalizeHubPosition(row.position) !== normalizeHubPosition(position))) continue;
     if (!Number.isFinite(row.points) || !Number.isFinite(row.salary) || row.salary <= 0) continue;
     const prev = deals.get(row.deal_id) || { ...row, points: 0, salary: 0, seasons: [], coverage: [] };
     deals.set(row.deal_id, { ...prev, points: prev.points + row.points, salary: prev.salary + row.salary,

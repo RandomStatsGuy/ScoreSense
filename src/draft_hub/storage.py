@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS league_manager_account_map (
     source_key TEXT NOT NULL COLLATE NOCASE,
     season_year INTEGER NOT NULL DEFAULT 0,
     account_sub TEXT NOT NULL,
+    manager_name TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     UNIQUE(league_id, source_kind, source_key, season_year)
@@ -216,6 +217,7 @@ def _safe_add_column(conn: sqlite3.Connection, table: str, column: str, ddl: str
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
+    _safe_add_column(conn, "league_manager_account_map", "manager_name", "TEXT")
     conn.execute("""CREATE TABLE IF NOT EXISTS league_week_correction (
         id TEXT PRIMARY KEY, league_id TEXT NOT NULL, season INTEGER NOT NULL,
         week INTEGER NOT NULL, actor_sub TEXT NOT NULL, reason TEXT NOT NULL,
@@ -5454,7 +5456,7 @@ def insights_source_version(league_id: str) -> str:
         ).fetchall()
     labels_version = json.dumps([list(r) for r in team_labels])
     raw = (
-        f"labels={labels_version}:formula=owner_avg_pct_v1:live={live_rev}:hist={hist_rev}:"
+        f"labels={labels_version}:formula=owner_avg_pct_v1:labels=mapped_managers_v2:live={live_rev}:hist={hist_rev}:"
         f"{roster_slots}:{contract_rows}:{manual_rows}:{import_rev}:{import_fp}:{osm}"
     )
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
@@ -6626,24 +6628,27 @@ def list_manager_account_maps(league_id: str) -> list[dict[str, Any]]:
 
 
 def upsert_manager_account_map(league_id: str, source_kind: str, source_key: str,
-                               account_sub: str, season_year: int = 0) -> dict[str, Any]:
+                               account_sub: str, season_year: int = 0, manager_name: str | None = None) -> dict[str, Any]:
     # Account membership and registration are checked by the service before writing.
     if source_kind not in {"owner_label", "sleeper_user_id"}:
         raise ValueError("Choose an imported name or Sleeper manager.")
     key = str(source_key or "").strip()
     if not key or len(key) > 120:
         raise ValueError("Enter a manager name of 1–120 characters.")
+    manager = str(manager_name or "").strip()
+    if not manager or len(manager) > 120:
+        raise ValueError("Enter a display name of 1–120 characters.")
     year = int(season_year or 0)
     if year and not 2000 <= year <= 2100:
         raise ValueError("Choose all seasons or a year from 2000 to 2100.")
     now = _utcnow()
     with get_conn() as conn:
         conn.execute("""INSERT INTO league_manager_account_map
-            (league_id, source_kind, source_key, season_year, account_sub, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (league_id, source_kind, source_key, season_year, account_sub, manager_name, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(league_id, source_kind, source_key, season_year) DO UPDATE SET
-            account_sub=excluded.account_sub, updated_at=excluded.updated_at""",
-            (league_id, source_kind, key, year, account_sub, now, now))
+            account_sub=excluded.account_sub, manager_name=excluded.manager_name, updated_at=excluded.updated_at""",
+            (league_id, source_kind, key, year, account_sub, manager, now, now))
         _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
         _bump_revision_conn(conn, league_id, "live_roster_revision")
         row = conn.execute("""SELECT * FROM league_manager_account_map
