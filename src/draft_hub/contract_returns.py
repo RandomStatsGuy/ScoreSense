@@ -65,7 +65,7 @@ def build_contract_returns(league_id):
                             if (week, str(alias)) in overrides:
                                 game["points"] = overrides[(week, str(alias))]
                                 break
-            scores = summarize(weeks, rows, {})
+            scores = summarize(weeks, list({row["player_id"]: row for row in rows}.values()), {})
             identities = Counter((x["player_id"], str(x.get("franchise_id") or x.get("owner_label") or x.get("hub_team_name") or "")) for x in rows)
             owner_map, sleeper_map = scoring_owner_maps_for_league(league_id, season_year=int(year),
                                                                   sleeper_league_id=sources.get(year), cached_only=True)

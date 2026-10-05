@@ -183,7 +183,7 @@ export function useInsightsData(leagueId, refs) {
       const capOnly = sections === "cap";
       const scoringOnly = sections === "scoring";
       const overviewOnly = sections === "overview";
-      if (sections && !capOnly && !scoringOnly && !overviewOnly) params.set("sections", sections);
+      if (sections && sections !== "contracts" && !capOnly && !scoringOnly && !overviewOnly) params.set("sections", sections);
       const q = params.toString() ? `?${params.toString()}` : "";
       const root = hubContextRef?.current?.demo ? "/api/hub/demo" : "/api/hub";
       const insightsRoute = capOnly

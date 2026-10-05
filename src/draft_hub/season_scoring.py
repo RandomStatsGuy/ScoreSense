@@ -50,8 +50,8 @@ def number(value):
 
 def save_week(source, season, week, players):
     with storage.get_conn() as conn:
-        conn.execute("INSERT OR REPLACE INTO player_season_week(source,season,week,payload_json) VALUES (?,?,?,?)",
-                     (source, int(season), int(week), json.dumps(players)))
+        conn.execute("INSERT OR REPLACE INTO player_season_week(source,season,week,payload_json,updated_at) VALUES (?,?,?,?,?)",
+                     (source, int(season), int(week), json.dumps(players), str(time.time_ns())))
 
 
 def native_week(league_id, season, week, lookup, scoring):
@@ -121,6 +121,17 @@ def summarize(weeks, roster, projections):
             positions[canonical] = row.get("position")
             logs[canonical][int(week)] = {"week": int(week), "points": points, "opponent": row.get("opponent")}
     totals = {pid: round(sum(g["points"] for g in games.values()), 2) for pid, games in logs.items()}
+    ranks = {}
+    by_position = defaultdict(list)
+    for pid, points in totals.items():
+        by_position[positions.get(pid)].append((pid, points))
+    for entries in by_position.values():
+        prior = None
+        for index, (pid, points) in enumerate(sorted(entries, key=lambda x: -x[1]), 1):
+            if points != prior:
+                rank = index
+            ranks[pid] = rank
+            prior = points
     result = {}
     for row in roster:
         pid = str(row["player_id"])
@@ -130,7 +141,7 @@ def summarize(weeks, roster, projections):
         games = [{**g, "projection": number(projections.get((pid, g["week"])))} for g in games]
         total = totals.get(canonical)
         position = positions.get(canonical)
-        rank = (1 + sum(pts > total for key, pts in totals.items() if positions.get(key) == position)) if total is not None and position else None
+        rank = ranks.get(canonical) if total is not None and position else None
         result[pid] = {"points": total, "ppg": round(total / len(games), 2) if games else None,
                        "games": len(games), "rank": rank, "position": position, "game_log": games}
     return result

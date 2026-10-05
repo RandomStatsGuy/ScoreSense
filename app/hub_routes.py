@@ -2829,14 +2829,21 @@ def _insights_cache_key(
     sleeper_id = str((storage.get_league(league_id) or {}).get("sleeper_league_id") or "")
     chain = storage.get_sleeper_league_chain(sleeper_id) if sleeper_id else []
     with storage.get_conn() as conn:
-        ids = [str(c["league_id"]) for c in chain] or [sleeper_id]
+        ids = sorted({str(c["league_id"]) for c in chain} | {sleeper_id or league_id})
         placeholders = ",".join("?" for _ in ids)
         revisions = conn.execute(
             f"SELECT sleeper_league_id, synced_at FROM sleeper_scoring_cache WHERE sleeper_league_id IN ({placeholders}) ORDER BY sleeper_league_id",
             ids,
         ).fetchall()
+        ownership = conn.execute(
+            "SELECT synced_at FROM sleeper_ownership_cache WHERE sleeper_league_id = ?", (sleeper_id,),
+        ).fetchone()
+        player_weeks = conn.execute(
+            f"SELECT source, season, week, updated_at FROM player_season_week WHERE source IN ({placeholders}) ORDER BY source, season, week", ids,
+        ).fetchall() if sec == "contracts" else []
     scoring_version = ";".join(f"{r[0]}={r[1]}" for r in revisions)
-    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}:{scoring_version}"
+    week_version = ";".join(":".join(str(x) for x in row) for row in player_weeks)
+    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}:{scoring_version}:{ownership[0] if ownership else ''}:{week_version}"
 
 
 def _enrich_cap_analytics(
@@ -3185,10 +3192,10 @@ def hub_league_insights(
     source_version = hub_storage.insights_source_version(league_id)
     cache_key: str | None = None
     cache_ttl = _INSIGHTS_SCORING_CACHE_TTL if wanted_sections == {"scoring"} else _INSIGHTS_CACHE_TTL
-    if not refresh and not ownership_only:
+    if not refresh:
         cache_key = _insights_cache_key(
             league_id,
-            sections=sections,
+            sections="ownership" if ownership_only else sections,
             history_season=history_season,
             scoring_season=scoring_season,
             source_version=source_version,
@@ -3296,7 +3303,7 @@ def hub_league_insights(
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
             if ownership_only:
                 with timer.phase("ownership"):
-                    return _hub_ownership_history_payload(
+                    payload = _hub_ownership_history_payload(
                         league_id,
                         overview,
                         ctx,
@@ -3304,6 +3311,9 @@ def hub_league_insights(
                         history_mode=history_mode,
                         history_year=history_year,
                     )
+                    if cache_key:
+                        _INSIGHTS_RESPONSE_CACHE[cache_key] = (time.time(), payload)
+                    return payload
             league = overview.get("league") or {}
             draft_completed = bool(league.get("draft_completed"))
             my_team_id = str(team_id or ctx.get("team_id") or "")
@@ -3684,7 +3694,7 @@ def hub_league_insights_overview(
 
 
 @router.get("/league/{league_id}/insights/contracts")
-def hub_league_insights_contracts(league_id: str, _user=Depends(require_hub_user)) -> dict:
+def hub_league_insights_contracts(league_id: str, response: Response, _user=Depends(require_hub_user)) -> dict:
     ctx = _ctx_for_league(_sub(_user), league_id)
     from src.draft_hub.contract_returns import build_contract_returns
     from src.draft_hub.league_capabilities import uses_salaries
@@ -3692,9 +3702,20 @@ def hub_league_insights_contracts(league_id: str, _user=Depends(require_hub_user
     league = storage.get_league(league_id) or {}
     if not uses_salaries(league.get("rules") or {}):
         raise HTTPException(status_code=404, detail="Contract rankings are unavailable for this league")
-    landing, owner_map = _insights_landing_bundle(league_id, refresh=False, award_titles=_league_award_titles(league))
-    return {"contracts": build_contract_returns(league_id), "landing": landing,
-            "owner_map": owner_map, "hub_context": ctx}
+    with HubTimer("insights-contracts", response) as timer:
+        cache_key = _insights_cache_key(league_id, sections="contracts", history_season=None, scoring_season=None)
+        cached = _INSIGHTS_RESPONSE_CACHE.get(cache_key)
+        if cached and time.time() - cached[0] < _INSIGHTS_SCORING_CACHE_TTL:
+            return {**cached[1], "hub_context": ctx, "cache_status": {"contracts": "hit"}}
+        with timer.phase("contracts"):
+            contracts = build_contract_returns(league_id)
+        with timer.phase("landing"):
+            landing, owner_map = _insights_landing_bundle(league_id, refresh=False, award_titles=_league_award_titles(league))
+        payload = {"contracts": contracts, "landing": landing, "owner_map": owner_map}
+        if len(_INSIGHTS_RESPONSE_CACHE) >= 256:
+            _INSIGHTS_RESPONSE_CACHE.pop(next(iter(_INSIGHTS_RESPONSE_CACHE), None), None)
+        _INSIGHTS_RESPONSE_CACHE[cache_key] = (time.time(), payload)
+        return {**payload, "hub_context": ctx, "cache_status": {"contracts": "miss"}}
 
 
 @router.get("/league/{league_id}/insights/cap")

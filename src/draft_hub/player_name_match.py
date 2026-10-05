@@ -3,19 +3,23 @@
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 
 _EMBEDDED_SALARY_RE = re.compile(r"[A-Za-z][A-Za-z.'-]*\d{1,3}")
 _MULTI_CHUNK_RE = re.compile(r"(?:[A-Z][a-z.'-]*\d{1,3}\s*){2,}")
 
 
+@lru_cache(maxsize=4096)
 def norm_name(name: str) -> str:
     return re.sub(r"\s+", " ", str(name or "").strip())
 
 
+@lru_cache(maxsize=4096)
 def name_key(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", norm_name(name).lower())
 
 
+@lru_cache(maxsize=4096)
 def roster_name_key(name: str) -> str:
     """Full-name key with Jr/Sr/II/III stripped.
 
@@ -30,6 +34,7 @@ def roster_name_key(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", "".join(tokens).lower())
 
 
+@lru_cache(maxsize=4096)
 def is_garbage_player_name(name: str) -> bool:
     """Reject concatenated PDF grid cells and other non-player strings."""
     n = norm_name(name)
@@ -73,6 +78,7 @@ def _strip_generational_tokens(tokens: list[str]) -> list[str]:
     return out
 
 
+@lru_cache(maxsize=4096)
 def last_name_key(name: str) -> str:
     n = norm_name(name)
     if is_garbage_player_name(n):
@@ -85,6 +91,7 @@ def last_name_key(name: str) -> str:
     return last or name_key(n)
 
 
+@lru_cache(maxsize=16384)
 def _edit_distance(a: str, b: str) -> int:
     if a == b:
         return 0
@@ -92,16 +99,24 @@ def _edit_distance(a: str, b: str) -> int:
         return len(b)
     if not b:
         return len(a)
+    # Matching only distinguishes 0/1/2 from larger distances. A narrow band
+    # preserves those outcomes without a full matrix for unrelated surnames.
+    if abs(len(a) - len(b)) > 2:
+        return 3
     prev = list(range(len(b) + 1))
     for i, ca in enumerate(a, 1):
-        curr = [i]
-        for j, cb in enumerate(b, 1):
-            cost = 0 if ca == cb else 1
-            curr.append(min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost))
+        curr = [i] + [3] * len(b)
+        low, high = max(1, i - 2), min(len(b), i + 2)
+        for j in range(low, high + 1):
+            cost = 0 if ca == b[j - 1] else 1
+            curr[j] = min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost)
+        if min(curr[low:high + 1]) > 2:
+            return 3
         prev = curr
     return prev[-1]
 
 
+@lru_cache(maxsize=65536)
 def names_likely_same(a: str, b: str, *, position: str | None = None, pos_b: str | None = None) -> bool:
     if is_garbage_player_name(a) or is_garbage_player_name(b):
         return False
@@ -123,6 +138,7 @@ def names_likely_same(a: str, b: str, *, position: str | None = None, pos_b: str
     return False
 
 
+@lru_cache(maxsize=4096)
 def cluster_key(name: str, position: str | None = None) -> str | None:
     if is_garbage_player_name(name):
         return None

@@ -69,3 +69,29 @@ def test_contract_endpoint_checks_membership_and_money_capability(salary_history
         assert client.get(url).status_code == 404
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+def test_contract_cache_invalidates_when_saved_points_change_and_keeps_access(salary_history, monkeypatch):
+    from app import hub_routes
+    import src.draft_hub.contract_returns as returns
+    calls = []
+    original = returns.build_contract_returns
+    monkeypatch.setattr(returns, "build_contract_returns", lambda lid: calls.append(lid) or original(lid))
+    hub_routes._clear_insights_response_cache()
+    user = {"sub": "returns-owner"}
+    app.dependency_overrides[require_hub_user] = lambda: user
+    try:
+        with TestClient(app) as client:
+            url = f'/api/hub/league/{salary_history}/insights/contracts'
+            first = client.get(url)
+            assert first.status_code == 200, first.text
+            assert client.get(url).json()['cache_status']['contracts'] == 'hit'
+            assert len(calls) == 1
+            save_week(salary_history, 2026, 1, [{"aliases": ["player"], "position": "WR", "points": 120}])
+            changed = client.get(url).json()
+            assert next(r for r in changed['contracts']['rows'] if r['season'] == 2026)['points'] == 120
+            assert len(calls) == 2
+            user['sub'] = 'outsider'
+            assert client.get(url).status_code == 403
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+        hub_routes._clear_insights_response_cache()

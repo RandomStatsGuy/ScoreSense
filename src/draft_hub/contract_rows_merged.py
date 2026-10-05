@@ -770,6 +770,7 @@ def build_merged_contract_rows(
     owner_label: str | None = None,
     view: ViewMode = "snapshot",
     sheet_format: bool = False,
+    saved_only: bool = False,
 ) -> dict[str, Any]:
     """
     Return merged contract rows by season.
@@ -777,8 +778,13 @@ def build_merged_contract_rows(
     snapshot: commissioner files + DB manual overlays.
     effective: snapshot + Sleeper in-season projection (planning season only).
     """
-    file_by_season, data_source = season_rows_source(league_id)
-    db_overlay = load_database_overlay_rows_by_season(league_id)
+    if saved_only:
+        # Imports and staff edits are already saved. Page reads must not parse workbooks.
+        file_by_season, data_source = load_database_rows_by_season(league_id), "database"
+        db_overlay = {}
+    else:
+        file_by_season, data_source = season_rows_source(league_id)
+        db_overlay = load_database_overlay_rows_by_season(league_id)
 
     seasons = sorted(set(file_by_season.keys()) | set(db_overlay.keys()))
     if not seasons:
@@ -846,6 +852,7 @@ def list_merged_contract_rows(
     owner_label: str | None = None,
     view: ViewMode = "snapshot",
     active_only: bool = False,
+    saved_only: bool = False,
 ) -> list[dict[str, Any]]:
     """Flat list of merged rows (analytics / contract history display)."""
     payload = build_merged_contract_rows(
@@ -854,6 +861,7 @@ def list_merged_contract_rows(
         owner_label=owner_label,
         view=view,
         sheet_format=False,
+        saved_only=saved_only,
     )
     if not payload.get("available"):
         return []
@@ -876,6 +884,7 @@ def active_merged_contract_rows(
     season_year: int | None = None,
     *,
     view: ViewMode = "snapshot",
+    saved_only: bool = False,
 ) -> list[dict[str, Any]]:
     """Active displayable merged rows for one season (or all if season_year is None)."""
     if season_year is not None:
@@ -884,15 +893,7 @@ def active_merged_contract_rows(
             season_year=season_year,
             view=view,
             active_only=True,
+            saved_only=saved_only,
         )
-    out: list[dict[str, Any]] = []
-    for yr in storage.list_league_contract_seasons(league_id):
-        out.extend(
-            list_merged_contract_rows(
-                league_id,
-                season_year=yr,
-                view=view,
-                active_only=True,
-            )
-        )
-    return out
+    # Build the complete saved history once, rather than reopening every source per year.
+    return list_merged_contract_rows(league_id, view=view, active_only=True, saved_only=saved_only)

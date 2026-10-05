@@ -219,7 +219,6 @@ function PlayerHistoryTimeline({ events, ownerMap, usesSalaries = true }) {
         if (type === "contract") {
           title = `${ev.season} contract`;
           detail = usesSalaries ? `${manager} · ${fmtSal(ev.amount)}` : manager;
-          if (ev.contract_phase) detail += ` · ${ev.contract_phase}`;
         } else if (type === "season_roster") {
           title = `${ev.season} season`;
         } else if (type === "roster") {

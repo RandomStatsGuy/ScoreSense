@@ -133,3 +133,33 @@ def test_workspace_can_bundle_the_saved_overview_without_a_second_page_request(s
             assert "insights_overview" not in client.get("/api/hub/workspace").json()
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
+
+def test_saved_overview_with_large_rosters_never_reconciles(saved_history, monkeypatch):
+    lid, _ = saved_history
+    teams = storage.list_league_teams(lid)
+    # Reproduce the historical >28-row heuristic without contacting the provider.
+    monkeypatch.setattr(storage, "list_league_rosters_by_team", lambda _: {teams[0]['id']: [
+        {"player_id": f"p{i}", "player_name": f"Player {i}", "salary": 1, "years_remaining": 1, "roster_status": "active"}
+        for i in range(40)]})
+    def forbidden(*args, **kwargs):
+        pytest.fail("Saved roster read reconciled Sleeper")
+    monkeypatch.setattr('src.draft_hub.league_sleeper_sync.reconcile_league_roster_assignments', forbidden)
+    assert storage.league_roster_overview(lid)["league"]["id"] == lid
+
+
+def test_history_reuses_saved_payload_and_invalidates_on_provider_update(saved_history, monkeypatch):
+    lid, _ = saved_history
+    calls = []
+    monkeypatch.setattr(hub_routes, '_hub_ownership_history_payload', lambda *args, **kwargs: calls.append(1) or {"players": [], "player_count": 0})
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "insights-owner"}
+    try:
+        with TestClient(app) as client:
+            url = f'/api/hub/league/{lid}/insights?ownership_only=1'
+            assert client.get(url).status_code == 200
+            assert client.get(url).status_code == 200
+            assert len(calls) == 1
+            storage.upsert_sleeper_ownership_cache('current', {"players": [], "player_count": 0})
+            assert client.get(url).status_code == 200
+            assert len(calls) == 2
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

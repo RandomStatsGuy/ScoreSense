@@ -9,7 +9,7 @@ import { fantasyPageModules, preloadFantasyPage } from "./fantasyPageModules";
 import { useAuth } from "../AuthContext";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
-import { HubPage } from "./HubUILayout";
+import { HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import { ValueSheetTableSkeleton } from "../TableSkeleton";
 import AccountAuth from "../AccountAuth";
 import VerifyEmailBanner from "../VerifyEmailBanner";
@@ -877,8 +877,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       )}
 
       {subView === "vibes" && (
-        <Suspense fallback={<p className="chart-note">Loading Vibes…</p>}>
+        <Suspense fallback={<HubLoadingSkeleton rows={4} />}>
           <VibeRankings
+            cacheScope={cacheScope}
             hubContext={effectiveCtx}
             reloadToken={weekReloadToken}
             onNavigate={goHubView}
