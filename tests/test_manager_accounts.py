@@ -244,6 +244,52 @@ def test_cached_scoring_awards_and_all_time_spend_use_current_mapped_names(leagu
     finally: app.dependency_overrides.pop(require_hub_user,None)
 
 
+def test_claimed_saved_manager_id_carries_real_name_into_career_and_past_seasons(league_accounts):
+    lid,a,b,x=league_accounts
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league_owner_season_map SET sleeper_user_id=NULL WHERE league_id=?", (lid,))
+    team=storage.get_team_by_user(lid,a)
+    storage.update_team_sleeper_link(team['id'], sleeper_roster_id='1', sleeper_team_name='New nickname')
+    save(lid,'owner_label','Josh C',a)
+    owners,sleepers=scoring_owner_maps_for_league(lid,season_year='all',sleeper_league_id='current',cached_only=True)
+    assert owners.resolve(uid='stable-alice')=='Josh C'
+    landing=enrich_insights_landing({'most_titles':{'owner_id':'stable-alice','owner_name':'OldUsername','team_name':'New nickname'},
+        'champions':[{'season':2025,'owner_id':'stable-alice','owner_name':'OldUsername','team_name':'Old nickname'}],
+        'record_leaders':[{'owner_id':'stable-alice','owner_name':'OldUsername','team_name':'Another rename'}]},owners,sleepers)
+    assert landing['most_titles']['owner_name']=='Josh C'
+    assert landing['champions'][0]['owner_name']=='Josh C'
+    assert landing['record_leaders'][0]['owner_name']=='Josh C'
+    assert landing['record_leaders'][0]['team_name']=='Another rename'
+
+
+def test_exact_saved_import_team_connects_raw_sleeper_handle_without_stored_uid(league_accounts, monkeypatch):
+    lid,a,b,x=league_accounts
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league_owner_season_map SET sleeper_user_id=NULL WHERE league_id=?", (lid,))
+    save(lid,'owner_label','A. Import',a,manager_name='Josh C')
+    def forbidden(*args, **kwargs): pytest.fail('Loaded full weekly scoring for a name link')
+    monkeypatch.setattr(storage,'get_sleeper_scoring_cache',forbidden)
+    owners=ManagerOwnerMap({},lid,'all')
+    assert owners.resolve(uid='stable-alice',season=2025)=='Josh C'
+    assert owners.resolve(uid='stable-alice')=='Josh C'
+    assert enrich_team_row({'season':2025,'owner_id':'stable-alice','owner_name':'OldUsername','team_name':'Renamed'},owners)['owner_name']=='Josh C'
+
+
+def test_claimed_seat_does_not_transfer_a_past_managers_identity(league_accounts):
+    lid,a,b,x=league_accounts
+    save(lid,'owner_label','A. Import',a,manager_name='Josh C')
+    save(lid,'owner_label','Bob Real',b)
+    storage.upsert_sleeper_scoring_cache('current',{'season':'2026','standings':[
+        {'owner_id':'stable-bob','owner_name':'BobHandle','team_name':'Old nickname','roster_id':'1'}]})
+    team=storage.get_team_by_user(lid,b)
+    storage.update_team_sleeper_link(team['id'],sleeper_roster_id='1',sleeper_team_name='Old nickname')
+    owners=ManagerOwnerMap({},lid,'all')
+    assert owners.resolve(uid='stable-bob')=='Bob Real'
+    assert owners.resolve(uid='stable-alice',season=2025)=='Josh C'
+    assert owners.resolve(uid='stable-bob',season=2025)=='Bob Real'
+    assert enrich_team_row({'season':2025,'owner_id':'stable-alice','team_name':'Old nickname'},owners)['owner_name']=='Josh C'
+
+
 def test_current_claimed_account_beats_an_old_team_nickname_alias(league_accounts):
     lid,a,b,x=league_accounts
     save(lid,'owner_label','Josh C',a)
@@ -253,3 +299,49 @@ def test_current_claimed_account_beats_an_old_team_nickname_alias(league_account
     assert owners['Bob team']=='Bob Real'
     historical=ManagerOwnerMap({'Bob team':'Josh C'},lid,2025)
     assert historical['Bob team']=='Josh C'
+
+
+def test_claimed_manager_id_beats_stale_import_nickname_seeds(league_accounts):
+    lid,a,b,x=league_accounts
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league_owner_season_map SET sleeper_user_id=NULL WHERE league_id=?", (lid,))
+    save(lid,'owner_label','A. Import',a,manager_name='Josh C')
+    save(lid,'owner_label','Bob Real',b)
+    # Imported nicknames still identify Alice, but the saved current Sleeper ID
+    # identifies Bob. A stale nickname must not replace the claimed account.
+    storage.upsert_sleeper_scoring_cache('current',{'season':'2026','standings':[
+        {'owner_id':'stable-bob','owner_name':'BobHandle','team_name':'New nickname','roster_id':'2'}]})
+    storage.upsert_sleeper_scoring_cache('prior',{'season':'2025','standings':[
+        {'owner_id':'stable-bob','owner_name':'BobHandle','team_name':'Old nickname','roster_id':'2'}]})
+    team=storage.get_team_by_user(lid,b)
+    storage.update_team_sleeper_link(team['id'],sleeper_roster_id='2',sleeper_team_name='New nickname')
+    owners=ManagerOwnerMap({},lid,'all')
+    assert owners.resolve(uid='stable-bob')=='Bob Real'
+    assert owners.resolve(uid='stable-bob',season=2025)=='Bob Real'
+    # Commissioners can intentionally override the identity for one year.
+    save(lid,'owner_label','A. Import',a,2025,manager_name='Josh Carter')
+    assert ManagerOwnerMap({},lid,'all').resolve(uid='stable-bob',season=2025)=='Josh Carter'
+
+
+def test_ambiguous_import_team_aliases_do_not_guess_a_sleeper_manager(league_accounts):
+    lid,a,b,x=league_accounts
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league_owner_season_map SET sleeper_user_id=NULL WHERE league_id=?", (lid,))
+        conn.execute("DELETE FROM league_owner_season_map WHERE league_id=? AND season_year=2026", (lid,))
+        conn.execute("DELETE FROM league_contract_row WHERE league_id=? AND season_year=2026", (lid,))
+    storage.upsert_owner_season_map(lid,2025,'Bob Real','Old nickname')
+    save(lid,'owner_label','A. Import',a,manager_name='Josh C')
+    save(lid,'owner_label','Bob Real',b)
+    assert ManagerOwnerMap({},lid,'all').resolve(uid='stable-alice',season=2025) is None
+
+
+def test_exact_linked_account_handle_beats_a_stale_imported_team_alias(league_accounts):
+    lid,a,b,x=league_accounts
+    user_store.update_display_name(a[3:],'OldUsername')
+    with storage.get_conn() as conn:
+        conn.execute("UPDATE league_owner_season_map SET sleeper_user_id=NULL WHERE league_id=?", (lid,))
+    save(lid,'owner_label','Josh C',a)
+    save(lid,'owner_label','A. Import',b,manager_name='Bob Real')
+    owners=ManagerOwnerMap({},lid,'all')
+    assert owners.resolve(uid='stable-alice')=='Josh C'
+    assert enrich_team_row({'owner_id':'stable-alice','owner_name':'OldUsername','team_name':'Old nickname','season':2025},owners)['owner_name']=='Josh C'

@@ -469,6 +469,19 @@ export function measureScript() {
       [...el.children].forEach((child) => { width = Math.max(width, child.offsetWidth); });
       return width;
     };
+    // Career names and their metric belong together; the comparison bar uses
+    // the spare desktop width instead of a largely empty identity column.
+    if (innerWidth > 768) document.querySelectorAll(".hub-insights-record-list").forEach((list) => {
+      const identities = [...list.querySelectorAll(".hub-insights-record-identity")].filter(el => el.getClientRects().length);
+      if (!identities.length) return;
+      const textWidth = Math.max(...identities.map(el => Math.max(...[...el.children].map(child => {
+        const range = document.createRange(); range.selectNodeContents(child);
+        return Math.max(0, ...[...range.getClientRects()].map(rect => rect.width));
+      }))));
+      const columnWidth = Math.max(...identities.map(el => el.getBoundingClientRect().width));
+      results.push({rule:"insights-record-spacing", ok:columnWidth <= textWidth * columnPackRatio + 1,
+        selector:".hub-insights-record-list li", detail:`identity column ${px(columnWidth)}px for ${px(textWidth)}px of text`});
+    });
     const rowCells = (row) => {
       if (row.cells) return [...row.cells];
       const named = [...row.children].filter((child) => {
