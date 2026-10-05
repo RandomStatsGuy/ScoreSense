@@ -84,3 +84,11 @@
   .hub-insights-contract-toolbar .hub-filter-menu-kind { display: none; }
   .hub-insights-contract-toolbar .hub-filter-menu-trigger { min-height: 44px; }
 }
+
+.hub-insights-season-control { min-width: 0; }
+.hub-insights-season-control .hub-filter-menu-trigger { max-width: 100%; }
+@media (max-width: 768px) {
+  .hub-insights-season-control .hub-filter-menu-kind { display: none; }
+  .hub-insights-season-control .hub-filter-menu-trigger { min-height: var(--control-h-lg); }
+  .hub-insights-season-control .hub-filter-menu-panel { max-width: calc(100vw - var(--space-6)); }
+}

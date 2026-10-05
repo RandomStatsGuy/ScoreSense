@@ -2851,11 +2851,13 @@ def _insights_cache_key(
         ).fetchall() if sec == "contracts" else []
     from hashlib import sha256
     import json
+    from src.draft_hub.manager_accounts import mapping_revision
+    manager_version = sha256(json.dumps(mapping_revision(league_id)).encode()).hexdigest()[:16]
     contract_version = sha256(json.dumps([list(row) for row in [*name_aliases, *native_runs]]).encode()).hexdigest()[:16]
     scoring_version = ";".join(f"{r[0]}={r[1]}" for r in revisions)
     week_version = ";".join(":".join(str(x) for x in row) for row in player_weeks)
     ownership_version = ";".join(f"{row[0]}={row[1]}" for row in ownership)
-    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}:{scoring_version}:{ownership_version}:{week_version}:{contract_version}"
+    return f"{league_id}:{sec}:{history_season or 'current'}:{scoring_season or ''}:{ver}:{scoring_version}:{ownership_version}:{week_version}:{contract_version}:{manager_version}"
 
 
 def _enrich_cap_analytics(
@@ -3971,12 +3973,22 @@ def hub_contract_history(
     ctx = _ctx_for_league(sub, league_id)
     from src.draft_hub.legacy_contract_history import build_contract_history_payload
 
-    return build_contract_history_payload(
+    payload = build_contract_history_payload(
         league_id,
         season_year=season,
         owner_label=owner,
         all_seasons=all_seasons,
     )
+    from src.draft_hub.owner_display import scoring_owner_maps_for_league, enrich_team_row
+    season_maps = {}
+    for row in payload.get("rows") or []:
+        year = row.get("season_year")
+        if year not in season_maps:
+            season_maps[year] = scoring_owner_maps_for_league(league_id, season_year=year, cached_only=True)
+        owners, sleepers = season_maps[year]
+        display = enrich_team_row({**row, "team_name": row.get("hub_team_name")}, owners, sleeper_owner_map=sleepers)
+        row["owner_name"] = display["owner_name"]
+    return payload
 
 
 @router.get("/league/{league_id}/contract-history/audit")
@@ -4588,6 +4600,46 @@ def hub_contract_history_reconcile(
     if not sleeper_lid:
         raise HTTPException(status_code=400, detail="Link Sleeper before reconciling history")
     return reconcile_league_with_sleeper(league_id, str(sleeper_lid))
+
+
+class ManagerAccountMapUpsert(BaseModel):
+    source_kind: str
+    source_key: str
+    account_sub: str
+    season_year: int = 0
+
+
+@router.get("/league/{league_id}/manager-accounts")
+def hub_manager_accounts(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.manager_accounts import settings
+    return settings(league_id)
+
+
+@router.put("/league/{league_id}/manager-accounts")
+def hub_manager_accounts_save(league_id: str, body: ManagerAccountMapUpsert,
+                              _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    from src.draft_hub.manager_accounts import save
+    try:
+        row = save(league_id, body.source_kind, body.source_key, body.account_sub, body.season_year)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _clear_insights_response_cache(league_id)
+    return row
+
+
+@router.delete("/league/{league_id}/manager-accounts/{map_id}")
+def hub_manager_accounts_delete(league_id: str, map_id: int,
+                                _user=Depends(require_hub_user)) -> dict:
+    ctx = _ctx_for_league(_sub(_user), league_id)
+    require_commissioner(ctx)
+    if not storage.delete_manager_account_map(league_id, map_id):
+        raise HTTPException(status_code=404, detail="Manager link not found.")
+    _clear_insights_response_cache(league_id)
+    return {"deleted": True}
 
 
 class OwnerSeasonMapUpsert(BaseModel):

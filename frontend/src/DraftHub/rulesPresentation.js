@@ -9,6 +9,7 @@ export const RULES_COPY = {
   categories: [
     { id: "scoring", label: "Scoring" },
     { id: "foundation", label: "League format" },
+    { id: "managers", label: "Manager names", leagueOnly: true, commissionerOnly: true },
     { id: "contracts", label: "Contracts", salaryOnly: true },
     { id: "roster", label: "Roster limits" },
     { id: "draft", label: "Draft behavior", salaryOnly: true },
@@ -76,6 +77,38 @@ export const RULES_COPY = {
   previewStep: "Increases each year",
   cutRefund: "Cut refund",
   cutRefundHelp: "Dead cap is rounded down to the nearest dollar. Cutting $1 is $0 dead; cutting $7 is $3 dead at 50%.",
+};
+
+export const MANAGER_NAMES_COPY = {
+  title: "Manager names",
+  help: "Link imported names and Sleeper managers to league accounts for trophies, contracts, and history.",
+  effect: "Uses the account’s display name. Team names and recorded results stay with their original seasons.",
+  accountHelp: "Accounts appear after joining this league. These links do not assign teams or change access.",
+  source: "Name in history",
+  account: "League account",
+  period: "Seasons",
+  all: "All seasons",
+  custom: "Enter another imported name",
+  customLabel: "Imported manager name",
+  sourcePlaceholder: "Choose a name",
+  accountPlaceholder: "Choose an account",
+  imported: "Imported name",
+  sleeper: "Sleeper manager",
+  save: "Save name link",
+  saving: "Saving…",
+  saved: "Name link saved. Insights now uses the account’s display name.",
+  removed: "Name link removed. History uses its original manager label.",
+  savedTitle: "Saved name links",
+  empty: "No name links yet. Choose a name and a league account to connect them.",
+  noAccounts: "No registered league accounts yet. Invite managers to join before linking names.",
+  missingAccount: "Account unavailable",
+  remove: "Remove",
+  discard: "Discard",
+  retry: "Try again",
+  loadError: "Manager names could not be loaded.",
+  saveError: "Name link could not be saved. Your selections are still here.",
+  removeError: "Name link could not be removed.",
+  loading: "Loading manager names",
 };
 
 export function rulesCopyForFormat(pickDraft) {

@@ -2915,6 +2915,8 @@
   white-space: nowrap;
 }
 
+.hub-insights-spend-table th:not(:first-child),
+.hub-insights-spend-table td:not(:first-child),
 .hub-insights-scoring-table th.num,
 .hub-insights-scoring-table td:not(:nth-child(2)) {
   padding-inline: var(--space-2);

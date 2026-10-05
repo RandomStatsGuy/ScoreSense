@@ -32,6 +32,8 @@ import {
   validateLeagueSettings,
 } from "./rulesPresentation";
 
+import ManagerNamesPanel from "./ManagerNamesPanel";
+
 function RuleError({ id, children }) {
   if (!children) return null;
   return (
@@ -106,6 +108,8 @@ export default function RulesWizard({
   const [status, setStatus] = useState({ kind: "", text: "" });
   const [savedAt, setSavedAt] = useState(null);
   const [undo, setUndo] = useState(null);
+  const [managerDirty, setManagerDirty] = useState(false);
+  const [managerOpenedFor, setManagerOpenedFor] = useState("");
   const [category, setCategory] = useState("scoring");
   const sourceKeyRef = useRef("");
   const dirtyRef = useRef(false);
@@ -129,6 +133,7 @@ export default function RulesWizard({
       : `workspace:${workspace?.id || ""}`;
     if (sourceKeyRef.current !== sourceKey) {
       sourceKeyRef.current = sourceKey;
+      setManagerDirty(false);
       applyServerState(workspace, hubContext);
       return;
     }
@@ -137,7 +142,7 @@ export default function RulesWizard({
 
   const formSnapshot = snapshotRulesForm({ name, season, rules });
   const dirty = formSnapshot !== savedSnapshot;
-  dirtyRef.current = dirty;
+  dirtyRef.current = dirty || managerDirty;
 
   const touch = () => {
     if (status.text) setStatus({ kind: "", text: "" });
@@ -166,7 +171,7 @@ export default function RulesWizard({
   }));
 
   const pickDraft = isPickDraft(rules);
-  const categories = RULES_COPY.categories.filter((item) => !pickDraft || !item.salaryOnly);
+  const categories = RULES_COPY.categories.filter((item) => (!pickDraft || !item.salaryOnly) && (!item.leagueOnly || inLeague) && (!item.commissionerOnly || hubContext?.is_commissioner));
   const activeCategory = categories.some((item) => item.id === category) ? category : "foundation";
   const errors = useMemo(
     () => validateLeagueSettings({ name, season, rules }),
@@ -231,7 +236,7 @@ export default function RulesWizard({
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [name, season, rules, readOnlyRules]);
+  }, [name, season, rules, managerDirty, readOnlyRules]);
 
   const save = async () => {
     if (errorCount > 0) {
@@ -332,7 +337,7 @@ export default function RulesWizard({
         <nav className="hub-rules-category-nav" aria-label={RULES_COPY.categoryTitle}>
           <strong>{RULES_COPY.categoryTitle}</strong>
           {categories.map((item) => (
-            <button key={item.id} type="button" aria-pressed={activeCategory === item.id} onClick={() => setCategory(item.id)}>
+            <button key={item.id} type="button" aria-pressed={activeCategory === item.id} onClick={() => { setCategory(item.id); if (item.id === "managers") setManagerOpenedFor(hubContext.league_id); }}>
               <span>{item.label}</span>{categoryErrorCount(item.id) > 0 && <small>{RULES_COPY.categoryErrors(categoryErrorCount(item.id))}</small>}
             </button>
           ))}
@@ -349,6 +354,9 @@ export default function RulesWizard({
           ) : null}
         </nav>
         <div className="hub-rules-sections">
+          {inLeague && hubContext?.is_commissioner && managerOpenedFor === hubContext.league_id && <div hidden={activeCategory !== "managers"}>
+            <ManagerNamesPanel key={hubContext.league_id} leagueId={hubContext.league_id} onDirtyChange={setManagerDirty} />
+          </div>}
           <section hidden={activeCategory !== "scoring"} className="hub-rules-section" aria-labelledby="rules-scoring-title">
             <header className="hub-rules-section-head">
               <span>01</span>
@@ -776,7 +784,7 @@ export default function RulesWizard({
             </section>
           )}
 
-          {!readOnlyRules && (
+          {!readOnlyRules && activeCategory !== "managers" && (
             <div className="hub-rules-sticky-save">
               <div><strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong><p className="hub-rules-summary-note">{formatCopy.saveFootnote}</p></div>
               <button type="button" className="btn-ghost" disabled={!dirty || saving} onClick={() => applyServerState(workspace, hubContext)}>{RULES_COPY.discard}</button>

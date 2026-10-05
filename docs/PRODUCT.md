@@ -11,6 +11,10 @@ Agents: `.cursor/rules/scoresense-core.mdc` injects these rules on every turn. D
 
 ---
 
+## Manager names
+
+Rules has a commissioner-only **Manager names** category. Commissioners link imported labels and saved Sleeper managers to registered accounts that have joined the league. Links use the account’s public display name for trophies, contract returns, and history; an all-season link may have a specific-year override. Historical team names, recorded results, franchise ownership, and access remain intact. Multiple imported labels may point to one account. Remove a link to restore the original label. Normal reads use local saved data; saves invalidate downstream names without contacting Sleeper. Scoring and Spend put one compact season menu beside the shared Insights refresh, avoiding nested filter cards and duplicate refresh actions on phone.
+
 ## Product
 
 **ScoreSense** is a fantasy football product from **4th Down Labs**.

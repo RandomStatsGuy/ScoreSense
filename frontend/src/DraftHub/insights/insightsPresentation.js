@@ -407,6 +407,7 @@ export function contractHistoryNote(status, years) {
 }
 
 export const INSIGHTS_COPY = {
+  controls: { scoringSeason: "Scoring season", spendSeason: "Spend season", refreshScoring: "Refresh scoring" },
   contracts: {
     heading: "Contract returns", loading: "Loading saved contracts…",
     best: "Best contracts", worst: "Worst contracts", metric: "Actual fantasy points per dollar paid",

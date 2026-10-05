@@ -4,7 +4,7 @@ import { periodLabel, periodYears } from "./insightsPeriods";
 import { INSIGHTS_COPY } from "./insightsPresentation";
 import { InsightsProgress } from "./InsightsChrome";
 
-export default function InsightsHeader({ tabs, active, onTab, landing, years, period, onPeriod, onRefresh, busy, showPeriod = true }) {
+export default function InsightsHeader({ tabs, active, onTab, landing, years, period, onPeriod, onRefresh, busy, showPeriod = true, seasonControl = null, refreshLabel = INSIGHTS_COPY.overview.refresh }) {
   const details = useRef(null);
   const choices = [...new Set((years || []).map(Number).filter(Number.isFinite))].sort((a, b) => a - b);
   const first = choices[0] || new Date().getFullYear();
@@ -39,6 +39,7 @@ export default function InsightsHeader({ tabs, active, onTab, landing, years, pe
       <nav className="hub-insights-tabs" aria-label="Insights">{tabs.map((tab) => <button key={tab.id} type="button" aria-current={active === tab.id ? "true" : undefined} onClick={() => onTab(tab.id)}>{tab.label}</button>)}</nav>
       <InsightsProgress active={busy} />
     </div>
+    {seasonControl && <div className="hub-insights-period-toolbar">{seasonControl}</div>}
     {showPeriod && <div className="hub-insights-period-toolbar">
       <details className="hub-insights-period" ref={details}>
         <summary aria-label={`Period: ${periodLabel(period)}`}><span>Period</span><strong>{periodLabel(period)}</strong><span aria-hidden="true">⌄</span></summary>
@@ -63,8 +64,8 @@ export default function InsightsHeader({ tabs, active, onTab, landing, years, pe
     </div>}
     <div className="hub-insights-header-freshness">
       <span className="table-meta" role="status">{landing?.synced_at ? formatRelativeTime(landing.synced_at) : "Saved history"}</span>
-      <button type="button" className="btn-ghost hub-insights-refresh" aria-label={INSIGHTS_COPY.overview.refresh} title={INSIGHTS_COPY.overview.refresh} onClick={onRefresh} disabled={busy}>
-        <span className="hub-insights-refresh-label">{busy ? INSIGHTS_COPY.overview.refreshing : INSIGHTS_COPY.overview.refresh}</span>
+      <button type="button" className="btn-ghost hub-insights-refresh" aria-label={refreshLabel} title={refreshLabel} onClick={onRefresh} disabled={busy}>
+        <span className="hub-insights-refresh-label">{busy ? INSIGHTS_COPY.overview.refreshing : refreshLabel}</span>
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.5 7a7 7 0 0 1 11.7-1L20 9M4 15l2.8 3a7 7 0 0 0 11.7-1" /></svg>
       </button>
     </div>
