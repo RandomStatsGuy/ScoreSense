@@ -565,7 +565,14 @@ export function measureScript() {
         const maxContent = Math.max(...cells.map((cell) => cellContentWidth(cell)));
         const remainder = expectAligns.findIndex((align) => align === "left") === c;
         const packRatio = columnPackRatio || 1.5;
-        if (!table.el.matches(".rosters-table") && !remainder && colWidth > maxContent * packRatio + 1) {
+        if (!remainder && maxContent === 0 && colWidth > 0) {
+          results.push({
+            rule: "tables",
+            ok: false,
+            selector: `${table.label}:${ti} col ${c}`,
+            detail: `empty column reserves ${px(colWidth)}px`,
+          });
+        } else if (!table.el.matches(".rosters-table") && !remainder && colWidth > maxContent * packRatio + 1) {
           results.push({
             rule: "tables",
             ok: false,

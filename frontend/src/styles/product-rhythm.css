@@ -54,6 +54,11 @@
   margin-block: 0;
 }
 
+/* Forms with full-size fields keep filters and actions on the same tier. */
+.hub-toolbar.hub-toolbar--large :is(input, select, button) {
+  min-height: var(--control-h-lg);
+}
+
 .hub-experience-main,
 .hub-experience-stack {
   gap: var(--gutter-section);
@@ -78,6 +83,10 @@ button.btn-sm {
   font-size: var(--text-sm);
 }
 
+.btn,
+.btn-primary,
+.btn-ghost,
+.btn-danger,
 .app-header-info-link,
 .hub-league-switcher-create,
 button.btn-link.hub-league-switcher-create,
@@ -110,6 +119,10 @@ button.btn-link.hub-league-switcher-create,
     --inset-section: 1rem 1.05rem;
   }
 
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger,
   .app-header-info-link,
   .hub-league-switcher-create,
   button.btn-link.hub-league-switcher-create,

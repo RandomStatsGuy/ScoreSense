@@ -190,7 +190,7 @@ export default function OfflineDraftPanel({
       </p>
 
       {(runAsCommish || showOwnerForm) ? (
-        <div className="hub-toolbar draft-lobby-offline-form">
+        <div className="hub-toolbar hub-toolbar--large draft-lobby-offline-form">
           <label className="sr-only" htmlFor="offline-player-id">{OFFLINE_DRAFT_COPY.playerLabel}</label>
           <input
             id="offline-player-id"
