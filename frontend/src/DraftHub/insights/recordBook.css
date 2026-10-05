@@ -18,7 +18,7 @@
 .hub-insights-period-years { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-1); }
 .hub-insights-period-years button { padding-inline: var(--space-1); }
 .hub-insights-period-menu button { min-height: 40px; font-size: var(--text-xs); }
-.hub-insights-period-menu [aria-pressed="true"], .hub-insights-record-sort [aria-pressed="true"] { border-color: var(--accent); color: var(--accent-muted); background: var(--accent-soft); }
+.hub-insights-period-menu [aria-pressed="true"], .hub-insights-record-sort [aria-checked="true"] { border-color: var(--accent); color: var(--accent-muted); background: var(--accent-soft); }
 .hub-insights-range-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .hub-insights-range-fields label { display: grid; grid-template-columns: 1fr max-content; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
 .hub-insights-range-fields input { grid-column: 1 / -1; width: 100%; min-height: 44px; margin: 0; accent-color: var(--accent); }
@@ -28,10 +28,11 @@
 .hub-insights-year-winner { display: grid; gap: var(--space-1); min-width: 0; }
 .hub-insights-championships .hub-insights-year strong { overflow-wrap: anywhere; }
 .hub-insights-record-list, .hub-insights-contract-list { list-style: none; padding: 0; margin: 0; }
+.hub-insights-record-list { display: grid; grid-template-columns: var(--space-5) fit-content(35%) max-content minmax(0, 1fr); column-gap: var(--space-3); }
 .hub-insights-record-controls { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
 .hub-insights-record-sort { display: flex; gap: var(--space-1); }
 .hub-insights-record-controls button { min-height: var(--control-h-lg); }
-.hub-insights-record-list li { display: grid; grid-template-columns: var(--space-5) minmax(0, 1fr) 10rem 10rem; column-gap: var(--space-3); align-items: center; border-top: 1px solid var(--border); padding: var(--space-4) 0; }
+.hub-insights-record-list li { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; column-gap: var(--space-3); align-items: center; border-top: 1px solid var(--border); padding: var(--space-4) 0; }
 .hub-insights-record-identity, .hub-insights-contract-identity { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
 .hub-insights-record-identity > strong, .hub-insights-contract-identity > strong { font-size: var(--text-sm); }
 .hub-insights-record-identity > span, .hub-insights-record-identity > small, .hub-insights-contract-identity > span, .hub-insights-contract-identity > small { font-size: var(--text-xs); color: var(--text-muted); }
@@ -76,7 +77,8 @@
   .hub-insights-record-controls { margin-bottom: var(--space-2); }
   .hub-insights-record-controls button { min-height: 44px; padding-inline: var(--space-2); border-radius: var(--radius-sm); font-size: var(--text-xs); }
   .hub-insights-open-scoring { border-color: transparent; }
-  .hub-insights-record-list li { grid-template-columns: var(--space-4) minmax(0, 1fr) max-content; row-gap: var(--space-2); }
+  .hub-insights-record-list { grid-template-columns: var(--space-4) minmax(0, 1fr) max-content; }
+  .hub-insights-record-list li { row-gap: var(--space-2); }
   .hub-insights-record-points { max-width: 8rem; }
   .hub-insights-record-track { grid-column: 2 / -1; }
   .hub-insights-contract-boards { grid-template-columns: minmax(0, 1fr); }

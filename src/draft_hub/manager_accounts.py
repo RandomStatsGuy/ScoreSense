@@ -36,7 +36,7 @@ def saved_manager_standings(league_id):
 def mapping_revision(league_id):
     rows = storage.list_manager_account_maps(league_id)
     accounts = public_accounts(r['account_sub'] for r in rows)
-    return [('mapped-names-v2', r['id'], r['updated_at'], r['account_sub'], r.get('manager_name'),
+    return [('mapped-names-v3', r['id'], r['updated_at'], r['account_sub'], r.get('manager_name'),
              (accounts.get(r['account_sub']) or {}).get('display_name')) for r in rows]
 
 
@@ -106,7 +106,7 @@ class ManagerOwnerMap(dict):
         self.planning_year = int(league.get('season') or 0)
         with storage.get_conn() as conn:
             self.aliases = [dict(r) for r in conn.execute(
-                "SELECT owner_label, sleeper_user_id, season_year FROM league_owner_season_map WHERE league_id=? AND source_kind != 'yaml_seed'", (league_id,))]
+                "SELECT owner_label, hub_team_name, sleeper_user_id, season_year FROM league_owner_season_map WHERE league_id=? AND source_kind != 'yaml_seed'", (league_id,))]
             teams = [dict(r) for r in conn.execute(
                 "SELECT user_sub, name, sleeper_team_name, sleeper_roster_id FROM team WHERE league_id=?", (league_id,))]
         self.league_id = league_id
@@ -131,6 +131,14 @@ class ManagerOwnerMap(dict):
         for row in rows:
             if row['account_sub'] in accounts:
                 self.links[(row['source_kind'], row['source_key'].casefold(), row['season_year'])] = accounts[row['account_sub']]
+        # Exact public account labels can appear in imported analytics. Resolve
+        # only a unique linked league account, never fuzzy/global name matches.
+        label_candidates = {}
+        for sub, account in accounts.items():
+            label_candidates.setdefault(account['display_name'].strip().casefold(), {})[sub] = account
+        for label, choices in label_candidates.items():
+            if len(choices) == 1:
+                self.links.setdefault(('owner_label', label, 0), next(iter(choices.values())))
         # Carry an exact import-name link to its known Sleeper identity, then carry
         # that identity back to other season aliases. Explicit links always win.
         candidates = {}
@@ -142,13 +150,6 @@ class ManagerOwnerMap(dict):
         for key, choices in candidates.items():
             if len(choices) == 1:
                 self.links.setdefault(key, next(iter(choices.values())))
-        career_candidates = {}
-        for (kind, key, _year), account in self.links.items():
-            if kind == 'sleeper_user_id':
-                career_candidates.setdefault(key, {})[account['account_sub']] = account
-        for key, choices in career_candidates.items():
-            if len(choices) == 1 and self.name_for_account(next(iter(choices))):
-                self.links.setdefault(('sleeper_user_id', key, 0), next(iter(choices.values())))
         # Current claimed seats are authoritative for current-season account/ID
         # joins, never evidence for an unrelated historical seat.
         self.team_accounts = {}
@@ -162,18 +163,81 @@ class ManagerOwnerMap(dict):
             for row in current_standings:
                 if team['sleeper_roster_id'] and str(row.get('roster_id')) == str(team['sleeper_roster_id']) and row.get('owner_id'):
                     self.links.setdefault(('sleeper_user_id', str(row['owner_id']).casefold(), self.planning_year), accounts[sub])
+        # A saved exact account handle is also identity evidence. Preserve it
+        # before considering weaker, sometimes stale imported team nicknames.
+        if rows:
+            if self.sleeper_rows is None:
+                self.sleeper_rows = saved_manager_standings(league_id)
+            for cached in self.sleeper_rows:
+                if not str(cached['season']).isdigit():
+                    continue
+                year = int(cached['season'])
+                for standing in cached['standings']:
+                    uid = str(standing.get('owner_id') or '').strip().casefold()
+                    account = self.account(owner=standing.get('owner_name'), season=year)
+                    if uid and account:
+                        self.links.setdefault(('sleeper_user_id', uid, year), account)
+        def carry_career_ids():
+            career_candidates = {}
+            for (kind, key, _year), account in self.links.items():
+                if kind == 'sleeper_user_id':
+                    career_candidates.setdefault(key, {})[account['account_sub']] = account
+            for key, choices in career_candidates.items():
+                if len(choices) == 1 and self.name_for_account(next(iter(choices))):
+                    self.links.setdefault(('sleeper_user_id', key, 0), next(iter(choices.values())))
+        carry_career_ids()
+        # Old imports often have a season team name but no Sleeper ID. Join only
+        # exact, unambiguous league-local season aliases to saved standings.
+        # A current nickname (or a global YAML default) cannot identify a past owner.
+        if rows:
+            if self.sleeper_rows is None:
+                self.sleeper_rows = saved_manager_standings(league_id)
+            with storage.get_conn() as conn:
+                imported = [dict(r) for r in conn.execute(
+                    "SELECT DISTINCT owner_label, hub_team_name, season_year FROM league_contract_row WHERE league_id=?", (league_id,))]
+            season_teams = {}
+            unknown_teams = set()
+            mapped_teams = {(r['season_year'], str(r['hub_team_name'] or '').strip().casefold()) for r in self.aliases}
+            for alias in [*self.aliases, *[r for r in imported if (r['season_year'], str(r['hub_team_name'] or '').strip().casefold()) not in mapped_teams]]:
+                team = str(alias['hub_team_name'] or '').strip().casefold()
+                account = self.account(owner=alias['owner_label'], season=alias['season_year'])
+                key = (int(alias['season_year']), team)
+                if team and account:
+                    season_teams.setdefault(key, {})[account['account_sub']] = account
+                elif team:
+                    unknown_teams.add(key)
+            specific_sources = {(r['source_key'].strip().casefold(), r['season_year'])
+                                for r in rows if r['source_kind'] == 'owner_label' and r['season_year']}
+            specific_teams = {(int(r['season_year']), str(r['hub_team_name'] or '').strip().casefold())
+                              for r in [*self.aliases, *imported]
+                              if (str(r['owner_label'] or '').strip().casefold(), r['season_year']) in specific_sources}
+            saved_team_ids = {}
+            for cached in self.sleeper_rows:
+                if str(cached['season']).isdigit():
+                    for standing in cached['standings']:
+                        key = (int(cached['season']), str(standing.get('team_name') or '').strip().casefold())
+                        if standing.get('owner_id'):
+                            saved_team_ids.setdefault(key, set()).add(str(standing['owner_id']).strip().casefold())
+            inferred = {}
+            for cached in self.sleeper_rows:
+                if not str(cached['season']).isdigit():
+                    continue
+                year = int(cached['season'])
+                for standing in cached['standings']:
+                    uid = str(standing.get('owner_id') or '').strip().casefold()
+                    team = str(standing.get('team_name') or '').strip().casefold()
+                    choices = season_teams.get((year, team), {})
+                    unambiguous = (year, team) not in unknown_teams and len(saved_team_ids.get((year, team), set())) == 1
+                    if uid and len(choices) == 1 and unambiguous and (not self.account(uid=uid, season=year) or (year, team) in specific_teams):
+                        inferred.setdefault(('sleeper_user_id', uid, year), {}).update(choices)
+            for key, choices in inferred.items():
+                if len(choices) == 1:
+                    self.links.setdefault(key, next(iter(choices.values())))
+        carry_career_ids()
         for row in self.aliases:
             account = self.account(uid=row['sleeper_user_id'], season=row['season_year'])
             if account:
                 self.links.setdefault(('owner_label', row['owner_label'].strip().casefold(), row['season_year']), account)
-        # Exact public account labels can appear in imported analytics. Resolve
-        # only a unique linked league account, never fuzzy/global name matches.
-        label_candidates = {}
-        for sub, account in accounts.items():
-            label_candidates.setdefault(account['display_name'].strip().casefold(), {})[sub] = account
-        for label, choices in label_candidates.items():
-            if len(choices) == 1:
-                self.links.setdefault(('owner_label', label, 0), next(iter(choices.values())))
         super().__init__({k: (self.name_for_account(self.team_accounts.get(str(k).strip().casefold()), self.season_year)
                         if self.season_year == self.planning_year else None) or self.resolve(v) or v for k, v in raw.items()})
 

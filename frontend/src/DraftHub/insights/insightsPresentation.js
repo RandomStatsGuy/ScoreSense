@@ -451,6 +451,7 @@ export const INSIGHTS_COPY = {
     recordBook: "Record book",
     recordBookSupport: "Regular-season records · total fantasy points",
     rankBy: "Rank managers by", recordSort: "Record", pointsSort: "Points",
+    winRate: "Win rate", pointsLeader: "Points leader",
     records: "All-time records",
     recordsSupport: "Regular-season records across all available seasons (W–L–T).",
     recordsEmpty: "Win-loss records fill in after scoring history refreshes.",

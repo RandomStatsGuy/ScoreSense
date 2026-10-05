@@ -29,12 +29,18 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
       </div>
       <section className="hub-insights-overview-panel hub-insights-record-book" aria-label="Record book">
         <div className="hub-insights-talk-head hub-insights-talk-head--row"><div><h2>{copy.recordBook}</h2><p className="hub-insights-record-description">{copy.recordBookSupport}</p></div></div>
-        <div className="hub-insights-record-controls"><div className="hub-insights-record-sort" aria-label={copy.rankBy}><button type="button" className="btn-ghost" aria-pressed={sort === "record"} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" aria-pressed={sort === "points"} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost btn-sm hub-insights-open-scoring" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
+        <div className="hub-insights-record-controls"><div className="hub-insights-record-sort" role="radiogroup" aria-label={copy.rankBy} onKeyDown={(event) => {
+          if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === "Home" ? "record" : event.key === "End" ? "points" : sort === "record" ? "points" : "record";
+          setSort(next);
+          event.currentTarget.querySelectorAll("button")[next === "record" ? 0 : 1].focus();
+        }}><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "record"} tabIndex={sort === "record" ? 0 : -1} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "points"} tabIndex={sort === "points" ? 0 : -1} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost btn-sm hub-insights-open-scoring" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
         <ol className="hub-insights-record-list">{records.map((row, index) => {
           const owner = teamDisplayName(row, ownerMap, false);
           const value = Number(sort === "record" ? row.win_pct : row.total_points) || 0;
           const gap = pointsLeader - Number(row.total_points || 0);
-          return <li key={`${scoringTeamKey(row)}:${index}`}><span className="hub-insights-rank-place">{index + 1}</span><div className="hub-insights-record-identity"><strong>{owner}</strong>{row.team_name !== owner && <span>{row.team_name}</span>}<small>{formatRecordLine(row)} · {(Number(row.win_pct || 0) * 100).toFixed(1)}%</small></div><div className="hub-insights-record-points"><strong>{formatPoints(row.total_points)}</strong><span>{gap > 0 ? `−${formatPoints(gap)} from first` : "Points leader"}</span></div><div className="hub-insights-record-track" aria-hidden="true"><div style={{ width: `${fieldRankShare(value, values)}%` }} /></div></li>;
+          return <li key={`${scoringTeamKey(row)}:${index}`}><span className="hub-insights-rank-place">{index + 1}</span><div className="hub-insights-record-identity"><strong>{owner}</strong>{row.team_name !== owner && <span>{row.team_name}</span>}<small>{formatRecordLine(row)}{sort === "record" && ` · ${formatPoints(row.total_points)} pts`}</small></div><div className="hub-insights-record-points"><strong>{sort === "record" ? `${(Number(row.win_pct || 0) * 100).toFixed(1)}%` : formatPoints(row.total_points)}</strong><span>{sort === "record" ? copy.winRate : gap > 0 ? `−${formatPoints(gap)} from first` : copy.pointsLeader}</span></div><div className="hub-insights-record-track" aria-hidden="true"><div style={{ width: `${fieldRankShare(value, values)}%` }} /></div></li>;
         })}</ol>
         {!records.length && <p className="chart-note">{copy.recordsEmpty}</p>}
       </section>
