@@ -9,7 +9,7 @@ const POOL_SESSION_PREFIX = "ss_pool_v1:";
 const POOL_SESSION_TTL_MS = 5 * 60_000;
 
 const INSIGHTS_SESSION_PREFIX = "ss_insights_";
-const INSIGHTS_CACHE_VERSION = 4;
+const INSIGHTS_CACHE_VERSION = 5;
 
 function rulesKey(rules) {
   if (!rules) return "";

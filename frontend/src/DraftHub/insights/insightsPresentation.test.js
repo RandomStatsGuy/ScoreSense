@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  contractHistoryNote,
   awardCatalogFromRules,
   featureAwards,
   fieldRankShare,
@@ -287,4 +288,16 @@ test("corrected manager labels override stale display labels", () => {
 test("chart keys survive renames and distinguish matching nicknames", () => {
   assert.equal(scoringTeamKey({owner_id: "a", team_name: "Before"}), scoringTeamKey({owner_id: "a", team_name: "After"}));
   assert.notEqual(scoringTeamKey({owner_id: "a", team_name: "Same"}), scoringTeamKey({owner_id: "b", team_name: "Same"}));
+});
+
+
+test("contract history gaps explain salary review only in the selected years", () => {
+  const status = [{season:2021,ranked:2,excluded:{invalid_name:100}}, {season:2022,ranked:50,excluded:{missing_identity:5}},
+    {season:2023,ranked:0,excluded:{missing_identity:10}}, {season:2024,ranked:0,excluded:{incomplete_scoring:20}}];
+  assert.match(contractHistoryNote(status,[2021,2022]), /2021.*salary entries need review/);
+  assert.doesNotMatch(contractHistoryNote(status,[2021]), /refresh|sync/i);
+  assert.equal(contractHistoryNote(status,[2022]), "");
+  assert.match(contractHistoryNote(status,[2023]), /verified player and salary history/);
+  assert.match(contractHistoryNote(status,[2024]), /Refresh history/);
+  assert.equal(contractHistoryNote(undefined,[2021]), "");
 });

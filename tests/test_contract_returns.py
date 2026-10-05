@@ -95,3 +95,153 @@ def test_contract_cache_invalidates_when_saved_points_change_and_keeps_access(sa
     finally:
         app.dependency_overrides.pop(require_hub_user, None)
         hub_routes._clear_insights_response_cache()
+
+
+@pytest.fixture
+def linked_salary_history(salary_history):
+    lid = salary_history
+    storage.update_league_sleeper_id(lid, "current")
+    chain = [{"season": str(year), "league_id": f"source-{year}"} for year in [2022, 2023, 2024]]
+    storage.upsert_sleeper_league_chain("current", [{"season": "2026", "league_id": "current"}, *chain])
+    events = {"gsis-alex": [], "gsis-jordan": [], "gsis-james": [], "gsis-jk": [], "SF": []}
+    for year in [2022, 2023, 2024]:
+        for pid, name, pos in [("gsis-alex", "Alex Example", "WR"), ("gsis-jordan", "Jordan Williams", "RB"),
+                               ("gsis-james", "James Williams", "RB"), ("gsis-jk", "J.K. Dobbins", "RB"),
+                               ("SF", "San Francisco 49ers", "DEF")]:
+            events[pid].append({"season": str(year), "player_name": name, "position": pos})
+        save_week(f"source-{year}", year, 1, [
+            {"aliases": ["101", "sleeper-101", " gsis-alex "], "points": 100, "position": "WR"},
+            {"aliases": ["102", "sleeper-102", "gsis-jordan"], "points": 50, "position": "RB"},
+            {"aliases": ["104", "sleeper-104", "gsis-jk"], "points": 0, "position": "RB"},
+            {"aliases": ["SF", "sleeper-SF"], "points": 10, "position": "DEF"},
+        ])
+        for name, pos in [("A. Example", "WR"), ("J. Williams", "RB"), ("JK Dobbins", "RB"), ("49ers DST", "DST")]:
+            storage.insert_league_contract_row(lid, year, {"owner_label": "Manager", "hub_team_name": "Nicknames change",
+                "player_name": name, "position": pos, "base_salary": 10})
+    # The cached history can belong to last year's league, not the current ID.
+    storage.upsert_sleeper_ownership_cache("source-2024", {"by_player": events})
+    return lid
+
+
+def test_abbreviated_history_uses_saved_season_names_without_guessing(linked_salary_history):
+    out = build_contract_returns(linked_salary_history)
+    for year in [2022, 2023, 2024]:
+        rows = [row for row in out["rows"] if row["season"] == year]
+        assert {row["player_id"] for row in rows} == {"sleeper-101", "sleeper-104", "sleeper-SF"}
+        assert next(row for row in rows if row["player_id"] == "sleeper-101")["points"] == 100
+        assert next(row for row in rows if row["player_id"] == "sleeper-104")["points"] == 0
+        assert all(row["owner_name"] == "Manager" for row in rows)
+        status = next(row for row in out["season_status"] if row["season"] == year)
+        assert status["excluded"]["missing_identity"] == 1  # Other J. Williams is inactive but still ambiguous.
+
+
+def test_exact_full_name_and_approved_alias_disambiguate_abbreviations(linked_salary_history):
+    lid = linked_salary_history
+    storage.insert_league_contract_row(lid, 2022, {"owner_label": "Manager", "player_name": "Jordan Williams",
+        "position": "RB", "base_salary": 20})
+    # The ambiguous initial remains excluded while the full first name is exact.
+    out = build_contract_returns(lid)
+    rows = [row for row in out["rows"] if row["season"] == 2022 and row["player_id"] == "sleeper-102"]
+    assert len(rows) == 1 and rows[0]["player_name"] == "Jordan Williams"
+    storage.upsert_player_name_alias(lid, "The Sleeper", "Jordan Williams", position="RB", sleeper_player_id="102")
+    storage.insert_league_contract_row(lid, 2023, {"owner_label": "Manager", "player_name": "The Sleeper", "position": "RB", "base_salary": 10})
+    assert any(row["player_name"] == "The Sleeper" and row["points"] == 50 for row in build_contract_returns(lid)["rows"])
+
+
+def test_duplicate_aliases_and_malformed_imports_never_create_ranked_deals(linked_salary_history):
+    lid = linked_salary_history
+    storage.insert_league_contract_row(lid, 2022, {"owner_label": "Manager", "player_id": "sleeper-101", "player_name": "Alex Example", "position": "WR", "base_salary": 20})
+    storage.insert_league_contract_row(lid, 2021, {"owner_label": "Manager", "player_name": "A Example20 J Williams8 Q Quarterback10", "position": "WR", "base_salary": 20})
+    out = build_contract_returns(lid)
+    assert not any(row["season"] == 2022 and row["player_id"] == "sleeper-101" for row in out["rows"])
+    status = {row["season"]: row for row in out["season_status"]}
+    assert status[2022]["excluded"]["ambiguous_contract"] == 2
+    assert status[2021]["ranked"] == 0 and status[2021]["excluded"]["invalid_name"] == 1
+
+
+def test_contract_cache_invalidates_when_a_prior_leagues_name_history_arrives(linked_salary_history):
+    from app import hub_routes
+    lid = linked_salary_history
+    hub_routes._clear_insights_response_cache()
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "returns-owner"}
+    try:
+        with TestClient(app) as client:
+            url = f"/api/hub/league/{lid}/insights/contracts"
+            assert client.get(url).status_code == 200
+            assert client.get(url).json()["cache_status"]["contracts"] == "hit"
+            storage.upsert_sleeper_ownership_cache("source-2023", {"by_player": {"gsis-jordan": [
+                {"season": "2023", "player_name": "The Third-Year Player", "position": "RB"}]}})
+            assert client.get(url).json()["cache_status"]["contracts"] == "miss"
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+        hub_routes._clear_insights_response_cache()
+
+
+def test_native_final_scoring_correction_is_used(salary_history):
+    lid = salary_history
+    team_id = storage.list_league_teams(lid)[0]["id"]
+    with storage.get_conn() as conn:
+        conn.execute("INSERT INTO league_week_scoring_run(league_id,season,week,scoring_json,final,scored_at) VALUES (?,?,?,?,?,?)",
+                     (lid, 2026, 1, "{}", 1, "now"))
+        conn.execute("INSERT INTO league_player_week_score(league_id,season,week,player_id,team_id,points,stats_json,scored_at) VALUES (?,?,?,?,?,?,?,?)",
+                     (lid, 2026, 1, "player", team_id, 17, "{}", "now"))
+    row = next(row for row in build_contract_returns(lid)["rows"] if row["season"] == 2026)
+    assert row["points"] == 17
+
+
+@pytest.mark.parametrize("position", [None, "NAN", "WC"])
+def test_missing_import_position_can_match_one_saved_identity(linked_salary_history, position):
+    storage.insert_league_contract_row(linked_salary_history, 2022, {"owner_label": "Other manager", "player_name": "A.Example", "position": position, "base_salary": 10})
+    row = next(row for row in build_contract_returns(linked_salary_history)["rows"] if row["player_name"] == "A.Example")
+    assert row["player_id"] == "sleeper-101" and row["position"] == "WR" and row["points"] == 100
+
+
+def test_compact_multiple_initials_and_positionless_manual_alias(linked_salary_history):
+    lid = linked_salary_history
+    storage.upsert_player_name_alias(lid, "Zero Man", "J.K. Dobbins", sleeper_player_id="104")
+    for name in ["J.K.Dobbins", "Zero Man"]:
+        storage.insert_league_contract_row(lid, 2022, {"owner_label": name, "player_name": name, "position": "RB", "base_salary": 10})
+    rows = [row for row in build_contract_returns(lid)["rows"] if row["player_name"] in {"J.K.Dobbins", "Zero Man"}]
+    assert len(rows) == 2 and all(row["player_id"] == "sleeper-104" and row["points"] == 0 for row in rows)
+
+
+def test_name_alias_correction_invalidates_contract_cache(linked_salary_history):
+    from app import hub_routes
+    lid = linked_salary_history
+    storage.insert_league_contract_row(lid, 2022, {"owner_label": "Other manager", "player_name": "Hidden Star", "position": "WR", "base_salary": 10})
+    hub_routes._clear_insights_response_cache()
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "returns-owner"}
+    try:
+        with TestClient(app) as client:
+            url = f"/api/hub/league/{lid}/insights/contracts"
+            assert not any(row["player_name"] == "Hidden Star" for row in client.get(url).json()["contracts"]["rows"])
+            assert client.get(url).json()["cache_status"]["contracts"] == "hit"
+            storage.upsert_player_name_alias(lid, "Hidden Star", "Alex Example", sleeper_player_id="101")
+            changed = client.get(url).json()
+            assert changed["cache_status"]["contracts"] == "miss"
+            assert next(row for row in changed["contracts"]["rows"] if row["player_name"] == "Hidden Star")["points"] == 100
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+        hub_routes._clear_insights_response_cache()
+
+
+def test_native_final_correction_invalidates_contract_cache(salary_history):
+    from app import hub_routes
+    lid = salary_history
+    team_id = storage.list_league_teams(lid)[0]["id"]
+    hub_routes._clear_insights_response_cache()
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": "returns-owner"}
+    try:
+        with TestClient(app) as client:
+            url = f"/api/hub/league/{lid}/insights/contracts"
+            assert client.get(url).status_code == 200
+            assert client.get(url).json()["cache_status"]["contracts"] == "hit"
+            with storage.get_conn() as conn:
+                conn.execute("INSERT INTO league_week_scoring_run(league_id,season,week,scoring_json,final,scored_at) VALUES (?,?,?,?,?,?)", (lid,2026,1,"{}",1,"correction"))
+                conn.execute("INSERT INTO league_player_week_score(league_id,season,week,player_id,team_id,points,scored_at) VALUES (?,?,?,?,?,?,?)", (lid,2026,1,"player",team_id,17,"correction"))
+            changed = client.get(url).json()
+            assert changed["cache_status"]["contracts"] == "miss"
+            assert next(row for row in changed["contracts"]["rows"] if row["season"] == 2026)["points"] == 17
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+        hub_routes._clear_insights_response_cache()

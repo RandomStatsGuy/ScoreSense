@@ -863,6 +863,25 @@ export function measureScript() {
       results.push({ rule: "menus", ok: true, selector: "", detail: "no draft-hub" });
     }
 
+    // A phone must leave room for complete manager names and avoid a separate
+    // navigation row between the Record book heading and its rankings.
+    if (innerWidth <= 768) {
+      const years = [...document.querySelectorAll(".hub-insights-year")];
+      const narrow = years.filter(year => {
+        const owner = year.querySelector("strong");
+        return owner && owner.getBoundingClientRect().width < Math.min(160, innerWidth * .45);
+      });
+      if (years.length) results.push({rule:"insights-mobile",ok:!narrow.length,
+        selector:".hub-insights-year",detail: narrow.length ? "Championship manager column is too narrow" : "Championship names have room to read"});
+      const controls = [...document.querySelectorAll(".hub-insights-record-sort button, .hub-insights-record-book .hub-insights-open-scoring, .hub-insights-record-book .hub-insights-talk-head button")];
+      if (controls.length) {
+        const boxes = controls.map(el => el.getBoundingClientRect());
+        const aligned = boxes.every(box => Math.abs(box.top - boxes[0].top) < 2 && Math.abs(box.height - boxes[0].height) < 2);
+        results.push({rule:"insights-mobile",ok:aligned,selector:".hub-insights-record-controls",
+          detail:aligned ? "Record book controls share one row" : "Record book controls create extra rows"});
+      }
+    }
+
     const destinationButton = document.querySelector(".hub-subnav-picker-btn");
     if (destinationButton && destinationButton.getBoundingClientRect().width > 0) {
       results.push({rule:"navigation", ok:destinationButton.scrollWidth <= destinationButton.clientWidth + 1,
