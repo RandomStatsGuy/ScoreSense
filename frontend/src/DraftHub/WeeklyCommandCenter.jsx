@@ -259,9 +259,12 @@ export default function WeeklyCommandCenter({
   const leagueId = data?.hub_context?.league_id || hubContext?.league_id;
   const sleeperLeagueId = data?.hub_context?.sleeper_league_id || hubContext?.sleeper_league_id || "";
 
+  const vibeTeamId = data?.hub_context?.team_id || hubContext?.team_id;
   useEffect(() => {
     const key = storageKey({
+      cacheScope,
       leagueId,
+      teamId: vibeTeamId,
       season: meta.season,
       week: meta.week,
     });
@@ -276,7 +279,7 @@ export default function WeeklyCommandCenter({
         if (!res.ok) return;
         const payload = await res.json();
         const remote = payload?.aura_by_id;
-        if (remote && typeof remote === "object" && Object.keys(remote).length) {
+        if (!ctrl.signal.aborted && remote && typeof remote === "object" && Object.keys(remote).length) {
           setAuraById(remote);
           saveAura(key, remote);
         }
@@ -285,7 +288,7 @@ export default function WeeklyCommandCenter({
       }
     })();
     return () => ctrl.abort();
-  }, [leagueId, meta.season, meta.week]);
+  }, [cacheScope, leagueId, vibeTeamId, meta.season, meta.week]);
 
   const mediaIds = useMemo(() => (
     [...starters, ...bench].map((player) => player?.player_id).filter(Boolean)

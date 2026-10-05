@@ -5,6 +5,29 @@ import { formatAura, formatPts, formatPtsDelta, readAura, vibeScore } from "./vi
 
 export const VIBE_COPY = Object.freeze({
   eyebrow: "Vibes",
+  deckHeading: "Trust your gut.",
+  deckSupport: "One player. One read. Your roster, your call.",
+  doneHeading: "All rated for today.",
+  doneSupport: "Come back tomorrow to update your read.",
+  backToPlayer: "← Back to player",
+  beforeRating: "Before your rating",
+  currentPlayer: "Current player",
+  points: "pts",
+  rank: "Rank",
+  player: "Player",
+  scoreColumn: "Vibes",
+  scoreUnit: "score",
+  adjustedColumn: "Adjusted",
+  modelShort: "Model",
+  thisWeek: "This week",
+  of: "of",
+  yourRoster: "Your roster",
+  retry: "Retry",
+  openTeam: "Open My team",
+  howItWorks: "How Vibes works",
+  explanation: "Higher or Lower changes your personal Vibes score. Adjusted projections use that score; This Week keeps the original model projection. Rating a player does not change your lineup.",
+  rateNamed: (name, vibe) => `Rate ${name} ${vibe === "start" ? "higher" : "lower"}`,
+  saveStatuses: Object.freeze({ device: "Ratings saved on this device.", saving: "Saving ratings…", saved: "Ratings saved.", error: "Saved on this device. Could not sync ratings." }),
   heading: "How do you feel about your players this week?",
   support: "Rate each player higher or lower once a day to adjust your Vibes score. Ratings do not save your lineup.",
   chip: "Your read",
@@ -60,7 +83,7 @@ export const VIBE_COPY = Object.freeze({
   auraScale: "0–99",
   auraMeter: "Vibes score, 0 to 99",
   weekProj: "Model projection",
-  vibeProj: "Adjusted projection",
+  vibeProj: "Vibes-adjusted",
   weekCompare: "Model and Vibes-adjusted projections",
   opponent: "Opp",
   onBye: "Bye",
@@ -358,4 +381,13 @@ export function vibeNextActions({ canReview = false, canEdit = false } = {}) {
   if (!canReview) return { primary: null, review: false, apply: false };
   if (canEdit) return { primary: "apply", review: true, apply: true };
   return { primary: "review", review: true, apply: false };
+}
+
+/** Stable roster ranking: aura, adjusted points, then identity. */
+export function vibeRankingRows(players, auraById) {
+  return (players || []).map((player) => ({
+    id: String(player.player_id), name: player.player_name, position: player.position, team: player.team,
+    aura: readAura(auraById, player.player_id), model: player.p50,
+    adjusted: vibeScore(player, readAura(auraById, player.player_id)),
+  })).sort((a, b) => b.aura - a.aura || b.adjusted - a.adjusted || a.id.localeCompare(b.id));
 }

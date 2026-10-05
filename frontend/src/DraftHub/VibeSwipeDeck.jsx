@@ -1,393 +1,141 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { PAINT_WIDTH, headshotCandidates, paintMediaUrl, playerInitials, teamLogoUrl } from "./draftMedia";
-import { espnHeadshotUrl, opponentLabel, rateHint, VIBE_COPY } from "./vibeRankingsPresentation";
-import { AURA_MAX, AURA_MIN, formatAura, formatPts, formatPtsDelta, readAura, vibeScore } from "./vibeAura";
+import { espnHeadshotUrl, opponentLabel, VIBE_COPY } from "./vibeRankingsPresentation";
+import { AURA_MAX, AURA_MIN, formatAura, formatPts, readAura, vibeScore } from "./vibeAura";
 import { buildVibeLatest, buildVibeMatchup } from "./vibeMatchup";
 import { buildVibeProfile } from "./vibeProfile";
 
 const COMMIT_PX = 88;
 const LOCK_PX = 10;
-const MAX_ROTATE = 14;
-const FLY_MS = 200;
+const FLY_MS = 180;
+const idleDrag = () => ({ dx: 0, active: false, leaving: null, returning: false });
+const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-function cardMedia(player, media) {
-  const row = media?.[player.player_id] || {};
-  return headshotCandidates(row, [espnHeadshotUrl(player.espn_id)], { width: PAINT_WIDTH.hero });
+function VoteIcon({ higher }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={`M12 5v14M7 ${higher ? "10l5-5 5 5" : "14l5 5 5-5"}`} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-function MoreArrow({ open }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d={open
-          ? "M7.4 8.4 12 13l4.6-4.6L18 9.8l-6 6-6-6Z"
-          : "M7.4 15.6 6 14.2 12 8.2l6 6-1.4 1.4L12 11Z"}
-      />
-    </svg>
-  );
-}
-
-function VibeCardFace({
-  player,
-  media,
-  aura,
-  overlay,
-  matchup,
-  latest,
-  open,
-  onToggleOpen,
-  showMore,
-}) {
+function CardFace({ player, media, aura, overlay, matchup, latest, open, onToggle, front }) {
   const [shotIndex, setShotIndex] = useState(0);
-  const shots = cardMedia(player, media);
-  const headshot = shots[shotIndex] || null;
-  const logo = paintMediaUrl(teamLogoUrl(player.team), PAINT_WIDTH.hero);
-  const vibePts = vibeScore(player, aura);
-  const weekPts = Number(player.p50);
-  const weekDelta = Number.isFinite(weekPts) ? vibePts - weekPts : 0;
-  const auraNow = Math.round(Number.isFinite(Number(aura)) ? Number(aura) : 0);
-  const profile = buildVibeProfile(player, media);
-  const news = buildVibeLatest(player, latest);
-
-  useEffect(() => {
-    setShotIndex(0);
-  }, [player.player_id]);
-
-  const flags = [
-    player.position,
-    player.team,
-    opponentLabel(player),
-    player.on_bye ? VIBE_COPY.onBye : null,
-    player.injured ? VIBE_COPY.injured : null,
-  ].filter(Boolean);
-
-  const stopCardGesture = (event) => {
-    event.stopPropagation();
-  };
-
-  return (
-    <>
+  const row = media?.[player.player_id] || {};
+  const shots = headshotCandidates(row, [espnHeadshotUrl(player.espn_id)], { width: PAINT_WIDTH.hero });
+  const headshot = shots[shotIndex] || (shotIndex === shots.length ? paintMediaUrl(teamLogoUrl(player.team), PAINT_WIDTH.hero) : null);
+  const profile = open ? buildVibeProfile(player, media) : null;
+  const news = open ? buildVibeLatest(player, latest) : null;
+  const flags = [player.position, player.team, opponentLabel(player), player.on_bye ? VIBE_COPY.onBye : null, player.injured ? VIBE_COPY.injured : null].filter(Boolean);
+  useEffect(() => setShotIndex(0), [player.player_id, row.headshot_url, row.espn_headshot_url]);
+  return <>
+    <div className="hub-vibes-card-face" hidden={open}>
       <div className="hub-vibes-photo">
-        {headshot ? (
-          <img
-            src={headshot}
-            alt=""
-            draggable={false}
-            onError={() => setShotIndex((n) => n + 1)}
-          />
-        ) : logo ? (
-          <img src={logo} alt="" draggable={false} />
-        ) : (
-          <div className="hub-vibes-photo-fallback">{playerInitials(player.player_name)}</div>
-        )}
-        <div className="hub-vibes-photo-fade" />
-        <span
-          className="hub-vibes-stamp hub-vibes-stamp--start"
-          style={{ opacity: overlay.start }}
-        >
-          {VIBE_COPY.stampStart}
-        </span>
-        <span
-          className="hub-vibes-stamp hub-vibes-stamp--sit"
-          style={{ opacity: overlay.sit }}
-        >
-          {VIBE_COPY.stampSit}
-        </span>
-        {showMore ? (
-          <button
-            type="button"
-            className={`hub-vibes-more${open ? " is-open" : ""}`}
-            aria-expanded={open}
-            aria-label={open ? VIBE_COPY.closeMore : VIBE_COPY.openMoreNamed(player.player_name)}
-            onPointerDown={stopCardGesture}
-            onPointerMove={stopCardGesture}
-            onPointerUp={stopCardGesture}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleOpen?.();
-            }}
-          >
-            <span>{VIBE_COPY.moreLabel}</span>
-            <MoreArrow open={open} />
-          </button>
-        ) : null}
+        <span className="hub-vibes-team-mark" aria-hidden="true">{player.team}</span>
+        {headshot ? <img src={headshot} alt="" width="256" height="256" draggable={false} decoding="async" fetchpriority={front ? "high" : "low"} onError={() => setShotIndex((n) => n + 1)} /> : <span className="hub-vibes-photo-fallback">{playerInitials(player.player_name)}</span>}
+        <span className="hub-vibes-stamp hub-vibes-stamp--start" aria-hidden="true" style={{ opacity: overlay.start }}>{VIBE_COPY.stampStart}</span>
+        <span className="hub-vibes-stamp hub-vibes-stamp--sit" aria-hidden="true" style={{ opacity: overlay.sit }}>{VIBE_COPY.stampSit}</span>
       </div>
       <div className="hub-vibes-identity">
-        <h3 className="hub-vibes-name">{player.player_name}</h3>
-        <p className="hub-vibes-meta">{flags.join(" · ")}</p>
-        <div className="hub-vibes-stats" aria-label={VIBE_COPY.weekCompare}>
-          <div className="hub-vibes-stat">
-            <span>{VIBE_COPY.weekProj}</span>
-            <strong>{formatPts(player.p50)}</strong>
-          </div>
-          <p className="hub-vibes-week-delta">{formatPtsDelta(weekDelta)}</p>
-          <div className="hub-vibes-stat">
-            <span>{VIBE_COPY.vibeProj}</span>
-            <strong>{formatPts(vibePts)}</strong>
-          </div>
-        </div>
-        <div className="hub-vibes-aura">
-          <div className="hub-vibes-aura-scale">
-            <span>{VIBE_COPY.auraLabel} {formatAura(aura)}</span>
-            <span>{VIBE_COPY.auraScale}</span>
-          </div>
-          <div
-            className="hub-vibes-aura-bar"
-            role="meter"
-            aria-label={VIBE_COPY.auraMeter}
-            aria-valuemin={AURA_MIN}
-            aria-valuemax={AURA_MAX}
-            aria-valuenow={auraNow}
-          >
-            <i style={{ width: `${(auraNow / AURA_MAX) * 100}%` }} />
-          </div>
-        </div>
-        {matchup.facts.length ? (
-          <dl className="hub-vibes-matchup">
-            {matchup.facts.map((row) => (
-              <div key={row.id} className="hub-vibes-stat">
-                <dt>{row.label}</dt>
-                <dd><strong>{row.value}</strong></dd>
-              </div>
-            ))}
-          </dl>
-        ) : null}
+        <div><h2 className="hub-vibes-name">{player.player_name}</h2><p className="hub-vibes-meta">{flags.join(" · ")}</p></div>
+        {front ? <button type="button" className="hub-vibes-more" aria-expanded={open} aria-controls="vibes-player-details" aria-label={VIBE_COPY.openMoreNamed(player.player_name)} onClick={onToggle}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" /><path d="M12 11v6M12 7v1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg><span>{VIBE_COPY.moreLabel}</span></button> : <span className="hub-vibes-details-slot" />}
       </div>
-      {open ? (
-        <div className="hub-vibes-profile">
-          <p className="hub-vibes-about">{VIBE_COPY.profileAbout}</p>
-          {profile.facts.length ? (
-            <dl className="hub-vibes-facts">
-              {profile.facts.map((row) => (
-                <div key={row.id} className="hub-vibes-fact">
-                  <dt>{row.label}</dt>
-                  <dd>{row.value}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
-          {profile.bio ? <p className="hub-vibes-bio">{profile.bio}</p> : null}
-          <div className="hub-vibes-news">
-            <p className="hub-vibes-about">{VIBE_COPY.profileLatest}</p>
-            {news?.headline || news?.detail ? (
-              <>
-                {news.headline ? <p className="hub-vibes-news-head">{news.headline}</p> : null}
-                {news.detail ? <p className="hub-vibes-bio">{news.detail}</p> : null}
-                {news.source ? <p className="hub-vibes-news-source">{news.source}</p> : null}
-              </>
-            ) : (
-              <p className="hub-vibes-bio">{VIBE_COPY.profileEmptyNews}</p>
-            )}
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
+      <dl className="hub-vibes-stats" aria-label={VIBE_COPY.weekCompare}>
+        <div><dt>{VIBE_COPY.weekProj}</dt><dd>{formatPts(player.p50)} <small>{VIBE_COPY.points}</small></dd></div>
+        <div><dt>{VIBE_COPY.vibeProj}</dt><dd>{formatPts(vibeScore(player, aura))} <small>{VIBE_COPY.points}</small></dd></div>
+      </dl>
+      <div className="hub-vibes-aura"><div className="hub-vibes-aura-scale"><span>{VIBE_COPY.auraLabel} <strong>{formatAura(aura)}</strong> / {AURA_MAX}</span><span>{VIBE_COPY.beforeRating}</span></div><div className="hub-vibes-aura-bar" role={front ? "meter" : undefined} aria-label={front ? VIBE_COPY.auraMeter : undefined} aria-valuemin={front ? AURA_MIN : undefined} aria-valuemax={front ? AURA_MAX : undefined} aria-valuenow={front ? aura : undefined}><i style={{ width: `${aura / AURA_MAX * 100}%` }} /></div></div>
+    </div>
+    {front && <section id="vibes-player-details" className="hub-vibes-profile" hidden={!open} aria-label={VIBE_COPY.moreLabel}>
+      <button type="button" className="hub-vibes-profile-back" onClick={onToggle}>{VIBE_COPY.backToPlayer}</button>
+      <h2 className="hub-vibes-name">{player.player_name}</h2><p className="hub-vibes-meta">{flags.join(" · ")}</p>
+      <dl className="hub-vibes-facts">{[...(profile?.facts || []), ...matchup.facts].map((fact) => <div key={fact.id || fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>
+      {profile?.bio && <p className="hub-vibes-bio">{profile.bio}</p>}
+      <div className="hub-vibes-news"><h3>{VIBE_COPY.profileLatest}</h3>{news?.headline || news?.detail ? <>{news.headline && <p>{news.headline}</p>}{news.detail && <p className="hub-vibes-bio">{news.detail}</p>}{news.source && <p className="hub-vibes-news-source">{news.source}</p>}</> : <p className="hub-vibes-bio">{VIBE_COPY.profileEmptyNews}</p>}</div>
+    </section>}
+  </>;
 }
 
-export default function VibeSwipeDeck({
-  players,
-  index,
-  auraById,
-  media,
-  vegasTeams,
-  latestById,
-  onProfileOpen,
-  onSwipe,
-  disabled = false,
-  coarsePointer = false,
-}) {
+export default function VibeSwipeDeck({ players, index = 0, auraById, media, vegasTeams, latestById, onProfileOpen, onSwipe, onBusyChange, onDoneFocus, disabled = false }) {
   const wrapRef = useRef(null);
   const dragRef = useRef(null);
+  const busyRef = useRef(false);
   const flyTimer = useRef(null);
-  const [drag, setDrag] = useState({ dx: 0, active: false, leaving: null });
+  const voteRefs = useRef({});
+  const [drag, setDrag] = useState(idleDrag);
   const [open, setOpen] = useState(false);
-
   const front = players[index] || null;
-  const stacked = players.slice(index, index + 3);
+  const frontRef = useRef(front); frontRef.current = front;
+  const callbacks = useRef({ onSwipe, onBusyChange, onDoneFocus }); callbacks.current = { onSwipe, onBusyChange, onDoneFocus };
+  useEffect(() => { setOpen(false); dragRef.current = null; setDrag(idleDrag()); }, [front?.player_id]);
+  useEffect(() => () => { clearTimeout(flyTimer.current); callbacks.current.onBusyChange?.(false); }, []);
 
-  useEffect(() => {
-    setOpen(false);
-  }, [front?.player_id]);
-
-  const finish = useCallback((vibe, fromDx) => {
-    if (!front || disabled || dragRef.current?.locked) return;
-    if (dragRef.current) dragRef.current.locked = true;
-    const dir = vibe === "start" ? 1 : -1;
-    const width = wrapRef.current?.offsetWidth || 320;
-    setOpen(false);
-    setDrag({ dx: fromDx, active: false, leaving: { vibe, x: dir * (width + 80) } });
-    if (flyTimer.current) window.clearTimeout(flyTimer.current);
-    flyTimer.current = window.setTimeout(() => {
-      dragRef.current = null;
-      setDrag({ dx: 0, active: false, leaving: null });
-      onSwipe?.(vibe, front);
-    }, FLY_MS);
-  }, [disabled, front, onSwipe]);
-
-  const onPointerDown = (event) => {
-    if (disabled || !front || dragRef.current?.locked) return;
-    if (event.button != null && event.button !== 0) return;
-    if (event.target?.closest?.(".hub-vibes-more")) return;
-    dragRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-      lastX: event.clientX,
-      lastY: event.clientY,
-      lastT: event.timeStamp,
-      vx: 0,
-      dx: 0,
-      axis: null,
-      pointerId: event.pointerId,
-      target: event.currentTarget,
-      locked: false,
+  const finish = useCallback((vibe, focus = false) => {
+    const player = frontRef.current;
+    if (!player || disabled || busyRef.current) return;
+    busyRef.current = true; callbacks.current.onBusyChange?.(true);
+    const done = () => {
+      dragRef.current = null; busyRef.current = false; setOpen(false); setDrag(idleDrag());
+      callbacks.current.onSwipe?.(vibe, player); callbacks.current.onBusyChange?.(false);
+      if (focus) requestAnimationFrame(() => voteRefs.current[vibe] ? voteRefs.current[vibe].focus({ preventScroll: true }) : callbacks.current.onDoneFocus?.());
     };
-  };
+    if (reducedMotion()) done();
+    else { setDrag((cur) => ({ ...cur, active: false, returning: false, leaving: vibe })); flyTimer.current = setTimeout(done, FLY_MS); }
+  }, [disabled]);
 
+  const cancelDrag = () => { dragRef.current = null; setDrag({ ...idleDrag(), returning: true }); };
+  const onPointerDown = (event) => {
+    if (disabled || !front || open || busyRef.current || event.button !== 0 || event.target.closest("button,a,summary")) return;
+    dragRef.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, axis: null };
+  };
   const onPointerMove = (event) => {
     const start = dragRef.current;
-    if (!start || start.locked) return;
-
-    if (start.axis === "y") {
-      if (event.pointerType !== "touch") {
-        start.target.scrollTop -= event.clientY - start.lastY;
-        start.lastY = event.clientY;
-      }
-      return;
+    if (!start || busyRef.current || event.pointerId !== start.pointerId) return;
+    const dx = event.clientX - start.x, dy = event.clientY - start.y;
+    if (!start.axis) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < LOCK_PX) return;
+      if (Math.abs(dy) > Math.abs(dx)) { dragRef.current = null; return; }
+      start.axis = "x"; event.currentTarget.setPointerCapture(event.pointerId);
     }
-
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-
-    if (start.axis == null) {
-      if (Math.abs(dx) < LOCK_PX && Math.abs(dy) < LOCK_PX) return;
-      if (Math.abs(dy) > Math.abs(dx)) {
-        start.axis = "y";
-        return;
-      }
-      start.axis = "x";
-      try {
-        start.target.setPointerCapture?.(start.pointerId);
-      } catch {
-        /* already released */
-      }
-    }
-
-    if (start.axis !== "x") return;
-
-    const dt = Math.max(1, event.timeStamp - start.lastT);
-    start.vx = (event.clientX - start.lastX) / dt;
-    start.lastX = event.clientX;
-    start.lastT = event.timeStamp;
-    start.dx = dx;
-    setDrag({ dx, active: true, leaving: null });
+    setDrag({ dx, active: true, leaving: null, returning: false });
   };
-
-  const onPointerUp = () => {
+  const onPointerUp = (event) => {
     const start = dragRef.current;
-    if (!start || start.locked) return;
-    if (start.axis === "x") {
-      try {
-        start.target.releasePointerCapture?.(start.pointerId);
-      } catch {
-        /* already released */
-      }
-      const dx = start.dx;
-      const flick = Math.abs(start.vx) > 0.45 && Math.abs(dx) > 28;
-      if (dx > COMMIT_PX || (flick && dx > 0)) {
-        finish("start", dx);
-        return;
-      }
-      if (dx < -COMMIT_PX || (flick && dx < 0)) {
-        finish("sit", dx);
-        return;
-      }
-    }
+    if (!start || event.pointerId !== start.pointerId) return;
+    const dx = event.clientX - start.x;
+    const commit = start.axis === "x" && Math.abs(dx) >= COMMIT_PX && event.type === "pointerup";
     dragRef.current = null;
-    setDrag({ dx: 0, active: false, leaving: null });
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (commit) finish(dx > 0 ? "start" : "sit"); else cancelDrag();
   };
-
+  const toggleProfile = () => {
+    setOpen((cur) => !cur);
+    if (!open) onProfileOpen?.(front);
+    requestAnimationFrame(() => wrapRef.current?.querySelector(open ? ".hub-vibes-more" : ".hub-vibes-profile-back")?.focus({ preventScroll: true }));
+  };
   useEffect(() => {
     const onKey = (event) => {
-      if (disabled || !front || dragRef.current?.locked) return;
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        finish("start", 0);
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        finish("sit", 0);
-      }
+      if (event.key === "Escape" && open) { event.preventDefault(); setOpen(false); requestAnimationFrame(() => wrapRef.current?.querySelector(".hub-vibes-more")?.focus({ preventScroll: true })); return; }
+      if (open || event.target.closest?.("input,textarea,select,button,a,summary,[contenteditable=true]")) return;
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); finish(event.key === "ArrowRight" ? "start" : "sit"); }
     };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      if (flyTimer.current) window.clearTimeout(flyTimer.current);
-    };
-  }, [disabled, finish, front]);
-
+    window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
+  }, [finish, open]);
   if (!front) return null;
-
-  const leaving = drag.leaving;
-  const frontDx = leaving ? leaving.x : drag.dx;
-  const rotate = Math.max(-MAX_ROTATE, Math.min(MAX_ROTATE, frontDx * 0.045));
-  const startOpacity = Math.max(0, Math.min(1, frontDx / COMMIT_PX));
-  const sitOpacity = Math.max(0, Math.min(1, -frontDx / COMMIT_PX));
-  const reduced = typeof window !== "undefined"
-    && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const transition = drag.active
-    ? "none"
-    : (reduced ? "none" : `transform ${FLY_MS}ms var(--ease-standard)`);
-
-  return (
-    <div
-      ref={wrapRef}
-      className="hub-vibes-deck-wrap"
-      aria-live="polite"
-      aria-label={`${front.player_name}. ${rateHint({ coarse: coarsePointer })}`}
-    >
-      {stacked.map((player, stackIndex) => {
-        const isFront = stackIndex === 0;
-        const depth = stackIndex;
-        const scale = 1 - depth * 0.045;
-        const lift = depth * 10;
-        const transform = isFront
-          ? `translateX(${frontDx}px) rotate(${reduced ? 0 : rotate}deg)`
-          : `translateY(${lift}px) scale(${scale})`;
-        return (
-          <article
-            key={player.player_id}
-            className={`hub-vibes-card${isFront ? " is-front" : ""}${drag.active && isFront ? " is-dragging" : ""}${open && isFront ? " is-open" : ""}${depth ? ` is-stack-${depth}` : ""}`}
-            style={{
-              transform,
-              transition: isFront ? transition : "transform 160ms var(--ease-standard)",
-              zIndex: 5 - depth,
-            }}
-            onPointerDown={isFront ? onPointerDown : undefined}
-            onPointerMove={isFront ? onPointerMove : undefined}
-            onPointerUp={isFront ? onPointerUp : undefined}
-            onPointerCancel={isFront ? onPointerUp : undefined}
-          >
-            <VibeCardFace
-              player={player}
-              media={media}
-              aura={readAura(auraById, player.player_id)}
-              overlay={isFront ? { start: startOpacity, sit: sitOpacity } : { start: 0, sit: 0 }}
-              matchup={buildVibeMatchup(player, vegasTeams)}
-              latest={latestById?.[player.player_id]}
-              open={open && isFront}
-              onToggleOpen={isFront ? () => {
-                setOpen((cur) => {
-                  const next = !cur;
-                  if (next) onProfileOpen?.(player);
-                  return next;
-                });
-              } : undefined}
-              showMore={isFront}
-            />
-          </article>
-        );
+  const strength = drag.leaving ? 1 : Math.min(1, Math.abs(drag.dx) / COMMIT_PX);
+  const direction = drag.leaving === "start" ? 1 : drag.leaving === "sit" ? -1 : 0;
+  const frontDx = direction ? direction * ((wrapRef.current?.clientWidth || 320) + 80) : drag.dx;
+  const rotate = reducedMotion() ? 0 : Math.max(-14, Math.min(14, frontDx / 16));
+  return <>
+    <div className="hub-vibes-deck-wrap" ref={wrapRef}>
+      {players.length - index > 2 && <div className="hub-vibes-deep-card" aria-hidden="true" />}
+      {players.slice(index, index + 2).map((player, depth) => {
+        const isFront = depth === 0;
+        return <article key={player.player_id} aria-label={isFront ? VIBE_COPY.currentPlayer : undefined} aria-hidden={!isFront || undefined}
+          className={`hub-vibes-card${isFront ? " is-front" : " is-stack"}${isFront && drag.active ? " is-dragging" : ""}${isFront && drag.leaving ? " is-flying" : ""}${isFront && drag.returning ? " is-returning" : ""}${isFront && open ? " is-open" : ""}`}
+          style={{ transform: isFront ? `translateX(${frontDx}px) rotate(${rotate}deg)` : `translateY(${14 * (1 - strength)}px) scale(${.97 + .03 * strength})` }}
+          onPointerDown={isFront ? onPointerDown : undefined} onPointerMove={isFront ? onPointerMove : undefined} onPointerUp={isFront ? onPointerUp : undefined} onPointerCancel={isFront ? onPointerUp : undefined}
+          onLostPointerCapture={isFront ? (event) => { if (event.target === event.currentTarget && dragRef.current?.pointerId === event.pointerId && !event.currentTarget.hasPointerCapture(event.pointerId)) cancelDrag(); } : undefined}>
+          <CardFace player={player} media={media} aura={readAura(auraById, player.player_id)} overlay={{ start: isFront && frontDx > 0 ? strength : 0, sit: isFront && frontDx < 0 ? strength : 0 }} matchup={buildVibeMatchup(player, vegasTeams)} latest={latestById?.[player.player_id]} open={isFront && open} onToggle={toggleProfile} front={isFront} />
+        </article>;
       })}
     </div>
-  );
+    <div className="hub-vibes-votes" role="group" aria-label={VIBE_COPY.rateGroup}>{["sit", "start"].map((vibe) => <button key={vibe} ref={(node) => { voteRefs.current[vibe] = node; }} type="button" className="hub-vibes-vote" disabled={disabled || Boolean(drag.leaving)} aria-label={VIBE_COPY.rateNamed(front.player_name, vibe)} onClick={() => finish(vibe, true)}><span className="hub-vibes-vote-circle"><VoteIcon higher={vibe === "start"} /></span><span>{vibe === "start" ? VIBE_COPY.start : VIBE_COPY.sit}</span></button>)}</div>
+  </>;
 }

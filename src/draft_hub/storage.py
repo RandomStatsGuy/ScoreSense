@@ -905,7 +905,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         PRIMARY KEY(league_id, season, week))""")
     conn.execute("""CREATE TABLE IF NOT EXISTS player_season_week (
         source TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
-        payload_json TEXT NOT NULL, PRIMARY KEY(source,season,week))""")
+        payload_json TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT '', PRIMARY KEY(source,season,week))""")
+    _safe_add_column(conn, "player_season_week", "updated_at", "TEXT NOT NULL DEFAULT ''")
     conn.execute(
         """CREATE TABLE IF NOT EXISTS league_delete_request (
             id TEXT PRIMARY KEY,
@@ -3113,12 +3114,6 @@ def league_roster_overview(league_id: str) -> dict[str, Any]:
     teams = list_league_teams(league_id)
     cap = float(league["rules"]["salary_cap"])
     by_team = list_league_rosters_by_team(league_id)
-
-    if any(len(rows) > 28 for rows in by_team.values()):
-        from src.draft_hub.league_sleeper_sync import reconcile_league_roster_assignments
-
-        reconcile_league_roster_assignments(league_id)
-        by_team = list_league_rosters_by_team(league_id)
 
     from src.draft_hub.hub_context import filter_team_sleeper_roster
 

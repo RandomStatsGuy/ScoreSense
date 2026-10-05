@@ -385,12 +385,24 @@ export function awardCatalogFromRules(rules, catalog = DEFAULT_AWARD_CATALOG) {
   });
 }
 
+/** One coverage note for the selected seasons, inside the ranking explanation. */
+export function contractCoverage(rows, years) {
+  const seasons = new Map();
+  for (const row of rows || []) {
+    if (!years.includes(Number(row.season)) || !Number.isFinite(row.weeks_saved) || row.weeks_saved < 1) continue;
+    seasons.set(Number(row.season), Math.max(seasons.get(Number(row.season)) || 0, row.weeks_saved));
+  }
+  return [...seasons].sort(([a], [b]) => a - b).map(([year, week]) => `${year} through Week ${week}`).join("; ");
+}
+
 export const INSIGHTS_COPY = {
   contracts: {
     heading: "Contract returns", loading: "Loading saved contracts…",
     best: "Best contracts", worst: "Worst contracts", metric: "Actual fantasy points per dollar paid",
     empty: "No matched salary and scoring history for this period. Sync the league to update saved scoring.",
     methodology: "How contracts are ranked",
+    coverage: (coverage) => `Scoring included: ${coverage}.`,
+    excluded: (count) => `Across saved history, ${count} salary entries are excluded because their player, salary, or scoring history is incomplete.`,
     explanation: "Actual season fantasy points divided by saved annual salary. Selected seasons sum points and salary before dividing. Missing production is excluded; recorded zero points count. Renewals without a saved start year stay separate annual entries.",
   },
   overview: {
