@@ -39,6 +39,18 @@ CREATE TABLE IF NOT EXISTS hub_workspace (
 );
 CREATE INDEX IF NOT EXISTS idx_workspace_user ON hub_workspace(user_sub);
 
+CREATE TABLE IF NOT EXISTS league_manager_account_map (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    league_id TEXT NOT NULL,
+    source_kind TEXT NOT NULL,
+    source_key TEXT NOT NULL COLLATE NOCASE,
+    season_year INTEGER NOT NULL DEFAULT 0,
+    account_sub TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(league_id, source_kind, source_key, season_year)
+);
+
 CREATE TABLE IF NOT EXISTS salary_range (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     workspace_id TEXT NOT NULL,
@@ -6125,6 +6137,7 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "league_roster_edit",
             "league_historic_correction",
             "league_owner_season_map",
+            "league_manager_account_map",
             "league_season_salary_cap",
             "league_player_name_alias",
             "league_player_movement",
@@ -6601,6 +6614,52 @@ def retarget_owner_season_map_team_name(
             (new, now, league_id, int(season_year), old),
         )
         return int(cur.rowcount or 0)
+
+
+def list_manager_account_maps(league_id: str) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM league_manager_account_map WHERE league_id=? ORDER BY source_key, season_year",
+            (league_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def upsert_manager_account_map(league_id: str, source_kind: str, source_key: str,
+                               account_sub: str, season_year: int = 0) -> dict[str, Any]:
+    # Account membership and registration are checked by the service before writing.
+    if source_kind not in {"owner_label", "sleeper_user_id"}:
+        raise ValueError("Choose an imported name or Sleeper manager.")
+    key = str(source_key or "").strip()
+    if not key or len(key) > 120:
+        raise ValueError("Enter a manager name of 1–120 characters.")
+    year = int(season_year or 0)
+    if year and not 2000 <= year <= 2100:
+        raise ValueError("Choose all seasons or a year from 2000 to 2100.")
+    now = _utcnow()
+    with get_conn() as conn:
+        conn.execute("""INSERT INTO league_manager_account_map
+            (league_id, source_kind, source_key, season_year, account_sub, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(league_id, source_kind, source_key, season_year) DO UPDATE SET
+            account_sub=excluded.account_sub, updated_at=excluded.updated_at""",
+            (league_id, source_kind, key, year, account_sub, now, now))
+        _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
+        _bump_revision_conn(conn, league_id, "live_roster_revision")
+        row = conn.execute("""SELECT * FROM league_manager_account_map
+            WHERE league_id=? AND source_kind=? AND source_key=? AND season_year=?""",
+            (league_id, source_kind, key, year)).fetchone()
+    return dict(row)
+
+
+def delete_manager_account_map(league_id: str, map_id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.execute("DELETE FROM league_manager_account_map WHERE league_id=? AND id=?",
+                           (league_id, int(map_id)))
+        if cur.rowcount:
+            _bump_revision_conn(conn, league_id, "historic_snapshot_revision")
+            _bump_revision_conn(conn, league_id, "live_roster_revision")
+        return bool(cur.rowcount)
 
 
 def list_owner_season_map(

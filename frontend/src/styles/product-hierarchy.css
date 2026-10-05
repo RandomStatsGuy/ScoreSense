@@ -805,6 +805,7 @@ button.btn-link.hub-league-switcher-create:hover {
 }
 
 .hub-rules-risk-options button {
+  min-height: var(--control-h-sm);
   padding: 0.38rem 0.65rem;
   border: 0;
   border-radius: var(--radius-pill);

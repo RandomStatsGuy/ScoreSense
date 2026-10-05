@@ -217,6 +217,7 @@ def build_contract_returns(league_id):
                 results.append({"deal_id": deal, "season": int(year), "player_id": row["player_id"],
                                 "player_name": row.get("player_name"), "position": row.get("position"),
                                 "owner_name": display.get("owner_name"), "team_name": display.get("team_name"),
+                                "manager_account_sub": display.get("manager_account_sub"),
                                 "contract_phase": phase, "salary": row["salary"], "points": score["points"],
                                 "weeks_saved": len(weeks), "games": score.get("games")})
     seasons = sorted({int(x["season_year"]) for x in contracts})

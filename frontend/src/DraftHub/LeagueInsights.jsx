@@ -9,6 +9,7 @@ import DraftRecapPanel from "./DraftRecapPanel";
 import {
   HubExperienceHero,
   HubFilterChip,
+  HubFilterMenu,
   HubFilterScroll,
   HubPage,
   HubSegmentNav,
@@ -54,7 +55,7 @@ import {
 } from "./insightsEmptyStates";
 import { fmtSal } from "./rosterFormat";
 import { leagueCapabilitiesFromContext } from "./leagueCapabilities";
-import { getInsightsSection, setInsightsSection } from "./hubDataCache";
+import { getInsightsSection, setInsightsSection, insightsBootstrapValid } from "./hubDataCache";
 import { formatCount } from "../formatCount";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 
@@ -91,7 +92,7 @@ function historySeasonLabel(mode, year) {
   return "Current roster";
 }
 
-function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label = "View", className = "", usesSalaries = true }) {
+function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label = "View" }) {
   const options = [{ id: "current", label: "Current roster" }];
   if (historic?.available) {
     (seasons || []).slice().sort((a, b) => b - a).forEach((yr) => {
@@ -99,28 +100,8 @@ function InsightsSeasonBar({ value, seasons, historic, onChange, disabled, label
     });
     options.push({ id: "all", label: "All time" });
   }
-  return (
-    <div className={`hub-insights-season-bar${className ? ` ${className}` : ""}`}>
-      <span className="hub-filter-label">{label}</span>
-      <HubFilterScroll>
-        {options.map((opt) => (
-          <HubFilterChip
-            key={opt.id}
-            active={value === opt.id}
-            onClick={() => onChange(opt.id)}
-            disabled={disabled}
-          >
-            {opt.label}
-          </HubFilterChip>
-        ))}
-      </HubFilterScroll>
-      {usesSalaries && historic?.available && historic?.league_avg_contract != null && value !== "current" && (
-        <span className="hub-insights-season-meta">
-          League avg contract {fmtSal(historic.league_avg_contract)}
-        </span>
-      )}
-    </div>
-  );
+  return <HubFilterMenu className="hub-insights-season-control" label={label}
+    value={value} options={options} onChange={onChange} disabled={disabled} ariaLabel={label} />;
 }
 
 function InsightsTableToolbar({ search, onSearchChange, placeholder, count, total, noun = "teams" }) {
@@ -350,7 +331,7 @@ export default function LeagueInsights({
 }) {
   const [searchParams] = useSearchParams();
   const playerFromUrl = searchParams.get("player") || "";
-  const initialData = bootstrapData?.hub_context?.league_id === leagueId && normalizeInsightTab(activeTabProp || "overview") === "overview"
+  const initialData = insightsBootstrapValid(leagueId, bootstrapAt) && bootstrapData?.hub_context?.league_id === leagueId && normalizeInsightTab(activeTabProp || "overview") === "overview"
     ? bootstrapData : getInsightsSection(leagueId, normalizeInsightTab(activeTabProp || "overview"));
   const [data, setData] = useState(() => initialData);
   const [loading, setLoading] = useState(() => !initialData);
@@ -486,7 +467,7 @@ export default function LeagueInsights({
       return;
     }
     const sections = INSIGHTS_TAB_SECTIONS[tab];
-    if (tab === "overview" && bootstrapData?.hub_context?.league_id === leagueId && Date.now() - bootstrapAt < 2000) {
+    if (tab === "overview" && insightsBootstrapValid(leagueId, bootstrapAt) && bootstrapData?.hub_context?.league_id === leagueId && Date.now() - bootstrapAt < 2000) {
       loadCacheRef.current.set("overview", bootstrapData);
       setInsightsSection(leagueId, "overview", "current", bootstrapData);
       setData(bootstrapData);
@@ -930,6 +911,12 @@ export default function LeagueInsights({
   };
 
   const refreshHistory = async () => {
+    if (activeTabRef.current === "scoring") {
+      loadCacheRef.current.delete(`scoring:${scoringSeason}`);
+      await load({ activeTab: "scoring", sections: "scoring", refresh: true, merge: true,
+        keepSeason: true, keepChartHidden: true, background: true, scoringSeason });
+      return;
+    }
     const requestedTab = activeTabRef.current;
     loadCacheRef.current.clear();
     const updated = await load({ activeTab: "overview", sections: "overview", refresh: true, merge: true, background: true });
@@ -940,9 +927,15 @@ export default function LeagueInsights({
     else if (activeTab !== "overview") await load({ activeTab, refresh: true, merge: true, background: true, keepSeason: true });
   };
   const insightsHeader = <InsightsHeader tabs={insightsTabs} active={activeTab} onTab={setActiveTab}
-    landing={data?.landing} years={periodChoices} period={period} onPeriod={setPeriod}
-    onRefresh={refreshHistory} busy={loading || tabLoading || ownershipSeasonLoading}
-    showPeriod={activeTab === "overview" || activeTab === "contracts"} />;
+    landing={activeTab === "scoring" ? data?.scoring : data?.landing} years={periodChoices} period={period} onPeriod={setPeriod}
+    onRefresh={refreshHistory} busy={loading || refreshing || tabLoading || ownershipSeasonLoading}
+    refreshLabel={activeTab === "scoring" ? INSIGHTS_COPY.controls.refreshScoring : INSIGHTS_COPY.overview.refresh}
+    showPeriod={activeTab === "overview" || activeTab === "contracts"}
+    seasonControl={activeTab === "scoring" ? <InsightsSeasonBar value={scoringSeason}
+      seasons={data?.scoring?.available_seasons || scoringSeasonOptions} historic={{ available: true }}
+      onChange={onScoringSeasonChange} disabled={loading || tabLoading} label={INSIGHTS_COPY.controls.scoringSeason} />
+      : activeTab === "cap" ? <InsightsSeasonBar value={capSeason} seasons={historic.seasons}
+        historic={historic} onChange={onCapSeasonChange} disabled={loading || tabLoading} label={INSIGHTS_COPY.controls.spendSeason} /> : null} />;
   if (loading && !data) return <div className="hub-insights">{insightsHeader}<InsightsSkeleton /></div>;
 
   const tableMode = spendViewMetric === "pct" ? "pct" : "dollars";
@@ -979,16 +972,6 @@ export default function LeagueInsights({
         <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
 
           <div className="hub-insights-toolbar">
-            <InsightsSeasonBar
-              usesSalaries={usesSalaries}
-              value={capSeason}
-              seasons={historic.seasons}
-              historic={historic}
-              onChange={onCapSeasonChange}
-              disabled={loading}
-              label="Cap season"
-              className="hub-insights-season-bar--spend"
-            />
             {!allTimeCap && (
             <div className="hub-insights-controls">
               <span className="hub-filter-label">Show as</span>
@@ -1215,46 +1198,6 @@ export default function LeagueInsights({
       {activeTab === "scoring" && (
         <HubPage className="hub-insights-scoring hub-spend-page hub-experience-page hub-insights-page">
 
-          {data?.scoring?.available && (data?.scoring?.available_seasons || scoringSeasonOptions).length > 0 && (
-            <div className="hub-insights-season-bar hub-insights-season-bar--scoring">
-              <InsightsSeasonBar
-                usesSalaries={usesSalaries}
-                value={scoringSeason}
-                seasons={(data?.scoring?.available_seasons || scoringSeasonOptions)
-                  .map((s) => Number(s))
-                  .filter((n) => !Number.isNaN(n))}
-                historic={{ available: true }}
-                onChange={onScoringSeasonChange}
-                disabled={loading || tabLoading}
-                label="Scoring season"
-              />
-              <div className="hub-insights-scoring-season-meta">
-                {data?.scoring?.cached && data.scoring.synced_at && formatRelativeTime(data.scoring.synced_at) && (
-                  <span className="table-meta hub-insights-scoring-synced">{formatRelativeTime(data.scoring.synced_at)}</span>
-                )}
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  onClick={() => {
-                    loadCacheRef.current.delete(`scoring:${scoringSeason}`);
-                    load({
-                      activeTab: "scoring",
-                      sections: "scoring",
-                      refresh: true,
-                      merge: true,
-                      keepSeason: true,
-                      keepChartHidden: true,
-                      background: true,
-                      scoringSeason,
-                    });
-                  }}
-                  disabled={loading || tabLoading}
-                >
-                  {tabLoading ? "Refreshing…" : "Refresh scoring"}
-                </button>
-              </div>
-            </div>
-          )}
 
           {!data?.scoring?.available && (
             <ScoringEmptyState
