@@ -409,6 +409,9 @@ export function contractHistoryNote(status, years) {
 export const INSIGHTS_COPY = {
   controls: { scoringSeason: "Scoring season", spendSeason: "Spend season", refreshScoring: "Refresh scoring" },
   contracts: {
+    bestContract: "Best contract", lowestReturn: "Lowest return", actualPoints: "Actual points",
+    salaryPaid: count => "Salary paid · " + count + (count === 1 ? " season" : " seasons"),
+    rankBy: "Contract rankings", singleContract: "The only verified contract is featured above.",
     heading: "Contract returns", loading: "Loading saved contracts…",
     best: "Best contracts", worst: "Worst contracts", metric: "Actual fantasy points per dollar paid",
     empty: "No verified salary and scoring history for this period.",
@@ -482,6 +485,10 @@ export const INSIGHTS_COPY = {
   spend: {
     eyebrow: "Insights",
     heading: "League spending",
+    comparison: "Team spending", allocation: "Position allocation", committed: "Committed",
+    deadCapLabel: "Dead cap", mostCommitted: "Most committed", averageCap: "Average share of cap across saved seasons",
+    totalDollars: "Total $", capPercent: "% of cap", showAs: "Show spending as", ofCap: "of cap",
+    capRemaining: value => value + " cap remaining", deadCap: value => value + " dead cap",
     support: "Compare spending by team and position.",
     empty: "No spending data is available for this view.",
   },
@@ -489,6 +496,13 @@ export const INSIGHTS_COPY = {
     rank: "Rank",
     eyebrow: "Scoring",
     heading: "League scoring",
+    awards: "Scoring awards", mostPoints: "Most points", actualPoints: "Actual fantasy points",
+    bestWeek: "Best week", highestAverage: "Highest average", leagueAverage: "League average",
+    perWeek: "Per team, per scored week", noScoredWeeks: "No scored weeks yet",
+    rankings: "Season rankings", careerRankings: "Career rankings", totalPoints: "Total points",
+    pointsLeader: "Points leader", averageShort: "avg", weeklyHighlights: "Weekly highlights",
+    placeInPoints: rank => "#" + rank + " in points", weeks: count => count + " weeks",
+    weeksScored: count => count + " weeks scored",
     support: "Compare points scored, records, and scoring consistency.",
   },
   history: {
@@ -509,4 +523,49 @@ export function insightsHeroStatus(featured, { ownerName, teamName } = {}) {
   if (owner && club && titles) return `${owner} · ${club} · ${titles}`;
   if (owner && headline) return `${owner} · ${headline}`;
   return headline ? `${title} · ${headline}` : title;
+}
+
+
+/** Separate identity lines without splitting a team name that may itself contain ·. */
+export function insightsIdentityParts(row, ownerMap, yearSpecific = false) {
+  const team = String(row?.team_name || row?.name || "").trim();
+  const manager = teamDisplayName(row || {}, ownerMap, false);
+  const primary = yearSpecific ? (team || manager) : manager;
+  const secondary = yearSpecific ? manager : team;
+  return { primary, secondary: secondary && secondary.toLowerCase() !== primary.toLowerCase() ? secondary : "" };
+}
+
+/** Played zeroes count; unplayed and missing totals cannot win a scoring award. */
+export function scoringSummary(scoring) {
+  const rows = (scoring?.standings || [])
+    .filter(row => row.total_points != null && Number.isFinite(Number(row.total_points)) && Number(row.weeks_scored) > 0)
+    .map(row => ({...row, total_points: Number(row.total_points), avg_points: Number(row.total_points) / Number(row.weeks_scored)}))
+    .sort((a, b) => b.total_points - a.total_points || scoringTeamKey(a).localeCompare(scoringTeamKey(b)));
+  const highestAverage = [...rows].sort((a, b) => b.avg_points - a.avg_points)[0] || null;
+  const byIdentity = new Map(rows.map(row => [scoringTeamKey(row), row]));
+  let bestWeek = null;
+  for (const week of scoring?.weeks || []) {
+    for (const team of week.teams || []) {
+      if (team.points == null || !Number.isFinite(Number(team.points))) continue;
+      if (!bestWeek || Number(team.points) > bestWeek.points) {
+        const standing = byIdentity.get(scoringTeamKey(team));
+        bestWeek = {...standing, ...team, owner_name: team.owner_name || standing?.owner_name,
+          owner_label: team.owner_label || standing?.owner_label, points: Number(team.points), week: week.week};
+      }
+    }
+  }
+  // Career responses may omit the weekly chart series but retain saved awards.
+  const weeklyAward = scoring?.awards?.find(award => award.id === "weekly_nuke");
+  if (weeklyAward?.amount != null && Number.isFinite(Number(weeklyAward.amount))
+      && (!bestWeek || Number(weeklyAward.amount) > bestWeek.points)) {
+    bestWeek = {...weeklyAward, points: Number(weeklyAward.amount)};
+  }
+  const scoredWeeks = rows.reduce((sum, row) => sum + Number(row.weeks_scored), 0);
+  return {rows, highestAverage, bestWeek,
+    leagueAverage: scoredWeeks ? rows.reduce((sum, row) => sum + row.total_points, 0) / scoredWeeks : null};
+}
+
+export function spendComparisonRows(teams, position, metric) {
+  const value = row => position === "all" ? Number(metric === "pct" ? row.pct_committed : row.committed) : metricValue(row, position, metric);
+  return [...(teams || [])].sort((a, b) => value(b) - value(a) || scoringTeamKey(a).localeCompare(scoringTeamKey(b)));
 }

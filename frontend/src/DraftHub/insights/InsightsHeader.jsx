@@ -4,7 +4,7 @@ import { periodLabel, periodYears } from "./insightsPeriods";
 import { INSIGHTS_COPY } from "./insightsPresentation";
 import { InsightsProgress } from "./InsightsChrome";
 
-export default function InsightsHeader({ tabs, active, onTab, landing, years, period, onPeriod, onRefresh, busy, showPeriod = true, seasonControl = null, refreshLabel = INSIGHTS_COPY.overview.refresh }) {
+export default function InsightsHeader({ tabs, active, onTab, landing, years, period, onPeriod, onRefresh, busy, showPeriod = true, seasonControl = null, refreshLabel = INSIGHTS_COPY.overview.refresh, titleMeta = null }) {
   const details = useRef(null);
   const choices = [...new Set((years || []).map(Number).filter(Number.isFinite))].sort((a, b) => a - b);
   const first = choices[0] || new Date().getFullYear();
@@ -33,7 +33,7 @@ export default function InsightsHeader({ tabs, active, onTab, landing, years, pe
     <div className="hub-insights-title">
       <span className="hub-experience-eyebrow">{INSIGHTS_COPY.overview.eyebrow}</span>
       <h1>{INSIGHTS_COPY.overview.heading}</h1>
-      <p className="table-meta">{landing?.available ? `${range} · ${landing.record_leaders?.length || 0} managers` : "Saved league history"}</p>
+      <p className="table-meta">{titleMeta || (landing?.available ? `${range} · ${landing.record_leaders?.length || 0} managers` : "Saved league history")}</p>
     </div>
     <div className="hub-insights-header-tabs">
       <nav className="hub-insights-tabs" aria-label="Insights">{tabs.map((tab) => <button key={tab.id} type="button" aria-current={active === tab.id ? "true" : undefined} onClick={() => onTab(tab.id)}>{tab.label}</button>)}</nav>

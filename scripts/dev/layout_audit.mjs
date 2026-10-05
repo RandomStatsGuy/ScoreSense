@@ -924,6 +924,50 @@ export function measureScript() {
       }
     }
 
+    document.querySelectorAll(".hub-insights-header").forEach(header => {
+      const next = header.nextElementSibling;
+      if (!next || !formVisible(next) || !next.matches(".hub-insights-overview, .hub-insights-contracts, .hub-insights-page")) return;
+      const gap = next.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+      const expected = parseFloat(getComputedStyle(header.parentElement).rowGap);
+      results.push({rule:"insights-section-spacing",ok:Math.abs(gap - expected) < 2,
+        selector:".hub-insights-header",detail:`Filter-to-content gap ${px(gap)}px; section token ${px(expected)}px`});
+    });
+
+    // Insights uses a single column grid for scoring rows and balanced phone tabs.
+    if (innerWidth <= 768) {
+      document.querySelectorAll(".hub-insights-tabs").forEach(nav => {
+        const buttons = [...nav.querySelectorAll("button")];
+        const insets = buttons.map(button => {
+          const range = document.createRange(); range.selectNodeContents(button);
+          const text = range.getBoundingClientRect(), box = button.getBoundingClientRect();
+          return {left: text.left - box.left, right: box.right - text.right};
+        });
+        const ok = insets.every(inset => inset.left >= 4 && inset.right >= 4 && Math.abs(inset.left - inset.right) < 2)
+          && insets.every(inset => Math.abs(inset.left - insets[0].left) < 2);
+        results.push({rule:"insights-tabs",ok,selector:".hub-insights-tabs",
+          detail:ok ? "Content-width segments have equal centered label insets" : "Phone tab labels have cramped or uneven insets"});
+      });
+    }
+    if (innerWidth > 768) {
+      document.querySelectorAll(".hub-insights-score-list").forEach(list => {
+        const rows = [...list.querySelectorAll(".hub-insights-score-row")];
+        const metrics = rows.map(row => row.querySelector(".hub-insights-board-stat").getBoundingClientRect());
+        const bars = rows.map(row => row.querySelector(".hub-insights-score-track").getBoundingClientRect());
+        const aligned = metrics.every(box => Math.abs(box.right - metrics[0].right) < 2)
+          && bars.every(box => Math.abs(box.left - bars[0].left) < 2);
+        results.push({rule:"insights-columns",ok:aligned,selector:".hub-insights-score-list",
+          detail:aligned ? "Scoring values and bars share column tracks" : "Scoring rows size their columns independently"});
+      });
+      document.querySelectorAll(".hub-insights-support-awards").forEach(group => {
+        const values = [...group.querySelectorAll(".hub-insights-support-value")].map(el => el.getBoundingClientRect());
+        const sameRow = [...group.children].every(el => Math.abs(el.getBoundingClientRect().top - group.firstElementChild.getBoundingClientRect().top) < 2);
+        if (!sameRow) return;
+        const ok = values.every(box => Math.abs(box.top - values[0].top) < 2);
+        results.push({rule:"insights-awards",ok,selector:".hub-insights-support-awards",
+          detail:ok ? "Supporting award values align" : "Supporting award values have uneven spacing"});
+      });
+    }
+
     const destinationButton = document.querySelector(".hub-subnav-picker-btn");
     if (destinationButton && destinationButton.getBoundingClientRect().width > 0) {
       results.push({rule:"navigation", ok:destinationButton.scrollWidth <= destinationButton.clientWidth + 1,

@@ -1,5 +1,7 @@
 # ScoreSense product constitution
 
+> Approved October 5 Insights tabs: use A Spotlight on desktop and B Comparison on phone for Contracts, Scoring and Spend. Desktop shows featured contracts, a scoring leader with aligned supporting awards, and committed spending beside position allocation. Phone shows a Best/Worst contract switch, a compact scoring podium and spending comparisons first. Keep detailed tables and charts in disclosures; charts load only when opened. Tabs have balanced label insets and desktop scoring ranks share column tracks. Overview keeps the approved B season story.
+
 > Approved October 5 Insights Overview B: a championship story card with a two-column phone timeline, Best record and Most points highlights, and compact desktop manager rows. Career identities lead with the mapped manager; season team names remain attached.
 
 > Approved October 4 Insights mobile refinement: keep the period and quiet refresh icon on one row, championship years as year / manager / team rows, and Record / Points beside Open scoring. Historical contract ranks may resolve exact saved names or unambiguous initials using saved season identities; malformed salary imports remain excluded with one clear coverage note.
