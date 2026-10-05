@@ -2289,12 +2289,12 @@ button.btn-link.hub-league-switcher-create:hover {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  align-items: end;
+  align-items: center;
 }
 
 .draft-lobby-offline input,
 .draft-lobby-offline textarea {
-  min-height: 44px;
+  min-height: var(--control-h-lg);
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);

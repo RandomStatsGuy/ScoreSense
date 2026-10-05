@@ -131,11 +131,11 @@ def format_manager_label(
     owner_label: str | None = None,
     year_specific: bool = False,
 ) -> str:
-    """Current stats: owner only. Year-specific history: owner · team."""
+    """Single-season labels: team · manager. Career labels: manager first."""
     team = str(team_name or "").strip()
     owner = resolve_owner(team, owner_label)
     if year_specific and team and owner.lower() != team.lower():
-        return f"{owner} · {team}"
+        return f"{team} · {owner}"
     return owner
 
 
@@ -304,10 +304,8 @@ def planning_season_for_user(user_sub: str, league: dict[str, Any] | None = None
 
 
 def scoring_year_specific(display_season: str, planning_season: str) -> bool:
-    """Historical scoring season vs current planning year."""
-    if not display_season or not planning_season:
-        return False
-    return str(display_season) != str(planning_season)
+    """A concrete scoring season (including current) uses its team identity."""
+    return str(display_season or '').isdigit()
 
 
 def enrich_award_display(
@@ -463,8 +461,10 @@ def attach_owner_names_to_teams(
             value = str(team.get(key) or "").strip()
             if value and value not in candidates:
                 candidates.append(value)
-        owner = None
+        owner = owner_map.name_for_account(team.get("user_sub"), season_year) if hasattr(owner_map, "name_for_account") else None
         for team_name in candidates:
+            if owner:
+                break
             owner = lookup_owner_label(team_name, owner_map)
             if owner:
                 break

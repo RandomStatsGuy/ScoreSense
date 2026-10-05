@@ -29,7 +29,7 @@ function careerOwnerLabel(row, team, owner) {
   if (owner && owner.toLowerCase() !== team.toLowerCase()) return owner;
   const display = String(row?.display_name || "").trim();
   if (display) {
-    const named = display.split(" · ")[0].trim();
+    const named = display.split(" · ").map((part) => part.trim()).find((part) => part && part.toLowerCase() !== team.toLowerCase());
     if (named && named.toLowerCase() !== team.toLowerCase()) return named;
   }
   return owner;
@@ -43,9 +43,9 @@ export function teamDisplayName(row, ownerMap, yearSpecific) {
   if (yearSpecific) {
     const named = careerOwnerLabel(row, team, owner);
     if (!team) return named || "—";
-    if (named && named.toLowerCase() !== team.toLowerCase()) return `${named} · ${team}`;
+    if (named && named.toLowerCase() !== team.toLowerCase()) return `${team} · ${named}`;
     if (!owner || owner.toLowerCase() === team.toLowerCase()) return team;
-    return `${owner} · ${team}`;
+    return `${team} · ${owner}`;
   }
   const career = careerOwnerLabel(row, team, owner);
   if (career) return career;

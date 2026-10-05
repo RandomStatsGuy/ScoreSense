@@ -538,7 +538,7 @@ export function measureScript() {
         const cells = rows.map((row) => rowCells(row)[c]).filter(Boolean);
         if (!cells.length) continue;
         const header = firstLine(cells[0]?.innerText || "");
-        const bodyTexts = cells.slice(1).map((cell) => firstLine(cell.innerText));
+        const bodyTexts = cells.slice(1).map((cell) => firstLine((cell.querySelector(".player-cell-name") || cell).innerText));
         const glyph = bodyTexts.length && bodyTexts.every((t) => /^[A-Z]{1,3}$|^[QDP]$/.test(t));
         const action = /action/i.test(header) || (!table.el.matches(".rosters-table") && /actions|contract/i.test(cells[0]?.className || ""));
         const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;
@@ -565,7 +565,14 @@ export function measureScript() {
         const maxContent = Math.max(...cells.map((cell) => cellContentWidth(cell)));
         const remainder = expectAligns.findIndex((align) => align === "left") === c;
         const packRatio = columnPackRatio || 1.5;
-        if (!table.el.matches(".rosters-table") && !remainder && colWidth > maxContent * packRatio + 1) {
+        if (!remainder && maxContent === 0 && colWidth > 0) {
+          results.push({
+            rule: "tables",
+            ok: false,
+            selector: `${table.label}:${ti} col ${c}`,
+            detail: `empty column reserves ${px(colWidth)}px`,
+          });
+        } else if (!table.el.matches(".rosters-table") && !remainder && colWidth > maxContent * packRatio + 1) {
           results.push({
             rule: "tables",
             ok: false,

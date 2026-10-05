@@ -11006,6 +11006,7 @@ button.hub-locker {
   .hub-office-franchises .hub-form-row input { width: 100%; min-width: 0; }
 }
 
+.hub-members-table .hub-member-actions-cell { text-align: right; }
 .hub-member-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: end; gap: var(--space-2); }
 @media (max-width: 768px) {
   .hub-office-franchises .hub-form-row { align-items: stretch; }
@@ -11016,7 +11017,7 @@ button.hub-locker {
   .hub-members-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .hub-members-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); padding: var(--inset-tile); border-bottom: 1px solid var(--border); }
   .draft-hub .hub-members-table td { background: transparent; box-shadow: none; display: block; min-width: 0; padding: 0; border: 0; overflow-wrap: anywhere; }
-  .hub-members-table td:first-child, .hub-members-table td:last-child { grid-column: 1 / -1; }
+  .hub-members-table td:first-child, .hub-members-table .hub-member-actions-cell { grid-column: 1 / -1; }
   .hub-members-table td:first-child { font-weight: var(--font-weight-bold); }
   .hub-members-table td[data-label]::before { content: attr(data-label); display: block; color: var(--text-muted); font-size: var(--text-xs); margin-bottom: var(--space-1); }
   .hub-member-actions { justify-content: start; }
@@ -11024,7 +11025,7 @@ button.hub-locker {
 }
 
 @media (min-width: 769px) {
-  .hub-members-table th:not(:first-child), .hub-members-table td:not(:first-child) { width: 1%; white-space: nowrap; }
+  .hub-members-table th:not(:first-child), .hub-members-table td:not(:first-child) { width: 1%; white-space: nowrap; padding-inline: var(--space-1); }
   .hub-member-actions { flex-wrap: nowrap; }
 }
 @media (max-width: 768px) {

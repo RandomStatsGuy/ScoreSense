@@ -602,11 +602,11 @@ export default function LeagueInsights({
   const barData = useMemo(() => {
     const teams = data?.analytics?.teams || [];
     const mode = spendViewMetric === "pct" ? "pct" : "dollars";
-    const yearSpecific = capSeason === "all" ? false : capSeason !== "current" && /^\d+$/.test(String(capSeason));
+    const yearSpecific = capSeason !== "all";
     const owners = data?.owner_map || {};
     return teams.map((t) => {
       const row = {
-        name: t.display_name || teamDisplayName(t, owners, yearSpecific),
+        name: teamDisplayName(t, owners, yearSpecific),
         unspent: mode === "pct" ? t.pct_unspent : t.unspent,
       };
       for (const p of activePositions) {
@@ -761,13 +761,7 @@ export default function LeagueInsights({
     : (activeTab === "scoring" && data?.scoring?.owner_map)
     ? data.scoring.owner_map
     : (data?.owner_map || {});
-  const planningSeason = String(data?.planning_season || hubContext?.season || "");
-  const scoringYearSpecific = Boolean(
-    activeScoringSeason
-    && activeScoringSeason !== "all"
-    && planningSeason
-    && String(activeScoringSeason) !== String(planningSeason),
-  );
+  const scoringYearSpecific = activeScoringSeason !== "all";
   const scoringLabels = useMemo(() => {
     const rows = [...(data?.scoring?.weeks || []).flatMap((w) => w.teams || []), ...(data?.scoring?.standings || [])];
     return Object.fromEntries(rows.map((row) => [scoringTeamKey(row), teamDisplayName(row, ownerMap, scoringYearSpecific)]));
@@ -779,7 +773,7 @@ export default function LeagueInsights({
   const capHistoryMode = capSeason === "all" ? "all" : capSeason === "current" ? "current" : "year";
   const capHistoryYear = capHistoryMode === "year" ? Number(capSeason) : null;
   const capHistoryLabel = historySeasonLabel(capHistoryMode, capHistoryYear);
-  const capYearSpecific = capHistoryMode === "year";
+  const capYearSpecific = capHistoryMode !== "all";
   const allTimeCap = capHistoryMode === "all";
   const spendMetricLocked = allTimeCap ? "pct" : spendMetric;
   const capTeamsRaw = data?.analytics?.teams || [];

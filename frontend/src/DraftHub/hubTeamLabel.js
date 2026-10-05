@@ -1,4 +1,4 @@
-/** Owner-first labels. Team nicknames are extra, never the only name when an owner exists. */
+/** Season identities lead with the team and retain its mapped manager name. */
 
 import { displayBotName, resolveBotPersona } from "./botPersona.js";
 
@@ -24,11 +24,11 @@ export function hubTeamLabel(team, { includeTeam = true } = {}) {
     return persona.name;
   }
   const { owner, team: teamName } = hubTeamParts(team);
-  if (owner && teamName && includeTeam) return `${owner} · ${teamName}`;
+  if (owner && teamName && includeTeam) return `${teamName} · ${owner}`;
   return owner || displayBotName(teamName, team) || "";
 }
 
-/** Avatar initials use the manager, never the combined "Owner · Team" label. */
+/** Avatar initials use the manager, never the combined "Team · Owner" label. */
 export function hubTeamInitialsName(team) {
   const { owner, team: teamName } = hubTeamParts(team);
   return owner || teamName || "";

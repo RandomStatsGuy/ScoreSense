@@ -1030,7 +1030,7 @@ def build_current_spend_awards(
             amount=float(top.get("cap_hit") or 0),
             detail="Current roster · league-high salary",
             tone="gold",
-            year_specific=False,
+            year_specific=True,
         )
     )
 
@@ -1048,7 +1048,7 @@ def build_current_spend_awards(
                 title=award_title("most_overpaid"),
                 headline=f"+{fmt_sal_short(premium)} over {row.get('position')} market",
                 player_name=row.get("player_name"),
-                **_team_award_fields(league_id, row, year_specific=False),
+                **_team_award_fields(league_id, row, year_specific=True),
                 position=_row_position(row),
                 amount=float(row.get("cap_hit") or 0),
                 detail="Live roster · worst $ vs position average",
@@ -1072,7 +1072,7 @@ def build_current_spend_awards(
                 title=award_title("best_bargain"),
                 headline=f"{fmt_sal_short(discount)} below market",
                 player_name=row.get("player_name"),
-                **_team_award_fields(league_id, row, year_specific=False),
+                **_team_award_fields(league_id, row, year_specific=True),
                 position=_row_position(row),
                 amount=float(row.get("cap_hit") or 0),
                 detail="Live roster · best discount vs peers",
@@ -1093,7 +1093,7 @@ def build_current_spend_awards(
                 amount=float(payroll.get("committed") or 0),
                 detail="Most cap tied up today",
                 tone="gold",
-                year_specific=False,
+                year_specific=True,
             )
         )
 
@@ -1109,7 +1109,7 @@ def build_current_spend_awards(
                 amount=float(tightest.get("unspent") or 0),
                 detail="Tightest cap room in the league",
                 tone="bad",
-                year_specific=False,
+                year_specific=True,
             )
         )
 

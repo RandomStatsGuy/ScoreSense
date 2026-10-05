@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DEALS_VIEW,
+  seasonTeamLine,
+  seasonManagerLine,
   ROSTERS_COPY,
   activeRoster,
   contractGradeLabel,
@@ -161,4 +163,13 @@ test("phone picker options carry deal facts under the owner name", () => {
   assert.equal(options[0].detail, "1 overpay · 1 bargain");
   assert.equal(options[1].label, "Caleb K");
   assert.equal(options[1].detail, "$65 cap room · 1 expiring · +$6 overpay");
+});
+
+
+test("season roster identities lead with the team and attach the real manager", () => {
+  const team={name:"Panda team",owner_name:"Josh C"};
+  assert.equal(seasonTeamLine(team),"Panda team");
+  assert.equal(seasonManagerLine(team),"Josh C");
+  assert.equal(seasonTeamLine({owner_name:"Josh C"}),"Josh C");
+  assert.equal(seasonManagerLine({name:"Panda team"}),"");
 });
