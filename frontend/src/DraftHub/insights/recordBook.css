@@ -1,5 +1,6 @@
 .hub-insights-header { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: var(--space-4); margin-bottom: var(--space-4); align-items: center; }
 .hub-insights-title { grid-column: 1; grid-row: 1; }
+.hub-insights-title p { margin: 0; }
 .hub-insights-title h1 { font-size: var(--text-xl); margin: var(--space-2) 0; }
 .hub-insights-header-tabs { grid-column: 1 / -1; grid-row: 2; min-width: 0; position: relative; }
 .hub-insights-tabs { display: flex; gap: var(--space-1); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: var(--space-1); background: var(--bg-elevated); }

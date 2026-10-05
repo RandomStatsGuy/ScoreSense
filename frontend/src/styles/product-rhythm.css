@@ -162,6 +162,9 @@ button.btn-link.hub-league-switcher-create,
 .hub-disclosure > summary:hover .hub-disclosure-toggle { background: var(--bg-subtle); }
 .hub-disclosure[open] > .hub-section-body { margin-top: var(--space-4); }
 
+/* Framed content without an edge-to-edge hero keeps the shared section inset. */
+.hub-page.panel.hub-page--inset { padding: var(--inset-section); }
+
 /* Board surfaces supply their own section cards without a nested page card. */
 .hub-page.panel.hub-page--frameless { padding:0; border:0; background:transparent; box-shadow:none; }
 

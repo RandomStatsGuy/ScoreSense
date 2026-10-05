@@ -482,6 +482,27 @@ export function measureScript() {
       results.push({rule:"insights-record-spacing", ok:columnWidth <= textWidth * columnPackRatio + 1,
         selector:".hub-insights-record-list li", detail:`identity column ${px(columnWidth)}px for ${px(textWidth)}px of text`});
     });
+    // Hero-less framed pages must retain breathing room above their first
+    // filter or heading. Frameless boards own their individual card insets.
+    document.querySelectorAll(".hub-page--inset, .hub-insights-page:not(.hub-page--frameless)").forEach((panel) => {
+      if (!formVisible(panel)) return;
+      const first = [...panel.children].find(formVisible);
+      if (!first) return;
+      const style = getComputedStyle(panel);
+      const inset = parseFloat(style.paddingTop) || 0;
+      const floor = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const clearance = first.getBoundingClientRect().top - panel.getBoundingClientRect().top - (parseFloat(style.borderTopWidth) || 0);
+      results.push({rule:"panel-insets", ok:inset >= floor - 1 && clearance >= inset - 1,
+        selector:".hub-page--inset", detail:`top inset ${px(inset)}px; first content ${px(clearance)}px from border`});
+    });
+    if (innerWidth > 768) document.querySelectorAll(".hub-insights-header").forEach((header) => {
+      const lastLine = header.querySelector(".hub-insights-title p"), tabs = header.querySelector(".hub-insights-header-tabs");
+      if (!formVisible(lastLine) || !formVisible(tabs)) return;
+      const gap = tabs.getBoundingClientRect().top - lastLine.getBoundingClientRect().bottom;
+      const expected = parseFloat(getComputedStyle(header).rowGap);
+      results.push({rule:"insights-header-spacing", ok:Math.abs(gap - expected) <= 1,
+        selector:".hub-insights-header", detail:`title to tabs ${px(gap)}px; grid gap ${px(expected)}px`});
+    });
     const rowCells = (row) => {
       if (row.cells) return [...row.cells];
       const named = [...row.children].filter((child) => {

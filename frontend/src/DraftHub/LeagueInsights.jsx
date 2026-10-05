@@ -963,7 +963,7 @@ export default function LeagueInsights({
       {activeTab === "contracts" && <InsightsContracts contracts={data?.contracts} years={periodChoices} period={period} loading={loading || tabLoading} />}
 
       {activeTab === "cap" && (
-        <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
+        <HubPage inset className="hub-spend-page hub-experience-page hub-insights-page">
 
           <div className="hub-insights-toolbar">
             {!allTimeCap && (
@@ -1190,7 +1190,7 @@ export default function LeagueInsights({
       )}
 
       {activeTab === "scoring" && (
-        <HubPage className="hub-insights-scoring hub-spend-page hub-experience-page hub-insights-page">
+        <HubPage inset className="hub-insights-scoring hub-spend-page hub-experience-page hub-insights-page">
 
 
           {!data?.scoring?.available && (
@@ -1467,7 +1467,7 @@ export default function LeagueInsights({
       )}
 
       {activeTab === "ownership" && (
-        <HubPage className="hub-player-history-page hub-experience-page hub-insights-page">
+        <HubPage inset className="hub-player-history-page hub-experience-page hub-insights-page">
           <InsightsSeasonBar
             usesSalaries={usesSalaries}
             value={historySeason}
