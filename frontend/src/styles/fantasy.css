@@ -2564,8 +2564,8 @@
 .hub-insights-page {
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
-  padding-bottom: 1.6rem;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
 }
 
 .hub-insights-page--overview {

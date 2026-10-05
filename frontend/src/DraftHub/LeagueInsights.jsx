@@ -17,23 +17,21 @@ import {
 } from "./HubUILayout";
 import { InsightsProgress, InsightsSkeleton } from "./insights/InsightsChrome";
 import {
-  FeaturedAwards,
   InsightsDisclosure,
   MoreAwards,
   PositionSpendBoard,
-  ScoringRace,
 } from "./insights/InsightsTalk";
 import InsightsOverview from "./insights/InsightsOverview";
+import { ScoringBoards, SpendBoards } from "./insights/InsightsBoards";
+import "./insights/insightsBoards.css";
 import {
   POS_COLORS,
-  featureAwards,
   formatSpendValue,
   INSIGHTS_COPY,
   insightsHeroStatus,
   metricValue,
   pickDiscussablePosition,
   positionSpendLeaders,
-  scoringRaceRows,
   scoringTeamKey,
   teamDisplayName,
 } from "./insights/insightsPresentation";
@@ -768,8 +766,6 @@ export default function LeagueInsights({
   }, [data?.scoring, ownerMap, scoringYearSpecific]);
   const historic = data?.historic || {};
   const spendAwards = historic.awards || [];
-  const spendAwardSplit = useMemo(() => featureAwards(spendAwards, 4), [spendAwards]);
-  const scoringAwardSplit = useMemo(() => featureAwards(scoringAwards, 4), [scoringAwards]);
   const capHistoryMode = capSeason === "all" ? "all" : capSeason === "current" ? "current" : "year";
   const capHistoryYear = capHistoryMode === "year" ? Number(capSeason) : null;
   const capHistoryLabel = historySeasonLabel(capHistoryMode, capHistoryYear);
@@ -816,10 +812,6 @@ export default function LeagueInsights({
     [capTeamsRaw, capTeamFilter, capSortKey, capSortDir, ownerMap, capYearSpecific, capPosGetters],
   );
   const scoringStandingsRaw = data?.scoring?.standings || [];
-  const scoringRace = useMemo(
-    () => scoringRaceRows(scoringStandingsRaw, { ownerMap, yearSpecific: scoringYearSpecific }),
-    [scoringStandingsRaw, ownerMap, scoringYearSpecific],
-  );
   const filteredScoringStandings = useMemo(
     () => filterSortTeams(scoringStandingsRaw, {
       filter: scoringTeamFilter,
@@ -923,6 +915,7 @@ export default function LeagueInsights({
   const insightsHeader = <InsightsHeader tabs={insightsTabs} active={activeTab} onTab={setActiveTab}
     landing={activeTab === "scoring" ? data?.scoring : data?.landing} years={periodChoices} period={period} onPeriod={setPeriod}
     onRefresh={refreshHistory} busy={loading || refreshing || tabLoading || ownershipSeasonLoading}
+    titleMeta={activeTab === "scoring" ? `${scoringSeasonLabel} · ${scoringStandingsRaw.length} ${scoringYearSpecific ? "teams" : "managers"}` : activeTab === "cap" ? `${capHistoryLabel} · ${capTeamsRaw.length} ${capYearSpecific ? "teams" : "managers"}` : null}
     refreshLabel={activeTab === "scoring" ? INSIGHTS_COPY.controls.refreshScoring : INSIGHTS_COPY.overview.refresh}
     showPeriod={activeTab === "overview" || activeTab === "contracts"}
     seasonControl={activeTab === "scoring" ? <InsightsSeasonBar value={scoringSeason}
@@ -960,75 +953,24 @@ export default function LeagueInsights({
         />
       )}
 
-      {activeTab === "contracts" && <InsightsContracts contracts={data?.contracts} years={periodChoices} period={period} loading={loading || tabLoading} />}
+      {activeTab === "contracts" && <InsightsContracts contracts={data?.contracts} years={periodChoices} period={period} loading={loading || tabLoading} ownerMap={ownerMap} />}
 
       {activeTab === "cap" && (
-        <HubPage className="hub-spend-page hub-experience-page hub-insights-page">
-
-          <div className="hub-insights-toolbar">
-            {!allTimeCap && (
-            <div className="hub-insights-controls">
-              <span className="hub-filter-label">Show as</span>
-              <div className="hub-insights-metric-filters">
-                <HubFilterChip
-                  active={spendMetric === "dollars"}
-                  onClick={() => setSpendMetric("dollars")}
-                >
-                  Total $
-                </HubFilterChip>
-                <HubFilterChip
-                  active={spendMetric === "pct"}
-                  onClick={() => setSpendMetric("pct")}
-                >
-                  % of cap
-                </HubFilterChip>
-              </div>
-            </div>
-            )}
-            {allTimeCap && (
-              <p className="hub-insights-alltime-note">
-                All-time view is managers, not franchise names. Spend is the average share of each season’s cap.
-              </p>
-            )}
-          </div>
+        <HubPage frameless className="hub-spend-page hub-experience-page hub-insights-page">
 
           {capSeasonBusy && !barData.length && <InsightsSkeleton />}
-
-          <FeaturedAwards
-            awards={spendAwardSplit.featured}
-            ownerMap={ownerMap}
-            yearSpecific={capYearSpecific}
-            subtitle={`${usingHistoricCap ? capHistoryLabel : "Current rosters"}${allTimeCap ? " · avg % of cap" : ""}`}
-          />
-          {!loading && !tabLoading && !error && !allTimeCap && capTeamsRaw.every((t) => !Number(t.committed)) ? (
-            <p className="chart-note">{INSIGHTS_COPY.spend.empty}</p>
-          ) : null}
-
-          <PositionSpendBoard
-            leaders={spendLeaders}
-            focusedPos={focusedPos}
-            onFocus={setPositionFocus}
-            metric={spendViewMetric}
-            mineId={hubContext?.team_id}
-            mineName={hubContext?.team_name}
-            allTime={allTimeCap}
-          />
-
-          {spendAwardSplit.rest.length > 0 && (
-            <InsightsDisclosure
-              summary={`More awards (${spendAwardSplit.rest.length})`}
-              meta="The rest of the list"
-            >
-              <MoreAwards
-                awards={spendAwardSplit.rest}
-                ownerMap={ownerMap}
-                yearSpecific={capYearSpecific}
-                visibleGroups={awardGroupToggles}
-                onToggleGroup={toggleAwardGroup}
-              />
+          <SpendBoards teams={capTeamsRaw} positions={positions} metric={spendViewMetric}
+            onMetric={setSpendMetric} allTime={allTimeCap} ownerMap={ownerMap}
+            yearSpecific={capYearSpecific} label={capHistoryLabel} />
+          {spendAwards.length > 0 && (
+            <InsightsDisclosure summary={`More spending awards (${spendAwards.length})`}>
+              <MoreAwards awards={spendAwards} ownerMap={ownerMap} yearSpecific={capYearSpecific} visibleGroups={awardGroupToggles} onToggleGroup={toggleAwardGroup} />
             </InsightsDisclosure>
           )}
-
+          <InsightsDisclosure summary="Position leaders">
+            <PositionSpendBoard leaders={spendLeaders} focusedPos={focusedPos} onFocus={setPositionFocus}
+              metric={spendViewMetric} mineId={hubContext?.team_id} mineName={hubContext?.team_name} allTime={allTimeCap} />
+          </InsightsDisclosure>
           {showCapBarChart && (
             <InsightsDisclosure
               summary="Compare team spending"
@@ -1073,7 +1015,6 @@ export default function LeagueInsights({
 
           <InsightsDisclosure
             summary="Full league table"
-            open
             meta={formatCount(capTeamsRaw.length, allTimeCap ? "manager" : "team")}
           >
             <div className="hub-table-card hub-insights-table-wrap">
@@ -1190,7 +1131,7 @@ export default function LeagueInsights({
       )}
 
       {activeTab === "scoring" && (
-        <HubPage className="hub-insights-scoring hub-spend-page hub-experience-page hub-insights-page">
+        <HubPage frameless className="hub-insights-scoring hub-spend-page hub-experience-page hub-insights-page">
 
 
           {!data?.scoring?.available && (
@@ -1208,38 +1149,10 @@ export default function LeagueInsights({
             />
           )}
 
-          {data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length > 0 && showScoringTables && (
-            <>
-              <FeaturedAwards
-                awards={scoringAwardSplit.featured}
-                ownerMap={ownerMap}
-                yearSpecific={scoringYearSpecific}
-                title="Scoring awards"
-                subtitle={scoringSeasonLabel}
-              />
-              {scoringAwardSplit.rest.length > 0 && (
-                <InsightsDisclosure
-                  summary={`More awards (${scoringAwardSplit.rest.length})`}
-                  meta="The rest of the season"
-                >
-                  <MoreAwards
-                    awards={scoringAwardSplit.rest}
-                    ownerMap={ownerMap}
-                    yearSpecific={scoringYearSpecific}
-                    visibleGroups={awardGroupToggles}
-                    onToggleGroup={toggleAwardGroup}
-                  />
-                </InsightsDisclosure>
-              )}
-            </>
+          {data?.scoring?.available && showScoringTables && (
+            <ScoringBoards scoring={data.scoring} ownerMap={ownerMap}
+              yearSpecific={scoringYearSpecific} label={scoringSeasonLabel} />
           )}
-
-          {!error && data?.scoring?.available && !data?.scoring?.preseason && scoringAwards.length === 0 && showScoringTables && (
-            <p className="chart-note hub-insights-callout">
-              {tabLoading ? "Loading awards…" : "No scoring awards are available for this view."}
-            </p>
-          )}
-
           {data?.scoring?.available && !showScoringTables && (
             <div className="hub-insights-empty-state">
               <h3>{scoringWaiting.title}</h3>
@@ -1249,15 +1162,11 @@ export default function LeagueInsights({
 
           {data?.scoring?.available && showScoringTables && (
             <>
-              <ScoringRace
-                rows={scoringRace}
-                mineId={hubContext?.team_id}
-                mineName={hubContext?.team_name}
-                onHover={setChartHoveredTeam}
-                hoveredName={chartHoveredTeam}
-                hiddenTeams={chartHiddenTeams}
-                onToggleTeam={toggleChartTeam}
-              />
+              {scoringAwards.length > 0 && (
+                <InsightsDisclosure summary={`More scoring awards (${scoringAwards.length})`}>
+                  <MoreAwards awards={scoringAwards} ownerMap={ownerMap} yearSpecific={scoringYearSpecific} visibleGroups={awardGroupToggles} onToggleGroup={toggleAwardGroup} />
+                </InsightsDisclosure>
+              )}
 
               {showScoringCharts && scoringLineData.length > 0 && chartVisibleTeams.length > 0 ? (
                 <InsightsDisclosure
@@ -1286,7 +1195,7 @@ export default function LeagueInsights({
                 </InsightsDisclosure>
               ) : showScoringCharts && scoringLineData.length > 0 ? (
                 <p className="chart-note hub-insights-chart-placeholder">
-                  All teams hidden — tap a row in the race to show lines again.
+                  All teams hidden — use Show in the standings table to restore lines.
                 </p>
               ) : (
                 <p className="chart-note hub-insights-chart-placeholder">
@@ -1426,29 +1335,29 @@ export default function LeagueInsights({
                       <table className="data-table hub-table hub-insights-efficiency-table">
                         <thead>
                           <tr>
-                            <SortTh label="Rank" col="efficiency_rank" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                            <SortTh className="num" label="Rank" col="efficiency_rank" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
                             <SortTh label="Team" col="team" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
-                            <SortTh label="Committed" col="committed" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
-                            <SortTh label="Points" col="total_points" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
-                            <SortTh label="Pts/$" col="points_per_dollar" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
-                            <SortTh label="Top spend" col="top_position_spend" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
-                            <SortTh label="vs avg" col="vs_league_avg_pct" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                            <SortTh className="num" label="Committed" col="committed" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                            <SortTh className="num" label="Points" col="total_points" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                            <SortTh className="num" label="Pts/$" col="points_per_dollar" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                            <SortTh className="num" label="Top spend" col="top_position_spend" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
+                            <SortTh className="num" label="vs avg" col="vs_league_avg_pct" sortKey={scoringEffSortKey} sortDir={scoringEffSortDir} onSort={onScoringEffSort} />
                           </tr>
                         </thead>
                         <tbody>
                           {filteredScoringEfficiencyTeams.map((t) => (
                             <tr key={t.team_id || t.team_name}>
-                              <td>#{t.efficiency_rank}</td>
+                              <td className="num">#{t.efficiency_rank}</td>
                               <td>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</td>
-                              <td>{fmtSal(t.committed)}</td>
-                              <td>{t.total_points}</td>
-                              <td>{t.points_per_dollar ?? "—"}</td>
-                              <td>
+                              <td className="num">{fmtSal(t.committed)}</td>
+                              <td className="num">{t.total_points}</td>
+                              <td className="num">{t.points_per_dollar ?? "—"}</td>
+                              <td className="num">
                                 {t.top_spend_position
                                   ? `${t.top_spend_position} ${fmtSal(t.top_position_spend)}`
                                   : "—"}
                               </td>
-                              <td>
+                              <td className="num">
                                 {t.vs_league_avg_pct != null
                                   ? `${t.vs_league_avg_pct > 0 ? "+" : ""}${t.vs_league_avg_pct}%`
                                   : "—"}
@@ -1467,7 +1376,7 @@ export default function LeagueInsights({
       )}
 
       {activeTab === "ownership" && (
-        <HubPage className="hub-player-history-page hub-experience-page hub-insights-page">
+        <HubPage inset className="hub-player-history-page hub-experience-page hub-insights-page">
           <InsightsSeasonBar
             usesSalaries={usesSalaries}
             value={historySeason}
