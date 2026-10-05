@@ -23,17 +23,34 @@
 .hub-insights-range-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .hub-insights-range-fields label { display: grid; grid-template-columns: 1fr max-content; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
 .hub-insights-range-fields input { grid-column: 1 / -1; width: 100%; min-height: 44px; margin: 0; accent-color: var(--accent); }
-.hub-insights-championships { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: var(--space-4); }
+.hub-insights-championships { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-elevated); overflow: hidden; }
+.hub-insights-championships .hub-insights-plaque { display: grid; grid-template-columns: var(--space-7) minmax(0, 1fr) max-content; padding: var(--space-5); border: 0; border-radius: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--experience-gold) 12%, transparent), transparent 75%); }
+.hub-insights-championships .hub-insights-plaque h2 { font-size: var(--text-2xl); }
+.hub-insights-championships .hub-insights-plaque-kicker { color: var(--experience-gold); font-size: var(--text-xs); margin-bottom: var(--space-3); }
+.hub-insights-championship-timeline { padding: var(--space-4) var(--space-5) var(--space-5); min-width: 0; }
+.hub-insights-championship-timeline h3 { font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--text-muted); }
+.hub-insights-trophy-mark { display: grid; place-items: center; width: var(--space-7); height: var(--space-7); border-radius: var(--radius-pill); color: var(--experience-gold); background: color-mix(in srgb, var(--experience-gold) 15%, transparent); }
+.hub-insights-trophy-mark svg { width: 28px; height: 28px; }
+.hub-insights-titles-empty { padding: var(--inset-section); margin: 0; }
 .hub-insights-championships .hub-insights-years { display: grid; grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr)); gap: var(--space-3); }
-.hub-insights-championships .hub-insights-year { min-width: 0; padding: var(--space-2) 0; background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; }
+.hub-insights-championships .hub-insights-year { position: relative; min-width: 0; padding: var(--space-3) 0 0; background: transparent; border: 0; border-top: 2px solid var(--border-strong); border-radius: 0; }
+.hub-insights-championships .hub-insights-year::before { content: ""; position: absolute; top: calc(-1 * var(--space-1)); left: 0; width: var(--space-2); height: var(--space-2); border-radius: var(--radius-pill); background: var(--experience-gold); }
+.hub-insights-championships .hub-insights-year time { color: var(--experience-gold); margin-bottom: var(--space-3); }
 .hub-insights-year-winner { display: grid; gap: var(--space-1); min-width: 0; }
 .hub-insights-championships .hub-insights-year strong { overflow-wrap: anywhere; }
 .hub-insights-record-list, .hub-insights-contract-list { list-style: none; padding: 0; margin: 0; }
-.hub-insights-record-list { display: grid; grid-template-columns: var(--space-5) fit-content(35%) max-content minmax(0, 1fr); column-gap: var(--space-3); }
+.hub-insights-record-highlights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-block: var(--space-4); }
+.hub-insights-record-highlight { display: grid; align-content: start; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-md); background: var(--bg-subtle); min-width: 0; }
+.hub-insights-record-highlight h3 { font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--font-weight-medium); text-transform: uppercase; letter-spacing: .1em; margin: 0; }
+.hub-insights-record-highlight > strong { font-size: var(--text-2xl); font-variant-numeric: tabular-nums; }
+.hub-insights-record-highlight > span { font-size: var(--text-sm); }
+.hub-insights-record-highlight > small { font-size: var(--text-xs); color: var(--text-muted); overflow-wrap: anywhere; }
+.hub-insights-record-controls { justify-content: space-between; }
+.hub-insights-record-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-5); }
 .hub-insights-record-controls { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); }
 .hub-insights-record-sort { display: flex; gap: var(--space-1); }
 .hub-insights-record-controls button { min-height: var(--control-h-lg); }
-.hub-insights-record-list li { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; column-gap: var(--space-3); align-items: center; border-top: 1px solid var(--border); padding: var(--space-4) 0; }
+.hub-insights-record-list li { display: grid; grid-template-columns: var(--space-5) fit-content(65%) max-content; column-gap: var(--space-3); align-items: center; border-top: 1px solid var(--border); padding: var(--space-4) 0; }
 .hub-insights-record-identity, .hub-insights-contract-identity { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
 .hub-insights-record-identity > strong, .hub-insights-contract-identity > strong { font-size: var(--text-sm); }
 .hub-insights-record-identity > span, .hub-insights-record-identity > small, .hub-insights-contract-identity > span, .hub-insights-contract-identity > small { font-size: var(--text-xs); color: var(--text-muted); }
@@ -69,16 +86,23 @@
   .hub-insights-plaque h2 { font-size: var(--text-xl); }
   .hub-insights-plaque-count { min-width: var(--space-8); }
   .hub-insights-plaque-count strong { font-size: var(--text-2xl); }
-  .hub-insights-championships .hub-insights-years { grid-template-columns: minmax(0, 1fr); gap: 0; overflow: visible; }
-  .hub-insights-championships .hub-insights-year { display: grid; grid-template-columns: var(--space-7) minmax(0, 1fr); gap: var(--space-3); align-items: start; padding-block: var(--space-2); }
+  .hub-insights-championships .hub-insights-plaque { grid-template-columns: minmax(0, 1fr) max-content; padding: var(--space-4); }
+  .hub-insights-trophy-mark { display: none; }
+  .hub-insights-championship-timeline { padding: var(--space-4); }
+  .hub-insights-championships .hub-insights-years { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); overflow: visible; }
+  .hub-insights-championships .hub-insights-year { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); align-items: start; padding-block: var(--space-3) 0; }
   .hub-insights-year-winner span { margin-top: 0; }
-  .hub-insights-championships .hub-insights-year time { margin: 0; color: var(--text-muted); }
+  .hub-insights-championships .hub-insights-year time { margin: 0; color: var(--experience-gold); }
   .hub-insights-record-book .hub-insights-talk-head { margin-bottom: var(--space-2); }
   .hub-insights-record-description { display: none; }
   .hub-insights-record-controls { margin-bottom: var(--space-2); }
   .hub-insights-record-controls button { min-height: 44px; padding-inline: var(--space-2); border-radius: var(--radius-sm); font-size: var(--text-xs); }
   .hub-insights-open-scoring { border-color: transparent; }
-  .hub-insights-record-list { grid-template-columns: var(--space-4) minmax(0, 1fr) max-content; }
+  .hub-insights-record-highlights { gap: var(--space-2); }
+  .hub-insights-record-highlight { padding: var(--space-3); }
+  .hub-insights-record-highlight > strong { font-size: clamp(var(--text-lg), 4vw, var(--text-xl)); }
+  .hub-insights-record-list { grid-template-columns: minmax(0, 1fr); }
+  .hub-insights-record-list li { grid-template-columns: var(--space-4) minmax(0, 1fr) max-content; }
   .hub-insights-record-list li { row-gap: var(--space-2); }
   .hub-insights-record-points { max-width: 8rem; }
   .hub-insights-record-track { grid-column: 2 / -1; }

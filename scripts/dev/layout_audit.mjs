@@ -910,7 +910,8 @@ export function measureScript() {
       const years = [...document.querySelectorAll(".hub-insights-year")];
       const narrow = years.filter(year => {
         const owner = year.querySelector("strong");
-        return owner && owner.getBoundingClientRect().width < Math.min(160, innerWidth * .45);
+        const story = year.closest(".hub-insights-championships--story");
+        return owner && owner.getBoundingClientRect().width < (story ? Math.min(144, innerWidth * .35) : Math.min(160, innerWidth * .45));
       });
       if (years.length) results.push({rule:"insights-mobile",ok:!narrow.length,
         selector:".hub-insights-year",detail: narrow.length ? "Championship manager column is too narrow" : "Championship names have room to read"});

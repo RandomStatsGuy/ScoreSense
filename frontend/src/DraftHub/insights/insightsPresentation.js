@@ -448,6 +448,7 @@ export const INSIGHTS_COPY = {
       if (runnerUp) bits.push(`def. ${runnerUp} that year`);
       return bits.join(" · ");
     },
+    mostChampionships: "Most championships", bestRecord: "Best record", mostPoints: "Most points",
     recordBook: "Record book",
     recordBookSupport: "Regular-season records · total fantasy points",
     rankBy: "Rank managers by", recordSort: "Record", pointsSort: "Points",

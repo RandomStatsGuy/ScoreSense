@@ -1,5 +1,7 @@
 # ScoreSense product constitution
 
+> Approved October 5 Insights Overview B: a championship story card with a two-column phone timeline, Best record and Most points highlights, and compact desktop manager rows. Career identities lead with the mapped manager; season team names remain attached.
+
 > Approved October 4 Insights mobile refinement: keep the period and quiet refresh icon on one row, championship years as year / manager / team rows, and Record / Points beside Open scoring. Historical contract ranks may resolve exact saved names or unambiguous initials using saved season identities; malformed salary imports remain excluded with one clear coverage note.
 
 > Approved September 29 My team scoring: use the saved team banner and crop in the roster summary, team name first and owner smaller. Center season Points / PPG / position rank beside each name. Details show newest games first, actual points and saved pregame projection deltas (teal up, amber down), with only “vs projection” as supporting copy. Missing values are dashes; played zero games count toward PPG, byes/inactive weeks do not. Mobile locker details span beneath the pair without moving the selected jersey.
