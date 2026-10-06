@@ -8,17 +8,21 @@ from src.draft_hub import storage
 
 CADENCE_SECONDS = 60
 LEASE_SECONDS = 300
+QUIET_CADENCE_SECONDS = 300
+FAILURE_RETRY_SECONDS = 300
 
 
-def request_refresh(league_id: str, season: int, week: int, *, now: float | None = None) -> None:
+def request_refresh(league_id: str, season: int, week: int, *, now: float | None = None,
+                    cadence_seconds: int = CADENCE_SECONDS) -> None:
     stamp = time.time() if now is None else now
     with storage.get_conn() as conn:
         conn.execute("""INSERT INTO native_score_refresh(league_id,season,week)
             VALUES(?,?,?) ON CONFLICT(league_id,season,week) DO UPDATE SET status='pending',error=NULL
             WHERE native_score_refresh.lease_until <= ?
             AND native_score_refresh.attempted_at <= ?
+            AND (native_score_refresh.status != 'failed' OR native_score_refresh.attempted_at <= ?)
             AND native_score_refresh.status != 'pending'""",
-            (league_id, int(season), int(week), stamp, stamp - CADENCE_SECONDS))
+            (league_id, int(season), int(week), stamp, stamp - cadence_seconds, stamp - FAILURE_RETRY_SECONDS))
 
 
 def refresh_status(league_id: str, season: int, week: int) -> dict | None:
@@ -34,7 +38,7 @@ def _claim(*, now: float) -> dict | None:
         row = conn.execute("""SELECT * FROM native_score_refresh
             WHERE status='pending' OR (status='running' AND lease_until<=?)
             OR (status='failed' AND attempted_at<=? AND COALESCE(error,'')!='settings_changed')
-            ORDER BY attempted_at LIMIT 1""", (now, now - CADENCE_SECONDS)).fetchone()
+            ORDER BY attempted_at LIMIT 1""", (now, now - FAILURE_RETRY_SECONDS)).fetchone()
         if row is None:
             return None
         job = dict(row)
@@ -121,8 +125,15 @@ def queue_current_native_weeks() -> None:
     keys = {(league_id, season, int(week)) for league_id in ids}
     keys.update((r['league_id'], r['season'], r['week']) for r in unfinished)
     annotate_job(checked=len(keys), season=season, week=int(week))
+    from src.draft_hub.game_center import cached_game_states
+    cadences = {}
     for league_id, season, week in keys:
         league = storage.get_league(league_id)
         run = storage.get_week_scoring_run(league_id, season, week)
         if league and league.get('draft_completed') and not sleeper_hosts_scoring(league) and not (run and run.get('final')):
-            request_refresh(league_id, season, week)
+            key = (season, week)
+            if key not in cadences:
+                states = cached_game_states(season, week)
+                games_active = any(game.get('game_state') == 'live' for game in states.values())
+                cadences[key] = CADENCE_SECONDS if games_active else QUIET_CADENCE_SECONDS
+            request_refresh(league_id, season, week, cadence_seconds=cadences[key])

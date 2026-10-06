@@ -4,7 +4,6 @@ import { MOBILE_CHROME_COPY } from "../layout/mobileChromePresentation";
 import { getFreshnessCache } from "./hubDataCache";
 import { ensureLeagueFreshness } from "./leagueFreshness";
 import {
-  ageShort,
   buildLeagueAttentionItems,
   leagueDisplayName,
   leaguePhaseLabel,
@@ -56,14 +55,12 @@ export default function LeagueOverflowLead({
   const leagueName = chrome?.leagueName || leagueDisplayName(hubContext, { inLeague });
   const phaseLabel = chrome?.phaseLabel || leaguePhaseLabel(hubContext, { inLeague });
   const roleLabel = chrome?.roleLabel || leagueRoleLabel(hubContext, { inLeague });
-  const poolStale = Boolean(freshness?.projections?.stale)
-    || (freshness && freshness.projections?.available === false);
   const items = resolveOverflowAttentionItems(
     buildLeagueAttentionItems({
       inLeague,
-      poolStale,
+        projectionNeedsAttention: Boolean(freshness?.projections?.needs_attention),
+      projectionRefreshState: freshness?.projections?.refresh_state,
       projectionsAvailable: freshness?.projections?.available,
-      projAge: ageShort(freshness?.projections?.built_at),
       capSheetsStale: Boolean(freshness?.cap_sheets?.stale),
       isCommish: Boolean(hubContext?.is_commissioner),
       usesSalaries: leagueUsesSalaries(hubContext),

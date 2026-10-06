@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.artifact_revision import artifact_revision
+from src.core.artifact_revision import artifact_revision, file_content_revision
 
 from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR, SEASON_QUANTILE_METHOD
 from src.draft_hub.auction_values import RISK_WEIGHT
@@ -48,7 +48,7 @@ def _artifact_paths(season: int) -> tuple[Path, Path]:
 
 
 def pool_fingerprint() -> str:
-    """Hash of feature + model + rookie-override mtimes — invalidates artifacts when inputs change."""
+    """Hash of feature + model + rookie-override contents — invalidates artifacts when inputs change."""
     parts: list[str] = [
         # Bump when projection post-processing changes (e.g. vet backup scaling).
         "proj_logic:complete_roster_v3",
@@ -66,11 +66,11 @@ def pool_fingerprint() -> str:
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
         if feat.exists():
-            parts.append(f"feat:{pos}:{feat.stat().st_mtime_ns}")
+            parts.append(f"feat:{pos}:{file_content_revision(feat)}")
     for name in ("qb_model.joblib", "rb_model_calibrated.joblib", "wr_model_calibrated.joblib"):
         model = MODEL_DIR / name
         if model.exists():
-            parts.append(f"model:{name}:{model.stat().st_mtime_ns}")
+            parts.append(f"model:{name}:{file_content_revision(model)}")
     try:
         from src.config import ROOKIE_ROLE_OVERRIDES_PATH
 

@@ -8,6 +8,7 @@ alwaysApply: false
 
 - Production models are position-specific quantile GBM (P10 / P50 / P90). P50 is the headline. Do not ship a new head without a walk-forward gate.
 - Features: `docs/MODEL_FEATURES.md`. Candidates stay out of production until `docs/FEATURE_SCREENING.md` promotion rules pass.
+- Automatically maintain saved forecasts on the shared worker (weekly hourly, season daily); keep the last successful context available during routine updates and reserve attention warnings for failed or overdue refreshes.
 - Inference on hot paths reads `artifacts/weekly_predictions/` or the draft-pool artifact. `predict.load_model()` is in-process and mtime-keyed.
 - Season floor/ceiling use schedule-aware Monte Carlo (`season_quantiles.py`, `mc_schedule_v1`). Do not multiply weekly P10/P90 by 17.
 - Sentiment (`yt_*`) is a research candidate. Do not bake YouTube show descriptions into this-week notes or blend narrative into live projections. This-week copy is Sleeper locker or practice plus an optional projection delta. A raw snippet may appear only after it passes the Latest usefulness filter.

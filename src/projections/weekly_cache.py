@@ -12,7 +12,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.artifact_revision import artifact_revision
+from src.core.artifact_revision import artifact_revision, file_content_revision
 
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, WEEKLY_PREDICTIONS_DIR
 from src.core.opportunity import ensure_opportunity_adjustment_columns
@@ -76,11 +76,11 @@ def weekly_fingerprint() -> str:
     for pos in ("qb", "rb", "wr"):
         feat = PROCESSED_DATA_DIR / f"{pos}_mlready.parquet"
         if feat.exists():
-            parts.append(f"feat:{pos}:{feat.stat().st_mtime_ns}")
+            parts.append(f"feat:{pos}:{file_content_revision(feat)}")
     for name in ("qb_model.joblib", "rb_model_calibrated.joblib", "wr_model_calibrated.joblib"):
         model = MODEL_DIR / name
         if model.exists():
-            parts.append(f"model:{name}:{model.stat().st_mtime_ns}")
+            parts.append(f"model:{name}:{file_content_revision(model)}")
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 

@@ -468,3 +468,17 @@ export const SLEEPER_LINK_COPY = {
   importSupport: "Import rosters for every team in this Sleeper league.",
   movedPlayers: (count) => `${count} roster move${Number(count) === 1 ? "" : "s"}`,
 };
+
+
+export const PROJECTION_HEALTH_COPY = {
+  failed: "Season projection update failed",
+  overdue: "Season projection updates delayed",
+  unavailable: "Season projections unavailable",
+  scheduled: "Updates automatically each day",
+  updating: "Updating in the background",
+  retry: "Retry projections",
+};
+export function projectionHealthLabel(projections = {}) {
+  if (projections.needs_attention) return PROJECTION_HEALTH_COPY[projections.refresh_state] || PROJECTION_HEALTH_COPY.overdue;
+  return projections.refresh_state === "updating" ? PROJECTION_HEALTH_COPY.updating : PROJECTION_HEALTH_COPY.scheduled;
+}

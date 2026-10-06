@@ -4,6 +4,7 @@ from __future__ import annotations
 from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
 
 import logging
+from datetime import datetime, timezone
 
 from src.config import CACHE_DIR
 from src.jobs.refresh_lock import RefreshBusy, refresh_lock
@@ -15,6 +16,14 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
     errors = []
     try:
         with refresh_lock(CACHE_DIR / "last_refresh.lock"):
+            from src.jobs.season_refresh import read_status, target_key, _save
+            health = read_status()
+            started_at = datetime.now(timezone.utc).isoformat()
+            for kind in kinds:
+                if kind in {"draft", "ros", "weekly"}:
+                    key = target_key(kind, season, week)
+                    health[key] = {**health.get(key, {}), "status": "running", "started_at": started_at}
+            _save(health)
             for kind in kinds:
                 try:
                     if kind == "draft":
@@ -66,6 +75,14 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                 except Exception:
                     errors.append(kind)
                     logging.getLogger(__name__).exception("Projection recovery failed: %s", kind)
+            for kind in kinds:
+                if kind in {"draft", "ros", "weekly"}:
+                    item = health[target_key(kind, season, week)]
+                    failed = any(error == kind or error.startswith(kind + ":") for error in errors)
+                    item.update(status="error" if failed else "ok", completed_at=datetime.now(timezone.utc).isoformat())
+                    if not failed:
+                        item["last_success_at"] = item["completed_at"]
+            _save(health)
     except RefreshBusy:
         return {"status": "busy"}
     annotate_job(failed=len(errors))
