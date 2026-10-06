@@ -95,6 +95,8 @@ def prepare_weekly_context():
 
 @pytest.fixture(autouse=True)
 def _isolate_materialized_caches(tmp_path, monkeypatch):
+    from src.jobs import season_refresh
+    monkeypatch.setattr(season_refresh, "STATUS_PATH", tmp_path / "season_refresh.json")
     from src.draft_hub import value_snapshot
     monkeypatch.setattr(value_snapshot, "SNAPSHOT_DIR", tmp_path / "value_snapshots")
     from src.draft_hub import prepared_week_context

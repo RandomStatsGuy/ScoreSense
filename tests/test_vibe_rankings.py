@@ -375,7 +375,7 @@ def test_sleeper_linked_vibes_are_advice_only(hub_db, prepare_weekly_context):
             data = res.json()
             assert data["meta"]["sleeper_hosts_scoring"] is True
             assert data["meta"]["can_edit_lineup"] is False
-            assert data["meta"]["lineup_source"] == "inferred"
+            assert data["meta"]["lineup_source"] == "sleeper"
 
             blocked = client.put(
                 f"/api/hub/league/{league['id']}/lineup",
