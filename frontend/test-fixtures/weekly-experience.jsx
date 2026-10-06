@@ -6,6 +6,7 @@ import "../src/styles/fantasy-phone.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/fantasy-header.css";
 // Production lineup components with isolated, deterministic writes; never contacts a league.
+import {publishDataRevision} from "../src/useDataRevision";
 import React, {useState} from "react";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
 import {LeagueChromeProvider} from "../src/DraftHub/leagueChromeContext";
@@ -23,6 +24,8 @@ import {TeamIdentityProvider} from "../src/DraftHub/TeamIdentityContext";
 const params = new URLSearchParams(location.search);
 document.documentElement.dataset.theme = params.get("theme") || "light";
 const state = params.get("state") || "ready";
+let refreshState = params.get("refresh-health") || "current";
+window.fixtureSetHealth = next => {refreshState=next;publishDataRevision();};
 const linked = ["linked", "linked-refresh", "linked-unavailable"].includes(state);
 const recorded = ["live", "native-progress", "final", "linked-refresh"].includes(state);
 const player = (id, name, position, team, p50, slot = "BN") => ({
@@ -77,12 +80,12 @@ window.fetch = async (input, options = {}) => {
       "unknown-schedule": {week_started:null,refresh:{status:"failed",error:"no_stats"}},
       "score-pending": {week_started:true,refresh:{status:"pending"}},
     };
-    return Response.json({available:true,source:linked ? "sleeper" : "hub",reason:"hub",synced_at: new Date().toISOString(),placeholder:!recorded,live:state==="live",week_complete:state==="final",season:2026,week,current_week:state === "native-progress" ? week + 1 : 2,max_week:18,
+    return Response.json({available:true,source:linked ? "sleeper" : "hub",reason:"hub",synced_at: new Date().toISOString(),placeholder:!recorded,live:["live", "linked-refresh"].includes(state),week_complete:state==="final",season:2026,week,current_week:state === "native-progress" ? week + 1 : 2,max_week:18,
       ...(refreshStates[state] ? {scoring_control:{host:"native",scored:false,final:false,...refreshStates[state]}} : {}),
       ...(["native-progress", "final"].includes(state) ? {scoring_control:{host:"native",scored:true,final:state === "final",live:state !== "final",slate_complete:state === "final"}} : {}),
       viewer_matchup_id:"one",starting_slots:["QB","RB","WR","FLEX"],matchups:[{matchup_id:"one",teams:[mine,other]},{matchup_id:"two",teams:[{roster_id:"3",hub_team_id:"third",owner_name:"Sam",team_name:"Ragdollin With Mahomies",points:60,starters:mine.starters.map(p=>({...p,name:p.position === "QB" ? "Patrick Mahomes" : p.name,team:p.position === "QB" ? "KC" : p.team,proj:21.5}))},{roster_id:"4",hub_team_id:"fourth",owner_name:"Jamie",team_name:"Owner of Solar Panels",points:52,starters:other.starters}]}],standings:[]});
   }
-  if (path.includes("freshness")) return Response.json({sleeper:{linked},projections:{available:true}});
+  if (path.includes("freshness")) return Response.json({sleeper:{linked},projections:{season:2026,available:true,stale:refreshState !== "current",built_at:new Date(Date.now()-14*60_000).toISOString(),automatic:true,refresh_state:refreshState,needs_attention:refreshState === "failed"}});
   if (path.includes("identities")) return Response.json({identities:{}});
   if (path.includes("/lineup")) {
     window.fixtureWrites.push({ path, method: options.method, body: JSON.parse(options.body) });
@@ -128,7 +131,7 @@ function Preview() {
       <HubSubnav subView="week" hubContext={ctx} onNavigate={navigate} mobileLayout={mobile} pickerOnly={mobile} pickerOpen={picker} onPickerOpenChange={setPicker} />
     </div></header>
     <main id="main-content"><div className="draft-hub"><TeamIdentityProvider leagueId={ctx.league_id}>
-      <LeagueContextBanner hubContext={ctx} memberships={members} onLeagueSwitch={()=>setContext(prev=>({...prev,league_id:"second",league_name:"Sunday league"}))} onCreateLeague={()=>{}} onLeagueSync={()=>{}} showAttention={false} currentView="week" />
+      <LeagueContextBanner hubContext={ctx} memberships={members} onLeagueSwitch={()=>setContext(prev=>({...prev,league_id:"second",league_name:"Sunday league"}))} onCreateLeague={()=>{}} onLeagueSync={()=>{}} showAttention={params.has("refresh-health")} currentView="week" />
       <WeeklyExperience hubContext={ctx} requestedWeek={params.get("week")} requestedTeam={params.get("matchupTeam")} onNavigate={navigate} />
     </TeamIdentityProvider></div></main>
     <MobileMenuSheet open={more} onClose={()=>setMore(false)} authReady authenticated user={{name:"Tessa"}} onGoToAccount={()=>navigate("account")} view="hub" />

@@ -58,5 +58,7 @@ export async function waitForContextRefresh(job, fetchStatus, options = {}) {
 
 /** Failed attempts must never advertise a new dataset. */
 export function successfulRefreshRevision(status) {
-  return status?.last_completed_at || (status?.status === "completed" ? status.completed_at : null) || null;
+  const manual = status?.last_completed_at || (status?.status === "completed" ? status.completed_at : null);
+  return [manual, status?.automatic?.last_success_at].filter((stamp) => Number.isFinite(Date.parse(stamp)))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || null;
 }

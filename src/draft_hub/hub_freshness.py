@@ -31,6 +31,7 @@ def _draft_pool_status(season: int) -> dict[str, Any]:
             "built_at": None,
             "stale": True,
             "fingerprint": fp,
+            "needs_attention": True, "refresh_state": "unavailable", "automatic": True,
         }
     try:
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -44,7 +45,12 @@ def _draft_pool_status(season: int) -> dict[str, Any]:
             parquet_path.stat().st_mtime,
             tz=timezone.utc,
         ).isoformat()
+    from src.jobs.season_refresh import read_status, target_key
+    from src.projections.refresh_policy import refresh_health
+    health = refresh_health(built_at=built_at, available=True, dirty=stale,
+                            attempt=read_status().get(target_key("draft", season)))
     return {
+        **health,
         "season": season,
         "available": True,
         "built_at": built_at,
@@ -108,6 +114,7 @@ def league_data_freshness(league_id: str, *, include_contract_detail: bool = Tru
             "stale": pool_status.get("stale", False),
             "available": pool_status.get("available", False),
             "season": pool_status.get("season"),
+            **{key: pool_status.get(key) for key in ("needs_attention", "refresh_state", "automatic", "refresh_interval_seconds")},
         },
         "insights_version": storage.insights_source_version(league_id),
         **storage.league_cache_revisions(league_id),

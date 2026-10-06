@@ -1,3 +1,5 @@
+import { PROJECTION_HEALTH_COPY } from "./leagueAccessCopy.js";
+
 /** League strip / phone overflow — phase, role, and Needs attention items. */
 
 export function ageShort(at) {
@@ -30,9 +32,9 @@ export function leagueDisplayName(hubContext, { inLeague } = {}) {
 
 export function buildLeagueAttentionItems({
   inLeague,
-  poolStale = false,
   projectionsAvailable,
-  projAge,
+  projectionNeedsAttention = false,
+  projectionRefreshState,
   overCapLabel,
   mustExtendCount = 0,
   droppingCount = 0,
@@ -42,13 +44,13 @@ export function buildLeagueAttentionItems({
 } = {}) {
   if (!inLeague) return [];
   const items = [];
-  if (poolStale) {
+  if (projectionNeedsAttention) {
     items.push({
       id: "projections",
       label: projectionsAvailable === false
-        ? "Projections missing"
-        : (projAge ? `Projections stale ${projAge}` : "Projections stale"),
-      actionLabel: "Sync projections",
+        ? PROJECTION_HEALTH_COPY.unavailable
+        : (PROJECTION_HEALTH_COPY[projectionRefreshState] || PROJECTION_HEALTH_COPY.overdue),
+      actionLabel: PROJECTION_HEALTH_COPY.retry,
       action: "projections",
     });
   }

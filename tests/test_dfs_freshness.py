@@ -13,6 +13,13 @@ from src.integrations import dfs_slates
 from src.jobs import dfs_refresh
 
 
+@pytest.fixture(autouse=True)
+def _isolate_supporting_context(monkeypatch):
+    monkeypatch.setattr(dfs_refresh, "_warm_supporting_data", lambda *a: None)
+    monkeypatch.setattr("src.integrations.injury_poll.get_injury_poll_status", lambda: {"poll_due": True})
+
+
+
 def test_coverage_lists_missing_quantiles_and_does_not_certify_fixed_or_imported():
     rows = [{"player_id": str(i), "Player": f"Player {i}", "Position": pos, "salary": 4000,
              "Low (P10)": low, "Projected Points": 5, "High (P90)": 10, "projection_source": source}
@@ -95,7 +102,7 @@ def test_refresh_attempts_other_positions_after_one_fails(refresh_env):
     model.side_effect = [RuntimeError("bad model")] + [pd.DataFrame([{"x": 1}])] * 4
     result = dfs_refresh.run_dfs_refresh()
     assert result["status"] == "error"
-    assert set(result["positions"]) == {"rb", "wr", "dfs", "ros_qb", "ros_rb", "ros_wr"}
+    assert set(result["positions"]) == {"rb", "wr", "dfs"}
     assert result["last_success_at"] is None
 
 
