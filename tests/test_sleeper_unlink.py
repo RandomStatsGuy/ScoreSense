@@ -28,11 +28,16 @@ def hub_db(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _league_with_personal_link(sub: str = "unlink-comm") -> dict:
-    """A league whose commissioner has a personal Sleeper link on their workspace."""
-    storage.get_or_create_workspace(sub, season=2026)
+def _league_with_personal_link(sub: str = "unlink-comm", *, linked: bool = True,
+                              legacy_workspace: bool = False) -> dict:
+    """The manager's personal link is separate from an explicitly linked league."""
+    workspace = storage.get_or_create_workspace(sub, season=2026)
     storage.update_sleeper_link(sub, sleeper_league_id=SLEEPER_ID, sleeper_roster_id="2")
-    return storage.create_league(sub, "Unlink League", 2026, LeagueRules(), team_count=4)
+    league = storage.create_league(sub, "Unlink League", 2026, LeagueRules(), team_count=4,
+                                   workspace_id=workspace["id"] if legacy_workspace else None)
+    if linked and not legacy_workspace:
+        storage.update_league_sleeper_id(league["id"], SLEEPER_ID)
+    return storage.get_league(league["id"])
 
 
 def _add_slot(ws_id: str, team_id: str, player_id: str, source: str) -> None:
@@ -50,11 +55,13 @@ def _add_slot(ws_id: str, team_id: str, player_id: str, source: str) -> None:
     )
 
 
-def test_league_inherits_commissioner_personal_sleeper_link(hub_db):
-    """Documents why leagues turn up Sleeper-hosted without anyone connecting one."""
-    league = _league_with_personal_link()
-    assert league["sleeper_league_id"] == SLEEPER_ID
-    assert sleeper_hosts_scoring(league) is True
+def test_dedicated_native_league_does_not_inherit_personal_sleeper_link(hub_db):
+    league = _league_with_personal_link(linked=False)
+    assert league["sleeper_league_id"] is None
+    assert sleeper_hosts_scoring(league) is False
+    assert resolve_sleeper_league_id(league["id"]) is None
+    assert storage.get_team_by_user(league["id"], "unlink-comm")["sleeper_roster_id"] is None
+    assert storage.get_or_create_workspace("unlink-comm", season=2026)["sleeper_league_id"] == SLEEPER_ID
 
 
 def test_unlink_clears_link_and_makes_league_hub_hosted(hub_db):
@@ -73,8 +80,8 @@ def test_unlink_clears_link_and_makes_league_hub_hosted(hub_db):
 
 def test_unlink_survives_link_inference(hub_db):
     """resolve_sleeper_league_id must not re-attach the personal link afterwards."""
-    league = _league_with_personal_link()
-    # Inference would re-link an unflagged league with no id of its own.
+    league = _league_with_personal_link(legacy_workspace=True)
+    # The scoped fallback exists only for an exact commissioner-owned legacy pool.
     storage.clear_league_sleeper_id(league["id"], disable_hosting=False)
     assert resolve_sleeper_league_id(league["id"]) == SLEEPER_ID
 
@@ -137,10 +144,11 @@ def test_reconnect_lifts_the_unlink_flag(hub_db):
     disconnect_sleeper_league(league["id"])
     assert resolve_sleeper_league_id(league["id"]) is None
 
-    # connect_sleeper_league clears the flag; it needs the Sleeper API, so assert
-    # the storage write it performs restores inference.
+    # Clearing the opt-out flag alone cannot inherit an unrelated personal link.
     storage.set_league_sleeper_hosting_disabled(league["id"], False)
-
+    assert resolve_sleeper_league_id(league["id"]) is None
+    # Explicit reconnect supplies the league ID, as connect_sleeper_league does.
+    storage.update_league_sleeper_id(league["id"], SLEEPER_ID)
     assert resolve_sleeper_league_id(league["id"]) == SLEEPER_ID
 
 

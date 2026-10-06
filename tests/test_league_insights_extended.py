@@ -280,8 +280,10 @@ def test_resolve_sleeper_league_id_from_member_workspace(tmp_path, monkeypatch):
 
     assert storage.get_league(league["id"]).get("sleeper_league_id") is None
     resolved = resolve_sleeper_league_id(league["id"])
-    assert resolved == "777888999"
-    assert storage.get_league(league["id"]).get("sleeper_league_id") == "777888999"
+    assert resolved is None
+    assert storage.get_league(league["id"]).get("sleeper_league_id") is None
+    storage.update_league_sleeper_id(league["id"], "777888999")
+    assert resolve_sleeper_league_id(league["id"]) == "777888999"
 
 
 def test_preseason_scoring_from_rosters_when_no_matchups(monkeypatch):
@@ -293,6 +295,8 @@ def test_preseason_scoring_from_rosters_when_no_matchups(monkeypatch):
     def fake_fetch(url, timeout=25):
         if url.endswith("/league/sl123"):
             return {"season": "2026", "status": "pre_draft", "settings": {"playoff_week_start": 15}}
+        if url.endswith("/rosters"):
+            return [{"roster_id": 1, "settings": {}}, {"roster_id": 2, "settings": {}}]
         if "/matchups/" in url:
             return []
         raise AssertionError(url)
@@ -307,6 +311,9 @@ def test_preseason_scoring_from_rosters_when_no_matchups(monkeypatch):
         }
 
     monkeypatch.setattr("src.draft_hub.league_history._fetch_json", fake_fetch)
+    monkeypatch.setattr("src.draft_hub.league_history._sleeper_roster_labels", lambda *a, **k: {"1": "Hub Alpha", "2": "Beta"})
+    monkeypatch.setattr("src.draft_hub.league_history._sleeper_roster_meta", lambda *a, **k: {})
+    monkeypatch.setattr("src.draft_hub.league_history._playoff_from_sleeper", lambda *a: None)
     monkeypatch.setattr("src.integrations.sleeper_league.list_league_teams", fake_list)
 
     out = build_sleeper_scoring_history(

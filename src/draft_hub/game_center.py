@@ -45,7 +45,7 @@ def game_center_payload(payload: dict, league_id: str, *, game_states=None) -> d
         season, week = int(out["season"]), int(out["week"])
     except (KeyError, ValueError, TypeError):
         return out
-    states = cached_game_states(season, week) if game_states is None else game_states
+    states = (out.get("game_states") or cached_game_states(season, week)) if game_states is None else game_states
     out["has_live_games"] = any(g.get("game_state") == "live" for g in states.values()) and not out.get("preseason")
     if not out.get("scoring_control") and states and all(g.get("game_state") == "final" for g in states.values()) and not out.get("preseason"):
         out["week_complete"] = True

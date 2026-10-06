@@ -402,11 +402,8 @@ export default function ValueSheetTable({
   };
 
   const postAddPlayer = useCallback(async (row, { force = false } = {}) => {
-    const sal = effectiveAuctionBid(row, riskTolerance, rules)
-      ?? row.fair_value
-      ?? row.model_bid_hint
-      ?? row.min_sal
-      ?? 1;
+    const sal = inLeague ? (pickDraft ? 0 : 1)
+      : effectiveAuctionBid(row, riskTolerance, rules) ?? row.fair_value ?? row.model_bid_hint ?? row.min_sal ?? 1;
     const res = await apiFetch("/api/hub/roster", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -421,7 +418,7 @@ export default function ValueSheetTable({
       }),
     });
     if (!res.ok) throw new Error(await parseApiError(res));
-  }, [riskTolerance, rules]);
+  }, [inLeague, pickDraft, riskTolerance, rules]);
 
   const postBid = useCallback(async (row, amount) => {
     const sal = parseWalkaway(amount)
@@ -851,6 +848,7 @@ export default function ValueSheetTable({
       {bidDraft ? (
         <FaBidDialog
           playerName={bidDraft.row.player || bidDraft.row.player_name}
+          remainingBudget={remainingCap}
           amount={bidDraft.amount}
           ceiling={bidDraft.ceiling}
           firstPrompt={bidDraft.firstPrompt}

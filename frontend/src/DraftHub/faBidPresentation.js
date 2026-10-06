@@ -13,6 +13,7 @@ export const FA_BID_COPY = {
   pass: "Pass",
   title: "Place FA bid",
   amountLabel: "Bid",
+  overBudget: "This bid exceeds your available cap.",
   ceilingLabel: "Walk-away",
 };
 

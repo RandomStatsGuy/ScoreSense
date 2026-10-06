@@ -5,7 +5,7 @@ export const INSIGHTS_TABS = [
   { id: "contracts", label: "Contracts", roles: ["owner", "commissioner"], salaryOnly: true },
   { id: "cap", label: "Spend", roles: ["owner", "commissioner"], salaryOnly: true },
   { id: "scoring", label: "Scoring", roles: ["owner", "commissioner"] },
-  { id: "ownership", label: "History", roles: ["owner", "commissioner"] },
+  { id: "ownership", label: "History", roles: ["owner", "commissioner"], salaryOnly: true },
 ];
 
 /** Legacy tab ids from old URLs. */

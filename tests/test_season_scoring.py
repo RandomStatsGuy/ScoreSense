@@ -76,3 +76,26 @@ def test_database_read_scopes_season_league_and_hides_missing_feed_week(hub_db, 
     result = scores.team_scores({"league_id":"mine","id":"team"})
     assert result["incomplete"] and not result["available"]
     assert result["players"]["p"]["points"] is None
+
+def test_native_missing_bench_stats_do_not_create_a_zero_point_played_game(hub_db):
+    import json
+    from src.draft_hub import storage
+
+    played_zero = {"position": "QB", "passing_yards": 0, "_native_played": True,
+                   "_native_player_key": "sleeper:played"}
+    scores.native_week("native-log", 2026, 1, {
+        "missing-bench": {"position": "QB", "_native_stats_unavailable": 1},
+        "verified-bye": {"position": "DEF", "_native_no_game": 1},
+        "did-not-play": {"position": "WR", "receptions": 0, "_native_played": False},
+        "played-zero": played_zero,
+        "sleeper-played-zero": played_zero,
+    }, ScoringRules())
+    with storage.get_conn() as conn:
+        saved = conn.execute("SELECT payload_json FROM player_season_week WHERE source=? AND season=? AND week=?",
+                             ("native-log", 2026, 1)).fetchone()
+    rows = json.loads(saved["payload_json"])
+    assert rows == [{"aliases": ["played-zero", "sleeper-played-zero"], "position": "QB",
+                     "opponent": None, "points": 0}]
+    players = scores.summarize({1: rows}, [{"player_id": "played-zero"}, {"player_id": "missing-bench"}], {})
+    assert players["played-zero"]["games"] == 1 and players["played-zero"]["points"] == 0
+    assert players["missing-bench"]["games"] == 0 and players["missing-bench"]["points"] is None

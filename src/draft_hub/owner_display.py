@@ -393,6 +393,11 @@ def enrich_insights_landing(
     if not landing:
         return landing
     out = dict(landing)
+    out["current_standings"] = [
+        enrich_team_row({**row, "season": landing.get("current_season")}, owner_map,
+                        year_specific=True, sleeper_owner_map=sleeper_owner_map)
+        for row in landing.get("current_standings") or []
+    ]
     out["season_summaries"] = [
         {**summary, "standings": [
             enrich_team_row({**row, "season": summary.get("season")}, owner_map, sleeper_owner_map=sleeper_owner_map)

@@ -12,6 +12,10 @@ export const POS_COLORS = {
   DEF: "#64748b",
 };
 
+export function scoringAwardsForFormat(awards, salaryLeague) {
+  return (awards || []).filter(award => salaryLeague || !String(award?.id || "").startsWith("cap_efficiency_"));
+}
+
 const TONE_PRIORITY = { gold: 0, bad: 1, good: 2 };
 
 function ownerFromMap(team, ownerMap) {
@@ -442,8 +446,8 @@ export const INSIGHTS_COPY = {
     titlesNoun: "titles",
     titlesYears: "Championship years",
     titlesEmpty: "Champions appear once a season’s bracket is complete.",
-    titlesSupport: "Championships from the Sleeper bracket.",
-    titlesNone: "No completed championships in the Sleeper history yet.",
+    titlesSupport: "Recorded league championships.",
+    titlesNone: "No completed championships recorded yet.",
     defeated: (name) => `def. ${name}`,
     plaqueSupport: ({ titles, lastSeason, runnerUp }) => {
       const bits = [`${titles} championships`];
@@ -463,13 +467,20 @@ export const INSIGHTS_COPY = {
     scoringSupport: "Points behind the all-time leader.",
     scoringEmpty: "No scoring history yet.",
     openScoring: "Open scoring",
-    empty: "No league history is available yet. Check the Sleeper connection or refresh league history.",
+    empty: "No saved league results are available yet.",
     loading: "Loading league history",
     refresh: "Refresh history",
     refreshing: "Refreshing…",
     saved: (time) => time || "Saved history",
-    savedEmpty: "History updates when you sync the league.",
-    partial: "Some seasons need a refresh",
+    savedEmpty: "Results appear after games are finalized.",
+    partial: "Some results need a refresh",
+    standings: "Season standings",
+    standingsSupport: (season) => `${season || "Current season"} · finalized records and points`,
+    manager: "Manager",
+    record: "W–L–T",
+    pointsFor: "Points for",
+    pointsAgainst: "Points against",
+    rank: "Rank",
   },
   awards: {
     heading: "Award names",
@@ -504,6 +515,17 @@ export const INSIGHTS_COPY = {
     placeInPoints: rank => "#" + rank + " in points", weeks: count => count + " weeks",
     weeksScored: count => count + " weeks scored",
     support: "Compare points scored, records, and scoring consistency.",
+    currentSeason: "Current season",
+    playerContributions: "Player scoring",
+    playerContributionsSupport: "Points earned in starting lineups, grouped by manager and season. Bench points are excluded.",
+    points: "Points",
+    starts: "Starts",
+    player: "Player",
+    season: "Season",
+    nativeEmptyTitle: "Waiting for finalized games",
+    nativeEmpty: "League records and player scoring appear after saved weekly results are finalized.",
+    nativeSource: "ScoreSense",
+    linkedSource: "Sleeper",
   },
   history: {
     eyebrow: "History",

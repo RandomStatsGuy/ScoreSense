@@ -304,13 +304,17 @@ def test_get_roster_slot_team_id_is_strict(hub_db):
     assert storage.get_roster_slot(ws_id, "00-0033873", team_id=member["id"]) is None
 
 
-def test_ordinary_add_rejects_negative_and_over_cap(hub_db, monkeypatch):
+def test_ordinary_add_rejects_negative_and_enforces_server_fee_cap(hub_db, monkeypatch, trusted_native_catalog):
+    trusted_native_catalog("00-0034857", name="Josh Allen", team="BUF", position="QB",
+                           sleeper_player_id="4984", gsis_id="00-0034857")
+    trusted_native_catalog("00-0033873", name="Patrick Mahomes", team="KC", position="QB",
+                           sleeper_player_id="4046", gsis_id="00-0033873")
     league, _owner, member, ws_id = _seed_two_teams("comm-money", "member-money")
     _open_fa(monkeypatch, league)
     storage.set_hub_focus("member-money", league_id=league["id"])
     client = _client_for("member-money")
     payload = {
-        "player_id": "00-0035228",
+        "player_id": "00-0034857",
         "player_name": "Josh Allen",
         "team": "BUF",
         "position": "QB",
@@ -320,15 +324,28 @@ def test_ordinary_add_rejects_negative_and_over_cap(hub_db, monkeypatch):
     try:
         negative = client.post("/api/hub/roster", json=payload)
         assert negative.status_code in (400, 422)
-        assert storage.get_roster_slot(ws_id, "00-0035228") is None
+        assert storage.get_roster_slot(ws_id, "00-0034857") is None
 
-        over = client.post("/api/hub/roster", json={**payload, "salary": 1000})
-        assert over.status_code == 400
+        # Ordinary adds charge the server fee regardless of a positive client salary.
+        canonical = client.post("/api/hub/roster", json={**payload, "salary": 1000})
+        assert canonical.status_code == 200, canonical.text
+        slot = storage.get_roster_slot(ws_id, "00-0034857")
+        assert slot["team_id"] == member["id"]
+        assert slot["salary"] == 1 and slot["contract_years"] == 1
+        assert slot["contract"]["acquisition_type"] == "fa_contract"
+
+        # Saved rules now leave no room for another actual $1 acquisition.
+        rules = LeagueRules.model_validate(storage.get_league(league["id"])["rules"])
+        rules.salary_cap = 1
+        storage.update_league_rules(league["id"], rules)
+        over = client.post("/api/hub/roster", json={
+            **payload, "player_id": "00-0033873", "player_name": "Patrick Mahomes",
+            "team": "KC", "salary": 0,
+        })
+        assert over.status_code == 400, over.text
         assert "over cap" in over.json()["detail"].lower()
-        assert storage.get_roster_slot(ws_id, "00-0035228") is None
-
-        ok = client.post("/api/hub/roster", json={**payload, "salary": 40})
-        assert ok.status_code == 200
-        assert storage.get_roster_slot(ws_id, "00-0035228") is not None
+        assert storage.get_roster_slot(ws_id, "00-0033873") is None
+        assert storage.get_roster_slot(ws_id, "00-0034857")["salary"] == 1
+        assert len(storage.list_team_roster(league["id"], member["id"])) == 1
     finally:
         app.dependency_overrides.pop(require_hub_user, None)

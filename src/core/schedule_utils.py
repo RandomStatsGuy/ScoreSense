@@ -229,10 +229,10 @@ def schedule_kickoff_utc(gameday, gametime) -> pd.Timestamp | None:
     return pd.Timestamp(kick).tz_convert("UTC")
 
 
-def team_game_kickoffs(season: int, team: str) -> pd.DataFrame:
+def team_game_kickoffs(season: int, team: str, *, allow_fetch: bool = True) -> pd.DataFrame:
     """Regular-season kickoff times for one team, sorted by week."""
     team = str(team).upper()
-    schedules = _load_schedules([season])
+    schedules = _load_schedules([season], allow_fetch=allow_fetch)
     reg = schedules[
         (schedules["season"] == season)
         & (schedules["week"] <= REGULAR_SEASON_MAX_WEEK)

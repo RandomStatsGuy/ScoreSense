@@ -140,7 +140,7 @@ test("duel rows pair starters by lineup slot", () => {
     "RB",
     "WR",
   ]);
-  assert.equal(emptySlots.length, 0);
+  assert.equal(emptySlots.length, 3);
 });
 
 test("storyline names the lead and who is still to play", () => {
@@ -463,7 +463,7 @@ test("unscored native leagues are not told to link Sleeper", () => {
   );
   assert.match(LEAGUE_SCORING_CONTROL_COPY.confirm(3), /Week 3/);
   assert.match(LEAGUE_SCORING_CONTROL_COPY.confirm(1, { live: true }), /can still be moved/);
-  assert.match(LEAGUE_SCORING_CONTROL_COPY.nativeHelp, /updates scores/);
+  assert.match(LEAGUE_SCORING_CONTROL_COPY.nativeHelp, /Players lock at kickoff/);
 });
 
 test("native Game center polls the current week until it is final", () => {

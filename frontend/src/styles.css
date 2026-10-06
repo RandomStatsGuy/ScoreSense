@@ -2467,6 +2467,21 @@ input[type="search"].search-input {
   border-bottom: 1px solid var(--state-empty-border);
 }
 
+.hub-table.hub-table--packed .hub-col-label {
+  width: 1%;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .hub-table.hub-table--packed .hub-col-label { white-space: normal; }
+}
+
+.hub-table.hub-table--packed .num {
+  width: 1%;
+  white-space: nowrap;
+  padding-inline: var(--space-1);
+}
+
 .hub-table .col-player {
   position: sticky;
   left: 0;

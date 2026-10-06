@@ -671,7 +671,8 @@ def test_live_scoring_route_no_sleeper(hub_client, hub_db, monkeypatch):
     assert body["placeholder"] is True
     assert body["preseason"] is False
     assert body["reason"] == "hub_unscored"
-    assert body["hint"] == "Scores update as weekly NFL stats arrive."
+    assert body["hint"] == "Scores appear when this week's games begin."
+    assert body["scoring_control"]["final"] is False
     assert body["week"] == 2
     assert len(body["matchups"]) == 1
     names = {team["team_name"] for team in body["matchups"][0]["teams"]}
