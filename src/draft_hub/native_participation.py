@@ -195,6 +195,9 @@ def enrich_inactive_players(snapshot: dict[str, Any], rows: list[dict[str, Any]]
     if (snapshot.get("season", int(season)) != int(season)
             or snapshot.get("week", int(week)) != int(week)):
         return snapshot
+    if not any(state.get("game_state") == "final" and state.get("completed") is True
+               for state in (snapshot.get("game_states") or {}).values()):
+        return snapshot  # No completed event can establish historical DNP proof.
     result = copy.deepcopy(snapshot)
     proofs = dict(result.get("inactive_proofs") or {})
     warnings = []

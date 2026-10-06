@@ -145,6 +145,16 @@ def test_pure_resolver_and_cached_snapshot_read_never_fetch_inactive_proof(proof
     assert proof_provider[2] == []
 
 
+@pytest.mark.parametrize("state", [None, {"game_state": "pregame", "completed": False},
+    {"game_state": "live", "completed": False}, {"game_state": "final", "completed": False}])
+def test_without_completed_final_event_enrichment_never_probes_resolver_or_provider(proof_provider, monkeypatch, state):
+    snapshot = raw_snapshot()
+    snapshot["game_states"] = {} if state is None else {"PHI": state}
+    monkeypatch.setattr(native_stats, "resolve_lineup_stats", lambda *_: pytest.fail("No final event permits a proof probe"))
+    assert participation.enrich_inactive_players(snapshot, [player()], SEASON, WEEK) is snapshot
+    assert proof_provider[2] == []
+
+
 def test_provider_failure_remains_unknown_and_is_coalesced(proof_provider, monkeypatch):
     calls = []
     def unavailable(url):
