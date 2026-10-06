@@ -183,7 +183,7 @@ export default function RulesWizard({
   );
   const errorCategory = (key) => key.startsWith("scoring.") ? "scoring"
     : key.startsWith("roster_") ? "roster"
-    : ["name", "season", "salary_cap"].includes(key) ? "foundation"
+    : ["name", "season", "salary_cap", "regular_season_games", "playoff_teams", "playoff_start"].includes(key) ? "foundation"
     : ["min_bid", "nomination_timer_sec", "bid_timer_sec", "bid_extension_sec"].includes(key) ? "draft" : "contracts";
   const categoryErrorCount = (id) => Object.keys(errors).filter((key) => errorCategory(key) === id).length;
   const warningList = Object.values(warnings);
@@ -307,7 +307,7 @@ export default function RulesWizard({
       rules,
       label: preset.label,
     });
-    setRules({ ...nextRules, scoring: rules.scoring });
+    setRules({ ...nextRules, scoring: rules.scoring, regular_season_games: rules.regular_season_games, playoffs: rules.playoffs });
     setStatus({ kind: "", text: "" });
   };
 
@@ -481,6 +481,30 @@ export default function RulesWizard({
                 ))}
               </div>
             </fieldset>
+
+            {!sleeperLinked && <>
+              <div className="hub-rules-field-grid">
+                <label><span>{RULES_COPY.regularWeeks}</span><input type="number" min="1" max="18" value={rules.regular_season_games} disabled={readOnlyRules}
+                  onChange={(e) => updateRules((current) => ({ ...current, regular_season_games: Number(e.target.value) }))} />
+                  <RuleError>{errors.regular_season_games}</RuleError></label>
+              </div>
+              <PolicyToggle checked={rules.playoffs.enabled} disabled={readOnlyRules} title={RULES_COPY.playoffs} description={RULES_COPY.playoffsHelp}
+                onChange={(enabled) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, enabled } }))} />
+              {rules.playoffs.enabled && <>
+                <div className="hub-rules-field-grid">
+                  <label><span>{RULES_COPY.playoffTeams}</span><input type="number" min="2" max="14" value={rules.playoffs.teams} disabled={readOnlyRules}
+                    onChange={(e) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, teams: Number(e.target.value) } }))} />
+                    <RuleError>{errors.playoff_teams}</RuleError></label>
+                  <label><span>{RULES_COPY.playoffStart}</span><input type="number" min="2" max="18" value={rules.playoffs.start_week ?? Number(rules.regular_season_games) + 1} disabled={readOnlyRules}
+                    onChange={(e) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, start_week: Number(e.target.value) } }))} />
+                    <RuleError>{errors.playoff_start}</RuleError></label>
+                </div>
+                <PolicyToggle checked={rules.playoffs.reseed} disabled={readOnlyRules} title={RULES_COPY.reseed} description={RULES_COPY.reseedHelp}
+                  onChange={(reseed) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, reseed } }))} />
+                <PolicyToggle checked={rules.playoffs.third_place} disabled={readOnlyRules} title={RULES_COPY.thirdPlace} description={RULES_COPY.thirdPlaceHelp}
+                  onChange={(third_place) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, third_place } }))} />
+              </>}
+            </>}
 
             {!pickDraft && (
               <div className="hub-rules-risk">

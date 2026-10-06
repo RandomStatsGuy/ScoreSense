@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { HubPage } from "../HubUILayout";
+import useMobileLayout from "../../useMobileLayout";
 import { InsightsOverviewSkeleton } from "./InsightsChrome";
 import { championYearRows, formatPoints, formatRecordLine, INSIGHTS_COPY,
   overviewPlaque, scoringTeamKey, teamDisplayName } from "./insightsPresentation";
 
 export default function InsightsOverview({ landing, ownerMap, loading, error, onOpenTab }) {
   const [sort, setSort] = useState("record");
+  const mobile = useMobileLayout();
   const copy = INSIGHTS_COPY.overview;
   const plaque = useMemo(() => overviewPlaque(landing?.most_titles, landing?.champions || [], ownerMap), [landing, ownerMap]);
   const years = useMemo(() => championYearRows(landing?.champions || [], landing?.most_titles, ownerMap), [landing, ownerMap]);
@@ -58,6 +60,13 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
         })}</ol>
         {!records.length && <p className="chart-note">{copy.recordsEmpty}</p>}
       </section>
+      {(landing.current_standings || []).length > 0 && <section className="hub-insights-overview-panel" aria-label={copy.standings}>
+        <div className="hub-insights-talk-head"><h2>{copy.standings}</h2><p className="chart-note">{copy.standingsSupport(landing.current_season)}</p></div>
+        <div className="table-wrap"><table className="data-table hub-table hub-table--packed">
+          <thead><tr><th className="num">{copy.rank}</th><th>{copy.manager}</th><th className="num">{copy.record}</th><th className="num" aria-label={copy.pointsFor}>{mobile ? "PF" : copy.pointsFor}</th><th className="num" aria-label={copy.pointsAgainst}>{mobile ? "PA" : copy.pointsAgainst}</th></tr></thead>
+          <tbody>{landing.current_standings.map((row, index) => <tr key={`${scoringTeamKey(row)}:${index}`}><td className="num">{row.rank == null ? "—" : row.rank}</td><td>{teamDisplayName(row, ownerMap, true)}</td><td className="num">{formatRecordLine(row)}</td><td className="num">{formatPoints(row.points_for ?? row.total_points)}</td><td className="num">{row.points_against == null ? "—" : formatPoints(row.points_against)}</td></tr>)}</tbody>
+        </table></div>
+      </section>}
       {landing.partial && <p className="chart-note">{copy.partial}. Refresh history to fill in missing seasons.</p>}
     </div>}
   </HubPage>;

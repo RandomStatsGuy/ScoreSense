@@ -2,10 +2,20 @@ import pytest
 
 from src.draft_hub import storage, hub_scoring, week_corrections as corrections
 from src.draft_hub.schemas import LeagueRules
+from src.draft_hub import native_stats
 
 
 @pytest.fixture
-def recovery(hub_db, monkeypatch):
+def recovery(hub_db, monkeypatch, trusted_native_roster_rows):
+    trusted_native_roster_rows("past-qb", name="Drake Maye", team="NE", position="QB")
+    trusted_native_roster_rows("other-qb", team="DAL", position="QB")
+    trusted_native_roster_rows("duplicate", team="NE", position="QB")
+    monkeypatch.setattr(native_stats, "get_week_snapshot", lambda *args: {
+        "complete": hub_scoring.nfl_week_slate_complete(*args),
+        "stats": hub_scoring.load_week_stat_index(*args)})
+    monkeypatch.setattr(native_stats, "cached_week_snapshot", lambda *_: None)
+    monkeypatch.setattr(native_stats, "resolve_lineup_stats", lambda row, snapshot:
+                        hub_scoring.stats_for_lineup_row(snapshot["stats"], row))
     rules = LeagueRules(draft_type="snake", roster={"qb": {"starter": 1, "max": 3}}, roster_size_max=3)
     league = storage.create_league("commissioner", "Recovery", 2026, rules)
     home = storage.get_team_by_user(league["id"], "commissioner")
@@ -151,7 +161,7 @@ def test_native_singleton_slots_can_be_previewed(recovery, slot):
     recovery[3][0]["players"][0]["slot"] = slot
     result = preview(recovery)
     assert result["can_publish"]
-    assert all(row["slot"] == "QB1" for row in result["player_scores"])
+    assert all(row["slot"] == "QB" for row in result["player_scores"])
 
 
 def test_mixed_slot_aliases_still_reject_duplicate_starters(recovery):
@@ -179,9 +189,9 @@ def lineup_preview(recovery):
 
 
 def test_lineup_repair_before_slate_ends_without_statistics(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
     monkeypatch.setattr(hub_scoring, "load_week_stat_index", lambda *args: pytest.fail("Lineup repair must not load stats"))
-    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda team, *args: team == "NE")
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda team, *args, **kwargs: team == "NE")
     recovery[3][0]["players"][0]["nfl_team"] = "NE"
     recovery[3][1]["players"][0]["nfl_team"] = "DAL"
     storage.replace_team_lineup(recovery[0], recovery[1], 2026, 2,
@@ -203,7 +213,7 @@ def test_lineup_repair_before_slate_ends_without_statistics(recovery, monkeypatc
 
 
 def test_lineup_only_audit_allows_subsequent_scoring_and_final_correction(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args, **kwargs: False)
     result = lineup_preview(recovery)
     publish(recovery[0], result)
     scoring = storage.get_league(recovery[0])["rules"]["scoring"]
@@ -219,7 +229,7 @@ def test_lineup_only_audit_allows_subsequent_scoring_and_final_correction(recove
 
 
 def test_lineup_only_repair_rejects_stale_preview_and_unauthorized_actor(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args, **kwargs: False)
     result = lineup_preview(recovery)
     with pytest.raises(PermissionError):
         corrections.publish_correction(recovery[0], 2026, 1, "manager", result["id"],
@@ -231,7 +241,7 @@ def test_lineup_only_repair_rejects_stale_preview_and_unauthorized_actor(recover
 
 
 def test_final_results_still_require_completed_slate(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
     result = preview(recovery)
     assert not result["can_publish"]
     with pytest.raises(corrections.CorrectionError, match="not complete"):

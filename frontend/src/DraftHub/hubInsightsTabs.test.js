@@ -21,12 +21,13 @@ test("no-money leagues drop Spend from Insights", () => {
   const caps = { uses_salaries: false, uses_contracts: false };
   assert.deepEqual(
     visibleInsightsTabs(true, caps).map((t) => t.id),
-    ["overview", "scoring", "ownership"],
+    ["overview", "scoring"],
   );
   assert.equal(isInsightTabAllowed("cap", true, caps), false);
   // Legacy salary URLs must not sneak the tab back in.
   assert.equal(isInsightTabAllowed("salaries", true, caps), false);
   assert.equal(isInsightTabAllowed("contracts", true, caps), false);
+  assert.equal(isInsightTabAllowed("ownership", true, caps), false);
   assert.equal(isInsightTabAllowed("desk", true, caps), false);
   assert.equal(defaultInsightTab(true, caps), "overview");
 });

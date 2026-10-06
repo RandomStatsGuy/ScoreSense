@@ -139,3 +139,53 @@ def before_nfl_week_one(monkeypatch):
         "src.draft_hub.hub_scoring._utcnow",
         lambda: datetime(2026, 9, 1, tzinfo=timezone.utc),
     )
+
+
+@pytest.fixture()
+def trusted_native_catalog(tmp_path, monkeypatch):
+    """Explicit trusted player records for synthetic acquisition/lineup fixtures."""
+    import json
+    import re
+
+    from src.draft_hub import player_identity
+    from src.integrations import sleeper
+
+    path = tmp_path / "trusted_sleeper_players.json"
+    records = {}
+    path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(sleeper, "PLAYERS_CACHE", path)
+    monkeypatch.setattr(player_identity, "DRAFT_POOL_DIR", tmp_path / "draft_pool")
+    player_identity.clear_player_identity_cache()
+
+    def register(player_id, *, name=None, team="KC", position="WR",
+                 sleeper_player_id=None, gsis_id=None):
+        pid = str(player_id)
+        sid = str(sleeper_player_id or pid.removeprefix("sleeper-"))
+        gsis = gsis_id or (pid if re.fullmatch(r"00-\d{7}", pid) else None)
+        if sid not in records:
+            records[sid] = {"full_name": name or f"Player {pid}", "team": team,
+                            "position": position, "gsis_id": gsis}
+            path.write_text(json.dumps(records), encoding="utf-8")
+            player_identity.clear_player_identity_cache()
+        return records[sid]
+
+    yield register
+    player_identity.clear_player_identity_cache()
+
+
+@pytest.fixture()
+def trusted_native_roster_rows(trusted_native_catalog, monkeypatch):
+    """Treat explicitly seeded DB rows as trusted test catalog entries."""
+    from src.draft_hub import storage
+
+    original_add = storage.add_roster_slot
+
+    def add(workspace_id, row, *args, **kwargs):
+        trusted_native_catalog(row["player_id"], name=row.get("player_name"),
+                               team=row.get("team") or row.get("nfl_team") or "KC",
+                               position=row.get("position") or "WR",
+                               sleeper_player_id=row.get("sleeper_player_id"))
+        return original_add(workspace_id, row, *args, **kwargs)
+
+    monkeypatch.setattr(storage, "add_roster_slot", add)
+    return trusted_native_catalog

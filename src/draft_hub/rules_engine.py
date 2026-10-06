@@ -28,7 +28,7 @@ def roster_limits(rules: LeagueRules) -> dict[str, dict[str, int]]:
             continue
         out[key.lower()] = {
             "min": int(val.get("min") or 0),
-            "max": int(val.get("max") or 99),
+            "max": int(val["max"]) if val.get("max") is not None else 99,
             "starter": int(val.get("starter") or 0),
         }
     return out
@@ -101,13 +101,24 @@ def blocking_acquisition_errors(rules: LeagueRules, roster: list[dict[str, Any]]
     """Illegal-money / over-limit errors. Incomplete-roster mins are not blockers."""
     if salary_roster_limits_relaxed(rules):
         return []
-    roster = cap_relevant_roster(rules, roster)
+    from src.draft_hub.storage import roster_row_occupies
+    from src.draft_hub.draft_budgets import total_roster_slots
+
+    active = [row for row in roster if roster_row_occupies(row)]
     errors: list[str] = []
     summary = cap_summary(rules, roster)
     if uses_salaries(rules) and summary["remaining"] < 0:
         errors.append(f"Over cap by ${abs(summary['remaining']):.0f}")
+    maximum = total_roster_slots(rules)
+    if (rules.roster_size_max is not None or roster_limits(rules)) and len(active) > maximum:
+        errors.append(f"Roster exceeds maximum size ({maximum})")
     limits = roster_limits(rules)
-    counts = summary["by_position_count"]
+    counts: dict[str, int] = {}
+    for row in active:
+        position = normalize_position(row.get("position"))
+        if position not in {"QB", "RB", "WR", "TE", "K", "DEF"} or (limits and position.lower() not in limits):
+            errors.append(f"Position {position or 'unknown'} is not available in this league")
+        counts[position] = counts.get(position, 0) + 1
     for pos, lim in limits.items():
         pos_key = pos.upper()
         count = counts.get(pos_key, 0)
@@ -289,11 +300,13 @@ def assert_can_acquire(rules: LeagueRules, roster: list[dict[str, Any]], positio
         return
     occupying = _occupying(rules, roster)
     total_max = total_roster_slots(rules)
-    if total_max and len(occupying) >= total_max:
+    if (rules.roster_size_max is not None or roster_limits(rules)) and len(occupying) >= total_max:
         raise ValueError(f"Roster at maximum size ({total_max})")
     pos = normalize_position(position)
     pos_key = pos.lower()
     limits = roster_limits(rules)
+    if pos not in {"QB", "RB", "WR", "TE", "K", "DEF"} or (limits and pos_key not in limits):
+        raise ValueError(f"Position {pos or 'unknown'} is not available in this league")
     lim = limits.get(pos_key)
     if not lim:
         return

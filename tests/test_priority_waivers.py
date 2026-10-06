@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -18,6 +20,15 @@ from src.draft_hub.schemas import LeagueRules
 ET = ZoneInfo("America/New_York")
 
 
+_register_claim = None
+
+@pytest.fixture(autouse=True)
+def trusted_priority_players(trusted_native_catalog, trusted_native_roster_rows, monkeypatch):
+    import sys
+    monkeypatch.setattr(sys.modules[__name__], "_register_claim", trusted_native_catalog)
+
+
+
 def _league():
     rules = LeagueRules(draft_type="snake")
     league = storage.create_league("claim-comm", "Claims", 2026, rules, team_count=3)
@@ -30,6 +41,8 @@ def _league():
 
 
 def _claim(player_id, name, position="WR", drop_player_id=None):
+    if _register_claim:
+        _register_claim(player_id, name=name, team="FA", position=position)
     return {
         "player_id": player_id,
         "player_name": name,

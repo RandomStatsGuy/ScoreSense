@@ -911,6 +911,15 @@ def _migrate(conn: sqlite3.Connection) -> None:
             PRIMARY KEY (league_id, season, week)
         )"""
     )
+    conn.execute("""CREATE TABLE IF NOT EXISTS league_week_lineup_snapshot (
+        league_id TEXT NOT NULL, team_id TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+        PRIMARY KEY (league_id,team_id,season,week))""")
+    conn.execute("""INSERT OR IGNORE INTO league_week_lineup_snapshot
+        SELECT league_id,team_id,season,week,MIN(updated_at),MAX(updated_at)
+        FROM league_week_lineup GROUP BY league_id,team_id,season,week""")
+
+    conn.execute("""CREATE TABLE IF NOT EXISTS league_native_live_week (league_id TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL, payload_json TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(league_id,season,week))""")
     _safe_add_column(conn, "league_week_scoring_run", "final", "INTEGER NOT NULL DEFAULT 1")
     conn.execute("""CREATE TABLE IF NOT EXISTS native_score_refresh (
         league_id TEXT NOT NULL, season INTEGER NOT NULL, week INTEGER NOT NULL,
@@ -1524,13 +1533,54 @@ def _insert_roster_slot_conn(
     ).fetchone()
 
 
-def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None = None) -> dict[str, Any]:
+def add_roster_slot(workspace_id: str, row: dict[str, Any], team_id: str | None = None,
+                    *, validate_rules=None, winning_bid_id: str | None = None,
+                    bid_window_id: str | None = None, bid_amount: float | None = None) -> dict[str, Any]:
     with get_conn() as conn:
+        if validate_rules is not None:
+            from src.draft_hub.rules_engine import blocking_acquisition_errors
+            from src.draft_hub.schemas import LeagueRules
+            conn.execute("BEGIN IMMEDIATE")
+            rules = validate_rules
+            league = conn.execute("SELECT * FROM league WHERE workspace_id=? OR id=?", (workspace_id, workspace_id)).fetchone()
+            if league is not None:
+                rules = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
+                team = conn.execute("SELECT league_id FROM team WHERE id=?", (team_id,)).fetchone()
+                if team is None or team["league_id"] != league["id"]:
+                    raise ValueError("Team does not belong to this league")
+                if row.get("_identity_guard"):
+                    from src.draft_hub.player_identity import resolve_acquisition_identity
+                    row = resolve_acquisition_identity(row, season=int(league["season"]))
+            if not isinstance(rules, LeagueRules):
+                rules = LeagueRules.model_validate(rules)
+            current = conn.execute("SELECT * FROM roster_slot WHERE workspace_id=? AND team_id=?",
+                                   (workspace_id, team_id or "")).fetchall()
+            if _occupying_identity_row_conn(conn, workspace_id, row):
+                raise ValueError("Player is already on a roster")
+            from src.draft_hub.player_identity import canonical_roster_metadata
+            validation_rows = canonical_roster_metadata([_roster_dict(r) for r in current] + [row],
+                                                       season=int(league["season"]) if league else None)
+            errors = blocking_acquisition_errors(rules, validation_rows)
+            if errors:
+                raise ValueError(errors[0])
+            if winning_bid_id:
+                from src.draft_hub.player_identity import player_identity_aliases
+                bid = conn.execute("SELECT * FROM fa_bid WHERE id=? AND status='open'", (winning_bid_id,)).fetchone()
+                amount = float(row["salary"] if bid_amount is None else bid_amount)
+                aliases = player_identity_aliases(row, season=int(league["season"]) if league else None)
+                if not bid or (league is not None and bid["league_id"] != league["id"]) or bid["window_id"] != bid_window_id or bid["team_id"] != team_id or bid["player_id"] not in aliases or float(bid["bid_amount"]) != amount:
+                    raise ValueError("The waiver claim changed during processing.")
         try:
             r = _insert_roster_slot_conn(conn, workspace_id, row, team_id)
         except sqlite3.IntegrityError as exc:
             raise ValueError("Player is already on a roster") from exc
         _bump_live_for_workspace_conn(conn, workspace_id)
+        if winning_bid_id:
+            now = _utcnow()
+            conn.execute("UPDATE fa_bid SET status='won',updated_at=? WHERE id=?", (now, winning_bid_id))
+            placeholders = ",".join("?" for _ in aliases)
+            conn.execute(f"UPDATE fa_bid SET status='lost',updated_at=? WHERE league_id=? AND window_id=? AND player_id IN ({placeholders}) AND id!=? AND status='open'",
+                         (now, bid["league_id"], bid_window_id, *sorted(aliases), winning_bid_id))
         return _roster_dict(r)
 
 
@@ -1622,8 +1672,11 @@ def update_roster_slot(
     edited_by_sub: str | None = None,
     note: str | None = None,
     allow_zero_years: bool = False,
+    validate_rules=None,
 ) -> dict[str, Any]:
     with get_conn() as conn:
+        if validate_rules is not None:
+            conn.execute("BEGIN IMMEDIATE")
         rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
@@ -1675,6 +1728,22 @@ def update_roster_slot(
             raise ValueError("Contract years must be at least 1")
         if yrs < 0:
             raise ValueError("Contract years cannot be negative")
+        if validate_rules is not None:
+            from src.draft_hub.schemas import LeagueRules
+            from src.draft_hub.rules_engine import blocking_acquisition_errors
+            league_row = conn.execute("SELECT rules_json,season FROM league WHERE workspace_id=? OR id=?", (workspace_id, workspace_id)).fetchone()
+            current_rules = LeagueRules.model_validate(json.loads(league_row["rules_json"])) if league_row else validate_rules
+            candidate = {**prior, "salary": sal, "contract_years": yrs,
+                         "contract": json.loads(contract_json or "{}"), "roster_status": effective_status}
+            if roster_row_occupies(candidate) and _occupying_identity_row_conn(conn, workspace_id, candidate, exclude_id=int(row["id"])):
+                raise ValueError("Player is already on a roster")
+            current = [_roster_dict(r) for r in conn.execute("SELECT * FROM roster_slot WHERE workspace_id=? AND team_id=? AND id!=?",
+                       (workspace_id, row["team_id"], row["id"])).fetchall()]
+            from src.draft_hub.player_identity import canonical_roster_metadata
+            errors = blocking_acquisition_errors(current_rules, canonical_roster_metadata([*current, candidate],
+                                                  season=int(league_row["season"]) if league_row else None))
+            if errors:
+                raise ValueError(errors[0])
         updates = ["salary = ?", "contract_years = ?", "contract_json = ?"]
         params: list[Any] = [sal, yrs, contract_json]
         if roster_status is not None:
@@ -2045,7 +2114,10 @@ def create_league(commissioner_sub: str, name: str, season: int, rules: LeagueRu
     sleeper_league_id = None
     if not test_mode:
         comm_ws = get_or_create_workspace(commissioner_sub, season)
-        sleeper_league_id = comm_ws.get("sleeper_league_id")
+        # Only an explicitly reused legacy pool carries its existing host.
+        # A dedicated league has no relationship to the manager's solo link.
+        if workspace_id and str(workspace_id) == str(comm_ws["id"]):
+            sleeper_league_id = comm_ws.get("sleeper_league_id")
     if test_mode:
         workspace_id = None
     elif workspace_id is None:
@@ -2084,10 +2156,10 @@ def create_league(commissioner_sub: str, name: str, season: int, rules: LeagueRu
                 commissioner_team_name,
                 rules.salary_cap,
                 now,
-                None if test_mode else (comm_ws or {}).get("sleeper_roster_id"),
-                None if test_mode else (comm_ws or {}).get("sleeper_team_name"),
-                None if test_mode else (json.dumps((comm_ws or {}).get("sleeper_player_ids") or []) if comm_ws else None),
-                None if test_mode else (comm_ws or {}).get("sleeper_synced_at"),
+                (comm_ws or {}).get("sleeper_roster_id") if sleeper_league_id else None,
+                (comm_ws or {}).get("sleeper_team_name") if sleeper_league_id else None,
+                json.dumps((comm_ws or {}).get("sleeper_player_ids") or []) if sleeper_league_id else None,
+                (comm_ws or {}).get("sleeper_synced_at") if sleeper_league_id else None,
             ),
         )
         session_id = str(uuid.uuid4())
@@ -2319,6 +2391,7 @@ def finalize_auction_win(
     contract_json = json.dumps(contract) if contract else None
     allowed = DRAFT_SESSION_UPDATE_FIELDS
     with get_conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         try:
             conn.execute(
                 """INSERT INTO auction_award_claim (league_id, player_id, awarded_at)
@@ -2327,10 +2400,30 @@ def finalize_auction_win(
             )
         except sqlite3.IntegrityError:
             return False
-        winner = conn.execute("SELECT budget_remaining FROM team WHERE id = ?", (winner_id,)).fetchone()
+        league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
+        if not league:
+            raise ValueError("League not found")
+        rules = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
+        if rules.draft_type != "auction":
+            raise ValueError("This league does not use an auction")
+        winner = conn.execute("SELECT budget_remaining,league_id FROM team WHERE id = ?", (winner_id,)).fetchone()
         if not winner:
             raise ValueError("Winning team not found")
+        if winner["league_id"] != league_id or workspace_id != (league["workspace_id"] or league_id):
+            raise ValueError("Winning team does not belong to this league")
+        if _occupying_identity_row_conn(conn, workspace_id, roster_row, season=int(league["season"])):
+            raise ValueError("Player is already on a roster")
+        from src.draft_hub.player_identity import canonical_roster_metadata
+        from src.draft_hub.rules_engine import blocking_acquisition_errors
+        current = [_roster_dict(row) for row in conn.execute(
+            "SELECT * FROM roster_slot WHERE workspace_id=? AND team_id=?", (workspace_id, winner_id)).fetchall()]
+        validation_rows = canonical_roster_metadata([*current, roster_row], season=int(league["season"]))
+        errors = blocking_acquisition_errors(rules, validation_rows)
+        if errors:
+            raise ValueError(errors[0])
         new_budget = float(winner["budget_remaining"]) - float(amount)
+        if new_budget < 0:
+            raise ValueError("Bid exceeds the winning team's remaining auction budget")
         conn.execute(
             "UPDATE team SET budget_remaining = ? WHERE id = ?",
             (new_budget, winner_id),
@@ -2576,6 +2669,12 @@ def apply_trade_plan(
         return
     with get_conn() as conn:
         conn.execute("BEGIN IMMEDIATE")
+        identity_season = None
+        if dead_cap_rules is not None:
+            league_rules_row = conn.execute("SELECT rules_json,season FROM league WHERE workspace_id=? OR id=?", (workspace_id, workspace_id)).fetchone()
+            if league_rules_row and LeagueRules.model_validate(json.loads(league_rules_row["rules_json"])) != dead_cap_rules:
+                raise ValueError("League rules changed. Review this trade again.")
+            identity_season = int(league_rules_row["season"]) if league_rules_row else None
         for owner in expected_owners or []:
             rows = conn.execute("SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ? AND team_id = ?",
                                 (workspace_id, owner["player_id"], owner["team_id"])).fetchall()
@@ -2603,6 +2702,9 @@ def apply_trade_plan(
             )
             if not row or not roster_row_occupies(row):
                 raise ValueError(f"Failed to move {pid}")
+            if dead_cap_rules is not None and _occupying_identity_row_conn(
+                    conn, workspace_id, _roster_dict(row), exclude_id=int(row["id"])):
+                raise ValueError("Player is already on a roster under another id")
             updates = ["team_id = ?"]
             params: list[Any] = [move["team_id"]]
             if move.get("roster_status") is not None:
@@ -2636,6 +2738,8 @@ def apply_trade_plan(
             db_rows = conn.execute("SELECT * FROM roster_slot WHERE workspace_id = ?", (workspace_id,)).fetchall()
             snapshot = [_roster_dict(r, default_step=float(dead_cap_rules.contracts.extension_step_up))
                         for r in db_rows if r["team_id"] in team_ids]
+            from src.draft_hub.player_identity import canonical_roster_metadata
+            snapshot = canonical_roster_metadata(snapshot, season=identity_season)
             originals = {r["id"]: json.dumps(r.get("contract"), sort_keys=True) for r in snapshot}
             for party in dead_cap_parties:
                 for leg in party.get("dead_cap_transfers") or []:
@@ -2654,6 +2758,18 @@ def apply_trade_plan(
                 elif json.dumps(row.get("contract"), sort_keys=True) != originals[row["id"]]:
                     conn.execute("UPDATE roster_slot SET contract_json = ? WHERE id = ?",
                                  (json.dumps(row["contract"]), row["id"]))
+        if dead_cap_rules is not None and not has_dead_transfers:
+            from src.draft_hub.trade_proposals import validate_simulated_trade
+            team_ids = {str(p["team_id"]) for p in dead_cap_parties or []}
+            team_ids.update(str(m[key]) for m in moves for key in ("from_team_id", "team_id") if m.get(key))
+            snapshot = [_roster_dict(r) for r in conn.execute("SELECT * FROM roster_slot WHERE workspace_id=?", (workspace_id,)).fetchall()]
+            from src.draft_hub.player_identity import canonical_roster_metadata
+            snapshot = canonical_roster_metadata(snapshot, season=identity_season)
+            league_row = conn.execute("SELECT draft_completed FROM league WHERE workspace_id=? OR id=?", (workspace_id, workspace_id)).fetchone()
+            errors = validate_simulated_trade(dead_cap_rules, {tid: [r for r in snapshot if str(r["team_id"]) == tid] for tid in team_ids},
+                                              draft_completed=bool(league_row and league_row["draft_completed"]))
+            if errors:
+                raise ValueError("; ".join(errors))
         if trade_log:
             extra = {
                 "proposal_id": trade_log.get("proposal_id"),
@@ -3539,6 +3655,7 @@ def replace_team_lineup(
 ) -> list[dict[str, Any]]:
     now = _utcnow()
     with get_conn() as conn:
+        conn.execute("INSERT INTO league_week_lineup_snapshot (league_id,team_id,season,week,created_at,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(league_id,team_id,season,week) DO UPDATE SET updated_at=excluded.updated_at", (league_id, team_id, int(season), int(week), now, now))
         conn.execute(
             """DELETE FROM league_week_lineup
                WHERE league_id = ? AND team_id = ? AND season = ? AND week = ?""",
@@ -4172,9 +4289,13 @@ def list_orphan_roster_slots(workspace_id: str) -> list[dict[str, Any]]:
     return [_roster_dict(r, default_step=step) for r in rows]
 
 
-def move_roster_player(workspace_id: str, player_id: str, to_team_id: str) -> dict[str, Any] | None:
+def move_roster_player(
+    workspace_id: str, player_id: str, to_team_id: str, *, validate_rules=None
+) -> dict[str, Any] | None:
     """Move a player's contract to another hub team (Sleeper trade sync)."""
     with get_conn() as conn:
+        if validate_rules is not None:
+            conn.execute("BEGIN IMMEDIATE")
         rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND player_id = ?",
             (workspace_id, player_id),
@@ -4184,6 +4305,32 @@ def move_roster_player(workspace_id: str, player_id: str, to_team_id: str) -> di
             return None
         if str(row["team_id"] or "") == str(to_team_id):
             return _roster_dict(row)
+        if validate_rules is not None:
+            from src.draft_hub.rules_engine import blocking_acquisition_errors
+
+            rules = validate_rules
+            league = conn.execute(
+                "SELECT * FROM league WHERE workspace_id=? OR id=?", (workspace_id, workspace_id)
+            ).fetchone()
+            if league is not None:
+                rules = LeagueRules.model_validate(json.loads(league["rules_json"] or "{}"))
+                team = conn.execute("SELECT league_id FROM team WHERE id=?", (to_team_id,)).fetchone()
+                if team is None or team["league_id"] != league["id"]:
+                    raise ValueError("Team does not belong to this league")
+            if not isinstance(rules, LeagueRules):
+                rules = LeagueRules.model_validate(rules)
+            if _occupying_identity_row_conn(conn, workspace_id, _roster_dict(row), exclude_id=int(row["id"])):
+                raise ValueError("Player is already on a roster under another id")
+            current = conn.execute(
+                "SELECT * FROM roster_slot WHERE workspace_id=? AND team_id=?",
+                (workspace_id, to_team_id),
+            ).fetchall()
+            incoming = {**_roster_dict(row), "team_id": to_team_id}
+            from src.draft_hub.player_identity import canonical_roster_metadata
+            errors = blocking_acquisition_errors(rules, canonical_roster_metadata([_roster_dict(r) for r in current] + [incoming],
+                                                  season=int(league["season"]) if league else None))
+            if errors:
+                raise ValueError(errors[0])
         conn.execute(
             "UPDATE roster_slot SET team_id = ? WHERE id = ?",
             (to_team_id, row["id"]),
@@ -6125,6 +6272,8 @@ def delete_league(league_id: str) -> dict[str, Any]:
             "matchup_emote",
             "league_week_matchup",
             "league_week_lineup",
+            "league_week_lineup_snapshot",
+            "league_native_live_week",
             "league_player_week_score",
             "league_team_week_score",
             "league_week_scoring_run",
@@ -7069,6 +7218,17 @@ def upsert_fa_bid(
     now = _utcnow()
     bid_id = str(uuid.uuid4())
     with get_conn() as conn:
+        from src.draft_hub.player_identity import player_identity_aliases
+        conn.execute("BEGIN IMMEDIATE")
+        league = conn.execute("SELECT season FROM league WHERE id=?", (league_id,)).fetchone()
+        aliases = player_identity_aliases({"player_id": player_id}, season=int(league["season"]) if league else None)
+        placeholders = ",".join("?" for _ in aliases)
+        previous_award = conn.execute(
+            f"SELECT 1 FROM fa_bid WHERE league_id=? AND team_id=? AND window_id=? AND player_id IN ({placeholders}) AND status='won'",
+            (league_id, team_id, window_id, *sorted(aliases)),
+        ).fetchone()
+        if previous_award:
+            raise ValueError("This player was already awarded to your team in this window. The previous award is retained; submit a new claim in a later window.")
         existing = conn.execute(
             """SELECT id FROM fa_bid
                WHERE league_id = ? AND team_id = ? AND player_id = ? AND window_id = ?""",
@@ -7268,3 +7428,111 @@ def save_native_week_scores(league_id, season, week, player_rows, team_rows, sco
                VALUES (?,?,?,?,?,?)""",
             (*key, json.dumps(scoring, sort_keys=True), now, 1 if final else 0),
         )
+
+
+def _occupying_identity_row_conn(
+    conn: sqlite3.Connection, workspace_id: str, player: dict[str, Any], *,
+    season: int | None = None, exclude_id: int | None = None,
+) -> sqlite3.Row | None:
+    from src.draft_hub.player_identity import player_identity_aliases
+
+    if season is None:
+        league = conn.execute("SELECT season FROM league WHERE workspace_id=? OR id=?",
+                              (workspace_id, workspace_id)).fetchone()
+        season = int(league["season"]) if league else None
+    aliases = player_identity_aliases(player, season=season)
+    for row in conn.execute("SELECT * FROM roster_slot WHERE workspace_id=?", (workspace_id,)).fetchall():
+        if row["id"] == exclude_id or not roster_row_occupies(row):
+            continue
+        if aliases & player_identity_aliases(_roster_dict(row), season=season):
+            return row
+    return None
+
+
+def get_occupying_player_identity(workspace_id: str, player: dict[str, Any], *, season: int | None = None) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = _occupying_identity_row_conn(conn, workspace_id, player, season=season)
+        return _roster_dict(row) if row else None
+
+
+def list_latest_team_lineup(league_id: str, team_id: str, season: int, before_week: int) -> list[dict[str, Any]]:
+    """The last saved lineup in this season, without reading today's roster."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league_week_lineup
+               WHERE league_id=? AND team_id=? AND season=? AND week=(
+                 SELECT MAX(week) FROM league_week_lineup_snapshot
+                 WHERE league_id=? AND team_id=? AND season=? AND week<?)
+               ORDER BY lineup_role DESC, slot, player_id""",
+            (league_id, team_id, int(season), league_id, team_id, int(season), int(before_week)),
+        ).fetchall()
+    return [_lineup_row_dict(row) for row in rows]
+
+
+def has_team_lineup_snapshot(league_id: str, team_id: str, season: int, week: int) -> bool:
+    with get_conn() as conn:
+        return conn.execute("SELECT 1 FROM league_week_lineup_snapshot WHERE league_id=? AND team_id=? AND season=? AND week=?",
+                            (league_id, team_id, int(season), int(week))).fetchone() is not None
+
+
+def list_week_lineup_snapshots(league_id: str, season: int, week: int) -> list[dict[str, Any]]:
+    with get_conn() as conn:
+        return [dict(row) for row in conn.execute("SELECT * FROM league_week_lineup_snapshot WHERE league_id=? AND season=? AND week=?",
+                                                 (league_id, int(season), int(week))).fetchall()]
+
+
+def latest_team_lineup_snapshot_week(league_id: str, team_id: str, season: int, before_week: int) -> int | None:
+    with get_conn() as conn:
+        week = conn.execute("SELECT MAX(week) FROM league_week_lineup_snapshot WHERE league_id=? AND team_id=? AND season=? AND week<?",
+                            (league_id, team_id, int(season), int(before_week))).fetchone()[0]
+    return int(week) if week is not None else None
+
+
+def save_native_live_week(league_id: str, season: int, week: int, payload: dict[str, Any]) -> None:
+    """Provisional snapshots never change official scores, records, or lineup locks."""
+    from src.draft_hub.schemas import LeagueRules
+    with get_conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
+        if league is None or league["sleeper_league_id"]:
+            raise ValueError("Native scoring is unavailable for this league.")
+        scoring = payload.get("scoring")
+        if scoring is not None and LeagueRules.model_validate(json.loads(league["rules_json"])).scoring.model_dump() != scoring:
+            raise ValueError("Scoring settings changed during refresh.")
+        conn.execute(
+            """INSERT OR REPLACE INTO league_native_live_week VALUES (?,?,?,?,?)""",
+            (league_id, int(season), int(week), json.dumps(payload), _utcnow()),
+        )
+
+
+def get_native_live_week(league_id: str, season: int, week: int) -> dict[str, Any] | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT payload_json FROM league_native_live_week WHERE league_id=? AND season=? AND week=?",
+                           (league_id, int(season), int(week))).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def list_native_pending_weeks(league_id: str, season: int) -> list[int]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT week,payload_json FROM league_native_live_week WHERE league_id=? AND season=? ORDER BY week",
+                            (league_id, int(season))).fetchall()
+    return [int(row["week"]) for row in rows if json.loads(row["payload_json"]).get("status") in {"pending", "error", "live"}]
+
+
+def list_native_scoring_leagues() -> list[dict[str, Any]]:
+    """Active real native leagues for the shared scoring worker."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT * FROM league WHERE draft_completed=1 AND COALESCE(test_mode,0)=0
+               AND COALESCE(sleeper_league_id,'')='' AND status NOT IN ('deleted','archived')"""
+        ).fetchall()
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+
+    # Old shared-workspace links must resolve before worker eligibility, even
+    # when nobody has opened a page since upgrading. Resolution is DB-only and
+    # dedicated native pools never inherit a personal workspace's host.
+    leagues = [_league_dict(row) for row in rows]
+    return [league for league in leagues if not resolve_sleeper_league_id(league["id"])]
+
+
+team_lineup_snapshot_exists = has_team_lineup_snapshot

@@ -1,0 +1,1014 @@
+"""Hub-native lineup, schedule, PPR scoring, and Game Center payload."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+import pytest
+from pydantic import ValidationError
+
+from fastapi.testclient import TestClient
+
+from app.api import app
+from app.auth import require_hub_user
+from src.draft_hub import storage
+from src.draft_hub.hub_scoring import (
+    LineupError,
+    apply_week_scores,
+    build_hub_live_week,
+    build_hub_standings,
+    ensure_season_schedule,
+    ensure_team_lineup,
+    fantasy_points_from_stats,
+    nfl_game_started,
+    resolve_week_lineup,
+    set_team_starters,
+    slot_accepts_position,
+    swap_lineup_players,
+)
+from src.draft_hub.presets import load_preset
+from src.draft_hub.schemas import LeagueRules, ScoringRules
+
+
+@pytest.fixture(autouse=True)
+def before_week_one(monkeypatch, trusted_native_roster_rows):
+    previous_overrides = dict(app.dependency_overrides)
+    # Lineup fixtures must not depend on the wall clock passing Week 1.
+    monkeypatch.setattr("src.draft_hub.hub_scoring._utcnow",
+                        lambda: datetime(2026, 9, 1, tzinfo=timezone.utc))
+    monkeypatch.setattr("src.draft_hub.native_stats.cached_week_snapshot", lambda *_: None)
+    yield
+    app.dependency_overrides.clear()
+    app.dependency_overrides.update(previous_overrides)
+
+
+def _client(sub: str) -> TestClient:
+    app.dependency_overrides[require_hub_user] = lambda: {"sub": sub, "auth_type": "dev"}
+    return TestClient(app)
+
+
+def _seed_two_team_league(hub_db):
+    raw = load_preset("salary_cap_auction_v1").model_dump()
+    raw["roster"]["k"]["starter"] = 0
+    raw["roster"]["def"]["starter"] = 0
+    rules = LeagueRules.model_validate(raw)
+    comm = "hub-score-comm"
+    ws = storage.get_or_create_workspace(comm, season=2026)
+    league = storage.create_league(comm, "Hub Score", 2026, rules, workspace_id=ws["id"])
+    home = storage.get_team_by_user(league["id"], comm)
+    away = storage.join_league("hub-score-opp", league["room_code"], "Away Club")
+    roster_ws = storage.roster_workspace_for_league(league)
+    home_players = [
+        ("qb-a", "QB Alpha", "KC", "QB", 20),
+        ("rb-a1", "RB Ace", "SF", "RB", 30),
+        ("rb-a2", "RB Two", "DET", "RB", 18),
+        ("wr-a1", "WR Ace", "MIA", "WR", 28),
+        ("wr-a2", "WR Co", "PHI", "WR", 16),
+        ("wr-a3", "WR Bench", "NYJ", "WR", 8),
+        ("wr-a4", "WR Deep", "CLE", "WR", 12),
+        ("rb-a3", "RB Flex", "HOU", "RB", 9),
+        ("te-a", "TE Ace", "BAL", "TE", 10),
+    ]
+    away_players = [
+        ("qb-b", "QB Beta", "BUF", "QB", 22),
+        ("rb-b1", "RB Beta", "CHI", "RB", 24),
+        ("wr-b1", "WR Beta", "DAL", "WR", 20),
+        ("te-b", "TE Beta", "LV", "TE", 9),
+    ]
+    for pid, name, team, pos, salary in home_players:
+        storage.add_roster_slot(
+            roster_ws,
+            {
+                "player_id": pid,
+                "player_name": name,
+                "team": team,
+                "position": pos,
+                "salary": salary,
+                "contract_years": 1,
+            },
+            team_id=home["id"],
+        )
+    for pid, name, team, pos, salary in away_players:
+        storage.add_roster_slot(
+            roster_ws,
+            {
+                "player_id": pid,
+                "player_name": name,
+                "team": team,
+                "position": pos,
+                "salary": salary,
+                "contract_years": 1,
+            },
+            team_id=away["id"],
+        )
+    return league, home, away, comm
+
+
+def test_fantasy_points_from_stats_is_standard_ppr():
+    pts = fantasy_points_from_stats(
+        {
+            "receptions": 5,
+            "receiving_yards": 80,
+            "receiving_tds": 1,
+        }
+    )
+    assert pts == 19.0
+
+
+def test_flex_slot_rejects_qb():
+    rules = LeagueRules.model_validate(load_preset("salary_cap_auction_v1"))
+    assert slot_accepts_position("FLEX", "WR", rules) is True
+    assert slot_accepts_position("FLEX", "QB", rules) is False
+    assert slot_accepts_position("RB2", "RB", rules) is True
+    assert slot_accepts_position("RB2", "WR", rules) is False
+
+
+def test_schedule_is_stable_across_ensure(hub_db):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    first = ensure_season_schedule(league["id"], season=2026)
+    second = ensure_season_schedule(league["id"], season=2026)
+    assert first["weeks"] == 14
+    assert first["weeks_written"] == 14
+    assert second["weeks_written"] == 0
+    week1 = [m for m in first["matchups"] if int(m["week"]) == 1]
+    assert len(week1) == 1
+    ids = {week1[0]["home_team_id"], week1[0]["away_team_id"]}
+    assert ids == {home["id"], away["id"]}
+
+
+def test_ensure_lineup_salary_fill_then_swap(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    starters = {row["player_id"] for row in rows if row["lineup_role"] == "starter"}
+    bench = {row["player_id"] for row in rows if row["lineup_role"] == "bench"}
+    assert "wr-a1" in starters
+    assert "wr-a3" in bench
+    wr2 = next(row for row in rows if row["player_id"] == "wr-a2")
+    swapped = swap_lineup_players(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        starter_player_id=wr2["player_id"],
+        bench_player_id="wr-a3",
+        game_started=lambda _team: False,
+    )
+    by_id = {row["player_id"]: row for row in swapped}
+    assert by_id["wr-a3"]["lineup_role"] == "starter"
+    assert by_id["wr-a3"]["slot"] == wr2["slot"]
+    assert by_id["wr-a2"]["lineup_role"] == "bench"
+
+
+def test_swap_rejects_illegal_flex_and_locks(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    rows = storage.list_team_lineup(league["id"], home["id"], 2026, 1)
+    flex = next(row for row in rows if str(row["slot"]).startswith("FLEX"))
+    # Put the QB on the bench conceptually: swapping a QB onto FLEX is illegal.
+    qb = next(row for row in rows if row["player_id"] == "qb-a")
+    storage.replace_team_lineup(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        [
+            {**row, "lineup_role": "bench", "slot": "BN"}
+            if row["player_id"] == "qb-a"
+            else row
+            for row in rows
+        ],
+    )
+    try:
+        swap_lineup_players(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            starter_player_id=flex["player_id"],
+            bench_player_id="qb-a",
+            game_started=lambda _team: False,
+        )
+        raise AssertionError("QB onto FLEX should fail")
+    except LineupError as exc:
+        assert "cannot start" in str(exc)
+
+    storage.replace_team_lineup(league["id"], home["id"], 2026, 1, rows)
+    wr2 = next(row for row in rows if row["player_id"] == "wr-a2")
+    try:
+        swap_lineup_players(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            starter_player_id=wr2["player_id"],
+            bench_player_id="wr-a3",
+            game_started=lambda _team: True,
+        )
+        raise AssertionError("lock should block swap")
+    except LineupError as exc:
+        assert "started" in str(exc)
+
+
+def test_apply_week_scores_and_standings(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.nfl_game_started",
+        lambda *_a, **_k: False,
+    )
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    ensure_team_lineup(league["id"], away["id"], 2026, 1)
+    stats = {
+        "qb-a": {"passing_yards": 300, "passing_tds": 2, "fantasy_points": 24.0},
+        "rb-a1": {"rushing_yards": 80, "rushing_tds": 1, "fantasy_points": 14.0},
+        "wr-a1": {"receptions": 6, "receiving_yards": 90, "fantasy_points": 15.0},
+        "qb-b": {"passing_yards": 180, "passing_tds": 1, "fantasy_points": 13.2},
+        "rb-b1": {"rushing_yards": 40, "fantasy_points": 4.0},
+        "wr-b1": {"receptions": 3, "receiving_yards": 30, "fantasy_points": 6.0},
+    }
+    result = apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
+    assert result["scored"] is True
+    assert result["players_with_stats"] >= 6
+    team_scores = {row["team_id"]: row["points"] for row in storage.list_team_week_scores(league["id"], 2026, 1)}
+    assert team_scores[home["id"]] > team_scores[away["id"]]
+    standings = build_hub_standings(league["id"], 2026)
+    assert standings[0]["hub_team_id"] == home["id"]
+    assert standings[0]["wins"] == 1
+    assert standings[1]["losses"] == 1
+
+    empty = apply_week_scores(league["id"], 2026, 2, stat_index={})
+    assert empty["scored"] is False
+    assert empty["reason"] == "no_stats"
+
+    midweek = apply_week_scores(league["id"], 2026, 2, stat_index=stats, slate_complete=False)
+    assert midweek["scored"] is True and midweek["live"] is True
+    assert storage.get_week_scoring_run(league["id"], 2026, 2)["final"] is False
+    assert build_hub_standings(league["id"], 2026) == standings
+    assert storage.list_team_week_scores(league["id"], 2026, 2)
+    assert not any(row.get("locked") for row in storage.list_team_lineup(league["id"], home["id"], 2026, 2))
+
+    payload = build_hub_live_week(
+        league["id"],
+        week=1,
+        viewer_team_id=home["id"],
+        nfl_state={"week": 1, "season": "2026", "season_type": "regular"},
+    )
+    assert payload["source"] == "hub"
+    assert payload["placeholder"] is False
+    viewer = next(
+        team
+        for matchup in payload["matchups"]
+        for team in matchup["teams"]
+        if team.get("is_viewer")
+    )
+    assert viewer["points"] == team_scores[home["id"]]
+    assert any(starter["player_id"] == "wr-a1" for starter in viewer["starters"])
+    assert payload["preseason"] is False
+    assert payload["placeholder"] is False
+
+
+def test_lineup_swap_and_score_week_routes(hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.nfl_game_started",
+        lambda *_a, **_k: False,
+    )
+    league, home, away, comm = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], away["id"], 2026, 1)
+    client = _client(comm)
+
+    got = client.get(f"/api/hub/league/{league['id']}/lineup?week=1")
+    assert got.status_code == 200
+    body = got.json()
+    assert body["team_id"] == home["id"]
+    wr2 = next(row for row in body["lineup"] if row["player_id"] == "wr-a2")
+    swapped = client.post(
+        f"/api/hub/league/{league['id']}/lineup/swap",
+        json={
+            "starter_player_id": wr2["player_id"],
+            "bench_player_id": "wr-a3",
+            "week": 1,
+        },
+    )
+    assert swapped.status_code == 200
+    by_id = {row["player_id"]: row for row in swapped.json()["lineup"]}
+    assert by_id["wr-a3"]["lineup_role"] == "starter"
+
+    illegal = client.post(
+        f"/api/hub/league/{league['id']}/lineup/swap",
+        json={"starter_player_id": "rb-a1", "bench_player_id": "wr-a2", "week": 1},
+    )
+    assert illegal.status_code == 400
+
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.nfl_week_slate_complete",
+        lambda *_a, **_k: True,
+    )
+    monkeypatch.setattr(
+        "src.draft_hub.hub_scoring.load_week_stat_index",
+        lambda season, week: {
+            "qb-a": {"fantasy_points": 20.0},
+            "rb-a1": {"fantasy_points": 12.0},
+            "wr-a1": {"fantasy_points": 11.0},
+            "wr-a3": {"fantasy_points": 9.0},
+            "te-a": {"fantasy_points": 7.0},
+            "rb-a2": {"fantasy_points": 8.0},
+            "qb-b": {"fantasy_points": 10.0},
+            "rb-b1": {"fantasy_points": 6.0},
+            "wr-b1": {"fantasy_points": 5.0},
+            "te-b": {"fantasy_points": 4.0},
+        },
+    )
+    from src.draft_hub.hub_scoring import load_week_stat_index
+    monkeypatch.setattr("src.draft_hub.native_stats.get_week_snapshot", lambda season, week:
+                        {"complete": True, "stats": load_week_stat_index(season, week)})
+    monkeypatch.setattr("src.draft_hub.native_stats.resolve_lineup_stats", lambda row, snapshot:
+                        snapshot["stats"].get(row["player_id"], {"fantasy_points": 0}))
+    scored = client.post(
+        f"/api/hub/league/{league['id']}/score-week",
+        json={"week": 1, "season": 2026},
+    )
+    assert scored.status_code == 200
+    assert scored.json()["scored"] is True
+
+    live = client.get(f"/api/hub/league/{league['id']}/live-scoring?week=1")
+    assert live.status_code == 200
+    live_body = live.json()
+    assert live_body["source"] == "hub"
+    assert live_body["placeholder"] is False
+    assert live_body["preseason"] is False
+    assert live_body["standings"][0]["wins"] == 1
+
+
+def test_sleeper_linked_league_stays_inferred_and_rejects_hub_score(hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    league, home, _away, comm = _seed_two_team_league(hub_db)
+    storage.update_league_sleeper_id(league["id"], "sleeper-hosted-1")
+    rules = LeagueRules.model_validate(league["rules"])
+    players = [
+        {
+            "player_id": "wr-a1",
+            "position": "WR",
+            "salary": 28,
+            "player_name": "WR Ace",
+        },
+        {
+            "player_id": "wr-a3",
+            "position": "WR",
+            "salary": 8,
+            "player_name": "WR Bench",
+        },
+    ]
+    starters, bench, meta = resolve_week_lineup(
+        {
+            "mode": "league",
+            "league_id": league["id"],
+            "team_id": home["id"],
+            "sleeper_league_id": "sleeper-hosted-1",
+        },
+        players,
+        rules,
+        season=2026,
+        week=1,
+    )
+    assert meta["lineup_source"] == "sleeper"
+    assert not storage.list_team_lineup(league["id"], home["id"], 2026, 1)
+    assert starters or bench
+
+    try:
+        apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"fantasy_points": 10}})
+        raise AssertionError("Sleeper-hosted scoring should fail")
+    except LineupError as exc:
+        assert "Sleeper" in str(exc)
+
+    client = _client(comm)
+    blocked = client.post(
+        f"/api/hub/league/{league['id']}/score-week",
+        json={"week": 1, "season": 2026},
+    )
+    assert blocked.status_code == 409
+    lineup = client.get(f"/api/hub/league/{league['id']}/lineup?week=1")
+    assert lineup.status_code == 409
+
+
+def test_score_week_route_rejects_non_commissioner(hub_db, monkeypatch):
+    monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
+    league, _home, away, _comm = _seed_two_team_league(hub_db)
+    client = _client(away["user_sub"])
+    blocked = client.post(
+        f"/api/hub/league/{league['id']}/score-week",
+        json={"week": 1, "season": 2026},
+    )
+    assert blocked.status_code == 403
+
+
+def test_set_team_starters_rejects_two_quarterbacks(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    roster_ws = storage.roster_workspace_for_league(storage.get_league(league["id"]))
+    storage.add_roster_slot(
+        roster_ws,
+        {
+            "player_id": "qb-a2",
+            "player_name": "QB Two",
+            "team": "LAC",
+            "position": "QB",
+            "salary": 8,
+            "contract_years": 1,
+        },
+        team_id=home["id"],
+    )
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    starters = [
+        {"player_id": row["player_id"], "slot": row["slot"]}
+        for row in rows
+        if row["lineup_role"] == "starter"
+    ]
+    qb_slot = next(item for item in starters if item["player_id"] == "qb-a")
+    try:
+        set_team_starters(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            [*starters, {"player_id": "qb-a2", "slot": "QB2"}],
+            game_started=lambda _team: False,
+        )
+        raise AssertionError("two QB starters should fail")
+    except LineupError as exc:
+        assert "QB" in str(exc)
+    try:
+        set_team_starters(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            [*starters, {"player_id": "qb-a2", "slot": qb_slot["slot"]}],
+            game_started=lambda _team: False,
+        )
+        raise AssertionError("duplicate QB slot should fail")
+    except LineupError as exc:
+        assert "slot" in str(exc).lower()
+    still = {row["player_id"]: row for row in storage.list_team_lineup(league["id"], home["id"], 2026, 1)}
+    assert still["qb-a"]["lineup_role"] == "starter"
+    assert still.get("qb-a2", {}).get("lineup_role") != "starter"
+
+
+def test_set_team_starters_cannot_bench_locked_starter(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    locked_starter = next(row for row in rows if row["player_id"] == "wr-a1")
+    assert locked_starter["lineup_role"] == "starter"
+    starter_slots = [
+        {"player_id": row["player_id"], "slot": row["slot"]}
+        for row in rows
+        if row["lineup_role"] == "starter"
+    ]
+    storage.replace_team_lineup(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        [{**row, "locked": True} if row["player_id"] == "wr-a1" else row for row in rows],
+    )
+    kept = [item for item in starter_slots if item["player_id"] != "wr-a1"]
+    try:
+        set_team_starters(
+            league["id"],
+            home["id"],
+            2026,
+            1,
+            kept,
+            game_started=lambda _team: False,
+        )
+        raise AssertionError("omitting a locked starter should fail")
+    except LineupError as exc:
+        assert "started" in str(exc)
+    still = {row["player_id"]: row for row in storage.list_team_lineup(league["id"], home["id"], 2026, 1)}
+    assert still["wr-a1"]["lineup_role"] == "starter"
+    assert still["wr-a1"]["slot"] == locked_starter["slot"]
+    replayed = set_team_starters(
+        league["id"],
+        home["id"],
+        2026,
+        1,
+        starter_slots,
+        game_started=lambda _team: False,
+    )
+    by_id = {row["player_id"]: row for row in replayed}
+    assert by_id["wr-a1"]["lineup_role"] == "starter"
+    assert by_id["wr-a1"]["slot"] == locked_starter["slot"]
+
+
+def test_ensure_team_lineup_does_not_drop_locked_players(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    assert any(row["player_id"] == "wr-a1" for row in rows)
+    storage.lock_week_lineups(league["id"], 2026, 1)
+    ws = storage.roster_workspace_for_league(league)
+    storage.remove_roster_slot(ws, "wr-a1")
+    kept = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    assert any(row["player_id"] == "wr-a1" for row in kept)
+    for row in storage.list_roster(ws, home["id"]):
+        storage.remove_roster_slot(ws, row["player_id"])
+    frozen = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    assert frozen
+    assert any(row["player_id"] == "wr-a1" for row in frozen)
+
+
+def test_nfl_game_started_uses_et_kickoff_not_gameday_midnight(monkeypatch):
+    import pandas as pd
+
+    from src.core.schedule_utils import schedule_kickoff_utc
+
+    kick = schedule_kickoff_utc("2026-09-13", "13:00")
+    assert kick == pd.Timestamp("2026-09-13 17:00:00", tz="UTC")
+
+    games = pd.DataFrame(
+        [
+            {
+                "season": 2026,
+                "week": 1,
+                "team": "MIA",
+                "gameday": pd.Timestamp("2026-09-13", tz="UTC"),
+                "kickoff": kick,
+            }
+        ]
+    )
+    monkeypatch.setattr(
+        "src.core.schedule_utils.team_game_kickoffs",
+        lambda season, team, **kwargs: games,
+    )
+    before = datetime(2026, 9, 13, 0, 30, tzinfo=timezone.utc)
+    after = datetime(2026, 9, 13, 17, 30, tzinfo=timezone.utc)
+    assert nfl_game_started("MIA", 2026, 1, now=before) is False
+    assert nfl_game_started("MIA", 2026, 1, now=after) is True
+
+
+@pytest.mark.parametrize("points", [0, 0.5, 1, 1.5])
+def test_custom_receptions_and_touchdowns(points):
+    scoring = ScoringRules(receptions=points, passing_tds=6, interceptions=-3)
+    assert fantasy_points_from_stats({"receptions": 4, "passing_tds": 2, "interceptions": 1}, scoring) == 9 + 4 * points
+    assert fantasy_points_from_stats({"passing_tds": 2}, ScoringRules(passing_tds=0)) == 0
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -101, 101])
+def test_invalid_scoring_weights_rejected(value):
+    with pytest.raises(ValidationError):
+        ScoringRules(receptions=value)
+
+
+def test_scoring_settings_reject_unsupported_keys():
+    with pytest.raises(ValidationError):
+        ScoringRules(kicker_points=3)
+
+
+def test_custom_scoring_uses_raw_stats_and_explicit_recalculation(hub_db, monkeypatch):
+    league, home, _away, comm = _seed_two_team_league(hub_db)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *_a, **_k: False)
+    stats = {"wr-a1": {"receptions": 6, "receiving_yards": 90, "fantasy_points": 999}}
+    apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
+    prior = {r["player_id"]: r for r in storage.list_player_week_scores(league["id"], 2026, 1)}
+    assert prior["wr-a1"]["points"] == 15
+    raw = storage.get_league(league["id"])["rules"]
+    raw["scoring"]["receptions"] = 0.5
+    result = _client(comm).put("/api/hub/workspace", json={"league_id": league["id"], "rules": raw})
+    assert result.status_code == 200
+    assert storage.get_week_scoring_run(league["id"], 2026, 1)["scoring"]["receptions"] == 1
+    assert build_hub_live_week(league["id"], week=1, rules=raw, nfl_state={"season": "2026", "week": 1, "season_type": "regular"})["scoring_control"]["settings_changed"] is True
+    assert storage.list_player_week_scores(league["id"], 2026, 1) == list(prior.values())
+    apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
+    after = {r["player_id"]: r for r in storage.list_player_week_scores(league["id"], 2026, 1)}
+    assert after["wr-a1"]["points"] == 12
+    assert storage.get_week_scoring_run(league["id"], 2026, 1)["scoring"]["receptions"] == 0.5
+    assert all(r["locked"] for r in storage.list_week_lineups(league["id"], 2026, 1))
+
+
+def test_sleeper_settings_rejected_without_other_side_effects(hub_db):
+    league, _home, _away, comm = _seed_two_team_league(hub_db)
+    storage.update_league_sleeper_id(league["id"], "123456")
+    before = storage.get_league(league["id"])
+    raw = dict(before["rules"])
+    raw["scoring"] = {**raw["scoring"], "receptions": 0.5, "def_sacks": 3, "fg_made_50_59": 6}
+    result = _client(comm).put("/api/hub/workspace", json={"league_id": league["id"], "name": "Changed", "rules": raw})
+    assert result.status_code == 409
+    assert "Sleeper" in result.json()["detail"]
+    after = storage.get_league(league["id"])
+    assert after["rules"] == before["rules"]
+    assert after["name"] == before["name"]
+
+
+def test_older_rules_clients_preserve_custom_weights(hub_db):
+    league, _home, _away, comm = _seed_two_team_league(hub_db)
+    raw = storage.get_league(league["id"])["rules"]
+    raw["scoring"]["receptions"] = 0.5
+    storage.update_league_rules(league["id"], LeagueRules.model_validate(raw))
+    raw.pop("scoring")
+    raw["salary_cap"] = 250
+    response = _client(comm).put("/api/hub/workspace", json={"league_id": league["id"], "rules": raw})
+    assert response.status_code == 200
+    saved = storage.get_league(league["id"])["rules"]
+    assert saved["scoring"]["receptions"] == 0.5
+    assert saved["salary_cap"] == 250
+
+
+def test_atomic_score_write_keeps_previous_results_on_failure(hub_db):
+    import sqlite3
+    league, home, _away, _comm = _seed_two_team_league(hub_db)
+    scoring = ScoringRules().model_dump()
+    player = {"player_id": "wr-a1", "team_id": home["id"], "points": 10}
+    team = {"team_id": home["id"], "points": 10}
+    storage.save_native_week_scores(league["id"], 2026, 1, [player], [team], scoring)
+    before = storage.list_team_week_scores(league["id"], 2026, 1)
+    with pytest.raises(sqlite3.IntegrityError):
+        storage.save_native_week_scores(league["id"], 2026, 1, [player, player], [{**team, "points": 99}], scoring)
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == before
+
+
+def test_settings_change_during_calculation_aborts_publish(hub_db):
+    league, _home, _away, _comm = _seed_two_team_league(hub_db)
+    def load_stats(*_args):
+        raw = storage.get_league(league["id"])["rules"]
+        raw["scoring"]["receptions"] = 0.5
+        storage.update_league_rules(league["id"], LeagueRules.model_validate(raw))
+        return {"wr-a1": {"receptions": 2}}
+    with pytest.raises(LineupError, match="changed during"):
+        apply_week_scores(league["id"], 2026, 1, load_stats=load_stats, slate_complete=True)
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == []
+
+
+def test_native_scoring_rejects_missing_kicker_statistics(hub_db, monkeypatch, trusted_native_catalog):
+    league, home, _away, _comm = _seed_two_team_league(hub_db)
+    trusted_native_catalog("kicker", team="KC", position="K")
+    raw = storage.get_league(league["id"])["rules"]
+    raw["roster"]["k"]["starter"] = 1
+    storage.update_league_rules(league["id"], LeagueRules.model_validate(raw))
+    original = storage.list_week_lineups
+    monkeypatch.setattr(storage, "list_week_lineups", lambda *args: [*original(*args),
+        {"player_id": "kicker", "team_id": home["id"], "position": "K", "slot": "K", "lineup_role": "starter"}])
+    with pytest.raises(LineupError, match="K scoring statistics are incomplete"):
+        apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"receptions": 1}}, slate_complete=True)
+    assert storage.list_team_week_scores(league["id"], 2026, 1) == []
+
+
+def test_week_stats_normalize_nflverse_turnovers(monkeypatch):
+    import pandas as pd
+    from src.draft_hub.hub_scoring import _load_legacy_week_stat_index
+    frame = pd.DataFrame([{"week": 1, "player_id": "qb", "passing_interceptions": 2,
+                           "sack_fumbles_lost": 1, "rushing_fumbles_lost": 1,
+                           "receiving_fumbles_lost": float("nan")}])
+    monkeypatch.setattr("src.etl.nflverse_etl.load_weekly_player_stats", lambda *_: frame)
+    monkeypatch.setattr("src.draft_hub.native_specialist_stats.load_defense_stat_index", lambda *_: {})
+    stats = _load_legacy_week_stat_index(2026, 1, frame=frame)["qb"]
+    assert stats["interceptions"] == 2
+    assert stats["fumbles_lost"] == 2
+    assert fantasy_points_from_stats(stats) == -8
+
+@pytest.mark.parametrize('allowed,expected', [(0,10),(1,7),(6,7),(7,4),(13,4),(14,1),(20,1),(21,0),(27,0),(28,-1),(34,-1),(35,-4)])
+def test_defense_points_allowed_exclusive_bands(allowed, expected):
+    assert fantasy_points_from_stats({'def_points_allowed': allowed}) == expected
+
+
+def test_missing_defense_points_is_not_a_shutout():
+    assert fantasy_points_from_stats({'def_sacks': 2}) == 2
+
+
+def test_custom_kicker_defense_conversions_and_bonuses():
+    rules = ScoringRules(fg_made_50_59=6, def_interceptions=3,
+                         bonus_passing_300=3, bonus_passing_400=5)
+    assert fantasy_points_from_stats({'fg_made_50_59': 2, 'pat_made': 3, 'fg_missed': 1}, rules) == 14
+    assert fantasy_points_from_stats({'def_interceptions': 2, 'def_sacks': 3, 'def_points_allowed': 7}, rules) == 13
+    assert fantasy_points_from_stats({'passing_yards': 401, 'passing_2pt_conversions': 1}, rules) == 23.04
+    assert fantasy_points_from_stats({'passing_yards': 350}, rules) == 17
+
+
+def test_specialist_stats_must_include_every_enabled_rule():
+    from src.draft_hub.hub_scoring import require_position_stats, KICKER_STAT_FIELDS
+    rules = ScoringRules()
+    with pytest.raises(LineupError, match='incomplete'):
+        require_position_stats('K', {'pat_made': 2}, rules)
+    raw = {key: 0 for key in KICKER_STAT_FIELDS}
+    require_position_stats('K', raw, rules)
+    raw['fg_made_40_49'] = 2
+    assert fantasy_points_from_stats(raw, rules) == 8
+
+
+def test_frontend_and_backend_scoring_defaults_match():
+    import json
+    import subprocess
+    from pathlib import Path
+    result = subprocess.run(['node', '--input-type=module', '-e',
+        "import {DEFAULT_SCORING} from './frontend/src/DraftHub/rulesPresentation.js'; console.log(JSON.stringify(DEFAULT_SCORING));"],
+        cwd=Path(__file__).resolve().parents[1], check=True, capture_output=True, text=True)
+    assert json.loads(result.stdout) == ScoringRules().model_dump()
+
+def test_native_specialist_scores_save_custom_rules_atomically(hub_db, monkeypatch, trusted_native_catalog):
+    from src.draft_hub.hub_scoring import KICKER_STAT_FIELDS, DEFENSE_STAT_FIELDS
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    raw = storage.get_league(league['id'])['rules']
+    raw['scoring'].update(fg_made_50_59=6, def_sacks=2)
+    raw['roster']['k']['starter'] = 1
+    raw['roster']['def']['starter'] = 1
+    storage.update_league_rules(league['id'], LeagueRules.model_validate(raw))
+    for team, pid, position in [(home, 'k', 'K'), (away, 'dst', 'DEF')]:
+        trusted_native_catalog(pid, team='KC' if position == 'K' else 'PHI', position=position)
+        storage.replace_team_lineup(league['id'], team['id'], 2026, 1,
+            [{'player_id': pid, 'position': position, 'slot': position+'1', 'lineup_role': 'starter'}])
+    monkeypatch.setattr('src.draft_hub.hub_scoring.nfl_week_slate_complete', lambda *a, **kw: True)
+    kicker = {key: 0 for key in KICKER_STAT_FIELDS}
+    kicker['fg_made_50_59'] = 2
+    defense = {key: 0 for key in DEFENSE_STAT_FIELDS}
+    defense.update(def_sacks=3, def_points_allowed=7)
+    result = apply_week_scores(league['id'], 2026, 1, stat_index={'k': kicker, 'dst': defense})
+    assert result['scored']
+    scores = {row['team_id']: row['points'] for row in storage.list_team_week_scores(league['id'], 2026, 1)}
+    assert scores == {home['id']: 12, away['id']: 10}
+    assert storage.get_week_scoring_run(league['id'], 2026, 1)['scoring']['def_sacks'] == 2
+    assert all(row['locked'] for row in storage.list_week_lineups(league['id'], 2026, 1))
+
+
+@pytest.mark.parametrize("slot", ["BN", "BN1", "QB2", "QB999", "FLEX0", "RB03"])
+def test_starter_api_rejects_unconfigured_slots(hub_db, slot):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    with pytest.raises(LineupError, match="configured starter slot"):
+        set_team_starters(league["id"], home["id"], 2026, 1,
+                          [{"player_id": "qb-a", "slot": slot}], game_started=lambda _: False)
+
+
+def test_started_player_survives_cut_and_does_not_freeze_unstarted_swap(hub_db, monkeypatch):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda team, *_a, **_k: team == "MIA")
+    workspace = storage.roster_workspace_for_league(league)
+    storage.remove_roster_slot(workspace, "wr-a1", team_id=home["id"])
+    retained = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    played = next(row for row in retained if row["player_id"] == "wr-a1")
+    assert played["lineup_role"] == "starter" and played["locked"]
+    swapped = swap_lineup_players(league["id"], home["id"], 2026, 1,
+                                 starter_player_id="wr-a2", bench_player_id="wr-a3")
+    assert next(row for row in swapped if row["player_id"] == "wr-a3")["lineup_role"] == "starter"
+    unchanged = [{"player_id": row["player_id"], "slot": row["slot"]}
+                 for row in swapped if row["lineup_role"] == "starter"]
+    set_team_starters(league["id"], home["id"], 2026, 1, unchanged)
+    with pytest.raises(LineupError, match="started"):
+        set_team_starters(league["id"], home["id"], 2026, 1,
+                          [row for row in unchanged if row["player_id"] != "wr-a1"])
+
+
+def test_new_week_preserves_managers_chosen_low_salary_starter(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    swap_lineup_players(league["id"], home["id"], 2026, 1,
+                        starter_player_id="wr-a2", bench_player_id="wr-a3", game_started=lambda _: False)
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 2)
+    assert next(row for row in rows if row["player_id"] == "wr-a3")["lineup_role"] == "starter"
+    assert next(row for row in rows if row["player_id"] == "wr-a2")["lineup_role"] == "bench"
+
+
+def test_unknown_kickoff_blocks_changes_without_permanent_lock(hub_db, monkeypatch):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *_a, **_k: None)
+    with pytest.raises(LineupError):
+        swap_lineup_players(league["id"], home["id"], 2026, 1,
+                            starter_player_id="wr-a2", bench_player_id="wr-a3")
+    assert not any(row["locked"] for row in storage.list_team_lineup(league["id"], home["id"], 2026, 1))
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *_a, **_k: False)
+    swap_lineup_players(league["id"], home["id"], 2026, 1,
+                        starter_player_id="wr-a2", bench_player_id="wr-a3")
+
+
+def test_missing_schedule_is_unknown_but_verified_bye_is_unlocked(monkeypatch):
+    import pandas as pd
+    monkeypatch.setattr("src.core.schedule_utils.team_game_kickoffs", lambda *_, **kwargs: pd.DataFrame())
+    assert nfl_game_started("BAL", 2026, 1) is None
+    assert nfl_game_started("", 2026, 1) is None
+    schedule = pd.DataFrame([{"season": 2026, "week": week, "kickoff": pd.Timestamp("2026-09-01", tz="UTC")}
+                             for week in range(1, 19) if week != 5])
+    monkeypatch.setattr("src.core.schedule_utils.team_game_kickoffs", lambda *_, **kwargs: schedule)
+    assert nfl_game_started("BAL", 2026, 5) is False
+
+
+def test_game_center_initializes_other_team_when_viewer_already_saved(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    monkeypatch.setattr("src.draft_hub.weekly_command_center._load_projection_index", lambda *_a, **_k: ({}, {}))
+    payload = build_hub_live_week(league["id"], week=1, viewer_team_id=home["id"],
+                                  nfl_state={"week": 1, "season": 2026, "season_type": "regular"})
+    opponent = next(team for match in payload["matchups"] for team in match["teams"] if team["hub_team_id"] == away["id"])
+    assert opponent["starters"]
+    assert all(player["slot"] for player in opponent["starters"])
+
+
+def test_native_provisional_points_do_not_update_standings(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    for team in (home, away):
+        ensure_team_lineup(league["id"], team["id"], 2026, 1)
+    rules = LeagueRules.model_validate(league["rules"])
+    storage.save_native_live_week(league["id"], 2026, 1, {
+        "status": "live", "scoring": rules.scoring.model_dump(), "synced_at": "2026-09-13T18:00:00Z",
+        "players": [{"team_id": home["id"], "player_id": "qb-a", "points": 12.5}],
+        "teams": [{"team_id": home["id"], "points": 12.5}], "game_states": {}, "errors": []})
+    monkeypatch.setattr("src.draft_hub.weekly_command_center._load_projection_index", lambda *_a, **_k: ({}, {}))
+    payload = build_hub_live_week(league["id"], week=1, viewer_team_id=home["id"],
+                                  nfl_state={"week": 1, "season": 2026, "season_type": "regular"})
+    viewer = next(team for match in payload["matchups"] for team in match["teams"] if team["is_viewer"])
+    assert viewer["points"] == 12.5 and not payload["placeholder"]
+    assert payload["live"] and not payload["week_complete"]
+    assert payload["synced_at"] == "2026-09-13T18:00:00Z"
+    assert all(row["wins"] == 0 and row["points_for"] == 0 for row in payload["standings"])
+
+
+def test_verified_bye_defense_scores_zero_without_shutout():
+    stats = {"_native_no_game": 1}
+    from src.draft_hub.hub_scoring import require_position_stats
+    require_position_stats("DEF", stats, ScoringRules())
+    assert fantasy_points_from_stats(stats) == 0
+
+
+def test_recorded_matchups_survive_forced_schedule_rebuild(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    ensure_season_schedule(league["id"], season=2026)
+    storage.replace_week_matchups(league["id"], 2026, 1,
+                                 [{"matchup_id": "original-final", "home_team_id": away["id"], "away_team_id": home["id"]}])
+    storage.save_native_week_scores(league["id"], 2026, 1, [],
+                                   [{"team_id": home["id"], "points": 100}, {"team_id": away["id"], "points": 90}],
+                                   ScoringRules().model_dump())
+    monkeypatch.setattr("src.draft_hub.game_center.cached_game_states", lambda *_a, **_k: {"BAL": {"game_state": "pregame"}})
+    ensure_season_schedule(league["id"], season=2026, force=True)
+    assert storage.list_week_matchups(league["id"], 2026, 1)[0]["matchup_id"] == "original-final"
+
+
+def test_regular_standings_include_points_against_and_exclude_playoffs(hub_db):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    ensure_season_schedule(league["id"], season=2026)
+    for week, home_pts, away_pts in [(1, 100, 90), (15, 50, 150)]:
+        storage.replace_week_matchups(league["id"], 2026, week,
+                                     [{"matchup_id": str(week), "home_team_id": home["id"], "away_team_id": away["id"]}])
+        storage.save_native_week_scores(league["id"], 2026, week, [],
+                                       [{"team_id": home["id"], "points": home_pts}, {"team_id": away["id"], "points": away_pts}],
+                                       ScoringRules().model_dump())
+    rows = {row["hub_team_id"]: row for row in build_hub_standings(league["id"], 2026)}
+    assert rows[home["id"]]["points_for"] == 100 and rows[home["id"]]["points_against"] == 90
+    assert rows[home["id"]]["wins"] == 1 and rows[home["id"]]["losses"] == 0
+    assert rows[home["id"]]["win_pct"] == 1
+
+
+def test_empty_lineup_snapshot_is_preserved_through_acquisition_and_next_week(hub_db):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    workspace = storage.roster_workspace_for_league(league)
+    for row in storage.list_roster(workspace, home["id"]):
+        storage.remove_roster_slot(workspace, row["player_id"], team_id=home["id"])
+    assert ensure_team_lineup(league["id"], home["id"], 2026, 1) == []
+    assert storage.has_team_lineup_snapshot(league["id"], home["id"], 2026, 1)
+    storage.add_roster_slot(workspace, {"player_id": "new-qb", "player_name": "New QB", "team": "KC",
+                                       "position": "QB", "salary": 10, "contract_years": 1}, team_id=home["id"])
+    current = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    assert current[0]["lineup_role"] == "bench"
+    following = ensure_team_lineup(league["id"], home["id"], 2026, 2)
+    assert following[0]["lineup_role"] == "bench"
+
+
+def test_unavailable_bench_stats_are_not_fabricated_zero(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    for team in (home, away):
+        ensure_team_lineup(league["id"], team["id"], 2026, 1)
+    rows = storage.list_week_lineups(league["id"], 2026, 1)
+    stats = {row["player_id"]: {"receptions": 1} for row in rows}
+    stats["wr-a3"] = {"_native_stats_unavailable": 1}
+    result = apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
+    assert result["scored"]
+    assert not any(row["player_id"] == "wr-a3" for row in storage.list_player_week_scores(league["id"], 2026, 1))
+    monkeypatch.setattr("src.draft_hub.weekly_command_center._load_projection_index", lambda *_a, **_k: ({}, {}))
+    payload = build_hub_live_week(league["id"], week=1, viewer_team_id=home["id"],
+                                  nfl_state={"week": 1, "season": 2026, "season_type": "regular"})
+    team = next(team for match in payload["matchups"] for team in match["teams"] if team["is_viewer"])
+    assert next(player for player in team["bench_players"] if player["player_id"] == "wr-a3")["points"] is None
+
+
+def test_cold_lineup_after_kickoff_requires_recovery_instead_of_guessing(hub_db, monkeypatch):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda team, *_a, **_k: team == "MIA")
+    assert ensure_team_lineup(league["id"], home["id"], 2026, 1) == []
+    assert not storage.has_team_lineup_snapshot(league["id"], home["id"], 2026, 1)
+
+
+def test_traded_started_player_keeps_original_week_owner_without_duplicate_score(hub_db, monkeypatch):
+    from src.draft_hub.hub_scoring import capture_native_lineups_before_roster_change
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    for team in (home, away):
+        ensure_team_lineup(league["id"], team["id"], 2026, 1)
+    storage.update_league_settings(league["id"], draft_completed=True)
+    monkeypatch.setattr("src.core.schedule_utils.current_projection_week", lambda *_a, **_k: 1)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda team, *_a, **_k: team == "MIA")
+    capture_native_lineups_before_roster_change(league["id"], [home["id"], away["id"]])
+    workspace = storage.roster_workspace_for_league(league)
+    storage.remove_roster_slot(workspace, "wr-a1", team_id=home["id"])
+    storage.add_roster_slot(workspace, {"player_id": "wr-a1", "player_name": "WR Ace", "team": "MIA",
+                                       "position": "WR", "salary": 28, "contract_years": 1}, team_id=away["id"])
+    old = ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    acquired = ensure_team_lineup(league["id"], away["id"], 2026, 1)
+    assert next(row for row in old if row["player_id"] == "wr-a1")["lineup_role"] == "starter"
+    arrived = next(row for row in acquired if row["player_id"] == "wr-a1")
+    assert arrived["lineup_role"] == "bench" and arrived["locked"]
+    with pytest.raises(LineupError, match="started"):
+        set_team_starters(league["id"], away["id"], 2026, 1, [{"player_id": "wr-a1", "slot": "WR1"}])
+    inputs = {row["player_id"]: {"receiving_yards": 100} for row in [*old, *acquired]}
+    assert apply_week_scores(league["id"], 2026, 1, stat_index=inputs, slate_complete=True)["scored"]
+    recorded = [row for row in storage.list_player_week_scores(league["id"], 2026, 1) if row["player_id"] == "wr-a1"]
+    assert len(recorded) == 1 and recorded[0]["team_id"] == home["id"]
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *_a, **_k: False)
+    following = ensure_team_lineup(league["id"], away["id"], 2026, 2)
+    assert not next(row for row in following if row["player_id"] == "wr-a1")["locked"]
+
+
+def test_this_week_carries_unknown_kickoff_reason_to_enriched_cards(hub_db, monkeypatch):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *_a, **_k: None)
+    starters, _bench, meta = resolve_week_lineup(
+        {"mode": "league", "league_id": league["id"], "team_id": home["id"]},
+        [{"player_id": "wr-a1", "position": "WR", "team": "MIA", "projection": 10}],
+        LeagueRules.model_validate(league["rules"]), season=2026, week=1)
+    player = next(row for row in starters if row["player_id"] == "wr-a1")
+    assert player["lineup_locked"] and not player["kickoff_available"]
+    assert player["lock_reason"] == "kickoff_unavailable"
+    assert not meta["lineup_locked"]
+
+
+@pytest.mark.parametrize("state", [True, None])
+def test_missing_current_snapshot_cannot_carry_old_ownership_after_kickoff(hub_db, monkeypatch, state):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    ensure_team_lineup(league["id"], home["id"], 2026, 1)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *_a, **_k: state)
+    assert ensure_team_lineup(league["id"], home["id"], 2026, 2) == []
+    assert not storage.has_team_lineup_snapshot(league["id"], home["id"], 2026, 2)
+
+
+def test_full_lineup_cannot_replace_missing_kickoff_ownership(hub_db, monkeypatch):
+    league, home, _away, _ = _seed_two_team_league(hub_db)
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda team, *_a, **_k: team == "MIA")
+    with pytest.raises(LineupError, match="starting lineup is missing"):
+        set_team_starters(league["id"], home["id"], 2026, 1, [{"player_id": "wr-a2", "slot": "WR1"}])
+    assert not storage.has_team_lineup_snapshot(league["id"], home["id"], 2026, 1)
+
+
+def test_game_center_preserves_last_successful_actuals_when_feed_fails(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    for team in (home, away):
+        ensure_team_lineup(league["id"], team["id"], 2026, 1)
+    rules = LeagueRules.model_validate(league["rules"])
+    storage.save_native_live_week(league["id"], 2026, 1, {
+        "status": "error", "last_successful_scoring": rules.scoring.model_dump(),
+        "synced_at": "2026-09-13T18:00:00Z", "attempted_at": "2026-09-13T18:01:00Z",
+        "players": [{"team_id": home["id"], "player_id": "qb-a", "points": 12.5}],
+        "teams": [{"team_id": home["id"], "points": 12.5}], "errors": ["Provider temporarily unavailable"]})
+    monkeypatch.setattr("src.draft_hub.weekly_command_center._load_projection_index", lambda *_a, **_k: ({}, {}))
+    payload = build_hub_live_week(league["id"], week=1, viewer_team_id=home["id"],
+                                  nfl_state={"week": 1, "season": 2026, "season_type": "regular"})
+    viewer = next(team for match in payload["matchups"] for team in match["teams"] if team["is_viewer"])
+    assert viewer["points"] == 12.5 and payload["scoring_stale"]
+    assert payload["scoring_status"] == "error" and not payload["week_complete"]
+    assert payload["synced_at"] == "2026-09-13T18:00:00Z"
+    assert payload["scoring_attempted_at"] == "2026-09-13T18:01:00Z"
+
+
+def test_final_native_estimate_does_not_add_zero_scorer_projection(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    for team in (home, away):
+        ensure_team_lineup(league["id"], team["id"], 2026, 1)
+    storage.save_native_week_scores(league["id"], 2026, 1, [],
+                                   [{"team_id": home["id"], "points": 10}, {"team_id": away["id"], "points": 12}],
+                                   ScoringRules().model_dump())
+    monkeypatch.setattr("src.draft_hub.weekly_command_center._load_projection_index", lambda *_a, **_k:
+                        ({"qb-a": {"player_id": "qb-a", "player_name": "QB Alpha", "team": "KC", "position": "QB", "p50": 30}}, {}))
+    payload = build_hub_live_week(league["id"], week=1, viewer_team_id=home["id"],
+                                  nfl_state={"week": 1, "season": 2026, "season_type": "regular"})
+    matchup = payload["matchups"][0]
+    viewer = next(team for team in matchup["teams"] if team["is_viewer"])
+    assert next(row for row in viewer["starters"] if row["player_id"] == "qb-a")["proj"] == 30
+    assert viewer["est_final"] == viewer["points"] == 10
+    assert viewer["points_pending"] == 0 and payload["week_complete"]
+    assert matchup["win_prob_by_roster"][home["id"]] == 0
+
+
+def test_postseason_scores_require_only_participating_teams(hub_db, monkeypatch):
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    eliminated = storage.add_unclaimed_team(league["id"], "Eliminated", 200)
+    raw = league["rules"]
+    raw["regular_season_games"] = 1
+    raw["playoffs"] = {"enabled": True, "teams": 2}
+    storage.update_league_rules(league["id"], LeagueRules.model_validate(raw))
+    storage.save_native_week_scores(league["id"], 2026, 1, [],
+        [{"team_id": team["id"], "points": points} for team, points in ((home, 100), (away, 90), (eliminated, 10))],
+        ScoringRules().model_dump())
+    for team, pid in ((home, "qb-a"), (away, "qb-b")):
+        storage.replace_team_lineup(league["id"], team["id"], 2026, 2,
+            [{"player_id": pid, "position": "QB", "nfl_team": "KC", "slot": "QB", "lineup_role": "starter"}])
+    assert not storage.has_team_lineup_snapshot(league["id"], eliminated["id"], 2026, 2)
+    result = apply_week_scores(league["id"], 2026, 2,
+        stat_index={"qb-a": {"passing_yards": 100}, "qb-b": {"passing_yards": 200}}, slate_complete=True)
+    assert result["scored"]
+    assert {row["team_id"] for row in storage.list_team_week_scores(league["id"], 2026, 2)} == {home["id"], away["id"]}
+    monkeypatch.setattr("src.draft_hub.weekly_command_center._load_projection_index", lambda *_a, **_k: ({}, {}))
+    payload = build_hub_live_week(league["id"], week=2, viewer_team_id=home["id"],
+                                  nfl_state={"week": 2, "season": 2026, "season_type": "regular"})
+    assert payload["scoring_errors"] == []

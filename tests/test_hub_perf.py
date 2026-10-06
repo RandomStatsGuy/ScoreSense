@@ -453,7 +453,8 @@ def test_get_nfl_state_allow_stale_never_live_fetches(monkeypatch, tmp_path):
     assert calls == ["live"]
 
 
-def test_insights_overview_skips_roster_rebuild(hub_client, hub_db, monkeypatch):
+@pytest.mark.parametrize("host", ["native", "sleeper"])
+def test_insights_overview_skips_roster_rebuild(hub_client, hub_db, monkeypatch, host):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
 
     def _boom(*_a, **_k):
@@ -461,7 +462,9 @@ def test_insights_overview_skips_roster_rebuild(hub_client, hub_db, monkeypatch)
 
     monkeypatch.setattr("src.draft_hub.storage.league_roster_overview", _boom)
     monkeypatch.setattr(
-        "src.draft_hub.league_history.build_insights_landing",
+        "src.draft_hub.league_history." + (
+            "build_native_insights_landing" if host == "native" else "build_insights_landing"
+        ),
         lambda *_a, **_k: {
             "available": True,
             "champions": [{"season": "2024", "team_name": "Champs"}],
@@ -473,6 +476,8 @@ def test_insights_overview_skips_roster_rebuild(hub_client, hub_db, monkeypatch)
     from src.draft_hub import storage
 
     league = storage.create_league("dev", "Overview League", 2026, LeagueRules())
+    if host == "sleeper":
+        storage.update_league_sleeper_id(league["id"], "sleeper-overview-fixture")
     res = hub_client.get(f"/api/hub/league/{league['id']}/insights/overview")
     assert res.status_code == 200
     body = res.json()

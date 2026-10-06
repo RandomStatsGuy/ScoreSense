@@ -106,7 +106,7 @@ export default function WeekLineupCallSheet({
   const closeRef = useRef(null);
   const prevFocusRef = useRef(null);
   const titleId = "hub-wcc-ticket-title";
-  const callAction = lineupCallAction({ canEdit, lineupLocked, sleeperLeagueId });
+  const callAction = lineupCallAction({ canEdit, lineupLocked, sleeperLeagueId, starter, bench });
   const title = callTitle(decision);
   const startLabel = startCallLabel(decision);
   const keepLabel = keepCallLabel(decision);

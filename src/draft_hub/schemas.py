@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class PositionRule(BaseModel):
@@ -87,9 +87,19 @@ class ScoringRules(BaseModel):
     bonus_receiving_200: float = Field(default=0, ge=-100, le=100)
 
 
+class NativePlayoffRules(BaseModel):
+    enabled: bool = False
+    teams: int = Field(default=6, ge=2, le=14)
+    start_week: Optional[int] = Field(default=None, ge=2, le=18)
+    reseed: bool = True
+    third_place: bool = True
+    tie_breaker: Literal["higher_seed"] = "higher_seed"
+
+
+
 class LeagueRules(BaseModel):
     scoring: ScoringRules = Field(default_factory=ScoringRules)
-    salary_cap: float = Field(default=200.0, ge=0)
+    salary_cap: float = Field(default=200.0, ge=0, allow_inf_nan=False)
     # auction = salary-cap nomination auction; snake/linear = classic pick draft.
     draft_type: Literal["auction", "snake", "linear"] = "auction"
     auction: AuctionRules = Field(default_factory=AuctionRules)
@@ -104,9 +114,24 @@ class LeagueRules(BaseModel):
     # so a draft can run before salaries are updated.
     relax_salary_roster_limits: bool = False
     # Fantasy regular-season games used for pick-draft record projections.
-    regular_season_games: int = 14
+    regular_season_games: int = Field(default=14, ge=1, le=18)
+    playoffs: NativePlayoffRules = Field(default_factory=NativePlayoffRules)
+    faab_budget: float = Field(default=100, ge=0, le=100000, allow_inf_nan=False)
     # Commissioner overrides for Insights award titles (award_id -> label).
     insight_award_titles: dict[str, str] = Field(default_factory=dict)
+
+
+    @model_validator(mode="after")
+    def valid_native_schedule(self):
+        if self.playoffs.enabled:
+            start = self.playoffs.start_week or self.regular_season_games + 1
+            rounds = (self.playoffs.teams - 1).bit_length()
+            if start <= self.regular_season_games:
+                raise ValueError("Playoffs must start after the regular season.")
+            if start + rounds - 1 > 18:
+                raise ValueError("The championship must finish by NFL week 18.")
+        return self
+
 
 
 class WorkspaceUpdate(BaseModel):
@@ -123,7 +148,7 @@ class RosterAddRequest(BaseModel):
     player_name: str
     team: str = ""
     position: str
-    salary: float = Field(ge=0)
+    salary: float = Field(ge=0, allow_inf_nan=False)
     contract_years: int = 1
     contract_type: Optional[str] = None  # rookie | veteran | extension
     # Commissioners: add onto this league team instead of the caller's roster.
@@ -158,7 +183,7 @@ class RosterRemoveRequest(BaseModel):
 class RosterUpdateRequest(BaseModel):
     player_id: str
     roster_slot_id: Optional[int] = None
-    salary: Optional[float] = Field(default=None, ge=0)
+    salary: Optional[float] = Field(default=None, ge=0, allow_inf_nan=False)
     contract_years: Optional[int] = None  # years remaining on contract
     step_up: Optional[float] = None
     salary_schedule: Optional[list[float]] = None
@@ -555,7 +580,7 @@ class FaBidRequest(BaseModel):
     player_name: str
     team: str = ""
     position: str = ""
-    bid_amount: float
+    bid_amount: float = Field(ge=0, allow_inf_nan=False)
 
 
 class WaiverClaimItem(BaseModel):

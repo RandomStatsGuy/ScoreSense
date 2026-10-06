@@ -27,7 +27,9 @@ import "./insights/insightsBoards.css";
 import {
   POS_COLORS,
   formatSpendValue,
+  formatPoints,
   INSIGHTS_COPY,
+  scoringAwardsForFormat,
   insightsHeroStatus,
   metricValue,
   pickDiscussablePosition,
@@ -234,6 +236,8 @@ function ScoringEmptyState({ scoring, hubContext, onNavigate, onRefresh }) {
   const linked = Boolean(
     hubContext?.sleeper_league_id || scoring?.sleeper_league_id,
   );
+
+  if (hubContext?.mode === "league" && !linked) return <div className="hub-insights-empty-state"><h3>{INSIGHTS_COPY.scoring.nativeEmptyTitle}</h3><p>{scoring?.hint || INSIGHTS_COPY.scoring.nativeEmpty}</p></div>;
 
   let title = "Connect Sleeper for scoring";
   let body = scoring?.hint
@@ -746,7 +750,7 @@ export default function LeagueInsights({
   const activeScoringSeason = scoringSeason === "current"
     ? (data?.scoring?.requested_season || data?.scoring?.season || "")
     : scoringSeason;
-  const scoringAwards = data?.scoring?.awards || data?.scoring_awards || [];
+  const scoringAwards = scoringAwardsForFormat(data?.scoring?.awards || data?.scoring_awards || [], usesSalaries);
   const showScoringTables = shouldShowScoringTables(data?.scoring);
   const scoringWaiting = scoringWaitingCopy(data?.scoring);
   const scoringSeasonLabel = activeScoringSeason === "all"
@@ -953,9 +957,9 @@ export default function LeagueInsights({
         />
       )}
 
-      {activeTab === "contracts" && <InsightsContracts contracts={data?.contracts} years={periodChoices} period={period} loading={loading || tabLoading} ownerMap={ownerMap} />}
+      {usesSalaries && activeTab === "contracts" && <InsightsContracts contracts={data?.contracts} years={periodChoices} period={period} loading={loading || tabLoading} ownerMap={ownerMap} />}
 
-      {activeTab === "cap" && (
+      {usesSalaries && activeTab === "cap" && (
         <HubPage frameless className="hub-spend-page hub-experience-page hub-insights-page">
 
           {capSeasonBusy && !barData.length && <InsightsSkeleton />}
@@ -1150,7 +1154,7 @@ export default function LeagueInsights({
           )}
 
           {data?.scoring?.available && showScoringTables && (
-            <ScoringBoards scoring={data.scoring} ownerMap={ownerMap}
+            <ScoringBoards scoring={{ ...data.scoring, awards: scoringAwards }} ownerMap={ownerMap}
               yearSpecific={scoringYearSpecific} label={scoringSeasonLabel} />
           )}
           {data?.scoring?.available && !showScoringTables && (
@@ -1162,6 +1166,16 @@ export default function LeagueInsights({
 
           {data?.scoring?.available && showScoringTables && (
             <>
+              {data.scoring.partial && <p className="chart-note" role="status">{data.scoring.hint || INSIGHTS_COPY.overview.partial}</p>}
+              {(data.scoring.player_seasons || []).length > 0 && <InsightsDisclosure summary={INSIGHTS_COPY.scoring.playerContributions}>
+                <p className="chart-note">{INSIGHTS_COPY.scoring.playerContributionsSupport}</p>
+                <div className="table-wrap"><table className="data-table hub-table hub-table--packed">
+                  <thead><tr><th>{INSIGHTS_COPY.scoring.player}</th><th className="hub-col-label">{INSIGHTS_COPY.overview.manager}</th><th className="num">{INSIGHTS_COPY.scoring.season}</th><th className="num">{INSIGHTS_COPY.scoring.starts}</th><th className="num">{INSIGHTS_COPY.scoring.points}</th></tr></thead>
+                  <tbody>{[...(data.scoring.player_seasons || [])].sort((a, b) => Number(b.started_points) - Number(a.started_points)).map((row, index) => <tr key={`${row.season}:${row.roster_id}:${row.player_id}:${index}`}>
+                    <td>{row.player_name || row.player_id}</td><td className="hub-col-label">{teamDisplayName(row, ownerMap, true)}</td><td className="num">{row.season}</td><td className="num">{row.starts}</td><td className="num">{formatPoints(row.started_points)}</td>
+                  </tr>)}</tbody>
+                </table></div>
+              </InsightsDisclosure>}
               {scoringAwards.length > 0 && (
                 <InsightsDisclosure summary={`More scoring awards (${scoringAwards.length})`}>
                   <MoreAwards awards={scoringAwards} ownerMap={ownerMap} yearSpecific={scoringYearSpecific} visibleGroups={awardGroupToggles} onToggleGroup={toggleAwardGroup} />
@@ -1199,7 +1213,7 @@ export default function LeagueInsights({
                 </p>
               ) : (
                 <p className="chart-note hub-insights-chart-placeholder">
-                  Weekly chart appears after the first scored week in Sleeper.
+                  Weekly chart appears after the first finalized league week.
                 </p>
               )}
 
@@ -1238,7 +1252,7 @@ export default function LeagueInsights({
                     </div>
                   ) : (
                     <div className="table-wrap">
-                      <table className="data-table hub-table hub-insights-scoring-table">
+                      <table className="data-table hub-table hub-insights-scoring-table hub-table--packed">
                         <thead>
                           <tr>
                             <th className="num">{INSIGHTS_COPY.scoring.rank}</th>
@@ -1261,9 +1275,9 @@ export default function LeagueInsights({
                               >
                                 <td>#{idx + 1}</td>
                                 <td>{teamDisplayName(t, ownerMap, scoringYearSpecific)}</td>
-                                <td>{t.total_points}</td>
-                                <td>{t.avg_points}</td>
-                                <td>{t.weeks_scored ?? "—"}</td>
+                                <td className="num">{t.total_points}</td>
+                                <td className="num">{t.avg_points}</td>
+                                <td className="num">{t.weeks_scored ?? "—"}</td>
                                 <td>
                                   <button
                                     type="button"
@@ -1286,7 +1300,7 @@ export default function LeagueInsights({
                 </div>
               </InsightsDisclosure>
 
-              {efficiency?.available && (efficiency.teams || []).length > 0 && (
+              {usesSalaries && efficiency?.available && (efficiency.teams || []).length > 0 && (
                 <InsightsDisclosure
                   summary="Cap efficiency"
                   meta={efficiency.season ? String(efficiency.season) : "pts per $"}
@@ -1375,7 +1389,7 @@ export default function LeagueInsights({
         </HubPage>
       )}
 
-      {activeTab === "ownership" && (
+      {usesSalaries && activeTab === "ownership" && (
         <HubPage inset className="hub-player-history-page hub-experience-page hub-insights-page">
           <InsightsSeasonBar
             usesSalaries={usesSalaries}
