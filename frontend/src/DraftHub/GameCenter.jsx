@@ -161,7 +161,7 @@ export default function GameCenter({
     [standingsView.standings, hubContext?.team_id],
   );
   // Keep the editor in one location and one scope while independent scores load.
-  const lineupWeek = week;
+  const lineupWeek = week ?? data?.week ?? null;
   const weekNumber = data?.week ?? week ?? lineupSummary?.week;
   const currentWeek = data?.current_week;
   const maxWeek = data?.max_week || 18;

@@ -425,7 +425,7 @@ def test_lineup_swap_and_score_week_routes(hub_db, monkeypatch):
     assert live_body["standings"][0]["wins"] == 1
 
 
-def test_sleeper_linked_league_stays_inferred_and_rejects_hub_score(hub_db, monkeypatch):
+def test_sleeper_linked_league_never_guesses_lineup_and_rejects_hub_score(hub_db, monkeypatch):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
     league, home, _away, comm = _seed_two_team_league(hub_db)
     storage.update_league_sleeper_id(league["id"], "sleeper-hosted-1")
@@ -456,9 +456,11 @@ def test_sleeper_linked_league_stays_inferred_and_rejects_hub_score(hub_db, monk
         season=2026,
         week=1,
     )
-    assert meta["lineup_source"] == "inferred"
+    assert meta["lineup_source"] == "sleeper"
+    assert meta["lineup_available"] is False
     assert not storage.list_team_lineup(league["id"], home["id"], 2026, 1)
-    assert starters or bench
+    assert starters == []
+    assert len(bench) == len(players)
 
     try:
         apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"fantasy_points": 10}})
