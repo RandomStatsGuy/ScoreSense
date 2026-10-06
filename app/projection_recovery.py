@@ -19,11 +19,6 @@ def projection_recovery_status(season, week, kinds):
     if not kinds or not season or not week:
         return {"status": "idle"}
     key = (int(season), int(week), tuple(sorted(set(kinds))))
-    from src.jobs.season_refresh import target_due
-    if all(kind in {"draft", "ros"} for kind in kinds) and not any(
-        target_due(kind, int(season), int(week)) for kind in kinds
-    ):
-        return {"status": "scheduled"}
     with _LOCK:
         if key in _ACTIVE:
             return {"status": "running"}
@@ -31,6 +26,11 @@ def projection_recovery_status(season, week, kinds):
         if previous:
             retry = max(0, math.ceil(RETRY_SECONDS - (time.monotonic() - previous[0])))
             return {**previous[1], "retry_after_seconds": retry}
+    from src.jobs.season_refresh import target_due
+    if all(kind in {"draft", "ros"} for kind in kinds) and not any(
+        target_due(kind, int(season), int(week)) for kind in kinds
+    ):
+        return {"status": "scheduled"}
     return {"status": "idle"}
 
 
@@ -50,17 +50,17 @@ def queue_projection_recovery(background_tasks, season, week, kinds):
     if not kinds or not season or not week or background_tasks is None:
         return {"status": "idle"}
     key = (int(season), int(week), tuple(sorted(set(kinds))))
-    from src.jobs.season_refresh import target_due
-    if all(kind in {"draft", "ros"} for kind in kinds) and not any(
-        target_due(kind, int(season), int(week)) for kind in kinds
-    ):
-        return {"status": "scheduled"}
     with _LOCK:
         if key in _ACTIVE:
             return {"status": "running"}
         previous = _RESULTS.get(key)
         if previous and time.monotonic() - previous[0] < RETRY_SECONDS:
             return {**previous[1], "retry_after_seconds": RETRY_SECONDS}
+        from src.jobs.season_refresh import target_due
+        if all(kind in {"draft", "ros"} for kind in kinds) and not any(
+            target_due(kind, int(season), int(week)) for kind in kinds
+        ):
+            return {"status": "scheduled"}
         _ACTIVE.add(key)
     background_tasks.add_task(_rebuild, key)
     return {"status": "queued"}

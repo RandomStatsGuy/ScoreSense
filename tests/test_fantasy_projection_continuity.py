@@ -146,11 +146,21 @@ def test_fantasy_http_keeps_rows_available_and_respects_daily_cadence(hub_db, fo
     assert len(submitted) == 1
 
 
-def test_genuinely_missing_pool_queues_recovery_on_the_503_response(hub_db, forecasts, monkeypatch):
+@pytest.mark.parametrize("damage", ["missing", "columns", "footer", "empty"])
+def test_genuinely_missing_pool_queues_recovery_on_the_503_response(hub_db, forecasts, monkeypatch, damage):
     from app.api import app
     from app import projection_recovery as recovery
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
-    pools._artifact_paths(2026)[0].unlink()
+    make_stale(forecasts[0])
+    parquet = pools._artifact_paths(2026)[0]
+    if damage == "missing":
+        parquet.unlink()
+    elif damage == "columns":
+        forecasts[1].drop(columns="Per-Game Proj").to_parquet(parquet, index=False)
+    elif damage == "empty":
+        forecasts[1].iloc[:0].to_parquet(parquet, index=False)
+    else:
+        parquet.write_bytes(b"PAR1broken footerPAR1")
     pools.invalidate_pool_cache()
     submitted = []
     async def submit(*args):
