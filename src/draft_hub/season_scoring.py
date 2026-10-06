@@ -58,7 +58,7 @@ def native_week(league_id, season, week, lookup, scoring):
     from src.draft_hub.hub_scoring import fantasy_points_from_stats, require_position_stats
     grouped = {}
     for alias, stats in lookup.items():
-        if not stats.get("position") or stats.get("_native_no_game") or stats.get("_native_played") is False:
+        if not stats.get("position") or stats.get("_native_no_game") or stats.get("_native_stats_unavailable") or stats.get("_native_played") is False:
             continue
         key = stats.get("_native_player_key") or id(stats)
         if key not in grouped:
