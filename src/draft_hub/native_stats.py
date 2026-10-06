@@ -136,7 +136,9 @@ def parse_scoreboard(payload: dict[str, Any], season: int, week: int) -> dict[st
                     raise NativeStatsUnavailable("The NFL game-status feed is missing a team identity.")
                 states[team] = {"game_state": state, "completed": completed,
                                 "kickoff_at": competition.get("date") or event.get("date"),
-                                "game_id": str(event.get("id") or "")}
+                                "game_id": str(event.get("id") or ""),
+                                "competition_id": str(competition.get("id") or event.get("id") or ""),
+                                "competitor_id": str(competitor.get("id") or "")}
     if not states:
         raise NativeStatsUnavailable("The NFL game-status feed has no games for this week.")
     return states

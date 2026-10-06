@@ -95,6 +95,13 @@ def prepare_weekly_context():
 
 @pytest.fixture(autouse=True)
 def _isolate_materialized_caches(tmp_path, monkeypatch):
+    from src.draft_hub import native_stats, native_participation
+    monkeypatch.setattr(native_stats, "NATIVE_STATS_DIR", tmp_path / "native_scores")
+    native_stats.clear_native_stats_cache()
+    native_participation.clear_participation_cache()
+    def no_participation_network(_url):
+        raise RuntimeError("Historical participation requests require an explicit provider fixture.")
+    monkeypatch.setattr(native_participation, "_fetch_json", no_participation_network)
     from src.jobs import season_refresh
     monkeypatch.setattr(season_refresh, "STATUS_PATH", tmp_path / "season_refresh.json")
     from src.draft_hub import value_snapshot
@@ -114,6 +121,8 @@ def _isolate_materialized_caches(tmp_path, monkeypatch):
     invalidate_weekly_context_cache()
     contract_sync.clear_history_cache()
     yield
+    native_participation.clear_participation_cache()
+    native_stats.clear_native_stats_cache()
     draft_pool_cache.invalidate_pool_cache()
     invalidate_pool_payload_cache()
     weekly_cache.invalidate_weekly_cache()
