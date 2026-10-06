@@ -179,3 +179,13 @@ def test_legacy_status_start_time_still_rate_limits(refresh_env, monkeypatch):
     monkeypatch.setattr(dfs_refresh.time, "time", lambda: now + 1)
     assert dfs_refresh.run_dfs_refresh()["status"] == "not_due"
     refresh_env[0].assert_not_called()
+
+
+def test_input_poll_contention_is_background_progress_not_failure(tmp_path,monkeypatch):
+    monkeypatch.setattr(dfs_refresh,"CACHE_DIR",tmp_path)
+    monkeypatch.setattr(dfs_refresh,"STATUS_PATH",tmp_path/"dfs.json")
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll",lambda **k:{"status":"already_running"})
+    monkeypatch.setattr("src.projections.weekly_cache.load_weekly_prediction",lambda *a,**k:pytest.fail("must wait for feed"))
+    result = dfs_refresh.run_dfs_refresh()
+    assert result["status"] == "inputs_updating" and result["forecast_status"] == "running"
+    assert not result["last_success_at"] and "error" not in result

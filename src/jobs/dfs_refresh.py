@@ -58,6 +58,12 @@ def run_dfs_refresh(*, force: bool = False):
                 feed = get_injury_poll_status()
                 poll = (run_injury_poll(force=force, recompute_overlays=False, trigger="forecast_background")
                         if force or feed.get("poll_due") else {"status": "ok"})
+                if poll.get("status") == "already_running":
+                    # Another input poll owns the feed. Wait for its saved
+                    # publication instead of declaring normal contention failed.
+                    status.update(status="inputs_updating", completed_epoch=time.time())
+                    save()
+                    return status
                 if poll.get("status") != "ok":
                     raise RuntimeError("Player input refresh did not complete")
                 state = get_nfl_state(use_cache=True)
