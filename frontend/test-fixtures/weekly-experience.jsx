@@ -23,7 +23,8 @@ import {TeamIdentityProvider} from "../src/DraftHub/TeamIdentityContext";
 const params = new URLSearchParams(location.search);
 document.documentElement.dataset.theme = params.get("theme") || "light";
 const state = params.get("state") || "ready";
-const recorded = ["live", "native-progress", "final"].includes(state);
+const linked = ["linked", "linked-refresh", "linked-unavailable"].includes(state);
+const recorded = ["live", "native-progress", "final", "linked-refresh"].includes(state);
 const player = (id, name, position, team, p50, slot = "BN") => ({
   player_id: id, player_name: name, position, team, p50, slot,
   kickoff_et: "2030-09-22T13:00:00-04:00", p10: 6, p90: 28,
@@ -31,10 +32,10 @@ const player = (id, name, position, team, p50, slot = "BN") => ({
 const rules = { roster: { qb: { starter: 1 }, rb: { starter: 1 }, wr: { starter: 1 }, te: { starter: 0 },
   k: { starter: 0 }, def: { starter: 0 }, flex: { starter: 1, eligible: ["RB", "WR", "TE"] } } };
 const context = { mode: "league", league_id: "fixture", team_id: "mine", team_name: "Sunday Roster",
-  draft_completed: !params.has("preseason") && state !== "no-roster", is_commissioner:!params.has("member"), capabilities:{uses_salaries:params.has("salary"), uses_contracts:params.has("salary")}, rules, ...(state === "linked" ? { sleeper_league_id: "fixture" } : {}) };
+  draft_completed: !params.has("preseason") && state !== "no-roster", is_commissioner:!params.has("member"), capabilities:{uses_salaries:params.has("salary"), uses_contracts:params.has("salary")}, rules, ...(linked ? { sleeper_league_id: "fixture" } : {}) };
 const data = {
   hub_context: context,
-  meta: { season: 2026, week: 2, lineup_source: state === "linked" ? "sleeper" : "hub", lineup_locked: ["readonly", "final"].includes(state), week_scored: ["readonly", "final"].includes(state), projections_built_at: new Date().toISOString() },
+  meta: { season: 2026, week: 2, lineup_source: linked ? "sleeper" : "hub", lineup_locked: ["readonly", "final"].includes(state), week_scored: ["readonly", "final"].includes(state), projections_built_at: new Date().toISOString() },
   status: {}, sync: {}, counts: { roster: 7, missing_projections: 0 }, decisions: [],
   roster: { starters: [player("hurts", "Jalen Hurts", "QB", "PHI", 22.4, "QB"),
     player("bijan", "Bijan Robinson", "RB", "ATL", 19.8, "RB"),
@@ -44,6 +45,7 @@ const data = {
       player("charbonnet", "Zach Charbonnet", "RB", "SEA", 10.4),
       player("daniels", "Jayden Daniels", "QB", "WAS", 21.5)] },
 };
+if (state === "linked-unavailable") { data.roster.starters = []; data.meta.lineup_available = false; }
 if (state === "empty") data.roster.starters = data.roster.starters.filter((p) => p.slot !== "FLEX");
 if (state === "no-options") data.roster.bench = [data.roster.bench[2]];
 if (state === "locked-player") data.roster.bench[0].locked = true;
@@ -51,6 +53,12 @@ if (state === "locked-starter") data.roster.starters[3].locked = true;
 if (state === "missing") data.roster.bench[0].p50 = null;
 if (state === "calls") data.decisions=[{starter_player_id:"waddle",starter_player_name:"Jaylen Waddle",starter_slot:"FLEX",bench_player_id:"smith",bench_player_name:"DeVonta Smith",delta_p50:2.5}];
 window.fixtureWrites = [];
+window.fixtureSwapQb = () => {
+  const starter = data.roster.starters.find(player => player.slot === "QB");
+  const bench = data.roster.bench.find(player => player.player_id === "daniels");
+  data.roster.starters = data.roster.starters.map(player => player === starter ? {...bench, slot:"QB"} : player);
+  data.roster.bench = data.roster.bench.map(player => player === bench ? {...starter, slot:"BN"} : player);
+};
 window.fetch = async (input, options = {}) => {
   const path = String(input);
   window.fixtureRequests ||= [];
@@ -69,12 +77,12 @@ window.fetch = async (input, options = {}) => {
       "unknown-schedule": {week_started:null,refresh:{status:"failed",error:"no_stats"}},
       "score-pending": {week_started:true,refresh:{status:"pending"}},
     };
-    return Response.json({available:true,source:"hub",reason:"hub",placeholder:!recorded,live:state==="live",week_complete:state==="final",season:2026,week,current_week:state === "native-progress" ? week + 1 : 2,max_week:18,
+    return Response.json({available:true,source:linked ? "sleeper" : "hub",reason:"hub",synced_at: new Date().toISOString(),placeholder:!recorded,live:state==="live",week_complete:state==="final",season:2026,week,current_week:state === "native-progress" ? week + 1 : 2,max_week:18,
       ...(refreshStates[state] ? {scoring_control:{host:"native",scored:false,final:false,...refreshStates[state]}} : {}),
       ...(["native-progress", "final"].includes(state) ? {scoring_control:{host:"native",scored:true,final:state === "final",live:state !== "final",slate_complete:state === "final"}} : {}),
       viewer_matchup_id:"one",starting_slots:["QB","RB","WR","FLEX"],matchups:[{matchup_id:"one",teams:[mine,other]},{matchup_id:"two",teams:[{roster_id:"3",hub_team_id:"third",owner_name:"Sam",team_name:"Ragdollin With Mahomies",points:60,starters:mine.starters.map(p=>({...p,name:p.position === "QB" ? "Patrick Mahomes" : p.name,team:p.position === "QB" ? "KC" : p.team,proj:21.5}))},{roster_id:"4",hub_team_id:"fourth",owner_name:"Jamie",team_name:"Owner of Solar Panels",points:52,starters:other.starters}]}],standings:[]});
   }
-  if (path.includes("freshness")) return Response.json({sleeper:{linked:state === "linked"},projections:{available:true}});
+  if (path.includes("freshness")) return Response.json({sleeper:{linked},projections:{available:true}});
   if (path.includes("identities")) return Response.json({identities:{}});
   if (path.includes("/lineup")) {
     window.fixtureWrites.push({ path, method: options.method, body: JSON.parse(options.body) });
@@ -98,7 +106,7 @@ window.fetch = async (input, options = {}) => {
     if (state === "no-roster") { data.roster={starters:[],bench:[]}; data.status={empty_roster:true,unlinked_league:true}; data.counts.roster=0; }
     if (state === "loading") await new Promise(() => {});
     if (state === "load-error") return Response.json({ detail: "Unavailable" }, { status: 503 });
-    const week=Number(new URL(path,location.origin).searchParams.get("week") || 2); return Response.json({...data,meta:{...data.meta,week}});
+    const week=Number(new URL(path,location.origin).searchParams.get("week") || (params.has("different-auto-week") ? 3 : 2)); return Response.json({...data,meta:{...data.meta,week}});
   }
   if (path.includes("/vibe-aura")) return Response.json({ aura_by_player_id: {} });
   return Response.json({ media: Object.fromEntries([

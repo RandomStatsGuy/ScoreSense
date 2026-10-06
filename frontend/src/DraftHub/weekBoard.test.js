@@ -413,3 +413,16 @@ test("clear board collapses bye and out into one quiet line", () => {
   assert.equal(missing.find((i) => i.id === "available").value, WEEK_BOARD_COPY.clearRailValue);
   assert.equal(missing.find((i) => i.id === "ranges").value, "0");
 });
+
+test("recorded empty slots do not borrow players from another assigned slot", () => {
+  const plan = buildStarterSlotPlan(PRESET_RULES);
+  const filled = fillStarterSlots(plan, [
+    { player_id: "rb-two", position: "RB", slot: "RB2", lineup_role: "starter" },
+    { player_id: "wr-flex", position: "WR", slot: "FLEX", lineup_role: "starter" },
+  ]);
+  assert.equal(filled.find(row => row.slot === "RB1").player, null);
+  assert.equal(filled.find(row => row.slot === "RB2").player.player_id, "rb-two");
+  assert.equal(filled.find(row => row.slot === "WR1").player, null);
+  assert.equal(filled.find(row => row.slot === "WR2").player, null);
+  assert.equal(filled.find(row => row.slot === "FLEX").player.player_id, "wr-flex");
+});

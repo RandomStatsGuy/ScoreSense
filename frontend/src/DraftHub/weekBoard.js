@@ -37,6 +37,7 @@ export const WEEK_BOARD_COPY = {
   noProjection: "No projection",
   startFallback: "Start bench",
   startInSleeper: "Opens Sleeper to set this start.",
+  sleeperLineupUnavailable: "Your Sleeper lineup is not available for this week. Check the matchup or open Sleeper below.",
   startExternal: "Set this start in your league app.",
   lineupLocked: "Lineup is locked.",
   staffLineupOpen: "Games have started. You can still set this lineup until the week is calculated.",
@@ -260,6 +261,8 @@ export function fillStarterSlots(plan = [], starters = []) {
     if (bySlot) return { ...slot, player: bySlot };
 
     const byPos = take((player) => {
+      // An assigned player belongs in that slot, even when another slot is empty.
+      if (player.slot && plan.some((entry) => entry.slot === player.slot)) return false;
       if (slot.position === "FLEX") {
         return String(player.slot || "").startsWith("FLEX")
           || (posOf(player) && FLEX_ELIGIBLE.includes(posOf(player))
