@@ -1,5 +1,6 @@
 """Saved Fantasy valuations survive later source updates until fresh replacements."""
 import json
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
 import pandas as pd
@@ -106,7 +107,8 @@ def test_wrong_context_or_damaged_snapshot_never_becomes_a_fallback(forecasts, d
 
 
 @pytest.mark.parametrize("path", ["/draft-pool", "/value-sheet", "/value-sheet?overlay_only=true", "/value-overlay"])
-def test_fantasy_http_keeps_rows_available_and_queues_shared_recovery(hub_db, forecasts, monkeypatch, path):
+@pytest.mark.parametrize("age_minutes", [14, 1500])
+def test_fantasy_http_keeps_rows_available_and_respects_daily_cadence(hub_db, forecasts, monkeypatch, path, age_minutes):
     from app.api import app
     from app import projection_recovery as recovery
     feature, _, before, compute = forecasts
@@ -117,14 +119,26 @@ def test_fantasy_http_keeps_rows_available_and_queues_shared_recovery(hub_db, fo
         return {"status": "error", "failed": ["draft"]}
     monkeypatch.setattr(recovery, "submit_cpu_job", submit)
     make_stale(feature)
+    metadata = pools._artifact_paths(2026)[1]
+    before["built_at"] = (datetime.now(timezone.utc)-timedelta(minutes=age_minutes)).isoformat()
+    metadata.write_text(json.dumps(before))
+    pools.invalidate_pool_cache()
     response = TestClient(app).get("/api/hub" + path)
     assert response.status_code == 200
     payload = response.json()
     assert payload["count"] == 1 and payload["rows"][0]["per_game_proj"] == 12
     assert payload["projection_stale"] and payload["projection_built_at"] == before["built_at"]
+    compute.assert_not_called()
+    if age_minutes == 14:
+        assert payload["projection_recovery"]["status"] == "scheduled"
+        assert not submitted
+        again = TestClient(app).get("/api/hub" + path)
+        assert again.status_code == 200
+        assert again.json()["projection_recovery"]["status"] == "scheduled"
+        assert not submitted
+        return
     assert payload["projection_recovery"]["status"] == "queued"
     assert len(submitted) == 1 and submitted[0][1:] == (2026, 1, ("draft",))
-    compute.assert_not_called()
     # Recovery failure retains the same forecast and uses the bounded retry.
     again = TestClient(app).get("/api/hub" + path)
     assert again.status_code == 200
@@ -132,11 +146,21 @@ def test_fantasy_http_keeps_rows_available_and_queues_shared_recovery(hub_db, fo
     assert len(submitted) == 1
 
 
-def test_genuinely_missing_pool_queues_recovery_on_the_503_response(hub_db, forecasts, monkeypatch):
+@pytest.mark.parametrize("damage", ["missing", "columns", "footer", "empty"])
+def test_genuinely_missing_pool_queues_recovery_on_the_503_response(hub_db, forecasts, monkeypatch, damage):
     from app.api import app
     from app import projection_recovery as recovery
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
-    pools._artifact_paths(2026)[0].unlink()
+    make_stale(forecasts[0])
+    parquet = pools._artifact_paths(2026)[0]
+    if damage == "missing":
+        parquet.unlink()
+    elif damage == "columns":
+        forecasts[1].drop(columns="Per-Game Proj").to_parquet(parquet, index=False)
+    elif damage == "empty":
+        forecasts[1].iloc[:0].to_parquet(parquet, index=False)
+    else:
+        parquet.write_bytes(b"PAR1broken footerPAR1")
     pools.invalidate_pool_cache()
     submitted = []
     async def submit(*args):

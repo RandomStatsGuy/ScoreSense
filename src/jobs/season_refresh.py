@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import pyarrow.parquet as pq
 from datetime import datetime, timezone
 from src.config import CACHE_DIR, SEASON_AUTO_REFRESH_SECONDS, WEEKLY_AUTO_REFRESH_SECONDS, PROJECTION_REFRESH_RETRY_SECONDS
 from src.jobs.refresh_lock import refresh_lock, RefreshBusy
@@ -33,14 +34,19 @@ def target_metadata(kind, season, week=1):
         else:
             from src.projections.ros_cache import _artifact_paths
         paths = [_artifact_paths(pos, season, week, injury) for pos in ("qb", "rb", "wr") for injury in (True, False)]
+    required = {
+        "draft": {"Player", "Position", "Season Proj", "Per-Game Proj"},
+        "weekly": {"Projected Points"},
+        "ros": {"ROS P10", "ROS P50", "ROS P90"},
+    }[kind]
     result = []
     for parquet, meta in paths:
         try:
-            with parquet.open("rb") as handle:
-                start = handle.read(4)
-                handle.seek(-4, 2)
-                end = handle.read(4)
-            result.append(read_cached_metadata(meta) if start == end == b"PAR1" else {})
+            # Read only the footer: a recent damaged/empty cache must recover
+            # immediately rather than wait for its normal daily deadline.
+            footer = pq.read_metadata(parquet)
+            valid = footer.num_rows > 0 and required.issubset(footer.schema.names)
+            result.append(read_cached_metadata(meta) if valid else {})
         except (OSError, ValueError):
             result.append({})
     return result

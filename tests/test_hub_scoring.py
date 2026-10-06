@@ -1016,6 +1016,8 @@ def test_upcoming_refresh_requeues_after_kickoff_without_manual_action(hub_db, m
     started = [False]
     monkeypatch.setattr(jobs.time, "time", lambda: clock[0])
     monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_week_started", lambda *a, **kw: started[0])
+    monkeypatch.setattr("src.draft_hub.game_center.cached_game_states",
+                        lambda *a: {"BUF": {"game_state": "live" if started[0] else "pregame"}})
     calls = []
     monkeypatch.setattr("src.draft_hub.hub_scoring.load_week_stat_index", lambda *a: calls.append(1) or {})
     monkeypatch.setattr("src.draft_hub.league_live_scoring.resolve_current_week",
@@ -1025,6 +1027,9 @@ def test_upcoming_refresh_requeues_after_kickoff_without_manual_action(hub_db, m
     assert jobs.refresh_status(league["id"], 2026, 1)["status"] == "upcoming"
     assert not calls
     clock[0] += jobs.CADENCE_SECONDS + 1
+    jobs.queue_current_native_weeks()
+    jobs.refresh_pending_scores()
+    assert not calls  # Between games, the five-minute deadline still applies.
     started[0] = True
     jobs.queue_current_native_weeks()
     jobs.refresh_pending_scores()
