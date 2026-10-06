@@ -7,6 +7,13 @@ import pandas as pd
 import pytest
 
 from src.jobs import dfs_inputs, dfs_refresh
+
+
+@pytest.fixture(autouse=True)
+def _isolate_supporting_context(monkeypatch):
+    monkeypatch.setattr(dfs_refresh, "_warm_supporting_data", lambda *a: None)
+    monkeypatch.setattr("src.integrations.injury_poll.get_injury_poll_status", lambda: {"poll_due": True})
+
 from src.projections import weekly_cache, ros_cache
 
 
@@ -95,7 +102,7 @@ def test_unchanged_inputs_reuse_both_variants_but_recheck_feeds_and_specialists(
     assert env.run()["forecasts_reused"] is True
     assert env.calls == [(pos, injury, force) for force in (True, False)
                          for pos in dfs_inputs.POSITIONS for injury in (True, False)]
-    assert env.ros_calls == [True] * 3 + [False] * 3
+    assert env.ros_calls == []  # Daily season worker owns ROS inference.
     assert env.poll.call_count == 2 and len(env.pool_calls) == 2
     assert json.loads(dfs_refresh.STATUS_PATH.read_text())["forecast_reuse"] == receipt
     assert env.pool_calls[-1][True]["qb"]["Projected Points"].iloc[0] == 11
@@ -106,7 +113,7 @@ def test_unchanged_inputs_reuse_both_variants_but_recheck_feeds_and_specialists(
     "roles.yaml", "sentiment.parquet", "processed/qb_mlready.parquet", "processed/rb_mlready.csv",
     "processed/wr_mlready.parquet", "models/qb_model.joblib", "models/rb_model_calibrated.joblib",
     "models/wr_model_calibrated.joblib", "fp/2026_week04_proj.parquet", "fp/2026_week04_ecr_ALL.parquet",
-    "weekly/2026_w3_wr_no_inj.parquet", "src/inference.py", "requirements.txt"])
+    "src/inference.py", "requirements.txt"])
 def test_each_real_dependency_change_forces_fresh_forecasts(gate_env, source):
     env = gate_env
     assert env.run()["status"] == "ok"
@@ -140,8 +147,8 @@ def test_season_and_week_boundaries_cannot_reuse_previous_context(gate_env, cont
 
 def test_age_limit_is_not_extended_by_successful_reuse_checks(gate_env):
     gate_env.run()
-    assert gate_env.run()["forecasts_reused"] is True
-    assert gate_env.run()["forecasts_reused"] is True
+    for _ in range(dfs_refresh.DFS_FORECAST_MAX_AGE_SECONDS // dfs_refresh.DFS_REFRESH_SECONDS - 1):
+        assert gate_env.run()["forecasts_reused"] is True
     assert gate_env.run()["forecasts_reused"] is False
 
 
@@ -155,7 +162,7 @@ def test_bad_or_future_receipt_age_fails_closed(gate_env, epoch):
 
 
 @pytest.mark.parametrize("output", ["weekly/2026_w4_qb.parquet", "weekly/2026_w4_qb_no_inj.meta.json",
-                                   "ros/2026_w4_wr.parquet"])
+                                   "weekly/2026_w4_wr.parquet"])
 @pytest.mark.parametrize("damage", ["missing", "corrupt"])
 def test_artifact_damage_invalidates_receipt(gate_env, output, damage):
     gate_env.run()
@@ -171,15 +178,17 @@ def test_force_bypasses_reuse_and_rate_gate(gate_env):
     assert all(force for _, _, force in gate_env.calls)
 
 
-def test_failure_cannot_leave_or_extend_a_success_receipt(gate_env):
+def test_specialist_failure_preserves_weekly_proof_without_extending_it(gate_env):
     gate_env.run()
-    success = json.loads(dfs_refresh.STATUS_PATH.read_text())["last_success_at"]
+    previous = json.loads(dfs_refresh.STATUS_PATH.read_text())
+    success, receipt = previous["last_success_at"], previous["forecast_reuse"]
     gate_env.options["pool_failure"] = True
     assert gate_env.run()["status"] == "error"
     failed = json.loads(dfs_refresh.STATUS_PATH.read_text())
-    assert failed["last_success_at"] == success and "forecast_reuse" not in failed
+    assert failed["last_success_at"] == success
+    assert failed["forecast_status"] == "ok" and failed["forecast_reuse"] == receipt
     gate_env.options.clear()
-    assert gate_env.run()["forecasts_reused"] is False
+    assert gate_env.run()["forecasts_reused"] is True
 
 
 @pytest.mark.parametrize("phase", ["weekly", "pool"])
@@ -289,6 +298,7 @@ def test_unsuccessful_status_cannot_authorize_reuse(gate_env, previous_status):
     gate_env.run()
     previous = json.loads(dfs_refresh.STATUS_PATH.read_text())
     previous["status"] = previous_status
+    previous.pop("forecast_status", None)  # Legacy receipts require a whole-job success.
     dfs_refresh.STATUS_PATH.write_text(json.dumps(previous))
     assert gate_env.run()["forecasts_reused"] is False
 
@@ -304,5 +314,5 @@ def test_public_status_exposes_reuse_decision_but_not_receipt(gate_env):
     gate_env.run()
     status = dfs_refresh.refresh_status()
     assert status["forecasts_reused"] is True
-    assert status["forecast_max_age_seconds"] == 900
+    assert status["forecast_max_age_seconds"] == 3600
     assert "forecast_reuse" not in status

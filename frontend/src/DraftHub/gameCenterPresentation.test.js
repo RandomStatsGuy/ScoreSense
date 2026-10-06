@@ -547,3 +547,13 @@ test("a delayed native slate stays live when the calendar advances", () => {
   assert.equal(gameCenterPlayerScore({name:"Player",points:0,proj:16}, data).label, "Live");
   assert.equal(gameCenterPlayerScore({name:"Player",game_state:"pregame",points:0,proj:16}, data).value, "16.0");
 });
+
+
+test("minute score polling is reserved for live games", async () => {
+  const {gameCenterPollMs}=await import("./gameCenterPresentation.js");
+  assert.equal(gameCenterPollMs({live:true}),60_000);
+  assert.equal(gameCenterPollMs({scoring_control:{live:true}}),60_000);
+  assert.equal(gameCenterPollMs({live:false}),300_000);
+  assert.equal(gameCenterPollMs({has_live_games:true}),60_000);
+  assert.equal(gameCenterPollMs({has_live_games:false,scoring_control:{live:true}}),300_000);
+});

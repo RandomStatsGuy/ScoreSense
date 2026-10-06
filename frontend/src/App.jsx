@@ -36,6 +36,8 @@ import {
   seasonBoardSignals,
   seasonPeerStats,
   staleRefreshLabel,
+  forecastRefreshMessage,
+  displayedForecastHealth,
   weeklyContextNeedsRefresh,
   weeklyContextRefreshPath,
   weeklyBoardKicker,
@@ -236,6 +238,8 @@ export default function App() {
   const isSeasonPreseason = view === "projections" && projectionsTab === "season" && seasonMode === "preseason";
   const isSeasonLive = view === "projections" && projectionsTab === "season" && seasonMode === "live";
   const isProjectionsDataView = isWeeklyProjections || isSeasonPreseason || isSeasonLive;
+  const projectionHealth = displayedForecastHealth({kind:isWeeklyProjections ? "weekly" : isSeasonLive ? "ros" : "draft",
+    meta:isWeeklyProjections ? meta : isSeasonLive ? rosMeta : draftResponseMeta, automatic:refreshStatus?.automatic});
   const weeklySentimentSlateKey =
     season != null && week != null ? `${position}:${season}:${week}` : null;
   const weeklyMediaMode =
@@ -559,6 +563,10 @@ export default function App() {
     const poll = async () => {
       if (request || stopped) return;
       clearTimeout(timer);
+      if (document.visibilityState !== "visible") {
+        timer = setTimeout(poll, 300_000);
+        return;
+      }
       request = new AbortController();
       const timeout = setTimeout(() => request?.abort(), 10_000);
       let running = false;
@@ -577,7 +585,7 @@ export default function App() {
       finally {
         clearTimeout(timeout);
         request = null;
-        if (!stopped) timer = setTimeout(poll, running ? 3_000 : 60_000);
+        if (!stopped) timer = setTimeout(poll, running ? 3_000 : 300_000);
       }
     };
     poll();
@@ -1657,7 +1665,13 @@ export default function App() {
           </div>
         )}
 
-        {refreshStatus && (dataRevision > 0 || ["running", "error"].includes(refreshStatus.status)) && (
+        {isProjectionsDataView && forecastRefreshMessage(projectionHealth) && (
+          <p className="chart-note" role="status">
+            {forecastRefreshMessage(projectionHealth)}
+          </p>
+        )}
+
+        {refreshStatus && refreshProgressLabel(refreshStatus) && (dataRevision > 0 || ["running", "error"].includes(refreshStatus.status)) && (
           <div className="projection-refresh-status">
             <p className="chart-note" role="status" aria-live="polite">
               {REFRESH_COPY.label} {refreshProgressLabel(refreshStatus)}

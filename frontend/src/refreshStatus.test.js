@@ -97,3 +97,11 @@ test("notes refresh reports failure, a missing job, and immediate completion", a
   const completed = { status: "completed", rows: 830 };
   assert.equal(await waitForContextRefresh(completed, () => assert.fail("already complete")), completed);
 });
+
+
+test("automatic successful publications update open pages, checks and failures do not", () => {
+  const status={status:"never_run",automatic:{last_success_at:"2026-10-06T01:00:00Z"}};
+  assert.equal(successfulRefreshRevision(status),status.automatic.last_success_at);
+  assert.equal(successfulRefreshRevision({...status,status:"error"}),status.automatic.last_success_at);
+  assert.equal(successfulRefreshRevision({...status,last_completed_at:"2026-10-07T01:00:00Z"}),"2026-10-07T01:00:00Z");
+});

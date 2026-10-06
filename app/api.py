@@ -160,6 +160,8 @@ async def lifespan(app: FastAPI):
     from app.native_scoring_ticker import native_scoring_ticker_loop
     from app.fantasy_context_ticker import fantasy_context_ticker_loop
 
+    from app.season_refresh_ticker import season_refresh_ticker_loop
+    season_ticker = asyncio.create_task(season_refresh_ticker_loop(), name="season-refresh")
     from app.dfs_refresh_ticker import dfs_refresh_ticker_loop
     dfs_ticker = asyncio.create_task(dfs_refresh_ticker_loop(), name="dfs-refresh")
     ticker = asyncio.create_task(draft_ticker_loop(), name="draft-ticker")
@@ -171,9 +173,9 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker, context_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, season_ticker, scoring_ticker, context_ticker):
             task.cancel()
-        for task in (ticker, sleeper_ticker, dfs_ticker, scoring_ticker, context_ticker):
+        for task in (ticker, sleeper_ticker, dfs_ticker, season_ticker, scoring_ticker, context_ticker):
             try:
                 await task
             except asyncio.CancelledError:
@@ -1314,7 +1316,8 @@ async def rebuild_upside(_user=Depends(require_admin)) -> dict:
 
 @app.get("/api/refresh/status")
 def refresh_status(_user=Depends(require_patron)) -> dict:
-    return public_refresh_status()
+    from src.projections.automatic_status import automatic_refresh_status
+    return {**public_refresh_status(), "automatic": automatic_refresh_status()}
 
 
 @app.post("/api/refresh")
@@ -1456,7 +1459,12 @@ def _predict_response(
         if preds.attrs.get("roster_identity"):
             meta["roster_identity"] = preds.attrs.get("roster_identity")
         note = str(preds.attrs.get("projection_note") or "")
+    from src.projections.automatic_status import forecast_refresh_health
+    meta['projection_built_at'] = preds.attrs.get('built_at')
     meta['projection_stale'] = bool(preds.attrs.get('projection_stale'))
+    meta['projection_refresh'] = forecast_refresh_health(
+        'weekly', season, week,
+        meta['projection_built_at'], meta['projection_stale'])
     if meta['projection_stale'] and season is not None and week is not None:
         from app.projection_recovery import queue_projection_recovery
         meta['projection_recovery'] = queue_projection_recovery(background_tasks, season, week, ['weekly'])
@@ -1598,7 +1606,12 @@ def _ros_response(
             )
     else:
         note = "No projections available."
+    from src.projections.automatic_status import forecast_refresh_health
+    meta['projection_built_at'] = preds.attrs.get('built_at')
     meta['projection_stale'] = bool(preds.attrs.get('projection_stale'))
+    meta['projection_refresh'] = forecast_refresh_health(
+        'ros', season, week,
+        meta['projection_built_at'], meta['projection_stale'])
     if meta['projection_stale'] and season is not None and week is not None:
         from app.projection_recovery import queue_projection_recovery
         meta['projection_recovery'] = queue_projection_recovery(background_tasks, season, week, ['ros'])
@@ -1869,6 +1882,9 @@ def _draft_response(position: str, season: Optional[int] = None, background_task
         "season_coverage_meta": season_coverage_meta,
         "projection_stale": bool(preds.attrs.get('projection_stale')),
     }
+    from src.projections.automatic_status import forecast_refresh_health
+    meta['projection_built_at'] = preds.attrs.get('built_at')
+    meta['projection_refresh'] = forecast_refresh_health('draft', season, 1, meta['projection_built_at'], meta['projection_stale'])
     if meta['projection_stale'] and season:
         from app.projection_recovery import queue_projection_recovery
         meta['projection_recovery'] = queue_projection_recovery(background_tasks, season, 1, ['draft'])

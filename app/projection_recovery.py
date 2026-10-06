@@ -11,7 +11,7 @@ from src.jobs.projection_recovery import rebuild_projection_context
 _LOCK = Lock()
 _ACTIVE: set[tuple] = set()
 _RESULTS: dict[tuple, tuple[float, dict]] = {}
-RETRY_SECONDS = 60
+RETRY_SECONDS = 900
 
 
 def projection_recovery_status(season, week, kinds):
@@ -19,6 +19,11 @@ def projection_recovery_status(season, week, kinds):
     if not kinds or not season or not week:
         return {"status": "idle"}
     key = (int(season), int(week), tuple(sorted(set(kinds))))
+    from src.jobs.season_refresh import target_due
+    if all(kind in {"draft", "ros"} for kind in kinds) and not any(
+        target_due(kind, int(season), int(week)) for kind in kinds
+    ):
+        return {"status": "scheduled"}
     with _LOCK:
         if key in _ACTIVE:
             return {"status": "running"}
@@ -45,6 +50,11 @@ def queue_projection_recovery(background_tasks, season, week, kinds):
     if not kinds or not season or not week or background_tasks is None:
         return {"status": "idle"}
     key = (int(season), int(week), tuple(sorted(set(kinds))))
+    from src.jobs.season_refresh import target_due
+    if all(kind in {"draft", "ros"} for kind in kinds) and not any(
+        target_due(kind, int(season), int(week)) for kind in kinds
+    ):
+        return {"status": "scheduled"}
     with _LOCK:
         if key in _ACTIVE:
             return {"status": "running"}

@@ -305,3 +305,19 @@ test("weekly context refresh shows when notes are stale or missing", () => {
   assert.doesNotMatch(BOARD_COPY.contextMissingRefresh, /Submit|Draft Hub|permission/i);
   assert.doesNotMatch(BOARD_COPY.contextRefreshFailed, /Submit|Draft Hub|permission/i);
 });
+
+
+test("projection refresh warnings distinguish actual failures from scheduled updates", async () => {
+  const {forecastRefreshMessage}=await import("./projectionsPresentation.js");
+  assert.equal(forecastRefreshMessage({refresh_state:"scheduled",needs_attention:false}),"");
+  assert.match(forecastRefreshMessage({refresh_state:"failed",needs_attention:true}),/update failed/);
+  assert.match(forecastRefreshMessage({refresh_state:"overdue",needs_attention:true}),/delayed/);
+});
+
+
+test("archived forecasts ignore automatic failures for their old target", async () => {
+  const {displayedForecastHealth}=await import("./projectionsPresentation.js");
+  const archived={automatic:false,needs_attention:false,refresh_state:"archived"};
+  assert.equal(displayedForecastHealth({kind:"weekly",meta:{season:2026,week:3,projection_refresh:archived},
+    automatic:{health:{"weekly:2026:3":{needs_attention:true,refresh_state:"failed"}}}}),archived);
+});

@@ -17,6 +17,7 @@ import {
   interpretStandings,
   scoresArePlaceholder,
   shouldPollGameCenter,
+  gameCenterPollMs,
   matchupTeams,
   nativeScoreRefreshMessage,
   nativeScoreRefreshVariant,
@@ -28,7 +29,6 @@ import LeagueScoringControl from "./LeagueScoringControl";
 import GameCenterMatchup from "./GameCenterMatchup";
 import "../styles/game-center-room.css";
 
-const REFRESH_MS = 60_000;
 
 export default function GameCenter({
   leagueId,
@@ -101,6 +101,7 @@ export default function GameCenter({
   }, [load, hubContext?.draft_completed, hubContext?.sleeper_league_id, reloadToken]);
 
   const pollScores = shouldPollGameCenter(data, hubContext);
+  const scorePollMs = gameCenterPollMs(data);
   const refreshPending = ["pending", "running"].includes(data?.scoring_control?.refresh?.status);
   useEffect(() => {
     if (!refreshPending) return undefined;
@@ -116,14 +117,14 @@ export default function GameCenter({
     if (!pollScores) return undefined;
     const ctrl = new AbortController();
     const tick = () => {
-      if (document.visibilityState === "visible") load(ctrl.signal, { refresh: true });
+      if (document.visibilityState === "visible") load(ctrl.signal, { refresh: !hubContext?.sleeper_league_id });
     };
-    const id = window.setInterval(tick, REFRESH_MS);
+    const id = window.setInterval(tick, scorePollMs);
     return () => {
       window.clearInterval(id);
       ctrl.abort();
     };
-  }, [pollScores, load]);
+  }, [pollScores, load, scorePollMs, hubContext?.sleeper_league_id]);
 
   const matchup = useMemo(
     () => (data?.matchups || []).find(m => String(m.matchup_id) === String(selectedMatchupId)) || findViewerMatchup(data, requestedTeam),

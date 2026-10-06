@@ -2,10 +2,11 @@ import { createPortal } from "react-dom";
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
+import useDataRevision from "../useDataRevision";
 import useMobileLayout from "../useMobileLayout";
 import LeagueSwitcher from "./LeagueSwitcher";
 import { effectiveMemberships, isSoloContext } from "./hubLeagues";
-import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY, PROJECTION_SYNC_COPY, SLEEPER_SYNC_PAUSE_COPY } from "./leagueAccessCopy";
+import { FANTASY_HEADER_COPY, LEAGUE_CREATE_COPY, PROJECTION_SYNC_COPY, PROJECTION_HEALTH_COPY, projectionHealthLabel, SLEEPER_SYNC_PAUSE_COPY } from "./leagueAccessCopy";
 import {
   getFreshnessCache,
   invalidateFreshnessCache,
@@ -114,6 +115,7 @@ export default function LeagueContextBanner({
   const [projectionSyncMessage, setProjectionSyncMessage] = useState("");
   const projectionSyncController = useRef(null);
 
+  const dataRevision = useDataRevision();
   const leagueId = hubContext?.league_id;
   const isDemo = Boolean(hubContext?.demo);
   const isCommish = Boolean(hubContext?.is_commissioner);
@@ -152,9 +154,10 @@ export default function LeagueContextBanner({
 
   useEffect(() => {
     const ctrl = new AbortController();
+    if (dataRevision) invalidateFreshnessCache(leagueId);
     loadFreshness(ctrl.signal);
     return () => ctrl.abort();
-  }, [loadFreshness]);
+  }, [loadFreshness, dataRevision, leagueId]);
 
   useEffect(() => {
     if (!syncOpen) return undefined;
@@ -245,16 +248,14 @@ export default function LeagueContextBanner({
     ? Math.abs(Number(remaining))
     : null;
 
-  const poolStale = Boolean(freshness?.projections?.stale)
-    || (freshness && freshness.projections?.available === false);
-  const projAge = ageShort(freshness?.projections?.built_at);
+  const projectionNeedsAttention = Boolean(freshness?.projections?.needs_attention);
   const capSheetsStale = Boolean(freshness?.cap_sheets?.stale);
 
   const attentionItems = buildLeagueAttentionItems({
     inLeague,
-    poolStale,
+    projectionNeedsAttention,
+    projectionRefreshState: freshness?.projections?.refresh_state,
     projectionsAvailable: freshness?.projections?.available,
-    projAge,
     overCapLabel: overCapBy != null ? fmtSal(overCapBy) : "",
     mustExtendCount: mustExtend.length,
     droppingCount: dropping.length,
@@ -474,29 +475,24 @@ export default function LeagueContextBanner({
 
           <div
             className={
-              `hub-league-context-sync-row${poolStale ? " hub-league-context-sync-row--attention" : ""}`
+              `hub-league-context-sync-row${projectionNeedsAttention ? " hub-league-context-sync-row--attention" : ""}`
             }
           >
             <div className="hub-league-context-sync-meta">
               <strong>Projections</strong>
               <span>
-                {sourceStatusLabel({
-                  at: freshness?.projections?.built_at,
-                  stale: freshness?.projections?.stale,
-                  available: freshness?.projections?.available,
-                  missing: freshness && freshness.projections?.available === false,
-                })}
+                {projectionHealthLabel(freshness?.projections)}
               </span>
             </div>
-            <button
+            {projectionNeedsAttention && <button
               type="button"
-              className={poolStale ? "btn-primary btn-sm" : "btn-ghost btn-sm"}
+              className="btn-ghost btn-sm"
               onClick={runProjectionsRefresh}
               disabled={busy}
               title="Update projections for this league"
             >
-              {projRefreshing ? PROJECTION_SYNC_COPY.updating : "Sync projections"}
-            </button>
+              {projRefreshing ? PROJECTION_SYNC_COPY.updating : PROJECTION_HEALTH_COPY.retry}
+            </button>}
           </div>
 
           {(syncMessage || syncError || freshnessError || projectionSyncMessage) && (
@@ -610,7 +606,14 @@ export default function LeagueContextBanner({
         {!(compactHeader && headerSlot) && syncFeedback}
       </section>
     );
-    return compactHeader && headerSlot ? <>{createPortal(strip, headerSlot)}{syncFeedback}</> : strip;
+    const projectionFeedback = compactHeader && projectionNeedsAttention ? (
+      <p className="chart-note hub-league-context-inline-error" role="status" aria-live="polite">
+        {projectionHealthLabel(freshness?.projections)}
+      </p>
+    ) : null;
+    return compactHeader && headerSlot
+      ? <>{createPortal(strip, headerSlot)}{projectionFeedback}{syncFeedback}</>
+      : <>{strip}{projectionFeedback}</>;
   }
 
   return (

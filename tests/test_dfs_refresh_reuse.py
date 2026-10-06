@@ -7,6 +7,13 @@ import pandas as pd
 import pytest
 
 from src.jobs import dfs_refresh
+
+
+@pytest.fixture(autouse=True)
+def _isolate_supporting_context(monkeypatch):
+    monkeypatch.setattr(dfs_refresh, "_warm_supporting_data", lambda *a: None)
+    monkeypatch.setattr("src.integrations.injury_poll.get_injury_poll_status", lambda: {"poll_due": True})
+
 from src.projections import dfs_pool, predict, weekly_cache
 
 
@@ -164,7 +171,7 @@ def test_failed_weekly_variant_keeps_previous_dfs_pools_and_success(prediction_e
     assert result["status"] == "error"
     assert result["last_success_at"] == "previous-success"
     assert "dfs" not in result["positions"]
-    assert {"rb", "wr", "ros_qb", "ros_rb", "ros_wr"} <= result["positions"].keys()
+    assert {"rb", "wr"} <= result["positions"].keys()
     assert prediction_env.call_count == 6
     assert {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)} == before
 
@@ -199,7 +206,7 @@ def test_invalid_reuse_preserves_both_previous_pools(prediction_env, monkeypatch
     assert {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)} == before
 
 
-def test_unchanged_refresh_uses_real_saved_readers_and_refreshes_specialists(prediction_env, tmp_path, monkeypatch):
+def test_unchanged_refresh_reuses_weekly_and_keeps_ros_for_daily_worker(prediction_env, tmp_path, monkeypatch):
     from src.projections import ros_cache
     monkeypatch.setattr(dfs_refresh, "CACHE_DIR", tmp_path)
     monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "status.json")
@@ -212,7 +219,7 @@ def test_unchanged_refresh_uses_real_saved_readers_and_refreshes_specialists(pre
     monkeypatch.setattr(dfs_refresh.time, "time", lambda: now[0])
     assert dfs_refresh.run_dfs_refresh()["forecasts_reused"] is False
     expected = {injury: dfs_pool.load_dfs_pool(2026, 4, injury) for injury in (True, False)}
-    assert prediction_env.call_count == 6 and ros_heads.call_count == 3
+    assert prediction_env.call_count == 6 and ros_heads.call_count == 0
     prediction_env.reset_mock()
     ros_heads.reset_mock()
     # Fresh specialist values must reach the pool while all six skill frames
@@ -246,3 +253,21 @@ def test_changed_sources_after_specialist_assembly_preserve_both_real_pools(pred
     with pytest.raises(RuntimeError, match="source changed"):
         dfs_pool.refresh_dfs_pool(2026, 4, skill_predictions=frames, validate_inputs=changed)
     assert {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)} == before
+
+
+def test_dfs_reuses_hourly_publication_without_repeating_six_heads(prediction_env,tmp_path,monkeypatch):
+    from src.jobs import season_refresh
+    monkeypatch.setattr(season_refresh,"STATUS_PATH",tmp_path/"season.json")
+    publication = season_refresh._prepare("weekly",2026,4)
+    assert prediction_env.call_count == 6
+    prediction_env.reset_mock()
+    season_refresh._save({"weekly:2026:4":{"status":"ok",**publication,
+        "last_success_at":"2026-10-06T01:00:00+00:00"}})
+    monkeypatch.setattr(dfs_refresh,"CACHE_DIR",tmp_path)
+    monkeypatch.setattr(dfs_refresh,"STATUS_PATH",tmp_path/"dfs.json")
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll",lambda **k:{"status":"ok"})
+    monkeypatch.setattr("src.integrations.sleeper.get_nfl_state",lambda **k:{"season":2026,"week":4,"season_type":"regular"})
+    result = dfs_refresh.run_dfs_refresh()
+    assert result["status"] == "ok" and result["forecasts_reused"]
+    prediction_env.assert_not_called()
+    assert result["forecast_updated_at"] == "2026-10-06T01:00:00+00:00"

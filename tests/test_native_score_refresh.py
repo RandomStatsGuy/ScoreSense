@@ -19,15 +19,15 @@ def test_durable_single_claim_and_expired_worker_recovery(hub_db):
     assert refresh._claim(now=1410) is None
     refresh.request_refresh('league', 2026, 4, now=1410)
     assert refresh.refresh_status('league', 2026, 4)['status'] == 'failed'
-    refresh.request_refresh('league', 2026, 4, now=1461)
+    refresh.request_refresh('league', 2026, 4, now=1701)
     assert refresh.refresh_status('league', 2026, 4)['status'] == 'pending'
 
 
 def test_failed_jobs_retry_without_another_page_visit(hub_db):
     refresh.request_refresh('league', 2026, 4, now=1000)
     refresh._finish(refresh._claim(now=1000), 'failed', 'no_stats')
-    assert refresh._claim(now=1059) is None
-    assert refresh._claim(now=1060)['league_id'] == 'league'
+    assert refresh._claim(now=1299) is None
+    assert refresh._claim(now=1300)['league_id'] == 'league'
 
 
 def test_worker_shares_stats_and_isolates_failure(hub_db, monkeypatch):
@@ -88,3 +88,35 @@ def test_ticker_disabled_and_cancellation(monkeypatch):
             await ticker.native_scoring_ticker_loop()
     asyncio.run(run())
     assert calls == ['queue', 'worker']
+
+
+def test_quiet_score_refresh_waits_five_minutes(hub_db):
+    refresh.request_refresh('league',2026,4,now=1000)
+    refresh._finish(refresh._claim(now=1000),'complete')
+    refresh.request_refresh('league',2026,4,now=1061,cadence_seconds=300)
+    assert refresh._claim(now=1061) is None
+    refresh.request_refresh('league',2026,4,now=1300,cadence_seconds=300)
+    assert refresh._claim(now=1300)['league_id'] == 'league'
+
+
+def test_scheduler_uses_active_games_and_reads_schedule_once_per_context(hub_db,monkeypatch):
+    from src.draft_hub import game_center, league_live_scoring
+    from unittest.mock import Mock
+    monkeypatch.setattr(league_live_scoring,'resolve_current_week',lambda:(4,{'season':2026,'season_type':'regular'}))
+    with storage.get_conn() as conn:
+        for lid in ('a','b'):
+            conn.execute("INSERT INTO league(id,name,season,rules_json,draft_completed,commissioner_sub,room_code,created_at) VALUES(?,?,?,'{}',1,'fixture',?,'2026-10-06')",(lid,lid,2026,lid))
+    monkeypatch.setattr(storage,'get_league',lambda *a:{'draft_completed':True})
+    monkeypatch.setattr(storage,'get_week_scoring_run',lambda *a:None)
+    games = Mock(return_value={'KC':{'game_state':'pregame'}})
+    request = Mock()
+    monkeypatch.setattr(game_center,'cached_game_states',games)
+    monkeypatch.setattr(refresh,'request_refresh',request)
+    refresh.queue_current_native_weeks()
+    assert request.call_count == 2
+    assert all(call.kwargs['cadence_seconds'] == 300 for call in request.call_args_list)
+    games.assert_called_once_with(2026,4)
+    request.reset_mock()
+    games.return_value = {'KC':{'game_state':'live'}}
+    refresh.queue_current_native_weeks()
+    assert all(call.kwargs['cadence_seconds'] == 60 for call in request.call_args_list)

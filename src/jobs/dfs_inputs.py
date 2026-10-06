@@ -16,7 +16,7 @@ import sys
 
 from src.core.artifact_revision import file_content_revision
 
-VERSION = 1
+VERSION = 2
 POSITIONS = ("qb", "rb", "wr")
 
 
@@ -34,7 +34,6 @@ def source_paths(season: int, week: int) -> list[Path]:
     from src.integrations.nflverse_roster import roster_cache_path
     from src.integrations.fantasypros import FP_CACHE_DIR
     from src.projections import predict, weekly_cache
-    from src.projections.season_blend import ROS_ROLLING_WEEKS
     paths = [PLAYERS_CACHE, roster_cache_path(season), SCHEDULE_CACHE,
              config.ROOKIE_ROLE_OVERRIDES_PATH, config.SENTIMENT_FEATURES_PATH]
     for pos in POSITIONS:
@@ -46,11 +45,6 @@ def source_paths(season: int, week: int) -> list[Path]:
     paths.append(FP_CACHE_DIR / f"{season}_week{week:02d}_proj.parquet")
     paths.append(FP_CACHE_DIR / f"{season}_week{week:02d}_ecr_ALL.parquet")
     paths.append(FP_CACHE_DIR / "revision.txt")  # preserve the existing reader's invalidation contract
-    # ROS consumes prior raw weekly snapshots. Current-week outputs are checked
-    # by the receipt instead, avoiding self-invalidation after publication.
-    for prior_week in range(max(1, week - ROS_ROLLING_WEEKS + 1), week):
-        for pos in POSITIONS:
-            paths.extend(weekly_cache._artifact_paths(pos, season, prior_week, False))
     # Code/config/model routing and numerical dependency changes invalidate a
     # receipt across deployments. Never read .env or serialize secret values.
     paths.extend(sorted((config.PROJECT_ROOT / "src").rglob("*.py")))
@@ -108,12 +102,11 @@ def input_revision(season: int, week: int) -> str:
 
 
 def output_revisions(season: int, week: int) -> dict[str, str] | None:
-    from src.projections import weekly_cache, ros_cache
+    from src.projections import weekly_cache
     paths = []
     for pos in POSITIONS:
         for injury in (True, False):
             paths.extend(weekly_cache._artifact_paths(pos, season, week, injury))
-        paths.extend(ros_cache._artifact_paths(pos, season, week, True))
     observed = revisions(paths)
     if any(value is None for value in observed.values()):
         return None
@@ -122,7 +115,7 @@ def output_revisions(season: int, week: int) -> dict[str, str] | None:
 
 
 def can_reuse(previous: dict, revision: str, season: int, week: int, *, now: float, max_age: float) -> bool:
-    if previous.get("status") != "ok":
+    if previous.get("forecast_status", previous.get("status")) != "ok":
         return False
     receipt = previous.get("forecast_reuse")
     if not isinstance(receipt, dict) or receipt.get("version") != VERSION or receipt.get("revision") != revision:

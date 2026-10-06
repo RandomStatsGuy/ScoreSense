@@ -327,21 +327,21 @@ def _build_actions(
         )
 
     proj = (freshness or {}).get("projections") or {}
-    if not proj.get("available", False):
+    if not proj.get("available", False) and proj.get("needs_attention", True):
         actions.append(
             _action(
                 "projections_missing",
                 severity="high",
-                message="Sync projections (draft pool unavailable)",
+                message="Season projections unavailable",
                 href="setup",
             )
         )
-    elif proj.get("stale"):
+    elif proj.get("needs_attention", proj.get("stale")):
         days = _days_ago(proj.get("built_at"))
         if days is not None and days > 0:
             msg = f"Sync projections ({days} day{'s' if days != 1 else ''} old)"
         else:
-            msg = "Sync projections (fingerprint stale)"
+            msg = "Season projection update failed" if proj.get("refresh_state") == "failed" else "Season projection updates delayed"
         actions.append(
             _action(
                 "projections_stale",
@@ -426,7 +426,7 @@ def _attention_line(actions: list[dict[str, Any]], freshness: dict[str, Any]) ->
             if days is not None:
                 parts.append(f"projections are {days} day{'s' if days != 1 else ''} old")
             else:
-                parts.append("projections are stale")
+                parts.append("season projection updates delayed")
         elif aid == "projections_missing":
             parts.append("projections unavailable")
         elif aid == "cap_overage":

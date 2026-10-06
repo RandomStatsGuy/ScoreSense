@@ -15,9 +15,19 @@ STATUS_PATH = CACHE_DIR / "dfs_refresh.json"
 logger = logging.getLogger(__name__)
 
 
+def _warm_supporting_data(season, week):
+    from src.projections.player_context import prewarm_player_context
+    from src.projections.injury_overlay import prewarm_injury_overlays
+    for name, producer in (("injuries", prewarm_injury_overlays), ("notes", prewarm_player_context)):
+        try:
+            call_phase(name, producer, season, week)
+        except Exception:
+            logger.exception("Automatic forecast supporting data failed: %s", name)
+
+
 @observe_job("dfs_refresh", cadence_s=DFS_REFRESH_SECONDS)
 def run_dfs_refresh(*, force: bool = False):
-    from src.integrations.injury_poll import run_injury_poll
+    from src.integrations.injury_poll import run_injury_poll, get_injury_poll_status
     from src.integrations.sleeper import get_nfl_state
     from src.projections.weekly_cache import load_weekly_prediction
     try:
@@ -36,14 +46,18 @@ def run_dfs_refresh(*, force: bool = False):
             if not force and 0 <= time.time() - last_refresh_epoch < DFS_REFRESH_SECONDS:
                 return {**previous, "status": "not_due"}
             status = {"attempt_epoch": time.time(), "started_at": datetime.now(timezone.utc).isoformat(),
-                      "status": "running", "positions": {}, "last_success_at": previous.get("last_success_at")}
+                      "status": "running", "forecast_status": "running", "positions": {}, "last_success_at": previous.get("last_success_at"),
+                      "forecast_updated_at": previous.get("forecast_updated_at"),
+                      "season": previous.get("season"), "week": previous.get("week")}
             def save():
                 temp = STATUS_PATH.with_suffix(".tmp")
                 temp.write_text(json.dumps(status), encoding="utf-8")
                 temp.replace(STATUS_PATH)
             save()
             try:
-                poll = run_injury_poll(force=True, recompute_overlays=False, trigger="dfs_five_minute")
+                feed = get_injury_poll_status()
+                poll = (run_injury_poll(force=force, recompute_overlays=False, trigger="forecast_background")
+                        if force or feed.get("poll_due") else {"status": "ok"})
                 if poll.get("status") != "ok":
                     raise RuntimeError("Player input refresh did not complete")
                 state = get_nfl_state(use_cache=True)
@@ -56,13 +70,20 @@ def run_dfs_refresh(*, force: bool = False):
                 status.update(season=season, week=week)
                 dfs_inputs.prepare_sources(season)
                 revision = dfs_inputs.input_revision(season, week)
-                reuse = not force and dfs_inputs.can_reuse(previous, revision, season, week,
+                reuse_source = previous
+                reuse = not force and dfs_inputs.can_reuse(reuse_source, revision, season, week,
                     now=time.time(), max_age=DFS_FORECAST_MAX_AGE_SECONDS)
+                if not reuse and not force:
+                    from src.jobs.season_refresh import read_status, target_key
+                    shared = read_status().get(target_key("weekly", season, week), {})
+                    if dfs_inputs.can_reuse(shared, revision, season, week,
+                            now=time.time(), max_age=DFS_FORECAST_MAX_AGE_SECONDS):
+                        reuse_source, reuse = shared, True
                 annotate_job(season=season, week=week, force=not reuse, input_revision=revision,
                              cache_hit=reuse)
                 if not reuse:
                     dfs_inputs.invalidate_forecast_memory(season)
-                computed_epoch = previous["forecast_reuse"]["computed_epoch"] if reuse else time.time()
+                computed_epoch = reuse_source["forecast_reuse"]["computed_epoch"] if reuse else time.time()
                 errors = []
                 skill_predictions = {True: {}, False: {}}
                 for position in ("qb", "rb", "wr"):
@@ -84,7 +105,7 @@ def run_dfs_refresh(*, force: bool = False):
                     def stable_inputs():
                         if dfs_inputs.input_revision(season, week) != revision:
                             raise RuntimeError("DFS inputs changed during forecast refresh")
-                        if reuse and dfs_inputs.output_revisions(season, week) != previous["forecast_reuse"]["outputs"]:
+                        if reuse and dfs_inputs.output_revisions(season, week) != reuse_source["forecast_reuse"]["outputs"]:
                             raise RuntimeError("DFS saved forecasts changed during reuse")
                     stable_inputs()
                     status["positions"]["dfs"] = call_phase("pool", refresh_dfs_pool, season, week,
@@ -96,29 +117,26 @@ def run_dfs_refresh(*, force: bool = False):
                 except Exception:
                     errors.append("dfs")
                     logger.exception("Deep DFS projection refresh failed")
-                # Build depth coverage first, then warm the ROS artifacts used by Trades.
-                from src.projections.ros_cache import load_ros_prediction
-                for position in ("qb", "rb", "wr"):
-                    try:
-                        frame = call_phase(f"ros_{position}", load_ros_prediction, position, season, week,
-                            force=not reuse, allow_compute=not reuse)
-                        if frame.empty:
-                            raise RuntimeError("Empty ROS output")
-                        status["positions"][f"ros_{position}"] = {"rows": len(frame), "built_at": frame.attrs.get("built_at")}
-                    except Exception:
-                        errors.append(f"ros_{position}")
-                        logger.exception("ROS refresh failed for %s", position)
+                if not any(position in errors for position in dfs_inputs.POSITIONS):
+                    stable_inputs()
+                    outputs = dfs_inputs.output_revisions(season, week)
+                    if outputs is not None:
+                        status["forecast_reuse"] = {"version": dfs_inputs.VERSION, "revision": revision,
+                            "outputs": outputs, "computed_epoch": computed_epoch}
+                    if not reuse:
+                        _warm_supporting_data(season, week)
+                        status["forecast_updated_at"] = datetime.now(timezone.utc).isoformat()
+                    else:
+                        status["forecast_updated_at"] = reuse_source.get("forecast_updated_at") or reuse_source.get("last_success_at")
+                    status["forecast_status"] = "ok"
+                status["forecasts_reused"] = reuse
                 if errors:
                     raise RuntimeError("Projection refresh failed: " + ", ".join(errors))
-                stable_inputs()
-                outputs = dfs_inputs.output_revisions(season, week)
-                if outputs is not None:
-                    status["forecast_reuse"] = {"version": dfs_inputs.VERSION, "revision": revision,
-                        "outputs": outputs, "computed_epoch": computed_epoch}
-                status["forecasts_reused"] = reuse
                 status["status"] = "ok"
                 status["last_success_at"] = datetime.now(timezone.utc).isoformat()
             except Exception as exc:
+                if status.get("forecast_status") != "ok":
+                    status["forecast_status"] = "error"
                 status.update(status="error", error=str(exc))
                 logger.exception("DFS data refresh failed")
             status["completed_epoch"] = time.time()

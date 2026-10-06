@@ -276,6 +276,12 @@ export function scoresArePlaceholder(payload, hubContext) {
   return Boolean(payload?.placeholder) || hubContext?.draft_completed === false;
 }
 
+export function gameCenterPollMs(payload) {
+  const gamesActive = typeof payload?.has_live_games === "boolean" ? payload.has_live_games
+    : payload?.live === true || payload?.scoring_control?.live === true;
+  return gamesActive ? 60_000 : 300_000;
+}
+
 export function shouldPollGameCenter(payload, hubContext) {
   if (!payload?.available || payload.preseason) return false;
   if (hubContext?.draft_completed === false) return false;

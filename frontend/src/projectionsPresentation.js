@@ -824,3 +824,19 @@ export function refreshProgressLabel(status) {
   if (status?.status === "completed") return status.warnings?.length ? REFRESH_COPY.warnings : REFRESH_COPY.completed;
   return "";
 }
+
+
+
+export function displayedForecastHealth({kind,meta,automatic} = {}) {
+  const week = kind === "weekly" ? meta?.week : meta?.from_week;
+  const key = kind === "draft" ? `draft:${meta?.season}` : `${kind}:${meta?.season}:${week}`;
+  if (meta?.projection_refresh?.automatic === false) return meta.projection_refresh;
+  return automatic?.health?.[key]?.needs_attention ? automatic.health[key] : meta?.projection_refresh;
+}
+
+export function forecastRefreshMessage(health) {
+  if (!health?.needs_attention) return "";
+  return health.refresh_state === "failed"
+    ? "Automatic projection update failed. Showing the last successful forecast."
+    : "Projection updates are delayed. Showing the last successful forecast.";
+}

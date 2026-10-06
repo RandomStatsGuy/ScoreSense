@@ -76,3 +76,11 @@ test("overflow keeps chrome attention until freshness computes items", () => {
   assert.deepEqual(resolveOverflowAttentionItems(computed, chromeItems), computed);
   assert.deepEqual(resolveOverflowAttentionItems([], null), []);
 });
+
+
+test("routine forecast invalidation stays out of Needs attention", () => {
+  assert.deepEqual(buildLeagueAttentionItems({inLeague:true,poolStale:true,projAge:"14m",projectionNeedsAttention:false}),[]);
+  const failed=buildLeagueAttentionItems({inLeague:true,poolStale:true,projAge:"14m",projectionNeedsAttention:true,projectionRefreshState:"failed"});
+  assert.equal(failed[0].label,"Season projection update failed");
+  assert.doesNotMatch(failed[0].label,/stale|14m/i);
+});
