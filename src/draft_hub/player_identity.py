@@ -170,6 +170,27 @@ def cached_player_identity(player_id: str, *, season: int | None = None,
     return dict(identity) if identity else None
 
 
+
+def cached_unique_name_identity(name: str, position: str, *, season: int | None = None) -> dict[str, Any] | None:
+    """Join an exact provider full name to one cached canonical player only.
+
+    Current NFL team is deliberately excluded: participation proof must retain
+    its historical event team. Aliases of one player do not create a collision,
+    but two canonical players with the same full name and position do.
+    """
+    key = re.sub(r"[^a-z0-9]", "", str(name or "").casefold())
+    position = normalize_position(position)
+    if not key or position not in POSITIONS:
+        return None
+    matches = {
+        identity["player_id"]: identity
+        for identity in _cached_index(season).values()
+        if identity and identity["position"] == position
+        and re.sub(r"[^a-z0-9]", "", str(identity["player_name"] or "").casefold()) == key
+    }
+    return dict(next(iter(matches.values()))) if len(matches) == 1 else None
+
+
 def resolve_acquisition_identity(row: dict[str, Any], *, season: int) -> dict[str, Any]:
     """Validate position/IDs and normalize names and stale NFL teams to trusted metadata."""
     identity = cached_player_identity(row.get("player_id"), season=season,

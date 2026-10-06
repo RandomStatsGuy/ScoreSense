@@ -1040,6 +1040,10 @@ def apply_week_scores(
             identity_snapshot = get_week_snapshot(int(season), int(week))
         except NativeStatsUnavailable as exc:
             raise LineupError(str(exc)) from exc
+    if stat_index is None and load_stats is None and identity_snapshot is not None:
+        from src.draft_hub.native_participation import enrich_inactive_players
+        identity_snapshot = enrich_inactive_players(identity_snapshot, [row for row in lineups
+                                                    if str(row["team_id"]) in participating], season, week)
     lineups, starter_owners = validated_native_lineups(lineups, rules, season, week, participating,
                                                      snapshot=identity_snapshot)
     # Older data may already contain an acquired started player on another
@@ -1128,7 +1132,7 @@ def apply_week_scores(
                 "slot": row.get("slot"),
                 "lineup_role": row.get("lineup_role"),
                 "points": round(points, 2),
-                "stats": {k: stats[k] for k in NATIVE_STAT_FIELDS if k in stats},
+                "stats": {k: stats[k] for k in (*NATIVE_STAT_FIELDS, "_native_no_game", "_native_inactive", "_native_inactive_proof") if k in stats},
             }
         )
 

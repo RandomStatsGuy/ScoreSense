@@ -188,6 +188,12 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
             snapshot = cached_week_snapshot(season, week) if mode == "lineup" else get_week_snapshot(season, week)
         except NativeStatsUnavailable:
             pass
+    if snapshot is not None and mode == "results" and stat_index is None:
+        from src.draft_hub.native_participation import enrich_inactive_players
+        changed_teams = {change["team_id"] for change in changes}
+        candidates = [row for row in state["lineups"] if row["team_id"] not in changed_teams]
+        candidates.extend(player for change in changes for player in change["players"])
+        snapshot = enrich_inactive_players(snapshot, candidates, season, week)
     entries = _validate_lineups(state, changes, acknowledge_empty, season, week, snapshot=snapshot)
     if mode == "lineup":
         if state["run"] and state["run"].get("final"):
@@ -373,6 +379,8 @@ def _resolved_statistics(entries, season, week, stat_index=None, *, snapshot=Non
         snapshot = snapshot or get_week_snapshot(season, week)
     except NativeStatsUnavailable as exc:
         return {}, False, [str(exc)]
+    from src.draft_hub.native_participation import enrich_inactive_players
+    snapshot = enrich_inactive_players(snapshot, entries, season, week)
     _verify_reviewed_identities(entries, season, week, snapshot=snapshot)
     stats = {}
     warnings = []

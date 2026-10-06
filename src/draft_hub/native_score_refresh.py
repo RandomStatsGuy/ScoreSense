@@ -235,6 +235,10 @@ def refresh_league_week(league: dict[str, Any], season: int, week: int,
         raise NativeStatsUnavailable("The league matchup schedule is unavailable for this week.")
     participating = week_scoring_team_ids(rules, teams, matchups, week)
     teams = [team for team in teams if str(team["id"]) in participating]
+    from src.draft_hub.native_participation import enrich_inactive_players
+    snapshot = enrich_inactive_players(snapshot, [row for row in storage.list_week_lineups(league_id, season, week)
+                                                 if str(row["team_id"]) in participating], season, week)
+    states = snapshot.get("game_states") or {}
     # Seed before the slate starts; during games only reconcile saved snapshots.
     # This updates unstarted acquisitions without reconstructing missing history.
     if current_week:
@@ -248,7 +252,7 @@ def refresh_league_week(league: dict[str, Any], season: int, week: int,
         raise NativeStatsUnavailable("Historical starting lineups are missing; commissioner correction is required.")
     previous = storage.get_native_live_week(league_id, season, week) or {}
     players: list[dict[str, Any]] = []
-    warnings: list[str] = []
+    warnings: list[str] = list(snapshot.get("participation_warnings") or [])
     totals = {str(t["id"]): 0.0 for t in teams}
     resolved_index: dict[str, dict[str, float]] = {}
     lineups, starter_owners = validated_native_lineups(lineups, rules, season, week, participating, snapshot=snapshot)
