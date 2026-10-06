@@ -1209,11 +1209,12 @@ def build_weekly_command_center(
             "missing_positions": proj_meta.get("missing_positions") or [],
             "projection_stale": bool(proj_meta.get("stale_positions")),
             "bench_over_starter_threshold": float(bench_over_starter_threshold),
-            "starter_inference": (
-                "hub_lineup"
-                if lineup_meta.get("lineup_source") == "hub"
-                else "league_rules_salary"
-            ),
+            "starter_inference": {
+                "hub": "hub_lineup",
+                "sleeper": "sleeper_lineup",
+            }.get(lineup_meta.get("lineup_source"), "league_rules_salary"),
+            "lineup_available": lineup_meta.get("lineup_available", True),
+            "lineup_synced_at": lineup_meta.get("lineup_synced_at"),
             "lineup_source": lineup_meta.get("lineup_source") or "inferred",
             "lineup_default_policy": lineup_meta.get("lineup_default_policy"),
             "lineup_locked": bool(lineup_meta.get("lineup_locked")),

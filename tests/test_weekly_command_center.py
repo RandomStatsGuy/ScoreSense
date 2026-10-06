@@ -265,6 +265,15 @@ def _seed_league_roster(hub_db, *, sleeper: bool = True):
             },
             team_id=team["id"],
         )
+    if sleeper:
+        storage.upsert_sleeper_live_scoring_cache("sleeper-league-1", 1, {
+            "available": True, "season": 2026, "week": 1, "current_week": 1,
+            "starting_slots": ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF"],
+            "matchups": [{"teams": [{"roster_id": "1", "starters": [
+                {"player_id": pid} for pid in
+                ["qb-love", "rb-starter", "rb-two", "wr-ace", "wr-co", "te-none", "rb-flex"]
+            ]}]}],
+        })
     return league, team, ws, comm
 
 
@@ -486,7 +495,9 @@ def test_build_command_center_payload(hub_db):
     assert payload["meta"]["week"] == 1
     assert payload["meta"]["projections_available"] is True
     assert payload["meta"]["persists_projections"] is False
-    assert payload["meta"]["lineup_source"] == "inferred"
+    assert payload["meta"]["lineup_source"] == "sleeper"
+    assert payload["meta"]["starter_inference"] == "sleeper_lineup"
+    assert payload["meta"]["lineup_available"] is True
     assert payload["sync"]["linked"] is True
     assert payload["sync"]["sleeper_synced_at"]
     assert payload["sync"]["sync_endpoint"] == f"/api/hub/league/{league['id']}/sleeper/sync"
@@ -966,3 +977,23 @@ def test_api_hub_week_refresh_rebuilds(hub_db):
         from src.projections.weekly_cache import invalidate_weekly_cache
 
         invalidate_weekly_cache()
+
+
+def test_weekly_payload_uses_sleeper_start_instead_of_salary_guess(hub_db):
+    league, team, _ws, comm = _seed_league_roster(hub_db)
+    from src.draft_hub.hub_context import resolve_hub_context
+
+    cached = storage.get_sleeper_live_scoring_cache("sleeper-league-1", 1)["payload"]
+    cached["matchups"][0]["teams"][0]["starters"][3] = {"player_id": "wr-wilson"}
+    storage.upsert_sleeper_live_scoring_cache("sleeper-league-1", 1, cached)
+    with patch("src.draft_hub.weekly_command_center.load_weekly_prediction", side_effect=_fake_load), patch(
+        "src.draft_hub.weekly_command_center.resolve_week_context", return_value=(2026, 1)
+    ), patch("src.projections.projection_movement.build_projection_movement_payload",
+             return_value={"available": False, "changes": [], "meta": {}}):
+        _prepare_fixture_week()
+        payload = build_weekly_command_center(resolve_hub_context(comm), season=2026, week=1)
+    assert next(p for p in payload["roster"]["starters"] if p["slot"] == "WR1")["player_id"] == "wr-wilson"
+    assert "wr-ace" in {p["player_id"] for p in payload["roster"]["bench"]}
+    assert not any(d["bench_player_id"] == "wr-wilson" for d in payload["decisions"])
+    assert payload["meta"]["lineup_source"] == "sleeper"
+    assert storage.list_team_lineup(league["id"], team["id"], 2026, 1) == []

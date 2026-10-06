@@ -423,6 +423,96 @@ def apply_saved_lineup(
     return starters, bench
 
 
+def _cached_sleeper_lineup(
+    ctx: dict[str, Any],
+    league: dict[str, Any] | None,
+    players: list[dict[str, Any]],
+    rules: LeagueRules,
+    season: int,
+    week: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    """Read the same recorded lineup as My team/Game center, without provider I/O."""
+    meta = {
+        "lineup_source": "sleeper",
+        "lineup_available": False,
+        "lineup_locked": False,
+        "week_scored": False,
+    }
+    _, bench = apply_saved_lineup(players, [])
+    sleeper_id = str((league or {}).get("sleeper_league_id") or ctx.get("sleeper_league_id") or "")
+    cached = storage.get_sleeper_live_scoring_cache(sleeper_id, week)
+    payload = (cached or {}).get("payload") or {}
+    if (not payload.get("available") or payload.get("placeholder")
+            or str(payload.get("season")) != str(season)
+            or str(payload.get("week")) != str(week)):
+        return [], bench, meta
+
+    team_id = str(ctx.get("team_id") or "")
+    team = storage.get_team(team_id) or {}
+    roster_id = str(ctx.get("sleeper_roster_id") or team.get("sleeper_roster_id") or "")
+    teams = [team for matchup in payload.get("matchups") or [] for team in matchup.get("teams") or []]
+    if roster_id:
+        mine = next((team for team in teams if str(team.get("roster_id") or "") == roster_id), None)
+    else:
+        mine = next((team for team in teams if str(team.get("hub_team_id") or "") == team_id), None)
+    if mine is None or not isinstance(mine.get("starters"), list):
+        return [], bench, meta
+
+    by_id = {}
+    for card in players:
+        for value in (card.get("player_id"), card.get("sleeper_player_id"), card.get("proj_player_id")):
+            key = str(value or "")
+            if key:
+                by_id[key] = card
+                by_id[key.removeprefix("sleeper-")] = card
+
+    slots = payload.get("starting_slots") or starting_slots_from_rules(rules)
+    counts = Counter(slots)
+    seen = Counter()
+    saved = []
+    cards = {str(card["player_id"]): card for card in players}
+
+    def add(row, slot, role):
+        sid = str(row.get("sleeper_player_id") or "")
+        pid = str(row.get("player_id") or "")
+        if sid == "0" or (not pid and not sid):
+            return
+        card = by_id.get(sid) or by_id.get(pid) or by_id.get(pid.removeprefix("sleeper-"))
+        if card is None:
+            # Historical starters / recent Sleeper moves may not be on today's cap sheet.
+            pid = pid or f"sleeper-{sid}"
+            card = {
+                "player_id": pid,
+                "sleeper_player_id": sid,
+                "player_name": row.get("name") or "",
+                "team": row.get("team") or "",
+                "position": normalize_position(row.get("position")),
+                "p50": row.get("proj"),
+                "has_projection": row.get("proj") is not None,
+                "projection_missing": row.get("proj") is None,
+            }
+            cards[pid] = card
+        saved.append({"player_id": card["player_id"], "slot": slot, "lineup_role": role})
+
+    for index, row in enumerate(mine["starters"]):
+        base = slots[index] if index < len(slots) else str(row.get("position") or "")
+        seen[base] += 1
+        slot = f"{base}{seen[base]}" if counts[base] > 1 else base
+        add(row, slot, "starter")
+    for row in mine.get("bench_players") or []:
+        add(row, "BN", "bench")
+    historical = week < int(payload.get("current_week") or week)
+    if historical:
+        recorded_ids = {row["player_id"] for row in saved}
+        cards = {pid: card for pid, card in cards.items() if pid in recorded_ids}
+    starters, bench = apply_saved_lineup(list(cards.values()), saved)
+    return starters, bench, {
+        **meta,
+        "lineup_available": True,
+        "lineup_synced_at": cached.get("synced_at"),
+    }
+
+
 def resolve_week_lineup(
     ctx: dict[str, Any],
     players: list[dict[str, Any]],
@@ -433,8 +523,8 @@ def resolve_week_lineup(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     """Use a persisted Hub lineup in ScoreSense-only league mode.
 
-    Linked Sleeper leagues keep inferred (advice-only) starters. Lineups and
-    scoring stay on Sleeper.
+    Linked leagues display Sleeper's recorded starters from the shared scoring
+    cache; edits and scoring remain on Sleeper. Never guess a hosted lineup.
     """
     league_id = str(ctx.get("league_id") or "")
     team_id = str(ctx.get("team_id") or "")
@@ -449,14 +539,7 @@ def resolve_week_lineup(
         }
     league = storage.get_league(league_id)
     if sleeper_hosts_scoring(league, ctx):
-        from src.draft_hub.weekly_command_center import infer_starters_and_bench
-
-        starters, bench = infer_starters_and_bench(players, rules)
-        return starters, bench, {
-            "lineup_source": "inferred",
-            "lineup_locked": False,
-            "week_scored": False,
-        }
+        return _cached_sleeper_lineup(ctx, league, players, rules, season, week)
 
     saved = ensure_team_lineup(league_id, team_id, season, week, rules=rules)
     final = week_is_final(league_id, season, week)

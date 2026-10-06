@@ -56,8 +56,10 @@ export default function WeeklyCommandCenter({
   gameCenterData,
 }) {
   const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
+  const scoringVersion = hubContext?.sleeper_league_id ? gameCenterData?.synced_at : null;
   const [weekOverride, setWeekOverride] = useState(requestedWeek == null ? "" : String(requestedWeek));
-  const snapshotKey = weeklySnapshotKey(cacheScope, contextKey, `${weekOverride}:${reloadToken}`);
+  const lineupCacheVersion = hubContext?.sleeper_league_id ? ":sleeper-recorded" : "";
+  const snapshotKey = weeklySnapshotKey(cacheScope, contextKey, `${weekOverride}:${reloadToken}${lineupCacheVersion}`);
   const dataKey = snapshotKey ?? `${contextKey}:${weekOverride}:${reloadToken}`;
   const [dataState, setDataState] = useState(() => ({ key: dataKey, payload: getWeeklySnapshot(snapshotKey) }));
   const data = dataState.key === dataKey ? dataState.payload : getWeeklySnapshot(snapshotKey);
@@ -125,7 +127,7 @@ export default function WeeklyCommandCenter({
     const ctrl = new AbortController();
     load(ctrl.signal);
     return () => { ctrl.abort(); readVersion.current += 1; };
-  }, [load, hubContext?.league_id, hubContext?.team_id, hubContext?.mode, reloadToken]);
+  }, [load, hubContext?.league_id, hubContext?.team_id, hubContext?.mode, reloadToken, scoringVersion]);
 
   const runSync = useCallback(async () => {
     const endpoint = data?.sync?.sync_endpoint;
@@ -567,6 +569,7 @@ export default function WeeklyCommandCenter({
       })}>
         {error && <div className="error" role="alert">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
+        {meta.lineup_available === false && <p className="chart-note" role="status">{WEEK_BOARD_COPY.sleeperLineupUnavailable}</p>}
         {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
         {lineupError && !pickerSlot && <div className="error" role="alert">{lineupError}</div>}
         {lineupMessage && <p className="hub-wcc-lineup-saved" role="status">{lineupMessage}</p>}
