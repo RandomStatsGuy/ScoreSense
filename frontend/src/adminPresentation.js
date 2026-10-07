@@ -123,6 +123,38 @@ export const ADMIN_OPS_COPY = Object.freeze({
     rebuild: "Rebuild",
     rebuilding: "Rebuilding…",
     rebuildStarted: "Rebuild started. The cache row updates when it finishes.",
+    cpuMeasuring: "Measuring…",
+    cpuWindow: "1-min average",
+    processes: "Processes",
+    processesNote: "Share of the whole server over the last minute",
+    processCol: "Process",
+    runningCol: "Running now",
+    cpuCol: "Avg CPU",
+    memoryCol: "Memory",
+    idle: "Idle",
+    otherPrograms: "Everything else on this server",
+    noProcesses: "Process numbers are unavailable on this host.",
+  }),
+  export: Object.freeze({
+    copy: "Copy for chat",
+    download: "Download",
+    copied: "Copied. Paste it into chat to share these numbers.",
+    downloaded: "Downloaded.",
+    copyFailed: "Copy did not work in this browser. Use Download instead.",
+  }),
+  usage: Object.freeze({
+    title: "What uses the most",
+    note: "Finished runs. Memory is measured for jobs in the background worker.",
+    window: "Window",
+    sort: "Sort by",
+    job: "Job",
+    runs: "Times run",
+    avg: "Avg time",
+    longest: "Longest",
+    cpu: "CPU time",
+    memory: "Peak memory",
+    empty: "No finished runs in this window.",
+    shared: "Shared",
   }),
   jobs: Object.freeze({
     title: "Jobs",
@@ -338,6 +370,48 @@ export function adminBytes(bytes) {
   if (n < 1024 ** 2) return `${Math.max(1, Math.round(n / 1024))} KB`;
   if (n < 1024 ** 3) return `${Math.round(n / 1024 ** 2)} MB`;
   return `${(n / 1024 ** 3).toFixed(1)} GB`;
+}
+
+const PROCESS_ROLE_LABELS = Object.freeze({
+  api: "ScoreSense API",
+  cpu_worker: "Background worker",
+});
+
+export function adminProcessLabel(row) {
+  return PROCESS_ROLE_LABELS[row?.role] || `Helper (${row?.name || "process"})`;
+}
+
+export function adminPercent(value) {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  const n = Number(value);
+  return n > 0 && n < 1 ? "<1%" : `${Math.round(n)}%`;
+}
+
+export function adminSeconds(seconds) {
+  if (seconds == null || !Number.isFinite(Number(seconds))) return "—";
+  return Number(seconds) > 0 && Number(seconds) < 1 ? "<1s" : adminDuration(seconds);
+}
+
+export const ADMIN_USAGE_WINDOWS = Object.freeze([
+  { id: "1", label: "Last 24 hours" },
+  { id: "7", label: "Last 7 days" },
+]);
+
+export const ADMIN_USAGE_SORTS = Object.freeze([
+  { id: "cpu_s", label: "CPU time" },
+  { id: "peak_rss", label: "Peak memory" },
+  { id: "total_s", label: "Total time" },
+  { id: "runs", label: "Runs" },
+]);
+
+export function sortAdminUsage(rows, key = "cpu_s") {
+  return [...(rows || [])].sort((a, b) => (Number(b?.[key]) || 0) - (Number(a?.[key]) || 0));
+}
+
+export function adminExportFilename(section, at = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const stamp = `${at.getFullYear()}${pad(at.getMonth() + 1)}${pad(at.getDate())}-${pad(at.getHours())}${pad(at.getMinutes())}`;
+  return `scoresense-${section}-${stamp}.json`;
 }
 
 export function adminClockLabel(atTime) {

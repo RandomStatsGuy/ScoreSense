@@ -43,10 +43,15 @@ import {
   adminAttentionSummary,
   adminBytes,
   adminDuration,
+  adminExportFilename,
   adminMinuteOptions,
   adminOverviewHeading,
+  adminPercent,
+  adminProcessLabel,
   adminScheduleLabel,
+  adminSeconds,
   adminWhen,
+  sortAdminUsage,
 } from "./adminPresentation.js";
 
 test("overview heading counts what needs attention", () => {
@@ -104,4 +109,32 @@ test("minute options stay inside the setting bounds and keep the saved value", (
 test("ops copy avoids banned phrasing", () => {
   const text = JSON.stringify(ADMIN_OPS_COPY);
   assert.doesNotMatch(text, /Submit|Draft Hub|You do not have permission/);
+});
+
+test("task manager labels name processes without command lines", () => {
+  assert.equal(adminProcessLabel({ role: "api", name: "python" }), "ScoreSense API");
+  assert.equal(adminProcessLabel({ role: "cpu_worker", name: "python" }), "Background worker");
+  assert.equal(adminProcessLabel({ role: "child", name: "node" }), "Helper (node)");
+});
+
+test("small CPU and time readings never round to zero", () => {
+  assert.equal(adminPercent(0.4), "<1%");
+  assert.equal(adminPercent(0), "0%");
+  assert.equal(adminPercent(49.6), "50%");
+  assert.equal(adminPercent(null), "—");
+  assert.equal(adminSeconds(0.2), "<1s");
+  assert.equal(adminSeconds(null), "—");
+});
+
+test("usage sorts heaviest first and treats missing values as zero", () => {
+  const rows = [{ job: "a", peak_rss: null, cpu_s: 2 }, { job: "b", peak_rss: 900, cpu_s: 1 }];
+  assert.deepEqual(sortAdminUsage(rows, "peak_rss").map((row) => row.job), ["b", "a"]);
+  assert.deepEqual(sortAdminUsage(rows, "cpu_s").map((row) => row.job), ["a", "b"]);
+  assert.deepEqual(sortAdminUsage(null), []);
+});
+
+test("export copy says where the numbers go", () => {
+  assert.equal(adminExportFilename("jobs", new Date(2026, 9, 7, 9, 5)), "scoresense-jobs-20261007-0905.json");
+  assert.match(ADMIN_OPS_COPY.export.copied, /chat/i);
+  assert.doesNotMatch(Object.values(ADMIN_OPS_COPY.export).join(" "), /Submit|permission/i);
 });

@@ -7,6 +7,8 @@ import {
   ADMIN_OPS_COPY,
   ADMIN_SCHEDULE_TIMES,
   ADMIN_SETTING_COPY,
+  ADMIN_USAGE_SORTS,
+  ADMIN_USAGE_WINDOWS,
   ADMIN_WEEKDAYS,
   adminAgo,
   adminAttentionCopy,
@@ -16,14 +18,19 @@ import {
   adminCacheStatus,
   adminDuration,
   adminEnvValue,
+  adminExportFilename,
   adminMinuteOptions,
   adminOverviewHeading,
+  adminPercent,
+  adminProcessLabel,
   adminRetryOptions,
   adminRunOutcome,
   adminScheduleLabel,
+  adminSeconds,
   adminSignInMethod,
   adminUptime,
   adminWhen,
+  sortAdminUsage,
 } from "./adminPresentation";
 
 const C = ADMIN_OPS_COPY;
@@ -145,6 +152,170 @@ function percentTone(pct, warn = 80, bad = 92) {
   return "ok";
 }
 
+function ExportControls({ section, notify }) {
+  const [busy, setBusy] = useState("");
+  const fetchExport = async () => {
+    const res = await apiFetch(`/api/admin/ops/export?section=${section}`);
+    if (!res.ok) throw new Error(await parseApiError(res));
+    return JSON.stringify(await res.json(), null, 2);
+  };
+  const copy = async () => {
+    setBusy("copy");
+    try {
+      const text = await fetchExport();
+      try {
+        await navigator.clipboard.writeText(text);
+        notify(C.export.copied);
+      } catch {
+        notify(C.export.copyFailed, true);
+      }
+    } catch (err) {
+      notify(err.message, true);
+    } finally {
+      setBusy("");
+    }
+  };
+  const download = async () => {
+    setBusy("download");
+    try {
+      const text = await fetchExport();
+      const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = adminExportFilename(section);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      notify(C.export.downloaded);
+    } catch (err) {
+      notify(err.message, true);
+    } finally {
+      setBusy("");
+    }
+  };
+  return (
+    <div className="admin-export">
+      <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)} onClick={copy}>
+        {C.export.copy}
+      </button>
+      <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)} onClick={download}>
+        {C.export.download}
+      </button>
+    </div>
+  );
+}
+
+function ProcessesCard({ processes }) {
+  const rows = processes?.rows || [];
+  const other = processes?.other;
+  return (
+    <Card title={C.server.processes} note={C.server.processesNote}>
+      {rows.length ? (
+        <div className="admin-table-wrap">
+          <table className="data-table hub-table admin-ops-table admin-process-table">
+            <thead>
+              <tr>
+                <th>{C.server.processCol}</th>
+                <th className="admin-col-secondary">{C.server.runningCol}</th>
+                <th className="num admin-col-tight">{C.server.cpuCol}</th>
+                <th className="num admin-col-tight">{C.server.memoryCol}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const running = row.running?.length ? row.running.join(", ") : C.server.idle;
+                return (
+                  <tr key={row.pid}>
+                    <td>
+                      <span className="admin-row-name">{adminProcessLabel(row)}</span>
+                      <span className="admin-row-sub">PID {row.pid} · {row.threads} threads</span>
+                      <span className="admin-row-sub admin-phone-only">{running}</span>
+                    </td>
+                    <td className={`admin-col-secondary${row.running?.length ? "" : " admin-muted"}`}>{running}</td>
+                    <td className="num admin-col-tight">{processes.window_s ? adminPercent(row.cpu_percent) : C.server.cpuMeasuring}</td>
+                    <td className="num admin-col-tight">{adminBytes(row.rss)}</td>
+                  </tr>
+                );
+              })}
+              {other ? (
+                <tr className="admin-row-muted">
+                  <td>
+                    <span className="admin-row-name">{C.server.otherPrograms}</span>
+                  </td>
+                  <td className="admin-col-secondary" />
+                  <td className="num admin-col-tight">{adminPercent(other.cpu_percent)}</td>
+                  <td className="num admin-col-tight">{adminBytes(other.rss)}</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="admin-muted">{C.server.noProcesses}</p>
+      )}
+    </Card>
+  );
+}
+
+function UsageCard({ usage, days, onDays }) {
+  const [sortKey, setSortKey] = useState("cpu_s");
+  const rows = sortAdminUsage(usage, sortKey);
+  return (
+    <Card
+      title={C.usage.title}
+      note={C.usage.note}
+      action={(
+        <div className="admin-card-filters">
+          <HubFilterMenu label={C.usage.window} value={String(days)} options={ADMIN_USAGE_WINDOWS} onChange={(v) => onDays(Number(v))} />
+          <HubFilterMenu label={C.usage.sort} value={sortKey} options={ADMIN_USAGE_SORTS} onChange={setSortKey} />
+        </div>
+      )}
+    >
+      {rows.length ? (
+        <div className="admin-table-wrap">
+          <table className="data-table hub-table admin-ops-table admin-usage-table">
+            <thead>
+              <tr>
+                <th>{C.usage.job}</th>
+                <th className="num admin-col-tight admin-col-secondary">{C.usage.runs}</th>
+                <th className="num admin-col-tight admin-col-secondary">{C.usage.avg}</th>
+                <th className="num admin-col-tight admin-col-secondary">{C.usage.longest}</th>
+                <th className="num admin-col-tight">{C.usage.cpu}</th>
+                <th className="num admin-col-tight">{C.usage.memory}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.job}>
+                  <td>
+                    <span className="admin-row-name">
+                      {row.failed ? <Dot tone="bad" /> : null}
+                      {row.label}
+                    </span>
+                    <span className="admin-row-sub admin-phone-only">
+                      {row.runs} runs · avg {adminSeconds(row.avg_s)}
+                    </span>
+                  </td>
+                  <td className="num admin-col-tight admin-col-secondary">{row.runs.toLocaleString()}</td>
+                  <td className="num admin-col-tight admin-col-secondary">{adminSeconds(row.avg_s)}</td>
+                  <td className="num admin-col-tight admin-col-secondary">{adminSeconds(row.max_s)}</td>
+                  <td className="num admin-col-tight">{adminSeconds(row.cpu_s)}</td>
+                  <td className={`num admin-col-tight${row.peak_rss == null ? " admin-muted" : ""}`}>
+                    {row.peak_rss != null ? adminBytes(row.peak_rss) : row.worker ? "—" : C.usage.shared}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="admin-muted">{C.usage.empty}</p>
+      )}
+    </Card>
+  );
+}
+
 // --- Overview -----------------------------------------------------------------
 
 export function AdminOverviewPane({ refreshKey, legacy, notify, onTab }) {
@@ -200,7 +371,7 @@ export function AdminOverviewPane({ refreshKey, legacy, notify, onTab }) {
         <Stat
           label={C.overview.server}
           tone={percentTone(Math.max(mem?.percent || 0, disk?.percent || 0), 85, 95)}
-          value={res ? `${Math.round(res.cpu_percent)}% CPU` : "—"}
+          value={res?.cpu_percent != null ? `${adminPercent(res.cpu_percent)} CPU` : res ? C.server.cpuMeasuring : "—"}
           detail={res ? `Memory ${adminBytes(mem?.used)} of ${adminBytes(mem?.total)} · disk ${Math.round(disk?.percent || 0)}%` : ""}
         />
         <Stat
@@ -345,12 +516,19 @@ export function AdminServerPane({ refreshKey, notify }) {
 
   return (
     <div className="admin-pane">
-      <PaneTitle title={C.server.title} support={C.server.support} />
+      <PaneTitle title={C.server.title} support={C.server.support}>
+        <ExportControls section="server" notify={notify} />
+      </PaneTitle>
       <div className="admin-two">
         <Card title={C.server.resources} note={res ? `${res.cpu_count} CPU · ${adminBytes(res.memory?.total)}` : null}>
           {res ? (
             <div>
-              <Meter label="CPU" percent={res.cpu_percent} value={`${Math.round(res.cpu_percent)}%`} tone={percentTone(res.cpu_percent)} />
+              <Meter
+                label="CPU"
+                percent={res.cpu_percent}
+                value={res.cpu_percent != null ? `${adminPercent(res.cpu_percent)} · ${C.server.cpuWindow}` : C.server.cpuMeasuring}
+                tone={percentTone(res.cpu_percent)}
+              />
               <Meter
                 label="Memory"
                 percent={res.memory?.percent}
@@ -390,6 +568,7 @@ export function AdminServerPane({ refreshKey, notify }) {
           />
         </Card>
       </div>
+      <ProcessesCard processes={data.processes} />
       <Card title={C.server.caches} note={C.server.cachesNote}>
         <div className="admin-table-wrap">
           <table className="data-table hub-table admin-ops-table">
@@ -553,7 +732,8 @@ function ScheduleEditor({ job, onSaved, notify }) {
 
 export function AdminJobsPane({ refreshKey, notify }) {
   const [poll, setPoll] = useState(0);
-  const { data, error, loading, reload } = useAdminFetch("/api/admin/ops/jobs", refreshKey, { pollMs: poll });
+  const [usageDays, setUsageDays] = useState(1);
+  const { data, error, loading, reload } = useAdminFetch(`/api/admin/ops/jobs?usage_days=${usageDays}`, refreshKey, { pollMs: poll });
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState("");
   const jobs = useMemo(() => data?.jobs || [], [data]);
@@ -587,6 +767,7 @@ export function AdminJobsPane({ refreshKey, notify }) {
     <div className="admin-pane">
       <PaneTitle title={C.jobs.title} support={C.jobs.support}>
         {failed ? <span className="admin-pill is-bad">{failed} failed</span> : null}
+        <ExportControls section="jobs" notify={notify} />
       </PaneTitle>
       <div className="admin-cols">
         <Card>
@@ -695,6 +876,7 @@ export function AdminJobsPane({ refreshKey, notify }) {
           </aside>
         ) : null}
       </div>
+      <UsageCard usage={data.usage} days={usageDays} onDays={setUsageDays} />
     </div>
   );
 }

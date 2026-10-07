@@ -14,7 +14,7 @@ import time
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from functools import partial
+from functools import lru_cache, partial
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
@@ -329,6 +329,11 @@ async def admin_scheduler_loop() -> None:
         seed_default_schedules()
     except Exception:
         LOG.exception("Could not seed default job schedules")
+    try:
+        from src.ops.server_stats import start_cpu_sampler
+        start_cpu_sampler()
+    except Exception:
+        LOG.exception("Could not start the admin CPU sampler")
     while True:
         try:
             await scheduler_tick()
@@ -371,6 +376,89 @@ def _diagnostic_runs(names: list[str], per_job: int = 6) -> dict[str, list[dict[
             "started_at": _iso(started or submitted),
             "finished_at": _iso(finished),
         })
+    return out
+
+
+@lru_cache(maxsize=1)
+def _labels_by_diag_name() -> dict[str, str]:
+    return {_diag_name(job.id): job.label for job in JOBS} | {"cache_rebuild": "Cache rebuild"}
+
+
+def job_label(diagnostic_name: str) -> str:
+    known = _labels_by_diag_name().get(diagnostic_name)
+    if known:
+        return known
+    parts = diagnostic_name.replace(":", " ").split(".")
+    if parts[0] in {"src", "app"}:
+        parts = parts[-1:]
+    for prefix in ("run_", "prewarm_"):
+        parts[-1] = parts[-1].removeprefix(prefix)
+    return " ".join(parts).replace("_", " ").strip().capitalize() or diagnostic_name
+
+
+def job_runs(*, days: float = 1, limit: int = 2000) -> list[dict[str, Any]]:
+    """Finished top-level runs with time, CPU and (CPU-worker jobs only) peak memory."""
+    path = config.JOB_DIAGNOSTICS_PATH
+    if not path.exists():
+        return []
+    try:
+        with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=2)) as conn:
+            rows = conn.execute(
+                """SELECT id, job, scope, state, status, queue_s, wall_s, cpu_s, started, finished
+                   FROM runs WHERE parent IS NULL AND submitted >= ? AND state IN ('finished', 'lost')
+                   ORDER BY submitted DESC LIMIT ?""",
+                (time.time() - days * 86400, limit),
+            ).fetchall()
+    except sqlite3.Error:
+        return []
+    peaks = admin_store.job_peaks([row[0] for row in rows if row[2] == "process"])
+    return [{
+        "job": job,
+        "label": job_label(job),
+        "worker": scope == "process",
+        "outcome": run_outcome(state, status),
+        "status": status,
+        "queue_s": round(queue_s, 2) if queue_s is not None else None,
+        "seconds": round(wall_s, 2) if wall_s is not None else None,
+        "cpu_s": round(cpu_s, 2) if cpu_s is not None else None,
+        "peak_rss": peaks.get(run_id),
+        "started_at": _iso(started),
+        "finished_at": _iso(finished),
+    } for run_id, job, scope, state, status, queue_s, wall_s, cpu_s, started, finished in rows]
+
+
+def job_usage(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Per-job totals, heaviest CPU first."""
+    by_job: dict[str, dict[str, Any]] = {}
+    for run in runs:
+        row = by_job.setdefault(run["job"], {
+            "job": run["job"], "label": run["label"], "worker": run["worker"], "runs": 0, "failed": 0,
+            "total_s": 0.0, "max_s": 0.0, "cpu_s": 0.0, "cpu_runs": 0, "peak_rss": None, "last_at": None,
+        })
+        row["runs"] += 1
+        row["failed"] += int(run["outcome"] == "failed")
+        row["worker"] = row["worker"] or run["worker"]
+        if run["seconds"] is not None:
+            row["total_s"] += run["seconds"]
+            row["max_s"] = max(row["max_s"], run["seconds"])
+        if run["cpu_s"] is not None:
+            row["cpu_s"] += run["cpu_s"]
+            row["cpu_runs"] += 1
+        if run["peak_rss"] is not None:
+            row["peak_rss"] = max(row["peak_rss"] or 0, run["peak_rss"])
+        row["last_at"] = max(row["last_at"] or "", run["finished_at"] or run["started_at"] or "") or None
+    out = []
+    for row in by_job.values():
+        cpu_runs = row.pop("cpu_runs")
+        out.append({
+            **row,
+            "avg_s": round(row["total_s"] / row["runs"], 2) if row["runs"] else None,
+            "total_s": round(row["total_s"], 1),
+            "max_s": round(row["max_s"], 2),
+            "cpu_s": round(row["cpu_s"], 1) if cpu_runs else None,
+            "cpu_load": round(row["cpu_s"] / row["total_s"], 2) if cpu_runs and row["total_s"] > 0 else None,
+        })
+    out.sort(key=lambda row: (row["cpu_s"] is None, -(row["cpu_s"] or 0), -row["total_s"]))
     return out
 
 

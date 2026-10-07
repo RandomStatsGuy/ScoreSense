@@ -167,7 +167,8 @@
   align-items: center;
   gap: var(--space-3);
 }
-.admin-table .admin-col-tight {
+.admin-table .admin-col-tight,
+.admin-ops-table .admin-col-tight {
   width: 1%;
   padding-inline: var(--space-2);
   white-space: nowrap;
@@ -429,6 +430,19 @@
   flex: 1;
   min-width: 0;
 }
+.admin-export,
+.admin-card-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.admin-row-muted td {
+  color: var(--text-muted);
+}
+.admin-row-muted .admin-row-name {
+  font-weight: var(--font-weight-normal);
+}
 .admin-pane-title h2 {
   margin: 0;
   font-size: var(--text-xl);
@@ -506,7 +520,7 @@
   margin-bottom: 0;
 }
 .admin-card-head .admin-section-title {
-  flex: 1;
+  flex: 1 0 auto;
   margin: 0;
 }
 .admin-card-note {
@@ -830,7 +844,8 @@
   }
 }
 @media (max-width: 768px) {
-  .admin-portal-head {
+  .admin-portal-head,
+  .admin-pane-title {
     flex-direction: column;
     align-items: stretch;
   }
