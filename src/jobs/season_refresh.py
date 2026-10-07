@@ -137,6 +137,31 @@ def _current_targets():
     return weekly + [("draft", s, 1) for s in sorted(seasons)] + ([("ros", season, week)] if 1 <= week <= 18 else [])
 
 
+def current_targets():
+    return _current_targets()
+
+
+def _refresh_one(targets, kind, season, week) -> bool:
+    key = target_key(kind, season, week)
+    previous = targets.get(key, {})
+    status = {"status": "running", "started_at": datetime.now(timezone.utc).isoformat(),
+              "last_success_at": previous.get("last_success_at")}
+    targets[key] = status
+    _save(targets)
+    ok = False
+    try:
+        publication = call_phase(kind, _prepare, kind, season, week)
+        status.update(publication or {})
+        status.update(status="ok", last_success_at=datetime.now(timezone.utc).isoformat())
+        ok = True
+    except Exception:
+        status["status"] = "error"
+        logging.getLogger(__name__).exception("Season refresh failed: %s", key)
+    status["completed_at"] = datetime.now(timezone.utc).isoformat()
+    _save(targets)
+    return ok
+
+
 @observe_job("season_refresh", cadence_s=SEASON_AUTO_REFRESH_SECONDS)
 def run_season_refresh():
     try:
@@ -147,27 +172,28 @@ def run_season_refresh():
                 key = target_key(kind, season, week)
                 if not target_due(kind, season, week) and targets.get(key, {}).get("status") != "error":
                     continue
-                now = datetime.now(timezone.utc)
-                previous = targets.get(key, {})
-                attempted = timestamp(previous.get("started_at"))
-                if attempted and (now - attempted).total_seconds() < PROJECTION_REFRESH_RETRY_SECONDS:
+                attempted = timestamp(targets.get(key, {}).get("started_at"))
+                if attempted and (datetime.now(timezone.utc) - attempted).total_seconds() < PROJECTION_REFRESH_RETRY_SECONDS:
                     continue
-                status = {"status": "running", "started_at": now.isoformat(),
-                          "last_success_at": previous.get("last_success_at")}
-                targets[key] = status
-                _save(targets)
-                try:
-                    publication = call_phase(kind, _prepare, kind, season, week)
-                    status.update(publication or {})
-                    status.update(status="ok", last_success_at=datetime.now(timezone.utc).isoformat())
+                if _refresh_one(targets, kind, season, week):
                     prepared += 1
-                except Exception:
-                    status["status"] = "error"
+                else:
                     failed += 1
-                    logging.getLogger(__name__).exception("Automatic season refresh failed: %s", key)
-                status["completed_at"] = datetime.now(timezone.utc).isoformat()
-                _save(targets)
             annotate_job(prepared=prepared, failed=failed)
             return {"status": "error" if failed else "ok", "prepared": prepared, "failed": failed}
+    except RefreshBusy:
+        return {"status": "busy"}
+
+
+@observe_job("cache_rebuild")
+def rebuild_target(kind, season, week=1):
+    """Admin-forced rebuild of one target, even when it is not due."""
+    if kind not in {"draft", "weekly", "ros"}:
+        return {"status": "error"}
+    try:
+        with refresh_lock(CACHE_DIR / "last_refresh.lock"):
+            ok = _refresh_one(read_status(), kind, int(season), int(week))
+            annotate_job(prepared=int(ok), failed=int(not ok))
+            return {"status": "ok" if ok else "error"}
     except RefreshBusy:
         return {"status": "busy"}

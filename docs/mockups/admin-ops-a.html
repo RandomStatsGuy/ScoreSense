@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — A · Admin</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<link rel="stylesheet" href="admin-ops.css" />
+<style>
+  /* A: keep tabs; Overview becomes a health deck. Tabs switch panes by hash. */
+  .a-cols { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: var(--space-5); align-items: start; }
+  @media (max-width: 900px) { .a-cols { grid-template-columns: 1fr; } }
+  .a-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr)); gap: var(--space-5); }
+  .a-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+  .a-detail .card, .a-settings .card { display: flex; flex-direction: column; gap: var(--space-3); }
+  .a-detail .card h3, .a-settings .card h3 { margin: 0; }
+  .a-actions { display: flex; align-items: center; gap: var(--space-2); }
+  .meter-row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr) 7.5rem; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm); }
+  .meter-row .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .meter-row .k { color: var(--text-muted); }
+  .setting { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid rgba(36, 50, 73, 0.6); }
+  .setting:last-of-type { border-bottom: 0; }
+  .setting .grow { flex: 1; min-width: 0; }
+  .setting .what { display: block; font-size: var(--text-sm); font-weight: 650; }
+  .setting .why { display: block; margin-top: var(--space-1); font-size: var(--text-xs); color: var(--text-muted); }
+  .setting .control {
+    display: inline-flex; align-items: center; min-height: var(--control-h-sm); padding: 0 var(--space-3);
+    border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--bg-base);
+    font-size: var(--text-sm); white-space: nowrap;
+  }
+  .switch { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); white-space: nowrap; }
+  .switch .track { width: 2.25rem; height: 1.25rem; border-radius: var(--radius-pill); background: var(--bg-subtle); border: 1px solid var(--border-strong); position: relative; }
+  .switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 0.85rem; height: 0.85rem; border-radius: 50%; background: var(--text-muted); }
+  .switch.on .track { background: var(--tone-positive-soft); border-color: var(--tone-positive); }
+  .switch.on .track::after { left: auto; right: 2px; background: var(--tone-positive); }
+  .pane-note { margin: 0; color: var(--text-muted); font-size: var(--text-xs); }
+  [data-pane][hidden] { display: none !important; }
+  .skip { position: absolute; left: var(--space-3); top: var(--space-3); transform: translateY(-8rem); }
+  .skip:focus { transform: none; }
+</style>
+</head>
+<body>
+<a class="skip btn btn-ghost btn-sm" href="#main-content">Skip to content</a>
+<div class="concept-banner">
+  <div><strong>Admin</strong> <span>· option A · health deck · tabs are clickable · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="admin-ops.html">Chooser</a>
+    <a class="is-on" href="admin-ops-a.html">A</a>
+    <a href="admin-ops-b.html">B</a>
+    <a href="admin-ops-c.html">C</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span>Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">CP</span> Admin</span>
+  </header>
+  <main id="main-content">
+
+  <nav class="admin-subnav" aria-label="Admin sections" role="tablist">
+    <a class="mock-tab" role="tab" href="#overview">Overview</a>
+    <a class="mock-tab" role="tab" href="#server">Server</a>
+    <a class="mock-tab" role="tab" href="#jobs">Jobs</a>
+    <a class="mock-tab" role="tab" href="#sessions">Sessions</a>
+    <a class="mock-tab" role="tab" href="#settings">Settings</a>
+    <a class="mock-tab" role="tab" href="#activity">Activity</a>
+    <a class="mock-tab" role="tab" href="#users">Users</a>
+    <a class="mock-tab" role="tab" href="#leagues">Leagues</a>
+    <span class="spacer"></span>
+    <span class="muted" style="font-size:var(--text-xs);">Updated 9:38 PM</span>
+    <span class="btn btn-ghost btn-sm">Refresh</span>
+  </nav>
+
+  <!-- Overview -->
+  <section data-pane="overview" class="stack">
+    <div class="page-title" style="margin-bottom:0;">
+      <div class="grow">
+        <h1>Two things need you</h1>
+        <p>Sentiment refresh failed this morning, and the WR weekly cache is older than the model.</p>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat">
+        <span class="label"><span class="dot ok"></span>API</span>
+        <span class="value">Healthy</span>
+        <span class="detail">Up 3d 4h · p95 210 ms</span>
+      </div>
+      <div class="stat">
+        <span class="label"><span class="dot ok"></span>Server</span>
+        <span class="value">23% CPU</span>
+        <span class="detail">Memory 3.1 of 8 GB · disk 18%</span>
+      </div>
+      <div class="stat">
+        <span class="label"><span class="dot warn"></span>Jobs</span>
+        <span class="value">1 failed</span>
+        <span class="detail">Next: Injury poll in 6 min</span>
+      </div>
+      <div class="stat">
+        <span class="label"><span class="dot ok"></span>Active now</span>
+        <span class="value">7</span>
+        <span class="detail">31 accounts in the last 24 hours</span>
+      </div>
+    </div>
+
+    <div class="a-cols">
+      <div class="stack">
+        <section class="card">
+          <div class="card-head"><h3 class="grow">Needs attention</h3></div>
+          <ul class="list">
+            <li>
+              <span class="dot bad"></span>
+              <span class="grow">
+                <span class="what">Sentiment refresh failed</span>
+                <span class="why">YouTube quota exceeded at 5:02 AM. Readouts still show Monday's data.</span>
+              </span>
+              <a class="btn btn-primary btn-sm" href="#jobs">Retry</a>
+            </li>
+            <li>
+              <span class="dot warn"></span>
+              <span class="grow">
+                <span class="what">WR weekly cache is stale</span>
+                <span class="why">Built before the Oct 5 model. First WR page load runs live inference.</span>
+              </span>
+              <a class="btn btn-ghost btn-sm" href="#server">Rebuild cache</a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <div class="card-head"><h3 class="grow">Coming up</h3><a class="btn btn-ghost btn-sm" href="#jobs">All jobs</a></div>
+          <table class="ops-table">
+            <thead><tr><th>Job</th><th>Schedule</th><th class="num">Next run</th></tr></thead>
+            <tbody>
+              <tr><td class="name">Injury poll</td><td>Every 15 min on game days</td><td class="num">9:45 PM</td></tr>
+              <tr><td class="name">Accuracy rebuild</td><td>Wednesdays 4:00 AM</td><td class="num">Wed 4:00 AM</td></tr>
+              <tr><td class="name">Sentiment refresh</td><td>Daily 5:00 AM</td><td class="num">Wed 5:00 AM</td></tr>
+              <tr><td class="name">Weekly refresh</td><td>Tuesdays 3:00 AM</td><td class="num">Oct 13</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <aside class="stack">
+        <section class="card">
+          <h3>Deploy</h3>
+          <div class="kv">
+            <div class="row">Commit <strong><code class="c">a1b2c3d</code></strong></div>
+            <div class="row">Deployed <strong>Oct 3, 8:12 PM</strong></div>
+            <div class="row">Model <strong>Oct 5 retrain</strong></div>
+            <div class="row">Pool 2026 <strong class="tone-ok">Fresh</strong></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="card-head"><h3 class="grow">Recent admin activity</h3><a class="btn btn-ghost btn-sm" href="#activity">All</a></div>
+          <ul class="list">
+            <li><span class="grow">You ran Weekly refresh</span><span class="when">Tue 3:00 AM</span></li>
+            <li><span class="grow">Injury poll cadence → 15 min</span><span class="when">Sun 9:10 AM</span></li>
+            <li><span class="grow">Signed out j.ramos everywhere</span><span class="when">Sat 4:41 PM</span></li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Server -->
+  <section data-pane="server" class="stack" hidden>
+    <div class="page-title" style="margin-bottom:0;">
+      <div class="grow">
+        <h1>Server</h1>
+        <p>Read every 30 seconds while this tab is open. VPS 104.207.158.4 · API container.</p>
+      </div>
+      <span class="mock-pill mock-pill--ok">Healthy</span>
+    </div>
+    <div class="a-two">
+      <section class="card">
+        <div class="card-head"><h3 class="grow">Resources</h3><span class="note">4 vCPU · 8 GB</span></div>
+        <div class="meter-row"><span class="k">CPU</span><span class="meter"><span style="width:23%"></span></span><span class="v">23%</span></div>
+        <div class="meter-row"><span class="k">Memory</span><span class="meter"><span style="width:39%"></span></span><span class="v">3.1 / 8 GB</span></div>
+        <div class="meter-row"><span class="k">Disk</span><span class="meter"><span style="width:18%"></span></span><span class="v">14 / 80 GB</span></div>
+        <div class="meter-row"><span class="k">Workers</span><span class="meter warn"><span style="width:50%"></span></span><span class="v">1 of 2 busy</span></div>
+      </section>
+      <section class="card">
+        <h3>Process</h3>
+        <div class="kv">
+          <div class="row">Uptime <strong>3d 4h 12m</strong></div>
+          <div class="row">Commit <strong><code class="c">a1b2c3d</code> · develop</strong></div>
+          <div class="row">Python <strong>3.12.4</strong></div>
+          <div class="row">League database <strong>212 MB</strong></div>
+          <div class="row">Accounts database <strong>3 MB</strong></div>
+          <div class="row">Artifacts folder <strong>1.4 GB</strong></div>
+        </div>
+      </section>
+    </div>
+    <section class="card">
+      <div class="card-head"><h3 class="grow">Caches</h3><span class="note">Stale caches fall back to live model runs, which are slow.</span></div>
+      <table class="ops-table">
+        <thead><tr><th>Cache</th><th>Built</th><th>Status</th><th class="act actions">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Draft pool 2026</td><td>Oct 5, 11:20 PM</td><td><span class="status"><span class="dot ok"></span>Fresh</span></td><td class="act actions"><span class="btn btn-ghost btn-sm">Rebuild</span></td></tr>
+          <tr><td class="name">Weekly 2026 · QB, RB, TE</td><td>Oct 6, 3:18 AM</td><td><span class="status"><span class="dot ok"></span>Fresh</span></td><td class="act actions"><span class="btn btn-ghost btn-sm">Rebuild</span></td></tr>
+          <tr><td class="name">Weekly 2026 · WR</td><td>Oct 4, 3:11 AM</td><td><span class="status"><span class="dot warn"></span>Older than model</span></td><td class="act actions"><span class="btn btn-ghost btn-sm">Rebuild</span></td></tr>
+          <tr><td class="name">Sleeper players</td><td>Oct 6, 9:30 PM</td><td><span class="status"><span class="dot ok"></span>Fresh</span></td><td class="act actions"><span class="btn btn-ghost btn-sm">Rebuild</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+    <div class="a-two">
+      <section class="card">
+        <div class="card-head"><h3 class="grow">Slowest routes today</h3><span class="note">95th percentile · calls</span></div>
+        <div class="kv">
+          <div class="row">/api/hub/value-sheet <strong>1.8 s · 412</strong></div>
+          <div class="row">/api/hub/home <strong>640 ms · 1,906</strong></div>
+          <div class="row">/api/predict/weekly <strong>510 ms · 733</strong></div>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h3 class="grow">Recent errors</h3><span class="note">Last 24 hours</span></div>
+        <ul class="list">
+          <li><span class="dot bad"></span><span class="grow"><span class="what">502 /api/injuries</span><span class="why">Sleeper timed out after 10 s</span></span><span class="when">×3 · 2:14 PM</span></li>
+          <li><span class="dot bad"></span><span class="grow"><span class="what">500 /api/hub/trades/propose</span><span class="why">KeyError: 'contract_years'</span></span><span class="when">×1 · 11:02 AM</span></li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <!-- Jobs -->
+  <section data-pane="jobs" class="stack" hidden>
+    <div class="page-title" style="margin-bottom:0;">
+      <div class="grow">
+        <h1>Jobs</h1>
+        <p>Times are Pacific. A job that is already running is never started twice.</p>
+      </div>
+      <span class="mock-pill mock-pill--bad">1 failed</span>
+    </div>
+    <div class="a-cols">
+      <section class="card">
+        <table class="ops-table">
+          <thead>
+            <tr><th>Job</th><th>Schedule</th><th>Last run</th><th class="act actions">Run</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Weekly refresh</span><span class="sub">Stats, projections, caches</span></td>
+              <td>Tue 3:00 AM</td>
+              <td><span class="status"><span class="dot ok"></span>Today 3:00 AM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr class="is-selected">
+              <td><span class="name">Sentiment refresh</span><span class="sub">YouTube and beat transcripts</span></td>
+              <td>Daily 5:00 AM</td>
+              <td><span class="status"><span class="dot bad"></span>Failed 5:02 AM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Injury poll</span><span class="sub">Sleeper injuries</span></td>
+              <td>15 min game days</td>
+              <td><span class="status"><span class="dot ok"></span>9:30 PM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Accuracy rebuild</span><span class="sub">Model accuracy and upside</span></td>
+              <td>Wed 4:00 AM</td>
+              <td><span class="status"><span class="dot ok"></span>Sep 30</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Beat digest prewarm</span><span class="sub">Team digests</span></td>
+              <td>Daily 6:00 AM</td>
+              <td><span class="status"><span class="dot ok"></span>Today 6:00 AM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Preseason refresh</span><span class="sub">Draft pool rebuild</span></td>
+              <td class="muted">Manual only</td>
+              <td><span class="status"><span class="dot"></span>Sep 13</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <aside class="a-detail">
+        <section class="card">
+          <h3>Sentiment refresh</h3>
+          <p class="note">Failed at 5:02 AM. Readouts still show Monday's data until a run succeeds.</p>
+          <pre class="log">05:00:01 start sentiment_refresh
+05:01:48 fetched 212 transcripts
+05:02:11 ERROR youtube quotaExceeded
+05:02:11 stopped · nothing written</pre>
+          <div class="a-actions"><span class="btn btn-primary btn-sm">Retry now</span></div>
+        </section>
+        <section class="card">
+          <h3>Schedule</h3>
+          <div class="field-row">
+            <label class="field">Repeat <span class="control">Daily</span></label>
+            <label class="field">At <span class="control">5:00 AM</span></label>
+            <label class="field">Enabled <span class="control">On</span></label>
+          </div>
+          <div class="a-actions"><span class="btn btn-ghost btn-sm">Save schedule</span></div>
+        </section>
+        <section class="card">
+          <h3>Recent runs</h3>
+          <ul class="list">
+            <li><span class="dot bad"></span><span class="grow">Oct 6 · quota exceeded</span><span class="when">2m 10s</span></li>
+            <li><span class="dot ok"></span><span class="grow">Oct 5</span><span class="when">3m 02s</span></li>
+            <li><span class="dot ok"></span><span class="grow">Oct 4</span><span class="when">2m 58s</span></li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Sessions -->
+  <section data-pane="sessions" class="stack" hidden>
+    <div class="page-title" style="margin-bottom:0;">
+      <div class="grow">
+        <h1>Sessions</h1>
+        <p>Last seen updates at most every 5 minutes per account. Sign out everywhere ends every session; they sign in again on their next visit.</p>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><span class="label">Last 15 minutes</span><span class="value">7</span><span class="detail">3 in a draft room</span></div>
+      <div class="stat"><span class="label">Last 24 hours</span><span class="value">31</span><span class="detail">of 48 accounts</span></div>
+      <div class="stat"><span class="label">Last 7 days</span><span class="value">44</span><span class="detail">4 not seen in a week</span></div>
+      <div class="stat"><span class="label">New this week</span><span class="value">2</span><span class="detail">Both joined by invite</span></div>
+    </div>
+    <section class="card">
+      <table class="ops-table">
+        <thead><tr><th>Account</th><th>Signs in with</th><th class="num">Leagues</th><th class="num">Last seen</th><th class="act actions">Action</th></tr></thead>
+        <tbody>
+          <tr><td class="name">maya.chen@gmail.com</td><td>Password</td><td class="num">2</td><td class="num">now</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+          <tr><td class="name">j.ramos@outlook.com</td><td>Google</td><td class="num">1</td><td class="num">2 min</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+          <tr><td class="name">dkoh@proton.me</td><td>Password</td><td class="num">1</td><td class="num">9 min</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+          <tr><td class="name">tbrennan@gmail.com</td><td>Patreon</td><td class="num">1</td><td class="num">3 h</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+          <tr><td class="name">a.oduya@yahoo.com</td><td>Google</td><td class="num">1</td><td class="num">8 days</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </section>
+
+  <!-- Settings -->
+  <section data-pane="settings" class="stack a-settings" hidden>
+    <div class="page-title" style="margin-bottom:0;">
+      <div class="grow">
+        <h1>Settings</h1>
+        <p>These apply right away, without a deploy. Each change is written to Activity.</p>
+      </div>
+    </div>
+    <div class="a-cols">
+      <section class="card">
+        <h3>Site</h3>
+        <div>
+          <div class="setting"><span class="grow"><span class="what">New sign-ups</span><span class="why">Off hides Create account. Invites still work.</span></span><span class="switch on"><span class="track"></span>On</span></div>
+          <div class="setting"><span class="grow"><span class="what">Require email verification</span><span class="why">New accounts confirm their email before joining a league.</span></span><span class="switch on"><span class="track"></span>On</span></div>
+          <div class="setting"><span class="grow"><span class="what">Maintenance banner</span><span class="why">Shows a one-line notice at the top of every page.</span></span><span class="switch"><span class="track"></span>Off</span></div>
+          <div class="setting"><span class="grow"><span class="what">Injury poll on game days</span><span class="why">How often Sleeper injuries refresh Thursday, Sunday, and Monday.</span></span><span class="control">Every 15 min</span></div>
+          <div class="setting"><span class="grow"><span class="what">Injury poll other days</span></span><span class="control">Every 2 hours</span></div>
+          <div class="setting"><span class="grow"><span class="what">Retry failed jobs</span><span class="why">One automatic retry after the wait. Then it stays failed until you retry.</span></span><span class="control">Once after 15 min</span></div>
+        </div>
+        <div class="a-actions"><span class="btn btn-primary btn-sm">Save settings</span></div>
+      </section>
+      <aside class="stack">
+        <section class="card">
+          <h3>Server environment</h3>
+          <p class="note">Read-only. Change these in the server's .env file and restart. Secrets are never shown.</p>
+          <div class="kv">
+            <div class="row">AUTH_REQUIRED <strong>true</strong></div>
+            <div class="row">HUB_AUTH_REQUIRED <strong>true</strong></div>
+            <div class="row">ADMIN_EMAILS <strong>1 address</strong></div>
+            <div class="row">Email sending <strong class="tone-ok">Set</strong></div>
+            <div class="row">YouTube API key <strong class="tone-ok">Set</strong></div>
+            <div class="row">Patreon client <strong class="tone-ok">Set</strong></div>
+            <div class="row">HUB_TIMING <strong>false</strong></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Activity -->
+  <section data-pane="activity" class="stack" hidden>
+    <div class="page-title" style="margin-bottom:0;">
+      <div class="grow">
+        <h1>Activity</h1>
+        <p>Every admin action and scheduled run, newest first. Kept for 90 days.</p>
+      </div>
+    </div>
+    <section class="card">
+      <table class="ops-table">
+        <thead><tr><th>What happened</th><th>Who</th><th class="num">When</th></tr></thead>
+        <tbody>
+          <tr><td><span class="name">Sentiment refresh failed</span><span class="sub">YouTube quota exceeded</span></td><td>Schedule</td><td class="num">Today 5:02 AM</td></tr>
+          <tr><td><span class="name">Weekly refresh succeeded</span><span class="sub">18m 42s · 2026 week 5</span></td><td>Schedule</td><td class="num">Today 3:18 AM</td></tr>
+          <tr><td><span class="name">Injury poll on game days → every 15 min</span><span class="sub">Was every 30 min</span></td><td>You</td><td class="num">Sun 9:10 AM</td></tr>
+          <tr><td><span class="name">Signed out j.ramos@outlook.com everywhere</span></td><td>You</td><td class="num">Sat 4:41 PM</td></tr>
+          <tr><td><span class="name">Linked dkoh@proton.me to Koh Dynasty</span><span class="sub">Bottom to Top · 0BBESQ</span></td><td>You</td><td class="num">Fri 7:20 PM</td></tr>
+          <tr><td><span class="name">Preseason refresh succeeded</span><span class="sub">Run by hand · 41m 18s</span></td><td>You</td><td class="num">Sep 13</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </section>
+
+  <!-- Users / Leagues: unchanged -->
+  <section data-pane="users" class="stack" hidden>
+    <section class="card">
+      <h3>Users</h3>
+      <p class="pane-note">Same as today's Users tab. Last seen and Sign out everywhere live on Sessions.</p>
+    </section>
+  </section>
+  <section data-pane="leagues" class="stack" hidden>
+    <section class="card">
+      <h3>Leagues</h3>
+      <p class="pane-note">Same as today's Leagues tab: create, link owners, invites, transfer commissioner, delete.</p>
+    </section>
+  </section>
+
+  <p class="footnote">Static mock · tokens only · not product code</p>
+  </main>
+</div>
+<script>
+  function showPane() {
+    const id = location.hash.slice(1) || "overview";
+    const known = [...document.querySelectorAll("[data-pane]")].some((p) => p.dataset.pane === id);
+    const target = known ? id : "overview";
+    document.querySelectorAll("[data-pane]").forEach((p) => { p.hidden = p.dataset.pane !== target; });
+    document.querySelectorAll(".admin-subnav .mock-tab").forEach((t) => {
+      const on = t.getAttribute("href") === `#${target}`;
+      t.classList.toggle("active", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", showPane);
+  showPane();
+</script>
+</body>
+</html>

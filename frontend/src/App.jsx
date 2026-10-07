@@ -64,6 +64,7 @@ const ClaimAccept = lazy(() => import("./ClaimAccept"));
 import DeferredAccessFlow from "./DeferredAccessFlow";
 import VerifyEmailBanner from "./VerifyEmailBanner";
 import ChangePasswordBanner from "./ChangePasswordBanner";
+import SiteNoticeBanner from "./SiteNoticeBanner";
 import InstallPrompt from "./InstallPrompt";
 import TermsReacceptBanner from "./TermsReacceptBanner";
 import LegalLinks from "./LegalLinks";
@@ -1465,6 +1466,7 @@ export default function App() {
           }}
         />
         </DeferredAccessFlow>
+        <SiteNoticeBanner />
         {authenticated
           && user?.email_verified === false
           && user?.auth_type === "native"

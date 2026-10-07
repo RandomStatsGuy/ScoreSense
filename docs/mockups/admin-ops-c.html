@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — C · Admin</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<link rel="stylesheet" href="admin-ops.css" />
+<style>
+  /* C: one ops board. Status strip, week timeline, server + people side by side. */
+  .c-strip {
+    display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
+    font-size: var(--text-sm); color: var(--text-secondary);
+  }
+  .c-strip .item { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .c-strip strong { color: var(--text-primary); }
+  .c-strip .spacer { flex: 1; }
+
+  .c-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-2); }
+  .c-day { display: flex; flex-direction: column; gap: var(--space-2); min-height: 11rem; padding: var(--space-2); border-radius: var(--radius-sm); background: var(--bg-base); }
+  .c-day.today { background: var(--accent-soft); }
+  .c-day-head { font-size: var(--text-xs); color: var(--text-muted); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 var(--space-1); }
+  .c-day.today .c-day-head { color: var(--text-primary); }
+  .c-run {
+    display: flex; flex-direction: column; gap: var(--space-1);
+    padding: var(--space-2); border-radius: var(--radius-sm);
+    background: var(--bg-subtle); border: 1px solid var(--border);
+    font-size: var(--text-xs); color: var(--text-secondary);
+  }
+  .c-run .t { display: flex; align-items: center; gap: var(--space-1); color: var(--text-primary); font-weight: 650; }
+  .c-run.bad { border-color: rgba(239, 68, 68, 0.5); }
+  .c-run.next { border-style: dashed; }
+
+  .c-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr)); gap: var(--space-5); }
+  .c-meter-row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr) 7.5rem; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; font-size: var(--text-sm); }
+  .c-meter-row .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .c-meter-row .k { color: var(--text-muted); }
+  .skip { position: absolute; left: var(--space-3); top: var(--space-3); transform: translateY(-8rem); }
+  .skip:focus { transform: none; }
+  .skip { position: absolute; left: var(--space-3); top: var(--space-3); transform: translateY(-8rem); }
+  .skip:focus { transform: none; }
+</style>
+</head>
+<body>
+<a class="skip btn btn-ghost btn-sm" href="#main-content">Skip to content</a>
+<div class="concept-banner">
+  <div><strong>Admin</strong> <span>· option C · one ops board · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="admin-ops.html">Chooser</a>
+    <a href="admin-ops-a.html">A</a>
+    <a href="admin-ops-b.html">B</a>
+    <a class="is-on" href="admin-ops-c.html">C</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span>Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">CP</span> Admin</span>
+  </header>
+  <main id="main-content">
+
+  <nav class="admin-subnav" aria-label="Admin sections">
+    <span class="mock-tab active">Operations</span>
+    <span class="mock-tab">Users</span>
+    <span class="mock-tab">Leagues</span>
+    <span class="mock-tab">Settings</span>
+    <span class="mock-tab">Activity</span>
+  </nav>
+
+  <div class="stack">
+    <div class="c-strip">
+      <span class="item"><span class="dot ok"></span>API <strong>healthy</strong></span>
+      <span class="item">Up <strong>3d 4h</strong></span>
+      <span class="item">Commit <code class="c">a1b2c3d</code></span>
+      <span class="item"><span class="dot bad"></span><strong>1 job failed</strong></span>
+      <span class="item"><span class="dot warn"></span><strong>WR cache stale</strong></span>
+      <span class="spacer"></span>
+      <span class="btn btn-ghost btn-sm">Refresh</span>
+    </div>
+
+    <section class="card">
+      <div class="card-head">
+        <h3 class="grow">This week</h3>
+        <span class="note">Tue Oct 6 – Mon Oct 12 · Pacific</span>
+        <span class="btn btn-ghost btn-sm">Edit schedules</span>
+      </div>
+      <div class="c-week">
+        <div class="c-day today">
+          <span class="c-day-head">Tue · today</span>
+          <div class="c-run"><span class="t"><span class="dot ok"></span>Weekly refresh</span>3:00 AM · 18m</div>
+          <div class="c-run bad"><span class="t"><span class="dot bad"></span>Sentiment</span>5:02 AM · quota</div>
+          <div class="c-run"><span class="t"><span class="dot ok"></span>Beat digests</span>6:00 AM · 51s</div>
+        </div>
+        <div class="c-day">
+          <span class="c-day-head">Wed</span>
+          <div class="c-run next"><span class="t">Accuracy</span>4:00 AM</div>
+          <div class="c-run next"><span class="t">Sentiment</span>5:00 AM</div>
+          <div class="c-run next"><span class="t">Beat digests</span>6:00 AM</div>
+        </div>
+        <div class="c-day">
+          <span class="c-day-head">Thu</span>
+          <div class="c-run next"><span class="t">Sentiment</span>5:00 AM</div>
+          <div class="c-run next"><span class="t">Injury poll</span>every 15 min</div>
+        </div>
+        <div class="c-day">
+          <span class="c-day-head">Fri</span>
+          <div class="c-run next"><span class="t">Sentiment</span>5:00 AM</div>
+        </div>
+        <div class="c-day">
+          <span class="c-day-head">Sat</span>
+          <div class="c-run next"><span class="t">Sentiment</span>5:00 AM</div>
+        </div>
+        <div class="c-day">
+          <span class="c-day-head">Sun</span>
+          <div class="c-run next"><span class="t">Injury poll</span>every 15 min</div>
+          <div class="c-run next"><span class="t">Sentiment</span>5:00 AM</div>
+        </div>
+        <div class="c-day">
+          <span class="c-day-head">Mon</span>
+          <div class="c-run next"><span class="t">Injury poll</span>every 15 min</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="c-two">
+      <section class="card">
+        <div class="card-head"><h3 class="grow">Server</h3><span class="note">4 vCPU · 8 GB</span></div>
+        <div class="c-meter-row"><span class="k">CPU</span><span class="meter"><span style="width:23%"></span></span><span class="v">23%</span></div>
+        <div class="c-meter-row"><span class="k">Memory</span><span class="meter"><span style="width:39%"></span></span><span class="v">3.1 / 8 GB</span></div>
+        <div class="c-meter-row"><span class="k">Disk</span><span class="meter"><span style="width:18%"></span></span><span class="v">14 / 80 GB</span></div>
+        <div class="c-meter-row"><span class="k">Workers</span><span class="meter warn"><span style="width:50%"></span></span><span class="v">1 of 2 busy</span></div>
+        <div class="kv" style="margin-top:var(--space-3);">
+          <div class="row">League database <strong>212 MB</strong></div>
+          <div class="row">Slowest route today <strong>/api/hub/value-sheet · 1.8 s</strong></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h3 class="grow">Active now</h3><span class="note">7 in 15 min · 31 today</span></div>
+        <table class="ops-table">
+          <thead><tr><th>Account</th><th class="num">Last seen</th><th class="act actions">Sessions</th></tr></thead>
+          <tbody>
+            <tr><td class="name">maya.chen@gmail.com</td><td class="num">now</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+            <tr><td class="name">j.ramos@outlook.com</td><td class="num">2 min</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+            <tr><td class="name">dkoh@proton.me</td><td class="num">9 min</td><td class="act actions"><span class="btn btn-ghost btn-sm">Sign out everywhere</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+
+  <p class="footnote">Static mock · tokens only · not product code</p>
+  </main>
+  </main>
+</div>
+</body>
+</html>

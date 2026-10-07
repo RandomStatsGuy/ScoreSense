@@ -86,6 +86,8 @@ def _migrate_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE app_user ADD COLUMN must_change_password_at TEXT")
     if not _column_exists(conn, "app_user", "session_version"):
         conn.execute("ALTER TABLE app_user ADD COLUMN session_version INTEGER NOT NULL DEFAULT 1")
+    if not _column_exists(conn, "app_user", "last_seen_at"):
+        conn.execute("ALTER TABLE app_user ADD COLUMN last_seen_at TEXT")
     conn.execute(
         """CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_google_sub
            ON app_user(google_sub) WHERE google_sub IS NOT NULL"""
@@ -126,6 +128,7 @@ def _user_dict(row: sqlite3.Row) -> dict[str, Any]:
         "sms_opted_in_at": row["sms_opted_in_at"] if "sms_opted_in_at" in row.keys() else None,
         "must_change_password_at": row["must_change_password_at"] if "must_change_password_at" in row.keys() else None,
         "session_version": int(row["session_version"]) if "session_version" in row.keys() and row["session_version"] is not None else 1,
+        "last_seen_at": row["last_seen_at"] if "last_seen_at" in row.keys() else None,
     }
 
 
@@ -201,6 +204,19 @@ def bump_session_version(user_id: str) -> int:
         )
         row = conn.execute("SELECT session_version FROM app_user WHERE id = ?", (user_id,)).fetchone()
     return int(row["session_version"]) if row and row["session_version"] is not None else 1
+
+
+def touch_last_seen(user_id: str, *, min_interval_s: int = 300) -> bool:
+    """Stamp activity at most once per interval, so request traffic is not one write each."""
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(seconds=min_interval_s)).isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE app_user SET last_seen_at = ?
+               WHERE id = ? AND (last_seen_at IS NULL OR last_seen_at < ?)""",
+            (now.isoformat(), user_id, cutoff),
+        )
+        return cur.rowcount > 0
 
 
 def must_change_password(user: dict[str, Any] | None) -> bool:

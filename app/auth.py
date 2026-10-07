@@ -356,8 +356,33 @@ def native_must_change_password(jwt_user: dict[str, Any]) -> bool:
     return user_store.must_change_password(row) if row else False
 
 
+def email_verification_required() -> bool:
+    from src.ops.admin_store import settings_safe
+    return bool(settings_safe("email_verification_required", True))
+
+
+def signups_open() -> bool:
+    from src.ops.admin_store import settings_safe
+    return bool(settings_safe("signups_open", True))
+
+
+def require_signups_open(email: str | None = None) -> None:
+    """Closed sign-ups still let anyone holding a pending league invite create an account."""
+    if signups_open():
+        return
+    from src.draft_hub import storage
+    try:
+        invited = storage.has_pending_invite_for_email(str(email or ""))
+    except Exception:
+        invited = False
+    if not invited:
+        raise HTTPException(status_code=403, detail="New sign-ups are closed right now. League invites still work.")
+
+
 def native_email_verified(jwt_user: dict[str, Any]) -> bool:
     if jwt_user.get("auth_type") != "native":
+        return True
+    if not email_verification_required():
         return True
     row = native_account_row(jwt_user)
     if not row:
@@ -585,6 +610,7 @@ def upsert_google_user(identity: dict[str, Any]) -> dict[str, Any]:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return linked or by_email
+    require_signups_open(email)
     dummy = _hash_password(secrets.token_urlsafe(24))
     try:
         return user_store.create_google_user(
@@ -700,9 +726,32 @@ def native_session_current(jwt_user: dict[str, Any]) -> bool:
         return False
 
 
+_LAST_SEEN_INTERVAL_S = 300
+_last_seen_written: dict[str, float] = {}
+
+
+def _note_seen(user: dict[str, Any]) -> None:
+    user_id = resolve_native_user_id(user)
+    if not user_id:
+        return
+    now = time.monotonic()
+    if now - _last_seen_written.get(user_id, -_LAST_SEEN_INTERVAL_S) < _LAST_SEEN_INTERVAL_S:
+        return
+    _last_seen_written[user_id] = now
+    if len(_last_seen_written) > 5000:
+        _last_seen_written.clear()
+    try:
+        user_store.touch_last_seen(user_id, min_interval_s=_LAST_SEEN_INTERVAL_S)
+    except Exception:
+        pass
+
+
 def _verify_native_session(user: dict[str, Any]) -> None:
-    if user.get("auth_type") == "native" and not native_session_current(user):
+    if user.get("auth_type") != "native":
+        return
+    if not native_session_current(user):
         raise HTTPException(status_code=401, detail="Invalid or expired session")
+    _note_seen(user)
 
 
 def create_access_token(user: dict[str, Any], *, auth_type: str = "patreon") -> str:
@@ -868,6 +917,8 @@ def session_user_public(user: dict[str, Any] | None) -> dict[str, Any] | None:
     verified = user_store.is_email_verified(native_row) if native_row else True
     if user.get("auth_type") == "native" and native_row is None:
         verified = False
+    elif not verified and not email_verification_required():
+        verified = True
     terms_current = native_user_terms_current(user)
     terms_version = native_row.get("terms_version") if native_row else None
     return {
@@ -894,4 +945,5 @@ def auth_public_config() -> dict[str, Any]:
         "privacy_url": PRIVACY_URL,
         "terms_version": TERMS_VERSION,
         "smtp_configured": smtp_configured(),
+        "signups_open": signups_open(),
     }
