@@ -18,6 +18,21 @@ if [ ! -f .env ]; then
   sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${JWT}/" .env
 fi
 
+# Admin > Server shows which commit is live; the image has no .git to read.
+if git rev-parse HEAD >/dev/null 2>&1; then
+  python3 - <<'PY' || true
+import json, subprocess, datetime
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
+json.dump({
+    "commit": git("rev-parse", "HEAD"),
+    "subject": git("log", "-1", "--format=%s"),
+    "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+    "deployed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+}, open("build_info.json", "w"))
+PY
+fi
+
 echo "==> Building and starting ScoreSense (production)..."
 # The refresh worker is behind the cron profile. Target it explicitly so a
 # manual/scheduled refresh cannot keep running an image from an older release.

@@ -56,6 +56,7 @@ from app.auth import (
     require_patron,
     require_admin,
     require_data_refresh,
+    require_signups_open,
     is_admin_user,
     resend_verification_email,
     reset_password_with_token,
@@ -143,6 +144,8 @@ from src.projections.ros_cache import load_ros_prediction, compute_ros_artifact
 from app.hub_routes import router as hub_router
 from app.hub_chat_routes import router as hub_chat_router
 from app.admin_routes import router as admin_router
+from app.admin_ops_routes import public_router as site_router, router as admin_ops_router
+from app.request_stats import RequestStatsMiddleware
 from app.support_routes import router as support_router
 from src.draft_hub.value_snapshot import PoolSnapshotUnavailable
 from app.auth import admin_configured
@@ -170,12 +173,15 @@ async def lifespan(app: FastAPI):
     )
     scoring_ticker = asyncio.create_task(native_scoring_ticker_loop(), name="native-scoring-ticker")
     context_ticker = asyncio.create_task(fantasy_context_ticker_loop(), name="fantasy-context-ticker")
+    from app.admin_jobs import admin_scheduler_loop
+    admin_scheduler = asyncio.create_task(admin_scheduler_loop(), name="admin-scheduler")
+    tasks = (ticker, sleeper_ticker, dfs_ticker, season_ticker, scoring_ticker, context_ticker, admin_scheduler)
     try:
         yield
     finally:
-        for task in (ticker, sleeper_ticker, dfs_ticker, season_ticker, scoring_ticker, context_ticker):
+        for task in tasks:
             task.cancel()
-        for task in (ticker, sleeper_ticker, dfs_ticker, season_ticker, scoring_ticker, context_ticker):
+        for task in tasks:
             try:
                 await task
             except asyncio.CancelledError:
@@ -191,6 +197,7 @@ app = FastAPI(
 )
 
 app.add_middleware(HubServerTimingMiddleware)
+app.add_middleware(RequestStatsMiddleware)
 
 
 @app.exception_handler(PoolSnapshotUnavailable)
@@ -213,6 +220,8 @@ app.add_middleware(
 app.include_router(hub_router)
 app.include_router(hub_chat_router)
 app.include_router(admin_router)
+app.include_router(admin_ops_router)
+app.include_router(site_router)
 app.include_router(support_router)
 app.include_router(dfs_results_router)
 
@@ -733,6 +742,7 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 @app.post("/api/auth/register")
 def auth_register(body: RegisterRequest, request: Request, response: Response) -> dict:
     _rate_limit_auth_credentials(request, body.email, action="register")
+    require_signups_open(body.email)
     try:
         user = register_native_user(
             body.email,

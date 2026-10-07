@@ -4801,6 +4801,21 @@ def get_pending_invite_for_team(league_id: str, team_id: str) -> dict[str, Any] 
     return _invite_dict(rows[0]) if rows else None
 
 
+def has_pending_invite_for_email(email: str) -> bool:
+    address = str(email or "").strip().lower()
+    if not address:
+        return False
+    now = datetime.now(timezone.utc).isoformat()
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT 1 FROM league_invite
+               WHERE lower(email) = ? AND status = 'pending' AND (expires_at IS NULL OR expires_at > ?)
+               LIMIT 1""",
+            (address, now),
+        ).fetchone()
+    return row is not None
+
+
 def list_league_invites(league_id: str) -> list[dict[str, Any]]:
     with get_conn() as conn:
         rows = conn.execute(

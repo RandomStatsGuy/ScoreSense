@@ -36,10 +36,13 @@ def _reset_hub_db_init_flag(tmp_path, monkeypatch):
         (storage, "DRAFT_HUB", "draft_hub", "draft_hub.db"),
         (config, "AUTH", "auth", "users.db"),
         (user_store, "AUTH", "auth", "users.db"),
+        (config, "ADMIN_OPS", "admin_ops", "admin_ops.db"),
     ):
         monkeypatch.setattr(module, prefix + "_DIR", database_root / dirname)
         monkeypatch.setattr(module, prefix + "_DB", database_root / dirname / filename)
 
+    from src.ops import admin_store
+    admin_store._invalidate_cache()
     storage._DB_INITIALIZED = False
     yield
 

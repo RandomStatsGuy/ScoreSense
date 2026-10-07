@@ -7,6 +7,7 @@
  *
  * Requires a running app at http://127.0.0.1:5173 and Playwright
  * (`cd frontend && npm install` after playwright is in package.json).
+ * Signed-in routes (e.g. /admin): set LAYOUT_AUDIT_TOKEN to a local session token.
  */
 import { pathToFileURL } from "node:url";
 import path from "node:path";
@@ -14,6 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const BASE = process.env.LAYOUT_AUDIT_BASE || "http://127.0.0.1:5173";
+const AUTH_TOKEN = process.env.LAYOUT_AUDIT_TOKEN || "";
 
 export const NUMERIC_RE = /^[\-\u2212+]?\s*\$?\s*[\d,.]+(?:st|nd|rd|th|pts?|yds?|%)?$/i;
 const SINGLE_GLYPH_RE = /^[A-Z]{1,3}$|^[QDP]$|^[·•—–-]$/;
@@ -874,6 +876,9 @@ export function measureScript() {
 
 async function auditRoute(browser, route, width) {
   const page = await browser.newPage({ viewport: { width, height: width === 390 ? 844 : 900 } });
+  if (AUTH_TOKEN) {
+    await page.addInitScript((token) => localStorage.setItem("scoresense_token", token), AUTH_TOKEN);
+  }
   const url = `${BASE}${route}`;
   try {
     await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
