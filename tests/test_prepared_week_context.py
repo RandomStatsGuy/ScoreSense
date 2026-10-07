@@ -161,6 +161,41 @@ def test_discovery_includes_league_seasons_requests_and_artifact_variants(source
     assert not any(week == 0 for _, week, _ in all_contexts)
 
 
+def test_discovery_without_history_keeps_current_weeks_and_reader_requests(sources, hub_db, tmp_path, monkeypatch):
+    monkeypatch.setattr(wc, "resolve_week_context", lambda *a, hub_season=None: (2026, 5))
+    monkeypatch.setattr(pc, "WEEKLY_PREDICTIONS_DIR", tmp_path)
+    (tmp_path / "2019_w11_qb.meta.json").write_text("{}")
+    pc.prepare_week_context(2025, 18, False)
+    pc.request_context(2026, 6, True)
+    quick = pc.discover_contexts(history=False)
+    assert quick == [(2026, 5, True), (2026, 5, False), (2026, 6, True)]
+    full = pc.discover_contexts()
+    assert (2025, 18, False) in full and (2019, 11, True) in full
+
+
+def test_history_sweeps_every_half_hour_and_resumes_when_cut_short(monkeypatch):
+    clock = [1000.0]
+    monkeypatch.setattr(pc.time, "monotonic", lambda: clock[0])
+    sweeps = []
+    def discover(*, current_only=False, history=True):
+        sweeps.append(history)
+        return [(2026, 5, True)] + ([(2019, 1, False), (2020, 1, False), (2022, 1, False)] if history else [])
+    monkeypatch.setattr(pc, "discover_contexts", discover)
+    statuses = {(2019, 1, False): ["prepared"], (2020, 1, False): ["prepared"], (2022, 1, False): ["prepared"]}
+    monkeypatch.setattr(pc, "prepare_week_context",
+                        lambda *context: {"status": (statuses.get(context) or ["current"]).pop(0)})
+    pc.refresh_week_contexts()            # first sweep hits the two-build limit
+    clock[0] += pc.CADENCE_SECONDS
+    pc.refresh_week_contexts()            # and finishes on the next pass
+    clock[0] += pc.CADENCE_SECONDS
+    pc.refresh_week_contexts()
+    clock[0] += pc.HISTORY_SWEEP_SECONDS
+    pc.refresh_week_contexts()
+    assert sweeps == [True, True, False, True]
+    assert pc.refresh_week_contexts(history=True) and sweeps[-1] is True
+    assert pc.refresh_week_contexts(current_only=True) is not None and sweeps[-1] is False
+
+
 def test_worker_yields_after_small_batch(sources, monkeypatch):
     monkeypatch.setattr(pc, "discover_contexts", lambda **_: [(2026, 1, True), (2026, 2, True), (2026, 3, True)])
     results = pc.refresh_week_contexts()
@@ -169,6 +204,47 @@ def test_worker_yields_after_small_batch(sources, monkeypatch):
     # pass reaches unfinished history instead of rebuilding the first batch.
     results = pc.refresh_week_contexts()
     assert len(results) == 3 and results["2026:w3:inj1"]["status"] == "prepared"
+
+
+def test_unfinished_week_backs_off_without_starving_later_weeks(monkeypatch):
+    contexts = [(2026, 1, True), (2026, 2, True), (2026, 3, True)]
+    monkeypatch.setattr(pc, "discover_contexts", lambda **_: contexts)
+    clock = [1000.0]
+    monkeypatch.setattr(pc.time, "monotonic", lambda: clock[0])
+    calls = []
+    def prepare(season, week, injury):
+        calls.append(week)
+        return {"status": "sources_changing" if week in (1, 2) else "current"}
+    monkeypatch.setattr(pc, "prepare_week_context", prepare)
+    assert list(pc.refresh_week_contexts()) == ["2026:w1:inj1", "2026:w2:inj1"]
+    # The stuck weeks wait, so the next pass reaches week 3 instead of
+    # rebuilding the same two every 30 seconds.
+    clock[0] += pc.CADENCE_SECONDS
+    assert pc.refresh_week_contexts() == {"2026:w3:inj1": {"status": "current"}}
+    clock[0] += pc.RETRY_BASE_SECONDS
+    pc.refresh_week_contexts()
+    assert calls == [1, 2, 3, 1, 2]
+    # Each further miss doubles the wait, up to the cap.
+    clock[0] += pc.RETRY_BASE_SECONDS
+    pc.refresh_week_contexts()
+    assert calls[-1] == 3
+    clock[0] += pc.RETRY_MAX_SECONDS
+    calls.clear()
+    pc.refresh_week_contexts()
+    assert calls == [1, 2]
+
+
+def test_finished_week_clears_its_backoff(monkeypatch):
+    monkeypatch.setattr(pc, "discover_contexts", lambda **_: [(2026, 1, True)])
+    clock = [1000.0]
+    monkeypatch.setattr(pc.time, "monotonic", lambda: clock[0])
+    outcomes = iter(["error", "prepared", "current"])
+    monkeypatch.setattr(pc, "prepare_week_context", lambda *a: {"status": next(outcomes)})
+    pc.refresh_week_contexts()
+    assert pc.refresh_week_contexts() == {}
+    clock[0] += pc.RETRY_BASE_SECONDS
+    assert pc.refresh_week_contexts()["2026:w1:inj1"]["status"] == "prepared"
+    assert pc.refresh_week_contexts()["2026:w1:inj1"]["status"] == "current"
 
 
 @pytest.mark.parametrize("record", ["{broken", "{}", '{"schema":"fantasy-week-context-v1"}'])

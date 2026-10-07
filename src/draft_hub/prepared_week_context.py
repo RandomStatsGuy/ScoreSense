@@ -18,6 +18,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import time
 
 from src.config import FANTASY_WEEK_CONTEXT_DIR, WEEKLY_PREDICTIONS_DIR
 from src.jobs.refresh_lock import RefreshBusy, refresh_lock
@@ -219,8 +220,11 @@ def prepare_week_context(season: int, week: int, apply_injury: bool = True) -> d
         return {"status": "busy"}
 
 
-def discover_contexts(*, current_only: bool = False) -> list[tuple[int, int, bool]]:
-    """Current league seasons first, then pending, published and historical weeks."""
+def discover_contexts(*, current_only: bool = False, history: bool = True) -> list[tuple[int, int, bool]]:
+    """Current league seasons first, then pending, published and historical weeks.
+
+    ``history=False`` keeps current weeks and pending reader requests only.
+    """
     from src.draft_hub import storage
     from src.draft_hub.weekly_command_center import resolve_week_context
     contexts = OrderedDict()
@@ -241,26 +245,63 @@ def discover_contexts(*, current_only: bool = False) -> list[tuple[int, int, boo
     if not current_only:
         for path in sorted(FANTASY_WEEK_CONTEXT_DIR.glob("*"), key=lambda path: path.suffix != ".request"):
             match = _STEM.match(path.stem) if path.suffix in (".json", ".request") else None
-            if match:
+            if match and (history or path.suffix == ".request"):
                 add(int(match[1]), int(match[2]), match[3] == "1")
-        for path in WEEKLY_PREDICTIONS_DIR.glob("*.meta.json"):
-            match = _WEEKLY.match(path.name)
-            if match:
-                add(int(match[1]), int(match[2]), not bool(match[3]))
+        if history:
+            for path in WEEKLY_PREDICTIONS_DIR.glob("*.meta.json"):
+                match = _WEEKLY.match(path.name)
+                if match:
+                    add(int(match[1]), int(match[2]), not bool(match[3]))
     return list(contexts)
 
 
+HISTORY_SWEEP_SECONDS = 30 * 60
+# Worker-process memory. Other weeks refresh on a reader request at any time;
+# the sweep only catches weeks nobody has opened since their sources changed.
+_HISTORY_DUE_AT = [0.0]
+
+
+RETRY_BASE_SECONDS = 60
+RETRY_MAX_SECONDS = 30 * 60
+# Worker-process memory: context -> (next attempt, consecutive unfinished passes).
+_RETRY: dict[tuple[int, int, bool], tuple[float, int]] = {}
+
+
+def _retry_due(context: tuple[int, int, bool], now: float) -> bool:
+    entry = _RETRY.get(context)
+    return entry is None or now >= entry[0]
+
+
+def _record_outcome(context: tuple[int, int, bool], status: str, now: float) -> None:
+    if status in ("current", "prepared"):
+        _RETRY.pop(context, None)
+        return
+    misses = _RETRY.get(context, (0.0, 0))[1] + 1
+    _RETRY[context] = (now + min(RETRY_MAX_SECONDS, RETRY_BASE_SECONDS * 2 ** (misses - 1)), misses)
+
+
 @observe_job("fantasy_context.batch", cadence_s=CADENCE_SECONDS)
-def refresh_week_contexts(*, current_only: bool = False, max_preparations: int | None = 2) -> dict:
+def refresh_week_contexts(*, current_only: bool = False, max_preparations: int | None = 2,
+                          history: bool | None = None) -> dict:
+    """``history=None`` sweeps every known week at most every ``HISTORY_SWEEP_SECONDS``."""
     results = {}
     preparations = 0
-    for season, week, injury in discover_contexts(current_only=current_only):
+    deferred = 0
+    sweep = history if history is not None else not current_only and time.monotonic() >= _HISTORY_DUE_AT[0]
+    for season, week, injury in discover_contexts(current_only=current_only, history=sweep):
         key = f"{season}:w{week}:inj{int(injury)}"
+        context = (season, week, injury)
+        # A week that cannot finish (sources changing, busy, error) waits with
+        # backoff so it neither rebuilds every pass nor starves the weeks after it.
+        if not _retry_due(context, time.monotonic()):
+            deferred += 1
+            continue
         try:
             results[key] = prepare_week_context(season, week, injury)
         except Exception:
             logger.exception("Fantasy week context preparation failed for %s", key)
             results[key] = {"status": "error"}
+        _record_outcome(context, results[key]["status"], time.monotonic())
         if results[key]["status"] != "current":
             preparations += 1
         # The application's one CPU worker also owns native scoring and refresh
@@ -268,9 +309,14 @@ def refresh_week_contexts(*, current_only: bool = False, max_preparations: int |
         # migrations or a source replacement affecting many historical weeks.
         if max_preparations is not None and preparations >= max_preparations:
             break
+    else:
+        # A sweep cut short by the batch limit continues on the next pass.
+        if sweep and history is None:
+            _HISTORY_DUE_AT[0] = time.monotonic() + HISTORY_SWEEP_SECONDS
     annotate_job(checked=len(results), current=sum(item.get("status") == "current" for item in results.values()),
                  prepared=sum(item.get("status") == "prepared" for item in results.values()),
-                 failed=sum(item.get("status") == "error" for item in results.values()))
+                 failed=sum(item.get("status") == "error" for item in results.values()),
+                 skipped=deferred)
     return results
 
 
