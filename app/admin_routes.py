@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.admin_ops_routes import actor_for
 from app.auth import admin_set_temp_password, is_native_sub, native_user_sub, require_admin
 from src.auth import user_store
 from src.draft_hub import storage
@@ -14,6 +15,7 @@ from src.draft_hub.hub_context import resolve_hub_context
 from src.draft_hub.league_invites import build_invite_url, create_invite
 from src.draft_hub.presets import load_preset
 from src.draft_hub.schemas import LeagueRules
+from src.ops.admin_store import record_activity
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -187,7 +189,7 @@ def admin_list_users(
 def admin_set_email_verified(
     user_id: str,
     body: AdminEmailVerifiedRequest,
-    _admin=Depends(require_admin),
+    admin=Depends(require_admin),
 ) -> dict:
     """Mark one account verified, or take verification away.
 
@@ -201,6 +203,8 @@ def admin_set_email_verified(
     updated = user_store.set_email_verified(user_id, body.verified)
     if not updated:
         raise HTTPException(status_code=404, detail="No account with that id")
+    record_activity(actor_for(admin), "account",
+                    f"{'Verified' if body.verified else 'Cleared verification for'} {updated.get('email')}")
     return {
         "user_id": user_id,
         "email": updated.get("email"),
@@ -213,13 +217,15 @@ def admin_set_email_verified(
 def admin_temp_password(
     user_id: str,
     body: AdminTempPasswordRequest,
-    _admin=Depends(require_admin),
+    admin=Depends(require_admin),
 ) -> dict:
     """Set a temporary password the account holder must replace at next sign-in.
 
     The password is never echoed back, logged, or stored anywhere but the hash.
     """
-    return admin_set_temp_password(user_id, body.password)
+    result = admin_set_temp_password(user_id, body.password)
+    record_activity(actor_for(admin), "account", f"Set a temporary password for {result.get('email') or user_id}")
+    return result
 
 
 @router.get("/leagues")
@@ -260,7 +266,7 @@ def admin_get_league(league_id: str, _admin=Depends(require_admin)) -> dict:
 
 
 @router.post("/leagues")
-def admin_create_league(body: AdminLeagueCreateRequest, _admin=Depends(require_admin)) -> dict:
+def admin_create_league(body: AdminLeagueCreateRequest, admin=Depends(require_admin)) -> dict:
     comm_sub = _resolve_commissioner_sub(body.commissioner_email, body.commissioner_sub)
     rules = load_preset(body.preset_id)
     if not body.test_mode:
@@ -283,6 +289,7 @@ def admin_create_league(body: AdminLeagueCreateRequest, _admin=Depends(require_a
         commissioner_team_name=body.commissioner_team_name,
         test_mode=body.test_mode,
     )
+    record_activity(actor_for(admin), "league", f"Created league {body.name.strip()} ({body.season})")
     return {"league": league, "hub_context": resolve_hub_context(comm_sub)}
 
 
@@ -290,7 +297,7 @@ def admin_create_league(body: AdminLeagueCreateRequest, _admin=Depends(require_a
 def admin_delete_league(
     league_id: str,
     confirm: str = Query(..., description="Must match league room code"),
-    _admin=Depends(require_admin),
+    admin=Depends(require_admin),
 ) -> dict:
     league = storage.get_league(league_id)
     if not league:
@@ -298,9 +305,11 @@ def admin_delete_league(
     if str(confirm).strip().upper() != str(league.get("room_code") or "").upper():
         raise HTTPException(status_code=400, detail="Confirmation must match league room code")
     try:
-        return storage.delete_league(league_id)
+        result = storage.delete_league(league_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    record_activity(actor_for(admin), "league", f"Deleted league {league.get('name')} ({league.get('room_code')})")
+    return result
 
 
 @router.post("/leagues/{league_id}/teams/{team_id}/link")
@@ -308,7 +317,7 @@ def admin_link_team(
     league_id: str,
     team_id: str,
     body: AdminLinkTeamRequest,
-    _admin=Depends(require_admin),
+    admin=Depends(require_admin),
 ) -> dict:
     user_sub = _resolve_account_sub(body.email, body.user_sub)
     if is_native_sub(user_sub) and not user_store.get_user_by_id(user_sub.removeprefix("ss:")):
@@ -321,6 +330,8 @@ def admin_link_team(
     if team.get("user_sub"):
         team["user_email"] = _email_for_sub(str(team["user_sub"]))
     result["team"] = team
+    record_activity(actor_for(admin), "league",
+                    f"Linked {team.get('user_email') or user_sub} to {team.get('team_name') or 'a seat'}")
     return result
 
 
@@ -329,7 +340,7 @@ def admin_unlink_team(
     league_id: str,
     team_id: str,
     force_commissioner: bool = Query(False),
-    _admin=Depends(require_admin),
+    admin=Depends(require_admin),
 ) -> dict:
     try:
         team = storage.admin_release_team_claim(
@@ -339,6 +350,7 @@ def admin_unlink_team(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    record_activity(actor_for(admin), "league", f"Unlinked {(team or {}).get('team_name') or 'a seat'}")
     return {"team": team}
 
 
@@ -346,7 +358,7 @@ def admin_unlink_team(
 def admin_transfer_commissioner(
     league_id: str,
     body: AdminTransferCommissionerRequest,
-    _admin=Depends(require_admin),
+    admin=Depends(require_admin),
 ) -> dict:
     new_sub = _resolve_commissioner_sub(body.commissioner_email, body.commissioner_sub)
     try:
@@ -356,6 +368,8 @@ def admin_transfer_commissioner(
     league = result.get("league") or {}
     league["commissioner_email"] = _email_for_sub(str(league.get("commissioner_sub") or ""))
     result["league"] = league
+    record_activity(actor_for(admin), "league",
+                    f"Made {league.get('commissioner_email') or new_sub} commissioner of {league.get('name') or league_id}")
     return result
 
 
@@ -373,4 +387,5 @@ def admin_create_league_invite(
         invite = create_invite(league_id, body.email.strip(), body.team_name.strip(), invited_by)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    record_activity(actor_for(admin), "league", f"Invited {body.email.strip()} to {league.get('name') or league_id}")
     return {"invite": invite}

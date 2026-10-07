@@ -64,7 +64,7 @@ export const SECTION_SUBTITLES = {
     "best-ball": "",
   },
   model: "Where the weekly model misses",
-  admin: "Link accounts to seats",
+  admin: "",
 };
 
 export function resolveSectionLabel(section, { projectionsTab, toolsTab } = {}) {

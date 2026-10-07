@@ -42,3 +42,6 @@ data/dfs/*.db*
 artifacts/dfs_predictions/
 artifacts/draft_pool/value_snapshots/
 artifacts/fantasy_week_context/
+
+# Written by deploy-on-server.sh for Admin > Server
+build_info.json

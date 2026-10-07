@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — B · Admin</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<link rel="stylesheet" href="admin-ops.css" />
+<style>
+  /* B: grouped side rail; each section is a table + selected-row detail. */
+  .b-shell { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: var(--space-5); align-items: start; padding-top: var(--space-5); border-top: 1px solid var(--border); }
+  .b-rail { position: sticky; top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+  .b-group { display: flex; flex-direction: column; gap: var(--space-1); }
+  .b-group-label { font-size: var(--text-xs); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; padding: 0 var(--space-3); margin-bottom: var(--space-1); }
+  .b-link {
+    display: flex; align-items: center; gap: var(--space-2);
+    min-height: var(--control-h-sm); padding: 0 var(--space-3);
+    border-radius: var(--radius-sm); font-size: var(--text-sm); color: var(--text-secondary);
+  }
+  .b-link.active { background: var(--accent-soft); color: var(--text-primary); font-weight: 650; }
+  .b-link .count { margin-left: auto; font-size: var(--text-xs); }
+  .b-main { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: var(--space-5); align-items: start; }
+  @media (max-width: 1100px) { .b-main { grid-template-columns: 1fr; } }
+  .b-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+  .b-detail .card { display: flex; flex-direction: column; gap: var(--space-3); }
+  .b-detail .card h3 { margin: 0; }
+  .b-actions { display: flex; align-items: center; gap: var(--space-2); }
+  .skip { position: absolute; left: var(--space-3); top: var(--space-3); transform: translateY(-8rem); }
+  .skip:focus { transform: none; }
+  .skip { position: absolute; left: var(--space-3); top: var(--space-3); transform: translateY(-8rem); }
+  .skip:focus { transform: none; }
+</style>
+</head>
+<body>
+<a class="skip btn btn-ghost btn-sm" href="#main-content">Skip to content</a>
+<div class="concept-banner">
+  <div><strong>Admin</strong> <span>· option B · ops console · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a href="admin-ops.html">Chooser</a>
+    <a href="admin-ops-a.html">A</a>
+    <a class="is-on" href="admin-ops-b.html">B</a>
+    <a href="admin-ops-c.html">C</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <header class="mock-header">
+    <div class="mock-brand">
+      <div>
+        <div class="mock-brand-name">ScoreSense</div>
+        <span class="mock-brand-sub">4th Down Labs</span>
+      </div>
+      <nav class="mock-topnav">
+        <span>Projections</span>
+        <span>Fantasy</span>
+        <span>Tools</span>
+      </nav>
+    </div>
+    <span class="mock-account"><span class="dot">CP</span> Admin</span>
+  </header>
+  <main id="main-content">
+
+  <div class="page-title" style="margin-top:var(--space-4);">
+    <div class="grow">
+      <h1>Jobs</h1>
+      <p>Times are Pacific. A job already running is never started twice.</p>
+    </div>
+    <span class="mock-pill mock-pill--bad">1 failed</span>
+  </div>
+
+  <div class="b-shell">
+    <nav class="b-rail" aria-label="Admin sections">
+      <div class="b-group">
+        <span class="b-group-label">Monitor</span>
+        <span class="b-link">Overview</span>
+        <span class="b-link">Server</span>
+        <span class="b-link">Activity</span>
+      </div>
+      <div class="b-group">
+        <span class="b-group-label">Operate</span>
+        <span class="b-link active">Jobs <span class="count tone-bad">1</span></span>
+        <span class="b-link">Settings</span>
+      </div>
+      <div class="b-group">
+        <span class="b-group-label">People</span>
+        <span class="b-link">Sessions <span class="count muted">7</span></span>
+        <span class="b-link">Users</span>
+        <span class="b-link">Leagues</span>
+      </div>
+    </nav>
+
+    <div class="b-main">
+      <section class="card">
+        <table class="ops-table">
+          <thead>
+            <tr><th>Job</th><th>Schedule</th><th>Last run</th><th class="act actions">Run</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Weekly refresh</span><span class="sub">Stats, projections, caches</span></td>
+              <td>Tue 3:00 AM</td>
+              <td><span class="status"><span class="dot ok"></span>Today 3:00 AM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr class="is-selected">
+              <td><span class="name">Sentiment refresh</span><span class="sub">YouTube and beat transcripts</span></td>
+              <td>Daily 5:00 AM</td>
+              <td><span class="status"><span class="dot bad"></span>Failed 5:02 AM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Injury poll</span><span class="sub">Sleeper injuries</span></td>
+              <td>15 min game days</td>
+              <td><span class="status"><span class="dot ok"></span>9:30 PM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Accuracy rebuild</span><span class="sub">Model accuracy and upside</span></td>
+              <td>Wed 4:00 AM</td>
+              <td><span class="status"><span class="dot ok"></span>Sep 30</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Beat digest prewarm</span><span class="sub">Team digests</span></td>
+              <td>Daily 6:00 AM</td>
+              <td><span class="status"><span class="dot ok"></span>Today 6:00 AM</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+            <tr>
+              <td><span class="name">Preseason refresh</span><span class="sub">Draft pool rebuild</span></td>
+              <td class="muted">Manual only</td>
+              <td><span class="status"><span class="dot"></span>Sep 13</span></td>
+              <td class="act actions"><span class="btn btn-ghost btn-sm">Run now</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <aside class="b-detail">
+        <section class="card">
+          <h3>Sentiment refresh</h3>
+          <p class="note">Failed at 5:02 AM. Readouts still show Monday's data until a run succeeds.</p>
+          <pre class="log">05:00:01 start sentiment_refresh
+05:01:48 fetched 212 transcripts
+05:02:11 ERROR youtube quotaExceeded
+05:02:11 stopped · nothing written</pre>
+          <div class="b-actions"><span class="btn btn-primary btn-sm">Retry now</span></div>
+        </section>
+        <section class="card">
+          <h3>Schedule</h3>
+          <div class="field-row">
+            <label class="field">Repeat <span class="control">Daily</span></label>
+            <label class="field">At <span class="control">5:00 AM</span></label>
+            <label class="field">Enabled <span class="control">On</span></label>
+          </div>
+          <div class="b-actions"><span class="btn btn-ghost btn-sm">Save schedule</span></div>
+        </section>
+        <section class="card">
+          <h3>Last 5 runs</h3>
+          <ul class="list">
+            <li><span class="dot bad"></span><span class="grow">Oct 6 · quota exceeded</span><span class="when">2m 10s</span></li>
+            <li><span class="dot ok"></span><span class="grow">Oct 5</span><span class="when">3m 02s</span></li>
+            <li><span class="dot ok"></span><span class="grow">Oct 4</span><span class="when">2m 58s</span></li>
+            <li><span class="dot ok"></span><span class="grow">Oct 3</span><span class="when">3m 11s</span></li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <p class="footnote">Static mock · tokens only · not product code</p>
+  </main>
+  </main>
+</div>
+</body>
+</html>

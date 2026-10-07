@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Admin · choose a layout</title>
+<link rel="stylesheet" href="mockup-shared.css" />
+<style>
+  .skip {
+    position: absolute; left: var(--space-3); top: var(--space-3);
+    transform: translateY(-8rem);
+  }
+  .skip:focus { transform: none; }
+  .concepts { display: flex; flex-direction: column; gap: var(--space-4); }
+  .concept {
+    display: grid; grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr) auto;
+    gap: var(--space-4); align-items: center;
+    text-decoration: none; color: inherit;
+    padding: var(--space-4) var(--space-5);
+  }
+  .concept:hover { border-color: var(--border-strong); }
+  .letter {
+    width: 100%; aspect-ratio: 16 / 10; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em;
+    background: var(--bg-subtle); color: var(--text-secondary);
+  }
+  .concept h3 { margin: 0 0 var(--space-1); font-size: 1.08rem; }
+  .concept p { margin: 0; color: var(--text-secondary); font-size: 0.84rem; }
+  .pick { color: var(--accent-muted); font-size: 0.8rem; font-weight: 650; white-space: nowrap; }
+  @media (max-width: 760px) { .concept { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<a class="skip btn btn-ghost btn-sm" href="#main-content">Skip to content</a>
+<div class="concept-banner">
+  <div><strong>Admin</strong> <span>· ops dashboard · not shipped</span></div>
+  <nav class="concept-nav">
+    <a href="index.html">All mocks</a>
+    <a class="is-on" href="admin-ops.html">Chooser</a>
+    <a href="admin-ops-a.html">A · Health deck</a>
+    <a href="admin-ops-b.html">B · Ops console</a>
+    <a href="admin-ops-c.html">C · One ops board</a>
+  </nav>
+</div>
+
+<div class="mock-viewport">
+  <main id="main-content">
+    <section class="mock-hero">
+      <p class="mock-kicker">Account · Admin</p>
+      <h1>Run the site without opening a terminal.</h1>
+      <p class="support">Server stats, jobs and schedules, active accounts, settings, and an activity log. Pick a letter.</p>
+    </section>
+
+    <div class="concepts">
+      <a class="card concept" href="admin-ops-a.html">
+        <div class="letter">A</div>
+        <div>
+          <h3>Health deck</h3>
+          <p>Keep the tab row and add Server, Jobs, Sessions, Settings, and Activity. Overview opens on what needs you, with one-click fixes.</p>
+        </div>
+        <span class="pick">Open A →</span>
+      </a>
+      <a class="card concept" href="admin-ops-b.html">
+        <div class="letter">B</div>
+        <div>
+          <h3>Ops console</h3>
+          <p>A grouped side rail: Monitor, Operate, People. Every section is a table plus a detail panel for the selected row, with logs, schedule, and run history.</p>
+        </div>
+        <span class="pick">Open B →</span>
+      </a>
+      <a class="card concept" href="admin-ops-c.html">
+        <div class="letter">C</div>
+        <div>
+          <h3>One ops board</h3>
+          <p>One scrolling page: a status strip, a calendar of this week's job runs, server meters, and who is active. Users and Leagues stay as tabs.</p>
+        </div>
+        <span class="pick">Open C →</span>
+      </a>
+    </div>
+
+    <p class="footnote">Static mock · reply A / B / C · living surface stays account.admin</p>
+  </main>
+</div>
+</body>
+</html>

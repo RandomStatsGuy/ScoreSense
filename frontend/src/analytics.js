@@ -224,9 +224,16 @@ export function pageTitleForPath(pathname) {
     return "Tools · DFS";
   }
   if (parsed.view === "admin") {
-    if (parsed.adminTab === "users") return "Admin · Users";
-    if (parsed.adminTab === "leagues") return "Admin · Leagues";
-    return "Admin · Overview";
+    const adminTitles = {
+      server: "Server",
+      jobs: "Jobs",
+      sessions: "Sessions",
+      settings: "Settings",
+      activity: "Activity",
+      users: "Users",
+      leagues: "Leagues",
+    };
+    return `Admin · ${adminTitles[parsed.adminTab] || "Overview"}`;
   }
 
   return "ScoreSense";

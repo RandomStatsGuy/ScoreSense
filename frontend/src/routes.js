@@ -90,7 +90,16 @@ export const SEASON_MODES = new Set(["preseason", "live"]);
 
 export const TOOLS_TABS = new Set(["dfs", "mock-draft", "best-ball"]);
 
-export const ADMIN_TABS = new Set(["overview", "users", "leagues"]);
+export const ADMIN_TABS = new Set([
+  "overview",
+  "server",
+  "jobs",
+  "sessions",
+  "settings",
+  "activity",
+  "users",
+  "leagues",
+]);
 
 export function parseAppPath(pathname) {
   const parts = pathname.split("/").filter(Boolean);

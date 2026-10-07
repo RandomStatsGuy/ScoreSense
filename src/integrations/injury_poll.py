@@ -94,11 +94,14 @@ def resolve_injury_poll_phase(
 
 
 def cadence_seconds_for_phase(phase: str) -> int:
+    from src.ops.admin_store import stored_override
     if phase == PHASE_REPORTING:
-        return int(INJURY_POLL_REPORTING_SECONDS)
-    if phase == PHASE_INSEASON:
-        return int(INJURY_POLL_INSEASON_SECONDS)
-    return int(INJURY_POLL_OFFSEASON_SECONDS)
+        minutes, default = stored_override("injury_poll_reporting_minutes"), INJURY_POLL_REPORTING_SECONDS
+    elif phase == PHASE_INSEASON:
+        minutes, default = stored_override("injury_poll_inseason_minutes"), INJURY_POLL_INSEASON_SECONDS
+    else:
+        minutes, default = stored_override("injury_poll_offseason_minutes"), INJURY_POLL_OFFSEASON_SECONDS
+    return int(minutes) * 60 if minutes else int(default)
 
 
 def _default_status() -> dict[str, Any]:

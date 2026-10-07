@@ -8,27 +8,25 @@ import MobilePlayerCard from "./MobilePlayerCard";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
   ADMIN_COPY,
+  ADMIN_OPS_COPY,
+  ADMIN_TAB_ITEMS,
+  adminClock,
   adminLinkAccountRef,
   adminLinkSuccess,
   adminTempPasswordSuccess,
   adminVerifySuccess,
   openAdminFranchises,
 } from "./adminPresentation";
+import {
+  AdminActivityPane,
+  AdminJobsPane,
+  AdminOverviewPane,
+  AdminServerPane,
+  AdminSessionsPane,
+  AdminSettingsPane,
+} from "./AdminOps";
 
-const TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "users", label: "Users" },
-  { id: "leagues", label: "Leagues" },
-];
-
-function StatCard({ label, value }) {
-  return (
-    <div className="admin-stat-card">
-      <span className="admin-stat-value">{value}</span>
-      <span className="admin-stat-label">{label}</span>
-    </div>
-  );
-}
+const LEGACY_TABS = new Set(["users", "leagues"]);
 
 function isTestAccountEmail(email) {
   const e = String(email || "").trim().toLowerCase();
@@ -203,7 +201,19 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
   const [showTestMemberships, setShowTestMemberships] = useState(false);
   const [showTestAccounts, setShowTestAccounts] = useState(false);
   const [showSystemSubs, setShowSystemSubs] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [updatedAt, setUpdatedAt] = useState(() => new Date());
   const mobileLayout = useMobileLayout();
+
+  const notify = useCallback((text, isError = false) => {
+    setActionMsg(isError ? "" : text);
+    setActionErr(isError ? text : "");
+  }, []);
+
+  useEffect(() => {
+    setActionMsg("");
+    setActionErr("");
+  }, [tab]);
 
   const loadUsers = useCallback(async () => {
     const params = new URLSearchParams({ limit: "2000" });
@@ -238,8 +248,14 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
       setError(err.message || "Failed to load admin data");
     } finally {
       setLoading(false);
+      setUpdatedAt(new Date());
     }
   }, [loadOverview, loadUsers, loadLeagues]);
+
+  const refreshTab = () => {
+    setRefreshKey((key) => key + 1);
+    refreshAll();
+  };
 
   useEffect(() => {
     refreshAll();
@@ -382,10 +398,10 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
     <tr key={row.user_sub}>
       <td>
         <div>{row.email || row.display_name || "—"}</div>
-        <code className="admin-code">{row.user_sub}</code>
+        <code className="admin-code" title={row.user_sub}>{row.user_sub}</code>
       </td>
-      <td>{row.auth_type}</td>
-      <td>
+      <td className="admin-col-tight">{row.auth_type}</td>
+      <td className="admin-workspace-cell">
         {row.workspace_id ? (
           <span className="admin-muted">
             {row.workspace_id.slice(0, 8)}… · {row.workspace_season}
@@ -394,7 +410,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
           "—"
         )}
       </td>
-      <td>
+      <td className="admin-memberships-cell">
         <MembershipList
           memberships={row.memberships}
           testHidden={
@@ -584,60 +600,61 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
     }
   };
 
-  if (loading && !overview) {
-    return <div className="admin-portal admin-portal-loading">Loading admin data…</div>;
-  }
-
-  if (error && !overview) {
-    return (
-      <div className="admin-portal">
-        <div className="error">{error}</div>
-        <button type="button" className="btn-primary" onClick={refreshAll}>
-          Retry
-        </button>
-      </div>
-    );
-  }
+  const legacyTab = LEGACY_TABS.has(tab);
+  const legacyBody = (() => {
+    if (!legacyTab) return null;
+    if (loading && !overview) return <div className="admin-portal-loading">Loading admin data…</div>;
+    if (error && !overview) {
+      return (
+        <div className="admin-pane">
+          <div role="alert" className="error admin-notice">{error}</div>
+          <button type="button" className="btn-primary btn-sm" onClick={refreshAll}>
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return undefined;
+  })();
+  const paneProps = { refreshKey, notify, onTab: (id) => onAdminTabChange?.(id) };
 
   return (
     <div className="admin-portal">
       <div className="admin-portal-head">
-        <nav className="app-section-subnav" aria-label="Admin sections">
-          {TABS.map((item) => (
+        <nav className="app-section-subnav app-section-subnav--scroll admin-subnav" aria-label="Admin sections">
+          {ADMIN_TAB_ITEMS.map((item) => (
             <button
               key={item.id}
               type="button"
               className={`app-section-subnav-btn${tab === item.id ? " active" : ""}`}
+              aria-current={tab === item.id ? "page" : undefined}
               onClick={() => onAdminTabChange?.(item.id)}
             >
               {item.label}
             </button>
           ))}
         </nav>
-        <button type="button" className="btn-ghost btn-sm" onClick={refreshAll} disabled={loading}>
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
+        <div className="admin-portal-refresh">
+          <span className="admin-muted">{ADMIN_OPS_COPY.updated(adminClock(updatedAt))}</span>
+          <button type="button" className="btn-ghost btn-sm" onClick={refreshTab} disabled={loading}>
+            {loading ? ADMIN_OPS_COPY.refreshing : ADMIN_OPS_COPY.refresh}
+          </button>
+        </div>
       </div>
 
       {actionMsg && <div role="status" className="admin-notice admin-notice-success">{actionMsg}</div>}
       {actionErr && <div role="alert" className="error admin-notice">{actionErr}</div>}
 
-      {tab === "overview" && overview && (
-        <section className="admin-panel panel">
-          <div className="admin-stat-grid">
-            <StatCard label="Registered accounts" value={overview.native_user_count} />
-            <StatCard label="Live leagues" value={overview.live_league_count ?? "—"} />
-            <StatCard label="Test leagues" value={overview.test_league_count} />
-            <StatCard label="Mock-draft bots" value={overview.bot_sub_count ?? "—"} />
-          </div>
-          <p className="admin-muted admin-panel-note">
-            Mock drafts create temporary <code>bot:*</code> identities for AI bidders — not real user
-            accounts. Each practice league also adds a commissioner membership row for your account.
-          </p>
-        </section>
-      )}
+      {tab === "overview" && <AdminOverviewPane {...paneProps} legacy={overview} />}
+      {tab === "server" && <AdminServerPane {...paneProps} />}
+      {tab === "jobs" && <AdminJobsPane {...paneProps} />}
+      {tab === "sessions" && <AdminSessionsPane {...paneProps} />}
+      {tab === "settings" && <AdminSettingsPane {...paneProps} />}
+      {tab === "activity" && <AdminActivityPane {...paneProps} />}
 
-      {tab === "users" && (
+      {legacyBody}
+
+      {tab === "users" && legacyBody === undefined && (
         <section className="admin-panel panel">
           <div className="admin-filter-bar">
             <label className="admin-checkbox">
@@ -670,9 +687,9 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
               <thead>
                 <tr>
                   <th>Email / sub</th>
-                  <th>Auth</th>
+                  <th className="admin-col-tight">Auth</th>
                   <th>Workspace</th>
-                  <th>League memberships</th>
+                  <th className="admin-memberships-cell">League memberships</th>
                   <th>{ADMIN_COPY.verification.column}</th>
                   <th>{ADMIN_COPY.tempPassword.column}</th>
                 </tr>
@@ -725,9 +742,9 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                   <thead>
                     <tr>
                       <th>Sub</th>
-                      <th>Auth</th>
+                      <th className="admin-col-tight">Auth</th>
                       <th>Workspace</th>
-                      <th>League memberships</th>
+                      <th className="admin-memberships-cell">League memberships</th>
                       <th>{ADMIN_COPY.verification.column}</th>
                       <th>{ADMIN_COPY.tempPassword.column}</th>
                     </tr>
@@ -740,18 +757,8 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
         </section>
       )}
 
-      {tab === "leagues" && (
+      {tab === "leagues" && legacyBody === undefined && (
         <>
-          <div className="admin-filter-bar">
-            <label className="admin-checkbox">
-              <input
-                type="checkbox"
-                checked={showTestLeagues}
-                onChange={(e) => setShowTestLeagues(e.target.checked)}
-              />
-              Show test / mock-draft leagues
-            </label>
-          </div>
           <section className="admin-panel panel admin-assignment">
             <h3 className="admin-section-title">{ADMIN_COPY.linkExisting.assignmentTitle}</h3>
             <p className="admin-muted">{ADMIN_COPY.linkExisting.hint}</p>
@@ -839,18 +846,27 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
           </section>
 
           <section className="admin-panel panel">
-            <h3 className="admin-section-title">All leagues ({leaguesPayload?.count ?? 0})</h3>
+            <div className="admin-card-head">
+              <h3 className="admin-section-title">All leagues ({leaguesPayload?.count ?? 0})</h3>
+              <label className="admin-checkbox">
+                <input
+                  type="checkbox"
+                  checked={showTestLeagues}
+                  onChange={(e) => setShowTestLeagues(e.target.checked)}
+                />
+                Show test / mock-draft leagues
+              </label>
+            </div>
             <div className={`admin-table-wrap${mobileLayout ? " admin-table-wrap--desktop-only" : ""}`}>
-              <table className="data-table hub-table admin-table">
+              <table className="data-table hub-table admin-table admin-leagues-table">
                 <thead>
                   <tr>
-                    <th aria-label="Expand" />
                     <th>Name</th>
-                    <th>Room</th>
-                    <th>Season</th>
-                    <th>Members</th>
-                    <th>Commissioner</th>
-                    <th>Delete</th>
+                    <th className="admin-col-tight">Room</th>
+                    <th className="num admin-col-tight">Season</th>
+                    <th className="num admin-col-tight">Members</th>
+                    <th className="admin-col-tight">Commissioner</th>
+                    <th className="actions">Delete</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -858,28 +874,29 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                     <React.Fragment key={lg.id}>
                       <tr className={expandedLeagueId === lg.id ? "admin-row-expanded" : ""}>
                         <td>
-                          <button
-                            type="button"
-                            className="btn-ghost btn-sm"
-                            aria-expanded={expandedLeagueId === lg.id}
-                            onClick={() => toggleLeague(lg.id)}
-                          >
-                            {expandedLeagueId === lg.id ? "▼" : "▶"}
-                          </button>
+                          <span className="admin-league-name">
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm"
+                              aria-expanded={expandedLeagueId === lg.id}
+                              aria-label={`${expandedLeagueId === lg.id ? "Hide" : "Show"} ${lg.name} details`}
+                              onClick={() => toggleLeague(lg.id)}
+                            >
+                              {expandedLeagueId === lg.id ? "▼" : "▶"}
+                            </button>
+                            {lg.name}
+                            {lg.test_mode ? <span className="admin-badge">test</span> : null}
+                          </span>
                         </td>
-                        <td>
-                          {lg.name}
-                          {lg.test_mode ? <span className="admin-badge">test</span> : null}
-                        </td>
-                        <td>
+                        <td className="admin-col-tight">
                           <code>{lg.room_code}</code>
                         </td>
-                        <td>{lg.season}</td>
-                        <td>
+                        <td className="num admin-col-tight">{lg.season}</td>
+                        <td className="num admin-col-tight">
                           {lg.member_count}/{lg.team_rows}
                         </td>
-                        <td>{lg.commissioner_email || lg.commissioner_sub}</td>
-                        <td>
+                        <td className="admin-col-tight">{lg.commissioner_email || lg.commissioner_sub}</td>
+                        <td className="actions">
                           <div className="admin-delete-row">
                             <input
                               type="text"
@@ -902,7 +919,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
                       </tr>
                       {expandedLeagueId === lg.id && (
                         <tr>
-                          <td colSpan={7} className="admin-detail-cell">
+                          <td colSpan={6} className="admin-detail-cell">
                             {detailLoading && <p>Loading teams…</p>}
                             {!detailLoading && leagueDetail && (
                               <>
