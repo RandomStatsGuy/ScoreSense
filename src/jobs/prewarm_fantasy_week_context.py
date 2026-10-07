@@ -13,7 +13,7 @@ def main():
     if (args.season is None) != (args.week is None):
         parser.error("Specify both --season and --week, or neither for all existing contexts.")
     result = (prewarm_week_context(args.season, args.week) if args.season is not None
-              else refresh_week_contexts(max_preparations=None))
+              else refresh_week_contexts(max_preparations=None, history=True))
     print(json.dumps(result, indent=2))
 
 
