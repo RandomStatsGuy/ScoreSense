@@ -39,6 +39,7 @@ from src.draft_hub.draft_state import (
     set_pool_mode,
     pause_draft,
     resume_draft,
+    resume_idle_practice_room,
     set_draft_schedule,
     set_nomination_queue,
     skip_nomination,
@@ -5166,6 +5167,7 @@ def hub_accept_invite(body: LeagueInviteAcceptRequest, user=Depends(require_hub_
 def hub_get_league(league_id: str, _user=Depends(require_hub_user)) -> dict:
     sub = _sub(_user)
     _assert_league_access(league_id, sub)
+    draft_room_manager.touch(league_id)
     try:
         state = check_timers(league_id, sub)
     except ValueError as exc:
@@ -5548,6 +5550,7 @@ async def hub_ws(
         league_id, websocket, staff=user_is_draft_staff(league_id, sub)
     )
     try:
+        await asyncio.to_thread(resume_idle_practice_room, league_id)
         state = await asyncio.to_thread(get_room_state, league_id, sub)
         await websocket.send_json({"type": "state", "payload": state})
         while True:
@@ -5563,8 +5566,14 @@ async def hub_ws(
         await draft_room_manager.disconnect(league_id, websocket)
 
 
-@observe_async_job("draft_broadcast")
 async def broadcast_room(league_id: str) -> None:
+    if not draft_room_manager.has_listeners(league_id):
+        return
+    await _broadcast_room_state(league_id)
+
+
+@observe_async_job("draft_broadcast")
+async def _broadcast_room_state(league_id: str) -> None:
     # The command/ticker already advanced the clock. Broadcast its committed
     # state without advancing it a second time on the event loop.
     state = await submit_thread_job(get_room_state, league_id)
