@@ -64,3 +64,23 @@ remain the behavioral checks.
 Deploy this item and repeat browser timings and loopback health probes before
 moving to the next optimization. The candidate has not yet demonstrated
 subsecond full-page loads in production.
+
+## Idle practice rooms — October 7, 2026
+
+The admin job export still showed the clock every 1.6 s at about 0.6 s of
+thread CPU per tick (roughly 9 CPU-hours a day). Production had the same nine
+abandoned `My Auction (test)` practice sessions, all nominating and unpaused.
+Nobody had them open, so the clock auto-nominated and bots kept drafting.
+
+- Practice (test-mode) rooms with no WebSocket viewer and no room read for
+  five minutes pause with a `pause` event by `idle`. Opening the room (WebSocket
+  connect or `GET /league/{id}`) resumes it and shifts deadlines by the paused
+  time. Manual pauses are never auto-resumed. Real leagues never idle-pause.
+- Presence is process-local in `DraftRoomManager`; production runs one API
+  worker. For a full grace period after startup presence is unknown and nothing
+  pauses.
+- The ticker skips paused sessions and ticks every 5 s instead of every second
+  when no unpaused draft is running (scheduled starts are at most 5 s late).
+- `broadcast_room` builds no room state when the room has no listeners.
+- Unchanged clock ticks count in hourly diagnostic buckets without a retained
+  run row, so they no longer push other jobs out of the 2,000-run history.
