@@ -166,6 +166,8 @@ function MembershipList({ memberships, testHidden = 0 }) {
   );
 }
 
+const LEGACY_DATA_TABS = new Set(["overview", "users", "leagues"]);
+
 export default function AdminPortal({ adminTab = "overview", onAdminTabChange }) {
   const tab = adminTab;
   const [loading, setLoading] = useState(true);
@@ -252,14 +254,17 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
     }
   }, [loadOverview, loadUsers, loadLeagues]);
 
+  const needsLegacy = LEGACY_DATA_TABS.has(tab);
+
   const refreshTab = () => {
     setRefreshKey((key) => key + 1);
-    refreshAll();
+    if (needsLegacy) refreshAll();
+    else setUpdatedAt(new Date());
   };
 
   useEffect(() => {
-    refreshAll();
-  }, [refreshAll, showTestLeagues, showTestAccounts, showSystemSubs]);
+    if (needsLegacy) refreshAll();
+  }, [needsLegacy, refreshAll, showTestLeagues, showTestAccounts, showSystemSubs]);
 
   const { accounts: accountRows, systemSubs: systemRows } = useMemo(
     () => normalizeUsersPayload(usersPayload, { showTestAccounts, showTestMemberships }),
@@ -636,8 +641,8 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
         </nav>
         <div className="admin-portal-refresh">
           <span className="admin-muted">{ADMIN_OPS_COPY.updated(adminClock(updatedAt))}</span>
-          <button type="button" className="btn-ghost btn-sm" onClick={refreshTab} disabled={loading}>
-            {loading ? ADMIN_OPS_COPY.refreshing : ADMIN_OPS_COPY.refresh}
+          <button type="button" className="btn-ghost btn-sm" onClick={refreshTab} disabled={loading && needsLegacy}>
+            {loading && needsLegacy ? ADMIN_OPS_COPY.refreshing : ADMIN_OPS_COPY.refresh}
           </button>
         </div>
       </div>
