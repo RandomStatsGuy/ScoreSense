@@ -131,10 +131,113 @@ def test_broadcast_reads_committed_state_without_another_tick(monkeypatch):
         sent.append((league_id, payload))
     monkeypatch.setattr(hub_routes, "get_room_state", read)
     monkeypatch.setattr(hub_routes, "check_timers", lambda *args: pytest.fail("Broadcast advanced clock twice"))
+    monkeypatch.setattr(hub_routes.draft_room_manager, "has_listeners", lambda league_id: True)
     monkeypatch.setattr(hub_routes.draft_room_manager, "broadcast", send)
     asyncio.run(hub_routes.broadcast_room("changed-league"))
     assert reads == ["changed-league"]
     assert sent == [("changed-league", {"type": "state", "payload": {"session": {"status": "bidding"}}})]
+
+
+def test_broadcast_without_listeners_builds_no_state(monkeypatch):
+    from app import hub_routes
+    from src.draft_hub.ws_manager import DraftRoomManager
+    monkeypatch.setattr(hub_routes, "draft_room_manager", DraftRoomManager())
+    monkeypatch.setattr(hub_routes, "get_room_state", lambda *args: pytest.fail("Built state for an empty room"))
+    asyncio.run(hub_routes.broadcast_room("empty-room"))
+
+
+def _practice_room(sub):
+    league = _league(sub, test_mode=True, team_count=2)
+    test_draft.setup_test_draft(league["id"], sub, bot_count=1)
+    draft_state.start_draft(league["id"], sub)
+    return league
+
+
+def test_unwatched_practice_room_pauses_and_resumes_where_it_left_off(hub_db):
+    league = _practice_room("clock-idle-practice")
+    deadline = storage.get_draft_session(league["id"])["nomination_deadline"]
+    assert draft_state.tick_expired_drafts(watched=set()) == [league["id"]]
+    session = storage.get_draft_session(league["id"])
+    assert session["paused"] and session["nomination_deadline"] == deadline
+    assert storage.list_in_progress_draft_league_ids() == []
+    # A later unwatched tick has nothing to advance.
+    assert draft_state.tick_expired_drafts(watched=set()) == []
+
+    paused_at = datetime.now(timezone.utc) - timedelta(minutes=10)
+    storage.update_draft_session(league["id"], paused_at=paused_at.isoformat())
+    assert draft_state.resume_idle_practice_room(league["id"]) is True
+    session = storage.get_draft_session(league["id"])
+    assert not session["paused"]
+    shifted = draft_state._parse_utc(session["nomination_deadline"]) - draft_state._parse_utc(deadline)
+    assert timedelta(minutes=9) < shifted < timedelta(minutes=11)
+
+
+def test_watched_or_unknown_presence_keeps_practice_room_running(hub_db, monkeypatch):
+    monkeypatch.setattr(test_draft, "_pick_nomination_payload", lambda *args: None)
+    league = _practice_room("clock-watched-practice")
+    storage.update_draft_session(league["id"], nomination_deadline=None)
+    draft_state.tick_expired_drafts(watched={league["id"]})
+    draft_state.tick_expired_drafts(watched=None)
+    assert not storage.get_draft_session(league["id"])["paused"]
+
+
+def test_real_league_never_idle_pauses(hub_db):
+    league = _league("clock-real")
+    draft_state.start_draft(league["id"], "clock-real")
+    storage.update_draft_session(league["id"], nomination_deadline=None)
+    assert draft_state.tick_expired_drafts(watched=set()) == []
+    assert not storage.get_draft_session(league["id"])["paused"]
+
+
+def test_manual_pause_is_not_auto_resumed(hub_db):
+    league = _practice_room("clock-manual-pause")
+    draft_state.pause_draft(league["id"], "clock-manual-pause")
+    assert draft_state.resume_idle_practice_room(league["id"]) is False
+    draft_state.check_timers(league["id"], "clock-manual-pause")
+    assert storage.get_draft_session(league["id"])["paused"]
+
+
+def test_opening_room_resumes_idle_pause(hub_db, monkeypatch):
+    monkeypatch.setattr(test_draft, "_pick_nomination_payload", lambda *args: None)
+    league = _practice_room("clock-return")
+    draft_state.tick_expired_drafts(watched=set())
+    state = draft_state.check_timers(league["id"], "clock-return")
+    assert not storage.get_draft_session(league["id"])["paused"]
+    assert not state["session"].get("paused")
+
+
+def test_presence_is_unknown_until_startup_grace_passes(monkeypatch):
+    from src.draft_hub import ws_manager
+    clock = [1000.0]
+    monkeypatch.setattr(ws_manager.time, "monotonic", lambda: clock[0])
+    manager = ws_manager.DraftRoomManager()
+    assert manager.watched_league_ids(300) is None
+    manager.touch("recent")
+    clock[0] += 301
+    assert manager.watched_league_ids(300) == set()
+    manager.touch("recent")
+    clock[0] += 10
+    assert manager.watched_league_ids(300) == {"recent"}
+
+
+def test_idle_clock_slows_down(monkeypatch):
+    from app import draft_ticker
+    from src.draft_hub.ws_manager import draft_room_manager
+    monkeypatch.setattr(draft_ticker, "_ticker_disabled", lambda: False)
+    monkeypatch.setattr(draft_ticker, "_TICK_SEC", 0)
+    monkeypatch.setattr(draft_ticker, "_IDLE_TICK_SEC", 0.25)
+    monkeypatch.setattr(storage, "list_in_progress_draft_league_ids", lambda: [])
+    ticks = []
+    monkeypatch.setattr(draft_state, "tick_expired_drafts", lambda watched=None: ticks.append(watched) or [])
+    monkeypatch.setattr(draft_room_manager, "watched_league_ids", lambda grace: None)
+    async def scenario():
+        ticker = asyncio.create_task(draft_ticker.draft_ticker_loop())
+        await asyncio.sleep(0.1)
+        ticker.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await ticker
+    asyncio.run(scenario())
+    assert ticks == [None]
 
 
 def test_slow_clock_does_not_block_event_loop(monkeypatch):
@@ -146,7 +249,7 @@ def test_slow_clock_does_not_block_event_loop(monkeypatch):
     broadcasts = []
     processed = threading.Event()
     broadcasted = asyncio.Event()
-    def slow_tick():
+    def slow_tick(watched=None):
         started.set()
         assert release.wait(3), "Event loop could not release the clock worker"
         # A real clock reports a state transition once; later ticks are idle.

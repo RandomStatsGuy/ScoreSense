@@ -9,7 +9,7 @@ import contextvars
 import json
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterator
+from typing import Any, Collection, Iterator
 
 from src.draft_hub.rules_engine import (
     assert_can_acquire,
@@ -648,6 +648,11 @@ def resume_draft(league_id: str, user_sub: str) -> dict[str, Any]:
     session = storage.get_draft_session(league_id)
     if not session or not session.get("paused"):
         return get_room_state(league_id, user_sub)
+    _resume_session(league_id, session, user_sub)
+    return get_room_state(league_id, user_sub)
+
+
+def _resume_session(league_id: str, session: dict[str, Any], by: str) -> None:
     paused_at = session.get("paused_at")
     shift = timedelta(0)
     if paused_at:
@@ -660,8 +665,36 @@ def resume_draft(league_id: str, user_sub: str) -> dict[str, Any]:
         if raw:
             updates[key] = (_parse_utc(raw) + shift).isoformat()
     storage.update_draft_session(league_id, **updates)
-    storage.append_draft_event(league_id, "resume", {"by": user_sub})
-    return get_room_state(league_id, user_sub)
+    storage.append_draft_event(league_id, "resume", {"by": by})
+
+
+IDLE_PAUSE_BY = "idle"
+
+
+def pause_idle_practice_room(league_id: str) -> bool:
+    """Hold an unwatched practice room so bots stop drafting for nobody."""
+    session = storage.get_draft_session(league_id)
+    if not session or session.get("paused") or session.get("status") not in ("nominating", "bidding", "picking"):
+        return False
+    storage.update_draft_session(league_id, paused=1, paused_at=_now_iso())
+    storage.append_draft_event(league_id, "pause", {"by": IDLE_PAUSE_BY})
+    return True
+
+
+def resume_idle_practice_room(league_id: str) -> bool:
+    """Pick up where the room left off once someone returns. Manual pauses stay paused."""
+    session = storage.get_draft_session(league_id)
+    if not session or not session.get("paused"):
+        return False
+    last_hold = next(
+        (e for e in reversed(storage.list_draft_events(league_id, limit=10))
+         if e["event_type"] in ("pause", "resume")),
+        None,
+    )
+    if not last_hold or last_hold["event_type"] != "pause" or (last_hold.get("payload") or {}).get("by") != IDLE_PAUSE_BY:
+        return False
+    _resume_session(league_id, session, "system")
+    return True
 
 
 def skip_nomination(league_id: str, user_sub: str) -> dict[str, Any]:
@@ -1575,13 +1608,22 @@ def tick_scheduled_starts() -> list[str]:
 
 
 @observe_job("draft_clock", cadence_s=1)
-def tick_expired_drafts() -> list[str]:
-    """Advance every in-progress auction. Returns league ids whose state changed."""
+def tick_expired_drafts(watched: Collection[str] | None = None) -> list[str]:
+    """Advance every in-progress auction. Returns league ids whose state changed.
+
+    ``watched`` holds rooms someone has open or left recently. When given,
+    practice rooms outside it pause instead of drafting for nobody. ``None``
+    means presence is unknown, so nothing pauses.
+    """
     changed: list[str] = tick_scheduled_starts()
     from src.draft_hub.test_draft import SIMULATING_LEAGUE_IDS
 
     for league_id in storage.list_in_progress_draft_league_ids():
         if league_id in changed or league_id in SIMULATING_LEAGUE_IDS:
+            continue
+        if watched is not None and league_id not in watched and storage.league_test_mode(league_id):
+            if pause_idle_practice_room(league_id):
+                changed.append(league_id)
             continue
         before = _session_timer_fingerprint(storage.get_draft_session(league_id))
         advance_draft_clock(league_id)
@@ -1593,6 +1635,7 @@ def tick_expired_drafts() -> list[str]:
 
 def check_timers(league_id: str, user_sub: str | None = None) -> dict[str, Any]:
     """Advance the clock, then build exactly one view for the caller."""
+    resume_idle_practice_room(league_id)
     advance_draft_clock(league_id)
     return get_room_state(league_id, user_sub)
 

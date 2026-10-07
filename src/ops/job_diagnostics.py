@@ -33,6 +33,9 @@ _FAILURES = frozenset({"error", "failed", "partial", "missing_source", "unavaila
 _SKIPS = frozenset({"current", "skipped", "not_due", "offseason", "already_running",
     "busy", "upcoming", "rate_limited", "debounced", "unchanged", "sources_changing"})
 _REASONS = _STATUS | {"no_material_change", "settings_changed", "no_stats", "refresh_failed"}
+# High-frequency no-op outcomes count in hourly buckets only, so they cannot
+# push every other job's retained runs out of the bounded history.
+_AGGREGATE_ONLY = frozenset({("draft_clock", "unchanged")})
 _COUNTS = frozenset({"checked", "changed", "prepared", "current", "failed", "completed",
     "synced", "unavailable", "rows", "players", "recomputed_players", "skipped", "upcoming",
     "added", "updated", "waived", "trades_applied", "attempts", "recipients"})
@@ -261,9 +264,12 @@ def _finish(span, result=None, error=None):
             same = int(prior is not None and prior[0] == revision)
             conn.execute("INSERT OR REPLACE INTO revisions VALUES(?,?,?,?)", (span.ticket.job, context, revision, finished))
         failure, skip = int(status in _FAILURES), int(status in _SKIPS)
-        conn.execute("UPDATE runs SET finished=?,state='finished',wall_s=?,cpu_s=?,status=?,reason=?,error_type=?,metadata=? WHERE id=?",
-            (finished, wall, cpu, status, reason or (status if skip else None),
-             _label(type(error).__name__, "Exception") if error is not None else None, metadata, span.ticket.id))
+        if (span.ticket.job, status) in _AGGREGATE_ONLY:
+            conn.execute("DELETE FROM runs WHERE id=?", (span.ticket.id,))
+        else:
+            conn.execute("UPDATE runs SET finished=?,state='finished',wall_s=?,cpu_s=?,status=?,reason=?,error_type=?,metadata=? WHERE id=?",
+                (finished, wall, cpu, status, reason or (status if skip else None),
+                 _label(type(error).__name__, "Exception") if error is not None else None, metadata, span.ticket.id))
         conn.execute("""INSERT INTO buckets(hour,job,scope,nested,runs,failures,skips,same_input,
             wall_sum,wall_max,queue_sum,queue_max,queue_samples,cpu_sum,cpu_samples,cpu_max)
             VALUES(?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(hour,job,scope,nested) DO UPDATE SET

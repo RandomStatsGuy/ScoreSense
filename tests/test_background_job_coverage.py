@@ -64,7 +64,9 @@ def test_clock_valuations_native_and_sleeper_preserve_noop_results(diagnostics_e
     result = sync_all_live_sleeper_leagues()
     assert result == {"status": "complete", "synced": 0, "failed": 0, "leagues": [], "failures": []}
     jobs = job_map(diagnostics_enabled)
-    assert jobs["draft_clock"]["recent_reasons"] == {"unchanged": 1}
+    # Unchanged clock ticks are counted hourly without a retained run row.
+    assert jobs["draft_clock"]["skips"] == 1 and jobs["draft_clock"]["recent_reasons"] == {}
+    assert jobs["draft_clock"]["percentile_samples"] == 0
     assert jobs["native_scores.batch"]["last_observed_metadata"]["attempts"] == 0
     assert {"fantasy_valuations", "native_scores.schedule", "sleeper_rosters"} <= jobs.keys()
 
@@ -141,6 +143,7 @@ def test_broadcast_wall_only_has_separate_thread_queue_and_no_room_payload(diagn
     from app import hub_routes
     from src.draft_hub.ws_manager import DraftRoomManager
     manager = DraftRoomManager()
+    monkeypatch.setattr(manager, "has_listeners", lambda league_id: True)
     monkeypatch.setattr(hub_routes, "draft_room_manager", manager)
     monkeypatch.setattr(hub_routes, "get_room_state", lambda *args: {"email": "private@example.test"})
     asyncio.run(hub_routes.broadcast_room("private-room"))

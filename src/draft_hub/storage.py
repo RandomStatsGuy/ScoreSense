@@ -2286,12 +2286,13 @@ def get_draft_session(league_id: str) -> dict[str, Any] | None:
 
 
 def list_in_progress_draft_league_ids() -> list[str]:
-    """League ids whose draft is nominating, bidding, or picking (for the server ticker)."""
+    """Unpaused league ids whose draft is nominating, bidding, or picking (for the server ticker)."""
     with get_conn() as conn:
         rows = conn.execute(
             """SELECT league_id FROM draft_session
                WHERE status IN ('nominating', 'bidding', 'picking')
-                 AND COALESCE(conduct, 'live') != 'offline'"""
+                 AND COALESCE(conduct, 'live') != 'offline'
+                 AND COALESCE(paused, 0) = 0"""
         ).fetchall()
     return [str(r["league_id"]) for r in rows]
 

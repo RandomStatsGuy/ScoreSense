@@ -111,6 +111,8 @@ def _isolate_materialized_caches(tmp_path, monkeypatch):
     monkeypatch.setattr(value_snapshot, "SNAPSHOT_DIR", tmp_path / "value_snapshots")
     from src.draft_hub import prepared_week_context
     monkeypatch.setattr(prepared_week_context, "FANTASY_WEEK_CONTEXT_DIR", tmp_path / "fantasy_week_context")
+    monkeypatch.setattr(prepared_week_context, "_RETRY", {})
+    monkeypatch.setattr(prepared_week_context, "_HISTORY_DUE_AT", [0.0])
     from src.draft_hub import prepared_k_def_context
     monkeypatch.setattr(prepared_k_def_context, "FANTASY_K_DEF_CONTEXT_PATH", tmp_path / "fantasy_week_context" / "k_def.json")
     from src.draft_hub.weekly_command_center import invalidate_weekly_context_cache

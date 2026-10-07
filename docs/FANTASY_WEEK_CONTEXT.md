@@ -33,10 +33,20 @@ stamps; they do not call the source builders or live inference.
 - Weekly/preseason refresh jobs publish both variants after their upstream
   artifacts are ready. The explicit weekly projection rebuild also publishes its
   requested variants before reporting success.
-- The API's `fantasy_context_ticker` checks current, requested, published, and
-  existing historical artifact contexts every 30 seconds. It prepares at most
-  two changed contexts per pass so the shared worker can serve native scoring
-  and other jobs. Unchanged contexts do not consume the preparation budget.
+- The API's `fantasy_context_ticker` checks current and reader-requested
+  contexts every 30 seconds. Published and existing historical artifact
+  contexts are swept at most every 30 minutes; a reader of a stale week still
+  queues a request that the next 30-second pass handles. A sweep cut short by
+  the batch limit continues on the next pass. Each pass prepares at most two
+  changed contexts so the shared worker can serve native scoring and other
+  jobs. Unchanged contexts do not consume the preparation budget.
+- A context that does not finish (sources changing, busy, error) waits 1, 2,
+  4… minutes, up to 30, before its next attempt, so it neither rebuilds every
+  pass nor starves later contexts. Finishing clears the wait.
+- October 7 production diagnostics found every context current or prepared,
+  with no stuck week. The waste was checking ~37 contexts (back to 2018) every
+  30 seconds, about 1.3 s of CPU per pass, and rebuilding all of them whenever a
+  shared source such as the Sleeper catalog or injury inputs changed.
 - A process-owned file lock coalesces preparation across API/cron workers. The
   lock is released on process exit. Publication uses a temporary file and atomic
   replacement. It keeps the previous complete file on source changes during a
