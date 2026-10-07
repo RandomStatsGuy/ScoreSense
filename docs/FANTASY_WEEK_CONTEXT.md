@@ -34,7 +34,7 @@ stamps; they do not call the source builders or live inference.
   artifacts are ready. The explicit weekly projection rebuild also publishes its
   requested variants before reporting success.
 - The API's `fantasy_context_ticker` checks current and reader-requested
-  contexts every 30 seconds. Published and existing historical artifact
+  contexts every 30 seconds on the live worker, not behind forecast rebuilds. Published and existing historical artifact
   contexts are swept at most every 30 minutes; a reader of a stale week still
   queues a request that the next 30-second pass handles. A sweep cut short by
   the batch limit continues on the next pass. Each pass prepares at most two

@@ -73,7 +73,9 @@ python -m src.ops.job_report --slow-seconds 120 --queue-seconds 10 --cpu-seconds
 
 Every `app.process_pool.submit_cpu_job(fn, ...)` automatically gets basic timings,
 outcome and worker-loss observations under a static callable name. Do not create a
-separate process pool. Use `submit_thread_job` for ticker thread work; it preserves
+separate process pool. `submit_live_job` is the same, on the one-process live
+worker reserved for native scoring and Fantasy context so inference never delays
+them; keep it to short jobs. Use `submit_thread_job` for ticker thread work; it preserves
 the default `asyncio.to_thread` executor and cancellation semantics while measuring
 queue wait. Direct entry points use the decorator, with queue reported unknown:
 

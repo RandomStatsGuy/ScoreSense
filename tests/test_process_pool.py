@@ -26,6 +26,36 @@ def test_worker_exit_allows_a_later_job_to_start():
     asyncio.run(exercise())
 
 
+def test_live_jobs_do_not_wait_behind_a_long_inference_job():
+    import time
+    async def exercise():
+        process_pool.shutdown_process_executor()
+        try:
+            long_job = process_pool.submit_cpu_job(time.sleep, 10)
+            started = time.monotonic()
+            assert await asyncio.wait_for(process_pool.submit_live_job(abs, -4), timeout=8) == 4
+            assert time.monotonic() - started < 8 and not long_job.done()
+            await asyncio.wait_for(long_job, timeout=20)
+        finally:
+            process_pool.shutdown_process_executor(wait=False)
+    asyncio.run(exercise())
+
+
+def test_live_worker_exit_leaves_the_inference_worker_running():
+    async def exercise():
+        process_pool.shutdown_process_executor()
+        try:
+            inference = process_pool.get_process_executor()
+            with pytest.raises(BrokenProcessPool):
+                await asyncio.wait_for(process_pool.submit_live_job(_exit_worker), timeout=20)
+            await asyncio.sleep(0)
+            assert process_pool._live_executor is None and process_pool._executor is inference
+            assert await asyncio.wait_for(process_pool.submit_live_job(abs, -5), timeout=20) == 5
+        finally:
+            process_pool.shutdown_process_executor(wait=True)
+    asyncio.run(exercise())
+
+
 def test_old_failure_does_not_remove_replacement_executor(monkeypatch):
     from concurrent.futures import Future
     from unittest.mock import Mock

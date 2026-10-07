@@ -1,5 +1,6 @@
 """Production refresh regressions: real artifacts and background HTTP jobs."""
 import asyncio
+import json
 import os
 from concurrent.futures import Future
 from unittest.mock import patch
@@ -49,7 +50,7 @@ def artifacts(tmp_path, monkeypatch):
 def test_poll_rewrite_preserves_all_forecast_fingerprints_but_real_changes_invalidate(artifacts, tmp_path):
     roster = tmp_path / "sleeper_players.json"
     schedule = tmp_path / "nfl_schedules.parquet"
-    roster.write_bytes(b'{"a":{"team":"BUF"}}')
+    roster.write_bytes(b'{"a":{"position":"WR","team":"BUF","news_updated":1}}')
     schedule.write_bytes(b"schedule")
     loaders = (weekly_cache.weekly_fingerprint, ros_cache.ros_fingerprint, draft_pool_cache.pool_fingerprint)
     before = [loader() for loader in loaders]
@@ -59,11 +60,34 @@ def test_poll_rewrite_preserves_all_forecast_fingerprints_but_real_changes_inval
         path.write_bytes(contents)
         os.utime(path, ns=(stamp, stamp))
     assert [loader() for loader in loaders] == before
-    roster.write_bytes(b'{"a":{"team":"SEA"}}')
+    # News, ranks and availability wait for the scheduled weekly rebuild.
+    roster.write_bytes(b'{"a":{"position":"WR","team":"BUF","news_updated":2,"injury_status":"Out"},'
+                       b'"b":{"position":"LB","team":"SEA"}}')
+    assert [loader() for loader in loaders] == before
+    roster.write_bytes(b'{"a":{"position":"WR","team":"SEA"}}')
     after_roster = [loader() for loader in loaders]
     assert all(old != new for old, new in zip(before, after_roster))
     schedule.write_bytes(b"new game market")
     assert all(loader() != old for loader, old in zip(loaders, after_roster))
+
+
+def test_player_feed_digests_split_identity_from_availability(tmp_path):
+    from src.integrations.sleeper import forecast_player_revisions
+    feed = tmp_path / "players.json"
+    def write(**changes):
+        feed.write_text(json.dumps({"1": {"position": "RB", "team": "BUF", "news_updated": 1, **changes},
+                                    "2": {"position": "CB", "team": "BUF"}}))
+        return forecast_player_revisions(feed)
+    identity, availability = write()
+    assert write(news_updated=9, search_rank=3) == (identity, availability)
+    out = write(injury_status="Out")
+    assert out[0] == identity and out[1] != availability
+    assert write(depth_chart_order=2)[1] not in (availability, out[1])
+    assert write(team="MIA")[0] != identity
+    feed.write_text("not json")
+    assert forecast_player_revisions(feed)[0] not in (None, identity)
+    feed.unlink()
+    assert forecast_player_revisions(feed) == (None, None)
 
 
 def test_content_hash_is_memoized_for_hot_reads(tmp_path):

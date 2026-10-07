@@ -1,9 +1,9 @@
-"""Native scoring refreshes use the application's shared CPU worker."""
+"""Native scoring refreshes use the live worker, never queued behind inference."""
 
 from src.ops.job_diagnostics import submit_thread_job
 import asyncio
 import logging
-from app.process_pool import submit_cpu_job
+from app.process_pool import submit_live_job
 from src.config import NATIVE_SCORING_REFRESH_ENABLED
 from src.draft_hub.native_score_refresh import CADENCE_SECONDS, queue_current_native_weeks, refresh_pending_scores
 
@@ -20,7 +20,7 @@ async def native_scoring_ticker_loop():
         except Exception:
             logging.getLogger(__name__).exception('Native scoring scheduler tick failed')
         try:
-            await submit_cpu_job(refresh_pending_scores)
+            await submit_live_job(refresh_pending_scores)
         except asyncio.CancelledError:
             raise
         except Exception:

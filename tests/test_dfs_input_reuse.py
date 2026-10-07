@@ -109,11 +109,10 @@ def test_unchanged_inputs_reuse_both_variants_but_recheck_feeds_and_specialists(
     assert env.pool_calls[-1][False]["qb"]["Projected Points"].iloc[0] == 10
 
 
-@pytest.mark.parametrize("source", ["players.json", "cache/nflverse_roster_2026.parquet", "schedule.parquet",
+@pytest.mark.parametrize("source", ["cache/nflverse_roster_2026.parquet", "schedule.parquet",
     "roles.yaml", "sentiment.parquet", "processed/qb_mlready.parquet", "processed/rb_mlready.csv",
     "processed/wr_mlready.parquet", "models/qb_model.joblib", "models/rb_model_calibrated.joblib",
-    "models/wr_model_calibrated.joblib", "fp/2026_week04_proj.parquet", "fp/2026_week04_ecr_ALL.parquet",
-    "src/inference.py", "requirements.txt"])
+    "models/wr_model_calibrated.joblib", "fp/2026_week04_proj.parquet", "fp/2026_week04_ecr_ALL.parquet"])
 def test_each_real_dependency_change_forces_fresh_forecasts(gate_env, source):
     env = gate_env
     assert env.run()["status"] == "ok"
@@ -122,10 +121,45 @@ def test_each_real_dependency_change_forces_fresh_forecasts(gate_env, source):
     assert all(force for _, _, force in env.calls) and all(env.ros_calls)
 
 
-def test_same_content_feed_rewrite_does_not_force_inference(gate_env):
+def _players(**changes):
+    player = {"full_name": "Test Receiver", "position": "WR", "team": "BUF", "injury_status": None,
+              "news_updated": 1, "search_rank": 40, "injury_notes": None}
+    return json.dumps({"1": {**player, **changes}, "2": {"position": "LB", "team": "BUF"}}).encode()
+
+
+def test_player_feed_churn_and_availability_wait_for_the_scheduled_build(gate_env):
+    players = gate_env.root / "players.json"
+    players.write_bytes(_players())
     gate_env.run()
-    (gate_env.root / "players.json").write_bytes(b"source-v1")
+    players.write_bytes(_players(news_updated=2, search_rank=12, injury_notes="Limited Wednesday"))
     assert gate_env.run()["forecasts_reused"] is True
+    players.write_bytes(_players(news_updated=3, injury_status="Out"))
+    assert gate_env.run()["forecasts_reused"] is True
+    players.write_bytes(json.dumps({**json.loads(_players(injury_status="Out")),
+                                    "2": {"position": "LB", "team": "MIA"}}).encode())
+    assert gate_env.run()["forecasts_reused"] is True
+
+
+def test_player_identity_change_forces_fresh_forecasts(gate_env):
+    players = gate_env.root / "players.json"
+    players.write_bytes(_players())
+    gate_env.run()
+    players.write_bytes(_players(team="SEA"))
+    assert gate_env.run()["forecasts_reused"] is False
+
+
+def test_deployed_code_changes_wait_for_the_scheduled_build(gate_env):
+    gate_env.run()
+    (gate_env.root / "src" / "inference.py").write_text("# inference v2")
+    (gate_env.root / "requirements.txt").write_text("numpy==9")
+    assert gate_env.run()["forecasts_reused"] is True
+
+
+def test_new_weekly_build_makes_dfs_due_before_its_interval(gate_env):
+    gate_env.run()
+    assert dfs_refresh.run_dfs_refresh()["status"] == "not_due"
+    (gate_env.root / "weekly/2026_w4_qb.meta.json").write_text(json.dumps({"built_at": "hourly"}))
+    assert dfs_refresh.run_dfs_refresh()["status"] != "not_due"
 
 
 @pytest.mark.parametrize("operation", ["add", "delete"])
@@ -195,7 +229,7 @@ def test_specialist_failure_preserves_weekly_proof_without_extending_it(gate_env
 def test_inputs_changing_during_work_preserve_pool_and_cannot_seed_reuse(gate_env, phase):
     gate_env.run()
     (gate_env.root / "pool.bin").write_bytes(b"previous-pool")
-    (gate_env.root / "players.json").write_bytes(b"initial-change")
+    (gate_env.root / "roles.yaml").write_bytes(b"initial-change")
     gate_env.options[f"change_during_{phase}"] = gate_env.root / "schedule.parquet"
     assert gate_env.run()["status"] == "error"
     assert (gate_env.root / "pool.bin").read_bytes() == b"previous-pool"
@@ -258,7 +292,7 @@ def test_model_replacement_with_preserved_mtime_is_detected(gate_env):
 
 
 def test_unstable_source_check_fails_closed(gate_env, monkeypatch):
-    path = gate_env.root / "players.json"
+    path = gate_env.root / "schedule.parquet"
     original = dfs_inputs._digest
     def changing(filename, *stamp):
         value = original(filename, *stamp)
@@ -314,5 +348,5 @@ def test_public_status_exposes_reuse_decision_but_not_receipt(gate_env):
     gate_env.run()
     status = dfs_refresh.refresh_status()
     assert status["forecasts_reused"] is True
-    assert status["forecast_max_age_seconds"] == 3600
+    assert status["forecast_max_age_seconds"] == 7200
     assert "forecast_reuse" not in status

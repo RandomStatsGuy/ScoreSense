@@ -264,13 +264,18 @@ def write_parquet(df, path) -> None:
     """Write a DataFrame to compressed Parquet."""
     df.to_parquet(path, **PARQUET_WRITE_KWARGS)
 
-DFS_REFRESH_SECONDS = 300
-# Recheck feeds every five minutes; bound automatic reuse of identical forecasts.
+# DFS assembles its pool every 15 minutes, or sooner once a new weekly build lands.
+DFS_REFRESH_SECONDS = 900
+DFS_CHECK_SECONDS = 300
+DFS_SALARY_CACHE_SECONDS = 300
+# Weekly forecasts build on interval boundaries (the top of the hour by default).
 WEEKLY_AUTO_REFRESH_SECONDS = max(900, int(os.getenv("WEEKLY_AUTO_REFRESH_SECONDS", "3600")))
 SEASON_AUTO_REFRESH_SECONDS = max(3600, int(os.getenv("SEASON_AUTO_REFRESH_SECONDS", "86400")))
+# Also the minimum gap before an availability change rebuilds weekly forecasts early.
 PROJECTION_REFRESH_RETRY_SECONDS = 900
 PROJECTION_AUTO_REFRESH_ENABLED = os.getenv("PROJECTION_AUTO_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
-DFS_FORECAST_MAX_AGE_SECONDS = WEEKLY_AUTO_REFRESH_SECONDS
+# Slack for a delayed hourly build; DFS computes on its own only past this age.
+DFS_FORECAST_MAX_AGE_SECONDS = 2 * WEEKLY_AUTO_REFRESH_SECONDS
 NATIVE_SCORING_REFRESH_ENABLED = os.getenv("NATIVE_SCORING_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 DFS_REFRESH_ENABLED = os.getenv("DFS_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 

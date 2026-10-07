@@ -297,7 +297,7 @@ def test_ticker_uses_shared_worker_and_propagates_shutdown(monkeypatch):
     async def submit(fn):
         calls.append(fn)
         raise asyncio.CancelledError
-    monkeypatch.setattr(ticker, "submit_cpu_job", submit)
+    monkeypatch.setattr(ticker, "submit_live_job", submit)
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(ticker.fantasy_context_ticker_loop())
     assert calls == [pc.refresh_week_contexts]

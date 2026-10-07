@@ -81,7 +81,7 @@ def test_ticker_disabled_and_cancellation(monkeypatch):
     async def cancel(*args):
         calls.append('worker')
         raise asyncio.CancelledError()
-    monkeypatch.setattr(ticker, 'submit_cpu_job', cancel)
+    monkeypatch.setattr(ticker, 'submit_live_job', cancel)
     async def run():
         import pytest
         with pytest.raises(asyncio.CancelledError):
