@@ -81,7 +81,7 @@ export default function LeagueContextBanner({
   const inLeague = !isSoloContext(hubContext);
   const hasLeagues = leagues.length > 0;
   const mobileLayout = useMobileLayout();
-  const compactHeader = mobileLayout && ["home", "week", "game", "roster", "available", "trades", "planner"].includes(currentView) && inLeague;
+  const compactHeader = mobileLayout && ["home", "week", "game", "roster", "available", "trades", "planner", "insights", "vibes"].includes(currentView) && inLeague;
   const [headerSlot, setHeaderSlot] = useState(null);
   useEffect(() => {
     setHeaderSlot(compactHeader ? document.getElementById("mobile-home-league-slot") : null);

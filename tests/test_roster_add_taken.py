@@ -3,6 +3,8 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from app.api import app
@@ -11,6 +13,17 @@ from src.draft_hub import storage
 from src.draft_hub.schemas import LeagueRules
 
 ET = ZoneInfo("America/New_York")
+
+
+@pytest.fixture(autouse=True)
+def native_test_player_catalog(trusted_native_catalog):
+    """Acquisition tests use a fixed trusted catalog, independent of local caches."""
+    trusted_native_catalog("00-0033873", name="Patrick Mahomes", team="KC", position="QB",
+                           sleeper_player_id="4046", gsis_id="00-0033873")
+    trusted_native_catalog("00-0037626", name="Ja'Marr Chase", team="CIN", position="WR",
+                           sleeper_player_id="6861", gsis_id="00-0037626")
+    trusted_native_catalog("00-0040122", name="Ashton Jeanty", team="LV", position="RB",
+                           sleeper_player_id="12527", gsis_id="00-0040122")
 
 
 def _client_for(sub: str) -> TestClient:
@@ -150,7 +163,7 @@ def test_commissioner_can_add_player_to_another_team(hub_db, monkeypatch):
         member = _client_for("member-add-other")
         blocked = member.post(
             "/api/hub/roster",
-            json=_payload(player_id="4039", player_name="Ja'Marr Chase", team_id=owner["id"]),
+            json=_payload(player_id="6861", player_name="Ja'Marr Chase", team_id=owner["id"]),
         )
         assert blocked.status_code == 403, blocked.text
         assert "commissioner" in blocked.json()["detail"].lower()
@@ -159,14 +172,14 @@ def test_commissioner_can_add_player_to_another_team(hub_db, monkeypatch):
         client = _client_for("comm-add-other")
         missing = client.post(
             "/api/hub/roster",
-            json=_payload(player_id="4039", player_name="Ja'Marr Chase", team_id="not-a-team"),
+            json=_payload(player_id="6861", player_name="Ja'Marr Chase", team_id="not-a-team"),
         )
         assert missing.status_code == 400
 
         ok = client.post(
             "/api/hub/roster",
             json=_payload(
-                player_id="4039",
+                player_id="6861",
                 player_name="Ja'Marr Chase",
                 team="CIN",
                 position="WR",
@@ -177,11 +190,14 @@ def test_commissioner_can_add_player_to_another_team(hub_db, monkeypatch):
             ),
         )
         assert ok.status_code == 200, ok.text
-        slot = storage.get_roster_slot(ws_id, "4039")
+        slot = storage.get_roster_slot(ws_id, "00-0037626")
         assert slot["team_id"] == owner["id"]
         assert slot["player_name"] == "Ja'Marr Chase"
-        assert slot["salary"] == 12
-        assert (slot.get("contract") or {}).get("contract_type") == "rookie"
+        assert slot["salary"] == 1
+        assert slot["contract_years"] == 1
+        assert (slot.get("contract") or {}).get("contract_type") == "veteran"
+        assert (slot.get("contract") or {}).get("acquisition_type") == "fa_contract"
+        assert not (slot.get("contract") or {}).get("contract_type_manual")
         comm_team = storage.get_team_by_user(league["id"], "comm-add-other")
         assert slot["team_id"] != comm_team["id"]
     finally:
@@ -269,7 +285,7 @@ def test_add_keeps_other_team_cut_and_closes_undo(hub_db, monkeypatch):
         assert cut["team_id"] == owner["id"]
         assert cut["salary"] == 40
         assert active["team_id"] == member["id"]
-        assert active["salary"] == 12
+        assert active["salary"] == 1
         owner_roster = storage.list_roster(ws_id, owner["id"])
         flagged = next(r for r in owner_roster if r["roster_status"] == "cut_before_draft")
         assert flagged["can_undo_cut"] is False

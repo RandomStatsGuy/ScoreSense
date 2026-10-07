@@ -1,0 +1,10 @@
+.hub-manager-names { display: flex; flex-direction: column; gap: var(--space-4); }
+.hub-manager-names .hub-rules-section-head,
+.hub-manager-names p, .hub-manager-names h4 { margin: 0; }
+.hub-manager-name-actions { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-3); }
+.hub-manager-name-links { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
+.hub-manager-name-links li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-top: 1px solid var(--border); }
+.hub-manager-name-links li > div { min-width: 0; flex: 1; display: grid; gap: var(--space-2); }
+.hub-manager-name-links strong { overflow-wrap: anywhere; }
+.hub-manager-name-links small { font-size: var(--text-xs); color: var(--text-muted); }
+.hub-manager-name-links button { flex: none; }

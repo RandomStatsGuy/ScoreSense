@@ -39,7 +39,8 @@ test("heavy Fantasy and Tools screens load through React.lazy", () => {
   assert.doesNotMatch(lobby, /import DraftRoom from/);
   assert.match(mock, /lazy\(\(\) => import\("\.\/DraftRoom"\)\)/);
   assert.doesNotMatch(mock, /import DraftRoom from/);
-  assert.match(vibes, /lazy\(\(\) => import\("\.\/VibeSwipeDeck"\)\)/);
-  assert.doesNotMatch(vibes, /import VibeSwipeDeck from/);
+  // The deck ships inside the lazy Vibes chunk, so it adds no index weight
+  // and needs no second loading boundary before the first player appears.
+  assert.match(vibes, /import VibeSwipeDeck from "\.\/VibeSwipeDeck"/);
   assert.match(insights, /lazy\(\(\) => import\("\.\/insights\/InsightsCharts"\)\)/);
 });

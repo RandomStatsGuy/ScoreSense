@@ -34,12 +34,14 @@ def _state(conn, league_id, season, week):
     key = (league_id, season, week)
     lineups = [dict(row) for row in conn.execute(
         "SELECT * FROM league_week_lineup WHERE league_id=? AND season=? AND week=? ORDER BY team_id,player_id", key)]
+    snapshots = [dict(row) for row in conn.execute(
+        "SELECT * FROM league_week_lineup_snapshot WHERE league_id=? AND season=? AND week=? ORDER BY team_id", key)]
     scores = [dict(row) for row in conn.execute(
         "SELECT * FROM league_team_week_score WHERE league_id=? AND season=? ORDER BY week,team_id", (league_id, season))]
     matchups = [dict(row) for row in conn.execute(
         "SELECT * FROM league_week_matchup WHERE league_id=? AND season=? ORDER BY week,matchup_id", (league_id, season))]
     run = conn.execute("SELECT * FROM league_week_scoring_run WHERE league_id=? AND season=? AND week=?", key).fetchone()
-    return {"league": dict(league), "teams": teams, "lineups": lineups,
+    return {"league": dict(league), "teams": teams, "lineups": lineups, "snapshots": snapshots,
             "scores": scores, "matchups": matchups, "run": dict(run) if run else None}
 
 
@@ -93,11 +95,11 @@ def correction_context(league_id, season, week, actor):
                                       if hub_scoring.slot_accepts_position(f"{slot}1", position, rules)]
                                for slot in hub_scoring._starter_capacity(rules)},
             "incomplete_team_ids": [team["id"] for team in state["teams"]
-                                    if not any(row["team_id"] == team["id"] for row in state["lineups"])],
+                                    if not any(row["team_id"] == team["id"] for row in state["snapshots"])],
             "revision": _digest(state), "standings": _standings(state, state["scores"])}
 
 
-def _validate_lineups(state, changes, acknowledge_empty):
+def _validate_lineups(state, changes, acknowledge_empty, season, week, *, snapshot=None):
     rules = LeagueRules.model_validate(json.loads(state["league"]["rules_json"]))
     team_ids = {team["id"] for team in state["teams"]}
     changed_ids = [change["team_id"] for change in changes]
@@ -107,7 +109,7 @@ def _validate_lineups(state, changes, acknowledge_empty):
     for change in changes:
         by_team[change["team_id"]] = change["players"]
     capacity = hub_scoring._starter_capacity(rules)
-    allowed_slots = {f"{position}{index}" for position, count in capacity.items() for index in range(1, count + 1)}
+    allowed_slots = set(hub_scoring.starting_slots_from_rules(rules))
     ownership = set()
     entries = []
     for team_id, players in by_team.items():
@@ -116,37 +118,59 @@ def _validate_lineups(state, changes, acknowledge_empty):
         if rules.roster_size_max is not None and len(players) > rules.roster_size_max:
             raise CorrectionError("Historical roster exceeds the roster limit")
         for player in players:
+            trusted = hub_scoring.trusted_lineup_row(player, season, week, snapshot=snapshot)
             player_id = str(player.get("player_id") or "").strip()
-            position = normalize_position(player.get("position"))
+            position = normalize_position((trusted or player).get("position"))
             slot = str(player.get("slot") or "BN").strip().upper()
-            # Normal weekly lineups use unnumbered singleton slots (QB, TE,
-            # FLEX, K, DEF). Corrections use indexed slots; accept both forms.
-            if capacity.get(slot) == 1:
-                slot = f"{slot}1"
-            if not player_id or player_id in ownership:
+            if not player_id or (team_id, player_id) in ownership:
                 raise CorrectionError("A player can belong to only one team in the selected week")
-            ownership.add(player_id)
+            ownership.add((team_id, player_id))
             positions[position] += 1
             if slot != "BN":
+                if trusted is None:
+                    raise CorrectionError("Starter identity is unavailable. Refresh player information before correcting this week.")
+                try:
+                    slot = hub_scoring.canonical_starter_slot(slot, rules)
+                except hub_scoring.LineupError as exc:
+                    raise CorrectionError(str(exc)) from exc
                 if position not in {"QB", "RB", "WR", "TE", "K", "DEF"}:
                     raise CorrectionError("Native scoring does not support this starter position")
                 if slot not in allowed_slots or slot in slots or not hub_scoring.slot_accepts_position(slot, position, rules):
                     raise CorrectionError("Starter slots must be distinct and position-eligible")
                 slots.add(slot)
+            metadata = trusted or player
             entries.append({"team_id": team_id, "player_id": player_id,
-                            "player_name": str(player.get("player_name") or player_id),
-                            "nfl_team": str(player.get("nfl_team") or player.get("team") or ""),
+                            "player_name": str(metadata.get("player_name") or player_id),
+                            "nfl_team": str(metadata.get("nfl_team") or metadata.get("team") or ""),
                             "position": position, "slot": slot,
+                            "_canonical_player_key": metadata.get("_canonical_player_key") or f"unknown:{player_id}",
+                            "_identity_unavailable": trusted is None,
                             "lineup_role": "bench" if slot == "BN" else "starter"})
         for position, limits in roster_limits(rules).items():
             if positions[position.upper()] > limits["max"]:
                 raise CorrectionError(f"Historical roster exceeds the {position.upper()} limit")
         if slots != allowed_slots and not acknowledge_empty:
             raise CorrectionError("Acknowledge empty starter slots before previewing this week")
+    by_player = {}
+    for entry in entries:
+        by_player.setdefault(entry["_canonical_player_key"], []).append(entry)
+    recorded = {(row["team_id"], row["player_id"]): row for row in state["lineups"]}
+    for rows in by_player.values():
+        if len(rows) == 1:
+            continue
+        starters = [row for row in rows if row["lineup_role"] == "starter"]
+        # A post-kickoff trade retains the scoring owner's starter and adds a
+        # locked bench copy to the receiving roster. Permit that existing
+        # snapshot, without allowing a correction to invent duplicate owners.
+        if len(starters) != 1 or any(
+                not recorded.get((row["team_id"], row["player_id"]), {}).get("locked")
+                or recorded[(row["team_id"], row["player_id"])].get("lineup_role") != row["lineup_role"]
+                for row in rows):
+            raise CorrectionError("A player can belong to only one team in the selected week")
     return entries
 
 
-def preview_correction(league_id, season, week, actor, changes, reason, revision, acknowledge_empty=False, mode="results"):
+def preview_correction(league_id, season, week, actor, changes, reason, revision, acknowledge_empty=False, mode="results", *, stat_index=None):
     if mode not in {"lineup", "results"}:
         raise CorrectionError("Choose a lineup repair or corrected results")
     reason = reason.strip()
@@ -157,7 +181,20 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
         _authorize(state, actor)
     if revision != _digest(state):
         raise CorrectionError("League records changed. Reload before previewing")
-    entries = _validate_lineups(state, changes, acknowledge_empty)
+    snapshot = None
+    if stat_index is None:
+        from src.draft_hub.native_stats import get_week_snapshot, cached_week_snapshot, NativeStatsUnavailable
+        try:
+            snapshot = cached_week_snapshot(season, week) if mode == "lineup" else get_week_snapshot(season, week)
+        except NativeStatsUnavailable:
+            pass
+    if snapshot is not None and mode == "results" and stat_index is None:
+        from src.draft_hub.native_participation import enrich_inactive_players
+        changed_teams = {change["team_id"] for change in changes}
+        candidates = [row for row in state["lineups"] if row["team_id"] not in changed_teams]
+        candidates.extend(player for change in changes for player in change["players"])
+        snapshot = enrich_inactive_players(snapshot, candidates, season, week)
+    entries = _validate_lineups(state, changes, acknowledge_empty, season, week, snapshot=snapshot)
     if mode == "lineup":
         if state["run"] and state["run"].get("final"):
             raise CorrectionError("This week is finalized. Preview corrected results instead")
@@ -174,29 +211,34 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
     rules = LeagueRules.model_validate(json.loads(state["league"]["rules_json"]))
     scoring = ScoringRules.model_validate(json.loads(state["run"]["scoring_json"])) if state["run"] else rules.scoring
     blockers = []
-    if not hub_scoring.nfl_week_slate_complete(season, week):
+    stats, complete, warnings = _resolved_statistics(entries, season, week, stat_index, snapshot=snapshot)
+    if not complete:
         blockers.append("The selected week's games are not complete")
     matches = [row for row in state["matchups"] if row["week"] == week]
     covered = {row[field] for row in matches for field in ("home_team_id", "away_team_id") if row[field]}
     if covered != {team["id"] for team in state["teams"]}:
         blockers.append("The selected week's matchup schedule is incomplete")
-    try:
-        stats = hub_scoring.load_week_stat_index(season, week)
-    except Exception:
-        stats = {}
     totals = {team["id"]: 0.0 for team in state["teams"]}
     player_scores = []
-    for entry in entries:
-        raw = hub_scoring.stats_for_lineup_row(stats, entry)
+    for entry in _scoring_entries(entries):
+        if entry.get("_identity_unavailable"):
+            continue
+        raw = stats.get(entry["player_id"])
         points = 0.0
         if entry["lineup_role"] == "starter":
             try:
                 hub_scoring.require_position_stats(entry["position"], raw or {}, scoring)
             except hub_scoring.LineupError as exc:
                 blockers.append(str(exc))
-        if entry["lineup_role"] == "starter" and (not raw or not any(key in raw for key in hub_scoring.NATIVE_STAT_FIELDS)):
+        known_no_game = bool(raw and raw.get("_native_no_game") == 1)
+        available = bool(raw and (known_no_game or any(key in raw for key in hub_scoring.NATIVE_STAT_FIELDS)))
+        if entry["lineup_role"] == "starter" and not available:
             blockers.append(f"Actual scoring statistics unavailable for {entry['player_name']}")
-        if raw and any(key in raw for key in hub_scoring.NATIVE_STAT_FIELDS):
+        if not available:
+            # Unavailable optional bench statistics must stay unknown. They do
+            # not decide the winner and cannot be persisted as an invented zero.
+            continue
+        if not known_no_game:
             points = hub_scoring.fantasy_points_from_stats(raw, scoring)
             if not math.isfinite(points):
                 raise CorrectionError("Player statistics contain an invalid score")
@@ -209,7 +251,7 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
                    for team_id, points in totals.items()]
     combined = [row for row in state["scores"] if row["week"] != week] + team_scores
     result = {"id": str(uuid.uuid4()), "league_id": league_id, "season": season, "week": week,
-              "mode": mode, "revision": revision, "reason": reason, "blockers": blockers, "can_publish": not blockers,
+              "mode": mode, "revision": revision, "reason": reason, "blockers": blockers, "can_publish": not blockers, "warnings": warnings,
               "before": {"lineups": state["lineups"], "scores": [row for row in state["scores"] if row["week"] == week],
                          "standings": _standings(state, state["scores"])},
               "after": {"lineups": entries, "scores": team_scores, "standings": _standings(state, combined)},
@@ -220,7 +262,7 @@ def preview_correction(league_id, season, week, actor, changes, reason, revision
     return result
 
 
-def publish_correction(league_id, season, week, actor, preview_id, revision, reason, idempotency_key):
+def publish_correction(league_id, season, week, actor, preview_id, revision, reason, idempotency_key, *, stat_index=None):
     if not idempotency_key.strip():
         raise CorrectionError("A publication key is required")
     with storage.get_conn() as conn:
@@ -235,18 +277,15 @@ def publish_correction(league_id, season, week, actor, preview_id, revision, rea
     locks = {}
     if not saved["published_at"] and lineup_only:
         prior_locks = {(row["team_id"], row["player_id"]): row["locked"] for row in initial["lineups"]}
-        locks = {(row["team_id"], row["player_id"]): int(bool(
-            prior_locks.get((row["team_id"], row["player_id"])) or
-            hub_scoring.nfl_game_started(row["nfl_team"], season, week)))
+        _verify_reviewed_identities(preview["after"]["lineups"], season, week)
+        locks = {(row["team_id"], row["player_id"]): int(hub_scoring._lineup_row_locked(
+            {**row, "locked": prior_locks.get((row["team_id"], row["player_id"]))}, season, week))
             for row in preview["after"]["lineups"]}
     if not saved["published_at"] and not lineup_only:
-        if not hub_scoring.nfl_week_slate_complete(season, week):
+        stats, complete, _ = _resolved_statistics(preview["after"]["lineups"], season, week, stat_index)
+        if not complete:
             raise CorrectionError("The selected week's games are not complete")
-        try:
-            stats = hub_scoring.load_week_stat_index(season, week)
-        except Exception as exc:
-            raise CorrectionError("Actual scoring statistics unavailable") from exc
-        if _digest(stats) != json.loads(saved["preview_json"])["stats_digest"]:
+        if _digest(stats) != preview["stats_digest"]:
             raise CorrectionError("Player statistics changed. Preview again")
     with storage.get_conn() as conn:
         conn.execute("BEGIN IMMEDIATE")
@@ -269,6 +308,10 @@ def publish_correction(league_id, season, week, actor, preview_id, revision, rea
             raise CorrectionError("Preview is blocked or league records changed. Preview again")
         stamp = storage._utcnow()
         key = (league_id, season, week)
+        conn.executemany("""INSERT INTO league_week_lineup_snapshot
+            (league_id,team_id,season,week,created_at,updated_at) VALUES (?,?,?,?,?,?)
+            ON CONFLICT(league_id,team_id,season,week) DO UPDATE SET updated_at=excluded.updated_at""",
+            [(league_id, team["id"], season, week, stamp, stamp) for team in state["teams"]])
         conn.execute("DELETE FROM league_week_lineup WHERE league_id=? AND season=? AND week=?", key)
         conn.executemany("""INSERT INTO league_week_lineup
             (league_id,season,week,team_id,player_id,slot,lineup_role,player_name,nfl_team,position,locked,updated_at)
@@ -312,3 +355,52 @@ def correction_history(league_id, season, week):
              "mode": json.loads(row["preview_json"]).get("mode", "results"),
              "published_at": row["published_at"], "before": json.loads(row["preview_json"])["before"],
              "after": json.loads(row["preview_json"])["after"]} for row in rows]
+
+
+def _scoring_entries(entries):
+    key = lambda row: row.get("_canonical_player_key") or row["player_id"]
+    starter_owners = {key(row): (row["team_id"], row["player_id"]) for row in entries if row["lineup_role"] == "starter"}
+    unique = {}
+    for row in sorted(entries, key=lambda row: row["lineup_role"] != "starter"):
+        owner = starter_owners.get(key(row))
+        if owner is None or (row["lineup_role"] == "starter" and owner == (row["team_id"], row["player_id"])):
+            unique.setdefault(key(row), row)
+    return list(unique.values())
+
+
+
+def _resolved_statistics(entries, season, week, stat_index=None, *, snapshot=None):
+    """Read one verified actual-stat snapshot and resolve historical identities."""
+    if stat_index is not None:
+        _verify_reviewed_identities(entries, season, week, snapshot=snapshot)
+        return stat_index, hub_scoring.nfl_week_slate_complete(season, week), []
+    from src.draft_hub.native_stats import get_week_snapshot, resolve_lineup_stats, NativeStatsUnavailable
+    try:
+        snapshot = snapshot or get_week_snapshot(season, week)
+    except NativeStatsUnavailable as exc:
+        return {}, False, [str(exc)]
+    from src.draft_hub.native_participation import enrich_inactive_players
+    snapshot = enrich_inactive_players(snapshot, entries, season, week)
+    _verify_reviewed_identities(entries, season, week, snapshot=snapshot)
+    stats = {}
+    warnings = []
+    for entry in _scoring_entries(entries):
+        try:
+            if entry.get("_identity_unavailable"):
+                raise NativeStatsUnavailable("Bench player identity is unavailable.")
+            stats[entry["player_id"]] = resolve_lineup_stats(entry, snapshot)
+        except NativeStatsUnavailable as exc:
+            stats[entry["player_id"]] = {"_native_stats_unavailable": 1}
+            warnings.append(str(exc))
+    return stats, bool(snapshot.get("complete")), warnings
+
+
+
+def _verify_reviewed_identities(entries, season, week, *, snapshot=None):
+    for entry in entries:
+        if entry.get("_identity_unavailable"):
+            continue
+        trusted = hub_scoring.trusted_lineup_row(entry, season, week, snapshot=snapshot)
+        if trusted is None or any(trusted.get(key) != entry.get(key)
+                                 for key in ("position", "nfl_team", "_canonical_player_key")):
+            raise CorrectionError("Player identity changed. Preview again before publishing.")

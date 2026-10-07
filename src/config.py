@@ -230,6 +230,22 @@ COMPOSITE_BOOM_WEIGHT = 0.4
 # Draft season totals: games assumed per player (bye-week MVP)
 GAMES_PER_SEASON = 17
 
+# Native leagues share one raw-stat refresh, independently of Sleeper league
+# scoring. Keep endpoints/configuration here rather than in routes or workers.
+NATIVE_SCORING_REFRESH_SECONDS = max(60, int(os.getenv("NATIVE_SCORING_REFRESH_SECONDS", "60")))
+NATIVE_SCORING_REQUEST_TIMEOUT = max(1, int(os.getenv("NATIVE_SCORING_REQUEST_TIMEOUT", "15")))
+NATIVE_SCORING_FINAL_SETTLE_SECONDS = max(60, int(os.getenv("NATIVE_SCORING_FINAL_SETTLE_SECONDS", "120")))
+NATIVE_SCORING_STATS_URL = os.getenv(
+    "NATIVE_SCORING_STATS_URL",
+    "https://api.sleeper.com/stats/nfl/{season}/{week}?season_type=regular",
+)
+NATIVE_SCORING_SCOREBOARD_URL = os.getenv(
+    "NATIVE_SCORING_SCOREBOARD_URL",
+    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates={season}&seasontype=2&week={week}",
+)
+NATIVE_SCORING_TESTING = os.getenv("TESTING") == "1" or os.getenv("SCORESENSE_TESTING") == "1"
+
+
 # Preseason season-long: optional FP consensus blend in production (eval tunes β per position)
 PRESEASON_FP_BLEND_ENABLED = os.getenv("PRESEASON_FP_BLEND_ENABLED", "false").lower() in (
     "1",

@@ -302,6 +302,7 @@ export function removeFranchiseConfirm(name, preview = {}) {
 }
 
 export const LEAGUE_SIZE_COPY = {
+  actions: "Actions",
   title: "League size & teams",
   size: "League size",
   save: "Save league size",

@@ -111,3 +111,54 @@ test("vibe lineup starters map filled slots for the Hub set path", () => {
   assert.ok(starters.some((row) => row.player_id === "bijan"));
   assert.equal(vibeLineupStarters([{ slot: "RB1" }]).length, 0);
 });
+
+test("daily votes reject repeats and Undo restores exact scores at both limits", async () => {
+  const { recordPlayerVibe, undoPlayerVibe } = await import("./vibeAura.js");
+  const today = new Date(2026, 9, 4, 12);
+  const initial = { auraById: { hot: 95, cold: 4 }, dayVotes: { date: calendarDay(today), votes: {} }, history: [] };
+  let state = recordPlayerVibe(initial, "hot", "start", today);
+  assert.equal(state.auraById.hot, 99);
+  assert.equal(recordPlayerVibe(state, "hot", "sit", today), state);
+  state = recordPlayerVibe(state, "cold", "sit", today);
+  assert.equal(state.auraById.cold, 0);
+  state = undoPlayerVibe(state, today);
+  assert.equal(state.auraById.cold, 4);
+  state = undoPlayerVibe(state, today);
+  assert.deepEqual(state, initial);
+  state = recordPlayerVibe(initial, "new", "start", today);
+  assert.equal(state.auraById.new, 64);
+  assert.deepEqual(undoPlayerVibe(state, today), initial);
+});
+
+test("a new calendar day reopens ratings without undoing yesterday", async () => {
+  const { recordPlayerVibe, undoPlayerVibe } = await import("./vibeAura.js");
+  const today = new Date(2026, 9, 4, 12), tomorrow = new Date(2026, 9, 5, 12);
+  const initial = { auraById: {}, dayVotes: { date: calendarDay(today), votes: {} }, history: [] };
+  const first = recordPlayerVibe(initial, "p", "start", today);
+  assert.equal(undoPlayerVibe(first, tomorrow), first);
+  const second = recordPlayerVibe(first, "p", "sit", tomorrow);
+  assert.equal(second.auraById.p, 50);
+  assert.equal(second.history.length, 1);
+  assert.equal(undoPlayerVibe(second, tomorrow).auraById.p, 64);
+});
+
+test("team ratings are isolated and share the same key across destinations", async () => {
+  const { storageKey, dayStorageKey } = await import("./vibeAura.js");
+  const base = { leagueId: "league", season: 2026, week: 4 };
+  assert.notEqual(storageKey({ ...base, teamId: "one" }), storageKey({ ...base, teamId: "two" }));
+  assert.notEqual(storageKey({ ...base, teamId: "one", cacheScope: "alice" }), storageKey({ ...base, teamId: "one", cacheScope: "bob" }));
+  assert.equal(dayStorageKey({ ...base, teamId: "one" }), storageKey({ ...base, teamId: "one" }).replace("aura", "day"));
+});
+
+
+test("a late server read rebases queued votes and Undo without losing either", async () => {
+  const { replayPendingVibes } = await import("./vibeAura.js");
+  const now = new Date(2026, 9, 4, 12);
+  const initial = { auraById: {}, dayVotes: { date: calendarDay(now), votes: {} }, history: [] };
+  const votes = [{ id: 'hot', vibe: 'start', now }, { id: 'other', vibe: 'sit', now }];
+  let result = replayPendingVibes(initial, { hot: 95, other: 50, untouched: 70 }, votes);
+  assert.deepEqual(result.auraById, { hot: 99, other: 36, untouched: 70 });
+  result = replayPendingVibes(initial, { hot: 95, other: 50 }, [...votes, { undo: true, now }, { undo: true, now }]);
+  assert.deepEqual(result.auraById, { hot: 95, other: 50 });
+  assert.deepEqual(result.dayVotes.votes, {});
+});

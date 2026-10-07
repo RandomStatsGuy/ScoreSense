@@ -9,6 +9,7 @@ import WeekCulturePanel from "./WeekCulturePanel";
 import {
   GAME_CENTER_COPY as COPY,
   duelSlotFilled,
+  duelRows,
   formatMatchupScore,
   formatSyncedAgo,
   gameCenterLead,
@@ -97,11 +98,11 @@ function Points({ player, placeholder, data }) {
 function ReadOnlyLineup({ viewer, data, placeholder }) {
   return <section className="gc-room-panel gc-room-readonly-lineup" aria-label={COPY.lineupTitle}>
     <div className="gc-room-section-head"><h2>{gameCenterTeamLabel(viewer)}</h2><small>{COPY.lineupTitle}</small></div>
-    {(viewer?.starters || []).map((player, index) => <div className="gc-room-lineup-player" key={player.player_id || index}>
-      <span className="gc-room-slot">{data.starting_slots?.[index] || player.position}</span>
-      <PlayerName player={player} /><Points {...{player, data, placeholder}} />
+    {duelRows(viewer, null, data.starting_slots || []).map(row => <div className="gc-room-lineup-player" key={row.key}>
+      <span className="gc-room-slot">{row.slot}</span>
+      <PlayerName player={row.home} /><Points player={row.home} {...{data, placeholder}} />
     </div>)}
-    {!viewer?.starters?.length && <p>{COPY.emptyDuel}</p>}
+    {!viewer?.starters?.length && !data.starting_slots?.length && <p>{COPY.emptyDuel}</p>}
   </section>;
 }
 export default function GameCenterMatchup({

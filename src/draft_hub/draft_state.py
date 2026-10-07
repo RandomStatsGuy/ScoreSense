@@ -977,7 +977,7 @@ def _resolved_pool_player(
 ) -> dict[str, Any]:
     from src.draft_hub.draft_pool import list_drafted_player_ids
 
-    if str(player.get("player_id") or "") in list_drafted_player_ids(league["id"]):
+    if str(player.get("player_id") or "") in list_drafted_player_ids(league["id"], include_aliases=True):
         raise ValueError("Player already drafted")
     if from_pool:
         resolved = dict(player)
@@ -1224,6 +1224,7 @@ def make_pick(
             "source": "draft",
         },
         team_id=team["id"],
+        validate_rules=rules,
     )
     storage.append_draft_event(league_id, "pick", picked)
     _pop_queue_player(team, picked.get("player_id"))

@@ -4,7 +4,7 @@ import { fmtNum } from "../format";
 import { RowFace } from "./WeekLineupBoard";
 import {
   eligibleLineupReplacements, eligibleStarterSlots, formatKickoffFact, LINEUP_PICKER_COPY as COPY,
-  lineupPlayerLocked, lineupReplacementDelta, slatePlayerMeta, sleeperLineupUrl, WEEK_BOARD_COPY,
+  lineupPlayerLock, lineupPlayerLocked, lineupReplacementDelta, slatePlayerMeta, sleeperLineupUrl, WEEK_BOARD_COPY,
 } from "./weekBoard";
 import "../styles/lineup-picker.css";
 
@@ -32,6 +32,7 @@ export default function WeekLineupPicker({ slot, bench, benchPlayer = null, slot
   const selected = choice ? (benchPlayer || choice.player) : null;
   const delta = selected ? lineupReplacementDelta(targetSlot, selected) : null;
   const starterLocked = lineupPlayerLocked(benchPlayer || slot.player, { staffOverride });
+  const starterLockReason = staffOverride ? "" : lineupPlayerLock(benchPlayer || slot.player);
   const chooseLabel = benchPlayer ? COPY.chooseSlot : COPY.choose;
   const selectLabel = benchPlayer ? COPY.selectSlot : COPY.select;
   const locked = (lineupLocked && !canEdit) || starterLocked;
@@ -100,7 +101,7 @@ export default function WeekLineupPicker({ slot, bench, benchPlayer = null, slot
               disabled={busy || locked || playerLocked} onClick={() => setSelectedId(candidate.id)}>
               <RowFace player={player} media={media} /><span className="lineup-picker-identity">
                 <strong>{label}</strong><span>{slatePlayerMeta(player)}</span>
-                <span>{playerLocked ? COPY.locked : formatKickoffFact(player)}</span>
+                <span>{playerLocked ? (lineupPlayerLock(player) || COPY.locked) : formatKickoffFact(player)}</span>
                 {change != null && <span className={change >= 0 ? "is-positive" : "is-negative"}>
                   {change > 0 ? "+" : ""}{fmtNum(change, 1)} pts</span>}
               </span><span className="lineup-picker-points">{pts(player)}<small>proj pts</small></span>
@@ -121,7 +122,7 @@ export default function WeekLineupPicker({ slot, bench, benchPlayer = null, slot
         {error && <p className="error" role="alert">{error}</p>}
       </div>
       <footer className="lineup-picker-footer">
-        <p>{locked ? (starterLocked ? COPY.locked : COPY.lineupLocked) : href && !canEdit ? COPY.linked : !canEdit ? COPY.readonly : COPY.lockNote}</p>
+        <p>{locked ? (starterLocked ? (starterLockReason || COPY.locked) : COPY.lineupLocked) : href && !canEdit ? COPY.linked : !canEdit ? COPY.readonly : COPY.lockNote}</p>
         <div><button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>{COPY.cancel}</button>
           {href && !canEdit && !locked ? <a href={href} target="_blank" rel="noreferrer" className="btn-primary">{COPY.openSleeper}</a>
             : <button type="button" className="btn-primary" disabled={!applyAllowed || busy} onClick={() => onApply(targetSlot, selected)}>

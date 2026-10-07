@@ -277,7 +277,7 @@ def record_draft_result(
         nfl_team=nfl_team,
     )
     pid = str(resolved.get("player_id") or player_id)
-    if pid in list_drafted_player_ids(league_id):
+    if pid in list_drafted_player_ids(league_id, include_aliases=True):
         raise ValueError("Player already drafted")
 
     pos = normalize_position(resolved.get("position") or position)
@@ -303,6 +303,7 @@ def record_draft_result(
                 "source": "draft",
             },
             team_id=winner["id"],
+            validate_rules=rules,
         )
         storage.append_draft_event(
             league_id,

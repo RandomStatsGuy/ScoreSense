@@ -34,8 +34,9 @@ from src.draft_hub.schemas import LeagueRules, ScoringRules
 
 
 @pytest.fixture(autouse=True)
-def before_week_one(monkeypatch):
+def before_week_one(monkeypatch, trusted_native_roster_rows):
     monkeypatch.setattr("src.draft_hub.native_specialist_stats.load_defense_stat_index", lambda *_: {})
+    monkeypatch.setattr("src.draft_hub.native_stats.cached_week_snapshot", lambda *_: None)
     # Lineup fixtures must not depend on the wall clock passing Week 1.
     monkeypatch.setattr("src.draft_hub.hub_scoring._utcnow",
                         lambda: datetime(2026, 9, 1, tzinfo=timezone.utc))
@@ -185,8 +186,9 @@ def test_missing_projections_do_not_save_salary_defaults(hub_db, monkeypatch):
     rules = load_preset("salary_cap_auction_v1").model_copy(update={"draft_type": "snake"})
     monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
     monkeypatch.setattr(weekly_command_center, "_load_projection_index", lambda *args, **kwargs: ({}, {}))
-    assert ensure_team_lineup(league["id"], home["id"], 2026, 2, rules=rules) == []
-    assert storage.list_team_lineup(league["id"], home["id"], 2026, 2) == []
+    rows = ensure_team_lineup(league["id"], home["id"], 2026, 2, rules=rules)
+    assert rows and all(row["lineup_role"] == "bench" for row in rows)
+    assert storage.has_team_lineup_snapshot(league["id"], home["id"], 2026, 2)
     selected = set_team_starters(
         league["id"], home["id"], 2026, 2,
         [{"player_id": "wr-a1", "slot": "WR1"}], rules=rules,
@@ -409,6 +411,11 @@ def test_lineup_swap_and_score_week_routes(hub_db, monkeypatch):
             "te-b": {"fantasy_points": 4.0},
         },
     )
+    from src.draft_hub import native_stats, hub_scoring
+    monkeypatch.setattr(native_stats, "get_week_snapshot", lambda *a, **k: {
+        "complete": True, "stats": hub_scoring.load_week_stat_index(*a)})
+    monkeypatch.setattr(native_stats, "resolve_lineup_stats", lambda row, snapshot:
+                        hub_scoring.stats_for_lineup_row(snapshot["stats"], row))
     scored = client.post(
         f"/api/hub/league/{league['id']}/score-week",
         json={"week": 1, "season": 2026},
@@ -623,7 +630,7 @@ def test_nfl_game_started_uses_et_kickoff_not_gameday_midnight(monkeypatch):
     )
     monkeypatch.setattr(
         "src.core.schedule_utils.team_game_kickoffs",
-        lambda season, team: games,
+        lambda season, team, **kwargs: games,
     )
     before = datetime(2026, 9, 13, 0, 30, tzinfo=timezone.utc)
     after = datetime(2026, 9, 13, 17, 30, tzinfo=timezone.utc)
@@ -723,14 +730,20 @@ def test_settings_change_during_calculation_aborts_publish(hub_db):
     assert storage.list_team_week_scores(league["id"], 2026, 1) == []
 
 
-def test_native_scoring_rejects_missing_kicker_statistics(hub_db, monkeypatch):
-    league, home, _away, _comm = _seed_two_team_league(hub_db)
-    original = storage.list_week_lineups
-    monkeypatch.setattr(storage, "list_week_lineups", lambda *args: [*original(*args),
-        {"player_id": "kicker", "team_id": home["id"], "position": "K", "lineup_role": "starter"}])
+def test_native_scoring_rejects_missing_kicker_statistics(hub_db, monkeypatch, trusted_native_roster_rows):
+    trusted_native_roster_rows("kicker", position="K", team="KC")
+    league, home, away, _ = _seed_two_team_league(hub_db)
+    raw = league["rules"]
+    raw["roster"]["k"]["starter"] = 1
+    storage.update_league_rules(league["id"], LeagueRules.model_validate(raw))
+    storage.replace_team_lineup(league["id"], home["id"], 2026, 1,
+        [{"player_id":"kicker", "position":"K", "slot":"K", "lineup_role":"starter"}])
+    storage.replace_team_lineup(league["id"], away["id"], 2026, 1, [])
+    monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_game_started", lambda *a, **k: True)
     with pytest.raises(LineupError, match="K scoring statistics are incomplete"):
-        apply_week_scores(league["id"], 2026, 1, stat_index={"wr-a1": {"receptions": 1}}, slate_complete=True)
+        apply_week_scores(league["id"], 2026, 1, stat_index={"kicker": {"pat_made": 1}}, slate_complete=True)
     assert storage.list_team_week_scores(league["id"], 2026, 1) == []
+
 
 
 def test_live_calculate_keeps_unplayed_lineup_open(hub_db, monkeypatch):
@@ -764,24 +777,16 @@ def test_live_calculate_keeps_unplayed_lineup_open(hub_db, monkeypatch):
     assert by_id["wr-a2"]["lineup_role"] == "bench"
 
 
-def test_staff_can_start_bench_after_kickoff(hub_db):
+def test_staff_cannot_start_bench_after_kickoff_without_reviewed_correction(hub_db):
     league, home, _away, _ = _seed_two_team_league(hub_db)
     ensure_team_lineup(league["id"], home["id"], 2026, 1)
-    rows = storage.list_team_lineup(league["id"], home["id"], 2026, 1)
-    wr2 = next(row for row in rows if row["player_id"] == "wr-a2")
-    swapped = swap_lineup_players(
-        league["id"],
-        home["id"],
-        2026,
-        1,
-        starter_player_id=wr2["player_id"],
-        bench_player_id="wr-a3",
-        game_started=lambda _team: True,
-        staff_edit=True,
-    )
-    by_id = {row["player_id"]: row for row in swapped}
-    assert by_id["wr-a3"]["lineup_role"] == "starter"
-    assert by_id["wr-a2"]["lineup_role"] == "bench"
+    original = storage.list_team_lineup(league["id"], home["id"], 2026, 1)
+    with pytest.raises(LineupError, match="game has started"):
+        swap_lineup_players(league["id"], home["id"], 2026, 1,
+            starter_player_id="wr-a2", bench_player_id="wr-a3",
+            game_started=lambda _: True, staff_edit=True)
+    assert [(r["player_id"], r["slot"], r["lineup_role"]) for r in storage.list_team_lineup(league["id"], home["id"], 2026, 1)] == [(r["player_id"], r["slot"], r["lineup_role"]) for r in original]
+
 
 
 def test_staff_cannot_edit_lineup_after_week_is_scored(hub_db, monkeypatch):
@@ -813,7 +818,7 @@ def test_staff_cannot_edit_lineup_after_week_is_scored(hub_db, monkeypatch):
         )
 
 
-def test_calculate_fills_missing_lineups_from_current_roster(hub_db, monkeypatch):
+def test_calculate_does_not_invent_missing_historical_lineups(hub_db, monkeypatch):
     league, home, away, _ = _seed_two_team_league(hub_db)
     monkeypatch.setattr(
         "src.draft_hub.hub_scoring.nfl_week_slate_complete",
@@ -829,9 +834,10 @@ def test_calculate_fills_missing_lineups_from_current_roster(hub_db, monkeypatch
         "wr-b1": {"receptions": 3, "receiving_yards": 30, "fantasy_points": 6.0},
     }
     result = apply_week_scores(league["id"], 2026, 1, stat_index=stats, slate_complete=True)
-    assert result["scored"] is True
-    assert storage.list_team_lineup(league["id"], home["id"], 2026, 1)
-    assert storage.list_team_lineup(league["id"], away["id"], 2026, 1)
+    assert result["scored"] is False and result["reason"] == "incomplete_historical_lineups"
+    assert storage.list_team_lineup(league["id"], home["id"], 2026, 1) == []
+    assert storage.list_team_lineup(league["id"], away["id"], 2026, 1) == []
+    assert storage.get_week_scoring_run(league["id"], 2026, 1) is None
 
 
 def test_week_stats_normalize_nflverse_turnovers(monkeypatch):
@@ -841,7 +847,7 @@ def test_week_stats_normalize_nflverse_turnovers(monkeypatch):
                            "sack_fumbles_lost": 1, "rushing_fumbles_lost": 1,
                            "receiving_fumbles_lost": float("nan")}])
     monkeypatch.setattr("src.etl.nflverse_etl.load_weekly_player_stats", lambda *_: frame)
-    stats = load_week_stat_index(2026, 1)["qb"]
+    stats = load_week_stat_index(2026, 1, frame=frame)["qb"]
     assert stats["interceptions"] == 2
     assert stats["fumbles_lost"] == 2
     assert fantasy_points_from_stats(stats) == -8
@@ -873,7 +879,7 @@ def test_week_stat_index_aliases_name_and_sleeper_ids(monkeypatch):
             {},
         ),
     )
-    index = load_week_stat_index(2026, 1)
+    index = load_week_stat_index(2026, 1, frame=frame)
     assert index["00-0039146"]["passing_yards"] == 250
     assert index["sleeper-4866"]["passing_yards"] == 250
     assert index["4866"]["passing_yards"] == 250
@@ -890,7 +896,8 @@ def test_week_stat_index_aliases_name_and_sleeper_ids(monkeypatch):
     assert matched["passing_yards"] == 250
 
 
-def test_native_scoring_matches_sleeper_lineup_ids(hub_db, monkeypatch):
+def test_native_scoring_matches_sleeper_lineup_ids(hub_db, monkeypatch, trusted_native_roster_rows):
+    trusted_native_roster_rows("111", name="QB Alpha", position="QB", team="KC")
     league, home, away, _ = _seed_two_team_league(hub_db)
     monkeypatch.setattr(
         "src.draft_hub.hub_scoring.nfl_game_started",
@@ -967,6 +974,13 @@ def test_game_center_queues_unscored_native_week(hub_db, monkeypatch):
     )
     assert payload["placeholder"] is True
     assert payload["scoring_control"]["refresh"]["status"] == "pending"
+    from src.draft_hub import native_stats, native_score_refresh as jobs
+    from datetime import datetime, timezone
+    feed = {"stats": stats, "complete": False, "game_states": {team:{"game_state":"live"} for team in ("KC","BUF","MIA","PHI","SF","DET","DAL","SEA")},
+            "fetched_at": datetime.now(timezone.utc).isoformat(), "fingerprint":"live", "schedule_complete":True}
+    monkeypatch.setattr(jobs, "get_week_snapshot", lambda *a, **k: feed)
+    monkeypatch.setattr(jobs, "resolve_lineup_stats", lambda row, snapshot:
+                        snapshot["stats"].get(row["player_id"], {"receptions":0}))
     from src.draft_hub.native_score_refresh import refresh_pending_scores
     assert refresh_pending_scores()["completed"] == 1
     payload = build_hub_live_week(
@@ -983,7 +997,8 @@ def test_game_center_queues_unscored_native_week(hub_db, monkeypatch):
         if team.get("is_viewer")
     )
     assert viewer["points"] > 0
-    assert storage.get_week_scoring_run(league["id"], 2026, 1)["final"] is False
+    assert storage.get_week_scoring_run(league["id"], 2026, 1) is None
+    assert storage.get_native_live_week(league["id"], 2026, 1)["status"] == "live"
 
 
 @pytest.mark.parametrize("started", [False, True, None])
@@ -993,13 +1008,17 @@ def test_native_refresh_distinguishes_upcoming_week_from_missing_stats(hub_db, m
     storage.update_league_settings(league["id"], draft_completed=True)
     monkeypatch.setattr("src.draft_hub.hub_scoring.nfl_week_started", lambda *a, **kw: started)
     calls = []
-    monkeypatch.setattr("src.draft_hub.hub_scoring.load_week_stat_index", lambda *a: calls.append(1) or {})
+    from src.draft_hub.native_stats import NativeStatsUnavailable
+    def missing_actuals(*a, **k):
+        calls.append(1)
+        raise NativeStatsUnavailable("Actual statistics unavailable")
+    monkeypatch.setattr(jobs, "get_week_snapshot", missing_actuals)
     jobs.request_refresh(league["id"], 2026, 1)
     result = jobs.refresh_pending_scores()
     status = jobs.refresh_status(league["id"], 2026, 1)
     assert calls == ([] if started is False else [1])
     assert status["status"] == ("upcoming" if started is False else "failed")
-    assert status["error"] == (None if started is False else "no_stats")
+    assert status["error"] == (None if started is False else "refresh_failed")
     assert result["failed"] == (0 if started is False else 1)
     payload = build_hub_live_week(league["id"], week=1, viewer_team_id=home["id"],
         nfl_state={"season": "2026", "week": 1, "season_type": "regular"})
@@ -1019,7 +1038,11 @@ def test_upcoming_refresh_requeues_after_kickoff_without_manual_action(hub_db, m
     monkeypatch.setattr("src.draft_hub.game_center.cached_game_states",
                         lambda *a: {"BUF": {"game_state": "live" if started[0] else "pregame"}})
     calls = []
-    monkeypatch.setattr("src.draft_hub.hub_scoring.load_week_stat_index", lambda *a: calls.append(1) or {})
+    from src.draft_hub.native_stats import NativeStatsUnavailable
+    def missing_actuals(*a, **k):
+        calls.append(1)
+        raise NativeStatsUnavailable("Actual statistics unavailable")
+    monkeypatch.setattr(jobs, "get_week_snapshot", missing_actuals)
     monkeypatch.setattr("src.draft_hub.league_live_scoring.resolve_current_week",
                         lambda: (1, {"season": "2026", "season_type": "regular"}))
     jobs.queue_current_native_weeks()
@@ -1034,7 +1057,7 @@ def test_upcoming_refresh_requeues_after_kickoff_without_manual_action(hub_db, m
     jobs.queue_current_native_weeks()
     jobs.refresh_pending_scores()
     assert calls == [1]
-    assert jobs.refresh_status(league["id"], 2026, 1)["error"] == "no_stats"
+    assert jobs.refresh_status(league["id"], 2026, 1)["error"] == "refresh_failed"
 
 
 def test_game_center_refresh_skips_final_week(hub_db, monkeypatch):
@@ -1185,11 +1208,15 @@ def test_frontend_and_backend_scoring_defaults_match():
         cwd=Path(__file__).resolve().parents[1], check=True, capture_output=True, text=True)
     assert json.loads(result.stdout) == ScoringRules().model_dump()
 
-def test_native_specialist_scores_save_custom_rules_atomically(hub_db, monkeypatch):
+def test_native_specialist_scores_save_custom_rules_atomically(hub_db, monkeypatch, trusted_native_roster_rows):
+    trusted_native_roster_rows("k", position="K", team="KC")
+    trusted_native_roster_rows("dst", position="DEF", team="PHI")
     from src.draft_hub.hub_scoring import KICKER_STAT_FIELDS, DEFENSE_STAT_FIELDS
     league, home, away, _ = _seed_two_team_league(hub_db)
     raw = storage.get_league(league['id'])['rules']
     raw['scoring'].update(fg_made_50_59=6, def_sacks=2)
+    raw['roster']['k']['starter'] = 1
+    raw['roster']['def']['starter'] = 1
     storage.update_league_rules(league['id'], LeagueRules.model_validate(raw))
     for team, pid, position in [(home, 'k', 'K'), (away, 'dst', 'DEF')]:
         storage.replace_team_lineup(league['id'], team['id'], 2026, 1,

@@ -140,7 +140,7 @@ test("duel rows pair starters by lineup slot", () => {
     "RB",
     "WR",
   ]);
-  assert.equal(emptySlots.length, 0);
+  assert.equal(emptySlots.length, 3);
 });
 
 test("storyline names the lead and who is still to play", () => {
@@ -162,13 +162,13 @@ test("storyline names the lead and who is still to play", () => {
   assert.match(final, /^Final: Daddio takes it by 2.7/);
 });
 
-test("game center labels lead with owner and keep the team nickname", () => {
+test("single-season game center labels lead with the team and attach the manager", () => {
   assert.equal(
     gameCenterTeamLabel({
       team_name: "White Supremacists",
       owner_name: "Caleb K",
     }),
-    "Caleb K · White Supremacists",
+    "White Supremacists · Caleb K",
   );
   const line = matchupStoryline({
     viewer: { points: 10, starters: [{ points: 10 }] },
@@ -181,7 +181,7 @@ test("game center labels lead with owner and keep the team nickname", () => {
     weekComplete: true,
   });
   assert.match(line, /Colby L/);
-  assert.doesNotMatch(line, /^Final: Daddio of the Pandio/);
+  assert.match(line, /^Final: Daddio of the Pandio · Colby L/);
 });
 
 test("game state label distinguishes past weeks and preseason", () => {
@@ -365,12 +365,12 @@ test("unstarted scores say not started instead of a bare dash", () => {
   assert.equal(lineupIsEmpty({ starters: [] }, { starters: [] }, []), true);
 });
 
-test("trophy summary leads with the owner, not the nickname", () => {
+test("weekly trophy summary leads with the season team and attaches the manager", () => {
   const leader = { team_name: "Disappointment", owner_name: "Aaron D" };
-  assert.equal(trophyLeaderLabel(leader), "Aaron D · Disappointment");
+  assert.equal(trophyLeaderLabel(leader), "Disappointment · Aaron D");
   assert.equal(
     trophySummaryState({ leader, votes: 1, youVoted: true }),
-    "Aaron D · Disappointment · 1 vote · you voted",
+    "Disappointment · Aaron D · 1 vote · you voted",
   );
 });
 
@@ -402,7 +402,7 @@ test("placeholder storyline keeps the slate and names the missing opponent", () 
     week: 1,
     hint: GAME_CENTER_COPY.emptyPreseason,
   });
-  assert.equal(named, "Week 1 vs Caleb K · White Supremacists");
+  assert.equal(named, "Week 1 vs White Supremacists · Caleb K");
 });
 
 import {
@@ -463,7 +463,7 @@ test("unscored native leagues are not told to link Sleeper", () => {
   );
   assert.match(LEAGUE_SCORING_CONTROL_COPY.confirm(3), /Week 3/);
   assert.match(LEAGUE_SCORING_CONTROL_COPY.confirm(1, { live: true }), /can still be moved/);
-  assert.match(LEAGUE_SCORING_CONTROL_COPY.nativeHelp, /updates scores/);
+  assert.match(LEAGUE_SCORING_CONTROL_COPY.nativeHelp, /Players lock at kickoff/);
 });
 
 test("native Game center polls the current week until it is final", () => {

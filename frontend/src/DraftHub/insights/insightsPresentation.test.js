@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  contractHistoryNote,
   awardCatalogFromRules,
   featureAwards,
   fieldRankShare,
@@ -23,6 +24,8 @@ import {
   scoringRaceRows,
   rankShowsTeam,
   teamDisplayName,
+  managerLabel,
+  scoringTeamKey,
 } from "./insightsPresentation.js";
 
 const teams = [
@@ -160,7 +163,7 @@ test("career labels ignore a year-specific display_name", () => {
       owner_name: "Stephen P",
       display_name: "Stephen P · King Panda",
     }, null, true),
-    "Stephen P · King Panda",
+    "King Panda · Stephen P",
   );
 });
 
@@ -257,7 +260,7 @@ test("formatSpendValue and hero status stay screenshot-ready", () => {
   );
   assert.equal(
     teamDisplayName({ team_name: "White Supremacists" }, { "White Supremacists": "Caleb K" }, true),
-    "Caleb K · White Supremacists",
+    "White Supremacists · Caleb K",
   );
   assert.equal(rankShowsTeam({ label: "Caleb K", teamName: "White Supremacists" }), true);
   assert.equal(rankShowsTeam({ label: "Caleb K · White Supremacists", teamName: "White Supremacists" }), false);
@@ -273,4 +276,34 @@ test("award catalog drops money awards for a league without them", () => {
   assert.ok(snake.includes("nomad"));
   assert.ok(snake.includes("loyalty"));
   assert.ok(snake.length < auction.length);
+});
+
+test("corrected manager labels override stale display labels", () => {
+  const row = { team_name: "Rivals", owner_label: "Taylor", display_name: "Former owner · Rivals" };
+  assert.equal(teamDisplayName(row, {}, true), "Rivals · Taylor");
+  assert.equal(managerLabel(row, {}, false), "Taylor");
+  assert.equal(teamDisplayName({ team_name: "Rivals", owner_name: "Rivals" }, {Rivals: "Morgan"}, false), "Morgan");
+});
+
+test("chart keys survive renames and distinguish matching nicknames", () => {
+  assert.equal(scoringTeamKey({owner_id: "a", team_name: "Before"}), scoringTeamKey({owner_id: "a", team_name: "After"}));
+  assert.notEqual(scoringTeamKey({owner_id: "a", team_name: "Same"}), scoringTeamKey({owner_id: "b", team_name: "Same"}));
+});
+
+
+test("contract history gaps explain salary review only in the selected years", () => {
+  const status = [{season:2021,ranked:2,excluded:{invalid_name:100}}, {season:2022,ranked:50,excluded:{missing_identity:5}},
+    {season:2023,ranked:0,excluded:{missing_identity:10}}, {season:2024,ranked:0,excluded:{incomplete_scoring:20}}];
+  assert.match(contractHistoryNote(status,[2021,2022]), /2021.*salary entries need review/);
+  assert.doesNotMatch(contractHistoryNote(status,[2021]), /refresh|sync/i);
+  assert.equal(contractHistoryNote(status,[2022]), "");
+  assert.match(contractHistoryNote(status,[2023]), /verified player and salary history/);
+  assert.match(contractHistoryNote(status,[2024]), /Refresh history/);
+  assert.equal(contractHistoryNote(undefined,[2021]), "");
+});
+
+
+test("career labels read either season label order and keep the mapped real name", () => {
+  assert.equal(teamDisplayName({team_name:"Season team",display_name:"Season team · Josh C"},null,false),"Josh C");
+  assert.equal(teamDisplayName({team_name:"Season team",owner_name:"Josh C",display_name:"jdcarter40"},null,true),"Season team · Josh C");
 });

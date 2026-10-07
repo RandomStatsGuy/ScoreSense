@@ -14,7 +14,7 @@ def test_format_manager_label_owner_only_by_default():
 
 def test_format_manager_label_includes_team_when_year_specific():
     label = format_manager_label("White Supremacists", owner_label="Caleb K", year_specific=True)
-    assert label == "Caleb K · White Supremacists"
+    assert label == "White Supremacists · Caleb K"
 
 
 def test_enrich_award_clears_team_name_for_current_stats():
@@ -36,7 +36,7 @@ def test_enrich_award_keeps_team_name_for_year_specific():
         owner_label="Alice",
         year_specific=True,
     )
-    assert award["display_name"] == "Alice · Alpha"
+    assert award["display_name"] == "Alpha · Alice"
     assert award["team_name"] == "Alpha"
 
 
@@ -96,7 +96,7 @@ def test_scoring_year_specific_uses_planning_season():
     from src.draft_hub.owner_display import scoring_year_specific
 
     assert scoring_year_specific("2025", "2026") is True
-    assert scoring_year_specific("2026", "2026") is False
+    assert scoring_year_specific("2026", "2026") is True
 
 
 def test_award_entry_shows_manager_for_current_roster():
@@ -123,7 +123,7 @@ def test_award_entry_year_specific_includes_team():
         team_name="Hurts when I Brown",
         year_specific=True,
     )
-    assert award["display_name"] == "Nick F · Hurts when I Brown"
+    assert award["display_name"] == "Hurts when I Brown · Nick F"
     assert award["team_name"] == "Hurts when I Brown"
 
 
@@ -169,3 +169,12 @@ def test_current_team_labels_do_not_reuse_swapped_historical_nicknames(monkeypat
         {"owner_label": "New owner", "hub_team_name": "Disappointment", "source_kind": "manual"},
     ])
     assert owner_display.team_owner_map_for_league("panda")["Disappointment"] == "New owner"
+
+
+def test_concrete_season_labels_are_team_first_and_all_time_is_manager_first():
+    from src.draft_hub.owner_display import scoring_year_specific
+    assert scoring_year_specific('all','2026') is False
+    assert scoring_year_specific('','2026') is False
+    row={'team_name':'Season franchise','owner_name':'Josh C'}
+    assert enrich_team_row(row,{},year_specific=True)['display_name']=='Season franchise · Josh C'
+    assert enrich_team_row(row,{},year_specific=False)['display_name']=='Josh C'

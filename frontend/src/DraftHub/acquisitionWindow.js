@@ -46,7 +46,7 @@ export const PLAYERS_TAB_COPY = {
   readOnly: "Player additions are unavailable",
   addPlayer: "Add player",
   addEffect: "Adds this player to your roster immediately.",
-  addSalaryEffect: (value) => `Adds this player immediately on a one-year, $${Math.round(value ?? 1)} contract.`,
+  addSalaryEffect: () => "Adds for $1 on a one-year FA contract that expires before the next draft.",
   starShort: "Star for draft",
   starredShort: "Starred",
   openAdds: "Free agency is open",
@@ -73,6 +73,7 @@ export const PLAYERS_TAB_COPY = {
   starred: "On draft watchlist",
   unstar: "Remove from draft watchlist",
   howAddsWork: "How adds work",
+  nativeInstantTerms: "Instant adds cost $1 for a one-year FA contract that expires before the next draft.",
   howAddsBody:
     "Player additions follow the league calendar. Pick-draft leagues use priority claims during waivers; auction leagues bid. Free agency uses immediate adds.",
   starHint: "Add a player to your draft watchlist.",

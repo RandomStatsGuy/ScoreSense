@@ -47,9 +47,9 @@ export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = 
   );
 }
 
-export function HubPage({ className = "", children, style, frameless = false }) {
+export function HubPage({ className = "", children, style, frameless = false, inset = false }) {
   return (
-    <section className={`hub-page panel wide hub-panel${frameless ? " hub-page--frameless" : ""}${className ? ` ${className}` : ""}`} style={style}>
+    <section className={`hub-page panel wide hub-panel${inset ? " hub-page--inset" : ""}${frameless ? " hub-page--frameless" : ""}${className ? ` ${className}` : ""}`} style={style}>
       {children}
     </section>
   );

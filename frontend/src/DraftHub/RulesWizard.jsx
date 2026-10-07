@@ -32,6 +32,8 @@ import {
   validateLeagueSettings,
 } from "./rulesPresentation";
 
+import ManagerNamesPanel from "./ManagerNamesPanel";
+
 function RuleError({ id, children }) {
   if (!children) return null;
   return (
@@ -106,6 +108,8 @@ export default function RulesWizard({
   const [status, setStatus] = useState({ kind: "", text: "" });
   const [savedAt, setSavedAt] = useState(null);
   const [undo, setUndo] = useState(null);
+  const [managerDirty, setManagerDirty] = useState(false);
+  const [managerOpenedFor, setManagerOpenedFor] = useState("");
   const [category, setCategory] = useState("scoring");
   const sourceKeyRef = useRef("");
   const dirtyRef = useRef(false);
@@ -129,6 +133,7 @@ export default function RulesWizard({
       : `workspace:${workspace?.id || ""}`;
     if (sourceKeyRef.current !== sourceKey) {
       sourceKeyRef.current = sourceKey;
+      setManagerDirty(false);
       applyServerState(workspace, hubContext);
       return;
     }
@@ -137,7 +142,7 @@ export default function RulesWizard({
 
   const formSnapshot = snapshotRulesForm({ name, season, rules });
   const dirty = formSnapshot !== savedSnapshot;
-  dirtyRef.current = dirty;
+  dirtyRef.current = dirty || managerDirty;
 
   const touch = () => {
     if (status.text) setStatus({ kind: "", text: "" });
@@ -166,7 +171,7 @@ export default function RulesWizard({
   }));
 
   const pickDraft = isPickDraft(rules);
-  const categories = RULES_COPY.categories.filter((item) => !pickDraft || !item.salaryOnly);
+  const categories = RULES_COPY.categories.filter((item) => (!pickDraft || !item.salaryOnly) && (!item.leagueOnly || inLeague) && (!item.commissionerOnly || hubContext?.is_commissioner));
   const activeCategory = categories.some((item) => item.id === category) ? category : "foundation";
   const errors = useMemo(
     () => validateLeagueSettings({ name, season, rules }),
@@ -178,7 +183,7 @@ export default function RulesWizard({
   );
   const errorCategory = (key) => key.startsWith("scoring.") ? "scoring"
     : key.startsWith("roster_") ? "roster"
-    : ["name", "season", "salary_cap"].includes(key) ? "foundation"
+    : ["name", "season", "salary_cap", "regular_season_games", "playoff_teams", "playoff_start"].includes(key) ? "foundation"
     : ["min_bid", "nomination_timer_sec", "bid_timer_sec", "bid_extension_sec"].includes(key) ? "draft" : "contracts";
   const categoryErrorCount = (id) => Object.keys(errors).filter((key) => errorCategory(key) === id).length;
   const warningList = Object.values(warnings);
@@ -231,7 +236,7 @@ export default function RulesWizard({
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [name, season, rules, readOnlyRules]);
+  }, [name, season, rules, managerDirty, readOnlyRules]);
 
   const save = async () => {
     if (errorCount > 0) {
@@ -302,7 +307,7 @@ export default function RulesWizard({
       rules,
       label: preset.label,
     });
-    setRules({ ...nextRules, scoring: rules.scoring });
+    setRules({ ...nextRules, scoring: rules.scoring, regular_season_games: rules.regular_season_games, playoffs: rules.playoffs });
     setStatus({ kind: "", text: "" });
   };
 
@@ -332,7 +337,7 @@ export default function RulesWizard({
         <nav className="hub-rules-category-nav" aria-label={RULES_COPY.categoryTitle}>
           <strong>{RULES_COPY.categoryTitle}</strong>
           {categories.map((item) => (
-            <button key={item.id} type="button" aria-pressed={activeCategory === item.id} onClick={() => setCategory(item.id)}>
+            <button key={item.id} type="button" aria-pressed={activeCategory === item.id} onClick={() => { setCategory(item.id); if (item.id === "managers") setManagerOpenedFor(hubContext.league_id); }}>
               <span>{item.label}</span>{categoryErrorCount(item.id) > 0 && <small>{RULES_COPY.categoryErrors(categoryErrorCount(item.id))}</small>}
             </button>
           ))}
@@ -349,6 +354,9 @@ export default function RulesWizard({
           ) : null}
         </nav>
         <div className="hub-rules-sections">
+          {inLeague && hubContext?.is_commissioner && managerOpenedFor === hubContext.league_id && <div hidden={activeCategory !== "managers"}>
+            <ManagerNamesPanel key={hubContext.league_id} leagueId={hubContext.league_id} onDirtyChange={setManagerDirty} />
+          </div>}
           <section hidden={activeCategory !== "scoring"} className="hub-rules-section" aria-labelledby="rules-scoring-title">
             <header className="hub-rules-section-head">
               <span>01</span>
@@ -473,6 +481,30 @@ export default function RulesWizard({
                 ))}
               </div>
             </fieldset>
+
+            {!sleeperLinked && <>
+              <div className="hub-rules-field-grid">
+                <label><span>{RULES_COPY.regularWeeks}</span><input type="number" min="1" max="18" value={rules.regular_season_games} disabled={readOnlyRules}
+                  onChange={(e) => updateRules((current) => ({ ...current, regular_season_games: Number(e.target.value) }))} />
+                  <RuleError>{errors.regular_season_games}</RuleError></label>
+              </div>
+              <PolicyToggle checked={rules.playoffs.enabled} disabled={readOnlyRules} title={RULES_COPY.playoffs} description={RULES_COPY.playoffsHelp}
+                onChange={(enabled) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, enabled } }))} />
+              {rules.playoffs.enabled && <>
+                <div className="hub-rules-field-grid">
+                  <label><span>{RULES_COPY.playoffTeams}</span><input type="number" min="2" max="14" value={rules.playoffs.teams} disabled={readOnlyRules}
+                    onChange={(e) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, teams: Number(e.target.value) } }))} />
+                    <RuleError>{errors.playoff_teams}</RuleError></label>
+                  <label><span>{RULES_COPY.playoffStart}</span><input type="number" min="2" max="18" value={rules.playoffs.start_week ?? Number(rules.regular_season_games) + 1} disabled={readOnlyRules}
+                    onChange={(e) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, start_week: Number(e.target.value) } }))} />
+                    <RuleError>{errors.playoff_start}</RuleError></label>
+                </div>
+                <PolicyToggle checked={rules.playoffs.reseed} disabled={readOnlyRules} title={RULES_COPY.reseed} description={RULES_COPY.reseedHelp}
+                  onChange={(reseed) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, reseed } }))} />
+                <PolicyToggle checked={rules.playoffs.third_place} disabled={readOnlyRules} title={RULES_COPY.thirdPlace} description={RULES_COPY.thirdPlaceHelp}
+                  onChange={(third_place) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, third_place } }))} />
+              </>}
+            </>}
 
             {!pickDraft && (
               <div className="hub-rules-risk">
@@ -776,7 +808,7 @@ export default function RulesWizard({
             </section>
           )}
 
-          {!readOnlyRules && (
+          {!readOnlyRules && activeCategory !== "managers" && (
             <div className="hub-rules-sticky-save">
               <div><strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong><p className="hub-rules-summary-note">{formatCopy.saveFootnote}</p></div>
               <button type="button" className="btn-ghost" disabled={!dirty || saving} onClick={() => applyServerState(workspace, hubContext)}>{RULES_COPY.discard}</button>

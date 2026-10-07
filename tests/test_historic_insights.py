@@ -195,3 +195,12 @@ def test_all_time_analytics_groups_owners_and_averages_cap_pct(league_with_contr
     # 2024: $27 / $100 = 27%. 2025: $32 / $200 = 16%. Avg = 21.5%.
     assert caleb["pct_committed"] == 21.5
     assert caleb["pct_by_position"]["RB"] == 21.5
+
+
+def test_history_profiles_read_saved_rows_without_parsing_workbooks(league_with_contracts, monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("History parsed a commissioner workbook")
+    monkeypatch.setattr("src.draft_hub.contract_rows_merged.season_rows_source", forbidden)
+    profiles = build_contract_player_profiles(league_with_contracts)
+    assert profiles
+    assert any(p["season_count"] > 1 for p in profiles)

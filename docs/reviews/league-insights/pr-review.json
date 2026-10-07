@@ -1,0 +1,93 @@
+{
+  "reports": [
+    {
+      "width": 1280,
+      "route": "/hub/insights/overview",
+      "failures": []
+    },
+    {
+      "width": 1280,
+      "route": "/hub/insights/contracts",
+      "failures": []
+    },
+    {
+      "width": 1280,
+      "route": "/hub/insights/spend",
+      "failures": []
+    },
+    {
+      "width": 1280,
+      "route": "/hub/insights/scoring",
+      "failures": []
+    },
+    {
+      "width": 1280,
+      "route": "/hub/insights/history",
+      "failures": []
+    },
+    {
+      "width": 390,
+      "route": "/hub/insights/overview",
+      "failures": []
+    },
+    {
+      "width": 390,
+      "route": "/hub/insights/contracts",
+      "failures": []
+    },
+    {
+      "width": 390,
+      "route": "/hub/insights/spend",
+      "failures": []
+    },
+    {
+      "width": 390,
+      "route": "/hub/insights/scoring",
+      "failures": []
+    },
+    {
+      "width": 390,
+      "route": "/hub/insights/history",
+      "failures": []
+    }
+  ],
+  "timings": [
+    {
+      "width": 1280,
+      "firstEntryMs": 286
+    },
+    {
+      "width": 1280,
+      "periodMs": 40
+    },
+    {
+      "width": 1280,
+      "returnMs": 67
+    },
+    {
+      "width": 390,
+      "firstEntryMs": 220
+    },
+    {
+      "width": 390,
+      "periodMs": 40
+    },
+    {
+      "width": 390,
+      "returnMs": 119
+    },
+    {
+      "width": 320,
+      "firstEntryMs": 227
+    },
+    {
+      "width": 320,
+      "periodMs": 40
+    },
+    {
+      "width": 320,
+      "returnMs": 49
+    }
+  ],
+  "errors": []
+}
