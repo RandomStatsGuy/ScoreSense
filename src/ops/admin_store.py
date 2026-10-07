@@ -18,6 +18,7 @@ from typing import Any
 from src import config
 
 ACTIVITY_RETENTION_DAYS = 90
+JOB_PEAK_RETENTION_DAYS = 7
 _SETTINGS_TTL_S = 10.0
 
 _SCHEMA = """
@@ -34,6 +35,9 @@ CREATE TABLE IF NOT EXISTS admin_activity (
  kind TEXT NOT NULL, summary TEXT NOT NULL, detail TEXT
 );
 CREATE INDEX IF NOT EXISTS admin_activity_at ON admin_activity(at);
+CREATE TABLE IF NOT EXISTS job_peak (
+ run_id TEXT PRIMARY KEY, job TEXT NOT NULL, peak_rss INTEGER NOT NULL, at REAL NOT NULL
+);
 """
 
 _INJURY_REPORTING_DEFAULT = max(1, round(config.INJURY_POLL_REPORTING_SECONDS / 60))
@@ -292,3 +296,37 @@ def list_activity(*, limit: int = 100, kind: str | None = None) -> list[dict[str
     except sqlite3.Error:
         return []
     return [dict(row) for row in rows]
+
+
+# --- job memory -----------------------------------------------------------------
+
+
+def record_job_peaks(peaks: dict[str, tuple[str, int]]) -> None:
+    """Keep the highest memory seen for each running job run (best effort)."""
+    now = time.time()
+    try:
+        with closing(_connect()) as conn, conn:
+            conn.executemany(
+                """INSERT INTO job_peak (run_id, job, peak_rss, at) VALUES (?, ?, ?, ?)
+                   ON CONFLICT(run_id) DO UPDATE SET peak_rss = MAX(peak_rss, excluded.peak_rss), at = excluded.at""",
+                [(run_id, job[:120], int(rss), now) for run_id, (job, rss) in peaks.items()],
+            )
+            conn.execute("DELETE FROM job_peak WHERE at < ?", (now - JOB_PEAK_RETENTION_DAYS * 86400,))
+    except sqlite3.Error:
+        pass
+
+
+def job_peaks(run_ids: list[str]) -> dict[str, int]:
+    if not run_ids:
+        return {}
+    out: dict[str, int] = {}
+    try:
+        with closing(_connect()) as conn:
+            for start in range(0, len(run_ids), 500):
+                chunk = run_ids[start:start + 500]
+                marks = ",".join("?" for _ in chunk)
+                for row in conn.execute(f"SELECT run_id, peak_rss FROM job_peak WHERE run_id IN ({marks})", chunk):
+                    out[row["run_id"]] = int(row["peak_rss"])
+    except sqlite3.Error:
+        return {}
+    return out

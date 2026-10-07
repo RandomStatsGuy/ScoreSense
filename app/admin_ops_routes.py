@@ -136,20 +136,45 @@ def ops_overview(_admin=Depends(require_admin)) -> dict:
 # --- server ---------------------------------------------------------------------
 
 
-@router.get("/server")
-def ops_server(_admin=Depends(require_admin)) -> dict:
+def _processes() -> dict | None:
+    try:
+        return server_stats.processes()
+    except Exception:
+        return None
+
+
+def _server_payload(*, slowest: int = 8) -> dict:
     try:
         resources = server_stats.resources()
     except Exception:
         resources = None
     return {
         "resources": resources,
+        "processes": _processes(),
         "runtime": server_stats.runtime(),
         "deploy": server_stats.build_info(),
         "storage": server_stats.storage_sizes(),
         "caches": admin_jobs.cache_rows(),
-        "requests": request_stats.snapshot(),
+        "requests": request_stats.snapshot(slowest=slowest),
     }
+
+
+@router.get("/server")
+def ops_server(_admin=Depends(require_admin)) -> dict:
+    return _server_payload()
+
+
+@router.get("/export")
+def ops_export(_admin=Depends(require_admin), section: str = Query("all", pattern="^(all|server|jobs)$")) -> dict:
+    """Shareable speeds and resource use. Holds no account data, settings, or secrets."""
+    out: dict[str, Any] = {"generated_at": datetime.now(timezone.utc).isoformat(), "section": section}
+    if section in {"all", "server"}:
+        out["server"] = _server_payload(slowest=50)
+    if section in {"all", "jobs"}:
+        runs = admin_jobs.job_runs(days=7)
+        out["jobs"] = {"window_days": 7, "usage": admin_jobs.job_usage(runs), "runs": runs[:500],
+                       "timezone": "America/Los_Angeles"}
+    return out
 
 
 class CacheRebuildRequest(BaseModel):
@@ -172,8 +197,13 @@ async def ops_cache_rebuild(body: CacheRebuildRequest, admin=Depends(require_adm
 
 
 @router.get("/jobs")
-def ops_jobs(_admin=Depends(require_admin)) -> dict:
-    return {"jobs": admin_jobs.list_jobs(), "timezone": "America/Los_Angeles"}
+def ops_jobs(_admin=Depends(require_admin), usage_days: int = Query(1, ge=1, le=7)) -> dict:
+    return {
+        "jobs": admin_jobs.list_jobs(),
+        "usage": admin_jobs.job_usage(admin_jobs.job_runs(days=usage_days)),
+        "usage_days": usage_days,
+        "timezone": "America/Los_Angeles",
+    }
 
 
 @router.post("/jobs/{job_id}/run")

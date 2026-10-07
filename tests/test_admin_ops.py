@@ -346,3 +346,118 @@ def test_attention_lists_failed_jobs_and_full_disk():
     items = attention_items(jobs, [], {"disk": {"percent": 91.0}}, {"recent_errors": []}, now)
     assert [item["kind"] for item in items] == ["job", "disk"]
     assert items[0]["id"] == "weekly_refresh"
+
+
+# --- task manager / export -----------------------------------------------------
+
+
+def _sample(at, busy, total, procs):
+    return {"at": at, "busy": busy, "total": total, "procs": procs}
+
+
+def _proc(pid, cpu_s, created=1.0, role="api"):
+    return {"pid": pid, "name": "python", "role": role, "created": created, "cpu_s": cpu_s, "rss": 100, "threads": 4}
+
+
+def test_cpu_window_is_an_average_not_a_spike():
+    from src.ops.server_stats import window_usage
+
+    assert window_usage([_sample(0, 0, 0, {})], 2)["machine_percent"] is None
+    samples = [
+        _sample(0, busy=0, total=0, procs={1: _proc(1, 0), 2: _proc(2, 0, role="cpu_worker")}),
+        _sample(30, busy=15, total=60, procs={1: _proc(1, 3), 2: _proc(2, 30, role="cpu_worker")}),
+        _sample(60, busy=30, total=120, procs={1: _proc(1, 6), 2: _proc(2, 60, role="cpu_worker"), 3: _proc(3, 5, role="child")}),
+    ]
+    usage = window_usage(samples, cores=2)
+    assert usage["machine_percent"] == 25.0
+    assert usage["window_s"] == 60
+    share = {proc["pid"]: proc["cpu_percent"] for proc in usage["procs"]}
+    # One busy core on a two-core server is half the machine.
+    assert share == {1: 5.0, 2: 50.0, 3: 0.0}
+
+
+def test_restarted_process_with_reused_pid_is_not_charged_old_time():
+    from src.ops.server_stats import window_usage
+
+    samples = [
+        _sample(0, 0, 0, {7: _proc(7, 500, created=1.0)}),
+        _sample(10, 5, 20, {7: _proc(7, 1, created=9.0)}),
+        _sample(20, 10, 40, {7: _proc(7, 6, created=9.0)}),
+    ]
+    assert window_usage(samples, cores=1)["procs"][0]["cpu_percent"] == 50.0
+
+
+def _write_runs(rows):
+    import sqlite3
+    import time as _time
+    from src import config
+
+    now = _time.time()
+    with sqlite3.connect(config.JOB_DIAGNOSTICS_PATH) as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, job TEXT, parent TEXT, submitted REAL,
+                        started REAL, finished REAL, pid INTEGER, scope TEXT, state TEXT, queue_s REAL, wall_s REAL,
+                        cpu_s REAL, status TEXT, reason TEXT, error_type TEXT, metadata TEXT)""")
+        for run_id, job, scope, status, wall_s, cpu_s, age in rows:
+            conn.execute(
+                "INSERT INTO runs (id, job, parent, submitted, started, finished, pid, scope, state, queue_s, wall_s, cpu_s, status)"
+                " VALUES (?, ?, NULL, ?, ?, ?, 1, ?, 'finished', 0, ?, ?, ?)",
+                (run_id, job, now - age, now - age, now - age + wall_s, scope, wall_s, cpu_s, status),
+            )
+
+
+def test_job_usage_ranks_cpu_and_keeps_worker_peak_memory():
+    _write_runs([
+        ("a1", "weekly_refresh", "process", "ok", 100.0, 90.0, 60),
+        ("a2", "weekly_refresh", "process", "error", 50.0, 40.0, 120),
+        ("b1", "sleeper_rosters", "thread", "ok", 4.0, 1.0, 60),
+        ("old", "sleeper_rosters", "thread", "ok", 4.0, 1.0, 3 * 86400),
+    ])
+    admin_store.record_job_peaks({"a1": ("weekly_refresh", 900), "a2": ("weekly_refresh", 1200)})
+    admin_store.record_job_peaks({"a1": ("weekly_refresh", 500)})
+    assert admin_store.job_peaks(["a1", "a2", "missing"]) == {"a1": 900, "a2": 1200}
+
+    runs = admin_jobs.job_runs(days=1)
+    assert {run["job"] for run in runs} == {"weekly_refresh", "sleeper_rosters"}
+    usage = admin_jobs.job_usage(runs)
+    assert [row["job"] for row in usage] == ["weekly_refresh", "sleeper_rosters"]
+    heavy, light = usage
+    assert (heavy["runs"], heavy["failed"], heavy["cpu_s"], heavy["max_s"], heavy["avg_s"]) == (2, 1, 130.0, 100.0, 75.0)
+    assert heavy["peak_rss"] == 1200 and heavy["worker"] is True
+    assert light["peak_rss"] is None and light["worker"] is False
+    assert len(admin_jobs.job_runs(days=7)) == 4
+
+
+def test_export_shares_speeds_without_accounts_or_secrets(admin_client, monkeypatch):
+    monkeypatch.setattr(admin_jobs, "cache_rows", lambda **_: [])
+    monkeypatch.setattr("src.config.OPENAI_API_KEY", "sk-very-secret")
+    _write_runs([("a1", "weekly_refresh", "process", "ok", 10.0, 9.0, 60)])
+    headers = _headers(_account())
+    _account("member@example.com")
+    res = admin_client.get("/api/admin/ops/export", headers=headers)
+    assert res.status_code == 200
+    body = res.json()
+    assert {"generated_at", "server", "jobs"} <= set(body)
+    assert body["jobs"]["usage"][0]["job"] == "weekly_refresh"
+    assert "processes" in body["server"]
+    text = res.text
+    for leaked in ("sk-very-secret", "@fourthdown.test", "@example.com", "cmdline"):
+        assert leaked not in text
+    only_jobs = admin_client.get("/api/admin/ops/export?section=jobs", headers=headers).json()
+    assert "server" not in only_jobs and "jobs" in only_jobs
+    assert admin_client.get("/api/admin/ops/export?section=users", headers=headers).status_code == 422
+    assert admin_client.get("/api/admin/ops/export", headers=_headers(_account("x@example.com"))).status_code == 403
+
+
+def test_jobs_route_reports_usage_window(admin_client):
+    _write_runs([("a1", "weekly_refresh", "process", "ok", 10.0, 9.0, 3 * 86400)])
+    headers = _headers(_account())
+    assert admin_client.get("/api/admin/ops/jobs", headers=headers).json()["usage"] == []
+    week = admin_client.get("/api/admin/ops/jobs?usage_days=7", headers=headers).json()
+    assert week["usage_days"] == 7 and week["usage"][0]["job"] == "weekly_refresh"
+    assert admin_client.get("/api/admin/ops/jobs?usage_days=30", headers=headers).status_code == 422
+
+def test_job_labels_stay_distinct_for_unlisted_jobs():
+    assert admin_jobs.job_label("fantasy_context.batch") == "Fantasy context batch"
+    assert admin_jobs.job_label("native_scores.batch") == "Native scores batch"
+    assert admin_jobs.job_label("src.draft_hub.week_context_warmup.warm_fantasy_week_context") == "Warm fantasy week context"
+    assert admin_jobs.job_label("weekly_refresh") == "Weekly refresh"
