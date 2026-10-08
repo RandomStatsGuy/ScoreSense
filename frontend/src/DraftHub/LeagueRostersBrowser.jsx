@@ -8,6 +8,8 @@ import { isAbortError } from "../fetchAbort";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { rosterCoverage } from "./leagueRostersPresentation";
 import useMobileLayout from "../useMobileLayout";
+import useMenuPlacement from "../ui/useMenuPlacement";
+import { focusLeftMenu } from "../ui/menuFocus";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import RosterTeamDirectory from "./RosterTeamDirectory";
 import { activeRoster, rosterVisibleRows, rosterSelection } from "./leagueRostersPresentation";
@@ -31,6 +33,8 @@ function BoardFilter({
   const root = useRef(null);
   const trigger = useRef(null);
   const search = useRef(null);
+  const panel = useRef(null);
+  useMenuPlacement(open, trigger, panel);
   useEffect(() => {
     if (!open) return;
     if (searchable) search.current?.focus();
@@ -43,7 +47,7 @@ function BoardFilter({
   const shown = options.filter(o => `${o.label} ${o.detail || ""}`.toLowerCase().includes(query.toLowerCase()));
   const selected = options.find(o => o.id === value);
   return <div className="rosters-filter" ref={root} onBlur={e => {
-    if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+    if (focusLeftMenu(e)) setOpen(false);
   }} onKeyDown={e => {
     if (e.key === "Escape") {
       e.stopPropagation();
@@ -55,7 +59,7 @@ function BoardFilter({
       setQuery("");
       setOpen(!open);
     }}>{selected?.label}<span aria-hidden="true">⌄</span></button>
-    {open && <div className="rosters-filter-menu" aria-label={label}>
+    {open && <div ref={panel} className="rosters-filter-menu" aria-label={label}>
       {searchable && <input ref={search} aria-label={C.teamSearch} placeholder={C.teamSearch} value={query} onChange={e => setQuery(e.target.value)} />}
       <div className="rosters-filter-options">{shown.map(o => <button key={o.id} type="button" aria-pressed={o.id === value} onClick={() => {
           onChange(o.id);

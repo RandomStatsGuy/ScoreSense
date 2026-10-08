@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import HoverTip from "../HoverTip";
+import useMenuPlacement from "../ui/useMenuPlacement";
 
 /** Sortable column header shared by hub tables. */
 export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = "", title, tip }) {
@@ -236,16 +237,30 @@ export function HubFilterChip({
 export function HubFilterMenu({ label, value, options, onChange, className = "", disabled = false, ariaLabel }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
   const selected = options.find((opt) => String(opt.id ?? "") === String(value ?? ""));
   const display = selected?.label ?? value;
+  useMenuPlacement(open, triggerRef, panelRef);
 
   useEffect(() => {
     if (!open) return undefined;
     const onDoc = (event) => {
       if (ref.current && !ref.current.contains(event.target)) setOpen(false);
     };
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("keydown", onKey, true);
+    };
   }, [open]);
 
   const pick = (id) => {
@@ -259,6 +274,7 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
       className={`hub-filter-menu${open ? " is-open" : ""}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}
     >
       <button
+        ref={triggerRef}
         type="button"
         className="hub-filter-menu-trigger"
         aria-haspopup="listbox"
@@ -276,7 +292,7 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
         </span>
       </button>
       {open && (
-        <div className="hub-filter-menu-panel" role="listbox" aria-label={label}>
+        <div ref={panelRef} className="hub-filter-menu-panel" role="listbox" aria-label={label}>
           {options.map((opt) => (
             <button
               key={String(opt.id) || "empty"}

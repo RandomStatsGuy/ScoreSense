@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
+import { focusLeftMenu } from "../ui/menuFocus";
 
 /** Accessible disclosure for navigation links and league-picker actions. */
 export default function HeaderDisclosure({ label, accessibleLabel, children, active = false, disabled = false, className = "", resetKey }) {
@@ -16,7 +17,7 @@ export default function HeaderDisclosure({ label, accessibleLabel, children, act
     return () => document.removeEventListener("pointerdown", outside);
   }, [open]);
   const close = (restoreFocus = false) => { setOpen(false); if (restoreFocus) trigger.current?.focus(); };
-  return <div className={`fantasy-header-menu ${className}`} ref={root} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={event => {
+  return <div className={`fantasy-header-menu ${className}`} ref={root} onBlur={event => { if (focusLeftMenu(event)) setOpen(false); }} onKeyDown={event => {
     if (event.key === "Escape" && open) { event.preventDefault(); event.stopPropagation(); close(true); }
     if (event.key === "ArrowDown" && event.target === trigger.current) { event.preventDefault(); setOpen(true); }
     else if (open && ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) && event.target.tagName !== "INPUT") {

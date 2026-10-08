@@ -103,6 +103,10 @@
   z-index: 3;
   flex-wrap: wrap;
 }
+/* The toolbar (4) and share panel (5) follow the heading; an open Visit team list must stay on top of both. */
+.team-room-heading:has(.hub-filter-menu.is-open) {
+  z-index: 6;
+}
 .team-room-heading::before {
   content: "";
   position: absolute;

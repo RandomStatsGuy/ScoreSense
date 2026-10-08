@@ -1912,6 +1912,10 @@ input[type="search"].search-input {
   overflow: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
+.team-filter-menu[data-side="above"] {
+  top: auto;
+  bottom: calc(100% + 0.35rem);
+}
 
 .team-filter--sheet {
   width: 100%;
@@ -7073,6 +7077,10 @@ td.col-rank.col-rank-top {
   background: var(--tooltip-bg);
   box-shadow: var(--shadow-popover);
   -webkit-overflow-scrolling: touch;
+}
+.hub-filter-menu-panel[data-side="above"] {
+  top: auto;
+  bottom: calc(100% - 0.12rem);
 }
 
 .hub-filter-menu-option {

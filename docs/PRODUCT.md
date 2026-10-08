@@ -309,6 +309,7 @@ Home names the manager’s roster hole over a commissioner invite when both are 
 ## Interaction and accessibility
 
 - League-strip option menus (Switch league, Sync league) paint above the Fantasy page below the strip. Atmosphere pins `.draft-hub` siblings at the same z-index so the wash stays behind content — raise the strip to `--z-dropdown` or portal the menu. Do not treat Needs attention as the covering layer; the later `.hub-page` card is.
+- Every option in an open menu must receive the click or tap. Anchored menus open above their trigger when the bottom nav or chat launcher leaves too little room below, and a menu's own container rises above the rows that follow it while open. Menus close on Escape, an outside press, or a page change — never on a press inside the menu, including in Safari, which does not focus clicked buttons.
 - Opening a Fantasy page, reading another room, or polling chat/freshness does not change the saved league. Only Switch league, or joining/creating a live league, writes focus. Practice rooms never become the strip focus.
 - Primary action stays visible (summary rail or sticky footer).
 - Disable a button only with a reason next to it. Free agents rows always show Bid or Add; when the window is locked, disable the control with Adds open after the draft — do not omit the action.

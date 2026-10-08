@@ -88,7 +88,7 @@ export default function LeagueContextBanner({
   }, [compactHeader]);
   const compactMenuRef = useRef(null);
   useEffect(() => {
-    if (!compactHeader) return undefined;
+    if (!mobileLayout) return undefined;
     const close = (event) => {
       const menu = compactMenuRef.current;
       if (!menu?.open) return;
@@ -100,8 +100,8 @@ export default function LeagueContextBanner({
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", close);
     return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", close); };
-  }, [compactHeader]);
-  useEffect(() => { if (compactMenuRef.current) compactMenuRef.current.open = false; }, [hubContext?.league_id]);
+  }, [mobileLayout]);
+  useEffect(() => { if (compactMenuRef.current) compactMenuRef.current.open = false; }, [hubContext?.league_id, currentView]);
   const syncMenuId = useId();
   const syncWrapRef = useRef(null);
   const [syncOpen, setSyncOpen] = useState(false);

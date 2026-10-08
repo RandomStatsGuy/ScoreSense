@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import useMenuPlacement from "./ui/useMenuPlacement";
 
 export default function TeamFilter({
   teams,
@@ -10,16 +11,30 @@ export default function TeamFilter({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef(null);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
   const isSheet = variant === "sheet";
+  useMenuPlacement(open && !isSheet, triggerRef, panelRef);
 
   useEffect(() => {
-    if (isSheet) return undefined;
+    if (isSheet || !open) return undefined;
     const onDoc = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [isSheet]);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [isSheet, open]);
 
   useEffect(() => {
     if (!open) setQuery("");
@@ -43,6 +58,7 @@ export default function TeamFilter({
   return (
     <div className={`team-filter${isSheet ? " team-filter--sheet" : ""}${className ? ` ${className}` : ""}`} ref={ref}>
       <button
+        ref={triggerRef}
         type="button"
         className="header-context-control team-filter-btn"
         onClick={() => setOpen((v) => !v)}
@@ -52,7 +68,7 @@ export default function TeamFilter({
         {label}{isSheet ? (open ? " ▴" : " ▾") : " ▾"}
       </button>
       {open && (
-        <div className={`team-filter-menu${isSheet ? " team-filter-menu--sheet" : ""}`} role={isSheet ? "dialog" : undefined} aria-label="Select teams">
+        <div ref={panelRef} className={`team-filter-menu${isSheet ? " team-filter-menu--sheet" : ""}`} role={isSheet ? "dialog" : undefined} aria-label="Select teams">
           {isSheet ? (
             <label className="team-filter-search">
               <span className="sr-only">Search teams</span>

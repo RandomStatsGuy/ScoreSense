@@ -1023,8 +1023,8 @@ async function auditOpenMenus(page) {
   const specs = [
     {
       name: "Switch league",
-      trigger: ".hub-league-context-identity .hub-filter-menu-trigger",
-      panel: ".hub-filter-menu-panel",
+      trigger: ".hub-league-context-identity .fantasy-header-menu-trigger",
+      panel: ".hub-league-context-identity .fantasy-header-menu-panel",
     },
     {
       name: "Sync league",
@@ -1085,7 +1085,62 @@ async function auditOpenMenus(page) {
     await trigger.evaluate((el) => el.click()).catch(() => {});
     await page.keyboard.press("Escape").catch(() => {});
   }
+  results.push(...await auditFilterMenuOptions(page));
   return results;
+}
+
+// Open each filter menu with its trigger low in the viewport (where phone menus
+// collide with the bottom nav) and confirm every listed option receives the tap.
+async function auditFilterMenuOptions(page) {
+  const failures = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const menus = [
+      [".hub-filter-menu-trigger", ".hub-filter-menu", ".hub-filter-menu-panel"],
+      [".rosters-control[aria-expanded]", ".rosters-filter", ".rosters-filter-menu"],
+      [".team-filter-btn", ".team-filter", ".team-filter-menu"],
+    ];
+    const visible = (el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+    };
+    const out = [];
+    let checked = 0;
+    for (const [triggerSel, rootSel, panelSel] of menus) {
+      for (const trigger of [...document.querySelectorAll(triggerSel)].filter((el) => visible(el) && !el.disabled).slice(0, 8)) {
+        const name = (trigger.getAttribute("aria-label") || trigger.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40);
+        const top = trigger.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, Math.max(0, top - window.innerHeight * 0.72));
+        await sleep(80);
+        trigger.click();
+        await sleep(120);
+        const panel = trigger.closest(rootSel)?.querySelector(panelSel);
+        if (panel && visible(panel)) {
+          checked += 1;
+          const box = panel.getBoundingClientRect();
+          for (const option of panel.querySelectorAll("[role=option], button, label")) {
+            const r = option.getBoundingClientRect();
+            if (r.height < 4 || r.top < box.top - 1 || r.bottom > box.bottom + 1) continue;
+            const x = r.left + r.width / 2;
+            const y = r.top + r.height / 2;
+            const hit = y > 0 && y < window.innerHeight ? document.elementFromPoint(x, y) : null;
+            if (!hit || !option.contains(hit)) {
+              const cover = hit ? String(hit.getAttribute("class") || hit.tagName).split(" ")[0] : "off-screen";
+              out.push(`${name}: "${option.textContent.trim().slice(0, 24)}" covered by ${cover}`);
+              break;
+            }
+          }
+        }
+        if (trigger.getAttribute("aria-expanded") === "true") trigger.click();
+        await sleep(60);
+      }
+    }
+    window.scrollTo(0, 0);
+    return { out, checked };
+  }).catch((err) => ({ out: [`probe error: ${String(err).slice(0, 80)}`], checked: 0 }));
+  if (!failures.out.length) {
+    return [{ rule: "menus", ok: true, selector: "filter menus", detail: `${failures.checked} filter menus open with every option tappable` }];
+  }
+  return failures.out.slice(0, 6).map((detail) => ({ rule: "menus", ok: false, selector: "filter menu", detail }));
 }
 
 function printTable(route, width, results) {
