@@ -1,0 +1,23 @@
+{
+  "schema_version": "projection_movement_v2",
+  "position": "qb",
+  "season": 2026,
+  "week": 4,
+  "apply_injury_adjustments": true,
+  "available": false,
+  "empty_reason": "no_prior_snapshot",
+  "fingerprint": "e6faba41f5e3e85f",
+  "weekly_fingerprint": "d78750b64d021c32",
+  "previous_fingerprint": null,
+  "current_fingerprint": "d78750b64d021c32",
+  "previous_content_fingerprint": "empty",
+  "current_content_fingerprint": "3c7b8e02295b5420",
+  "previous_built_at": null,
+  "current_built_at": "2026-10-08T22:29:40.574765+00:00",
+  "generated_at": "2026-10-08T22:29:40.580508+00:00",
+  "rows": 0,
+  "material_rows": 0,
+  "removed_rows": 0,
+  "entered_rows": 0,
+  "note": "No previous valid weekly projection artifact; movement unavailable."
+}
