@@ -138,7 +138,7 @@ def test_correction_rejects_spoofed_position_and_alias_starters(hub_db, known_pl
     league, home, away = league_pair(hub_db)
     monkeypatch.setattr(scoring, "nfl_week_slate_complete", lambda *_args, **_kwargs: True)
     context = correction.correction_context(league["id"], 2026, 1, "identity-owner")
-    with pytest.raises(correction.CorrectionError, match="position-eligible"):
+    with pytest.raises(correction.CorrectionError, match=r"Patrick Mahomes \(QB\) cannot start at WR 1"):
         correction.preview_correction(league["id"], 2026, 1, "identity-owner",
             [{"team_id": home["id"], "players": [saved(position="WR", team="DET", slot="WR1")]}],
             "Correct historical ownership", context["revision"], True, stat_index={"4046": {"passing_yards": 300}})

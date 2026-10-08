@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer, currentCorrectionCandidates } from "./weekCorrectionsPresentation.js";
+import { correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer, currentCorrectionCandidates, correctionChanges, correctionChangeText, groupCorrectionChanges } from "./weekCorrectionsPresentation.js";
+
+test("review lists changes by manager in slot names managers recognize", () => {
+  const slots = correctionSlots({RB:2,K:1,FLEX:1});
+  const before = [{team_id:"a",players:[{player_id:"k",slot:"BN"},{player_id:"rb",slot:"RB2"}]},{team_id:"b",players:[{player_id:"x",slot:"FLEX1"}]}];
+  const after = [{team_id:"a",players:[{player_id:"k",slot:"K1"},{player_id:"rb",slot:"BN"}]},{team_id:"b",players:[]}];
+  const groups = groupCorrectionChanges(correctionChanges(before, after));
+  assert.deepEqual(groups.map(group => group.team_id), ["a","b"]);
+  assert.deepEqual(groups[0].changes.map(change => correctionChangeText(change, slots)), ["Bench → K","RB 2 → Bench"]);
+  assert.equal(correctionChangeText(groups[1].changes[0], slots), "FLEX → Removed");
+  assert.equal(correctionChangeText({before:null,after:"BN"}, slots), "Not on roster → Bench");
+});
 import { buildAppPath, parseAppPath } from "../routes.js";
 
 test("missing history stays empty instead of copying current players", () => {

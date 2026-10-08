@@ -99,6 +99,11 @@ def correction_context(league_id, season, week, actor):
             "revision": _digest(state), "standings": _standings(state, state["scores"])}
 
 
+def _slot_label(slot):
+    base = slot.rstrip("0123456789")
+    return f"{base} {slot[len(base):]}" if slot != base else slot
+
+
 def _validate_lineups(state, changes, acknowledge_empty, season, week, *, snapshot=None):
     rules = LeagueRules.model_validate(json.loads(state["league"]["rules_json"]))
     team_ids = {team["id"] for team in state["teams"]}
@@ -108,8 +113,8 @@ def _validate_lineups(state, changes, acknowledge_empty, season, week, *, snapsh
     by_team = {team_id: [row for row in state["lineups"] if row["team_id"] == team_id] for team_id in team_ids}
     for change in changes:
         by_team[change["team_id"]] = change["players"]
-    capacity = hub_scoring._starter_capacity(rules)
-    allowed_slots = set(hub_scoring.starting_slots_from_rules(rules))
+    allowed_slots = set(hub_scoring.starter_slot_ids(rules))
+    team_names = {team["id"]: team.get("name") or "A team" for team in state["teams"]}
     ownership = set()
     entries = []
     for team_id, players in by_team.items():
@@ -135,8 +140,13 @@ def _validate_lineups(state, changes, acknowledge_empty, season, week, *, snapsh
                     raise CorrectionError(str(exc)) from exc
                 if position not in {"QB", "RB", "WR", "TE", "K", "DEF"}:
                     raise CorrectionError("Native scoring does not support this starter position")
-                if slot not in allowed_slots or slot in slots or not hub_scoring.slot_accepts_position(slot, position, rules):
-                    raise CorrectionError("Starter slots must be distinct and position-eligible")
+                name = str((trusted or player).get("player_name") or player_id)
+                if slot not in allowed_slots:
+                    raise CorrectionError(f"{_slot_label(slot)} is not a starter slot in this league")
+                if slot in slots:
+                    raise CorrectionError(f"{team_names[team_id]} has two starters at {_slot_label(slot)}. Move one to the bench.")
+                if not hub_scoring.slot_accepts_position(slot, position, rules):
+                    raise CorrectionError(f"{name} ({position}) cannot start at {_slot_label(slot)}")
                 slots.add(slot)
             metadata = trusted or player
             entries.append({"team_id": team_id, "player_id": player_id,
