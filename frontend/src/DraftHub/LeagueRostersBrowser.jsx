@@ -79,7 +79,8 @@ function RosterBoard({
   cacheScope,
   hubContext,
   onNavigateTrade,
-  onOpenContractHistory
+  onOpenContractHistory,
+  revisionToken = 0
 }) {
   const [initial] = useState(() => readRosterState(leagueId));
   const mobileLayout = useMobileLayout();
@@ -139,6 +140,12 @@ function RosterBoard({
       request.current++;
     };
   }, [load]);
+  const seenRevision = useRef(revisionToken);
+  useEffect(() => {
+    if (revisionToken === seenRevision.current) return;
+    seenRevision.current = revisionToken;
+    load();
+  }, [revisionToken, load]);
   const blocks = useMemo(() => [...(overview?.teams || [])].filter(b => b?.team?.id).sort((a, b) => ownerLine(a.team).localeCompare(ownerLine(b.team))), [overview]);
   const rows = useMemo(() => rosterBoardRows(blocks, {
     view,

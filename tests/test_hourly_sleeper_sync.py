@@ -58,6 +58,7 @@ def test_hourly_runner_isolates_failures_and_clears_successful_cache(hub_db, mon
     monkeypatch.setattr(
         "src.draft_hub.cap_sheet_import.sync_league_rosters_and_contracts", fake_sync
     )
+    monkeypatch.setattr(sleeper_sync_ticker, "_league_fingerprint", lambda _league_id: None)
     monkeypatch.setattr("app.hub_routes._clear_league_rosters_cache", cleared.append)
     monkeypatch.setattr("app.hub_routes._clear_insights_response_cache", cleared.append)
 

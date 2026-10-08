@@ -160,7 +160,7 @@ function TradePlayerRow({
   </li>;
 }
 
-export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheScope }) {
+export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheScope, onChanged, revisionToken = 0 }) {
   const usesSalaries = leagueUsesSalaries(hubContext);
   const [tab, setTab] = useState("builder");
   const [builderStep, setBuilderStep] = useState("partner");
@@ -393,6 +393,16 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     boot(controller.signal);
     return () => controller.abort();
   }, [boot]);
+
+  const seenRevision = useRef(revisionToken);
+  useEffect(() => {
+    if (revisionToken === seenRevision.current) return undefined;
+    seenRevision.current = revisionToken;
+    const controller = new AbortController();
+    Promise.all([loadProposals(controller.signal), loadRosters(controller.signal)]).catch(() => {});
+    return () => controller.abort();
+  }, [revisionToken, loadProposals, loadRosters]);
+  const notifyChanged = () => Promise.resolve(onChanged?.()).catch(() => {});
 
   const needsWeekPreview = tab === "inbox";
   useEffect(() => {
@@ -707,6 +717,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       invalidateInsightsAfterCapSync(leagueId);
       await loadProposals();
       await loadRosters();
+      notifyChanged();
     } catch (e) {
       setError(e.message || "Response failed");
     } finally {
@@ -732,6 +743,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       invalidateInsightsAfterCapSync(leagueId);
       await loadProposals();
       await loadRosters();
+      notifyChanged();
     } catch (e) {
       setError(e.message || "Force apply failed");
     } finally {
@@ -764,6 +776,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       invalidateInsightsAfterCapSync(leagueId);
       await loadProposals();
       await loadRosters();
+      notifyChanged();
     } catch (e) { setError(e.message); }
     finally { setBusy(""); }
   };

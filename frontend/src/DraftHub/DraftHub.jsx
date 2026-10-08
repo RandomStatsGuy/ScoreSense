@@ -26,6 +26,8 @@ import {
   clearHubDataCache,
   getCachedPool,
   invalidateFreshnessCache,
+  invalidateInsightsAfterCapSync,
+  invalidateRoomSnapshot,
   mergePoolAndOverlay,
   poolPayloadFromSheet,
   runValueSheetRequest,
@@ -39,6 +41,7 @@ import { isPickDraft } from "./draftEntryStatus";
 import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
 import { TeamIdentityProvider } from "./TeamIdentityContext";
 import { shouldApplyWorkspaceSave } from "./rulesPresentation";
+import useLeagueRevision from "./useLeagueRevision";
 
 const LeagueInsights = lazy(fantasyPageModules.insights);
 const StrategyBoard = lazy(fantasyPageModules.value);
@@ -98,6 +101,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [leagueSyncMessage, setLeagueSyncMessage] = useState("");
   const [leagueSyncError, setLeagueSyncError] = useState("");
   const [weekReloadToken, setWeekReloadToken] = useState(0);
+  const [leagueRevisionToken, setLeagueRevisionToken] = useState(0);
   const dataRevision = useDataRevision();
   useEffect(() => {
     if (!dataRevision) return;
@@ -307,21 +311,21 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     }
   }, [loadValueOverlay, applyHubContext, poolScope]);
 
-  const refreshRoster = useCallback(async (signal) => {
-    setRosterLoading(true);
+  const refreshRoster = useCallback(async (signal, { quiet = false } = {}) => {
+    if (!quiet) setRosterLoading(true);
     try {
       const rows = await loadRoster(signal);
       if (!signal?.aborted) setRoster(rows);
       return rows;
     } catch (e) {
-      if (isAbortError(e)) return null;
+      if (isAbortError(e) || quiet) return null;
       const msg = connectionErrorMessage(e);
       if (!/sign in|login required|401/i.test(msg)) {
         setError(msg);
       }
       return null;
     } finally {
-      if (!signal?.aborted) setRosterLoading(false);
+      if (!quiet && !signal?.aborted) setRosterLoading(false);
     }
   }, [loadRoster]);
 
@@ -512,8 +516,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     await refreshOverlayOnly(wsRes?.season, wsRes?.rules);
   }, [applyHubContext, loadCapSheet, loadHubContext, loadWorkspace, refreshOverlayOnly, refreshRoster]);
 
-  const onRosterChanged = useCallback(async () => {
-    await refreshRoster();
+  const reloadRosterData = useCallback(async ({ quiet = false } = {}) => {
+    await refreshRoster(undefined, { quiet });
     const tab = subViewRef.current;
     const inLeague = hubContext?.mode === "league";
     if (inLeague || TABS_NEED_CAP_SHEET.has(tab)) {
@@ -527,6 +531,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       setValueSheet(null);
     }
   }, [hubContext?.mode, loadCapSheet, refreshOverlayOnly, refreshRoster, workspace?.rules, workspace?.season]);
+  const onRosterChanged = useCallback(() => reloadRosterData(), [reloadRosterData]);
 
   const onOfficeChanged = useCallback(async (maybeCtx) => {
     if (maybeCtx?.mode) applyHubContext(maybeCtx);
@@ -627,6 +632,18 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const effectiveCtx = effectiveHubContext(hubContext, workspace);
   const valueRows = valueSheet?.rows ?? EMPTY_VALUE_ROWS;
   const valueSleeper = valueSheet?.sleeper ?? workspace;
+
+  // Trades, Sleeper syncs and other managers change rosters outside this tab.
+  const watchedLeagueId = active && !demoMode && effectiveCtx?.mode === "league" && !effectiveCtx?.test_mode
+    ? effectiveCtx.league_id || ""
+    : "";
+  const onLeagueRevision = useCallback(() => {
+    invalidateInsightsAfterCapSync(watchedLeagueId);
+    invalidateRoomSnapshot(watchedLeagueId);
+    setLeagueRevisionToken((n) => n + 1);
+    reloadRosterData({ quiet: true }).catch(() => {});
+  }, [watchedLeagueId, reloadRosterData]);
+  useLeagueRevision(watchedLeagueId, onLeagueRevision);
 
   useEffect(() => {
     if (subView !== "insights" || !effectiveCtx) return;
@@ -858,6 +875,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           requestedTeam={searchParams.get("matchupTeam")}
           hubContext={effectiveCtx}
           reloadToken={weekReloadToken}
+          revisionToken={leagueRevisionToken}
           onSynced={async (result) => {
             if (result?.hub_context) applyHubContext(result.hub_context);
             const lid = effectiveCtx?.league_id;
@@ -909,6 +927,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
             hubContext={effectiveCtx}
             onNavigateTrade={() => setSubView("trades")}
             onOpenContractHistory={onOpenContractHistory}
+            revisionToken={leagueRevisionToken}
           />
         ) : (
           <HubPage>
@@ -930,6 +949,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           cacheScope={user?.sub || (!authenticated ? "local" : null)}
           leagueId={effectiveCtx.league_id}
           hubContext={effectiveCtx}
+          onChanged={onRosterChanged}
+          revisionToken={leagueRevisionToken}
           onNavigate={(view) => {
             if (view === "office-members") return goToOfficeTab("members");
             return setSubView(view);
