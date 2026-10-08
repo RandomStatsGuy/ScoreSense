@@ -4561,6 +4561,13 @@ def hub_league_freshness(
     return payload
 
 
+@router.get("/league/{league_id}/revision")
+def hub_league_revision(league_id: str, _user=Depends(require_hub_user)) -> dict:
+    """Polled by open Fantasy pages; a higher live_roster_revision means rosters or cap changed."""
+    _assert_league_access(league_id, _sub(_user))
+    return storage.league_cache_revisions(league_id)
+
+
 class ContractSyncBody(BaseModel):
     snapshot_phases: Optional[dict[str, str]] = None
     reconcile_sleeper: bool = True

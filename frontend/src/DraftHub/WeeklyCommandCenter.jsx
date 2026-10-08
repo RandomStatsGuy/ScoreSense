@@ -49,6 +49,7 @@ export default function WeeklyCommandCenter({
   onNavigateSetup,
   onNavigate,
   reloadToken,
+  revisionToken = 0,
   requestedWeek,
   embedded = false,
   onLineupChanged,
@@ -129,6 +130,18 @@ export default function WeeklyCommandCenter({
     load(ctrl.signal);
     return () => { ctrl.abort(); readVersion.current += 1; };
   }, [load, hubContext?.league_id, hubContext?.team_id, hubContext?.mode, reloadToken, scoringVersion]);
+
+  // Roster changes from elsewhere refresh in place; the lineup stays on screen.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  const seenRevision = useRef(revisionToken);
+  useEffect(() => {
+    if (revisionToken === seenRevision.current) return undefined;
+    seenRevision.current = revisionToken;
+    const ctrl = new AbortController();
+    loadRef.current(ctrl.signal, { background: true });
+    return () => ctrl.abort();
+  }, [revisionToken]);
 
   const runSync = useCallback(async () => {
     const endpoint = data?.sync?.sync_endpoint;

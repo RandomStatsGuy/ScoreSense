@@ -35,7 +35,7 @@ _SKIPS = frozenset({"current", "skipped", "not_due", "offseason", "already_runni
 _REASONS = _STATUS | {"no_material_change", "settings_changed", "no_stats", "refresh_failed"}
 # High-frequency no-op outcomes count in hourly buckets only, so they cannot
 # push every other job's retained runs out of the bounded history.
-_AGGREGATE_ONLY = frozenset({("draft_clock", "unchanged")})
+_AGGREGATE_ONLY = frozenset({("draft_clock", "unchanged"), ("sleeper_rosters.check", "unchanged")})
 _COUNTS = frozenset({"checked", "changed", "prepared", "current", "failed", "completed",
     "synced", "unavailable", "rows", "players", "recomputed_players", "skipped", "upcoming",
     "added", "updated", "waived", "trades_applied", "attempts", "recipients"})
