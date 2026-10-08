@@ -2,10 +2,20 @@ import pytest
 
 from src.draft_hub import storage, hub_scoring, week_corrections as corrections
 from src.draft_hub.schemas import LeagueRules
+from src.draft_hub import native_stats
 
 
 @pytest.fixture
-def recovery(hub_db, monkeypatch):
+def recovery(hub_db, monkeypatch, trusted_native_roster_rows):
+    trusted_native_roster_rows("past-qb", name="Drake Maye", team="NE", position="QB")
+    trusted_native_roster_rows("other-qb", team="DAL", position="QB")
+    trusted_native_roster_rows("duplicate", team="NE", position="QB")
+    monkeypatch.setattr(native_stats, "get_week_snapshot", lambda *args: {
+        "complete": hub_scoring.nfl_week_slate_complete(*args),
+        "stats": hub_scoring.load_week_stat_index(*args)})
+    monkeypatch.setattr(native_stats, "cached_week_snapshot", lambda *_: None)
+    monkeypatch.setattr(native_stats, "resolve_lineup_stats", lambda row, snapshot:
+                        hub_scoring.stats_for_lineup_row(snapshot["stats"], row))
     rules = LeagueRules(draft_type="snake", roster={"qb": {"starter": 1, "max": 3}}, roster_size_max=3)
     league = storage.create_league("commissioner", "Recovery", 2026, rules)
     home = storage.get_team_by_user(league["id"], "commissioner")
@@ -151,13 +161,46 @@ def test_native_singleton_slots_can_be_previewed(recovery, slot):
     recovery[3][0]["players"][0]["slot"] = slot
     result = preview(recovery)
     assert result["can_publish"]
-    assert all(row["slot"] == "QB1" for row in result["player_scores"])
+    assert all(row["slot"] == "QB" for row in result["player_scores"])
 
 
 def test_mixed_slot_aliases_still_reject_duplicate_starters(recovery):
     recovery[3][0]["players"].append({"player_id":"duplicate", "position":"QB", "slot":"QB"})
-    with pytest.raises(corrections.CorrectionError, match="distinct"):
+    with pytest.raises(corrections.CorrectionError, match="two starters at QB"):
         preview(recovery)
+
+
+@pytest.fixture
+def two_back_league(recovery, trusted_native_roster_rows):
+    league_id, home, away, _ = recovery
+    for player_id, position in [("rb-a", "RB"), ("rb-b", "RB"), ("wr-a", "WR"), ("rb-c", "RB"), ("rb-d", "RB"), ("wr-b", "WR")]:
+        trusted_native_roster_rows(player_id, name=player_id.upper(), team="NE", position=position)
+    league = storage.get_league(league_id)
+    rules = {**league["rules"], "roster": {"qb": {"starter": 1, "max": 3}, "rb": {"starter": 2, "max": 4},
+                                           "flex": {"starter": 1, "eligible": ["RB", "WR", "TE"]}},
+             "roster_size_max": 8}
+    storage.update_league_rules(league_id, LeagueRules.model_validate(rules))
+
+    def lineup(qb, rb1, rb2, flex):
+        return [{"player_id": qb, "position": "QB", "slot": "QB1"},
+                {"player_id": rb1, "position": "RB", "slot": "RB1"},
+                {"player_id": rb2, "position": "RB", "slot": "RB2"},
+                {"player_id": flex, "position": "WR", "slot": "FLEX1"}]
+    return league_id, home, away, [{"team_id": home, "players": lineup("past-qb", "rb-a", "rb-b", "wr-a")},
+                                   {"team_id": away, "players": lineup("other-qb", "rb-c", "rb-d", "wr-b")}]
+
+
+def test_repeated_position_slots_can_be_corrected(two_back_league):
+    result = preview(two_back_league)
+    assert {row["slot"] for row in result["after"]["lineups"] if row["team_id"] == two_back_league[1]} == {"QB", "RB1", "RB2", "FLEX"}
+
+
+def test_ineligible_starter_error_names_player_and_slot(two_back_league):
+    two_back_league[3][0]["players"][3]["slot"] = "RB2"
+    two_back_league[3][0]["players"][2]["slot"] = "BN"
+    two_back_league[3][0]["players"][3]["position"] = "WR"
+    with pytest.raises(corrections.CorrectionError, match=r"WR-A \(WR\) cannot start at RB 2"):
+        preview(two_back_league)
 
 
 def test_current_players_are_suggestions_not_historical_lineups(recovery, monkeypatch):
@@ -179,9 +222,9 @@ def lineup_preview(recovery):
 
 
 def test_lineup_repair_before_slate_ends_without_statistics(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
     monkeypatch.setattr(hub_scoring, "load_week_stat_index", lambda *args: pytest.fail("Lineup repair must not load stats"))
-    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda team, *args: team == "NE")
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda team, *args, **kwargs: team == "NE")
     recovery[3][0]["players"][0]["nfl_team"] = "NE"
     recovery[3][1]["players"][0]["nfl_team"] = "DAL"
     storage.replace_team_lineup(recovery[0], recovery[1], 2026, 2,
@@ -203,7 +246,7 @@ def test_lineup_repair_before_slate_ends_without_statistics(recovery, monkeypatc
 
 
 def test_lineup_only_audit_allows_subsequent_scoring_and_final_correction(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args, **kwargs: False)
     result = lineup_preview(recovery)
     publish(recovery[0], result)
     scoring = storage.get_league(recovery[0])["rules"]["scoring"]
@@ -219,7 +262,7 @@ def test_lineup_only_audit_allows_subsequent_scoring_and_final_correction(recove
 
 
 def test_lineup_only_repair_rejects_stale_preview_and_unauthorized_actor(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda *args, **kwargs: False)
     result = lineup_preview(recovery)
     with pytest.raises(PermissionError):
         corrections.publish_correction(recovery[0], 2026, 1, "manager", result["id"],
@@ -231,7 +274,7 @@ def test_lineup_only_repair_rejects_stale_preview_and_unauthorized_actor(recover
 
 
 def test_final_results_still_require_completed_slate(recovery, monkeypatch):
-    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args: False)
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *args, **kwargs: False)
     result = preview(recovery)
     assert not result["can_publish"]
     with pytest.raises(corrections.CorrectionError, match="not complete"):

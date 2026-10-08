@@ -35,22 +35,22 @@ def test_worker_shares_stats_and_isolates_failure(hub_db, monkeypatch):
     # This fixture represents a played week, independent of today's NFL clock.
     monkeypatch.setattr(hs, 'nfl_week_started', lambda *a, **kw: True)
     rules = {'scoring': ScoringRules().model_dump()}
-    monkeypatch.setattr(storage, 'get_league', lambda lid: {'draft_completed': True, 'rules': rules})
+    monkeypatch.setattr(storage, 'get_league', lambda lid: {'id': lid, 'draft_completed': True, 'rules': rules})
     monkeypatch.setattr(storage, 'get_week_scoring_run', lambda *a: None)
     calls = []
-    monkeypatch.setattr(hs, 'load_week_stat_index', lambda *a: calls.append(a) or {'p': {'passing_yards': 100}})
+    monkeypatch.setattr(refresh, 'get_week_snapshot', lambda *a, **kw: calls.append(a) or {'stats': {'p': {'passing_yards': 100}}})
     applied = []
-    def apply(lid, *a, **kw):
+    def apply(league, *a, **kw):
         applied.append(kw)
-        if lid == 'bad':
+        if league["id"] == 'bad':
             raise hs.LineupError('incomplete statistics')
         return {'scored': True}
-    monkeypatch.setattr(hs, 'apply_week_scores', apply)
+    monkeypatch.setattr(refresh, 'refresh_league_week', apply)
     for lid in ['bad', 'good']:
         refresh.request_refresh(lid, 2026, 4)
     assert refresh.refresh_pending_scores() == {'completed': 1, 'failed': 1}
     assert len(calls) == 1
-    assert all(k['automatic'] and k['slate_complete'] is False for k in applied)
+    assert all(k['automatic'] and k['refresh_lease'] for k in applied)
     assert refresh.refresh_status('bad', 2026, 4)['error'] == 'refresh_failed'
 
 
@@ -81,7 +81,7 @@ def test_ticker_disabled_and_cancellation(monkeypatch):
     async def cancel(*args):
         calls.append('worker')
         raise asyncio.CancelledError()
-    monkeypatch.setattr(ticker, 'submit_cpu_job', cancel)
+    monkeypatch.setattr(ticker, 'submit_live_job', cancel)
     async def run():
         import pytest
         with pytest.raises(asyncio.CancelledError):
@@ -110,6 +110,7 @@ def test_scheduler_uses_active_games_and_reads_schedule_once_per_context(hub_db,
     monkeypatch.setattr(storage,'get_week_scoring_run',lambda *a:None)
     games = Mock(return_value={'KC':{'game_state':'pregame'}})
     request = Mock()
+    monkeypatch.setattr('src.draft_hub.native_stats.cached_week_snapshot',lambda *_:None)
     monkeypatch.setattr(game_center,'cached_game_states',games)
     monkeypatch.setattr(refresh,'request_refresh',request)
     refresh.queue_current_native_weeks()

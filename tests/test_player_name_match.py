@@ -39,3 +39,20 @@ def test_names_likely_same_typo():
 
 def test_pick_canonical_name():
     assert pick_canonical_name(["A. Eckler", "A. Ekeler"]) == "A. Ekeler"
+
+def test_bounded_name_distance_preserves_every_matching_threshold():
+    from itertools import product
+    from src.draft_hub.player_name_match import _edit_distance
+    def reference(a, b):
+        previous = list(range(len(b) + 1))
+        for i, ca in enumerate(a, 1):
+            current = [i]
+            for j, cb in enumerate(b, 1):
+                current.append(min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (ca != cb)))
+            previous = current
+        return previous[-1]
+    names = [''.join(chars) for n in range(1, 5) for chars in product('ab', repeat=n)]
+    names += ['ekeler', 'eckler', 'jefferson', 'jackson', 'robinson', 'robson', 'smith', 'smyth']
+    for a in names:
+        for b in names:
+            assert min(_edit_distance(a, b), 3) == min(reference(a, b), 3), (a, b)

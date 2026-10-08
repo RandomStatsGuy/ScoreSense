@@ -78,7 +78,6 @@ export default function AppRouter() {
       <Route path="/hub/insights/trades" element={<Navigate to="/hub/trades" replace />} />
       <Route path="/hub/insights/desk" element={<Navigate to="/hub/roster-management/contracts" replace />} />
       <Route path="/hub/insights/salaries" element={<Navigate to="/hub/roster-management/sheets" replace />} />
-      <Route path="/hub/insights/contracts" element={<Navigate to="/hub/roster-management/sheets" replace />} />
       <Route path="/hub/live" element={<Navigate to="/hub/game" replace />} />
       <Route path="/hub/my-team" element={<Navigate to="/hub/roster" replace />} />
       <Route path="/hub/game-center" element={<Navigate to="/hub/game" replace />} />
@@ -90,7 +89,8 @@ export default function AppRouter() {
       <Route path="/hub/office" element={<Navigate to="/hub/roster-management/contracts" replace />} />
       <Route path="/hub/roster-management/:officeTab" element={<App />} />
       <Route path="/hub/roster-management" element={<Navigate to="/hub/roster-management/contracts" replace />} />
-      <Route path="/hub/insights/:insightTab" element={<App />} />
+      {/* Keep the Fantasy workspace mounted when entering or leaving Insights. */}
+      <Route path="/hub/insights/:insightTab" element={<HubTabOrHome />} />
       <Route path="/hub/insights" element={<Navigate to="/hub/insights/overview" replace />} />
       <Route path="/hub/:tab" element={<HubTabOrHome />} />
       <Route path="/hub" element={<Navigate to="/hub/home" replace />} />

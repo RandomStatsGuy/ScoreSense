@@ -166,11 +166,11 @@ export function formatPtsDelta(value) {
   return abs;
 }
 
-export function storageKey({ leagueId, season, week } = {}) {
-  const league = String(leagueId || "solo");
+export function storageKey({ cacheScope, leagueId, teamId, season, week } = {}) {
+  const league = `${leagueId || "solo"}${teamId ? `:${teamId}` : ""}`;
   const yr = season == null ? "na" : String(season);
   const wk = week == null ? "na" : String(week);
-  return `ss_vibe_aura_${league}_${yr}_${wk}`;
+  return `ss_vibe_aura_${cacheScope ? `${cacheScope}:` : ""}${league}_${yr}_${wk}`;
 }
 
 export function loadAura(key) {
@@ -261,4 +261,33 @@ export function playersLeftToday(players, votes) {
 
 export function todayRatedCount(players, votes) {
   return (players || []).length - playersLeftToday(players, votes).length;
+}
+
+/** Rebase actions made during a server read onto its authoritative starting scores. */
+export function replayPendingVibes(initial, remote, operations) {
+  let next = { ...initial, auraById: Object.keys(remote || {}).length ? { ...remote } : { ...initial.auraById } };
+  for (const operation of operations) {
+    next = operation.undo ? undoPlayerVibe(next, operation.now) : recordPlayerVibe(next, operation.id, operation.vibe, operation.now);
+  }
+  return next;
+}
+
+/** One daily rating, with exact Undo even at the 0/99 limits. */
+export function recordPlayerVibe(state, playerId, vibe, now = new Date()) {
+  const id = String(playerId || "");
+  const dayVotes = normalizeDayVotes(state.dayVotes, now);
+  if (!id || !VIBE_DELTA[vibe] || Object.hasOwn(dayVotes.votes, id)) return state;
+  return { ...state, auraById: applyVibe(state.auraById, id, vibe),
+    dayVotes: recordDayVote(dayVotes, id, vibe, now),
+    history: [...(state.dayVotes?.date === dayVotes.date ? state.history || [] : []),
+      { playerId: id, priorAura: state.auraById?.[id], hadAura: Object.hasOwn(state.auraById || {}, id) }],
+  };
+}
+
+export function undoPlayerVibe(state, now = new Date()) {
+  const last = state.history?.at(-1);
+  if (!last || state.dayVotes?.date !== calendarDay(now)) return state;
+  const auraById = { ...state.auraById };
+  if (last.hadAura) auraById[last.playerId] = last.priorAura; else delete auraById[last.playerId];
+  return { ...state, auraById, dayVotes: clearDayVote(state.dayVotes, last.playerId, now), history: state.history.slice(0, -1) };
 }

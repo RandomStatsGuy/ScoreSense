@@ -3,6 +3,10 @@ import test from "node:test";
 
 import {
   clearHubDataCache,
+  clearInsightsSectionCache,
+  insightsBootstrapValid,
+  getInsightsSection,
+  setInsightsSection,
   getCachedPool,
   getRoomSnapshot,
   getWeeklySnapshot,
@@ -194,4 +198,20 @@ test("successful hub writes and logout invalidate roster reads through apiFetch"
     else globalThis.localStorage = originalStorage;
     invalidateLeagueRosterRequests();
   }
+});
+
+test("identity changes invalidate a previous Insights bootstrap", () => {
+  const at = Date.now() - 10;
+  assert.ok(insightsBootstrapValid("mapping-test", at));
+  clearInsightsSectionCache("mapping-test");
+  assert.equal(insightsBootstrapValid("mapping-test", at), false);
+  assert.ok(insightsBootstrapValid("mapping-other", at));
+});
+
+test("name-link invalidation keeps other leagues' saved Insights warm", () => {
+  setInsightsSection("link-a", "overview", "current", { name: "old" });
+  setInsightsSection("link-b", "overview", "current", { name: "other league" });
+  clearInsightsSectionCache("link-a");
+  assert.equal(getInsightsSection("link-a", "overview"), null);
+  assert.deepEqual(getInsightsSection("link-b", "overview"), { name: "other league" });
 });

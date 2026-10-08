@@ -231,7 +231,7 @@ test("canEditHubLineup is league-only and unlocked", () => {
       lineupLocked: true,
       isCommissioner: true,
     }),
-    true,
+    false,
   );
   assert.equal(
     canEditHubLineup({
@@ -243,7 +243,7 @@ test("canEditHubLineup is league-only and unlocked", () => {
     }),
     false,
   );
-  assert.match(WEEK_BOARD_COPY.staffLineupOpen, /until the week is calculated/i);
+  assert.equal(canEditHubLineup({ mode: "league", lineupSource: "hub", lineupLocked: false, weekScored: true }), true);
 });
 
 test("empty skill slot with a bench fit starts that player instead of leaving This Week", () => {

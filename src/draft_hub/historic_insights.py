@@ -89,8 +89,8 @@ def _active_contract_rows(
     view: str = "snapshot",
 ) -> list[dict[str, Any]]:
     if season_year is not None:
-        return active_merged_contract_rows(league_id, season_year, view=view)
-    return active_merged_contract_rows(league_id, None, view=view)
+        return active_merged_contract_rows(league_id, season_year, view=view, saved_only=True)
+    return active_merged_contract_rows(league_id, None, view=view, saved_only=True)
 
 
 def _all_merged_rows(
@@ -99,7 +99,7 @@ def _all_merged_rows(
     *,
     view: str = "snapshot",
 ) -> list[dict[str, Any]]:
-    rows = list_merged_contract_rows(league_id, season_year=season_year, view=view)
+    rows = list_merged_contract_rows(league_id, season_year=season_year, view=view, saved_only=True)
     return [r for r in rows if _displayable_contract_row(r) or str(r.get("roster_status") or "") == "cut"]
 
 
@@ -306,7 +306,7 @@ def build_contract_player_profiles(
     season_year: int | None = None,
 ) -> list[dict[str, Any]]:
     """Per-player career stats from commissioner contract rows."""
-    rows = _active_contract_rows(league_id, season_year=season_year)
+    rows = active_merged_contract_rows(league_id, season_year, saved_only=True)
     by_cluster: dict[str, list[dict[str, Any]]] = defaultdict(list)
     cluster_names: dict[str, str] = {}
     for row in rows:
@@ -314,7 +314,7 @@ def build_contract_player_profiles(
         if not ck:
             continue
         merged_key = ck
-        for existing_key, rep in cluster_names.items():
+        for existing_key, rep in (() if ck in cluster_names else cluster_names.items()):
             pos = ck.split(":", 1)[1]
             if existing_key.split(":", 1)[1] != pos:
                 continue
@@ -1030,7 +1030,7 @@ def build_current_spend_awards(
             amount=float(top.get("cap_hit") or 0),
             detail="Current roster · league-high salary",
             tone="gold",
-            year_specific=False,
+            year_specific=True,
         )
     )
 
@@ -1048,7 +1048,7 @@ def build_current_spend_awards(
                 title=award_title("most_overpaid"),
                 headline=f"+{fmt_sal_short(premium)} over {row.get('position')} market",
                 player_name=row.get("player_name"),
-                **_team_award_fields(league_id, row, year_specific=False),
+                **_team_award_fields(league_id, row, year_specific=True),
                 position=_row_position(row),
                 amount=float(row.get("cap_hit") or 0),
                 detail="Live roster · worst $ vs position average",
@@ -1072,7 +1072,7 @@ def build_current_spend_awards(
                 title=award_title("best_bargain"),
                 headline=f"{fmt_sal_short(discount)} below market",
                 player_name=row.get("player_name"),
-                **_team_award_fields(league_id, row, year_specific=False),
+                **_team_award_fields(league_id, row, year_specific=True),
                 position=_row_position(row),
                 amount=float(row.get("cap_hit") or 0),
                 detail="Live roster · best discount vs peers",
@@ -1093,7 +1093,7 @@ def build_current_spend_awards(
                 amount=float(payroll.get("committed") or 0),
                 detail="Most cap tied up today",
                 tone="gold",
-                year_specific=False,
+                year_specific=True,
             )
         )
 
@@ -1109,7 +1109,7 @@ def build_current_spend_awards(
                 amount=float(tightest.get("unspent") or 0),
                 detail="Tightest cap room in the league",
                 tone="bad",
-                year_specific=False,
+                year_specific=True,
             )
         )
 

@@ -88,6 +88,8 @@ export const GAME_CENTER_COPY = {
 };
 
 export function nativeScoreRefreshMessage(data) {
+  if (data?.scoring_status === "error" || data?.scoring_errors?.length) return data?.scoring_errors?.some(message => /starting lineups|historical.*lineup/i.test(message)) ? LEAGUE_SCORING_CONTROL_COPY.missingLineups : LEAGUE_SCORING_CONTROL_COPY.unavailable;
+  if (data?.scoring_status === "pending") return LEAGUE_SCORING_CONTROL_COPY.pending;
   const refresh = data?.scoring_control?.refresh;
   if (data?.scoring_control?.final) return "";
   if (data?.scoring_control?.week_started === false && !data.scoring_control.scored && refresh?.error !== "settings_changed") {
@@ -101,6 +103,7 @@ export function nativeScoreRefreshMessage(data) {
 }
 
 export function nativeScoreRefreshVariant(data) {
+  if (data?.scoring_status === "error" || data?.scoring_errors?.length) return "warn";
   const control = data?.scoring_control;
   const upcoming = control?.week_started === false && !control.scored && control.refresh?.error !== "settings_changed";
   return !upcoming && control?.refresh?.status === "failed" ? "warn" : "info";
@@ -201,10 +204,29 @@ export function duelRows(viewer, opponent, startingSlots = []) {
   const theirs = opponent?.starters || [];
   const count = Math.max(mine.length, theirs.length, startingSlots.length);
   const rows = [];
+  const totals = {};
+  const occurrences = {};
+  startingSlots.forEach((slot) => { const base = String(slot).toUpperCase().replace(/\d+$/, ""); totals[base] = (totals[base] || 0) + 1; });
+  const slotIds = startingSlots.map((slot) => {
+    const label = String(slot).toUpperCase();
+    const base = label.replace(/\d+$/, "");
+    occurrences[base] = (occurrences[base] || 0) + 1;
+    return /\d+$/.test(label) ? label : totals[base] > 1 ? `${base}${occurrences[base]}` : base;
+  });
+  const atSlot = (players, index) => {
+    if (!players.some((player) => player?.slot)) return players[index] || null;
+    const id = slotIds[index];
+    return players.find((player) => {
+      const slot = String(player?.slot || "").toUpperCase();
+      const base = slot.replace(/\d+$/, "");
+      return slot === id || (totals[base] === 1 && base === id);
+    }) || null;
+  };
   for (let i = 0; i < count; i += 1) {
-    const home = mine[i] || null;
-    const away = theirs[i] || null;
+    const home = atSlot(mine, i);
+    const away = atSlot(theirs, i);
     if (
+      !startingSlots[i] &&
       !duelSlotFilled(home) &&
       !duelSlotFilled(away) &&
       !home?.sleeper_player_id &&
@@ -215,8 +237,9 @@ export function duelRows(viewer, opponent, startingSlots = []) {
       continue;
     }
     rows.push({
-      key: `${home?.sleeper_player_id || "x"}-${away?.sleeper_player_id || "x"}-${i}`,
+      key: slotIds[i] || `${home?.player_id || home?.sleeper_player_id || "x"}-${away?.player_id || away?.sleeper_player_id || "x"}-${i}`,
       slot: startingSlots[i] || home?.position || away?.position || "—",
+      slot_id: slotIds[i],
       home,
       away,
     });
@@ -635,7 +658,11 @@ export const LEAGUE_SCORING_CONTROL_COPY = {
   failed: "Scoring could not be calculated.",
   native: "Scored in ScoreSense",
   sleeper: "Scored in Sleeper",
-  nativeHelp: "Set lineups in This Week. This Week updates scores as weekly NFL stats arrive. Recalculate if you need a fresh snapshot. Lineups lock when the week is calculated after the last game.",
+  nativeHelp: "Set lineups in This Week. Players lock at kickoff. Live scores remain provisional until complete statistics finalize the week.",
+  live: "Live scores are provisional. Standings update when the week is finalized.",
+  pending: "Games have finished. Waiting for complete, stable statistics before finalizing results.",
+  unavailable: "Score updates are unavailable. The last successful scores remain provisional; results will retry automatically.",
+  missingLineups: "Starting lineups are missing for this week. A commissioner must review them before results can be finalized.",
   sleeperHelp: "Sleeper owns scoring settings, lineups, live scores, and corrections. ScoreSense displays those results; local calculations cannot overwrite them.",
   projections: "Forecasts remain PPR-based and are separate from recorded league points.",
   calculate: "Calculate week",

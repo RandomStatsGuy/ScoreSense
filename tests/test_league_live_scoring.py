@@ -13,6 +13,7 @@ from src.draft_hub.league_live_scoring import (
     _attach_hub_team_names,
     _live_cache_is_fresh,
     attach_matchup_analytics,
+    assign_standings_ranks,
     build_hub_placeholder_week,
     build_sleeper_live_week,
     estimate_team_final,
@@ -655,6 +656,21 @@ def hub_client():
         app.dependency_overrides.pop(require_hub_user, None)
 
 
+def test_unplayed_standings_display_is_stable_without_changing_competitive_order():
+    rows = [
+        {"hub_team_id": "aaa", "team_name": "Zebra Squad", "wins": 0, "losses": 0, "points_for": 0},
+        {"hub_team_id": "zzz", "team_name": "Commissioner", "wins": 0, "losses": 0, "points_for": 0},
+    ]
+    for entries in (rows, list(reversed(rows))):
+        standings = assign_standings_ranks(entries)
+        assert [row["team_name"] for row in standings] == ["Commissioner", "Zebra Squad"]
+        assert all(row["rank"] is None for row in standings)
+    played = assign_standings_ranks([{**rows[0], "wins": 2}, {**rows[1], "wins": 1}])
+    assert [row["hub_team_id"] for row in played] == ["aaa", "zzz"]
+    assert [row["rank"] for row in played] == [1, 2]
+    assert all("rank" not in row for row in rows)
+
+
 def test_live_scoring_route_no_sleeper(hub_client, hub_db, monkeypatch):
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
     monkeypatch.setattr(
@@ -671,7 +687,8 @@ def test_live_scoring_route_no_sleeper(hub_client, hub_db, monkeypatch):
     assert body["placeholder"] is True
     assert body["preseason"] is False
     assert body["reason"] == "hub_unscored"
-    assert body["hint"] == "Scores update as weekly NFL stats arrive."
+    assert body["hint"] == "Scores appear when this week's games begin."
+    assert body["scoring_control"]["final"] is False
     assert body["week"] == 2
     assert len(body["matchups"]) == 1
     names = {team["team_name"] for team in body["matchups"][0]["teams"]}

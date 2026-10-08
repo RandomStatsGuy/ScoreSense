@@ -230,6 +230,22 @@ COMPOSITE_BOOM_WEIGHT = 0.4
 # Draft season totals: games assumed per player (bye-week MVP)
 GAMES_PER_SEASON = 17
 
+# Native leagues share one raw-stat refresh, independently of Sleeper league
+# scoring. Keep endpoints/configuration here rather than in routes or workers.
+NATIVE_SCORING_REFRESH_SECONDS = max(60, int(os.getenv("NATIVE_SCORING_REFRESH_SECONDS", "60")))
+NATIVE_SCORING_REQUEST_TIMEOUT = max(1, int(os.getenv("NATIVE_SCORING_REQUEST_TIMEOUT", "15")))
+NATIVE_SCORING_FINAL_SETTLE_SECONDS = max(60, int(os.getenv("NATIVE_SCORING_FINAL_SETTLE_SECONDS", "120")))
+NATIVE_SCORING_STATS_URL = os.getenv(
+    "NATIVE_SCORING_STATS_URL",
+    "https://api.sleeper.com/stats/nfl/{season}/{week}?season_type=regular",
+)
+NATIVE_SCORING_SCOREBOARD_URL = os.getenv(
+    "NATIVE_SCORING_SCOREBOARD_URL",
+    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates={season}&seasontype=2&week={week}",
+)
+NATIVE_SCORING_TESTING = os.getenv("TESTING") == "1" or os.getenv("SCORESENSE_TESTING") == "1"
+
+
 # Preseason season-long: optional FP consensus blend in production (eval tunes β per position)
 PRESEASON_FP_BLEND_ENABLED = os.getenv("PRESEASON_FP_BLEND_ENABLED", "false").lower() in (
     "1",
@@ -264,13 +280,18 @@ def write_parquet(df, path) -> None:
     """Write a DataFrame to compressed Parquet."""
     df.to_parquet(path, **PARQUET_WRITE_KWARGS)
 
-DFS_REFRESH_SECONDS = 300
-# Recheck feeds every five minutes; bound automatic reuse of identical forecasts.
+# DFS assembles its pool every 15 minutes, or sooner once a new weekly build lands.
+DFS_REFRESH_SECONDS = 900
+DFS_CHECK_SECONDS = 300
+DFS_SALARY_CACHE_SECONDS = 300
+# Weekly forecasts build on interval boundaries (the top of the hour by default).
 WEEKLY_AUTO_REFRESH_SECONDS = max(900, int(os.getenv("WEEKLY_AUTO_REFRESH_SECONDS", "3600")))
 SEASON_AUTO_REFRESH_SECONDS = max(3600, int(os.getenv("SEASON_AUTO_REFRESH_SECONDS", "86400")))
+# Also the minimum gap before an availability change rebuilds weekly forecasts early.
 PROJECTION_REFRESH_RETRY_SECONDS = 900
 PROJECTION_AUTO_REFRESH_ENABLED = os.getenv("PROJECTION_AUTO_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
-DFS_FORECAST_MAX_AGE_SECONDS = WEEKLY_AUTO_REFRESH_SECONDS
+# Slack for a delayed hourly build; DFS computes on its own only past this age.
+DFS_FORECAST_MAX_AGE_SECONDS = 2 * WEEKLY_AUTO_REFRESH_SECONDS
 NATIVE_SCORING_REFRESH_ENABLED = os.getenv("NATIVE_SCORING_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 DFS_REFRESH_ENABLED = os.getenv("DFS_REFRESH_ENABLED", "true").lower() == "true" and not is_testing()
 

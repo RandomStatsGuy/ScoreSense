@@ -18,6 +18,7 @@ export default function FaBidDialog({
   onRaiseCeiling,
   onPass,
   busy = false,
+  remainingBudget = null,
 }) {
   const amountRef = useRef(null);
   const onPassRef = useRef(onPass);
@@ -25,6 +26,7 @@ export default function FaBidDialog({
   const parsedBid = parseWalkaway(amount);
   const bid = parsedBid ?? 1;
   const cap = parseWalkaway(ceiling);
+  const aboveBudget = remainingBudget != null && parsedBid != null && parsedBid > Number(remainingBudget);
 
   useEffect(() => {
     onPassRef.current = onPass;
@@ -83,6 +85,7 @@ export default function FaBidDialog({
         {blocked ? (
           <p className="hub-fa-bid-warn">{faWalkawayAbove(cap)}</p>
         ) : null}
+        {aboveBudget && <p className="hub-fa-bid-warn" role="status">{FA_BID_COPY.overBudget}</p>}
         <div className="confirm-actions hub-fa-bid-actions">
           <button type="button" className="btn-ghost btn-sm" onClick={onPass} disabled={busy}>
             {FA_BID_COPY.pass}
@@ -100,7 +103,7 @@ export default function FaBidDialog({
           <button
             type="button"
             className="btn-primary"
-            disabled={busy || blocked || parsedBid == null}
+            disabled={busy || blocked || aboveBudget || parsedBid == null}
             onClick={onPlace}
           >
             {busy ? FA_BID_COPY.bidding : FA_BID_COPY.placeBid}

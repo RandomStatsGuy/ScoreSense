@@ -26,6 +26,7 @@ import {
   fillStarterSlots,
   emptySlotAction,
   canEditHubLineup,
+  lineupPlayerLock,
   decisionSwapIds,
   formatDraftNightShort,
   WEEK_BOARD_COPY,
@@ -270,13 +271,15 @@ export default function WeeklyCommandCenter({
     weekScored: meta.week_scored,
     isCommissioner: Boolean(hubContext?.is_commissioner || data?.hub_context?.is_commissioner),
   });
-  const staffLineupOpen = canEdit && Boolean(meta.lineup_locked) && !meta.week_scored;
   const leagueId = data?.hub_context?.league_id || hubContext?.league_id;
   const sleeperLeagueId = data?.hub_context?.sleeper_league_id || hubContext?.sleeper_league_id || "";
 
+  const vibeTeamId = data?.hub_context?.team_id || hubContext?.team_id;
   useEffect(() => {
     const key = storageKey({
+      cacheScope,
       leagueId,
+      teamId: vibeTeamId,
       season: meta.season,
       week: meta.week,
     });
@@ -291,7 +294,7 @@ export default function WeeklyCommandCenter({
         if (!res.ok) return;
         const payload = await res.json();
         const remote = payload?.aura_by_id;
-        if (remote && typeof remote === "object" && Object.keys(remote).length) {
+        if (!ctrl.signal.aborted && remote && typeof remote === "object" && Object.keys(remote).length) {
           setAuraById(remote);
           saveAura(key, remote);
         }
@@ -300,7 +303,7 @@ export default function WeeklyCommandCenter({
       }
     })();
     return () => ctrl.abort();
-  }, [leagueId, meta.season, meta.week]);
+  }, [cacheScope, leagueId, vibeTeamId, meta.season, meta.week]);
 
   const mediaIds = useMemo(() => (
     [...starters, ...bench].map((player) => player?.player_id).filter(Boolean)
@@ -320,7 +323,9 @@ export default function WeeklyCommandCenter({
   }, [auraById, bench, starters]);
 
   const applyFill = useCallback(async (slot, benchPlayer) => {
-    if (!leagueId || !slot?.slot || !benchPlayer?.player_id) return;
+    if (!canEdit || !leagueId || !slot?.slot || !benchPlayer?.player_id) return;
+    const lock = lineupPlayerLock(slot.player) || lineupPlayerLock(benchPlayer);
+    if (lock) { setLineupError(lock); return false; }
     const finishAction = startFantasyAction("lineup-fill");
     setLineupBusy(true);
     setLineupError("");
@@ -358,10 +363,13 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, slots, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
+  }, [canEdit, leagueId, load, meta.week, slots, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
 
   const applySwap = useCallback(async (starterId, benchId) => {
-    if (!leagueId || !starterId || !benchId) return;
+    if (!canEdit || !leagueId || !starterId || !benchId) return;
+    const lock = lineupPlayerLock(starters.find(player => String(player.player_id) === String(starterId)))
+      || lineupPlayerLock(bench.find(player => String(player.player_id) === String(benchId)));
+    if (lock) { setLineupError(lock); return false; }
     const finishAction = startFantasyAction("lineup-swap");
     setLineupBusy(true);
     setLineupError("");
@@ -397,7 +405,7 @@ export default function WeeklyCommandCenter({
     } finally {
       if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
+  }, [canEdit, starters, bench, leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
 
   const runPrimary = () => {
     if (primary.kind === "sync" || primary.kind === "strip-sync") return undefined;
@@ -583,7 +591,6 @@ export default function WeeklyCommandCenter({
         {error && <div className="error" role="alert">{error}</div>}
         {syncError && <div className="error">{syncError}</div>}
         {meta.lineup_available === false && <p className="chart-note" role="status">{WEEK_BOARD_COPY.sleeperLineupUnavailable}</p>}
-        {staffLineupOpen && <p className="chart-note">{WEEK_BOARD_COPY.staffLineupOpen}</p>}
         {lineupError && !pickerSlot && <div className="error" role="alert">{lineupError}</div>}
         {lineupMessage && <p className="hub-wcc-lineup-saved" role="status">{lineupMessage}</p>}
         {!embedded && meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
@@ -603,7 +610,7 @@ export default function WeeklyCommandCenter({
         key={`${contextKey}:${meta.week}:${pickerSlot.key || pickerSlot.slot}`}
         slot={pickerSlot} benchPlayer={pickerSlot.slot === "BN" ? pickerSlot.player : null} slots={slots} bench={bench} rules={hubContext?.rules || data?.hub_context?.rules}
         media={media} canEdit={canEdit} lineupLocked={Boolean(meta.lineup_locked)}
-        staffOverride={Boolean(hubContext?.is_commissioner || data?.hub_context?.is_commissioner)}
+        staffOverride={false}
         sleeperLeagueId={sleeperLeagueId} busy={lineupBusy} error={lineupError}
         onClose={() => { if (!lineupBusy) setPickerSlot(null); }} onNavigate={onNavigate}
         onApply={async (slot, player) => {

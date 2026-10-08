@@ -1,4 +1,4 @@
-"""Current-week inference refresh with a five-minute completion gap. No training."""
+"""Current-week DFS pool refresh with a fifteen-minute completion gap. No training."""
 
 from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
 import json
@@ -25,6 +25,19 @@ def _warm_supporting_data(season, week):
             logger.exception("Automatic forecast supporting data failed: %s", name)
 
 
+def _new_weekly_build(previous: dict) -> bool:
+    """Saved weekly forecasts were replaced after the last DFS pool assembly."""
+    receipt = previous.get("forecast_reuse")
+    season, week = previous.get("season"), previous.get("week")
+    if not isinstance(receipt, dict) or type(season) is not int or type(week) is not int:
+        return False
+    try:
+        outputs = dfs_inputs.output_revisions(season, week)
+    except RuntimeError:
+        return True
+    return outputs is not None and outputs != receipt.get("outputs")
+
+
 @observe_job("dfs_refresh", cadence_s=DFS_REFRESH_SECONDS)
 def run_dfs_refresh(*, force: bool = False):
     from src.integrations.injury_poll import run_injury_poll, get_injury_poll_status
@@ -43,7 +56,8 @@ def run_dfs_refresh(*, force: bool = False):
             last_refresh_epoch = previous.get("completed_epoch", previous.get("attempt_epoch", 0))
             if type(last_refresh_epoch) not in (int, float) or not math.isfinite(last_refresh_epoch):
                 last_refresh_epoch = 0
-            if not force and 0 <= time.time() - last_refresh_epoch < DFS_REFRESH_SECONDS:
+            if (not force and 0 <= time.time() - last_refresh_epoch < DFS_REFRESH_SECONDS
+                    and not _new_weekly_build(previous)):
                 return {**previous, "status": "not_due"}
             status = {"attempt_epoch": time.time(), "started_at": datetime.now(timezone.utc).isoformat(),
                       "status": "running", "forecast_status": "running", "positions": {}, "last_success_at": previous.get("last_success_at"),

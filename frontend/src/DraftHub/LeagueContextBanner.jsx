@@ -81,14 +81,14 @@ export default function LeagueContextBanner({
   const inLeague = !isSoloContext(hubContext);
   const hasLeagues = leagues.length > 0;
   const mobileLayout = useMobileLayout();
-  const compactHeader = mobileLayout && ["home", "week", "game", "roster", "available", "trades", "planner"].includes(currentView) && inLeague;
+  const compactHeader = mobileLayout && ["home", "week", "game", "roster", "available", "trades", "planner", "insights", "vibes"].includes(currentView) && inLeague;
   const [headerSlot, setHeaderSlot] = useState(null);
   useEffect(() => {
     setHeaderSlot(compactHeader ? document.getElementById("mobile-home-league-slot") : null);
   }, [compactHeader]);
   const compactMenuRef = useRef(null);
   useEffect(() => {
-    if (!compactHeader) return undefined;
+    if (!mobileLayout) return undefined;
     const close = (event) => {
       const menu = compactMenuRef.current;
       if (!menu?.open) return;
@@ -100,8 +100,8 @@ export default function LeagueContextBanner({
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", close);
     return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", close); };
-  }, [compactHeader]);
-  useEffect(() => { if (compactMenuRef.current) compactMenuRef.current.open = false; }, [hubContext?.league_id]);
+  }, [mobileLayout]);
+  useEffect(() => { if (compactMenuRef.current) compactMenuRef.current.open = false; }, [hubContext?.league_id, currentView]);
   const syncMenuId = useId();
   const syncWrapRef = useRef(null);
   const [syncOpen, setSyncOpen] = useState(false);

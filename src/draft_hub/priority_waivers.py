@@ -11,7 +11,8 @@ from zoneinfo import ZoneInfo
 
 from src.draft_hub import storage
 from src.draft_hub.pick_draft import is_pick_draft
-from src.draft_hub.rules_engine import assert_can_acquire, normalize_position
+from src.draft_hub.rules_engine import assert_can_acquire, blocking_acquisition_errors, normalize_position
+from src.draft_hub.player_identity import canonical_roster_metadata, player_identity_aliases, resolve_acquisition_identity
 from src.draft_hub.schemas import LeagueRules
 
 ET = ZoneInfo("America/New_York")
@@ -21,6 +22,9 @@ def _league(league_id: str) -> tuple[dict[str, Any], LeagueRules]:
     league = storage.get_league(league_id)
     if not league:
         raise ValueError("League not found")
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+    if resolve_sleeper_league_id(league_id):
+        raise ValueError("Add players in Sleeper, then sync this league.")
     rules = LeagueRules.model_validate(league["rules"])
     if not is_pick_draft(rules):
         raise ValueError("This league uses waiver bidding")
@@ -114,6 +118,9 @@ def replace_claims(
     user_sub: str,
 ) -> list[dict[str, Any]]:
     league, _rules = _league(league_id)
+    team = storage.get_team(team_id)
+    if not team or str(team.get("league_id")) != league_id:
+        raise ValueError("Team does not belong to this league")
     workspace_id = storage.roster_workspace_for_league(league)
     roster = storage.list_team_roster(league_id, team_id)
     owned_ids = {
@@ -124,16 +131,15 @@ def replace_claims(
     seen: set[str] = set()
     normalized = []
     for rank, claim in enumerate(claims, start=1):
+        if not league.get("test_mode"):
+            claim = resolve_acquisition_identity(claim, season=int(league["season"]))
         player_id = str(claim.get("player_id") or "").strip()
         if not player_id or player_id in seen:
             raise ValueError("Each claim needs a unique player")
         position = normalize_position(str(claim.get("position") or ""))
         if position not in {"QB", "RB", "WR", "TE", "K", "DEF"}:
             raise ValueError("Each claim needs a supported player position")
-        occupying = [
-            row for row in storage.list_roster_slots_for_player(workspace_id, player_id)
-            if storage.roster_row_occupies(row)
-        ]
+        occupying = storage.get_occupying_player_identity(workspace_id, claim, season=int(league["season"]))
         if occupying:
             raise ValueError("Claims are limited to available players")
         if waiver_protection(league_id, player_id):
@@ -148,6 +154,13 @@ def replace_claims(
         normalized.append((rank, player_id, drop_player_id, claim))
     stamp = storage._utcnow()
     with storage.get_conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        saved_league = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
+        saved_team = conn.execute("SELECT league_id FROM team WHERE id=?", (team_id,)).fetchone()
+        if not saved_league or saved_league["sleeper_league_id"] or not is_pick_draft(LeagueRules.model_validate(json.loads(saved_league["rules_json"]))):
+            raise ValueError("The league host or acquisition settings changed. Try again.")
+        if not saved_team or saved_team["league_id"] != league_id:
+            raise ValueError("Team does not belong to this league")
         if conn.execute(
             "SELECT 1 FROM waiver_process WHERE league_id=? AND window_id=?",
             (league_id, window_id),
@@ -188,15 +201,11 @@ def _active_roster(conn: sqlite3.Connection, workspace_id: str, team_id: str) ->
         "SELECT * FROM roster_slot WHERE workspace_id=? AND team_id=?",
         (workspace_id, team_id),
     ).fetchall()
-    return [dict(row) for row in rows if storage.roster_row_occupies(row)]
+    return [storage._roster_dict(row) for row in rows if storage.roster_row_occupies(row)]
 
 
 def _active_owner(conn: sqlite3.Connection, workspace_id: str, player_id: str) -> str | None:
-    rows = conn.execute(
-        "SELECT * FROM roster_slot WHERE workspace_id=? AND player_id=?",
-        (workspace_id, player_id),
-    ).fetchall()
-    row = next((item for item in rows if storage.roster_row_occupies(item)), None)
+    row = storage._occupying_identity_row_conn(conn, workspace_id, {"player_id": player_id})
     return str(row["team_id"]) if row else None
 
 
@@ -214,22 +223,22 @@ def _active_protection(
     *,
     now: datetime | None = None,
 ) -> dict[str, Any] | None:
-    row = conn.execute(
-        "SELECT * FROM waiver_protection WHERE league_id=? AND player_id=?",
-        (league_id, player_id),
-    ).fetchone()
-    if not row:
-        return None
+    league = conn.execute("SELECT season FROM league WHERE id=?", (league_id,)).fetchone()
+    aliases = player_identity_aliases({"player_id": player_id}, season=int(league["season"]) if league else None)
+    placeholders = ",".join("?" for _ in aliases)
+    rows = conn.execute(
+        f"SELECT * FROM waiver_protection WHERE league_id=? AND player_id IN ({placeholders})",
+        (league_id, *sorted(aliases)),
+    ).fetchall()
     clock = now or datetime.now(timezone.utc)
     if clock.tzinfo is None:
         clock = clock.replace(tzinfo=timezone.utc)
-    if _parse_eligible_at(row["eligible_at"]) <= clock.astimezone(timezone.utc):
-        conn.execute(
-            "DELETE FROM waiver_protection WHERE league_id=? AND player_id=?",
-            (league_id, player_id),
-        )
-        return None
-    return dict(row)
+    for row in rows:
+        if _parse_eligible_at(row["eligible_at"]) <= clock.astimezone(timezone.utc):
+            conn.execute("DELETE FROM waiver_protection WHERE league_id=? AND player_id=?", (league_id, row["player_id"]))
+        else:
+            return dict(row)
+    return None
 
 
 def waiver_protection(league_id: str, player_id: str) -> dict[str, Any] | None:
@@ -277,10 +286,18 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
     priority = waiver_priority(league_id)
     if not priority["confirmed"]:
         raise ValueError("Commissioner must confirm the initial waiver order")
+    from src.draft_hub.hub_scoring import capture_native_lineups_before_roster_change
+    capture_native_lineups_before_roster_change(league_id, [item["team_id"] for item in priority["teams"]])
     workspace_id = storage.roster_workspace_for_league(league)
     stamp = storage._utcnow()
     with storage.get_conn() as conn:
         conn.execute("BEGIN IMMEDIATE")
+        saved = conn.execute("SELECT * FROM league WHERE id=?", (league_id,)).fetchone()
+        if not saved or saved["sleeper_league_id"]:
+            raise ValueError("Native waiver claims are unavailable for this league")
+        rules = LeagueRules.model_validate(json.loads(saved["rules_json"]))
+        if not is_pick_draft(rules) or int(saved["season"]) != int(league["season"]):
+            raise ValueError("The league acquisition settings changed. Review these claims again.")
         prior = conn.execute(
             "SELECT result_json FROM waiver_process WHERE league_id=? AND window_id=?",
             (league_id, window_id),
@@ -291,6 +308,9 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
             return result
         priority_rows = _priority_rows(conn, league_id, int(league["season"]))
         queue = [str(row["team_id"]) for row in priority_rows]
+        valid_teams = {str(row["id"]) for row in conn.execute("SELECT id FROM team WHERE league_id=?", (league_id,))}
+        if set(queue) != valid_teams or not all(row["confirmed"] for row in priority_rows):
+            raise ValueError("Commissioner must confirm the current waiver order")
         claims = [
             dict(row) for row in conn.execute(
                 "SELECT * FROM waiver_claim WHERE league_id=? AND window_id=? AND status='open' ORDER BY claim_rank,created_at",
@@ -308,11 +328,18 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
                 claims.remove(claim)
                 progressed = True
                 reason = None
-                if _active_owner(conn, workspace_id, str(claim["player_id"])):
+                hint = {"player_id": str(claim["player_id"]), "player_name": claim.get("player_name"),
+                        "team": claim.get("nfl_team"), "position": claim.get("position")}
+                try:
+                    if not league.get("test_mode"):
+                        hint = resolve_acquisition_identity(hint, season=int(league["season"]))
+                except ValueError as exc:
+                    reason = str(exc)
+                if not reason and _active_owner(conn, workspace_id, str(claim["player_id"])):
                     reason = "already_rostered"
-                elif _active_protection(conn, league_id, str(claim["player_id"])):
+                elif not reason and _active_protection(conn, league_id, str(hint["player_id"])):
                     reason = "waiver_protected"
-                roster = _active_roster(conn, workspace_id, team_id)
+                roster = canonical_roster_metadata(_active_roster(conn, workspace_id, team_id), season=int(league["season"]))
                 drop_row = None
                 drop_player_id = claim.get("drop_player_id")
                 if not reason and drop_player_id:
@@ -323,7 +350,10 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
                         roster = [row for row in roster if int(row["id"]) != int(drop_row["id"])]
                 if not reason:
                     try:
-                        assert_can_acquire(rules, roster, str(claim.get("position") or ""))
+                        assert_can_acquire(rules, roster, str(hint.get("position") or ""))
+                        errors = blocking_acquisition_errors(rules, [*roster, {**hint, "salary": 0.0, "contract_years": 1}])
+                        if errors:
+                            raise ValueError(errors[0])
                     except ValueError as exc:
                         reason = str(exc)
                 if reason:
@@ -342,10 +372,7 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
                         conn,
                         workspace_id,
                         {
-                            "player_id": claim["player_id"],
-                            "player_name": claim.get("player_name"),
-                            "team": claim.get("nfl_team"),
-                            "position": claim.get("position") or "WR",
+                            **hint,
                             "salary": 0.0,
                             "contract_years": 1,
                             "source": "waiver",
@@ -366,17 +393,19 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
                 if drop_row:
                     conn.execute(f"RELEASE claim_{claim['id'].replace('-', '')}")
                 conn.execute("UPDATE waiver_claim SET status='won',updated_at=? WHERE id=?", (stamp, claim["id"]))
+                aliases = player_identity_aliases(hint, season=int(league["season"]))
+                placeholders = ",".join("?" for _ in aliases)
                 conn.execute(
-                    "DELETE FROM waiver_protection WHERE league_id=? AND player_id=?",
-                    (league_id, claim["player_id"]),
+                    f"DELETE FROM waiver_protection WHERE league_id=? AND player_id IN ({placeholders})",
+                    (league_id, *sorted(aliases)),
                 )
                 conn.execute(
-                    "UPDATE waiver_claim SET status='lost',outcome_reason='claimed_by_other_team',updated_at=? WHERE league_id=? AND window_id=? AND player_id=? AND status='open'",
-                    (stamp, league_id, window_id, claim["player_id"]),
+                    f"UPDATE waiver_claim SET status='lost',outcome_reason='claimed_by_other_team',updated_at=? WHERE league_id=? AND window_id=? AND player_id IN ({placeholders}) AND status='open'",
+                    (stamp, league_id, window_id, *sorted(aliases)),
                 )
-                claims = [row for row in claims if str(row["player_id"]) != str(claim["player_id"])]
+                claims = [row for row in claims if str(row["player_id"]) not in aliases]
                 awarded.append({
-                    "claim_id": claim["id"], "player_id": claim["player_id"], "player_name": claim.get("player_name"),
+                    "claim_id": claim["id"], "player_id": hint["player_id"], "player_name": hint.get("player_name"),
                     "team_id": team_id, "drop_player_id": drop_player_id, "slot_id": int(slot["id"]),
                 })
                 queue.remove(team_id)
@@ -413,6 +442,9 @@ def process_claims(league_id: str, window_id: str) -> dict[str, Any]:
 
 
 def process_due_claim_windows(league_id: str, current_window_id: str | None) -> dict[str, Any] | None:
+    from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
+    if resolve_sleeper_league_id(league_id):
+        return None
     with storage.get_conn() as conn:
         rows = conn.execute(
             "SELECT DISTINCT window_id FROM waiver_claim WHERE league_id=? AND status='open'",

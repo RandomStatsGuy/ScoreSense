@@ -2,6 +2,15 @@ import { isPickDraft } from "./draftEntryStatus.js";
 import { normalizeHubPosition } from "./hubPositions.js";
 
 export const RULES_COPY = {
+  regularWeeks: "Regular-season weeks",
+  playoffs: "Playoffs",
+  playoffsHelp: "Seed from regular-season standings. Tied playoff scores advance the higher seed.",
+  playoffTeams: "Playoff teams",
+  playoffStart: "First playoff week",
+  reseed: "Reseed each round",
+  reseedHelp: "The highest remaining seed plays the lowest remaining seed.",
+  thirdPlace: "Third-place game",
+  thirdPlaceHelp: "Semifinal losers meet during championship week.",
   categoryErrors: (count) => `${count} to fix`,
   categoryTitle: "Rule categories",
   unsavedChanges: "Unsaved league changes",
@@ -9,6 +18,7 @@ export const RULES_COPY = {
   categories: [
     { id: "scoring", label: "Scoring" },
     { id: "foundation", label: "League format" },
+    { id: "managers", label: "Manager names", leagueOnly: true, commissionerOnly: true },
     { id: "contracts", label: "Contracts", salaryOnly: true },
     { id: "roster", label: "Roster limits" },
     { id: "draft", label: "Draft behavior", salaryOnly: true },
@@ -76,6 +86,40 @@ export const RULES_COPY = {
   previewStep: "Increases each year",
   cutRefund: "Cut refund",
   cutRefundHelp: "Dead cap is rounded down to the nearest dollar. Cutting $1 is $0 dead; cutting $7 is $3 dead at 50%.",
+};
+
+export const MANAGER_NAMES_COPY = {
+  title: "Manager names",
+  help: "Link imported names and Sleeper managers to league accounts for trophies, contracts, and history.",
+  effect: "Displays your manager name alongside each season’s team. Across seasons, the manager name comes first.",
+  accountHelp: "Accounts appear after joining this league. These links do not assign teams or change access.",
+  source: "Name in history",
+  account: "League account",
+  managerName: "Display name",
+  managerNameHelp: "The real manager name to show in analytics, such as Josh C.",
+  period: "Seasons",
+  all: "All seasons",
+  custom: "Enter another imported name",
+  customLabel: "Imported manager name",
+  sourcePlaceholder: "Choose a name",
+  accountPlaceholder: "Choose an account",
+  imported: "Imported name",
+  sleeper: "Sleeper manager",
+  save: "Save name link",
+  saving: "Saving…",
+  saved: "Name link saved. Analytics now uses the mapped manager name.",
+  removed: "Name link removed. History uses its original manager label.",
+  savedTitle: "Saved name links",
+  empty: "No name links yet. Choose a name and a league account to connect them.",
+  noAccounts: "No registered league accounts yet. Invite managers to join before linking names.",
+  missingAccount: "Account unavailable",
+  remove: "Remove",
+  discard: "Discard",
+  retry: "Try again",
+  loadError: "Manager names could not be loaded.",
+  saveError: "Name link could not be saved. Your selections are still here.",
+  removeError: "Name link could not be removed.",
+  loading: "Loading manager names",
 };
 
 export function rulesCopyForFormat(pickDraft) {
@@ -153,7 +197,7 @@ export const SCORING_COPY = {
   title: "Scoring & lineup host",
   native: "ScoreSense native league",
   sleeper: "Sleeper-linked league",
-  nativeHelp: "Set lineups in This Week. Scores update from these saved rules as weekly NFL stats arrive, including while games are still in progress.",
+  nativeHelp: "Set lineups in This Week. Players lock at kickoff. Scores refresh during games and finalize after complete statistics confirm the last game.",
   sleeperHelp: "Sleeper controls scoring rules, starting lineups, live points, and stat corrections. Change them in Sleeper; This Week reads its results.",
   supported: "Kicker and defense calculations require their actual statistics; unavailable data blocks scoring. Yardage bonuses use only the highest reached band. Defense points allowed uses one band; a missing value is not a shutout.",
   effect: "Saving scoring rules leaves existing results unchanged. Recalculate a week in This Week to apply the new rules to that week's totals and standings.",
@@ -165,6 +209,8 @@ export const SCORING_COPY = {
 };
 
 export const DEFAULT_RULES = {
+  regular_season_games: 14,
+  playoffs: { enabled: false, teams: 6, start_week: null, reseed: true, third_place: true, tie_breaker: "higher_seed" },
   scoring: DEFAULT_SCORING,
   draft_type: "auction",
   salary_cap: 200,
@@ -218,6 +264,7 @@ export function mergeLeagueRules(incoming = {}) {
     ...incoming,
     roster,
     scoring: { ...DEFAULT_SCORING, ...(incoming.scoring || {}) },
+    playoffs: { ...DEFAULT_RULES.playoffs, ...(incoming.playoffs || {}) },
     auction: { ...DEFAULT_RULES.auction, ...(incoming.auction || {}) },
     contracts: { ...DEFAULT_RULES.contracts, ...(incoming.contracts || {}) },
   };
@@ -240,6 +287,13 @@ export function validateLeagueSettings({ name, season, rules }) {
   const merged = mergeLeagueRules(rules);
   const errors = {};
   const maxYears = Number(merged.contracts.max_years);
+  if (!Number.isInteger(Number(merged.regular_season_games)) || !numberInRange(merged.regular_season_games, 1, 18)) errors.regular_season_games = "Use 1–18 regular-season weeks.";
+  if (merged.playoffs.enabled) {
+    const teams = Number(merged.playoffs.teams);
+    const start = Number(merged.playoffs.start_week ?? (Number(merged.regular_season_games) + 1));
+    if (!Number.isInteger(teams) || !numberInRange(teams, 2, 14)) errors.playoff_teams = "Use 2–14 playoff teams.";
+    if (!Number.isInteger(start) || start <= Number(merged.regular_season_games) || start + Math.ceil(Math.log2(teams)) - 1 > 18) errors.playoff_start = "Playoffs must follow the regular season and finish by Week 18.";
+  }
   for (const [key] of SCORING_FIELDS) {
     if (merged.scoring[key] === "" || !numberInRange(merged.scoring[key], -100, 100)) errors[`scoring.${key}`] = SCORING_COPY.invalid;
   }
@@ -418,6 +472,8 @@ export function snapshotRulesForm({ name, season, rules }) {
   return JSON.stringify({
     name: String(name || "").trim(),
     season: Number(season) || 0,
+    regular_season_games: Number(merged.regular_season_games),
+    playoffs: { ...merged.playoffs, teams: Number(merged.playoffs.teams), start_week: merged.playoffs.start_week == null ? null : Number(merged.playoffs.start_week) },
     scoring: Object.fromEntries(SCORING_FIELDS.map(([key]) => [key, merged.scoring[key] === "" ? "" : Number(merged.scoring[key])])),
     draft_type: merged.draft_type,
     salary_cap: Number(merged.salary_cap) || 0,

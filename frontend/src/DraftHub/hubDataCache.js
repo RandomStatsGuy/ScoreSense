@@ -8,8 +8,13 @@ let overlayCache = null;
 const POOL_SESSION_PREFIX = "ss_pool_v1:";
 const POOL_SESSION_TTL_MS = 5 * 60_000;
 
+const insightsInvalidatedAt = new Map();
+export function insightsBootstrapValid(leagueId, at) {
+  return Number(at) > (insightsInvalidatedAt.get(leagueId) || 0);
+}
+
 const INSIGHTS_SESSION_PREFIX = "ss_insights_";
-const INSIGHTS_CACHE_VERSION = 2;
+const INSIGHTS_CACHE_VERSION = 6;
 
 function rulesKey(rules) {
   if (!rules) return "";
@@ -246,7 +251,13 @@ export function setInsightsSection(leagueId, section, seasonKey, data) {
 }
 
 export function clearInsightsSectionCache(leagueId) {
-  getInsightsSection._mem = {};
+  if (leagueId) insightsInvalidatedAt.set(leagueId, Date.now());
+  else insightsInvalidatedAt.clear();
+  if (leagueId) {
+    for (const key of Object.keys(getInsightsSection._mem || {})) {
+      if (key.startsWith(`${leagueId}:`)) delete getInsightsSection._mem[key];
+    }
+  } else getInsightsSection._mem = {};
   try {
     const prefix = leagueId
       ? `${INSIGHTS_SESSION_PREFIX}${leagueId}:`

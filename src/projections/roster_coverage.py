@@ -13,12 +13,19 @@ from src.integrations.roster_identity import DROP_STATUSES, SKILL_POSITIONS, cel
 
 
 def roster_input_revisions() -> list[str]:
-    """Local file revisions; new identities must invalidate all forecast caches."""
+    """Local revisions; new identities must invalidate all forecast caches.
+
+    Sleeper availability changes wait for the scheduled weekly rebuild instead.
+    """
     from src.config import CACHE_DIR
     from src.core.artifact_revision import file_content_revision
+    from src.integrations.sleeper import forecast_player_revisions
 
-    paths = [CACHE_DIR / 'sleeper_players.json', *sorted(CACHE_DIR.glob('nflverse_roster_*.parquet'))]
-    return [f'roster:{path.name}:{file_content_revision(path)}' for path in paths]
+    sleeper = CACHE_DIR / 'sleeper_players.json'
+    identity, _availability = forecast_player_revisions(sleeper)
+    rosters = sorted(CACHE_DIR.glob('nflverse_roster_*.parquet'))
+    return [f'roster:{sleeper.name}:{identity}',
+            *(f'roster:{path.name}:{file_content_revision(path)}' for path in rosters)]
 
 
 def projection_roster_players(season: int, *, sleeper_df=None, nflverse_df=None) -> pd.DataFrame:

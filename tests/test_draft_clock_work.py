@@ -247,12 +247,19 @@ def test_slow_clock_does_not_block_event_loop(monkeypatch):
     started = threading.Event()
     release = threading.Event()
     broadcasts = []
+    processed = threading.Event()
+    broadcasted = asyncio.Event()
     def slow_tick(watched=None):
         started.set()
         assert release.wait(3), "Event loop could not release the clock worker"
+        # A real clock reports a state transition once; later ticks are idle.
+        if processed.is_set():
+            return []
+        processed.set()
         return ["changed-league"]
     async def broadcast(league_id):
         broadcasts.append(league_id)
+        broadcasted.set()
     monkeypatch.setattr(draft_state, "tick_expired_drafts", slow_tick)
     monkeypatch.setattr(hub_routes, "broadcast_room", broadcast)
     async def scenario():
@@ -261,10 +268,7 @@ def test_slow_clock_does_not_block_event_loop(monkeypatch):
             assert await asyncio.to_thread(started.wait, 1)
             # This coroutine runs while the synchronous worker is waiting.
             release.set()
-            for _ in range(100):
-                if broadcasts:
-                    break
-                await asyncio.sleep(.001)
+            await asyncio.wait_for(broadcasted.wait(), timeout=2)
             assert broadcasts == ["changed-league"]
         finally:
             release.set()

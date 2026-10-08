@@ -196,6 +196,7 @@ def apply_roster_edit(
     edited_by_sub: str | None = None,
     note: str | None = None,
     op: WriteOp = "edit",
+    validate_rules=None,
 ) -> dict[str, Any]:
     """Update a live roster contract through the single write path."""
     _ = (league_id, op)  # league_id reserved for future audit fan-out
@@ -208,6 +209,7 @@ def apply_roster_edit(
         any_team=any_team,
         edited_by_sub=edited_by_sub,
         note=note,
+        validate_rules=validate_rules,
     )
 
 

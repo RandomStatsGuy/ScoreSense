@@ -47,7 +47,7 @@ export function CapSpendCharts({
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
             <XAxis dataKey="name" tick={chartXTick} interval={mobileLayout ? "preserveStartEnd" : 0} />
             <YAxis
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 12 }}
               tickFormatter={(v) => (mode === "pct" ? `${v}%` : `$${v}`)}
             />
             <Tooltip formatter={(v) => formatSpendValue(v, mode)} />
@@ -106,6 +106,7 @@ export function ScoringWeekChart({
   data,
   teams,
   colorByTeam,
+  labelsByTeam = {},
   dashByTeam,
   hoveredTeam,
   onHover,
@@ -125,7 +126,7 @@ export function ScoringWeekChart({
         >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
           <XAxis dataKey="week" tick={chartXTick} interval={mobileLayout ? "preserveStartEnd" : 0} />
-          <YAxis tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 12 }} />
           <Tooltip />
           <Legend
             className="hub-insights-chart-legend"
@@ -140,6 +141,7 @@ export function ScoringWeekChart({
                 key={name}
                 type="monotone"
                 dataKey={name}
+                name={labelsByTeam[name] || name}
                 stroke={colorByTeam[name] || "#94a3b8"}
                 strokeDasharray={dashByTeam[name]}
                 strokeOpacity={active ? 1 : 0.22}

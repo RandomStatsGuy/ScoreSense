@@ -75,11 +75,13 @@ def test_native_mixed_skips_and_failure_counts_are_recorded(diagnostics_enabled,
     from src.draft_hub import native_score_refresh as native, storage, hub_scoring as hs
     from src.draft_hub.schemas import ScoringRules
     rules = {"scoring": ScoringRules().model_dump()}
-    monkeypatch.setattr(storage, "get_league", lambda lid: {"draft_completed": lid != "skip-private", "rules": rules})
+    monkeypatch.setattr(storage, "get_league", lambda lid: {"id": lid, "draft_completed": lid != "skip-private", "rules": rules})
     monkeypatch.setattr(storage, "get_week_scoring_run", lambda *args: None)
     monkeypatch.setattr(hs, "nfl_week_started", lambda *args: True)
-    monkeypatch.setattr(hs, "load_week_stat_index", lambda *args: {})
-    monkeypatch.setattr(hs, "apply_week_scores", lambda *args, **kw: {"scored": False, "reason": "no_stats"})
+    monkeypatch.setattr(native, "get_week_snapshot", lambda *args, **kwargs: {"stats": {}})
+    def unavailable_actual_statistics(*args, **kwargs):
+        raise hs.LineupError("Actual scoring statistics unavailable")
+    monkeypatch.setattr(native, "refresh_league_week", unavailable_actual_statistics)
     for lid in ("skip-private", "fail-private"):
         native.request_refresh(lid, 2026, 4)
     assert native.refresh_pending_scores() == {"completed": 0, "failed": 1}

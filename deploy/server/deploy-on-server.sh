@@ -59,6 +59,16 @@ sleep 3
 if ls artifacts/weekly_predictions/*.meta.json >/dev/null 2>&1 || ls artifacts/draft_pool/*.meta.json >/dev/null 2>&1; then
   docker compose -f deploy/docker-compose.prod.yml exec -T api python scripts/ops/fix_artifact_fingerprints.py || true
 fi
-curl -sf http://127.0.0.1:8000/api/health && echo " OK" || echo " WARN: health check failed"
+if curl -sf "${SCORESENSE_HEALTH_URL:-http://127.0.0.1:8000/api/health}"; then
+  echo " OK"
+  # Every --build release leaves the replaced image and its layers behind. Keep a
+  # week of build cache so the next build stays fast. Skipped when unhealthy so
+  # the previous image remains available.
+  echo "==> Removing superseded images and build cache older than a week..."
+  docker image prune -f || true
+  docker builder prune -f --filter until=168h || true
+else
+  echo " WARN: health check failed; keeping previous images"
+fi
 
 docker compose -f deploy/docker-compose.prod.yml ps

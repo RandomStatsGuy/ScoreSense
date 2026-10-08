@@ -8,7 +8,7 @@ from app import dfs_refresh_ticker as ticker
 @pytest.mark.parametrize("duration,fails", [(5, False), (700, False), (700, True)])
 def test_ticker_waits_full_interval_after_worker_completion(monkeypatch, duration, fails):
     monkeypatch.setattr(ticker, "DFS_REFRESH_ENABLED", True)
-    monkeypatch.setattr(ticker, "DFS_REFRESH_SECONDS", 300)
+    monkeypatch.setattr(ticker, "DFS_CHECK_SECONDS", 300)
     now = [0]
     starts, sleeps = [], []
     async def sleep(seconds):

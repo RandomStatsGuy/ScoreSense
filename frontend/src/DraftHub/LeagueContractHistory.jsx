@@ -834,7 +834,7 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
               <div key={r.id} className={`hub-contract-mobile-row${rowIssues.length ? " hub-contract-row--issue" : ""}`}>
                 <MobilePlayerCard
                   name={r.player_name}
-                  meta={[r.hub_team_name || r.owner_label, r.position, acqLabel(r.acquisition_type), r.roster_status].filter(Boolean).join(" · ")}
+                  meta={[r.owner_name || r.owner_label, r.hub_team_name, r.position, acqLabel(r.acquisition_type), r.roster_status].filter(Boolean).join(" · ")}
                   heroValue={fmtSal(r.cap_hit)}
                   heroLabel="cap"
                   badge={
@@ -909,7 +909,7 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
                       rowIssues.length || r.needs_review ? "hub-contract-row--issue" : "",
                       editingRowId === r.id ? "hub-contract-row--selected" : "",
                     ].filter(Boolean).join(" ")}>
-                      <td>{r.owner_label}</td>
+                      <td>{r.owner_name || r.owner_label}</td>
                       <td>{r.hub_team_name || "—"}</td>
                       {showSeasonColumn && <td>{r.season_year || "—"}</td>}
                       <td>

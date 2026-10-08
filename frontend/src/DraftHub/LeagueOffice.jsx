@@ -232,6 +232,14 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
     }
   };
 
+  const hasMemberActions = teams.some((t) => {
+    const isPrimaryTeam = commissionerSub && t.user_sub
+      && String(t.user_sub) === String(commissionerSub);
+    const removal = removals.get(String(t.id));
+    return (isPrimary && t.user_sub && !isPrimaryTeam)
+      || removal?.ok || (removal?.blocker && !isPrimaryTeam);
+  });
+
   const actual = resize?.actual_teams ?? teams.length;
   const configured = resize?.team_count;
   const sizeOptions = [...new Set([...LEAGUE_TEAM_SIZES, configured].filter(Boolean))].sort((a, b) => a - b);
@@ -336,7 +344,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
               <th>Sleeper</th>
               <th>Role</th>
               <th>Last sync</th>
-              <th />
+              {hasMemberActions && <th className="hub-member-actions-cell">{LEAGUE_SIZE_COPY.actions}</th>}
             </tr>
           </thead>
           <tbody>
@@ -363,7 +371,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
                       ? new Date(t.sleeper_synced_at).toLocaleString()
                       : "—"}
                   </td>
-                  <td>
+                  {hasMemberActions && <td className="hub-member-actions-cell">
                     <div className="hub-member-actions">
                     {isPrimary && t.user_sub && !isPrimaryTeam && (
                       <button
@@ -391,7 +399,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
                       ) : null
                     )}
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               );
             })}

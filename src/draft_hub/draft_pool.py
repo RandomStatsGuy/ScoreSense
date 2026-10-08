@@ -24,9 +24,10 @@ def normalize_pool_mode(mode: str | None) -> PoolMode:
     return "roster_plus_rookies" if key == "roster_plus_rookies" else "full"
 
 
-def list_drafted_player_ids(league_id: str) -> set[str]:
+def list_drafted_player_ids(league_id: str, *, include_aliases: bool = False) -> set[str]:
     """Players still under contract (or already drafted) — not nominatable."""
-    from src.draft_hub.pre_draft_cap import retained_through_draft
+    from src.draft_hub.pre_draft_cap import retained_through_draft, is_active_for_pre_draft
+    from src.draft_hub.league_capabilities import uses_contracts
 
     league = storage.get_league(league_id)
     draft_completed = bool(league and league.get("draft_completed"))
@@ -36,9 +37,14 @@ def list_drafted_player_ids(league_id: str) -> set[str]:
             pid = str(row.get("player_id") or "").strip()
             if not pid:
                 continue
-            if not retained_through_draft(row, draft_completed=draft_completed):
+            owns = (retained_through_draft(row, draft_completed=draft_completed)
+                    if not league or uses_contracts(league["rules"]) else is_active_for_pre_draft(row))
+            if not owns:
                 continue
             ids.add(pid)
+            if include_aliases:
+                from src.draft_hub.player_identity import player_identity_aliases
+                ids.update(player_identity_aliases(row, season=int(league["season"]) if league else None))
     return ids
 
 
@@ -73,7 +79,8 @@ def build_nomination_pool(
     from src.draft_hub.value_sheet import build_draft_pool_payload, build_value_sheet
 
     mode = normalize_pool_mode(pool_mode)
-    drafted = list_drafted_player_ids(league_id)
+    drafted = list_drafted_player_ids(league_id, include_aliases=True)
+    drafted_count = len(list_drafted_player_ids(league_id))
     league = storage.get_league(league_id)
     team_count = _nomination_team_count(league_id)
 
@@ -94,7 +101,7 @@ def build_nomination_pool(
         return {
             "pool_mode": mode,
             "count": len(rows),
-            "drafted_count": len(drafted),
+            "drafted_count": drafted_count,
             "hub_available_count": 0,
             "rows": rows,
         }
@@ -121,7 +128,7 @@ def build_nomination_pool(
     return {
         "pool_mode": mode,
         "count": len(rows),
-        "drafted_count": len(drafted),
+        "drafted_count": drafted_count,
         "hub_available_count": len(hub_ids),
         "rows": rows,
     }
@@ -147,7 +154,7 @@ def resolve_nomination_player(
         sleeper_player_ids=sleeper_player_ids,
     )
     pid = str(player_id)
-    if pid in list_drafted_player_ids(league_id):
+    if pid in list_drafted_player_ids(league_id, include_aliases=True):
         raise ValueError("Player already drafted")
     match = next((r for r in pool["rows"] if str(r.get("player_id")) == pid), None)
     if not match:
