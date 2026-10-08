@@ -44,10 +44,10 @@ def _members(league_id: str) -> list[dict]:
     return [t for t in storage.list_league_teams(league_id) if not t.get("is_bot")]
 
 
-def members(league_id: str) -> list[dict]:
+def members(league_id: str, people: list[dict] | None = None) -> list[dict]:
     return [{"id": t["id"], "name": t.get("owner_name") or t.get("name") or "Manager",
              "team_name": t.get("name"), "can_message": bool(t.get("user_sub")),
-             "is_staff": bool(t.get("is_commissioner"))} for t in _members(league_id)]
+             "is_staff": bool(t.get("is_commissioner"))} for t in (people if people is not None else _members(league_id))]
 
 
 def _identity(league_id: str, sub: str) -> tuple[dict, dict]:
@@ -66,8 +66,8 @@ def _direct_kind(team: dict, other: dict) -> str:
     return "direct:" + ":".join(sorted((team["id"], other["id"]))) + ":" + digest
 
 
-def _channel(league_id: str, sub: str, thread: str) -> dict:
-    league, team = _identity(league_id, sub)
+def _channel(league_id: str, sub: str, thread: str, identity: tuple[dict, dict] | None = None) -> dict:
+    league, team = identity or _identity(league_id, sub)
     if thread == "office":
         if not team.get("is_commissioner") and league.get("commissioner_sub") != sub:
             raise PermissionError("Staff chat is commissioner managed")
@@ -82,10 +82,15 @@ def _channel(league_id: str, sub: str, thread: str) -> dict:
         kind = _direct_kind(team, other)
     else:
         raise ValueError("Invalid chat channel")
+    lookup = "SELECT * FROM league_chat_channel WHERE league_id=? AND kind=?"
     with storage.get_conn() as conn:
+        # Polls read existing channels; only the first visit takes the write lock.
+        row = conn.execute(lookup, (league_id, kind)).fetchone()
+        if row:
+            return dict(row)
         conn.execute("INSERT OR IGNORE INTO league_chat_channel(id,league_id,kind,created_at) VALUES (?,?,?,?)",
                      (str(uuid.uuid4()), league_id, kind, storage._utcnow()))
-        return dict(conn.execute("SELECT * FROM league_chat_channel WHERE league_id=? AND kind=?", (league_id, kind)).fetchone())
+        return dict(conn.execute(lookup, (league_id, kind)).fetchone())
 
 
 def _message_channel(league_id: str, sub: str, message_id: str) -> dict:
@@ -241,11 +246,17 @@ def preferences(sub: str, patch: dict | None = None) -> dict:
         return result
 
 
-def _trade_alerts(league_id: str, sub: str, team: dict) -> None:
-    people = {t["id"]: t for t in _members(league_id)}
+def _trade_alerts(league_id: str, sub: str, team: dict, people: dict[str, dict]) -> None:
     with storage.get_conn() as conn:
         proposals = conn.execute("SELECT * FROM trade_proposal WHERE league_id=? ORDER BY updated_at DESC LIMIT 100", (league_id,)).fetchall()
+        if not proposals:
+            return
+        # Each status is one event. Skip saved events so a poll stays read-only.
+        saved = {r[0] for r in conn.execute(
+            "SELECT id FROM site_notification WHERE user_sub=? AND league_id=? AND kind='trade'", (sub, league_id))}
         for p in proposals:
+            if f"trade:{p['id']}:{p['status']}" in saved:
+                continue
             if team["id"] not in {str(x.get("team_id")) for x in json.loads(p["parties_json"])}:
                 continue
             acceptances = json.loads(p["acceptances_json"] or "{}")
@@ -270,13 +281,14 @@ def _trade_alerts(league_id: str, sub: str, team: dict) -> None:
 
 def summary(league_id: str, sub: str) -> dict[str, Any]:
     league, team = _identity(league_id, sub)
-    _channel(league_id, sub, "league")
+    _channel(league_id, sub, "league", identity=(league, team))
     staff = bool(team.get("is_commissioner") or league["commissioner_sub"] == sub)
-    _trade_alerts(league_id, sub, team)
+    roster = _members(league_id)
+    people = {t["id"]: t for t in roster}
+    _trade_alerts(league_id, sub, team, people)
     prefs = preferences(sub)
     threads = []
     visible_channels = []
-    people = {t["id"]: t for t in _members(league_id)}
     with storage.get_conn() as conn:
         channels = conn.execute("SELECT * FROM league_chat_channel WHERE league_id=?", (league_id,)).fetchall()
         for c in channels:
@@ -317,7 +329,7 @@ def summary(league_id: str, sub: str) -> dict[str, Any]:
             count = conn.execute(f"SELECT COUNT(*) FROM site_notification WHERE {scope} AND read_at IS NULL", params).fetchone()[0]
     return {"threads": threads, "unread": sum(t["unread"] for t in threads), "notification_unread": count,
             "notifications": [{**{k: r[k] for k in ("id", "kind", "title", "body", "created_at", "read_at")}, "target": json.loads(r["target_json"])} for r in rows],
-            "preferences": prefs, "members": members(league_id)}
+            "preferences": prefs, "members": members(league_id, roster)}
 
 
 def read_notifications(league_id: str, sub: str, ids: list[str], through: str | None = None) -> None:

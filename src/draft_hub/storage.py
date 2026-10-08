@@ -7008,12 +7008,12 @@ def ensure_owner_season_map_seeded(league_id: str) -> None:
         ).fetchone()["n"]
     if count:
         return
-    from src.draft_hub.legacy_contract_import import TEAM_OWNERS, load_owner_team_map
-
-    yaml_map = load_owner_team_map()
     seasons = list_league_contract_seasons(league_id)
     if not seasons:
         return
+    from src.draft_hub.legacy_contract_import import TEAM_OWNERS, load_owner_team_map
+
+    yaml_map = load_owner_team_map()
     for yr in seasons:
         by_owner: dict[str, str] = {}
         for row in list_league_contract_rows(league_id, season_year=yr):
