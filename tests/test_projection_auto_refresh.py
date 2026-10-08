@@ -125,9 +125,55 @@ def test_season_ticker_waits_after_completion_and_stops_cleanly(monkeypatch):
         if len(starts)==2: raise asyncio.CancelledError
     monkeypatch.setattr(ticker.asyncio,"sleep",sleep)
     monkeypatch.setattr(ticker,"submit_cpu_job",submit)
+    monkeypatch.setattr(ticker.time,"time",lambda: NOW.timestamp() + 600)
     with pytest.raises(asyncio.CancelledError): asyncio.run(ticker.season_refresh_ticker_loop())
     assert sleeps == [60,300]
     assert starts == [season_refresh.run_season_refresh]*2
+
+
+def test_season_ticker_wakes_just_after_the_hour():
+    from app import season_refresh_ticker as ticker
+    hour = NOW.timestamp()
+    assert ticker.next_check_seconds(hour + 600) == 300
+    assert ticker.next_check_seconds(hour + 3600 - 120) == 125
+    assert ticker.next_check_seconds(hour + 5) == 300
+
+
+def test_weekly_forecasts_are_due_at_the_top_of_each_hour(monkeypatch):
+    built = {"season":2026,"week":4,"rows":10}
+    monkeypatch.setattr(season_refresh,"target_metadata",lambda *a:[built])
+    built["built_at"] = (NOW-timedelta(minutes=50)).isoformat()
+    assert not season_refresh.target_due("weekly",2026,4,now=NOW-timedelta(seconds=1))
+    assert season_refresh.target_due("weekly",2026,4,now=NOW+timedelta(seconds=5))
+    # A deploy or rebuild just after the hour does not move the next build.
+    built["built_at"] = (NOW+timedelta(minutes=10)).isoformat()
+    assert not season_refresh.target_due("weekly",2026,4,now=NOW+timedelta(minutes=59))
+    assert season_refresh.target_due("weekly",2026,4,now=NOW+timedelta(minutes=60))
+
+
+def test_availability_change_rebuilds_weekly_early_but_not_within_fifteen_minutes(worker,monkeypatch):
+    producer,metadata = worker
+    monkeypatch.setattr(season_refresh,"_current_targets",lambda:[("weekly",2026,4)])
+    availability = ["healthy"]
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions",lambda *a:("roster",availability[0]))
+    def prepare(kind,season,week):
+        metadata[kind] = [{"season":season,"week":week,"built_at":NOW.isoformat(),"rows":10}]
+        return {"player_availability": availability[0]}
+    producer.side_effect = prepare
+    metadata["weekly"] = [{}]
+    assert season_refresh.run_season_refresh()["prepared"] == 1
+    assert season_refresh.run_season_refresh()["prepared"] == 0
+    availability[0] = "starter ruled out"
+    assert season_refresh.run_season_refresh()["prepared"] == 0
+    status = season_refresh.read_status()
+    status["weekly:2026:4"]["started_at"] = (NOW-timedelta(minutes=16)).isoformat()
+    season_refresh._save(status)
+    assert season_refresh.run_season_refresh()["prepared"] == 1
+    assert season_refresh.read_status()["weekly:2026:4"]["player_availability"] == "starter ruled out"
+    status = season_refresh.read_status()
+    status["weekly:2026:4"]["started_at"] = (NOW-timedelta(minutes=16)).isoformat()
+    season_refresh._save(status)
+    assert season_refresh.run_season_refresh()["prepared"] == 0
 
 
 def test_season_ticker_disabled_has_no_requests(monkeypatch):
@@ -194,7 +240,10 @@ def test_weekly_worker_publishes_exact_reuse_proof(monkeypatch):
     monkeypatch.setattr(dfs_refresh,"_warm_supporting_data",lambda *a:None)
     producer = Mock(return_value=pd.DataFrame([{"Projected Points":20}]))
     monkeypatch.setattr("src.projections.weekly_cache.load_weekly_prediction",producer)
-    receipt = season_refresh._prepare("weekly",2026,4)["forecast_reuse"]
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions",lambda *a:("roster","availability"))
+    publication = season_refresh._prepare("weekly",2026,4)
+    receipt = publication["forecast_reuse"]
+    assert publication["player_availability"] == "availability"
     assert receipt["revision"] == "same-inputs" and receipt["outputs"] == {"saved-frame":"digest"}
     assert producer.call_count == 6
     assert dfs_inputs.can_reuse({"status":"ok","forecast_reuse":receipt},"same-inputs",2026,4,

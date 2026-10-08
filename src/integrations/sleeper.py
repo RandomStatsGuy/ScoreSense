@@ -439,6 +439,60 @@ def players_dataframe(force_refresh: bool = False, *, allow_refresh: bool = True
     return df
 
 
+# Most polls only move news times, search ranks and notes. Forecast caches key
+# on who is forecast; the hourly scheduler rebuilds early when availability moves.
+_FORECAST_POSITIONS = frozenset({"QB", "RB", "FB", "WR", "TE", "K", "DEF"})
+_FORECAST_IDENTITY_FIELDS = ("full_name", "first_name", "last_name", "position", "fantasy_positions",
+                             "team", "gsis_id", "espn_id", "birth_date", "years_exp")
+_FORECAST_AVAILABILITY_FIELDS = ("status", "injury_status", "practice_participation",
+                                 "depth_chart_position", "depth_chart_order")
+_FORECAST_REVISIONS: dict[tuple[str, str], tuple[str, str]] = {}
+
+
+def forecast_player_revisions(path: Path | None = None) -> tuple[str | None, str | None]:
+    """(identity, availability) digests of forecastable players in the saved feed."""
+    import hashlib
+    from src.core.artifact_revision import file_content_revision
+
+    path = PLAYERS_CACHE if path is None else path
+    for _ in range(3):
+        content = file_content_revision(path)
+        if content is None:
+            return None, None
+        key = (str(path), content)
+        if key in _FORECAST_REVISIONS:
+            return _FORECAST_REVISIONS[key]
+        try:
+            raw = json.loads(path.read_bytes())
+        except FileNotFoundError:
+            continue
+        except ValueError:
+            raw = None
+        if file_content_revision(path) != content:
+            continue
+        if not isinstance(raw, dict):
+            result = (content, content)
+        else:
+            identity, availability = hashlib.sha256(), hashlib.sha256()
+            for player_id in sorted(raw):
+                info = raw[player_id]
+                if not isinstance(info, dict):
+                    continue
+                listed = info.get("fantasy_positions")
+                positions = {info.get("position"), *(listed if isinstance(listed, list) else ())}
+                if not positions & _FORECAST_POSITIONS:
+                    continue
+                identity.update(json.dumps([player_id, *(info.get(f) for f in _FORECAST_IDENTITY_FIELDS)],
+                                           default=str).encode())
+                availability.update(json.dumps([player_id, *(info.get(f) for f in _FORECAST_AVAILABILITY_FIELDS)],
+                                               default=str).encode())
+            result = (identity.hexdigest(), availability.hexdigest())
+        _FORECAST_REVISIONS.clear()
+        _FORECAST_REVISIONS[key] = result
+        return result
+    raise RuntimeError(f"Projection input keeps changing: {path.name}")
+
+
 def _def_display_name(info: dict[str, Any]) -> str:
     """Sleeper DEF entries use first/last team names, not full_name."""
     last = str(info.get("last_name") or "").strip()

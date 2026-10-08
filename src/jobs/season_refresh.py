@@ -58,9 +58,21 @@ def target_due(kind, season, week=1, *, now=None):
         built = timestamp(meta.get("built_at"))
         if not built or (built - clock).total_seconds() > 300 or meta.get("rows") == 0 or meta.get("season") != season or (kind in {"ros", "weekly"} and meta.get("week") != week):
             return True
-        if (clock - built).total_seconds() >= (WEEKLY_AUTO_REFRESH_SECONDS if kind == "weekly" else SEASON_AUTO_REFRESH_SECONDS):
+        if kind == "weekly":
+            # Builds land on the hour, not an hour after the last deploy or rebuild.
+            if built.timestamp() < clock.timestamp() - clock.timestamp() % WEEKLY_AUTO_REFRESH_SECONDS:
+                return True
+        elif (clock - built).total_seconds() >= SEASON_AUTO_REFRESH_SECONDS:
             return True
     return False
+
+
+def availability_changed(kind, previous) -> bool:
+    """A player's injury, active or depth status moved since the last weekly build."""
+    if kind != "weekly" or not previous.get("player_availability"):
+        return False
+    from src.integrations.sleeper import forecast_player_revisions
+    return forecast_player_revisions()[1] != previous["player_availability"]
 
 
 def _save(targets):
@@ -92,11 +104,13 @@ def _prepare(kind, season, week):
                 raise ValueError("Season valuations could not refresh")
             return
         raise ValueError("Season inputs changed during refresh")
-    receipt = None
+    receipt = availability = None
     if kind == "weekly":
         from src.jobs import dfs_inputs
+        from src.integrations.sleeper import forecast_player_revisions
         from src.projections.weekly_cache import load_weekly_prediction as loader
         dfs_inputs.prepare_sources(season)
+        availability = forecast_player_revisions()[1]
         revision = dfs_inputs.input_revision(season, week)
         computed_epoch = time.time()
     else:
@@ -118,7 +132,10 @@ def _prepare(kind, season, week):
         _warm_supporting_data(season, week)
     # DFS can assemble its specialist scores around these exact saved frames,
     # rather than repeat six model passes after the hourly worker publishes.
-    return {"forecast_reuse": receipt} if receipt else {}
+    publication = {"forecast_reuse": receipt} if receipt else {}
+    if availability:
+        publication["player_availability"] = availability
+    return publication
 
 
 def _current_targets():
@@ -170,9 +187,12 @@ def run_season_refresh():
             prepared, failed = 0, 0
             for kind, season, week in _current_targets():
                 key = target_key(kind, season, week)
-                if not target_due(kind, season, week) and targets.get(key, {}).get("status") != "error":
+                previous = targets.get(key, {})
+                if (not target_due(kind, season, week) and previous.get("status") != "error"
+                        and not availability_changed(kind, previous)):
                     continue
-                attempted = timestamp(targets.get(key, {}).get("started_at"))
+                # The retry gap also spaces early availability rebuilds.
+                attempted = timestamp(previous.get("started_at"))
                 if attempted and (datetime.now(timezone.utc) - attempted).total_seconds() < PROJECTION_REFRESH_RETRY_SECONDS:
                     continue
                 if _refresh_one(targets, kind, season, week):

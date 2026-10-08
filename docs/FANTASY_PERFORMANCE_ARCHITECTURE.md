@@ -119,8 +119,8 @@ Duplicate reads coalesce, attempts have a 60-second minimum interval, and leases
 recover work after a crashed worker. Expired workers cannot publish or finish a
 new owner's job. Each bounded batch shares one statistics lookup per season/week.
 The ticker queues current native leagues and unfinished scoring runs every minute;
-Sleeper leagues and final results are excluded. It uses the existing shared CPU
-executor and participates in API shutdown. `NATIVE_SCORING_REFRESH_ENABLED=false`
+Sleeper leagues and final results are excluded. It uses the live worker
+(`submit_live_job`), so forecast rebuilds never delay it, and participates in API shutdown. `NATIVE_SCORING_REFRESH_ENABLED=false`
 disables the ticker; explicit Calculate still works.
 
 Automatic publication checks the lineup, scoring rules, saved scoring run, and

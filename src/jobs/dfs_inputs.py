@@ -16,7 +16,7 @@ import sys
 
 from src.core.artifact_revision import file_content_revision
 
-VERSION = 2
+VERSION = 3
 POSITIONS = ("qb", "rb", "wr")
 
 
@@ -30,11 +30,10 @@ def prepare_sources(season: int) -> None:
 def source_paths(season: int, week: int) -> list[Path]:
     from src import config
     from src.core.schedule_utils import SCHEDULE_CACHE
-    from src.integrations.sleeper import PLAYERS_CACHE
     from src.integrations.nflverse_roster import roster_cache_path
     from src.integrations.fantasypros import FP_CACHE_DIR
     from src.projections import predict, weekly_cache
-    paths = [PLAYERS_CACHE, roster_cache_path(season), SCHEDULE_CACHE,
+    paths = [roster_cache_path(season), SCHEDULE_CACHE,
              config.ROOKIE_ROLE_OVERRIDES_PATH, config.SENTIMENT_FEATURES_PATH]
     for pos in POSITIONS:
         paths.extend(predict.PROCESSED_DATA_DIR / f"{pos}_mlready.{suffix}" for suffix in ("parquet", "csv"))
@@ -45,10 +44,8 @@ def source_paths(season: int, week: int) -> list[Path]:
     paths.append(FP_CACHE_DIR / f"{season}_week{week:02d}_proj.parquet")
     paths.append(FP_CACHE_DIR / f"{season}_week{week:02d}_ecr_ALL.parquet")
     paths.append(FP_CACHE_DIR / "revision.txt")  # preserve the existing reader's invalidation contract
-    # Code/config/model routing and numerical dependency changes invalidate a
-    # receipt across deployments. Never read .env or serialize secret values.
-    paths.extend(sorted((config.PROJECT_ROOT / "src").rglob("*.py")))
-    paths.extend(config.PROJECT_ROOT / name for name in ("requirements.txt", "requirements-ci.txt"))
+    # Deploys do not rebuild forecasts; the next scheduled weekly build picks up
+    # code changes. Never read .env or serialize secret values.
     return sorted(set(paths), key=str)
 
 
@@ -94,10 +91,12 @@ def runtime_revision() -> tuple:
 
 
 def input_revision(season: int, week: int) -> str:
+    from src.integrations.sleeper import forecast_player_revisions
     from src.projections.weekly_cache import weekly_fingerprint
     from src.projections.ros_cache import ros_fingerprint
+    identity, _availability = forecast_player_revisions()
     payload = [VERSION, int(season), int(week), runtime_revision(), weekly_fingerprint(), ros_fingerprint(),
-               revisions(source_paths(season, week))]
+               identity, revisions(source_paths(season, week))]
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 

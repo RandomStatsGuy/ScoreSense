@@ -3,23 +3,29 @@
 Automatic DFS refresh previously forced six weekly inference passes on every
 five-minute check, even when their inputs had not changed. DFS now reuses saved
 injury/raw QB, RB and WR/TE forecasts, plus its ROS warmup, only when a successful
-prior DFS pass proves both the inputs and saved files are unchanged. Other forecast
+prior DFS pass or the scheduled weekly build proves both the inputs and saved files are unchanged. Other forecast
 readers, manual full refresh and repair entry points keep their existing behavior.
 
 ## What triggers forecast work
 
 - No successful receipt, an unknown receipt version, or an interrupted/failed pass.
 - A different season/week, active model bundle, processed parquet or CSV source,
-  Sleeper player/injury/depth data, current-season NFL roster, schedule/market
+  Sleeper roster identity (who is forecast: name, team, position, IDs), current-season NFL roster, schedule/market
   snapshot, rookie override, or sentiment feature snapshot used by rookie roles.
 - Changed exact-week FantasyPros projection or `ecr_ALL` data, or the existing
   consensus revision marker. Inference remains cache-only for consensus.
 - Changed prior raw weekly artifacts used by ROS's rolling window.
-- Changed source code, numerical dependency requirements, Python version or
-  installed numerical library versions across deployment.
+- A changed Python version or installed numerical library versions. Source code
+  and requirements changes alone do not; deploys wait for the next scheduled build.
 - A missing, changed or corrupt weekly/ROS artifact or metadata sidecar.
-- Fifteen minutes since the previous forecast computation **began**. Successful
-  reuse checks preserve this original age; they never extend it.
+- Two hours since the previous forecast computation **began**, which only happens
+  when the hourly build is late. Successful reuse checks preserve this original
+  age; they never extend it.
+
+Sleeper news, notes, ranks and availability (injury, active and depth status) do
+not enter the proof. The season worker owns weekly builds: at the top of each hour,
+and early, at most every 15 minutes, when availability changes. DFS is due as soon
+as a new build replaces the saved weekly files, and otherwise every 15 minutes.
 - An explicit `run_dfs_refresh(force=True)` call, which bypasses cadence/reuse
   gates while still obeying the shared refresh lock.
 
@@ -37,9 +43,9 @@ feed changes reach the pool even when skill forecasts are reused. Specialist fee
 failure or missing current history still prevents fresh success. Unavailable-player
 rows and raw/injury output semantics are preserved.
 
-Reuse eligibility is capped at 900 seconds by `DFS_FORECAST_MAX_AGE_SECONDS`.
-It is not a 15-minute end-to-end freshness guarantee: checks retain the existing
-five-minute completion gap; shared-worker queueing, computation and source outages
+Reuse eligibility is capped at two hours by `DFS_FORECAST_MAX_AGE_SECONDS`.
+It is not an end-to-end freshness guarantee: checks retain the
+fifteen-minute completion gap; shared-worker queueing, computation and source outages
 can delay publication. Feed-specific TTLs are unchanged. Source changes trigger
 work at the next due check after they are locally observed.
 

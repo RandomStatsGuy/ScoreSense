@@ -1,8 +1,8 @@
-"""Shared worker maintains prepared Fantasy snapshots as source files change."""
+"""The live worker maintains prepared Fantasy snapshots as source files change."""
 import asyncio
 import logging
 
-from app.process_pool import submit_cpu_job
+from app.process_pool import submit_live_job
 from src.draft_hub.prepared_week_context import CADENCE_SECONDS, refresh_week_contexts
 
 
@@ -10,7 +10,7 @@ async def fantasy_context_ticker_loop():
     while True:
         started = asyncio.get_running_loop().time()
         try:
-            await submit_cpu_job(refresh_week_contexts)
+            await submit_live_job(refresh_week_contexts)
         except asyncio.CancelledError:
             raise
         except Exception:
