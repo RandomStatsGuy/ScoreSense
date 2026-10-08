@@ -1590,6 +1590,12 @@ def canonical_starter_slot(slot: str, rules: LeagueRules) -> str:
     raise LineupError(f"{label or 'Empty'} is not a configured starter slot")
 
 
+def starter_slot_ids(rules: LeagueRules) -> list[str]:
+    """Every configured starter slot in `canonical_starter_slot` form."""
+    return [base if count == 1 else f"{base}{index}"
+            for base, count in _starter_capacity(rules).items() for index in range(1, count + 1)]
+
+
 def lineup_edit_metadata(row: dict[str, Any], season: int, week: int) -> dict[str, Any]:
     trusted = trusted_lineup_row(row, season, week)
     state = nfl_game_started(trusted["nfl_team"], season, week) if trusted else None

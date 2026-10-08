@@ -166,8 +166,41 @@ def test_native_singleton_slots_can_be_previewed(recovery, slot):
 
 def test_mixed_slot_aliases_still_reject_duplicate_starters(recovery):
     recovery[3][0]["players"].append({"player_id":"duplicate", "position":"QB", "slot":"QB"})
-    with pytest.raises(corrections.CorrectionError, match="distinct"):
+    with pytest.raises(corrections.CorrectionError, match="two starters at QB"):
         preview(recovery)
+
+
+@pytest.fixture
+def two_back_league(recovery, trusted_native_roster_rows):
+    league_id, home, away, _ = recovery
+    for player_id, position in [("rb-a", "RB"), ("rb-b", "RB"), ("wr-a", "WR"), ("rb-c", "RB"), ("rb-d", "RB"), ("wr-b", "WR")]:
+        trusted_native_roster_rows(player_id, name=player_id.upper(), team="NE", position=position)
+    league = storage.get_league(league_id)
+    rules = {**league["rules"], "roster": {"qb": {"starter": 1, "max": 3}, "rb": {"starter": 2, "max": 4},
+                                           "flex": {"starter": 1, "eligible": ["RB", "WR", "TE"]}},
+             "roster_size_max": 8}
+    storage.update_league_rules(league_id, LeagueRules.model_validate(rules))
+
+    def lineup(qb, rb1, rb2, flex):
+        return [{"player_id": qb, "position": "QB", "slot": "QB1"},
+                {"player_id": rb1, "position": "RB", "slot": "RB1"},
+                {"player_id": rb2, "position": "RB", "slot": "RB2"},
+                {"player_id": flex, "position": "WR", "slot": "FLEX1"}]
+    return league_id, home, away, [{"team_id": home, "players": lineup("past-qb", "rb-a", "rb-b", "wr-a")},
+                                   {"team_id": away, "players": lineup("other-qb", "rb-c", "rb-d", "wr-b")}]
+
+
+def test_repeated_position_slots_can_be_corrected(two_back_league):
+    result = preview(two_back_league)
+    assert {row["slot"] for row in result["after"]["lineups"] if row["team_id"] == two_back_league[1]} == {"QB", "RB1", "RB2", "FLEX"}
+
+
+def test_ineligible_starter_error_names_player_and_slot(two_back_league):
+    two_back_league[3][0]["players"][3]["slot"] = "RB2"
+    two_back_league[3][0]["players"][2]["slot"] = "BN"
+    two_back_league[3][0]["players"][3]["position"] = "WR"
+    with pytest.raises(corrections.CorrectionError, match=r"WR-A \(WR\) cannot start at RB 2"):
+        preview(two_back_league)
 
 
 def test_current_players_are_suggestions_not_historical_lineups(recovery, monkeypatch):

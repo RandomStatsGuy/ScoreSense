@@ -3,7 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { HubFilterMenu, HubPage } from "./HubUILayout";
-import { CORRECTIONS_COPY as COPY, correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer, correctionChanges, currentCorrectionCandidates } from "./weekCorrectionsPresentation";
+import { CORRECTIONS_COPY as COPY, correctionTeamRows, correctionSlots, correctionSlotRows, assignCorrectionPlayer, correctionChanges, correctionChangeText, currentCorrectionCandidates, groupCorrectionChanges } from "./weekCorrectionsPresentation";
+
+const WEEK_OPTIONS = Array.from({ length: 18 }, (_, index) => ({ id: String(index + 1), label: String(index + 1) }));
+const MODES = [{ id: "lineup", label: COPY.modeLineups }, { id: "results", label: COPY.modeResults }];
 import "./WeekCorrections.css";
 import { clearHubDataCache } from "./hubDataCache";
 
@@ -122,20 +125,19 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
     <span className="correction-slot">{slot?.label || COPY.bench}</span>
     <div className="correction-player"><strong>{player?.player_name || (player ? player.player_id : COPY.emptySlot)}</strong>
       <span>{player ? [player.nfl_team, player.position].filter(Boolean).join(" · ") : COPY.needsPlayer}</span></div>
-    {player ? <HubFilterMenu label={COPY.slot} value={player.slot} disabled={busy}
-      options={[{id:"BN",label:COPY.bench}, ...slots.filter(item => eligible(player.position, item.id))]}
+    {player ? <HubFilterMenu className="correction-move" label={COPY.slot} ariaLabel={COPY.moveAria(player.player_name)} value={player.slot} disabled={busy}
+      options={[{id:"BN",label:COPY.bench}, ...slots.filter(item => eligible(player.position, item.id))].map(option => option.id === player.slot ? {...option, shortLabel: COPY.move} : option)}
       onChange={value => changePlayers(assignCorrectionPlayer(team.players, player, value))} /> :
       <button className="btn-ghost btn-sm" disabled={busy} onClick={() => fill(slot.id)}>{COPY.fill} {slot.label}</button>}
   </div>;
   return <HubPage className="week-corrections">
     <h2>{COPY.title}</h2><p>{COPY.support}</p>
-    <div className="correction-toolbar"><label>{COPY.week}<input type="number" min="1" max="18" value={week} disabled={busy}
-      onChange={event => { setNotice(""); setWeek(Math.max(1, Math.min(18, Number(event.target.value) || 1))); }} /></label>
+    <div className="correction-toolbar"><HubFilterMenu label={COPY.week} value={String(week)} options={WEEK_OPTIONS} disabled={busy}
+      onChange={value => { setNotice(""); setWeek(Number(value)); }} />
       {context && <HubFilterMenu label={COPY.manager} value={selectedTeam} disabled={busy}
         options={context.teams.map(item => ({id:item.id,label:teamLabel(item)}))}
         onChange={value => { setSelectedTeam(value); setQuery(""); setTargetSlot("BN"); }} />}</div>
-    {error && <p role="alert" className="error">{error}</p>}
-    {notice && <p role="status">{notice}</p>}
+    {error && !context && <p role="alert" className="error">{error}</p>}
     {!context && !error && <p role="status">{COPY.loading}</p>}
     {context && <>
       <div className="correction-workspace">
@@ -180,15 +182,28 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
         </section>
         <aside className="correction-card">
           <h3>{COPY.review}</h3>
-          <HubFilterMenu label={COPY.action} value={mode} disabled={busy || context.finalized}
-            options={[{id:"lineup",label:COPY.saveLineups}, {id:"results",label:COPY.publish}]}
-            onChange={value => { setMode(value); setPreview(null); }} />
+          <div className="hub-rules-risk-options correction-modes" role="radiogroup" aria-label={COPY.action}>
+            {MODES.map((option, index) => <button key={option.id} type="button" role="radio" aria-checked={mode === option.id}
+              className={mode === option.id ? "is-active" : ""} tabIndex={mode === option.id ? 0 : -1}
+              disabled={busy || (context.finalized && option.id === "lineup")}
+              onClick={() => { setMode(option.id); setPreview(null); }}
+              onKeyDown={event => {
+                if (!["ArrowLeft", "ArrowRight"].includes(event.key) || context.finalized) return;
+                event.preventDefault(); const next = (index + 1) % MODES.length;
+                setMode(MODES[next].id); setPreview(null); event.currentTarget.parentElement.children[next]?.focus();
+              }}>{option.label}</button>)}
+          </div>
           <p>{mode === "lineup" ? COPY.lineupHelp : COPY.resultsHelp}</p>
-          {changes.length > 0 && <button className="btn-ghost btn-sm" disabled={busy} onClick={() => {setTeams(correctionTeamRows(context));setPreview(null);}}>{COPY.undo}</button>}
           {!changes.length && <p>{COPY.noChanges}</p>}
-          {changes.map((change,index) => <p key={index}><strong>{change.name}</strong><br />{teamLabel(context.teams.find(item => item.id === change.team_id))} · {change.before} → {change.after}</p>)}
+          {groupCorrectionChanges(changes).map(group => <section className="correction-change-group" key={group.team_id}>
+            <h4>{teamLabel(context.teams.find(item => item.id === group.team_id))}</h4>
+            <ul>{group.changes.map(change => <li key={`${change.name}-${change.before}`}><strong>{change.name}</strong><span>{correctionChangeText(change, slots)}</span></li>)}</ul>
+          </section>)}
+          {changes.length > 0 && <button className="btn-ghost btn-sm correction-undo" disabled={busy} onClick={() => {setTeams(correctionTeamRows(context));setPreview(null);}}>{COPY.undo}</button>}
           <label>{COPY.reason}<textarea value={reason} disabled={busy} onChange={event => { setReason(event.target.value); setPreview(null); }} /></label>
           <label className="correction-ack"><input type="checkbox" checked={acknowledge} disabled={busy} onChange={event => { setAcknowledge(event.target.checked); setPreview(null); }} />{COPY.empty}</label>
+          {error && !preview && <p role="alert" className="error">{error}</p>}
+          {notice && <p role="status">{notice}</p>}
           <button type="button" className={preview ? "btn-ghost btn-sm" : "btn-primary btn-sm"} disabled={busy || reason.trim().length < 3} onClick={() => request()}>{COPY.preview}</button>
         </aside>
       </div>
@@ -202,6 +217,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
             return <tr key={row.team_id}><td>{row.name}</td><td>{preview.before.scores.find(item => item.team_id === row.team_id)?.points ?? "Not recorded"}</td>
               <td>{preview.after.scores.find(item => item.team_id === row.team_id)?.points}</td><td>{prior?.wins}-{prior?.losses}-{prior?.ties}</td><td>{row.wins}-{row.losses}-{row.ties}</td></tr>;
           })}</tbody></table></div>}
+        {error && <p role="alert" className="error">{error}</p>}
         <button type="button" className="btn-primary btn-sm" disabled={busy || !preview.can_publish} onClick={() => request(true)}>{preview.mode === "lineup" ? COPY.saveLineups : COPY.publish}</button>
       </section>}
       <h3>{COPY.history}</h3>
