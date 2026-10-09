@@ -10,6 +10,13 @@ os.environ.setdefault("TESTING", "1")
 os.environ.setdefault("SCORESENSE_TESTING", "1")
 
 
+@pytest.fixture(scope="session")
+def posix_shell():
+    from shell_support import PosixShell
+
+    return PosixShell()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _testing_env() -> None:
     """Mark the process as a test run for config guards and integrations."""

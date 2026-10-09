@@ -40,7 +40,8 @@ def test_coverage_lists_missing_quantiles_and_does_not_certify_fixed_or_imported
 @pytest.mark.parametrize("site", ["draftkings", "fanduel"])
 def test_salary_cache_expires_after_five_minutes(tmp_path, monkeypatch, site):
     cache = tmp_path / "salary.parquet"
-    pd.DataFrame([{"player_name": "Old"}]).to_parquet(cache)
+    # DraftKings intentionally retries caches without usable export IDs.
+    pd.DataFrame([{"player_name": "Old", "dfs_id": "123"}]).to_parquet(cache)
     os.utime(cache, (time.time()-2, time.time()-2))
     monkeypatch.setattr(dfs_slates, "_cache_path", lambda *a: cache)
     monkeypatch.setattr(dfs_slates, "_cache_meta_path", lambda *a: tmp_path / "meta.json")
@@ -48,7 +49,7 @@ def test_salary_cache_expires_after_five_minutes(tmp_path, monkeypatch, site):
     fetch = Mock(return_value={})
     monkeypatch.setattr(dfs_slates, "_dk_get" if site == "draftkings" else "_fd_get", fetch)
     monkeypatch.setattr(dfs_slates, "parse_dk_draftables" if site == "draftkings" else "parse_fd_players",
-                        lambda *a, **k: pd.DataFrame([{"player_name": "New"}]))
+                        lambda *a, **k: pd.DataFrame([{"player_name": "New", "dfs_id": "456"}]))
     assert dfs_slates.fetch_slate_salaries(site, "1").iloc[0].player_name == "Old"
     fetch.assert_not_called()
     os.utime(cache, (time.time()-301, time.time()-301))
