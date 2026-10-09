@@ -12,6 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from functools import partial
 from typing import Callable, TypeVar
+from threading import Lock
 
 from src.ops.job_diagnostics import execute_job, future_observed, queue_job
 
@@ -21,6 +22,19 @@ T = TypeVar("T")
 
 _executor: ProcessPoolExecutor | None = None
 _live_executor: ProcessPoolExecutor | None = None
+_CPU_FUTURES: set = set()
+_CPU_LOCK = Lock()
+
+
+def cpu_jobs_busy() -> bool:
+    """Advisory gate for recurring maintenance; explicit work still queues."""
+    with _CPU_LOCK:
+        return bool(_CPU_FUTURES)
+
+
+def _cpu_finished(future):
+    with _CPU_LOCK:
+        _CPU_FUTURES.discard(future)
 
 
 def init_process_executor(max_workers: int = 1) -> ProcessPoolExecutor:
@@ -36,6 +50,8 @@ def shutdown_process_executor(wait: bool = False) -> None:
         if executor is not None:
             executor.shutdown(wait=wait, cancel_futures=not wait)
     _executor = _live_executor = None
+    with _CPU_LOCK:
+        _CPU_FUTURES.clear()
 
 
 def get_process_executor() -> ProcessPoolExecutor:
@@ -76,7 +92,12 @@ def _submit(executor: ProcessPoolExecutor, func: Callable[..., T], args, kwargs)
     ticket = queue_job(func)
     bound = partial(execute_job, func, args, kwargs, ticket, "process")
     try:
-        future = loop.run_in_executor(executor, bound)
+        worker_future = executor.submit(bound)
+        if executor is _executor:
+            with _CPU_LOCK:
+                _CPU_FUTURES.add(worker_future)
+            worker_future.add_done_callback(_cpu_finished)
+        future = asyncio.wrap_future(worker_future, loop=loop)
     except Exception as error:
         from concurrent.futures import Future
         failed = Future()

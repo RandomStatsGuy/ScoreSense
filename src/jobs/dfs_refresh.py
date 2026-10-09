@@ -38,6 +38,15 @@ def _new_weekly_build(previous: dict) -> bool:
     return outputs is not None and outputs != receipt.get("outputs")
 
 
+def dfs_refresh_needed():
+    """Disk-only deadline/publication check, before occupying the CPU queue."""
+    from src.projections.artifact_snapshot import read_cached_metadata
+    previous = read_cached_metadata(STATUS_PATH)
+    completed = previous.get("completed_epoch", previous.get("attempt_epoch", 0))
+    return (type(completed) not in (int, float) or not math.isfinite(completed)
+            or not 0 <= time.time() - completed < DFS_REFRESH_SECONDS or _new_weekly_build(previous))
+
+
 @observe_job("dfs_refresh", cadence_s=DFS_REFRESH_SECONDS)
 def run_dfs_refresh(*, force: bool = False):
     from src.integrations.injury_poll import run_injury_poll, get_injury_poll_status
@@ -78,7 +87,7 @@ def run_dfs_refresh(*, force: bool = False):
                     status.update(status="inputs_updating", completed_epoch=time.time())
                     save()
                     return status
-                if poll.get("status") != "ok":
+                if poll.get("status") not in {"ok", "not_due"}:
                     raise RuntimeError("Player input refresh did not complete")
                 state = get_nfl_state(use_cache=True)
                 season, week = int(state["season"]), int(state.get("week") or 1)

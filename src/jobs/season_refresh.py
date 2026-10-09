@@ -158,6 +158,21 @@ def current_targets():
     return _current_targets()
 
 
+def _target_needs_refresh(kind, season, week, previous):
+    if (not target_due(kind, season, week) and previous.get("status") != "error"
+            and not availability_changed(kind, previous)):
+        return False
+    attempted = timestamp(previous.get("started_at"))
+    return not attempted or (datetime.now(timezone.utc) - attempted).total_seconds() >= PROJECTION_REFRESH_RETRY_SECONDS
+
+
+def season_refresh_needed():
+    """Cheap preflight before queueing; the worker rechecks under its OS lock."""
+    targets = read_status()
+    return any(_target_needs_refresh(kind, season, week, targets.get(target_key(kind, season, week), {}))
+               for kind, season, week in _current_targets())
+
+
 def _refresh_one(targets, kind, season, week) -> bool:
     key = target_key(kind, season, week)
     previous = targets.get(key, {})
@@ -188,12 +203,7 @@ def run_season_refresh():
             for kind, season, week in _current_targets():
                 key = target_key(kind, season, week)
                 previous = targets.get(key, {})
-                if (not target_due(kind, season, week) and previous.get("status") != "error"
-                        and not availability_changed(kind, previous)):
-                    continue
-                # The retry gap also spaces early availability rebuilds.
-                attempted = timestamp(previous.get("started_at"))
-                if attempted and (datetime.now(timezone.utc) - attempted).total_seconds() < PROJECTION_REFRESH_RETRY_SECONDS:
+                if not _target_needs_refresh(kind, season, week, previous):
                     continue
                 if _refresh_one(targets, kind, season, week):
                     prepared += 1

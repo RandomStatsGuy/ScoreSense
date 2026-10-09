@@ -263,7 +263,7 @@ def test_explicit_bestball_context_uses_existing_board_without_feature_metadata(
     executor.submit.assert_not_called()
 
 
-def test_cold_bestball_artifact_rebuilds_in_shared_cpu_worker(monkeypatch):
+def test_cold_bestball_artifact_queues_recovery_without_waiting(monkeypatch):
     from app import api
     from src.draft_hub.draft_pool_cache import load_draft_pool
 
@@ -271,6 +271,7 @@ def test_cold_bestball_artifact_rebuilds_in_shared_cpu_worker(monkeypatch):
         FileNotFoundError('cold cache'), (pd.DataFrame([{'player_id':'x'}]), {})]))
     executor = Mock()
     monkeypatch.setattr(api, 'get_process_executor', lambda: executor)
-    assert api.bestball_board(2026)['count'] == 1
-    executor.submit.assert_called_once_with(load_draft_pool, 2026)
-    executor.submit.return_value.result.assert_called_once()
+    response = api.bestball_board(2026)
+    assert response.status_code == 503
+    assert response.headers['retry-after'] == '60'
+    executor.submit.assert_not_called()

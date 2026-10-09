@@ -137,9 +137,13 @@ This setting is ignored in normal production execution.
 
 This does not measure normal HTTP request latency, optimizer work outside the
 shared executor, host CPU/RAM/disk, all external feed revisions, or artifact
-freshness that a job does not report. Framework-owned injury background callbacks
-have execution timing but no submission hook, hence queue unknown. Those gaps
-remain explicit; use authorized existing telemetry before estimating capacity.
+freshness that a job does not report. HTTP-triggered injury work now submits to the
+shared CPU worker and includes queue timing; direct/CLI calls still report queue
+unknown. The authenticated Server export separately exposes process-local scoring
+assembly and cache-hit timings under `server.scoring`; see
+[the performance architecture](FANTASY_PERFORMANCE_ARCHITECTURE.md#shared-scoring-and-refresh-coordination--october-9-2026)
+for scope and sampling limits. Use these separate observations before estimating
+capacity.
 
 ## Retention, concurrency and failure behavior
 
