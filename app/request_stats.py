@@ -2,7 +2,9 @@
 
 Pure ASGI so streaming responses are untouched. Keys are route templates
 (``/api/hub/league/{league_id}``), never raw paths, so ids and query strings
-are not retained. Errors keep the exception type only — no messages.
+are not retained. Timings end when the complete response is handed to the
+server, before background tasks run. Post-response failures stay separate from
+HTTP failures. Errors keep the exception type only — no messages.
 """
 from __future__ import annotations
 
@@ -18,6 +20,7 @@ _MAX_ERRORS = 100
 _lock = threading.Lock()
 _routes: dict[str, dict] = {}
 _errors: deque = deque(maxlen=_MAX_ERRORS)
+_post_response_errors: deque = deque(maxlen=_MAX_ERRORS)
 _started_at = time.time()
 
 
@@ -46,6 +49,14 @@ def record(key: str | None, status: int, elapsed_ms: float, error_type: str | No
             _errors.appendleft({"at": now, "route": key or "unmatched", "status": status, "error_type": error_type})
 
 
+def _record_post_response_error(key: str | None, status: int, error_type: str) -> None:
+    with _lock:
+        _post_response_errors.appendleft({
+            "at": time.time(), "route": key or "unmatched", "status": status,
+            "error_type": error_type,
+        })
+
+
 def _percentile(values: list[float], q: float) -> float:
     ordered = sorted(values)
     index = min(len(ordered) - 1, max(0, round(q * (len(ordered) - 1))))
@@ -66,15 +77,18 @@ def snapshot(*, slowest: int = 8, errors: int = 20) -> dict:
             if entry["samples"]
         ]
         recent = list(_errors)[:errors]
+        post_response = list(_post_response_errors)[:errors]
         total = sum(entry["count"] for entry in _routes.values())
         failed = sum(entry["errors"] for entry in _routes.values())
     rows.sort(key=lambda row: row["p95_ms"], reverse=True)
     return {
         "since": _started_at,
+        "timing_scope": "response_complete",
         "requests": total,
         "server_errors": failed,
         "slowest": rows[:slowest],
         "recent_errors": recent,
+        "recent_post_response_errors": post_response,
     }
 
 
@@ -83,6 +97,7 @@ def reset() -> None:
     with _lock:
         _routes.clear()
         _errors.clear()
+        _post_response_errors.clear()
         _started_at = time.time()
 
 
@@ -94,16 +109,39 @@ class RequestStatsMiddleware:
         if scope["type"] != "http" or not scope.get("path", "").startswith("/api/"):
             return await self.app(scope, receive, send)
         started = perf_counter()
-        status_holder = {"status": 500}
+        status = 500
+        trailers = False
+        recorded = False
+
+        def record_response(response_status: int, error_type: str | None = None):
+            nonlocal recorded
+            if not recorded:
+                recorded = True
+                record(_route_key(scope), response_status, (perf_counter() - started) * 1000, error_type)
 
         async def tracking_send(message):
-            if message["type"] == "http.response.start":
-                status_holder["status"] = int(message.get("status", 500))
+            nonlocal status, trailers
+            message_type = message["type"]
+            if message_type == "http.response.start":
+                status = int(message.get("status", 500))
+                trailers = bool(message.get("trailers", False))
             await send(message)
+            # Wait for all streamed chunks (and trailers when promised), but
+            # never wait for response-attached background tasks.
+            if ((message_type == "http.response.body" and not message.get("more_body", False) and not trailers)
+                    or (message_type == "http.response.trailers" and not message.get("more_trailers", False))
+                    or message_type == "http.response.pathsend"):
+                record_response(status)
 
         try:
             await self.app(scope, receive, tracking_send)
         except Exception as exc:
-            record(_route_key(scope), 500, (perf_counter() - started) * 1000, type(exc).__name__)
+            if recorded:
+                # The client already received its response. A background
+                # failure must not add another request or turn it into a 500.
+                _record_post_response_error(_route_key(scope), status, type(exc).__name__)
+            else:
+                record_response(500, type(exc).__name__)
             raise
-        record(_route_key(scope), status_holder["status"], (perf_counter() - started) * 1000)
+        # Retain observations for apps which return without a terminal message.
+        record_response(status)
