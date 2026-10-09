@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from functools import lru_cache
 
 import pandas as pd
 
@@ -17,6 +18,24 @@ from src.core.projection_context import (
 from src.core.schedule_utils import regular_season_weeks
 
 _META_CACHE: dict[str, tuple[str, dict]] = {}
+
+
+@lru_cache(maxsize=6)
+def _context_source(path: str, mtime: int, size: int, ctime: int) -> pd.DataFrame:
+    columns = ["season", "week", "team"]
+    return pd.read_parquet(path, columns=columns) if Path(path).suffix == ".parquet" else pd.read_csv(path, usecols=columns)
+
+
+def resolve_cached_context(position: str, season: int | None, week: int | None) -> tuple[int, int]:
+    """Resolve each request's clock against cached sources, without provider I/O."""
+    if season is not None and week is not None:
+        return int(season), int(week)
+    path = PROCESSED_DATA_DIR / f"{position}_mlready.parquet"
+    if not path.exists():
+        path = path.with_suffix(".csv")
+    stat = path.stat()
+    frame = _context_source(str(path), stat.st_mtime_ns, stat.st_size, stat.st_ctime_ns)
+    return resolve_projection_context(frame, season, week, allow_fetch=False)
 
 
 def _meta_fingerprint(position: str, data_dir: Path) -> str:

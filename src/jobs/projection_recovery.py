@@ -65,8 +65,7 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                             try:
                                 for injury in (True, False):
                                     frame = call_phase(f"{kind}_{position}_inj{int(injury)}", loader,
-                                                   position, season, week, apply_injury_adjustments=injury,
-                                                   **({"force": True} if kind == "ros" else {}))
+                                                       position, season, week, apply_injury_adjustments=injury)
                                     if frame.empty:
                                         raise ValueError("Empty projection output")
                             except Exception:

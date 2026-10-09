@@ -11,6 +11,7 @@ import requests
 
 from src.draft_hub import storage
 from src.integrations.sleeper import get_nfl_state, load_sleeper_players
+from src.ops.scoring_stats import profile_scoring
 
 SLEEPER_API = "https://api.sleeper.app/v1"
 LIVE_SCORING_MAX_AGE_SECONDS = 60
@@ -812,6 +813,7 @@ def _hold_historical_week(
     )
 
 
+@profile_scoring("sleeper.assembly", cache_result=True)
 def get_sleeper_live_week(
     sleeper_league_id: str,
     *,

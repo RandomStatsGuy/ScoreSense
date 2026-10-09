@@ -29,6 +29,7 @@ from src.draft_hub.league_live_scoring import (
 from src.draft_hub.roster_identity_match import is_gsis_player_id, name_pos_key
 from src.draft_hub.rules_engine import normalize_position, roster_limits
 from src.draft_hub.schemas import LeagueRules, ScoringRules
+from src.ops.scoring_stats import profile_scoring
 
 _STAT_INDEX_CACHE: dict[tuple[int, int], tuple[float, dict[str, dict[str, Any]]]] = {}
 _STAT_INDEX_TTL_S = 60.0
@@ -179,8 +180,8 @@ def nfl_game_started(
     if stamp.tzinfo is None:
         stamp = stamp.replace(tzinfo=timezone.utc)
     try:
-        from src.draft_hub.native_stats import cached_week_snapshot, NFL_TEAMS
-        snapshot = cached_week_snapshot(int(season), int(week))
+        from src.draft_hub.native_stats import cached_week_snapshot, NFL_TEAMS, GAME_STATE_FIELDS
+        snapshot = cached_week_snapshot(int(season), int(week), GAME_STATE_FIELDS)
         if snapshot:
             game = (snapshot.get("game_states") or {}).get(team)
             if game:
@@ -254,8 +255,8 @@ def nfl_week_slate_complete(
     """Only confirmed provider or saved schedule results establish completion."""
     try:
         clock = pd.Timestamp(now or _utcnow())
-        from src.draft_hub.native_stats import cached_week_snapshot
-        snapshot = cached_week_snapshot(int(season), int(week))
+        from src.draft_hub.native_stats import cached_week_snapshot, GAME_STATE_FIELDS
+        snapshot = cached_week_snapshot(int(season), int(week), GAME_STATE_FIELDS)
         if snapshot is not None:
             states = snapshot.get("game_states") or {}
             return bool(snapshot.get("complete")) and not any(
@@ -348,6 +349,7 @@ def week_is_final(league_id: str, season: int, week: int) -> bool:
     return bool(run and run.get("final"))
 
 
+@profile_scoring("native.lineup")
 def ensure_team_lineup(
     league_id: str,
     team_id: str,
@@ -372,6 +374,9 @@ def ensure_team_lineup(
         return existing
     ws = storage.roster_workspace_for_league(league)
     roster = roster if roster is not None else _active_roster(ws, team_id)
+    if identity_snapshot is None and game_started is None:
+        from src.draft_hub.native_stats import cached_week_snapshot
+        identity_snapshot = cached_week_snapshot(season, week) or {}
     cards = {card["player_id"]: (card if game_started is not None else
              trusted_lineup_row(card, season, week, snapshot=identity_snapshot) or card)
              for card in _cards_from_roster(roster)}
@@ -1172,6 +1177,7 @@ def apply_week_scores(
     }
 
 
+@profile_scoring("native.standings")
 def build_hub_standings(league_id: str, season: int) -> list[dict[str, Any]]:
     from src.draft_hub.native_schedule import finalized_season_team_scores, saved_matchup_is_regular
 
@@ -1301,6 +1307,7 @@ def _bench_from_scores(
     }
 
 
+@profile_scoring("native.assembly")
 def build_hub_live_week(
     league_id: str,
     *,
@@ -1337,10 +1344,12 @@ def build_hub_live_week(
         resolved_week = min(resolved_week, max_week)
     matchups = storage.list_week_matchups(league_id, season_n, resolved_week)
     participating = week_scoring_team_ids(rules, list(teams.values()), matchups, resolved_week)
+    from src.draft_hub.native_stats import cached_week_snapshot
+    identity_snapshot = cached_week_snapshot(season_n, resolved_week) or {}
     for tid in participating:
-        ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules)
-    lineups = storage.list_week_lineups(league_id, season_n, resolved_week)
-    missing_lineup_teams = [tid for tid in participating if not storage.has_team_lineup_snapshot(league_id, tid, season_n, resolved_week)]
+        ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules, identity_snapshot=identity_snapshot)
+    initialized = {str(row["team_id"]) for row in storage.list_week_lineup_snapshots(league_id, season_n, resolved_week)}
+    missing_lineup_teams = sorted(participating - initialized)
 
     saved_snapshot = storage.get_native_week_snapshot(league_id, season_n, resolved_week)
     lineups = saved_snapshot["lineups"]

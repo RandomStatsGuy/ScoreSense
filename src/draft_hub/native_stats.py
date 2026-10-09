@@ -14,6 +14,7 @@ import json
 import math
 import threading
 import time
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,12 +27,14 @@ from src.config import (
 )
 from src.core.team_codes import normalize_team_for_match
 from src.draft_hub.schemas import ScoringRules
+from src.ops.scoring_stats import record
 
 NATIVE_STATS_DIR = CACHE_DIR / "native_scores"
 _MEMORY: dict[tuple[int, int], tuple[float, dict[str, Any]]] = {}
 _LOCK = threading.RLock()
 SOURCE = "sleeper_raw_stats+espn_status"
 SCHEDULE_COVERAGE_VERSION = 1
+GAME_STATE_FIELDS = ("game_states", "complete", "schedule_complete", "schedule_coverage_version")
 NFL_TEAMS = frozenset("ARI ATL BAL BUF CAR CHI CIN CLE DAL DEN DET GB HOU IND JAX KC LA LAC LV MIA MIN NE NO NYG NYJ PHI PIT SEA SF TB TEN WAS".split())
 
 
@@ -292,18 +295,39 @@ def _validated_cached_snapshot(data: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def cached_week_snapshot(season: int, week: int) -> dict[str, Any] | None:
-    """Read only the last successful shared snapshot; never contact a provider."""
+@lru_cache(maxsize=12)
+def _read_snapshot(path: str, mtime_ns: int, size: int, ctime_ns: int) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def cached_week_snapshot(season: int, week: int, fields: tuple[str, ...] | None = None) -> dict[str, Any] | None:
+    """Revision-keyed read; worker replacements invalidate API memory immediately."""
+    started = time.perf_counter()
     key = int(season), int(week)
+    mode = "missing"
     with _LOCK:
-        hit = _MEMORY.get(key)
-        if hit:
-            return _validated_cached_snapshot(hit[1])
-    try:
-        data = json.loads(_path(*key).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    return _validated_cached_snapshot(data) if data.get("season") == key[0] and data.get("week") == key[1] else None
+        try:
+            path = _path(*key)
+            stat = path.stat()
+            misses = _read_snapshot.cache_info().misses
+            data = _read_snapshot(str(path), stat.st_mtime_ns, stat.st_size, stat.st_ctime_ns)
+            mode = "disk" if _read_snapshot.cache_info().misses > misses else "hit"
+            if not isinstance(data, dict):
+                mode = "invalid"
+                raise ValueError("Invalid native snapshot")
+            if data.get("season") != key[0] or data.get("week") != key[1]:
+                mode = "invalid"
+                return None
+            return _validated_cached_snapshot({key: data[key] for key in fields if key in data} if fields else data)
+        except (OSError, ValueError):
+            hit = _MEMORY.get(key)
+            if hit:
+                mode = "retained"
+                data = hit[1]
+                return _validated_cached_snapshot({key: data[key] for key in fields if key in data} if fields else data)
+            return None
+        finally:
+            record(f"native.snapshot.{mode}", time.perf_counter() - started)
 
 
 def _fetch_json(url: str) -> Any:
@@ -395,3 +419,4 @@ def load_native_week_stats(season: int, week: int) -> dict[str, dict[str, float]
 def clear_native_stats_cache() -> None:
     with _LOCK:
         _MEMORY.clear()
+        _read_snapshot.cache_clear()

@@ -98,6 +98,8 @@ def prepare_weekly_context():
 
 @pytest.fixture(autouse=True)
 def _isolate_materialized_caches(tmp_path, monkeypatch):
+    from src.projections import projection_movement
+    monkeypatch.setattr(projection_movement, "WEEKLY_PROJECTION_CHANGES_DIR", tmp_path / "weekly_projection_changes")
     from src.draft_hub import native_stats, native_participation
     monkeypatch.setattr(native_stats, "NATIVE_STATS_DIR", tmp_path / "native_scores")
     native_stats.clear_native_stats_cache()

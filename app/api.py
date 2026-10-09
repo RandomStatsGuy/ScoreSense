@@ -18,6 +18,7 @@ import pandas as pd
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from app.hub_http_timing import HubServerTimingMiddleware
+from app.injury_refresh import queue_injury_refresh
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -97,7 +98,7 @@ from src.jobs.weekly_refresh import (
 )
 from src.jobs.refresh_lock import refresh_lock, RefreshBusy
 from src.projections.predict import get_model_metrics, predict_upcoming_week
-from src.projections.projection_meta import get_projection_meta
+from src.projections.projection_meta import get_projection_meta, resolve_cached_context
 from src.projections.draft_meta import get_draft_meta
 from src.projections.draft_projections import draft_projection_note, predict_draft_season
 from src.projections.weekly_cache import compute_weekly_artifact, load_weekly_prediction
@@ -198,6 +199,17 @@ app = FastAPI(
 
 app.add_middleware(HubServerTimingMiddleware)
 app.add_middleware(RequestStatsMiddleware)
+
+
+class _ForecastPreparing(FileNotFoundError):
+    def __init__(self, kind, season, week):
+        super().__init__("Forecast is preparing. Please try again shortly.")
+        self.kind, self.season, self.week = kind, season, week
+
+
+@app.exception_handler(_ForecastPreparing)
+async def unavailable_forecast_snapshot(_request, exc):
+    return _projection_unavailable(exc.kind, exc.season, exc.week, None)
 
 
 @app.exception_handler(PoolSnapshotUnavailable)
@@ -407,6 +419,8 @@ def player_explanation_get(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except _ForecastPreparing:
+        raise
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -1008,14 +1022,7 @@ def injuries(
 
         tick = maybe_tick_injury_poll(enqueue=True)
         if tick.get("should_enqueue") and tick.get("tick") == "due":
-            if background_tasks is not None:
-                background_tasks.add_task(run_injury_poll, False, True, "stale_while_revalidate")
-            else:
-                try:
-                    submit_cpu_job(run_injury_poll, False, True, "stale_while_revalidate")
-                except RuntimeError:
-                    # No running event loop (sync tests) — skip enqueue.
-                    pass
+            queue_injury_refresh(background_tasks, trigger="stale_while_revalidate")
 
         df = injured_players_from_disk()
         if team:
@@ -1060,13 +1067,7 @@ def injuries_poll_status(
     """Adaptive poller status; enqueues a due tick without blocking on Sleeper."""
     tick = maybe_tick_injury_poll(enqueue=True)
     if tick.get("should_enqueue") and tick.get("tick") == "due":
-        if background_tasks is not None:
-            background_tasks.add_task(run_injury_poll, False, True, "scheduled")
-        else:
-            try:
-                submit_cpu_job(run_injury_poll, False, True, "scheduled")
-            except RuntimeError:
-                pass
+        queue_injury_refresh(background_tasks, trigger="scheduled")
     return get_injury_poll_status()
 
 
@@ -1085,13 +1086,7 @@ def injuries_refresh(
     is_admin = bool(is_admin_user(user if isinstance(user, dict) else None))
     queued = enqueue_manual_injury_refresh(force=bool(force and is_admin))
     if queued.get("should_enqueue"):
-        if background_tasks is not None:
-            background_tasks.add_task(run_injury_poll, True, True, "manual")
-        else:
-            try:
-                submit_cpu_job(run_injury_poll, True, True, "manual")
-            except RuntimeError:
-                pass
+        queue_injury_refresh(background_tasks, force=True, trigger="manual")
 
     players = attach_return_estimates(injured_players_from_disk().to_dict(orient="records"))
     status_code_hint = 200 if queued.get("allowed") else 429
@@ -1396,14 +1391,17 @@ def _warm_weekly_artifact(
     week: int,
     apply_injury_adjustments: bool,
 ) -> None:
-    """Cold-cache warm via shared process pool (used by predict + compare)."""
-    get_process_executor().submit(
-        compute_weekly_artifact,
-        position,
-        int(season),
-        int(week),
-        apply_injury_adjustments,
-    ).result()
+    """Tell read-only consumers to queue recovery through the HTTP handler."""
+    raise _ForecastPreparing("weekly", int(season), int(week))
+
+
+def _projection_unavailable(kind, season, week, background_tasks):
+    from app.projection_recovery import queue_projection_recovery
+    tasks = background_tasks if background_tasks is not None else BackgroundTasks()
+    recovery = queue_projection_recovery(tasks, season, week, [kind])
+    return JSONResponse(status_code=503, headers={"Retry-After": "60"}, background=tasks,
+                        content={"detail": "Forecast is preparing. Please try again shortly.",
+                                 "projection_recovery": recovery, "season": season, "week": week})
 
 
 def _predict_response(
@@ -1418,33 +1416,14 @@ def _predict_response(
     if position not in ("qb", "rb", "wr"):
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
     try:
-        if season is not None and week is not None:
-            preds = load_weekly_prediction(
-                position,
-                season=season,
-                week=week,
-                apply_injury_adjustments=apply_injury_adjustments,
-                allow_compute=False,
-                allow_stale=True,
-            )
-            if preds.empty:
-                # Cold cache: run inference in the shared process pool so it
-                # doesn't stall other requests, then re-read the saved artifact.
-                _warm_weekly_artifact(position, int(season), int(week), apply_injury_adjustments)
-                preds = load_weekly_prediction(
-                    position,
-                    season=season,
-                    week=week,
-                    apply_injury_adjustments=apply_injury_adjustments,
-                    allow_compute=False,
-                )
-        else:
-            preds = load_weekly_prediction(
-                position,
-                season=season,
-                week=week,
-                apply_injury_adjustments=apply_injury_adjustments,
-            )
+        season, week = resolve_cached_context(position, season, week)
+        preds = load_weekly_prediction(
+            position, season=season, week=week,
+            apply_injury_adjustments=apply_injury_adjustments,
+            allow_compute=False, allow_stale=True,
+        )
+        if preds.empty:
+            return _projection_unavailable("weekly", season, week, background_tasks)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     meta = {}
@@ -1572,17 +1551,17 @@ def _ros_response(
     if position not in ("qb", "rb", "wr"):
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
     try:
+        season, week = resolve_cached_context(position, season, week)
         preds = load_ros_prediction(
             position,
             season=season,
             week=week,
             apply_injury_adjustments=apply_injury_adjustments,
             allow_stale=True,
-            allow_compute=False if season is not None and week is not None else True,
+            allow_compute=False,
         )
-        if preds.empty and season is not None and week is not None:
-            get_process_executor().submit(compute_ros_artifact, position, int(season), int(week), apply_injury_adjustments).result()
-            preds = load_ros_prediction(position, season, week, apply_injury_adjustments=apply_injury_adjustments, allow_compute=False)
+        if preds.empty:
+            return _projection_unavailable("ros", season, week, background_tasks)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     meta = {}
@@ -1673,6 +1652,8 @@ def predict_compare(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except _ForecastPreparing:
+        raise
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -1857,11 +1838,10 @@ def _draft_response(position: str, season: Optional[int] = None, background_task
     if position not in ("qb", "rb", "wr"):
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
     try:
-        preds = draft_pool_for_position(position, season, allow_compute=False) if season else predict_draft_season(position, season=season)
-        if preds.empty and season:
-            from src.draft_hub.draft_pool_cache import load_draft_pool
-            get_process_executor().submit(load_draft_pool, int(season)).result()
-            preds = draft_pool_for_position(position, season, allow_compute=False)
+        season = int(season or get_draft_meta(position)["default_season"])
+        preds = draft_pool_for_position(position, season, allow_compute=False)
+        if preds.empty:
+            return _projection_unavailable("draft", season, 1, background_tasks)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -2333,9 +2313,7 @@ def bestball_board(
         try:
             board, meta = build_bestball_board(int(season))
         except FileNotFoundError:
-            from src.draft_hub.draft_pool_cache import load_draft_pool
-            get_process_executor().submit(load_draft_pool, int(season)).result()
-            board, meta = build_bestball_board(int(season))
+            return _projection_unavailable("draft", int(season), 1, background_tasks)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 

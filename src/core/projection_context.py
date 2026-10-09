@@ -66,6 +66,7 @@ def resolve_projection_context(
     week: int | None = None,
     *,
     now: datetime | None = None,
+    allow_fetch: bool = True,
 ) -> tuple[int, int]:
     """
     Choose target season/week for projections.
@@ -82,30 +83,43 @@ def resolve_projection_context(
     available_seasons = set(int(s) for s in df["season"].unique())
 
     try:
-        state = get_nfl_state()
+        state = get_nfl_state() if allow_fetch else get_nfl_state(allow_stale=True)
         st_season = int(state.get("season") or state.get("league_season") or data_season)
         st_week = int(state.get("week") or 0)
-        st_type = str(state.get("season_type", "off")).lower()
+        st_type = str(state.get("season_type", "off" if state else "")).lower()
 
         # Offseason / preseason boards → upcoming (or current) regular season week 1.
         if st_type in {"off", "pre"} and season is None and week is None:
-            target_season = st_season if st_type == "pre" else upcoming_season(data_season)
+            if st_type == "pre" and st_season in available_seasons:
+                return st_season, 1
+            upcoming = upcoming_season(data_season) if allow_fetch else max(st_season, data_season + 1)
+            target_season = upcoming
             if st_type == "off" and not season_in_mlready(df, target_season):
                 return target_season, 1
             if st_type == "pre":
-                return (target_season if target_season in available_seasons else upcoming_season(data_season)), 1
+                return upcoming, 1
 
         # Regular / post: schedule-based "next week with football", Mon-night rollover.
         if st_type in {"regular", "post", "playoffs"} or (st_type not in {"off", "pre"} and st_week > 0):
             cal_season = st_season
             from src.core.schedule_utils import current_projection_week
 
-            proj_week = current_projection_week(cal_season, now=now)
+            try:
+                proj_week = current_projection_week(cal_season, now=now, **({"allow_fetch": False} if not allow_fetch else {}))
+            except (KeyError, OSError, ValueError):
+                if allow_fetch:
+                    raise
+                proj_week = None
             if proj_week is not None:
                 if week is not None:
                     return (season or cal_season), week
                 # Prefer calendar season even if mlready is still prior year (preseason overlay).
                 return cal_season, proj_week
+
+            if not allow_fetch and st_week > 0:
+                # A missing schedule snapshot must not send an interactive
+                # board back to the feature data's older NFL season.
+                return (season or cal_season), week if week is not None else min(st_week, REGULAR_SEASON_MAX_WEEK)
 
             # Regular season fully rolled over (playoffs / off).
             if st_type in {"post", "playoffs"} and st_week > 0:
@@ -120,7 +134,7 @@ def resolve_projection_context(
         try:
             from src.core.schedule_utils import current_projection_week
 
-            proj_week = current_projection_week(int(season), now=now)
+            proj_week = current_projection_week(int(season), now=now, **({"allow_fetch": False} if not allow_fetch else {}))
             if proj_week is not None:
                 return int(season), proj_week
         except Exception:

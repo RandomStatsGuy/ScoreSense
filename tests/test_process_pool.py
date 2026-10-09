@@ -66,3 +66,24 @@ def test_old_failure_does_not_remove_replacement_executor(monkeypatch):
     process_pool._log_future_error(failed, executor=old)
     assert process_pool._executor is current
     current.shutdown.assert_not_called()
+
+
+def test_cancelled_observer_does_not_make_busy_worker_look_idle():
+    import time
+    async def exercise():
+        process_pool.shutdown_process_executor()
+        try:
+            job = process_pool.submit_cpu_job(time.sleep, 1)
+            assert process_pool.cpu_jobs_busy()
+            # Wait until the process owns the job, so cancelling its observer
+            # cannot cancel the underlying work.
+            while not any(future.running() for future in process_pool._CPU_FUTURES):
+                await asyncio.sleep(.01)
+            job.cancel()
+            await asyncio.sleep(0)
+            assert process_pool.cpu_jobs_busy()
+            while process_pool.cpu_jobs_busy():
+                await asyncio.sleep(.05)
+        finally:
+            process_pool.shutdown_process_executor(wait=True)
+    asyncio.run(exercise())
