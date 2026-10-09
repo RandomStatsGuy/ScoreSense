@@ -69,7 +69,7 @@ def test_blueprint_has_no_diskless_cron():
 
 
 def _run_start(
-    tmp_path: Path, env: dict[str, str], persist: bool = True
+    posix_shell, tmp_path: Path, env: dict[str, str], persist: bool = True
 ) -> tuple[subprocess.CompletedProcess, Path]:
     app_root = tmp_path / "app"
     persist_dir = tmp_path / "var" / "data"
@@ -94,50 +94,51 @@ def _run_start(
     }
     run_env.update(
         {
-            "SCORESENSE_APP_ROOT": str(app_root),
-            "SCORESENSE_PERSIST_DIR": str(persist_dir),
+            "SCORESENSE_APP_ROOT": posix_shell.path(app_root),
+            "SCORESENSE_PERSIST_DIR": posix_shell.path(persist_dir),
             "SCORESENSE_RENDER_START_SKIP_SERVER": "1",
-            "SCORESENSE_RENDER_START_ENV_FILE": str(env_file),
+            "SCORESENSE_RENDER_START_ENV_FILE": posix_shell.path(env_file),
             **env,
         }
     )
-    result = subprocess.run(
-        ["/bin/sh", str(START_SH)],
+    result = posix_shell.script(
+        START_SH, shell="sh",
         cwd=app_root,
         env=run_env,
         check=True,
-        capture_output=True,
-        text=True,
     )
     return result, env_file
 
 
-def test_start_script_seeds_persist_and_symlinks(tmp_path):
-    result, _ = _run_start(tmp_path, {})
+def test_start_script_seeds_persist_and_symlinks(tmp_path, posix_shell):
+    result, _ = _run_start(posix_shell, tmp_path, {})
     persist = tmp_path / "var" / "data"
     app = tmp_path / "app"
     assert (persist / ".seeded").is_file()
     assert (persist / "data" / "seed.txt").read_text(encoding="utf-8") == "from-image"
-    assert app.joinpath("data").is_symlink()
-    assert app.joinpath("data").resolve() == (persist / "data").resolve()
+    link = posix_shell.run(
+        ["sh", "-c", 'test -L "$1" && test "$1" -ef "$2"',
+         "check-link", app / "data", persist / "data"]
+    )
+    assert link.returncode == 0, link.stderr
     assert "starting uvicorn" not in result.stdout
 
 
-def test_start_script_does_not_clobber_live_persist(tmp_path):
+def test_start_script_does_not_clobber_live_persist(tmp_path, posix_shell):
     persist = tmp_path / "var" / "data"
     persist.mkdir(parents=True)
     (persist / "data").mkdir(parents=True)
     (persist / "artifacts").mkdir(parents=True)
     (persist / "data" / "draft_hub.db").write_text("live-league", encoding="utf-8")
     (persist / ".seeded").write_text("", encoding="utf-8")
-    _run_start(tmp_path, {})
+    _run_start(posix_shell, tmp_path, {})
     assert (persist / "data" / "draft_hub.db").read_text(encoding="utf-8") == "live-league"
     assert not (persist / "data" / "seed.txt").exists()
 
 
-def test_start_script_derives_public_urls(tmp_path):
+def test_start_script_derives_public_urls(tmp_path, posix_shell):
     _, env_file = _run_start(
-        tmp_path,
+        posix_shell, tmp_path,
         {"RENDER_EXTERNAL_URL": "https://scoresense.onrender.com/"},
     )
     dumped = env_file.read_text(encoding="utf-8")
@@ -148,14 +149,14 @@ def test_start_script_derives_public_urls(tmp_path):
     )
 
 
-def test_start_script_honors_port(tmp_path):
-    _, env_file = _run_start(tmp_path, {"PORT": "10000"})
+def test_start_script_honors_port(tmp_path, posix_shell):
+    _, env_file = _run_start(posix_shell, tmp_path, {"PORT": "10000"})
     assert "PORT=10000\n" in env_file.read_text(encoding="utf-8")
 
 
-def test_start_script_keeps_explicit_frontend_url(tmp_path):
+def test_start_script_keeps_explicit_frontend_url(tmp_path, posix_shell):
     _, env_file = _run_start(
-        tmp_path,
+        posix_shell, tmp_path,
         {
             "FRONTEND_URL": "https://app.example.com",
             "RENDER_EXTERNAL_URL": "https://scoresense.onrender.com",
@@ -167,7 +168,7 @@ def test_start_script_keeps_explicit_frontend_url(tmp_path):
 
 
 @pytest.mark.parametrize("missing", ("data", "artifacts"))
-def test_start_script_survives_missing_image_trees(tmp_path, missing):
+def test_start_script_survives_missing_image_trees(tmp_path, missing, posix_shell):
     app_root = tmp_path / "app"
     persist_dir = tmp_path / "var" / "data"
     app_root.mkdir()
@@ -178,9 +179,9 @@ def test_start_script_survives_missing_image_trees(tmp_path, missing):
         (app_root / "artifacts").mkdir()
     env = {
         **os.environ,
-        "SCORESENSE_APP_ROOT": str(app_root),
-        "SCORESENSE_PERSIST_DIR": str(persist_dir),
+        "SCORESENSE_APP_ROOT": posix_shell.path(app_root),
+        "SCORESENSE_PERSIST_DIR": posix_shell.path(persist_dir),
         "SCORESENSE_RENDER_START_SKIP_SERVER": "1",
     }
-    subprocess.run(["/bin/sh", str(START_SH)], cwd=app_root, env=env, check=True)
+    posix_shell.script(START_SH, shell="sh", cwd=app_root, env=env, check=True)
     assert (persist_dir / ".seeded").is_file()
