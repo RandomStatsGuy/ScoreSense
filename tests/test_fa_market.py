@@ -58,7 +58,9 @@ def test_players_tab_add_blocked_during_waivers(hub_db, monkeypatch):
     assert league["id"]
 
 
-def test_highest_bid_wins_on_process(hub_db, monkeypatch):
+def test_highest_bid_wins_on_process(hub_db, monkeypatch, trusted_native_catalog):
+    trusted_native_catalog("00-0033873", name="Patrick Mahomes", team="KC", position="QB",
+                           sleeper_player_id="4046", gsis_id="00-0033873")
     league = _waiver_league(monkeypatch)
     lid = league["id"]
     a = _client_for("fa-a")

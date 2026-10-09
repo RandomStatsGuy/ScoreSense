@@ -67,7 +67,7 @@ def test_native_loader_maps_kicker_and_defense_feed(monkeypatch):
     monkeypatch.setattr('src.etl.nflverse_etl.load_weekly_player_stats',lambda *_:frame)
     monkeypatch.setattr(hub_scoring,'_alias_week_stat_index',lambda index, _: index)
     monkeypatch.setattr('src.draft_hub.native_specialist_stats.load_defense_stat_index',lambda *_:{'JAX':{'def_sacks':3}})
-    index = hub_scoring.load_week_stat_index(2026,1)
+    index = hub_scoring.load_week_stat_index(2026,1,frame=frame)
     assert index['k']['fg_made_60_plus'] == 1
     assert index['k']['fg_missed'] == 1
     assert index['JAX']['def_sacks'] == 3

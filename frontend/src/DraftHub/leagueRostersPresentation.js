@@ -2,6 +2,7 @@
 
 import { fmtSal } from "./rosterFormat.js";
 import { playerTradeableInWindow } from "./acquisitionWindow.js";
+import { normalizeHubPosition } from "./hubPositions.js";
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel.js";
 
 export const DEALS_VIEW = "deals";
@@ -195,6 +196,16 @@ export function ownerLine(team) {
   return parts.owner || parts.team || hubTeamLabel(team) || "Manager";
 }
 
+export function seasonTeamLine(team) {
+  const parts = hubTeamParts(team);
+  return parts.team || parts.owner || hubTeamLabel(team) || "Team";
+}
+
+export function seasonManagerLine(team) {
+  const parts = hubTeamParts(team);
+  return parts.owner && parts.team ? parts.owner : "";
+}
+
 export function nicknameLine(team) {
   const parts = hubTeamParts(team);
   return parts.owner && parts.team ? parts.team : "";
@@ -313,7 +324,7 @@ export function rosterBoardRows(blocks, { view = "deals", teamId = "", query = "
     const delta = rosterDifference(row);
     if (view === "deals" && (delta == null || delta === 0)) return false;
     if (teamId && row.ownerTeamId !== teamId) return false;
-    if (position && row.position !== position) return false;
+    if (position && normalizeHubPosition(row.position) !== normalizeHubPosition(position)) return false;
     if (value === "below" && !(delta != null && delta < 0)) return false;
     if (value === "above" && !(delta != null && delta > 0)) return false;
     return !needle || `${row.player_name} ${row.team || ""}`.toLowerCase().includes(needle);

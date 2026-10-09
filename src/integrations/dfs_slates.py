@@ -11,8 +11,8 @@ from typing import Any
 import pandas as pd
 import requests
 
-from src.config import CACHE_DIR, DFS_REFRESH_SECONDS
-from src.products.dfs_salaries import _normalize_dfs_position
+from src.config import CACHE_DIR, DFS_SALARY_CACHE_SECONDS
+from src.products.dfs_salaries import _normalize_dfs_position, parse_salary_csv
 from src.integrations.external_projections import _normalize_name
 
 DFS_CACHE_DIR = CACHE_DIR / "dfs"
@@ -22,6 +22,7 @@ DK_DRAFTABLES_URL = "https://api.draftkings.com/draftgroups/v1/draftgroups/{draf
 # while its first-party lineup catalog remains available.  Keep this as a
 # fallback so a transient provider policy change does not take down DFS builds.
 DK_AVAILABLE_PLAYERS_URL = "https://www.draftkings.com/lineup/getavailableplayers"
+DK_SALARY_CSV_URL = "https://www.draftkings.com/lineup/getavailableplayerscsv"
 FD_FIXTURE_LISTS_URL = "https://api.fanduel.com/fixture-lists"
 FD_PLAYERS_URL = "https://api.fanduel.com/fixture-lists/{fixture_id}/players"
 
@@ -306,8 +307,8 @@ def parse_dk_available_players(payload: dict, site: str = "draftkings") -> pd.Da
     """Normalize DraftKings' lineup catalog when the draftables API is blocked.
 
     The catalog intentionally omits slate-specific upload IDs.  Those rows can
-    build lineups, but the frontend correctly requires a salary CSV before it
-    permits an export to DraftKings.
+    build lineups when the automatic salary CSV is also unavailable, but the
+    frontend requires an imported salary CSV before permitting an export.
     """
     rows: list[dict] = []
     for entry in payload.get("playerList") or []:
@@ -478,9 +479,9 @@ def fetch_dk_salaries(
     force_refresh: bool = False,
 ) -> pd.DataFrame:
     cache = _cache_path("draftkings", draft_group_id)
-    if use_cache and cache.exists() and not force_refresh and 0 <= time.time() - cache.stat().st_mtime < DFS_REFRESH_SECONDS:
+    if use_cache and cache.exists() and not force_refresh and 0 <= time.time() - cache.stat().st_mtime < DFS_SALARY_CACHE_SECONDS:
         cached = pd.read_parquet(cache)
-        if not cached.empty:
+        if _has_dk_upload_ids(cached):
             return cached
 
     try:
@@ -490,11 +491,21 @@ def fetch_dk_salaries(
         response = exc.response
         if response is None or response.status_code not in (403, 404):
             raise
-        payload = _dk_get(
-            DK_AVAILABLE_PLAYERS_URL,
-            params={"draftGroupId": str(draft_group_id)},
-        )
-        salaries = parse_dk_available_players(payload, site="draftkings")
+        salaries = pd.DataFrame()
+    if not _has_dk_upload_ids(salaries):
+        try:
+            csv_salaries = _fetch_dk_salary_csv(draft_group_id)
+            if _has_dk_upload_ids(csv_salaries):
+                salaries = csv_salaries
+        except (requests.RequestException, ValueError):
+            # Keep lineup building available if both export-ID sources fail.
+            pass
+        if salaries.empty:
+            payload = _dk_get(
+                DK_AVAILABLE_PLAYERS_URL,
+                params={"draftGroupId": str(draft_group_id)},
+            )
+            salaries = parse_dk_available_players(payload, site="draftkings")
     if not salaries.empty:
         salaries.to_parquet(cache, index=False)
         _cache_meta_path("draftkings", draft_group_id).write_text(
@@ -511,6 +522,25 @@ def fetch_dk_salaries(
     return salaries
 
 
+def _has_dk_upload_ids(salaries: pd.DataFrame) -> bool:
+    return (
+        not salaries.empty
+        and "dfs_id" in salaries.columns
+        and bool(salaries["dfs_id"].fillna("").astype(str).str.fullmatch(r"[1-9]\d*").all())
+    )
+
+
+def _fetch_dk_salary_csv(draft_group_id: str) -> pd.DataFrame:
+    response = requests.get(
+        DK_SALARY_CSV_URL,
+        params={"draftGroupId": str(draft_group_id)},
+        headers=REQUEST_HEADERS,
+        timeout=30,
+    )
+    response.raise_for_status()
+    return parse_salary_csv(response.content, site="draftkings")
+
+
 def fetch_fd_salaries(
     fixture_id: str,
     *,
@@ -523,7 +553,7 @@ def fetch_fd_salaries(
         )
 
     cache = _cache_path("fanduel", fixture_id)
-    if use_cache and cache.exists() and not force_refresh and 0 <= time.time() - cache.stat().st_mtime < DFS_REFRESH_SECONDS:
+    if use_cache and cache.exists() and not force_refresh and 0 <= time.time() - cache.stat().st_mtime < DFS_SALARY_CACHE_SECONDS:
         cached = pd.read_parquet(cache)
         if not cached.empty:
             return cached

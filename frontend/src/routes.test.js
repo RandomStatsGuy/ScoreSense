@@ -81,6 +81,8 @@ test("Insights overview is the default Insights route", () => {
   );
   assert.equal(parseAppPath("/hub/insights").insightTab, "overview");
   assert.equal(parseAppPath("/hub/insights/spend").insightTab, "cap");
+  assert.equal(parseAppPath("/hub/insights/contracts").insightTab, "contracts");
+  assert.equal(buildAppPath({ view: "hub", hubSubView: "insights", insightTab: "contracts" }), "/hub/insights/contracts");
   assert.equal(parseAppPath("/hub/insights/history").insightTab, "ownership");
 });
 

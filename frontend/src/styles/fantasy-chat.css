@@ -63,7 +63,7 @@
 .chat-admin-menu { position:relative; }
 .chat-admin-menu summary { min-height:40px; width:40px; display:list-item; list-style:none; padding:var(--space-2); color:var(--text-muted); font-size:var(--text-lg); text-align:center; cursor:pointer; }
 .chat-admin-menu summary::-webkit-details-marker { display:none; }
-.chat-admin-menu button { position:absolute; right:0; top:100%; white-space:nowrap; z-index:1; background:var(--bg-elevated); }
+.chat-admin-menu button { position:absolute; right:100%; top:50%; translate:0 -50%; white-space:nowrap; z-index:var(--z-dropdown); background:var(--bg-elevated); }
 .chat-thread-context { padding:var(--space-3) 0; font-size:var(--text-xs); color:var(--text-muted); }
 .chat-thread .chat-message-list { display:block; flex:1; min-height:10rem; max-height:480px; overflow-y:auto; overscroll-behavior:contain; padding:var(--space-3) 0 var(--space-4); border:0; background:transparent; border-radius:0; }
 .chat-thread.is-floating .chat-message-list { min-height:0; max-height:none; }

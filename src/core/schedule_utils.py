@@ -88,8 +88,8 @@ def _load_schedules(seasons: list[int] | None = None, *, allow_fetch: bool = Tru
     return merged if requested is None else merged[merged["season"].isin(requested)].copy()
 
 
-def regular_season_weeks(season: int) -> list[int]:
-    schedules = _load_schedules([season])
+def regular_season_weeks(season: int, *, allow_fetch: bool = True) -> list[int]:
+    schedules = _load_schedules([season]) if allow_fetch else _load_schedules([season], allow_fetch=False)
     reg = schedules[
         (schedules["season"] == season) & (schedules["week"] <= REGULAR_SEASON_MAX_WEEK)
     ]
@@ -229,10 +229,10 @@ def schedule_kickoff_utc(gameday, gametime) -> pd.Timestamp | None:
     return pd.Timestamp(kick).tz_convert("UTC")
 
 
-def team_game_kickoffs(season: int, team: str) -> pd.DataFrame:
+def team_game_kickoffs(season: int, team: str, *, allow_fetch: bool = True) -> pd.DataFrame:
     """Regular-season kickoff times for one team, sorted by week."""
     team = str(team).upper()
-    schedules = _load_schedules([season])
+    schedules = _load_schedules([season], allow_fetch=allow_fetch)
     reg = schedules[
         (schedules["season"] == season)
         & (schedules["week"] <= REGULAR_SEASON_MAX_WEEK)
@@ -332,9 +332,9 @@ def week_first_kickoff_et(season: int, week: int, *, allow_fetch: bool = True) -
     return _week_kickoff_et(season, week, first=True, allow_fetch=allow_fetch)
 
 
-def week_last_kickoff_et(season: int, week: int) -> datetime | None:
+def week_last_kickoff_et(season: int, week: int, *, allow_fetch: bool = True) -> datetime | None:
     """Latest kickoff (America/New_York) for a regular-season week."""
-    return _week_kickoff_et(season, week, first=False)
+    return _week_kickoff_et(season, week, first=False, allow_fetch=allow_fetch)
 
 
 def _week_kickoff_et(season: int, week: int, *, first: bool, allow_fetch: bool = True) -> datetime | None:
@@ -390,7 +390,7 @@ def _week_kickoff_et(season: int, week: int, *, first: bool, allow_fetch: bool =
     return selected
 
 
-def week_rollover_at_et(season: int, week: int) -> datetime | None:
+def week_rollover_at_et(season: int, week: int, *, allow_fetch: bool = True) -> datetime | None:
     """
     When the projection board advances past this week.
 
@@ -401,7 +401,7 @@ def week_rollover_at_et(season: int, week: int) -> datetime | None:
     from zoneinfo import ZoneInfo
 
     et = ZoneInfo("America/New_York")
-    last = week_last_kickoff_et(season, week)
+    last = week_last_kickoff_et(season, week) if allow_fetch else week_last_kickoff_et(season, week, allow_fetch=False)
     if last is None:
         return None
     local = last.astimezone(et)
@@ -420,6 +420,7 @@ def current_projection_week(
     season: int,
     *,
     now: datetime | None = None,
+    allow_fetch: bool = True,
 ) -> int | None:
     """
     Next regular-season week that still has football to play / is the active slate.
@@ -432,9 +433,9 @@ def current_projection_week(
 
     et = ZoneInfo("America/New_York")
     now_et = (now or datetime.now(et)).astimezone(et)
-    weeks = regular_season_weeks(season)
+    weeks = regular_season_weeks(season) if allow_fetch else regular_season_weeks(season, allow_fetch=False)
     for week in weeks:
-        rollover = week_rollover_at_et(season, week)
+        rollover = week_rollover_at_et(season, week) if allow_fetch else week_rollover_at_et(season, week, allow_fetch=False)
         if rollover is None:
             continue
         if now_et < rollover:

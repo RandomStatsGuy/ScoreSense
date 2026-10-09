@@ -242,7 +242,7 @@ test("scoring defaults, validation, and dirty state include custom weights", () 
     assert.ok(validateLeagueSettings({ ...base, rules })["scoring.receptions"]);
   }
   assert.match(SCORING_COPY.sleeperHelp, /Sleeper controls scoring rules/);
-  assert.match(SCORING_COPY.nativeHelp, /still in progress/);
+  assert.match(SCORING_COPY.nativeHelp, /Players lock at kickoff/);
   assert.match(SCORING_COPY.supported, /unavailable data blocks scoring/);
   assert.match(SCORING_COPY.effect, /Recalculate/);
   assert.match(SCORING_COPY.projections, /PPR-based/);

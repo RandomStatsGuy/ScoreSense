@@ -15,6 +15,9 @@ from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
 import json
 import logging
 import threading
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -136,10 +139,22 @@ def _load_status() -> dict[str, Any]:
 
 def _save_status(status: dict[str, Any]) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    INJURY_POLL_STATUS_PATH.write_text(
-        json.dumps(status, indent=2, default=str),
-        encoding="utf-8",
-    )
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=CACHE_DIR, delete=False) as handle:
+            temporary = Path(handle.name)
+            json.dump(status, handle, indent=2, default=str)
+        temporary.replace(INJURY_POLL_STATUS_PATH)
+    finally:
+        if temporary:
+            temporary.unlink(missing_ok=True)
+
+
+@contextmanager
+def _status_write_lock():
+    from src.jobs.refresh_lock import refresh_lock
+    with _STATUS_LOCK, refresh_lock(CACHE_DIR / "injury_poll_status.lock", timeout=1):
+        yield
 
 
 def _players_cache_mtime_iso() -> str | None:
@@ -157,12 +172,14 @@ def _enrich_status(status: dict[str, Any], *, now: datetime | None = None) -> di
     """Attach live phase / cadence / due flags without mutating disk."""
     clock = now or _utc_now()
     try:
-        nfl_state = get_nfl_state(use_cache=True)
+        nfl_state = get_nfl_state(use_cache=True, allow_stale=True)
     except Exception:
         nfl_state = {}
     phase = resolve_injury_poll_phase(nfl_state, now=clock)
     cadence = cadence_seconds_for_phase(phase)
     last_polled = _parse_iso(status.get("last_polled_at") or status.get("last_success_at"))
+    refreshing = bool(status.get("is_refreshing")) and (last_polled is not None
+                  and (clock - last_polled).total_seconds() < max(900, cadence * 2))
     next_poll_at: str | None = status.get("next_poll_at")
     poll_due = False
     if last_polled is None:
@@ -179,8 +196,8 @@ def _enrich_status(status: dict[str, Any], *, now: datetime | None = None) -> di
         "phase": phase,
         "cadence_seconds": cadence,
         "next_poll_at": next_poll_at,
-        "poll_due": bool(poll_due) and not bool(status.get("is_refreshing")),
-        "is_refreshing": bool(status.get("is_refreshing")),
+        "poll_due": bool(poll_due) and not refreshing,
+        "is_refreshing": refreshing,
         "players_cache_mtime": _players_cache_mtime_iso(),
         "players_cache_exists": PLAYERS_CACHE.exists(),
         "season_type": season_type,
@@ -201,6 +218,19 @@ def run_injury_poll(
     recompute_overlays: bool = True,
     trigger: str = "scheduled",
 ) -> dict[str, Any]:
+    from src.jobs.refresh_lock import refresh_lock, RefreshBusy
+    try:
+        with refresh_lock(CACHE_DIR / "injury_poll.lock"):
+            return _run_injury_poll(force, recompute_overlays, trigger)
+    except RefreshBusy:
+        return {**get_injury_poll_status(), "status": "already_running"}
+
+
+def _run_injury_poll(
+    force: bool = False,
+    recompute_overlays: bool = True,
+    trigger: str = "scheduled",
+) -> dict[str, Any]:
     """Fetch Sleeper players → disk cache; optionally team-scope overlay recompute.
 
     Safe to call from a background worker / cron. Never invoked by browser request
@@ -213,12 +243,13 @@ def run_injury_poll(
         return status
 
     try:
-        with _STATUS_LOCK:
+        with _status_write_lock():
             status = _load_status()
-            if status.get("is_refreshing") and not force:
-                out = _enrich_status(status)
-                out["status"] = "already_running"
-                return out
+            current = _enrich_status(status)
+            if not force and not current["poll_due"] and not status.get("is_refreshing"):
+                return {**current, "status": "not_due"}
+            # The OS lock proves ownership. A dead worker's persisted flag must
+            # not prevent future recovery after its lock has been released.
             status["is_refreshing"] = True
             status["last_error"] = None
             status["last_polled_at"] = _utc_now_iso()
@@ -250,7 +281,7 @@ def run_injury_poll(
                     logger.warning("Injury overlay recompute after poll failed: %s", exc)
                     overlay_result = {"status": "error", "error": str(exc)}
 
-            with _STATUS_LOCK:
+            with _status_write_lock():
                 status = _load_status()
                 now_iso = _utc_now_iso()
                 status["is_refreshing"] = False
@@ -289,7 +320,7 @@ def run_injury_poll(
             return out
         except Exception as exc:
             logger.exception("Injury poll failed")
-            with _STATUS_LOCK:
+            with _status_write_lock():
                 status = _load_status()
                 status["is_refreshing"] = False
                 status["last_error"] = str(exc)
@@ -332,7 +363,7 @@ def enqueue_manual_injury_refresh(
     Returns ``{status, allowed, poll, retry_after_seconds?}``.
     """
     clock = now or _utc_now()
-    with _STATUS_LOCK:
+    with _status_write_lock():
         status = _load_status()
         last_manual = _parse_iso(status.get("last_manual_enqueue_at"))
         cooldown = int(INJURY_POLL_MANUAL_COOLDOWN_SECONDS)

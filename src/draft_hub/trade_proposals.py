@@ -149,6 +149,10 @@ def simulate_rosters(
 ) -> dict[str, list[dict[str, Any]]]:
     """Return post-trade roster lists keyed by team_id (active + cut rows)."""
     by_team = storage.list_league_rosters_by_team(league_id)
+    from src.draft_hub.player_identity import canonical_roster_metadata
+    league = storage.get_league(league_id) or {}
+    by_team = {tid: canonical_roster_metadata(rows, season=int(league["season"]) if league.get("season") else None)
+               for tid, rows in by_team.items()}
     team_ids = _party_team_ids(parties)
     sim: dict[str, list[dict[str, Any]]] = {
         tid: [copy.deepcopy(r) for r in by_team.get(tid, [])] for tid in team_ids
@@ -230,6 +234,10 @@ def validate_simulated_trade(
     for tid, rows in sim.items():
         label = names.get(str(tid)) or str(tid)
         active = [r for r in rows if is_active_for_pre_draft(r)]
+        from src.draft_hub.draft_budgets import total_roster_slots
+        maximum = total_roster_slots(rules)
+        if (rules.roster_size_max is not None or limits) and len(active) > maximum:
+            errors.append(f"{label}: roster exceeds maximum size ({maximum})")
         scoped = cap_relevant_roster(rules, active)
         counts: dict[str, int] = {}
         for r in scoped:
@@ -479,6 +487,9 @@ def execute_multiparty_trade(
 
     team_ids = _party_team_ids(norm)
     log_parties = synced_parties or norm
+    if not linked:
+        from src.draft_hub.hub_scoring import capture_native_lineups_before_roster_change
+        capture_native_lineups_before_roster_change(league_id, team_ids)
     storage.apply_trade_plan(
         ws_id,
         moves,

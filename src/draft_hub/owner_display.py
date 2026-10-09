@@ -89,10 +89,14 @@ def lookup_owner_label(
     sleeper_owner_map: dict[str, str] | None = None,
 ) -> str | None:
     """Resolve manager abbrev/name for a hub or Sleeper team label."""
+    if hasattr(owner_map, "resolve"):
+        mapped = owner_map.resolve(uid=sleeper_user_id)
+        if mapped:
+            return mapped
     if sleeper_user_id and sleeper_owner_map:
         hit = sleeper_owner_map.get(str(sleeper_user_id))
         if hit:
-            return hit
+            return (owner_map.resolve(hit, sleeper_user_id) if hasattr(owner_map, "resolve") else None) or hit
     name = str(team_name or "").strip()
     if not name:
         return None
@@ -127,11 +131,11 @@ def format_manager_label(
     owner_label: str | None = None,
     year_specific: bool = False,
 ) -> str:
-    """Current stats: owner only. Year-specific history: owner · team."""
+    """Single-season labels: team · manager. Career labels: manager first."""
     team = str(team_name or "").strip()
     owner = resolve_owner(team, owner_label)
     if year_specific and team and owner.lower() != team.lower():
-        return f"{owner} · {team}"
+        return f"{team} · {owner}"
     return owner
 
 
@@ -155,6 +159,7 @@ def scoring_owner_maps_for_league(
     *,
     season_year: int | str | None = None,
     sleeper_league_id: str | None = None,
+    cached_only: bool = False,
 ) -> tuple[dict[str, str], dict[str, str]]:
     """
     Build lookups for scoring awards: team display name -> owner, Sleeper user_id -> owner.
@@ -192,7 +197,7 @@ def scoring_owner_maps_for_league(
                     owner_season_teams.add(team)
                     owner_season_teams.add(team.lower())
             uid = str(row.get("sleeper_user_id") or "").strip()
-            if uid and owner:
+            if uid and owner and owner.lower() != team.lower():
                 sleeper_map[uid] = owner
         for row in contract_rows:
             team = str(row.get("hub_team_name") or "").strip()
@@ -203,6 +208,47 @@ def scoring_owner_maps_for_league(
                 continue
             team_map[team] = owner
             team_map[team.lower()] = owner
+
+    # Career views retain managers from every season, including departed owners.
+    if str(season_year) == "all":
+        for row in storage.list_owner_season_map(league_id):
+            owner = str(row.get("owner_label") or "").strip()
+            team = str(row.get("hub_team_name") or "").strip()
+            uid = str(row.get("sleeper_user_id") or "").strip()
+            if team and owner:
+                team_map[team] = team_map[team.lower()] = owner
+            if uid and owner and owner.lower() != team.lower():
+                sleeper_map[uid] = owner
+
+    if sleeper_league_id and cached_only:
+        chain = storage.get_sleeper_league_chain(str(sleeper_league_id))
+        ids = [str(c["league_id"]) for c in chain] or [str(sleeper_league_id)]
+        saved_rows = []
+        for lid in ids:
+            saved = storage.get_sleeper_scoring_cache(lid)
+            saved_rows.extend((saved or {}).get("payload", {}).get("standings", []))
+        # Seed stable identities from exact names first, newest season first.
+        # A former nickname like "Crushing Disappointment" must not outrank
+        # an exact current "Panda Fraud" match for the same Sleeper user.
+        for row in saved_rows:
+            uid = str(row.get("owner_id") or "")
+            name = str(row.get("team_name") or "").strip()
+            owner = str(row.get("owner_name") or "").strip()
+            if not owner or owner.lower() == name.lower():
+                owner = team_map.get(name) or team_map.get(name.lower())
+            if uid and owner and owner.lower() != name.lower():
+                sleeper_map.setdefault(uid, str(owner))
+        for row in saved_rows:
+            uid = str(row.get("owner_id") or "")
+            name = str(row.get("team_name") or "").strip()
+            owner = sleeper_map.get(uid) or row.get("owner_name") or lookup_owner_label(name, team_map)
+            if owner:
+                if uid:
+                    sleeper_map[uid] = str(owner)
+                if name:
+                    team_map[name] = team_map[name.lower()] = str(owner)
+        from src.draft_hub.manager_accounts import ManagerOwnerMap
+        return ManagerOwnerMap(team_map, league_id, season_year), sleeper_map
 
     if sleeper_league_id:
         try:
@@ -238,7 +284,8 @@ def scoring_owner_maps_for_league(
         except Exception:
             pass
 
-    return team_map, sleeper_map
+    from src.draft_hub.manager_accounts import ManagerOwnerMap
+    return ManagerOwnerMap(team_map, league_id, season_year), sleeper_map
 
 
 def planning_season_for_user(user_sub: str, league: dict[str, Any] | None = None) -> str:
@@ -257,10 +304,8 @@ def planning_season_for_user(user_sub: str, league: dict[str, Any] | None = None
 
 
 def scoring_year_specific(display_season: str, planning_season: str) -> bool:
-    """Historical scoring season vs current planning year."""
-    if not display_season or not planning_season:
-        return False
-    return str(display_season) != str(planning_season)
+    """A concrete scoring season (including current) uses its team identity."""
+    return str(display_season or '').isdigit()
 
 
 def enrich_award_display(
@@ -274,13 +319,16 @@ def enrich_award_display(
     year_specific: bool = False,
 ) -> dict[str, Any]:
     """Attach owner_name + display_name; team_name kept only when year-specific."""
-    label = owner_label or lookup_owner_label(
+    mapped = owner_map.resolve(owner_label, sleeper_user_id, award.get("season_year")) if hasattr(owner_map, "resolve") else None
+    label = mapped or owner_label or lookup_owner_label(
         team_name,
         owner_map,
         sleeper_user_id=sleeper_user_id,
         sleeper_owner_map=sleeper_owner_map,
     )
     owner = resolve_owner(team_name, label)
+    if hasattr(owner_map, "resolve"):
+        owner = owner_map.resolve(owner, sleeper_user_id, award.get("season_year")) or owner
     display = format_manager_label(team_name, owner_label=owner, year_specific=year_specific)
     out = dict(award)
     out["owner_name"] = owner
@@ -302,16 +350,27 @@ def enrich_team_row(
     """Add owner_name + display_name; keep team_name for joins."""
     name = str(row.get("team_name") or "").strip()
     owner_id = str(row.get("owner_id") or "").strip() or None
-    owner_label = lookup_owner_label(
+    season = row.get("season") or row.get("season_year")
+    mapped = owner_map.resolve(row.get("owner_label") or row.get("owner_name"), owner_id, season) if hasattr(owner_map, "resolve") else None
+    season_map = owner_map
+    if hasattr(owner_map, "original") and str(season).isdigit():
+        season_map = {k: owner_map.resolve(v, season=season) or v for k, v in owner_map.original.items()}
+    owner_label = mapped or lookup_owner_label(
         name,
-        owner_map,
+        season_map,
         sleeper_user_id=owner_id,
         sleeper_owner_map=sleeper_owner_map,
     )
-    owner = resolve_owner(name, owner_label)
+    owner = resolve_owner(name, owner_label or row.get("owner_name") or row.get("owner_label"))
+    if hasattr(owner_map, "resolve"):
+        owner = owner_map.resolve(owner, owner_id, season) or owner
     out = dict(row)
     out["owner_name"] = owner
     out["display_name"] = format_manager_label(name, owner_label=owner, year_specific=year_specific)
+    if hasattr(owner_map, "account"):
+        account = owner_map.account(row.get("owner_label") or row.get("owner_name"), owner_id, season)
+        if account:
+            out["manager_account_sub"] = account["account_sub"]
     return out
 
 
@@ -334,6 +393,18 @@ def enrich_insights_landing(
     if not landing:
         return landing
     out = dict(landing)
+    out["current_standings"] = [
+        enrich_team_row({**row, "season": landing.get("current_season")}, owner_map,
+                        year_specific=True, sleeper_owner_map=sleeper_owner_map)
+        for row in landing.get("current_standings") or []
+    ]
+    out["season_summaries"] = [
+        {**summary, "standings": [
+            enrich_team_row({**row, "season": summary.get("season")}, owner_map, sleeper_owner_map=sleeper_owner_map)
+            for row in summary.get("standings") or []
+        ]}
+        for summary in landing.get("season_summaries") or []
+    ]
     champs = []
     for row in landing.get("champions") or []:
         enriched = enrich_team_row(
@@ -344,13 +415,11 @@ def enrich_insights_landing(
         )
         ru_team = str(row.get("runner_up") or "").strip()
         if ru_team:
-            ru_label = lookup_owner_label(
-                ru_team,
-                owner_map,
-                sleeper_user_id=str(row.get("runner_up_owner_id") or "") or None,
-                sleeper_owner_map=sleeper_owner_map,
+            runner_up = enrich_team_row(
+                {"team_name": ru_team, "owner_id": row.get("runner_up_owner_id"), "season": row.get("season")},
+                owner_map, sleeper_owner_map=sleeper_owner_map,
             )
-            enriched["runner_up_owner_name"] = resolve_owner(ru_team, ru_label)
+            enriched["runner_up_owner_name"] = runner_up["owner_name"]
         champs.append(enriched)
     out["champions"] = champs
     if landing.get("most_titles"):
@@ -397,8 +466,10 @@ def attach_owner_names_to_teams(
             value = str(team.get(key) or "").strip()
             if value and value not in candidates:
                 candidates.append(value)
-        owner = None
+        owner = owner_map.name_for_account(team.get("user_sub"), season_year) if hasattr(owner_map, "name_for_account") else None
         for team_name in candidates:
+            if owner:
+                break
             owner = lookup_owner_label(team_name, owner_map)
             if owner:
                 break

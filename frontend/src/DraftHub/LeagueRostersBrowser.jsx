@@ -1,3 +1,4 @@
+import { orderedHubPositions } from "./hubPositions";
 import { leagueUsesSalaries, leagueUsesContracts } from "./leagueCapabilities";
 import { readRosterState, writeRosterState, rosterStateForCapabilities } from "./rosterBoardState";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -7,13 +8,15 @@ import { isAbortError } from "../fetchAbort";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { rosterCoverage } from "./leagueRostersPresentation";
 import useMobileLayout from "../useMobileLayout";
+import useMenuPlacement from "../ui/useMenuPlacement";
+import { focusLeftMenu } from "../ui/menuFocus";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
 import RosterTeamDirectory from "./RosterTeamDirectory";
 import { activeRoster, rosterVisibleRows, rosterSelection } from "./leagueRostersPresentation";
 import ContractHistoryLink from "./ContractHistoryLink";
 import { seedTradeFromPlayer, seedTradePartner } from "./tradeSeed";
 import { downloadLeagueWorkbook } from "./leagueWorkbook";
-import { ROSTERS_COPY, ROSTER_BOARD_COPY as C, rosterBoardRows, rosterEstimateContext, rosterRowKey, rosterMoney, rosterDifference, rosterDifferenceLabel, rosterContractLabel, ownerLine, nicknameLine, tradeLockReason, expireChipLabel } from "./leagueRostersPresentation";
+import { ROSTERS_COPY, ROSTER_BOARD_COPY as C, rosterBoardRows, rosterEstimateContext, rosterRowKey, rosterMoney, rosterDifference, rosterDifferenceLabel, rosterContractLabel, ownerLine, seasonTeamLine, seasonManagerLine, tradeLockReason, expireChipLabel } from "./leagueRostersPresentation";
 import "../styles/league-rosters.css";
 
 // Local filter control for the approved board: searchable team list, native buttons,
@@ -30,6 +33,8 @@ function BoardFilter({
   const root = useRef(null);
   const trigger = useRef(null);
   const search = useRef(null);
+  const panel = useRef(null);
+  useMenuPlacement(open, trigger, panel);
   useEffect(() => {
     if (!open) return;
     if (searchable) search.current?.focus();
@@ -42,7 +47,7 @@ function BoardFilter({
   const shown = options.filter(o => `${o.label} ${o.detail || ""}`.toLowerCase().includes(query.toLowerCase()));
   const selected = options.find(o => o.id === value);
   return <div className="rosters-filter" ref={root} onBlur={e => {
-    if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+    if (focusLeftMenu(e)) setOpen(false);
   }} onKeyDown={e => {
     if (e.key === "Escape") {
       e.stopPropagation();
@@ -54,7 +59,7 @@ function BoardFilter({
       setQuery("");
       setOpen(!open);
     }}>{selected?.label}<span aria-hidden="true">⌄</span></button>
-    {open && <div className="rosters-filter-menu" aria-label={label}>
+    {open && <div ref={panel} className="rosters-filter-menu" aria-label={label}>
       {searchable && <input ref={search} aria-label={C.teamSearch} placeholder={C.teamSearch} value={query} onChange={e => setQuery(e.target.value)} />}
       <div className="rosters-filter-options">{shown.map(o => <button key={o.id} type="button" aria-pressed={o.id === value} onClick={() => {
           onChange(o.id);
@@ -229,13 +234,13 @@ function RosterBoard({
     label: C.allTeams
   }, ...blocks.map(b => ({
     id: b.team.id,
-    label: ownerLine(b.team),
-    detail: nicknameLine(b.team)
+    label: seasonTeamLine(b.team),
+    detail: seasonManagerLine(b.team)
   }))];
   const positions = [{
     id: "",
     label: C.positions
-  }, ...[...new Set(blocks.flatMap(b => (b.roster || []).filter(Boolean).map(r => r.position).filter(Boolean)))].sort().map(id => ({
+  }, ...orderedHubPositions(blocks.flatMap(b => (b.roster || []).filter(Boolean).map(r => r.position))).map(id => ({
     id,
     label: id
   }))];
@@ -279,7 +284,7 @@ function RosterBoard({
             }
           }} onClick={() => switchView(tab.id)}>{tab.label}</button>)}</div>{overview && view === "deals" && <div className="rosters-counts"><span>{C.resultCount(scopeRows.length)}</span><span className="is-below">{C.below(scopeRows.filter(r => rosterDifference(r) < 0).length)}</span><span className="is-above">{C.above(scopeRows.filter(r => rosterDifference(r) > 0).length)}</span></div>}</div>}
     {view === "teams" && block && <section className="rosters-selected-team" aria-labelledby="rosters-team-heading">
-      <div className="rosters-selected-team-heading"><div><h2 id="rosters-team-heading" ref={teamHeading} tabIndex={-1}>{ownerLine(block.team)}</h2><p>{nicknameLine(block.team)}</p></div>
+      <div className="rosters-selected-team-heading"><div><h2 id="rosters-team-heading" ref={teamHeading} tabIndex={-1}>{seasonTeamLine(block.team)}</h2><p>{seasonManagerLine(block.team)}</p></div>
       <button className="rosters-control" onClick={() => chooseTeam("")}>{C.changeTeam}</button></div>
       <dl className="rosters-cap-summary"><div><dt>{C.fullRoster}</dt><dd>{activeRoster(block).length}</dd></div>{usesSalaries && <><div><dt>{C.committed}</dt><dd>{rosterMoney(block.stats?.committed)}</dd></div><div><dt>{C.capRoom}</dt><dd>{rosterMoney(block.stats?.unspent)}</dd></div><div><dt>{C.deadCap}</dt><dd>{rosterMoney(block.stats?.dead_cap)}</dd></div></>}</dl>
     </section>}

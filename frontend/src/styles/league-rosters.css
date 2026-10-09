@@ -22,9 +22,10 @@
 .rosters-board .is-above { color: var(--tone-negative); }
 .rosters-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
 .rosters-filter { position: relative; min-width: 0; }
-.rosters-filter-menu { position: absolute; top: calc(100% + var(--space-2)); left: 0; width: max-content; min-width: 100%; max-width: min(320px, 85vw); padding: var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-popover); z-index: var(--z-dropdown); }
+.rosters-filter-menu { position: absolute; top: calc(100% + var(--space-2)); left: 0; width: max-content; min-width: 100%; max-width: min(320px, 85vw); padding: var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-popover); z-index: var(--z-dropdown); display: flex; flex-direction: column; }
+.rosters-filter-menu[data-side="above"] { top: auto; bottom: calc(100% + var(--space-2)); }
 .rosters-filter-menu input { width: 100%; padding: var(--space-3); color: var(--text-primary); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.rosters-filter-options { max-height: 320px; overflow-y: auto; }
+.rosters-filter-options { max-height: 320px; min-height: 0; overflow-y: auto; }
 .rosters-filter-options button { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; width: 100%; min-height: var(--control-h-lg,44px); padding: var(--space-2) var(--space-3); gap: var(--space-1); color: var(--text-primary); border: 1px solid transparent; background: none; border-radius: var(--radius-sm); cursor: pointer; }
 .rosters-filter-options button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent-muted); }
 .rosters-filter-options small { color: var(--text-secondary); font-size: var(--text-xs); }

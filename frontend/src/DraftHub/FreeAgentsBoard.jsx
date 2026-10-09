@@ -42,7 +42,8 @@ function ActionSheet({ draft, media, scale, mode, canAct, busy, error, onClose, 
   const bid = parseWalkaway(draft.amount), ceiling = parseWalkaway(draft.ceiling);
   const aboveCeiling = bidBlockedByCeiling(bid, ceiling);
   const aboveCap = !pickDraft && remainingCap != null && bid != null && bid > Number(remainingCap);
-  const blocked = !canAct || busy || (mode === "bid" && (bid == null || ceiling == null || aboveCeiling || aboveCap));
+  const instantOverCap = mode === "add" && !pickDraft && remainingCap != null && Number(remainingCap) < 1;
+  const blocked = !canAct || busy || instantOverCap || (mode === "bid" && (bid == null || ceiling == null || aboveCeiling || aboveCap));
   const suggested = effectiveAuctionBid(row, riskTolerance, rules);
   const pricing = suggestedBidSubLabel({ scoringProfile: rules?.scoring_profile || rules?.scoring, riskTolerance });
   return createPortal(<div className="fa-sheet-overlay" onClick={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
@@ -67,6 +68,7 @@ function ActionSheet({ draft, media, scale, mode, canAct, busy, error, onClose, 
         </>}
         {mode === "claim" && <><p className="fa-muted">{priority}</p><HubFilterMenu className="hub-filter-menu--fluid hub-filter-menu--inline" label={CLAIM_QUEUE_COPY.dropLabel} value={drop} options={[{ id: "", label: CLAIM_QUEUE_COPY.noDrop }, ...roster.map(p => ({ id: String(p.player_id), label: p.player_name || p.player || String(p.player_id) }))]} disabled={busy || !canAct} onChange={setDrop} /></>}
         {mode === "add" && <p className="fa-muted">{pickDraft ? COPY.addEffect : COPY.addSalaryEffect(suggested)}</p>}
+        {instantOverCap && <p className="fa-warning" role="status">{COPY.aboveCap}</p>}
         {reason && <p className="fa-warning">{reason}</p>}
         {!pickDraft && onHistory && <button className="fa-quiet-link" disabled={busy} onClick={() => { onClose(); onHistory({ playerId: row.player_id, playerName: row.player }); }}>{COPY.history}<span aria-hidden="true">↗</span></button>}
         {error && <p className="error" role="alert">{error}</p>}
@@ -99,7 +101,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
     <h1 className="sr-only">{COPY.title}</h1>
     <div className="fa-window"><div className="fa-window-copy"><strong>{title}</strong><span>{addMode === "claim" ? priority : !pickDraft && remainingCap != null ? COPY.capAvailable(remainingCap) : addMode === "locked" ? COPY.starHint : COPY.seasonOutlook}</span></div>
       <button className="fa-icon" aria-label={COPY.howAddsWork} aria-expanded={infoOpen} aria-controls="fa-how-adds" onClick={() => setInfoOpen(v => !v)}><Icon /></button></div>
-    {infoOpen && <div className="fa-info" id="fa-how-adds"><p>{banner?.text || COPY.howAddsBody}</p>{banner?.text && <p>{COPY.howAddsBody}</p>}</div>}
+    {infoOpen && <div className="fa-info" id="fa-how-adds"><p>{banner?.text || COPY.howAddsBody}</p>{banner?.text && <p>{COPY.howAddsBody}</p>}{addMode === "add" && !pickDraft && <p>{COPY.nativeInstantTerms}</p>}</div>}
     {addMode === "claim" && <>{!priority || priority === CLAIM_QUEUE_COPY.needsConfirm ? claimContent : <details className="fa-claims-disclosure"><summary>{COPY.claimCount(claims.length)} · {priority}</summary>{claimContent}</details>}</>}
     <div className="fa-toolbar"><HubFilterMenu className="hub-filter-menu--fluid" label={COPY.pos} value={posFilter} options={positionOptions} onChange={setPosFilter} />
       <HubFilterMenu className="hub-filter-menu--fluid" label={COPY.sort} value={sortKey} options={sortOptions.map(option => ({ ...option, shortLabel: COPY.sortShort[option.id] }))} onChange={onSort} />

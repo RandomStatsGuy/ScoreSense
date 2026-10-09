@@ -119,8 +119,8 @@ Duplicate reads coalesce, attempts have a 60-second minimum interval, and leases
 recover work after a crashed worker. Expired workers cannot publish or finish a
 new owner's job. Each bounded batch shares one statistics lookup per season/week.
 The ticker queues current native leagues and unfinished scoring runs every minute;
-Sleeper leagues and final results are excluded. It uses the existing shared CPU
-executor and participates in API shutdown. `NATIVE_SCORING_REFRESH_ENABLED=false`
+Sleeper leagues and final results are excluded. It uses the live worker
+(`submit_live_job`), so forecast rebuilds never delay it, and participates in API shutdown. `NATIVE_SCORING_REFRESH_ENABLED=false`
 disables the ticker; explicit Calculate still works.
 
 Automatic publication checks the lineup, scoring rules, saved scoring run, and
@@ -252,3 +252,58 @@ After deployment, collect consistent cold/warm browser samples across Fantasy
 destinations and record API response time plus content-ready time on desktop and
 a realistic phone profile. Treat the one-second goal as a measured percentile
 for those profiles. Do not infer an end-to-end guarantee from this diagnostic.
+
+## Shared scoring and refresh coordination — October 9, 2026
+
+Native scoring assembly reuses one full identity snapshot across the league.
+Kickoff and completion checks copy only game-state fields. A bounded parse cache
+keys shared JSON snapshots by path, modification/creation time and size, so an
+atomic publication from the scoring worker invalidates the API's parsed data.
+Returned dictionaries remain isolated from callers. League lineups, scores and
+commissioner corrections still come from current SQLite reads.
+
+The authenticated Server export includes `server.scoring.operations`, with fixed
+operation names, lifetime counts/totals and p50/p95 over the latest 200 samples
+per operation. `native.snapshot.disk` measures first reads of file revisions;
+`native.snapshot.hit` measures parsed-cache reads. These include the requested
+copy cost. `native.assembly`, `native.lineup` and `native.standings` show assembly
+cost. `sleeper.assembly.hit`, `.refresh`, `.unavailable` and `.error` keep linked
+league cache hits separate from refresh attempts. Nested timings overlap. This
+process-local data resets when the API restarts and contains no player/league IDs.
+Actual native provider refresh and publication timings remain in Jobs under
+`native_scores.batch` / `load_stats` / `apply_scores`.
+
+The controlled profile uses a temporary 12-team league, 192 rostered players,
+1,000 synthetic NFL identity/stat records, and three saved-state builds. Both
+versions use Python profiling, with live providers and model inference excluded.
+
+| Profiled server assembly | Deployed baseline `ac0cf821` | Candidate |
+| --- | ---: | ---: |
+| First read | 52,379 ms | 1,622 ms |
+| Repeat reads | 49,846 / 62,987 ms | 1,175 / 1,207 ms |
+
+The baseline repeatedly deep-copied the whole NFL snapshot for each player/status
+check. This fixture identifies that bottleneck; it does not establish production
+HTTP latency, browser readiness or a production p95. Reproduce the instrumented
+fixture with `PYTHONPATH=. python -m pytest tests/test_scoring_performance.py -q -s`.
+
+Recurring season and DFS tickers check whether work is needed before entering the
+CPU queue, defer while that worker is occupied, and recheck soon after contention.
+The worker still validates deadlines and inputs under the existing OS refresh
+lock. Hourly weekly, daily season/ROS, and early injury/availability refresh
+policies are unchanged. Overlapping repair requests share each season/week/kind;
+an interrupted observer retains ownership until its worker completes. ROS repair
+reuses valid artifacts published while it waited instead of forcing inference.
+
+Weekly, ROS, season and Best ball reads use saved artifacts. Missing artifacts
+return 503 with `Retry-After: 60` and queue repair; available stale forecasts keep
+their existing freshness/repair metadata. Default weekly/ROS context resolution
+uses revision-cached feature columns and cached schedules without waiting for
+schedule downloads. Injury reads serve disk state and queue a coalesced CPU job.
+The poller rechecks freshness under a process-shared lock and writes status
+atomically; a dead worker's saved refreshing flag cannot permanently block it.
+
+After deployment, compare similar traffic windows and API uptime. Inspect scoring
+hit/refresh distributions separately, worker queue waits and inference counts,
+then projection/injury route p95s and artifact freshness. Freshness and scoring
+correctness remain acceptance criteria alongside speed.

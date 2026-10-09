@@ -1,5 +1,8 @@
 export const CORRECTIONS_COPY = {
   action: "Correction action",
+  modeLineups: "Save lineups", modeResults: "Publish results",
+  move: "Move", moveAria: name => `Slot for ${name || "player"}`,
+  notOnRoster: "Not on roster", removed: "Removed",
   saveLineups: "Save corrected lineups",
   lineupHelp: "Save roster and starter repairs now. Scores update on the next scoring refresh; final results can be published after all games finish.",
   resultsHelp: "Recalculate scores and standings from the reviewed lineups. All games and required statistics must be complete.",
@@ -66,9 +69,30 @@ export function correctionChanges(before, after) {
       const old = previous.find(player => player.player_id === id);
       const next = team.players.find(player => player.player_id === id);
       return JSON.stringify(old) === JSON.stringify(next) ? [] : [{team_id: team.team_id,
-        name: next?.player_name || old?.player_name || id, before: old?.slot || "Not on roster", after: next?.slot || "Removed"}];
+        name: next?.player_name || old?.player_name || id, before: old?.slot ?? null, after: next?.slot ?? null}];
     });
   });
+}
+
+export function correctionSlotLabel(id, slots = []) {
+  if (!id || id === "BN") return CORRECTIONS_COPY.bench;
+  return slots.find(slot => slot.id === id)?.label || id;
+}
+
+export function correctionChangeText(change, slots = []) {
+  const before = change.before == null ? CORRECTIONS_COPY.notOnRoster : correctionSlotLabel(change.before, slots);
+  const after = change.after == null ? CORRECTIONS_COPY.removed : correctionSlotLabel(change.after, slots);
+  return `${before} → ${after}`;
+}
+
+export function groupCorrectionChanges(changes) {
+  const groups = [];
+  for (const change of changes) {
+    let group = groups.find(item => item.team_id === change.team_id);
+    if (!group) groups.push(group = { team_id: change.team_id, changes: [] });
+    group.changes.push(change);
+  }
+  return groups;
 }
 
 

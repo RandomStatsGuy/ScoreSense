@@ -144,6 +144,7 @@ def _processes() -> dict | None:
 
 
 def _server_payload(*, slowest: int = 8) -> dict:
+    from src.ops.scoring_stats import snapshot as scoring_snapshot
     try:
         resources = server_stats.resources()
     except Exception:
@@ -156,6 +157,7 @@ def _server_payload(*, slowest: int = 8) -> dict:
         "storage": server_stats.storage_sizes(),
         "caches": admin_jobs.cache_rows(),
         "requests": request_stats.snapshot(slowest=slowest),
+        "scoring": scoring_snapshot(),
     }
 
 

@@ -22,7 +22,7 @@ The declared initial defense gate requires both folds to beat the unconditional 
 
 ## Freshness and deployment
 
-The existing five-minute background refresh forces the roster/injury feed, refreshes weekly artifacts, and now builds injury-adjusted and raw deep DFS artifacts. It also polls current-season observed team results. Provider publishing cadence is outside our control: five-minute polling does not create data the provider has not published. A missing current-season history feed after week one cannot advance the refresh success timestamp. Status records the source history's latest season/week and whether only historical inputs were available.
+The fifteen-minute background DFS refresh polls the roster/injury feed when due, reuses the scheduled weekly build, and builds injury-adjusted and raw deep DFS artifacts. It also polls current-season observed team results. Provider publishing cadence is outside our control: polling does not create data the provider has not published. A missing current-season history feed after week one cannot advance the refresh success timestamp. Status records the source history's latest season/week and whether only historical inputs were available.
 
 Both variants are computed before either is published. Each file is atomically replaced; an inference failure preserves prior artifacts. The two replacements are not a cross-file transaction. Request paths read the materialized deep pool; when absent they retain the existing weekly fallback and explicit incomplete-coverage report. Refresh runs share the existing process lock and throttle.
 

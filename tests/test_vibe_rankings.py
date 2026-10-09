@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from unittest.mock import patch
+from datetime import datetime, timezone
 
 import pandas as pd
 import pytest
@@ -25,6 +26,13 @@ from src.draft_hub.vibe_rankings import (
     vibe_score,
     vibe_starts,
 )
+
+
+@pytest.fixture(autouse=True)
+def _before_fixture_week(monkeypatch, trusted_native_roster_rows):
+    monkeypatch.setattr("src.draft_hub.hub_scoring._utcnow", lambda: datetime(2026, 9, 1, tzinfo=timezone.utc))
+    monkeypatch.setattr("src.draft_hub.native_stats.cached_week_snapshot", lambda *_: None)
+
 
 
 def _pool(rows: list[dict]) -> pd.DataFrame:

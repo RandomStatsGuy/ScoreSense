@@ -307,36 +307,33 @@ def fetch_team_snapshot_cached(league_id: str, team_id: str) -> dict[str, Any] |
 
 
 def resolve_sleeper_league_id(league_id: str) -> str | None:
+    """Resolve the league host, migrating only its own legacy shared pool."""
     league = storage.get_league(league_id)
     if not league:
         return None
     sl = league.get("sleeper_league_id")
     if sl:
         return str(sl)
-    # The commissioner unlinked on purpose: ScoreSense hosts lineups and scoring
-    # for this league. Never re-attach a member's personal Sleeper link behind
-    # their back — that is what silently flipped leagues to Sleeper-hosted.
     if league.get("sleeper_hosting_disabled"):
         return None
-    comm = league.get("commissioner_sub")
-    if comm:
-        ws = storage.get_or_create_workspace(comm)
-        link = storage.sleeper_link_from_workspace(ws)
-        sl = link.get("sleeper_league_id")
-        if sl:
-            storage.update_league_sleeper_id(league_id, str(sl))
-            return str(sl)
-    for team in storage.list_league_teams(league_id):
-        sub = team.get("user_sub")
-        if not sub:
-            continue
-        ws = storage.get_or_create_workspace(sub)
-        link = storage.sleeper_link_from_workspace(ws)
-        sl = link.get("sleeper_league_id")
-        if sl:
-            storage.update_league_sleeper_id(league_id, str(sl))
-            return str(sl)
-    return None
+    workspace_id = league.get("workspace_id")
+    if league.get("test_mode") or not workspace_id:
+        return None
+    workspace = storage.get_workspace_by_id(str(workspace_id))
+    if not workspace or str(workspace.get("user_sub") or "") != str(league.get("commissioner_sub") or ""):
+        return None
+    sl = workspace.get("sleeper_league_id")
+    if not sl:
+        return None
+    # Preserve an explicit league link saved while migration was reading the
+    # old pool. A manager's other workspace or another member cannot be a host.
+    with storage.get_conn() as conn:
+        conn.execute("""UPDATE league SET sleeper_league_id=? WHERE id=?
+                        AND COALESCE(sleeper_league_id,'')='' AND COALESCE(test_mode,0)=0
+                        AND workspace_id=? AND commissioner_sub=? AND COALESCE(sleeper_hosting_disabled,0)=0""",
+                     (str(sl), league_id, str(workspace_id), str(workspace["user_sub"])))
+        current = conn.execute("SELECT sleeper_league_id FROM league WHERE id=?", (league_id,)).fetchone()
+    return str(current["sleeper_league_id"]) if current and current["sleeper_league_id"] else None
 
 
 def sleeper_roster_slot_count(league_id: str) -> int:

@@ -11,6 +11,7 @@ import requests
 
 from src.draft_hub import storage
 from src.integrations.sleeper import get_nfl_state, load_sleeper_players
+from src.ops.scoring_stats import profile_scoring
 
 SLEEPER_API = "https://api.sleeper.app/v1"
 LIVE_SCORING_MAX_AGE_SECONDS = 60
@@ -376,6 +377,8 @@ def assign_standings_ranks(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for index, row in enumerate(ranked, start=1):
             row["rank"] = index
     else:
+        ranked.sort(key=lambda row: (str(row.get("team_name") or "").casefold(),
+                                     str(row.get("hub_team_id") or row.get("roster_id") or "")))
         for row in ranked:
             row["rank"] = None
     return ranked
@@ -810,6 +813,7 @@ def _hold_historical_week(
     )
 
 
+@profile_scoring("sleeper.assembly", cache_result=True)
 def get_sleeper_live_week(
     sleeper_league_id: str,
     *,

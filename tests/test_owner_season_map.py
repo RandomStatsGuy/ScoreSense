@@ -132,10 +132,10 @@ def test_contract_awards_use_owner_season_map(hub_db, monkeypatch):
     )
     awards = build_contract_awards(lid, season_year=2025)
     bag = next(a for a in awards if a["id"] == "highest_paid")
-    assert bag["display_name"] == "Aaron D · 2025 Aaron Team"
+    assert bag["display_name"] == "2025 Aaron Team · Aaron D"
     assert bag["team_name"] == "2025 Aaron Team"
     payroll = next(a for a in awards if a["id"] == "payroll_king")
-    assert payroll["display_name"] == "Aaron D · 2025 Aaron Team"
+    assert payroll["display_name"] == "2025 Aaron Team · Aaron D"
 
 
 def test_scoring_owner_map_contracts_beat_yaml_seed(hub_db):

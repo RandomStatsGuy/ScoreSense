@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   HUB_POSITION_FILTERS,
+  orderedHubPositions,
   filterRowsByHubPosition,
   normalizeHubPosition,
 } from "./hubPositions.js";
@@ -29,4 +30,10 @@ test("TE filter returns only tight ends", () => {
   const tes = filterRowsByHubPosition(rows, "TE");
   assert.deepEqual(tes.map((r) => r.player_id), ["2", "3"]);
   assert.equal(filterRowsByHubPosition(rows, "WR").length, 1);
+});
+
+
+test("position menus use football order with kicker then defense last", () => {
+  assert.deepEqual(orderedHubPositions(["DEF","K","QB","RB","TE","WR"]),["QB","RB","WR","TE","K","DEF"]);
+  assert.deepEqual(orderedHubPositions(["DST","K","REC","wr","TE",null,"IDP"]),["WR","TE","IDP","K","DEF"]);
 });

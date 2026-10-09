@@ -73,7 +73,9 @@ python -m src.ops.job_report --slow-seconds 120 --queue-seconds 10 --cpu-seconds
 
 Every `app.process_pool.submit_cpu_job(fn, ...)` automatically gets basic timings,
 outcome and worker-loss observations under a static callable name. Do not create a
-separate process pool. Use `submit_thread_job` for ticker thread work; it preserves
+separate process pool. `submit_live_job` is the same, on the one-process live
+worker reserved for native scoring and Fantasy context so inference never delays
+them; keep it to short jobs. Use `submit_thread_job` for ticker thread work; it preserves
 the default `asyncio.to_thread` executor and cancellation semantics while measuring
 queue wait. Direct entry points use the decorator, with queue reported unknown:
 
@@ -135,9 +137,13 @@ This setting is ignored in normal production execution.
 
 This does not measure normal HTTP request latency, optimizer work outside the
 shared executor, host CPU/RAM/disk, all external feed revisions, or artifact
-freshness that a job does not report. Framework-owned injury background callbacks
-have execution timing but no submission hook, hence queue unknown. Those gaps
-remain explicit; use authorized existing telemetry before estimating capacity.
+freshness that a job does not report. HTTP-triggered injury work now submits to the
+shared CPU worker and includes queue timing; direct/CLI calls still report queue
+unknown. The authenticated Server export separately exposes process-local scoring
+assembly and cache-hit timings under `server.scoring`; see
+[the performance architecture](FANTASY_PERFORMANCE_ARCHITECTURE.md#shared-scoring-and-refresh-coordination--october-9-2026)
+for scope and sampling limits. Use these separate observations before estimating
+capacity.
 
 ## Retention, concurrency and failure behavior
 

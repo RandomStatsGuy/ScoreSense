@@ -255,7 +255,8 @@ def test_changed_sources_after_specialist_assembly_preserve_both_real_pools(pred
     assert {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)} == before
 
 
-def test_dfs_reuses_hourly_publication_without_repeating_six_heads(prediction_env,tmp_path,monkeypatch):
+@pytest.mark.parametrize("poll_status", ["ok", "not_due"])
+def test_dfs_reuses_hourly_publication_without_repeating_six_heads(prediction_env,tmp_path,monkeypatch,poll_status):
     from src.jobs import season_refresh
     monkeypatch.setattr(season_refresh,"STATUS_PATH",tmp_path/"season.json")
     publication = season_refresh._prepare("weekly",2026,4)
@@ -265,7 +266,7 @@ def test_dfs_reuses_hourly_publication_without_repeating_six_heads(prediction_en
         "last_success_at":"2026-10-06T01:00:00+00:00"}})
     monkeypatch.setattr(dfs_refresh,"CACHE_DIR",tmp_path)
     monkeypatch.setattr(dfs_refresh,"STATUS_PATH",tmp_path/"dfs.json")
-    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll",lambda **k:{"status":"ok"})
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll",lambda **k:{"status":poll_status})
     monkeypatch.setattr("src.integrations.sleeper.get_nfl_state",lambda **k:{"season":2026,"week":4,"season_type":"regular"})
     result = dfs_refresh.run_dfs_refresh()
     assert result["status"] == "ok" and result["forecasts_reused"]

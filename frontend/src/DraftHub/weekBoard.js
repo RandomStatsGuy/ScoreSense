@@ -40,7 +40,10 @@ export const WEEK_BOARD_COPY = {
   sleeperLineupUnavailable: "Your Sleeper lineup is not available for this week. Check the matchup or open Sleeper below.",
   startExternal: "Set this start in your league app.",
   lineupLocked: "Lineup is locked.",
-  staffLineupOpen: "Games have started. You can still set this lineup until the week is calculated.",
+  playerLocked: "This player's game has started.",
+  lockedLabel: "Locked",
+  kickoffMissingLabel: "Kickoff unavailable",
+  kickoffUnavailable: "Kickoff information is unavailable. Try again after it refreshes.",
   refreshProjections: "Refresh projections",
   refreshing: "Refreshing…",
   rosterFresh: "Roster",
@@ -155,7 +158,7 @@ export function eligibleStarterSlots(player, slots = [], rules) {
 /** Kickoff checks are a preview; the write endpoint enforces the current lock. */
 export function lineupPlayerLocked(player, { staffOverride = false, now = Date.now() } = {}) {
   if (!player || staffOverride) return false;
-  if (player.locked || player.lineup_locked) return true;
+  if (lineupPlayerLock(player, { now })) return true;
   const kickoff = Date.parse(player.kickoff_et || "");
   return Number.isFinite(kickoff) && kickoff <= now;
 }
@@ -188,7 +191,7 @@ export function slotAcceptsPosition(slot, position, rules) {
 export function emptySlotAction(slot, bench = [], rules) {
   const pos = String(slot?.position || slot?.slot || "").replace(/\d+$/, "").toUpperCase();
   const fits = (bench || []).filter((player) => (
-    player?.player_id && slotAcceptsPosition(slot, player.position, rules)
+    player?.player_id && !lineupPlayerLocked(player) && slotAcceptsPosition(slot, player.position, rules)
   ));
   if (fits.length) {
     const best = [...fits].sort((a, b) => (Number(b.p50) || 0) - (Number(a.p50) || 0))[0];
@@ -581,13 +584,8 @@ export function canEditHubLineup({
   mode,
   lineupSource,
   lineupLocked,
-  weekScored = false,
-  isCommissioner = false,
 } = {}) {
-  if (mode !== "league" || lineupSource !== "hub") return false;
-  if (weekScored) return false;
-  if (!lineupLocked) return true;
-  return Boolean(isCommissioner);
+  return mode === "league" && lineupSource === "hub" && !lineupLocked;
 }
 
 export function decisionSwapIds(decision) {
@@ -776,12 +774,23 @@ export function lineupCallAction({
   canEdit = false,
   lineupLocked = false,
   sleeperLeagueId = "",
+  starter = null,
+  bench = null,
 } = {}) {
-  if (canEdit) return { kind: "apply" };
+  const playerLock = lineupPlayerLock(starter) || lineupPlayerLock(bench);
   if (lineupLocked) return { kind: "locked", reason: WEEK_BOARD_COPY.lineupLocked };
+  if (canEdit && playerLock) return { kind: "locked", reason: playerLock };
+  if (canEdit) return { kind: "apply" };
   const href = sleeperLineupUrl(sleeperLeagueId);
   if (href) return { kind: "sleeper", href, reason: WEEK_BOARD_COPY.startInSleeper };
   return { kind: "external", reason: WEEK_BOARD_COPY.startExternal };
+}
+
+export function lineupPlayerLock(player, { now = Date.now() } = {}) {
+  if (!player) return "";
+  if (player.kickoff_available === false || player.lock_reason === "kickoff_unavailable") return WEEK_BOARD_COPY.kickoffUnavailable;
+  const kickoff = Date.parse(player.kickoff_et || player.kickoff_at || "");
+  return player.lineup_locked || player.locked || (Number.isFinite(kickoff) && kickoff <= now) ? WEEK_BOARD_COPY.playerLocked : "";
 }
 
 /** `<a>` cannot use disabled — drop href and mark inert while the ticket is busy. */

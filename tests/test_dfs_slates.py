@@ -1,6 +1,7 @@
 """Tests for live DFS slate parsing."""
 
 import requests
+import pandas as pd
 
 import src.integrations.dfs_slates as dfs_slates
 
@@ -132,6 +133,11 @@ def test_dk_salary_fetch_falls_back_when_draftables_is_forbidden(monkeypatch, tm
         }
 
     monkeypatch.setattr(dfs_slates, "_dk_get", fake_get)
+
+    def unavailable_csv(*args, **kwargs):
+        raise requests.HTTPError("CSV unavailable")
+
+    monkeypatch.setattr(dfs_slates, "_fetch_dk_salary_csv", unavailable_csv)
     monkeypatch.setattr(dfs_slates, "_cache_path", lambda *_: tmp_path / "salary.parquet")
     monkeypatch.setattr(dfs_slates, "_cache_meta_path", lambda *_: tmp_path / "meta.json")
 
@@ -142,6 +148,74 @@ def test_dk_salary_fetch_falls_back_when_draftables_is_forbidden(monkeypatch, tm
         dfs_slates.DK_AVAILABLE_PLAYERS_URL,
         {"draftGroupId": "123"},
     )
+
+
+DK_EXPORT_CSV = (
+    "\ufeffPosition,Name + ID,Name,ID,Roster Position,Salary,TeamAbbrev\r\n"
+    "WR,CeeDee Lamb (44395165),CeeDee Lamb,44395165,CPT,17700,DAL\r\n"
+    "WR,CeeDee Lamb (44395113),CeeDee Lamb,44395113,FLEX,11800,DAL\r\n"
+)
+
+
+def test_dk_csv_fallback_recovers_separate_captain_upload_ids(monkeypatch, tmp_path):
+    from src.products.dfs_salaries import collapse_captain_rows
+
+    def forbidden(*args, **kwargs):
+        response = requests.Response()
+        response.status_code = 403
+        raise requests.HTTPError(response=response)
+
+    csv_response = requests.Response()
+    csv_response.status_code = 200
+    csv_response._content = DK_EXPORT_CSV.encode("utf-8")
+    calls = []
+
+    def get_csv(url, **kwargs):
+        calls.append((url, kwargs["params"]))
+        return csv_response
+
+    monkeypatch.setattr(dfs_slates, "DFS_CACHE_DIR", tmp_path)
+    monkeypatch.setattr(dfs_slates, "_dk_get", forbidden)
+    monkeypatch.setattr(dfs_slates.requests, "get", get_csv)
+    salaries = dfs_slates.fetch_dk_salaries("154474")
+    row = collapse_captain_rows(salaries).iloc[0]
+    assert row["dfs_id"] == "44395113"
+    assert row["cpt_dfs_id"] == "44395165"
+    assert row["salary"] == 11800
+    assert row["cpt_salary"] == 17700
+    assert calls == [(dfs_slates.DK_SALARY_CSV_URL, {"draftGroupId": "154474"})]
+    cached = dfs_slates.fetch_dk_salaries("154474")
+    pd.testing.assert_frame_equal(cached, salaries)
+    assert len(calls) == 1
+
+
+def test_dk_idless_cache_retries_provider_and_replaces_cache(monkeypatch, tmp_path):
+    monkeypatch.setattr(dfs_slates, "DFS_CACHE_DIR", tmp_path)
+    cache = dfs_slates._cache_path("draftkings", "123")
+    pd.DataFrame([{"dfs_id": "", "salary": 8100}]).to_parquet(cache)
+    calls = []
+
+    def draftables(*args, **kwargs):
+        calls.append(args[0])
+        return DK_DRAFTABLES_SAMPLE
+
+    monkeypatch.setattr(dfs_slates, "_dk_get", draftables)
+    salaries = dfs_slates.fetch_dk_salaries("123")
+    assert salaries.iloc[0]["dfs_id"] == "39506085"
+    assert len(calls) == 1
+    pd.testing.assert_frame_equal(pd.read_parquet(cache), salaries)
+
+
+def test_dk_partial_draftables_ids_use_complete_csv(monkeypatch, tmp_path):
+    from src.products.dfs_salaries import parse_salary_csv
+
+    entry = {**DK_DRAFTABLES_SAMPLE["draftables"][0]}
+    entry.pop("draftableId")
+    monkeypatch.setattr(dfs_slates, "DFS_CACHE_DIR", tmp_path)
+    monkeypatch.setattr(dfs_slates, "_dk_get", lambda *a, **k: {"draftables": [entry]})
+    monkeypatch.setattr(dfs_slates, "_fetch_dk_salary_csv", lambda *a: parse_salary_csv(DK_EXPORT_CSV))
+    salaries = dfs_slates.fetch_dk_salaries("123")
+    assert salaries["dfs_id"].tolist() == ["44395165", "44395113"]
 
 
 def test_parse_fd_players():

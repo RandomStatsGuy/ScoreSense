@@ -78,6 +78,27 @@ def test_trades_and_read_alerts_do_not_leak_or_return_after_refresh(room):
     assert chat.summary(league["id"], "one")["notifications"][0]["title"] == "Trade declined"
 
 
+def test_repeat_summary_polls_do_not_write(room, monkeypatch):
+    from contextlib import contextmanager
+    league, people = room
+    storage.create_trade_proposal(league["id"], created_by_sub="one", parties=[
+        {"team_id": people["one"]["id"], "send": []}, {"team_id": people["two"]["id"], "send": []}])
+    chat.summary(league["id"], "two")
+    statements, real_conn = [], storage.get_conn
+
+    @contextmanager
+    def traced_conn(*args, **kwargs):
+        with real_conn(*args, **kwargs) as conn:
+            conn.set_trace_callback(statements.append)
+            yield conn
+            conn.set_trace_callback(None)
+
+    monkeypatch.setattr(storage, "get_conn", traced_conn)
+    snapshot = chat.summary(league["id"], "two")
+    assert snapshot["notifications"][0]["kind"] == "trade"
+    assert [s for s in statements if s.lstrip().split()[0].upper() in ("INSERT", "UPDATE", "DELETE", "BEGIN")] == []
+
+
 def test_preferences_persist_per_account_and_reject_unknown_settings(hub_db):
     assert chat.preferences("one")["league"] is False
     chat.preferences("one", {"direct": False})

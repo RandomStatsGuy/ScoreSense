@@ -379,6 +379,12 @@ def build_value_overlay(
     league_index = RosterIdentityIndex(owned_league, occupying_only=False)
     mine_index = RosterIdentityIndex(owned_mine, occupying_only=False)
 
+    from src.draft_hub.player_identity import player_identity_aliases
+    def _aliases(rows):
+        return {alias: row for row in rows for alias in player_identity_aliases(row, season=pool_payload.get("season"))}
+    league_aliases = _aliases(owned_league)
+    mine_aliases = _aliases(owned_mine)
+
     rows: list[dict[str, Any]] = []
     for base in pool_payload.get("rows") or []:
         pid = str(base.get("player_id") or "")
@@ -387,8 +393,9 @@ def build_value_overlay(
         fair_value = base.get("fair_value")
         on_sleeper = bool(pool_tokens & my_sleeper_tokens)
         on_league_sleeper = bool(pool_tokens & league_sleeper_tokens)
-        league_row = league_index.find(identity)
-        mine_row = mine_index.find(identity)
+        aliases = player_identity_aliases(identity, season=pool_payload.get("season"))
+        league_row = league_index.find(identity) or next((league_aliases[a] for a in aliases if a in league_aliases), None)
+        mine_row = mine_index.find(identity) or next((mine_aliases[a] for a in aliases if a in mine_aliases), None)
         status, is_available, roster_sal = _player_status(
             pid,
             league_row=league_row,

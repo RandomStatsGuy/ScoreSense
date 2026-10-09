@@ -17,7 +17,7 @@ export default function LeagueScoringControl({ leagueId, data, hubContext, onNav
   const control = data?.scoring_control;
   const scored = Boolean(control?.scored);
   const live = Boolean(control?.live) && !control?.slate_complete;
-  const disabled = busy || !control || !data?.week || !hubContext?.draft_completed;
+  const disabled = busy || !control || !data?.week || !hubContext?.draft_completed || (!linked && control?.slate_complete === false);
   const calculate = async () => {
     if (disabled || linked || !hubContext?.is_commissioner) return;
     if (scored && !(await confirmDialog({ title: COPY.recalculate, message: COPY.confirm(data.week, { live }), confirmLabel: COPY.recalculate, danger: true }))) return;
@@ -61,6 +61,8 @@ export default function LeagueScoringControl({ leagueId, data, hubContext, onNav
           <button type="button" className="btn-ghost" onClick={() => onNavigate?.("rules")}>{COPY.rules}</button>
         </div>
         {!linked && <>
+          {data?.scoring_status === "live" && <p className="chart-note">{COPY.live}</p>}
+          {data?.scoring_status === "pending" && <p className="chart-note">{COPY.pending}</p>}
           <p className="chart-note">{SCORING_COPY.supported}</p>
           {!hubContext?.draft_completed && <p className="chart-note">{COPY.draftFirst}</p>}
           {!hubContext?.is_commissioner && <p className="chart-note">{COPY.staff}</p>}

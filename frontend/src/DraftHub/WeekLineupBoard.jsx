@@ -31,6 +31,7 @@ import {
   swapBenchIdSet,
   WEEK_BOARD_COPY,
   LINEUP_PICKER_COPY,
+  lineupPlayerLock,
   WEEK_BOUNDS,
   weekBoardOverlayCopy,
   weekSelectOptions,
@@ -155,6 +156,8 @@ function SlateRow({
 }) {
   const player = slot.player;
   const empty = !player;
+  const lockReason = lineupPlayerLock(player);
+  const lockLabel = lockReason ? (player?.kickoff_available === false || player?.lock_reason === "kickoff_unavailable" ? WEEK_BOARD_COPY.kickoffMissingLabel : WEEK_BOARD_COPY.lockedLabel) : "";
   const metric = compact && scorePlayer ? gameCenterPlayerScore(scorePlayer, gameCenterData, Boolean(gameCenterData?.placeholder)) : null;
   const injured = Boolean(player?.injured);
   const onBye = Boolean(player?.on_bye);
@@ -192,6 +195,7 @@ function SlateRow({
         <button type="button" className="hub-wcc-position-button"
           aria-label={LINEUP_PICKER_COPY.move(player?.player_name || player?.player_id, slot.slot)}
           aria-haspopup="dialog" aria-expanded={Boolean(selected)}
+          disabled={Boolean(lockReason)} title={lockReason || undefined}
           onClick={() => onOpenSlot(slot)}>{slot.slot === "BN" ? player?.position || "BN" : slot.slot}</button>
       ) : <span className="hub-wcc-row-pos">{slot.slot}</span>}
       {!compact && <RowFace player={player} slot={slot.slot} media={media} />}
@@ -203,7 +207,7 @@ function SlateRow({
       ) : (
         <div className="hub-wcc-row-who">
           <div className="hub-week-player-identity">{compact && <NflTeamMark team={player.team} />}<strong>{player.player_name || player.player_id}</strong></div>
-          <span>{compact ? <>{decision && <em className="hub-wcc-sit-mark">{WEEK_BOARD_COPY.sitRole} · </em>}{[player.team, player.on_bye ? "BYE" : formatKickoffFact(player)].filter(Boolean).join(" · ")}</> : slatePlayerMeta(player)}</span>
+          <span>{compact ? <>{decision && <em className="hub-wcc-sit-mark">{WEEK_BOARD_COPY.sitRole} · </em>}{[player.team, player.on_bye ? "BYE" : formatKickoffFact(player)].filter(Boolean).join(" · ")}</> : slatePlayerMeta(player)}{lockLabel ? ` · ${lockLabel}` : ""}</span>
           {compact && <PlayerFlags player={player} />}
           {compact && wide && !missing && <span className="hub-wcc-range-mark" title={marks.join(" · ")}>{WEEK_BOARD_COPY.legendWide}</span>}
         </div>

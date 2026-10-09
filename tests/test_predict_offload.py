@@ -1,26 +1,12 @@
-"""Cold-cache weekly predictions run in the process pool, not the request thread."""
+"""Projection reads serve artifacts immediately and queue missing forecasts."""
 
+import asyncio
+import json
+from fastapi import BackgroundTasks
 import pandas as pd
 import pytest
 
 import app.api as api
-
-
-class _InlineFuture:
-    def __init__(self, fn, *args, **kwargs):
-        self._fn, self._args, self._kwargs = fn, args, kwargs
-
-    def result(self):
-        return self._fn(*self._args, **self._kwargs)
-
-
-class _InlineExecutor:
-    def __init__(self):
-        self.submissions = 0
-
-    def submit(self, fn, *args, **kwargs):
-        self.submissions += 1
-        return _InlineFuture(fn, *args, **kwargs)
 
 
 def _rows():
@@ -35,7 +21,10 @@ def _rows():
     )
 
 
-def test_cold_cache_computes_via_process_pool(monkeypatch):
+def test_cold_cache_returns_before_shared_worker_recovery(monkeypatch):
+    from app import projection_recovery as recovery
+    monkeypatch.setattr(recovery, "_ACTIVE", set())
+    monkeypatch.setattr(recovery, "_RESULTS", {})
     state = {"warm": False}
     compute_calls = []
 
@@ -48,15 +37,25 @@ def test_cold_cache_computes_via_process_pool(monkeypatch):
         state["warm"] = True
         return 1
 
-    executor = _InlineExecutor()
+    async def submit(func, season, week, kinds):
+        assert kinds == ("weekly",)
+        fake_compute("qb", season, week, False)
+        return {"status": "ok"}
     monkeypatch.setattr(api, "load_weekly_prediction", fake_load)
     monkeypatch.setattr(api, "compute_weekly_artifact", fake_compute)
-    monkeypatch.setattr(api, "get_process_executor", lambda: executor)
+    monkeypatch.setattr(recovery, "submit_cpu_job", submit)
+    monkeypatch.setattr(api, "get_process_executor", lambda: pytest.fail("HTTP read waited for inference"))
 
-    response = api._predict_response("qb", season=2025, week=10, apply_injury_adjustments=False)
+    tasks = BackgroundTasks()
+    response = api._predict_response("qb", season=2025, week=10, apply_injury_adjustments=False, background_tasks=tasks)
 
-    assert executor.submissions == 1
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "60"
+    assert json.loads(response.body)["projection_recovery"]["status"] == "queued"
+    assert not compute_calls
+    asyncio.run(response.background())
     assert compute_calls == [("qb", 2025, 10, False)]
+    response = api._predict_response("qb", season=2025, week=10, apply_injury_adjustments=False)
     assert response["count"] == 1
 
 
@@ -74,7 +73,7 @@ def test_cache_hit_skips_process_pool(monkeypatch):
     assert response["count"] == 1
 
 
-def test_missing_artifacts_raise_503(monkeypatch):
+def test_missing_artifacts_respond_503_without_loading_a_model(monkeypatch):
     def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
         return pd.DataFrame()
 
@@ -83,8 +82,7 @@ def test_missing_artifacts_raise_503(monkeypatch):
 
     monkeypatch.setattr(api, "load_weekly_prediction", fake_load)
     monkeypatch.setattr(api, "compute_weekly_artifact", fake_compute)
-    monkeypatch.setattr(api, "get_process_executor", lambda: _InlineExecutor())
+    monkeypatch.setattr(api, "get_process_executor", lambda: pytest.fail("read must not submit inference"))
 
-    with pytest.raises(api.HTTPException) as exc_info:
-        api._predict_response("qb", season=2025, week=10)
-    assert exc_info.value.status_code == 503
+    response = api._predict_response("qb", season=2025, week=10)
+    assert response.status_code == 503
