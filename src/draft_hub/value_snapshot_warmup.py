@@ -10,7 +10,9 @@ from src.draft_hub.value_sheet import _pool_payload_cache_key, read_draft_pool_p
 
 
 @observe_job("fantasy_valuations")
-def warm_fantasy_value_snapshots(*, prepare_pools: bool = False, season: int | None = None) -> dict:
+def warm_fantasy_value_snapshots(*, prepare_pools: bool = False, season: int | None = None,
+                               allow_stale: bool = False) -> dict:
+    """Startup may prepare last-saved values; refresh jobs require current pools."""
     if not storage.DRAFT_HUB_DB.exists():
         return {"prepared": 0, "unavailable": 0}
     # Enumerate inputs without resolving focus, reconciling rosters, or creating
@@ -67,7 +69,8 @@ def warm_fantasy_value_snapshots(*, prepare_pools: bool = False, season: int | N
             failed_seasons.add(season)
             continue
         try:
-            read_draft_pool_payload(season, rules, ranges, team_count=team_count, allow_stale=False)
+            read_draft_pool_payload(season, rules, ranges, team_count=team_count,
+                                    allow_stale=allow_stale and not prepare_pools)
             prepared += 1
         except Exception:
             unavailable += 1

@@ -227,6 +227,39 @@ def test_explicit_warmup_prepares_each_configured_season_once(hub_db, pool, monk
     assert sorted(prepared) == [2025, 2026]
 
 
+def test_startup_warms_stale_saved_values_without_claiming_a_refresh(hub_db, pool, monkeypatch):
+    from src.draft_hub import storage
+    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+    workspace = storage.get_or_create_workspace("reader", season=2026)
+    rules = LeagueRules.model_validate(workspace["rules"])
+    pool.attrs.update(projection_stale=True, built_at="2026-10-01T00:00:00+00:00")
+    calls = []
+    def read_pool(*args, **kwargs):
+        assert kwargs["allow_compute"] is False
+        calls.append(kwargs)
+        return pool.copy() if kwargs.get("allow_stale") else pd.DataFrame()
+    monkeypatch.setattr(values, "load_draft_pool", read_pool)
+    result = warm_fantasy_value_snapshots(allow_stale=True)
+    assert result["prepared"] == 1 and result["unavailable"] == 0
+    assert values.peek_pool_payload_cache(2026, rules, []) is None
+    payload = values.peek_pool_payload_cache(2026, rules, [], allow_stale=True)
+    assert payload["projection_stale"] is True
+    assert payload["projection_built_at"] == pool.attrs["built_at"]
+    # Daily refreshes still require current projections, including after startup
+    # has populated both the in-process and durable valuation caches.
+    assert warm_fantasy_value_snapshots()["unavailable"] == 1
+    assert calls
+
+
+def test_startup_cannot_warm_a_missing_projection_artifact(hub_db, pool, monkeypatch):
+    from src.draft_hub import storage
+    from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+    storage.get_or_create_workspace("reader", season=2026)
+    monkeypatch.setattr(values, "load_draft_pool", lambda *args, **kwargs: pd.DataFrame())
+    result = warm_fantasy_value_snapshots(allow_stale=True)
+    assert result["prepared"] == 0 and result["unavailable"] == 1
+
+
 def test_eight_concurrent_misses_share_one_preparation_and_isolate_responses(pool, monkeypatch):
     started, release = Event(), Event()
     joined = observe_waiters(monkeypatch, 7)

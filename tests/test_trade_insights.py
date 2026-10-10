@@ -7,10 +7,36 @@ from src.draft_hub.presets import load_preset
 from src.draft_hub.trade_insights import build_trade_insights
 
 
+@pytest.mark.parametrize("saved", ["current", "stale", "missing"])
+def test_trade_visit_never_computes_a_projection_pool(hub_db, monkeypatch, saved):
+    import pandas as pd
+    from src.draft_hub import draft_pool_cache
+
+    league = storage.create_league("reader", "Saved trades", 2026, load_preset("salary_cap_auction_v1"))
+    storage.join_league("reader", league["room_code"], "My team")
+    team = storage.get_team_by_user(league["id"], "reader")
+    frame = pd.DataFrame() if saved == "missing" else pd.DataFrame([
+        {"player_id": "wr-1", "Player": "WR One", "Position": "WR", "Season Proj": 200}])
+    frame.attrs.update(projection_stale=saved == "stale", built_at="2026-10-01T00:00:00+00:00")
+    def read_pool(season, **kwargs):
+        assert season == 2026
+        assert kwargs.get("allow_compute") is False, "A page visit must not run inference"
+        assert kwargs.get("allow_stale") is True
+        return frame
+    monkeypatch.setattr(draft_pool_cache, "load_draft_pool", read_pool)
+    monkeypatch.setattr(draft_pool_cache, "_compute_pool", lambda *a, **k: pytest.fail("A trade visit ran inference"))
+    monkeypatch.setattr("src.draft_hub.k_def_pool_cache.k_def_projection_index", lambda **kwargs: {})
+    result = build_trade_insights(storage.league_roster_overview(league["id"]), my_team_id=team["id"], season=2026)
+    assert result["my_team_id"] == team["id"]
+    assert result["projection_stale"] is (saved == "stale")
+    assert result["projection_built_at"] == (None if saved == "missing" else frame.attrs["built_at"])
+
+
 @pytest.fixture()
 def hub_db(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, "DRAFT_HUB_DB", tmp_path / "draft_hub.db")
     monkeypatch.setattr(storage, "DRAFT_HUB_DIR", tmp_path)
+    storage._DB_INITIALIZED = False
     return tmp_path
 
 

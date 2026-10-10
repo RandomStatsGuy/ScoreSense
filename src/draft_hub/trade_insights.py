@@ -446,9 +446,11 @@ def build_trade_insights(
     )
     if fair_map is None:
         if pool is None:
-            from src.draft_hub.value_sheet import _load_draft_pool
+            from src.draft_hub.draft_pool_cache import load_draft_pool
 
-            pool = _load_draft_pool(season)
+            # A fair-value cache miss on a page visit must not start inference
+            # or refresh provider identity. Background jobs own preparation.
+            pool = load_draft_pool(season, allow_compute=False, allow_stale=True)
         all_rosters = [r for rows in roster_map.values() for r in rows]
         fair_map = _player_fair_values(all_rosters, pool, rules, team_count)
 
@@ -520,6 +522,9 @@ def build_trade_insights(
         "partners": partners[:8],
         "suggestions": suggestions,
         "empty_reason": _empty_reason(my_balance, partners, suggestions, my_team_id=my_team_id),
+        **({"projection_stale": bool(pool.attrs.get("projection_stale")),
+            "projection_built_at": pool.attrs.get("built_at") if not pool.empty else None}
+           if pool is not None else {}),
     }
 
 
