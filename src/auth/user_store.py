@@ -225,6 +225,33 @@ def must_change_password(user: dict[str, Any] | None) -> bool:
     return bool(user.get("must_change_password_at"))
 
 
+def can_deactivate_temp_password(user: dict[str, Any] | None) -> bool:
+    """Only retire an active temporary password after authenticated activity."""
+    if not must_change_password(user) or not user.get("last_seen_at"):
+        return False
+    return user["last_seen_at"] > user["must_change_password_at"]
+
+
+def deactivate_temp_password(user_id: str) -> dict[str, Any]:
+    """Disable only a temporary credential; keep the holder's sessions open.
+
+    Check eligibility in the write so a concurrent self-service password
+    change cannot have its new credential disabled by an old admin view.
+    """
+    with get_conn() as conn:
+        cur = conn.execute(
+            """UPDATE app_user
+               SET password_hash = ?, has_password = 0,
+                   must_change_password_at = NULL, updated_at = ?
+               WHERE id = ? AND must_change_password_at IS NOT NULL
+                   AND last_seen_at > must_change_password_at""",
+            (secrets.token_urlsafe(32), _utcnow(), user_id),
+        )
+        if not cur.rowcount:
+            raise ValueError("An active temporary password and a sign-in after it was set are required.")
+        return _user_dict(conn.execute("SELECT * FROM app_user WHERE id = ?", (user_id,)).fetchone())
+
+
 def update_password(user_id: str, password_hash: str, *, must_change: bool = False) -> None:
     """Write a new password hash.
 

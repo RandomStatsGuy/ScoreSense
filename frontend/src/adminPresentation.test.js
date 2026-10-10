@@ -5,8 +5,16 @@ import {
   ADMIN_COPY,
   adminLinkAccountRef,
   adminLinkSuccess,
+  adminTempPasswordDeactivated,
   openAdminFranchises,
 } from "./adminPresentation.js";
+
+test("temporary password deactivation explains ongoing access and future sign-in", () => {
+  assert.match(ADMIN_COPY.tempPassword.awaitingSignIn, /after they sign in/);
+  assert.match(ADMIN_COPY.tempPassword.deactivateHint, /current sessions open/);
+  assert.match(adminTempPasswordDeactivated("owner@mail.com"), /owner@mail.com/);
+  assert.match(adminTempPasswordDeactivated("owner@mail.com"), /Google or Forgot password/);
+});
 
 test("admin link copy tells staff what happens next", () => {
   assert.match(ADMIN_COPY.linkExisting.hint, /franchise|team/i);

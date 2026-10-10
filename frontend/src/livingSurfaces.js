@@ -395,7 +395,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/AdminPortal.jsx",
     copy: "frontend/src/adminPresentation.js",
     also: ["frontend/src/AdminOps.jsx", "frontend/src/styles/admin.css"],
-    doNot: "Account-only. Do not add Admin to top-level nav. Owner-to-team attach after signup lives here until a Fantasy flow exists. Never render .env secret values; show set/not set. Mutating admin actions write to Activity.",
+    doNot: "Account-only. Do not add Admin to top-level nav. Owner-to-team attach after signup lives here until a Fantasy flow exists. Never render .env secret values; show set/not set. Mutating admin actions write to Activity. Temporary-password deactivation is manual and requires successful sign-in after issuance. Keep current sessions open and preserve any password the user has already chosen.",
   }),
   "account.account": S({
     label: "Account",

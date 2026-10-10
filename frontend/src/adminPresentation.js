@@ -19,6 +19,11 @@ export const ADMIN_COPY = Object.freeze({
     hint: "They must choose their own at next sign-in.",
     tooShort: "Use at least 8 characters.",
     failed: "Could not set the password",
+    deactivate: "Deactivate temp password",
+    deactivating: "Deactivating…",
+    awaitingSignIn: "Available after they sign in. Reload this page to check.",
+    deactivateHint: "Keeps current sessions open. Next sign-in uses Google or Forgot password.",
+    deactivateFailed: "Could not deactivate the temporary password",
   }),
   linkExisting: Object.freeze({
     title: "Link existing account",
@@ -69,6 +74,10 @@ export function adminTempPasswordSuccess({ email, notified } = {}) {
     ? "They were emailed that an admin reset it."
     : "No email went out — pass it on yourself.";
   return `Temporary password set for ${who}. Signed out everywhere; they must choose a new one at next sign-in. ${note}`;
+}
+
+export function adminTempPasswordDeactivated(email) {
+  return `Temporary password deactivated for ${email || "that account"}. Current sessions stay open; next sign-in uses Google or Forgot password.`;
 }
 
 export const ADMIN_TAB_ITEMS = Object.freeze([
