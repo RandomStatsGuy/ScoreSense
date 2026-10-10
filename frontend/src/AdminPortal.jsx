@@ -14,6 +14,7 @@ import {
   adminLinkAccountRef,
   adminLinkSuccess,
   adminTempPasswordSuccess,
+  adminTempPasswordDeactivated,
   adminVerifySuccess,
   openAdminFranchises,
 } from "./adminPresentation";
@@ -366,6 +367,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
           notified: saved.notified,
         }),
       );
+      await loadUsers();
     } catch (err) {
       setActionErr(err.message || ADMIN_COPY.tempPassword.failed);
     } finally {
@@ -373,8 +375,44 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
     }
   };
 
+  const handleDeactivateTempPassword = async (row) => {
+    setActionMsg("");
+    setActionErr("");
+    setPasswordBusyId(row.id);
+    try {
+      const res = await apiFetch(`/api/admin/users/${row.id}/temp-password/deactivate`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      setTempPasswords((prev) => ({ ...prev, [row.id]: "" }));
+      setActionMsg(adminTempPasswordDeactivated(row.email));
+      await loadUsers();
+    } catch (err) {
+      setActionErr(err.message || ADMIN_COPY.tempPassword.deactivateFailed);
+    } finally {
+      setPasswordBusyId("");
+    }
+  };
+
   const renderPasswordCell = (row) => {
     if (!row.id) return <span className="admin-muted">{ADMIN_COPY.verification.unavailable}</span>;
+    if (row.must_change_password_at) {
+      return (
+        <div>
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled={passwordBusyId === row.id || !row.can_deactivate_temp_password}
+            onClick={() => handleDeactivateTempPassword(row)}
+          >
+            {passwordBusyId === row.id ? ADMIN_COPY.tempPassword.deactivating : ADMIN_COPY.tempPassword.deactivate}
+          </button>
+          <p className="admin-muted">
+            {row.can_deactivate_temp_password ? ADMIN_COPY.tempPassword.deactivateHint : ADMIN_COPY.tempPassword.awaitingSignIn}
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="admin-password-cell">
         <input

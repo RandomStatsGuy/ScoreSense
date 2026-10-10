@@ -65,6 +65,7 @@ export const AUTH_COPY = Object.freeze({
   brandBack: "Back",
   googleLinked: "Signed in with Google.",
   setPasswordHint: "Set a password from Forgot password if you also want email sign-in.",
+  passwordDisabled: "Password sign-in is disabled. Use Forgot password to set a new one.",
   passwordManagedPatreon: "Password is managed by Patreon.",
   deleteConfirmEmail: "Type your account email",
 });
