@@ -250,6 +250,89 @@ def test_weekly_worker_publishes_exact_reuse_proof(monkeypatch):
                               now=receipt["computed_epoch"]+300,max_age=3600)
 
 
+@pytest.fixture
+def dfs_publication(worker, monkeypatch):
+    from src.jobs import dfs_inputs, dfs_refresh
+    producer, metadata = worker
+    monkeypatch.setattr(season_refresh, "_current_targets", lambda: [("weekly", 2026, 4)])
+    metadata["weekly"] = [{"season": 2026, "week": 4, "rows": 10, "built_at": NOW.isoformat()}]
+    previous = {"status": "ok", "player_availability": "old-availability"}
+    season_refresh._save({"weekly:2026:4": previous})
+    shared = {"season": 2026, "week": 4, "status": "ok", "forecast_status": "ok",
+              "player_availability": "availability", "forecast_reuse": {
+                  "version": dfs_inputs.VERSION, "revision": "inputs", "computed_epoch": NOW.timestamp(),
+                  "outputs": {"frames": "digest"}}}
+    path = season_refresh.CACHE_DIR / "dfs.json"
+    monkeypatch.setattr(dfs_refresh, "STATUS_PATH", path)
+    monkeypatch.setattr(dfs_inputs, "prepare_sources", lambda *a: None)
+    monkeypatch.setattr(dfs_inputs, "input_revision", lambda *a: "inputs")
+    monkeypatch.setattr(dfs_inputs, "output_revisions", lambda *a: {"frames": "digest"})
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "availability"))
+    frames = Mock(return_value=pd.DataFrame([{"Projected Points": 20}]))
+    monkeypatch.setattr("src.projections.weekly_cache.load_weekly_prediction", frames)
+    return shared, path, producer, frames
+
+
+def test_scheduled_weekly_adopts_current_dfs_publication(dfs_publication):
+    shared, path, producer, frames = dfs_publication
+    path.write_text(json.dumps(shared))
+    assert season_refresh.run_season_refresh()["prepared"] == 1
+    producer.assert_not_called()
+    assert frames.call_count == 6
+    assert all(c.kwargs["allow_compute"] is False and c.kwargs["force"] is False for c in frames.call_args_list)
+    published = season_refresh.read_status()["weekly:2026:4"]
+    assert published["forecast_reuse"] == shared["forecast_reuse"]
+    assert published["player_availability"] == "availability"
+    assert season_refresh.run_season_refresh()["prepared"] == 0
+
+
+@pytest.mark.parametrize("damage", ["availability", "inputs", "outputs", "previous_hour", "missing_proof", "failed", "empty", "stale", "changed_during_read", "next_hour"])
+def test_weekly_recomputes_when_dfs_publication_cannot_be_proven(dfs_publication, damage, monkeypatch):
+    from src.jobs import dfs_inputs
+    shared, path, producer, frames = dfs_publication
+    receipt = shared["forecast_reuse"]
+    if damage == "availability": shared["player_availability"] = "previous-availability"
+    elif damage == "inputs": receipt["revision"] = "previous-inputs"
+    elif damage == "outputs": receipt["outputs"] = {"frames": "previous-digest"}
+    elif damage == "previous_hour": receipt["computed_epoch"] -= 1
+    elif damage == "missing_proof": shared.pop("player_availability")
+    elif damage == "failed": shared["forecast_status"] = "error"
+    elif damage == "empty": frames.return_value = pd.DataFrame()
+    elif damage == "stale": frames.return_value.attrs["projection_stale"] = True
+    elif damage == "changed_during_read":
+        def replace_outputs(*args, **kwargs):
+            monkeypatch.setattr(dfs_inputs, "output_revisions", lambda *a: {"frames": "replaced"})
+            return pd.DataFrame([{"Projected Points": 20}])
+        frames.side_effect = replace_outputs
+    else:
+        class NextHour(datetime):
+            @classmethod
+            def now(cls, tz=None): return NOW + timedelta(hours=1)
+        def cross_hour(*args, **kwargs):
+            monkeypatch.setattr(season_refresh, "datetime", NextHour)
+            return pd.DataFrame([{"Projected Points": 20}])
+        frames.side_effect = cross_hour
+    path.write_text(json.dumps(shared))
+    assert season_refresh.run_season_refresh()["prepared"] == 1
+    producer.assert_called_once_with("weekly", 2026, 4)
+
+
+def test_explicit_weekly_rebuild_still_forces_work(dfs_publication):
+    shared, path, producer, frames = dfs_publication
+    path.write_text(json.dumps(shared))
+    assert season_refresh.rebuild_target("weekly", 2026, 4)["status"] == "ok"
+    producer.assert_called_once_with("weekly", 2026, 4)
+    frames.assert_not_called()
+
+
+def test_dfs_specialist_error_still_allows_proven_weekly_reuse(dfs_publication):
+    shared, path, producer, frames = dfs_publication
+    shared["status"] = "error"
+    path.write_text(json.dumps(shared))
+    assert season_refresh.run_season_refresh()["prepared"] == 1
+    producer.assert_not_called()
+
+
 def test_dfs_specialist_failure_does_not_flag_shared_weekly_forecasts(monkeypatch):
     from src.projections import automatic_status as status
     monkeypatch.setattr("src.projections.projection_meta.get_projection_meta",lambda *a:{"default_season":2026,"default_week":4})
