@@ -3,6 +3,8 @@ import test from "node:test";
 import { AUTH_COPY, authOauthNext, safeAuthNext } from "./authPresentation.js";
 
 test("auth copy names the goal and skips banned verbs", () => {
+  assert.match(AUTH_COPY.passwordDisabled, /Forgot password/);
+  assert.doesNotMatch(AUTH_COPY.passwordDisabled, /Google/);
   assert.match(AUTH_COPY.login.heading, /league/i);
   assert.match(AUTH_COPY.register.heading, /login|league/i);
   assert.match(AUTH_COPY.google, /Google/);

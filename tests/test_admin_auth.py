@@ -13,6 +13,8 @@ from app.auth import (
     change_native_password,
     create_access_token,
     register_native_user,
+    reset_password_with_token,
+    upsert_google_user,
 )
 from src.auth import user_store
 from src.draft_hub import storage
@@ -531,3 +533,99 @@ def test_admin_temp_password_forbidden_for_non_allowlisted(admin_client):
     assert res.status_code == 403
     # The password was not changed.
     assert authenticate_native_user("pw.victim@mail.com", "longpassword1")["id"] == player["id"]
+
+
+@pytest.mark.parametrize("sign_in", ["password", "google", "link_google"])
+def test_admin_deactivates_temp_password_after_sign_in(admin_client, monkeypatch, sign_in):
+    player = register_native_user("retire.temp@mail.com", "longpassword1", "Owner", accept_terms=True)
+    user_store.mark_email_verified(player["id"])
+    identity = {"id": "google-owner", "email": player["email"], "name": "Owner"}
+    if sign_in == "google":
+        upsert_google_user(identity)
+    headers = _auth_headers()
+    url = f"/api/admin/users/{player['id']}/temp-password"
+    assert admin_client.post(url, headers=headers, json={"password": "TempPass!2026"}).status_code == 200
+
+    if sign_in == "password":
+        response = admin_client.post("/api/auth/login", json={"email": player["email"], "password": "TempPass!2026"})
+        assert response.status_code == 200
+        token = response.json()["token"]
+    else:
+        signed_in = upsert_google_user(identity)
+        token = create_access_token(signed_in, auth_type="native")
+    user_headers = {"Authorization": f"Bearer {token}"}
+    accounts = admin_client.get("/api/admin/users", headers=headers).json()["accounts"]
+    assert next(row for row in accounts if row["id"] == player["id"])["can_deactivate_temp_password"] is True
+    assert admin_client.get("/api/hub/memberships", headers=user_headers).status_code == 403
+
+    activity = Mock()
+    monkeypatch.setattr("app.admin_routes.record_activity", activity)
+    response = admin_client.post(f"{url}/deactivate", headers=headers)
+    assert response.status_code == 200
+    assert "TempPass!2026" not in response.text
+    activity.assert_called_once()
+    assert "Deactivated temporary password" in activity.call_args.args[2]
+    updated = user_store.get_user_by_id(player["id"])
+    assert updated["has_password"] is False
+    assert updated["must_change_password_at"] is None
+    assert user_store.can_deactivate_temp_password(updated) is False
+    # The same session now has access; retiring the credential doesn't eject its holder.
+    assert admin_client.get("/api/hub/memberships", headers=user_headers).status_code == 200
+    with pytest.raises(HTTPException) as exc:
+        authenticate_native_user(player["email"], "TempPass!2026")
+    assert exc.value.status_code == 401
+    if sign_in == "password":
+        assert "Forgot password" in exc.value.detail
+        assert "Google" not in exc.value.detail
+    else:
+        assert upsert_google_user(identity)["id"] == player["id"]
+    # Email recovery remains available for password-only accounts too.
+    reset = user_store.create_email_token(player["id"], "reset", hours=1)
+    assert reset_password_with_token(reset, "TheirOwnPass!9")
+    assert authenticate_native_user(player["email"], "TheirOwnPass!9")["id"] == player["id"]
+
+
+def test_temp_password_deactivation_waits_for_sign_in_after_latest_reset(admin_client):
+    player = register_native_user("wait.temp@mail.com", "longpassword1", "Owner", accept_terms=True)
+    headers = _auth_headers()
+    url = f"/api/admin/users/{player['id']}/temp-password"
+    # A sign-in before issuing the temporary password doesn't qualify.
+    authenticate_native_user(player["email"], "longpassword1")
+    assert admin_client.post(url, headers=headers, json={"password": "TempPass!2026"}).status_code == 200
+    with pytest.raises(HTTPException):
+        authenticate_native_user(player["email"], "wrongpassword")
+    accounts = admin_client.get("/api/admin/users", headers=headers).json()["accounts"]
+    assert next(row for row in accounts if row["id"] == player["id"])["can_deactivate_temp_password"] is False
+    assert admin_client.post(f"{url}/deactivate", headers=headers).status_code == 400
+    authenticate_native_user(player["email"], "TempPass!2026")
+    assert admin_client.post(url, headers=headers, json={"password": "AnotherTemp!9"}).status_code == 200
+    assert admin_client.post(f"{url}/deactivate", headers=headers).status_code == 400
+    assert user_store.must_change_password(user_store.get_user_by_id(player["id"])) is True
+    authenticate_native_user(player["email"], "AnotherTemp!9")
+    assert admin_client.post(f"{url}/deactivate", headers=headers).status_code == 200
+    assert admin_client.post(f"{url}/deactivate", headers=headers).status_code == 400
+
+
+def test_temp_password_deactivation_preserves_a_password_the_user_already_chose(admin_client):
+    player = register_native_user("own.password@mail.com", "longpassword1", "Owner", accept_terms=True)
+    headers = _auth_headers()
+    url = f"/api/admin/users/{player['id']}/temp-password"
+    assert admin_client.post(url, headers=headers, json={"password": "TempPass!2026"}).status_code == 200
+    authenticate_native_user(player["email"], "TempPass!2026")
+    change_native_password(player["id"], "TempPass!2026", "TheirOwnPass!9")
+    assert admin_client.post(f"{url}/deactivate", headers=headers).status_code == 400
+    assert authenticate_native_user(player["email"], "TheirOwnPass!9")["id"] == player["id"]
+
+
+def test_temp_password_deactivation_requires_admin_and_known_account(admin_client):
+    player = register_native_user("protected.temp@mail.com", "longpassword1", "Owner", accept_terms=True)
+    assert _set_temp_password(admin_client, player["id"], "TempPass!2026").status_code == 200
+    authenticate_native_user(player["email"], "TempPass!2026")
+    url = f"/api/admin/users/{player['id']}/temp-password/deactivate"
+    headers = _auth_headers("other@example.com")
+    assert admin_client.post(url, headers=headers).status_code == 403
+    assert admin_client.post(url).status_code == 401
+    assert user_store.must_change_password(user_store.get_user_by_id(player["id"])) is True
+    admin = user_store.get_user_by_email("admin@example.com")
+    headers = {"Authorization": f"Bearer {create_access_token(admin, auth_type='native')}"}
+    assert admin_client.post("/api/admin/users/missing/temp-password/deactivate", headers=headers).status_code == 404

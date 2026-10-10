@@ -167,7 +167,8 @@ def admin_list_users(
     rows = []
     for u in native:
         sub = native_user_sub(u["id"])
-        rows.append({**u, "user_sub": sub, **_enrich_sub(sub)})
+        rows.append({**u, "user_sub": sub, **_enrich_sub(sub),
+                     "can_deactivate_temp_password": user_store.can_deactivate_temp_password(u)})
     system_subs: list[dict] = []
     if include_system_subs:
         for sub in storage.list_distinct_hub_subs():
@@ -226,6 +227,20 @@ def admin_temp_password(
     result = admin_set_temp_password(user_id, body.password)
     record_activity(actor_for(admin), "account", f"Set a temporary password for {result.get('email') or user_id}")
     return result
+
+
+@router.post("/users/{user_id}/temp-password/deactivate")
+def admin_deactivate_temp_password(user_id: str, admin=Depends(require_admin)) -> dict:
+    user = user_store.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Account not found")
+    try:
+        updated = user_store.deactivate_temp_password(user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    record_activity(actor_for(admin), "account",
+                    f"Deactivated temporary password for {updated.get('email') or user_id}")
+    return {"user_id": user_id, "email": updated.get("email"), "must_change_password": False}
 
 
 @router.get("/leagues")

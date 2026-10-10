@@ -466,10 +466,14 @@ def authenticate_native_user(email: str, password: str) -> dict[str, Any]:
     if not user_store.has_usable_password(row):
         raise HTTPException(
             status_code=401,
-            detail="This account uses Google. Continue with Google, or set a password from Forgot password.",
+            detail=("This account uses Google. Continue with Google, or set a password from Forgot password."
+                    if row.get("google_sub") else
+                    "Password sign-in is disabled. Set a new password from Forgot password."),
         )
     if not _verify_password(password, row["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    # A successful login must be recorded even inside the activity throttle.
+    user_store.touch_last_seen(row["id"], min_interval_s=0)
     return {
         "id": row["id"],
         "email": row["email"],
@@ -595,6 +599,7 @@ def upsert_google_user(identity: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Google account is missing an id")
     existing = user_store.get_user_by_google_sub(google_sub)
     if existing:
+        user_store.touch_last_seen(existing["id"], min_interval_s=0)
         return existing
     by_email = user_store.get_user_by_email(email)
     if by_email:
@@ -609,6 +614,7 @@ def upsert_google_user(identity: dict[str, Any]) -> dict[str, Any]:
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        user_store.touch_last_seen(by_email["id"], min_interval_s=0)
         return linked or by_email
     require_signups_open(email)
     dummy = _hash_password(secrets.token_urlsafe(24))

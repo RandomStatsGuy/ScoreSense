@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { AUTH_COPY } from "./authPresentation";
 import LegalLinks from "./LegalLinks";
 import VerifyEmailBanner from "./VerifyEmailBanner";
 import StandalonePageShell, { StandaloneFormContent, StandalonePageFooter } from "./layout/StandalonePageShell";
@@ -238,8 +239,9 @@ export default function AccountSettingsPage() {
                 </form>
               ) : isNative ? (
                 <p className="chart-note">
-                  Signed in with Google. Set a password from Forgot password if you also want email
-                  sign-in.
+                  {googleLinked
+                    ? `${AUTH_COPY.googleLinked} ${AUTH_COPY.setPasswordHint}`
+                    : AUTH_COPY.passwordDisabled}
                 </p>
               ) : (
                 <p className="chart-note">Password is managed by Patreon.</p>
