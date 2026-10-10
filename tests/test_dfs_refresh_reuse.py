@@ -1,5 +1,6 @@
 """Reuse real roster/prediction assembly, with model heads and feeds isolated."""
 import json
+from datetime import datetime, timezone
 from unittest.mock import Mock
 
 import numpy as np
@@ -19,6 +20,7 @@ from src.projections import dfs_pool, predict, weekly_cache
 
 @pytest.fixture
 def prediction_env(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "availability"))
     weekly_dir = tmp_path / "weekly"
     monkeypatch.setattr(weekly_cache, "WEEKLY_PREDICTIONS_DIR", weekly_dir)
     monkeypatch.setattr(weekly_cache, "weekly_fingerprint", lambda: "fresh-inputs")
@@ -87,6 +89,82 @@ def prediction_env(tmp_path, monkeypatch):
                             for pid, pos in (("dst:KC", "DST"), ("kicker", "K"))])
     monkeypatch.setattr(dfs_pool, "special_team_predictions", lambda *a: special.copy())
     return heads
+
+
+@pytest.mark.parametrize("changed_availability", [False, True])
+def test_weekly_worker_reuses_only_dfs_frames_with_current_availability(prediction_env, tmp_path, monkeypatch, changed_availability):
+    from src.jobs import season_refresh
+    clock = datetime(2026, 10, 6, 1, 20, tzinfo=timezone.utc)
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None): return clock
+    for module in (season_refresh, dfs_refresh, weekly_cache):
+        monkeypatch.setattr(module, "datetime", Frozen)
+    monkeypatch.setattr(dfs_refresh.time, "time", lambda: clock.timestamp())
+    monkeypatch.setattr(dfs_refresh, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "dfs-status.json")
+    monkeypatch.setattr(season_refresh, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(season_refresh, "STATUS_PATH", tmp_path / "season-status.json")
+    monkeypatch.setattr(season_refresh, "_current_targets", lambda: [("weekly", 2026, 4)])
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **k: {"status": "ok"})
+    monkeypatch.setattr("src.integrations.sleeper.get_nfl_state", lambda **k: {"season": 2026, "week": 4, "season_type": "regular"})
+    publication = dfs_refresh.run_dfs_refresh()
+    assert publication["status"] == "ok"
+    assert publication["player_availability"] == "availability"
+    assert prediction_env.call_count == 6
+    receipt = publication["forecast_reuse"]
+    prediction_env.reset_mock()
+    season_refresh._save({"weekly:2026:4": {"status": "ok", "player_availability": "older-feed"}})
+    if changed_availability:
+        monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "new-injury"))
+    assert season_refresh.run_season_refresh()["prepared"] == 1
+    published = season_refresh.read_status()["weekly:2026:4"]
+    if changed_availability:
+        assert prediction_env.call_count == 6
+        assert published["player_availability"] == "new-injury"
+    else:
+        prediction_env.assert_not_called()
+        assert published["forecast_reuse"] == receipt
+        assert published["player_availability"] == "availability"
+
+
+def test_reused_dfs_frames_do_not_acquire_a_new_availability_proof(prediction_env, tmp_path, monkeypatch):
+    monkeypatch.setattr(dfs_refresh, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "dfs-status.json")
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **k: {"status": "ok"})
+    monkeypatch.setattr("src.integrations.sleeper.get_nfl_state", lambda **k: {"season": 2026, "week": 4, "season_type": "regular"})
+    now = [1800000000.0]
+    monkeypatch.setattr(dfs_refresh.time, "time", lambda: now[0])
+    original = dfs_refresh.run_dfs_refresh()
+    assert original["status"] == "ok"
+    prediction_env.reset_mock()
+    now[0] += dfs_refresh.DFS_REFRESH_SECONDS
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "new-injury"))
+    reused = dfs_refresh.run_dfs_refresh()
+    assert reused["status"] == "ok" and reused["forecasts_reused"] is True
+    prediction_env.assert_not_called()
+    assert reused["player_availability"] == original["player_availability"] == "availability"
+    assert reused["forecast_reuse"] == original["forecast_reuse"]
+
+
+def test_availability_change_during_dfs_inference_preserves_previous_pools(prediction_env, tmp_path, monkeypatch):
+    dfs_pool.refresh_dfs_pool(2026, 4)
+    before = {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)}
+    monkeypatch.setattr(dfs_refresh, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "dfs-status.json")
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **k: {"status": "ok"})
+    monkeypatch.setattr("src.integrations.sleeper.get_nfl_state", lambda **k: {"season": 2026, "week": 4, "season_type": "regular"})
+    availability = ["availability"]
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", availability[0]))
+    original = prediction_env.side_effect
+    def change_availability(*args, **kwargs):
+        availability[0] = "new-injury"
+        return original(*args, **kwargs)
+    prediction_env.side_effect = change_availability
+    result = dfs_refresh.run_dfs_refresh(force=True)
+    assert result["status"] == "error" and result["forecast_status"] == "error"
+    assert "forecast_reuse" not in result
+    assert {injury: dfs_pool.artifact_path(2026, 4, injury).read_bytes() for injury in (True, False)} == before
 
 
 def test_scheduled_refresh_reuses_six_passes_with_equivalent_dfs_output(prediction_env, tmp_path, monkeypatch, diagnostics_enabled):

@@ -1,4 +1,4 @@
-"""DFS-only reuse proof; shared forecast readers keep their existing contract.
+"""Saved weekly forecast reuse proof for background refresh workers.
 
 Hash the actual local inference sources, not diagnostic same-input counters.
 Feeds which are refreshed by inference are resolved before taking this snapshot.

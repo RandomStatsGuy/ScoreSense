@@ -50,7 +50,7 @@ def dfs_refresh_needed():
 @observe_job("dfs_refresh", cadence_s=DFS_REFRESH_SECONDS)
 def run_dfs_refresh(*, force: bool = False):
     from src.integrations.injury_poll import run_injury_poll, get_injury_poll_status
-    from src.integrations.sleeper import get_nfl_state
+    from src.integrations.sleeper import get_nfl_state, forecast_player_revisions
     from src.projections.weekly_cache import load_weekly_prediction
     try:
         # Coordinate with the full pipeline and other API workers.
@@ -99,6 +99,7 @@ def run_dfs_refresh(*, force: bool = False):
                 status.update(season=season, week=week)
                 dfs_inputs.prepare_sources(season)
                 revision = dfs_inputs.input_revision(season, week)
+                availability = forecast_player_revisions()[1]
                 reuse_source = previous
                 reuse = not force and dfs_inputs.can_reuse(reuse_source, revision, season, week,
                     now=time.time(), max_age=DFS_FORECAST_MAX_AGE_SECONDS)
@@ -134,6 +135,8 @@ def run_dfs_refresh(*, force: bool = False):
                     def stable_inputs():
                         if dfs_inputs.input_revision(season, week) != revision:
                             raise RuntimeError("DFS inputs changed during forecast refresh")
+                        if not reuse and forecast_player_revisions()[1] != availability:
+                            raise RuntimeError("Player availability changed during forecast refresh")
                         if reuse and dfs_inputs.output_revisions(season, week) != reuse_source["forecast_reuse"]["outputs"]:
                             raise RuntimeError("DFS saved forecasts changed during reuse")
                     stable_inputs()
@@ -152,6 +155,11 @@ def run_dfs_refresh(*, force: bool = False):
                     if outputs is not None:
                         status["forecast_reuse"] = {"version": dfs_inputs.VERSION, "revision": revision,
                             "outputs": outputs, "computed_epoch": computed_epoch}
+                        # Reused frames retain their original availability proof.
+                        # A newer feed alone cannot certify an older computation.
+                        published_availability = reuse_source.get("player_availability") if reuse else availability
+                        if published_availability:
+                            status["player_availability"] = published_availability
                     if not reuse:
                         _warm_supporting_data(season, week)
                         status["forecast_updated_at"] = datetime.now(timezone.utc).isoformat()

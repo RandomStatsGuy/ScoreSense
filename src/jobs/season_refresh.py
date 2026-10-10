@@ -122,7 +122,8 @@ def _prepare(kind, season, week):
             if frame.empty or frame.attrs.get("projection_stale"):
                 raise ValueError("Forecast could not refresh")
     if kind == "weekly":
-        if dfs_inputs.input_revision(season, week) != revision:
+        if (dfs_inputs.input_revision(season, week) != revision
+                or forecast_player_revisions()[1] != availability):
             raise RuntimeError("Weekly inputs changed during refresh")
         outputs = dfs_inputs.output_revisions(season, week)
         if outputs is not None:
@@ -154,6 +155,59 @@ def _current_targets():
     return weekly + [("draft", s, 1) for s in sorted(seasons)] + ([("ros", season, week)] if 1 <= week <= 18 else [])
 
 
+def _reuse_dfs_weekly(season, week):
+    """Adopt exact current-hour frames already computed by the DFS worker."""
+    from src.jobs import dfs_inputs, dfs_refresh
+    from src.integrations.sleeper import forecast_player_revisions
+    from src.projections.weekly_cache import load_weekly_prediction
+    shared = read_cached_metadata(dfs_refresh.STATUS_PATH)
+    receipt = shared.get("forecast_reuse")
+    if (shared.get("season") != season or shared.get("week") != week
+            or not shared.get("player_availability") or not isinstance(receipt, dict)):
+        return None
+    now = datetime.now(timezone.utc).timestamp()
+    epoch = receipt.get("computed_epoch")
+    boundary = now - now % WEEKLY_AUTO_REFRESH_SECONDS
+    if type(epoch) not in (int, float) or not boundary <= epoch <= now:
+        return None
+    try:
+        dfs_inputs.prepare_sources(season)
+        availability = forecast_player_revisions()[1]
+        revision = dfs_inputs.input_revision(season, week)
+        def unchanged():
+            clock = datetime.now(timezone.utc).timestamp()
+            return (epoch >= clock - clock % WEEKLY_AUTO_REFRESH_SECONDS
+                    and availability == shared["player_availability"] == forecast_player_revisions()[1]
+                    and revision == dfs_inputs.input_revision(season, week)
+                    and dfs_inputs.can_reuse(shared, revision, season, week, now=clock,
+                                            max_age=WEEKLY_AUTO_REFRESH_SECONDS))
+        if not unchanged() or target_due("weekly", season, week):
+            return None
+        for pos in dfs_inputs.POSITIONS:
+            for injury in (True, False):
+                frame = load_weekly_prediction(pos, season, week, apply_injury_adjustments=injury,
+                                               force=False, allow_compute=False, apply_identity=False)
+                if frame.empty or frame.attrs.get("projection_stale"):
+                    return None
+        # Inputs and output files can be replaced while we read them. Never
+        # certify a mixed publication or give old frames a new computation time.
+        if unchanged():
+            annotate_job(cache_hit=True, force=False, input_revision=revision)
+            return {"forecast_reuse": receipt, "player_availability": availability}
+    except Exception:
+        logging.getLogger(__name__).warning("DFS weekly publication could not be reused", exc_info=True)
+    return None
+
+
+def _prepare_scheduled(kind, season, week):
+    if kind == "weekly":
+        publication = _reuse_dfs_weekly(season, week)
+        if publication is not None:
+            return publication
+    annotate_job(cache_hit=False, force=True)
+    return _prepare(kind, season, week)
+
+
 def current_targets():
     return _current_targets()
 
@@ -173,7 +227,7 @@ def season_refresh_needed():
                for kind, season, week in _current_targets())
 
 
-def _refresh_one(targets, kind, season, week) -> bool:
+def _refresh_one(targets, kind, season, week, *, scheduled=False) -> bool:
     key = target_key(kind, season, week)
     previous = targets.get(key, {})
     status = {"status": "running", "started_at": datetime.now(timezone.utc).isoformat(),
@@ -182,7 +236,7 @@ def _refresh_one(targets, kind, season, week) -> bool:
     _save(targets)
     ok = False
     try:
-        publication = call_phase(kind, _prepare, kind, season, week)
+        publication = call_phase(kind, _prepare_scheduled if scheduled else _prepare, kind, season, week)
         status.update(publication or {})
         status.update(status="ok", last_success_at=datetime.now(timezone.utc).isoformat())
         ok = True
@@ -205,7 +259,7 @@ def run_season_refresh():
                 previous = targets.get(key, {})
                 if not _target_needs_refresh(kind, season, week, previous):
                     continue
-                if _refresh_one(targets, kind, season, week):
+                if _refresh_one(targets, kind, season, week, scheduled=True):
                     prepared += 1
                 else:
                     failed += 1
