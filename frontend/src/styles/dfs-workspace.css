@@ -310,6 +310,21 @@
 .dfw-table-scroll {
   overflow-x: auto;
 }
+.dfw input.dfw-appearance-limit {
+  width: 8ch;
+  max-width: none;
+  padding-inline: var(--space-1);
+  text-align: right;
+}
+.dfw-table.dfw-portfolio-audit {
+  min-width: 0;
+}
+.dfw-portfolio-audit :is(th, td):first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+}
 .dfw-table {
   border-collapse: collapse;
   width: 100%;

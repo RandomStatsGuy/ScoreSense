@@ -2,6 +2,32 @@
 
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
+export const DFS_PORTFOLIO_COPY = {
+  title: "Classic portfolio", label: "Batch label", add: "Add current build to portfolio", remove: "Remove batch",
+  clearLimits: "Clear appearance limits",
+  help: "Collect approved DraftKings Classic builds with their original inputs. This collection lasts while this page is open. Export before leaving to save the batches in Results.",
+  auditHelp: "Appearances count every collected lineup, including locked players and duplicates. Maximum counts only block portfolio export; they do not change builds.",
+  empty: "Label an approved build to start your portfolio.", player: "Player", count: "Appearances", countHeading: "Count", percent: "%", qb: "At QB", qbHeading: "QB", batches: "Batches", maximum: "Maximum appearances (optional)", maxHeading: "Max",
+  progress: (unique, total, batches, duplicates, shortfall) => `${unique} / 150 unique · ${total} collected · ${batches} ${batches === 1 ? "batch" : "batches"} · ${duplicates} duplicates · ${shortfall} shortfall`,
+  batchSummary: (label, count, time) => `${label} · ${count} lineups · ${time}`,
+  duplicate: (first, index, batch) => `${batch}: lineup ${index + 1} repeats portfolio lineup ${first + 1}.`,
+  classicOnly: "Portfolio collection and export support DraftKings NFL Classic only.",
+  buildFirst: "Build and collect lineups with their original salary catalog first.",
+  labelRequired: "Enter a batch label before adding this build.",
+  missingIdentity: "A lineup is missing a canonical player ID. Rebuild before collecting it.",
+  incompatible: "This batch has a different site, slate, week or salary catalog. Remove the other batches to start a different portfolio.",
+  invalidLimit: "Maximum appearances must be a whole number of zero or more, or blank for no limit.",
+  limitExceeded: (player, count, max) => `${player}: ${count} appearances exceeds the maximum of ${max}.`,
+  duplicateBlock: "Remove batches containing duplicate lineups before exporting. No lineups are removed automatically.",
+  countMismatch: (selected, total) => `Select exactly ${total} reserved entries for ${total} portfolio lineups. Currently selected: ${selected}.`,
+  assignmentRepeat: "Assign each portfolio lineup exactly once. Repeated or missing assignments block export.",
+  missingBuild: "An original batch could not be saved. Retry before exporting.",
+  source: "Reserved-entry lineup source", currentBuild: "Current build", portfolio: "Reviewed portfolio",
+  export: "Download portfolio Edit Entries CSV", exporting: "Saving original batches…",
+  selected: (selected, total) => `${selected} selected entries · ${total} portfolio lineups`,
+  assignment: (index, label, originalIndex) => `Portfolio ${index + 1} · ${label} · lineup ${originalIndex + 1}`,
+};
+
 export const DFS_WORKSPACE_COPY = {
   poolStatus: "Player status", available: "Available", allPlayers: "All players", unavailable: "Unavailable", missingInputs: "Needs estimates",
   availableCount: n => `${n} player${n === 1 ? "" : "s"} available`, unavailableCount: n => `${n} unavailable`, missingCount: n => `${n} ${n === 1 ? "needs" : "need"} estimates`,
