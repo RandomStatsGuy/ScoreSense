@@ -79,13 +79,18 @@ def _classify_dk_group(
         return "skip"
     if "madden" in gt or "madden" in label:
         return "madden"
+    if "classic" in gt:
+        # Satellite names describe their prize contest, not this slate's format.
+        # Prefer the draft group's type, game count and scheduling suffix.
+        schedule_label = (suffix or "").lower() if game_count else label
+        if (0 < game_count <= 3) or any(k in schedule_label for k in _CATEGORY_KEYWORDS["primetime"]):
+            return "primetime"
+        return "main"
     if any(k in gt for k in _CATEGORY_KEYWORDS["showdown"]) or "showdown" in label:
         return "showdown"
     if any(k in label for k in _CATEGORY_KEYWORDS["primetime"]):
         return "primetime"
-    if game_count and game_count <= 3 and "classic" in gt:
-        return "primetime"
-    if "classic" in gt or (game_count and game_count >= 8):
+    if game_count and game_count >= 8:
         return "main"
     if "classic" in label:
         return "main"

@@ -102,6 +102,36 @@ def test_rules_site_and_team_checks():
         validate_catalog(frame, site="draftkings_showdown")
 
 
+def test_classic_satellite_slate_loads_with_bound_catalog(monkeypatch):
+    import app.api as api
+    from src.integrations.dfs_slates import parse_dk_lobby_slates
+
+    lobby = {
+        "GameTypes": [{"GameTypeId": 1, "Name": "Classic"}],
+        "DraftGroups": [{"DraftGroupId": 154468, "GameTypeId": 1, "GameCount": 11}],
+        "Contests": [{"dg": 154468, "gameType": "Classic",
+                      "n": "NFL Satellite to Monday Night Showdown MEGA Millionaire"}],
+    }
+    frame = salaries().drop(columns=["cpt_salary", "cpt_dfs_id"])
+    projection_pool = pool().drop(columns=["salary", "cpt_salary", "dfs_id", "cpt_dfs_id"])
+    monkeypatch.setattr(api, "build_lineup_pool", lambda **kwargs: (projection_pool, {}))
+    monkeypatch.setattr(api, "fetch_slate_salaries", lambda *args, **kwargs: frame)
+    monkeypatch.setattr(api, "list_slates", lambda *args, **kwargs:
+                        parse_dk_lobby_slates(lobby, category=kwargs.get("category", "all")))
+
+    loaded = api.lineup_load_salaries(site="draftkings", slate_id="154468", _user={"sub": "alice"})
+    assert loaded["meta"]["slate_category"] == "main"
+    assert loaded["salaries"]
+    retained, summary = resolve_salary_snapshot(
+        "alice", loaded["salary_snapshot"]["id"], site="draftkings", slate_id="154468",
+        supplied_rows=loaded["salaries"],
+    )
+    assert len(retained) == len(frame)
+    assert summary["slate_id"] == "154468"
+    with pytest.raises(ValueError, match="different slate or format"):
+        resolve_salary_snapshot("alice", summary["id"], site="draftkings_showdown")
+
+
 def test_duplicate_role_ids_and_malformed_salary_fail():
     frame = salaries()
     frame.loc[1, "dfs_id"] = frame.loc[0, "dfs_id"]
