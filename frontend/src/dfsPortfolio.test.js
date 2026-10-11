@@ -168,6 +168,8 @@ test("150 unique collected lineups export to 150 selected entries, preserving ot
   assert.throws(() => buildPortfolioEntryCsv(t, batches, assignments, { p1: 149 }), /exceeds/);
 });
 
-test("portfolio copy states the session lifetime and export-only limit behavior", () => {
-  assert.match(C.help, /while this page is open/); assert.match(C.auditHelp, /do not change builds/);
+test("portfolio copy explains explicit recovery and export-only limits", () => {
+  assert.match(C.help, /backup before leaving/); assert.match(C.auditHelp, /do not change builds/);
+  assert.match(C.backupHelp, /fresh Edit Entries template/);
+  assert.match(C.backupHelp, /not proof of ownership or authenticity/);
 });

@@ -14,7 +14,7 @@ import {
 } from "./dfsToolPresentation";
 import { parseDfsCsv, headerKey } from "./dfsCsv";
 import { captainComparisonRequest } from "./dfsCaptainComparisonRequest.js";
-import { DFS_CAPTAIN_COMPARISON_COPY as CC } from "./dfsToolPresentation";
+import { DFS_CAPTAIN_COMPARISON_COPY as CC, DFS_PORTFOLIO_COPY as PC } from "./dfsToolPresentation";
 import { appendPortfolioBatch, createPortfolioBatch, freezeSnapshot, removePortfolioBatch, portfolioBuildPayload } from "./dfsPortfolio.js";
 
 async function jsonRequest(url, options) {
@@ -69,6 +69,7 @@ export default function useDfsBuilder(projMeta) {
   const [portfolio, setPortfolio] = useState([]);
   const [portfolioLimits, setPortfolioLimits] = useState({});
   const portfolioBuildIds = useRef(new Map());
+  const [portfolioRestoreRevision, setPortfolioRestoreRevision] = useState(0);
   const [locked, setLocked] = useState([]);
   const [excluded, setExcluded] = useState([]);
   const [overrides, setOverrides] = useState({});
@@ -595,6 +596,15 @@ export default function useDfsBuilder(projMeta) {
     currentBuild: lineups.length ? currentBuild : null,
     portfolio,
     portfolioLimits,
+    portfolioRestoreRevision,
+    replacePortfolio: (backup) => {
+      portfolioBuildIds.current.clear();
+      setPortfolio(backup.batches);
+      setPortfolioLimits(backup.appearanceLimits);
+      setPortfolioRestoreRevision(n => n + 1);
+      setNotice(PC.restored);
+      setError("");
+    },
     setPortfolioLimit: (id, value) => setPortfolioLimits(current => ({ ...current, [id]: value })),
     clearPortfolioLimits: () => setPortfolioLimits({}),
     addPortfolioBatch: (label) => {
