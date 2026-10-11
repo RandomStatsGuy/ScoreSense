@@ -414,6 +414,8 @@ Manage roster is a separate local tab preserving contracts, cap, cuts, extension
 
 ## Approved DFS portfolio workspace — September 11, 2026
 
+Build settings accept an exact whole-number lineup count from 1 through 150 in a number field. Blank, fractional, and out-of-range values block Build with guidance beside the field.
+
 DraftKings NFL Classic can collect labeled approved builds into a session portfolio. Each batch retains its original lineups, settings, projection/build snapshot, slate and salary catalog. Audit actual appearances (including locked players), QB counts, batches, canonical-player-set duplicates and progress toward 150 unique lineups. Optional maximum appearance counts gate export only. Reserved-entry portfolio export requires one distinct lineup per selected entry, validates original catalogs and preserves each entry's original batch link and contest metadata. Never fill, repeat, replace or silently drop lineups. The existing standalone exports remain available; collection does not change optimizer rules.
 
 Download portfolio backup and Restore portfolio backup provide explicit recovery across navigation or reloads. Versioned JSON retains historical batch labels, inputs, timestamps, catalogs and appearance limits. Restore validates the whole file before changing the portfolio and confirms replacement of a nonempty collection; it never merges or regenerates lineups. Duplicates and exceeded limits remain visible and block export. A restore clears saved-build mappings and all entry-template assignments and requires a fresh Edit Entries template. Imported snapshot IDs are unverified historical data and confer no account access or authenticity. Backups are limited to 20 MiB, 50 batches and 500 total lineups (150 per batch).
