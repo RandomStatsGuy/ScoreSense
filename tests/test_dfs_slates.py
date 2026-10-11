@@ -2,6 +2,7 @@
 
 import requests
 import pandas as pd
+import pytest
 
 import src.integrations.dfs_slates as dfs_slates
 
@@ -285,3 +286,44 @@ def test_parse_dk_lobby_slates_skips_madden_and_best_ball():
 def test_parse_dk_lobby_slates_main_filter():
     slates = parse_dk_lobby_slates(DK_LOBBY_SAMPLE, category="main")
     assert [s["slate_id"] for s in slates] == ["151307"]
+
+
+@pytest.mark.parametrize("game_count,suffix,expected", [
+    (11, "", "main"),
+    (8, " (Early Only)", "main"),
+    (3, " (Afternoon Only)", "primetime"),
+    (2, " (Primetime)", "primetime"),
+])
+def test_classic_format_wins_over_satellite_contest_name(game_count, suffix, expected):
+    payload = {
+        "GameTypes": DK_LOBBY_SAMPLE["GameTypes"],
+        "DraftGroups": [{"DraftGroupId": 154468, "GameTypeId": 1,
+                         "GameCount": game_count, "ContestStartTimeSuffix": suffix}],
+        "Contests": [
+            {"dg": 154468, "gameType": "Classic", "n": "NFL Millionaire"},
+            {"dg": 154468, "gameType": "Classic",
+             "n": "LAST SHOT: NFL Satellite to NFL 10-12 $4,444 Showdown MEGA Millionaire [Must Fill]"},
+        ],
+    }
+    slate, = parse_dk_lobby_slates(payload, category=expected)
+    assert slate["slate_id"] == "154468"
+    assert slate["game_type"] == "Classic"
+    assert slate["contest_count"] == 2
+    assert parse_dk_lobby_slates(payload, category="showdown") == []
+
+
+def test_classic_game_count_and_suffix_win_over_promoted_primetime_name():
+    assert dfs_slates._classify_dk_group(
+        "Classic", "NFL Satellite to Monday Night Showdown", game_count=11
+    ) == "main"
+    assert dfs_slates._classify_dk_group(
+        "Classic", "NFL Millionaire", game_count=11, suffix=" (Primetime)"
+    ) == "primetime"
+
+
+def test_legacy_lobby_name_fallbacks_and_real_showdown_are_preserved():
+    assert dfs_slates._classify_dk_group("", "NFL Showdown") == "showdown"
+    assert dfs_slates._classify_dk_group("Classic", "NFL Monday Night") == "primetime"
+    assert dfs_slates._classify_dk_group(
+        "Showdown Captain Mode", "NFL Classic satellite", game_count=1
+    ) == "showdown"
