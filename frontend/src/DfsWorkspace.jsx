@@ -1,4 +1,7 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
+import DfsPortfolio from "./DfsPortfolio.jsx";
+import { buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
+import { DFS_PORTFOLIO_COPY as PC } from "./dfsToolPresentation.js";
 import DfsPoolCoverage, { DfsPoolFreshness, DfsSourceSummary } from "./DfsPoolCoverage.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
@@ -200,6 +203,12 @@ export default function DfsWorkspace({ b }) {
   const [template, setTemplate] = useState(null),
     [assignments, setAssignments] = useState({}),
     [sameSlate, setSameSlate] = useState(false);
+  const [usePortfolio, setUsePortfolio] = useState(false);
+  const [exportingEntries, setExportingEntries] = useState(false);
+  const portfolioRows = useMemo(() => portfolioLineups(b.portfolio), [b.portfolio]);
+  const portfolioEntries = useMemo(() => portfolioRows.map(p => p.entry), [portfolioRows]);
+  const entryLineups = usePortfolio ? portfolioEntries : b.lineups;
+  const entrySite = usePortfolio ? "draftkings" : b.context.site;
   const lineup = b.lineups[b.selected]?.lineup || [];
   const ids = new Set(lineup.map((p) => p.player_id));
   const eligible = b.pool.filter((p) => (!b.isDfs || p.salary != null) && (b.isCaptain || p.Position !== "K"));
@@ -237,7 +246,7 @@ export default function DfsWorkspace({ b }) {
     setTemplate(null);
     setAssignments({});
     setSameSlate(false);
-  }, [b.context.site, b.context.slateId, b.lineups]);
+  }, [entrySite, entryLineups]);
   const pages = Math.max(1, Math.ceil(filtered.length / 8));
   const salary = lineup.reduce((s, p) => s + Number(p.salary || 0), 0);
   const cap = Number(b.config.salary_cap || 0);
@@ -257,7 +266,7 @@ export default function DfsWorkspace({ b }) {
   const uploadTemplate = async (file) => {
     try {
       if (file) {
-        setTemplate(readEntryTemplate(await file.text(), b.context.site));
+        setTemplate(readEntryTemplate(await file.text(), entrySite));
         setAssignments({});
         setSameSlate(false);
       }
@@ -266,7 +275,19 @@ export default function DfsWorkspace({ b }) {
     }
   };
   const exportEntries = async () => {
+    if (exportingEntries || !sameSlate) return;
+    setExportingEntries(true);
+    b.setError("");
     try {
+      if (usePortfolio) {
+        const result = buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits);
+        const buildIds = {};
+        for (const batch of b.portfolio) buildIds[batch.id] = await b.savePortfolioBatch(batch);
+        const entries = portfolioEntryRecords(template, b.portfolio, assignments, buildIds);
+        await jsonRequest("/api/lineup/results/import", { method: "POST", body: JSON.stringify({ entries }) });
+        downloadCsv(result.filename, result.lines);
+        return;
+      }
       const result = buildEntryCsv(template, b.lineups, assignments, b.pool);
       // Saving links the actual reserved entry IDs to the immutable input snapshot.
       const build = b.savedBuild || (await b.save());
@@ -290,8 +311,15 @@ export default function DfsWorkspace({ b }) {
       downloadCsv(result.filename, result.lines);
     } catch (e) {
       b.setError(e.message);
+    } finally {
+      setExportingEntries(false);
     }
   };
+  let portfolioExportError = "";
+  if (usePortfolio && template) {
+    try { buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits); }
+    catch (e) { portfolioExportError = e.message; }
+  }
   const showLineups = () => {
     const target = lineupsRef.current;
     if (!target) return;
@@ -869,6 +897,7 @@ export default function DfsWorkspace({ b }) {
               </div>
             )}
           </section>
+          {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={exportingEntries} />}
           <section className="dfw-transfer">
           <div className="dfw-panel">
             <small>{C.newLineups}</small>
@@ -901,11 +930,15 @@ export default function DfsWorkspace({ b }) {
             <small>{C.existing}</small>
             <h2>{C.edit}</h2>
             <p className="dfw-note">{C.editHelp}</p>
+            {(b.context.site === "draftkings" || b.portfolio.length > 0 || usePortfolio) && <HubFilterMenu
+              label={PC.source} value={usePortfolio ? "portfolio" : "build"}
+              options={[{ id: "build", label: PC.currentBuild }, { id: "portfolio", label: PC.portfolio }]}
+              disabled={exportingEntries} onChange={v => setUsePortfolio(v === "portfolio")} />}
             <DfsFile
               label={C.template}
               onFile={uploadTemplate}
               disabled={
-                !b.context.site.startsWith("draftkings") || !b.lineups.length
+                exportingEntries || !entrySite.startsWith("draftkings") || !entryLineups.length
               }
             />
             <details>
@@ -919,11 +952,12 @@ export default function DfsWorkspace({ b }) {
             <div className="dfw-panel-head">
               <h2>{C.assignment}</h2>
               <button
+                disabled={exportingEntries}
                 onClick={() =>
                   setAssignments(
                     Object.fromEntries(
                       template.entries
-                        .slice(0, b.lineups.length)
+                        .slice(0, entryLineups.length)
                         .map((e, i) => [e.id, i]),
                     ),
                   )
@@ -932,6 +966,7 @@ export default function DfsWorkspace({ b }) {
                 {C.sequential}
               </button>
             </div>
+            {usePortfolio && <p role="status">{PC.selected(Object.values(assignments).filter(v => v !== "" && v != null).length, entryLineups.length)}</p>}
             <div className="dfw-assignment-list">
               {template.entries.map((e) => (
                 <div className="dfw-assignment" key={e.id}>
@@ -946,11 +981,12 @@ export default function DfsWorkspace({ b }) {
                     value={assignments[e.id] ?? ""}
                     options={[
                       { id: "", label: C.keep },
-                      ...b.lineups.map((_, i) => ({
+                      ...entryLineups.map((_, i) => ({
                         id: i,
-                        label: `${C.selected} ${i + 1}`,
+                        label: usePortfolio ? PC.assignment(i, portfolioRows[i].batch.label, portfolioRows[i].lineupIndex) : `${C.selected} ${i + 1}`,
                       })),
                     ]}
+                    disabled={exportingEntries}
                     onChange={(v) => setAssignments((a) => ({ ...a, [e.id]: v }))}
                   />
                 </div>
@@ -964,8 +1000,9 @@ export default function DfsWorkspace({ b }) {
               />
               {C.verifySlate}
             </label>
-            <button disabled={!sameSlate} onClick={exportEntries}>
-              {C.entryDownload}
+            {portfolioExportError && <p className="dfw-error" role="alert">{portfolioExportError}</p>}
+            <button disabled={!sameSlate || exportingEntries || Boolean(portfolioExportError)} onClick={exportEntries}>
+              {exportingEntries ? PC.exporting : usePortfolio ? PC.export : C.entryDownload}
             </button>
           </section>
         )}

@@ -414,6 +414,8 @@ Manage roster is a separate local tab preserving contracts, cap, cuts, extension
 
 ## Approved DFS portfolio workspace — September 11, 2026
 
+DraftKings NFL Classic can collect labeled approved builds into a session portfolio. Each batch retains its original lineups, settings, projection/build snapshot, slate and salary catalog. Audit actual appearances (including locked players), QB counts, batches, canonical-player-set duplicates and progress toward 150 unique lineups. Optional maximum appearance counts gate export only. Reserved-entry portfolio export requires one distinct lineup per selected entry, validates original catalogs and preserves each entry's original batch link and contest metadata. Never fill, repeat, replace or silently drop lineups. The existing standalone exports remain available; collection does not change optimizer rules.
+
 Single-game Captain comparison is a separate read-only diagnostic inside the existing
 workspace. It compares complete lineups with the selected objective, locks, skips,
 salary range and team limit. Explain before running that portfolio count/exposures,
