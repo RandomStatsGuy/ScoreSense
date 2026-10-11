@@ -17,8 +17,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, acceptDownloads: true });
     const errors = []; page.on("pageerror", e => errors.push(e.message));
     await page.goto(`${base}/test-fixtures/dfs-portfolio.html?exposure=1`);
-    await page.getByRole("button", { name: /^Lineups:/ }).click();
-    await page.getByRole("option", { name: "3", exact: true }).click();
+    await page.getByRole("spinbutton", { name: "Lineups", exact: true }).fill("3");
     await page.locator(".dfw-build-button").click();
     await page.getByLabel("Batch label", { exact: true }).fill("First approved batch");
     await page.getByRole("button", { name: "Add current build to portfolio", exact: true }).click();

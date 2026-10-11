@@ -5,6 +5,7 @@ import { apiFetch } from "./auth";
 import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
+  parseLineupCount,
   DFS_WORKSPACE_COPY as C,
   DFS_STEP_COPY,
   defaultSlateCategory,
@@ -444,6 +445,11 @@ export default function useDfsBuilder(projMeta) {
   const run = async (mode) => {
     const comparingCaptains = mode === "compare";
     if (comparingCaptains && !isCaptain) return;
+    const lineupCount = comparingCaptains ? 1 : parseLineupCount(settings.count);
+    if (lineupCount === null) {
+      setError(C.countHelp);
+      return;
+    }
     const comparisonSeq = comparingCaptains ? ++comparisonGeneration.current : null;
     const seq = generation.current;
     if (comparingCaptains) {
@@ -472,7 +478,7 @@ export default function useDfsBuilder(projMeta) {
       salary_cap: cap,
       locked_player_ids: locked,
       excluded_player_ids: excluded,
-      lineup_count: settings.count,
+      lineup_count: lineupCount,
       max_overlap: Math.max(
         0,
         (isCaptain ? 6 : isDfs ? 9 : 7) - normalizeLineupDifferences(settings.differences, isCaptain),
@@ -512,7 +518,7 @@ export default function useDfsBuilder(projMeta) {
           "Load salaries and check the salary range before building.",
         );
       if (context.site === "draftkings") {
-        request.player_maximum_counts = usePortfolioLimits ? remainingAppearanceCounts(portfolio, portfolioLimits, settings.count, locked,
+        request.player_maximum_counts = usePortfolioLimits ? remainingAppearanceCounts(portfolio, portfolioLimits, lineupCount, locked,
           { context, salaryCatalog: pool, salarySnapshot }) : {};
         request.stack_choices = Object.entries(stackChoices).filter(([gameId]) => Number(stackWeights[gameId]) > 0)
           .flatMap(([game_id, choices]) => Object.entries(choices).map(([qb_id, player_ids]) => ({ game_id, qb_id, player_ids })));

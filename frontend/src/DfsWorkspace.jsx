@@ -15,6 +15,8 @@ import {
   dfsPoolCoverage,
   dfsPlayerStatus,
   lineupDifferenceOptions,
+  MAX_LINEUP_COUNT,
+  parseLineupCount,
   DFS_STEP_COPY,
   DFS_WORKSPACE_COPY as C,
   filterObjectives,
@@ -200,6 +202,7 @@ function DfsMatchupBoard({ b }) {
 }
 
 export default function DfsWorkspace({ b }) {
+  const validLineupCount = parseLineupCount(b.settings.count) !== null;
   const [tab, setTab] = useState("pool"),
     [query, setQuery] = useState(""),
     [pos, setPos] = useState("ALL"),
@@ -402,7 +405,7 @@ export default function DfsWorkspace({ b }) {
           <button
             type="button"
             className="dfw-primary dfw-build-button"
-            disabled={b.busy || b.building || !b.pool.length}
+            disabled={b.busy || b.building || !b.pool.length || !validLineupCount}
             onClick={b.run}
           >
             {b.building ? C.building : lineup.length ? C.rebuild : C.build}
@@ -690,12 +693,25 @@ export default function DfsWorkspace({ b }) {
             onChange={(week) => b.changeContext({ week: Number(week) })}
             disabled={b.building}
           />
-          <HubFilterMenu
-            label={C.count}
-            value={b.settings.count}
-            options={options([1, 3, 5, 10, 20, 50, 150])}
-            onChange={(v) => b.changeSetting("count", Number(v))}
-          />
+          <DfsField label={C.count}>
+            <input
+              aria-label={C.count}
+              aria-describedby="dfw-count-help"
+              aria-invalid={!validLineupCount}
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max={MAX_LINEUP_COUNT}
+              step="1"
+              required
+              value={b.settings.count}
+              onChange={(e) => b.changeSetting("count", e.target.value)}
+              disabled={b.building}
+            />
+            <p id="dfw-count-help" className="dfw-note">
+              {C.countHelp}
+            </p>
+          </DfsField>
           <HubFilterMenu
             label={C.goal}
             value={b.settings.objective}

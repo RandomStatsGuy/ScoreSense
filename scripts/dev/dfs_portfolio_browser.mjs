@@ -43,8 +43,7 @@ try {
     page.on("pageerror", e => errors.push(e.message));
     await page.goto(`${base}/test-fixtures/dfs-portfolio.html`);
     await page.locator("[aria-labelledby='dfw-portfolio-title']").screenshot({ path: path.join(output, `portfolio-empty-${width}.png`) });
-    await page.getByRole("button", { name: /^Lineups:/ }).click();
-    await page.getByRole("option", { name: "3", exact: true }).click();
+    await page.getByRole("spinbutton", { name: "Lineups", exact: true }).fill("3");
     await page.getByRole("button", { name: "Lock Example 1", exact: true }).click();
     await page.locator(".dfw-build-button").click();
     const label = page.getByLabel("Batch label", { exact: true });
@@ -156,8 +155,7 @@ try {
     console.log(`PASS ${width}: collect/export, backup, malformed/mixed rejection, cancel/replace, fresh entry template, cache reset, immutable history, portfolio spacing`);
     if (width === 1280) {
       await page.reload();
-      await page.getByRole("button", { name: /^Lineups:/ }).click();
-      await page.getByRole("option", { name: "50", exact: true }).click();
+      await page.getByRole("spinbutton", { name: "Lineups", exact: true }).fill("50");
       await page.getByRole("button", { name: "Lock Example 1", exact: true }).click();
       for (const labelText of ["First 50", "Second 50", "Third 50"]) {
         await page.locator(".dfw-build-button").click();

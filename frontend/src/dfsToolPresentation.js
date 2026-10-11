@@ -53,6 +53,7 @@ export const DFS_PORTFOLIO_COPY = {
 };
 
 export const DFS_WORKSPACE_COPY = {
+  countHelp: "Enter a whole number from 1 to 150.",
   poolStatus: "Player status", available: "Available", allPlayers: "All players", unavailable: "Unavailable", missingInputs: "Needs estimates",
   availableCount: n => `${n} player${n === 1 ? "" : "s"} available`, unavailableCount: n => `${n} unavailable`, missingCount: n => `${n} ${n === 1 ? "needs" : "need"} estimates`,
   coverageHelp: "Available players have complete estimates and are not flagged unavailable. Your locks, skips and limits still apply.",
@@ -245,7 +246,14 @@ export const SLATE_CATEGORIES = [
   { id: "all", label: "All", hint: "Every posted slate" },
 ];
 
-export const LINEUP_COUNTS = [1, 3, 5, 10, 20, 50, 150];
+export const MAX_LINEUP_COUNT = 150;
+
+export function parseLineupCount(value) {
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 1 && count <= MAX_LINEUP_COUNT
+    ? count
+    : null;
+}
 
 export const STACK_OPTIONS = [
   { id: 0, label: "Off", hint: "No stacking rule" },
