@@ -42,7 +42,8 @@ window.fetch = async (url, options = {}) => {
           salary: p.salary, proj: body.projection_overrides[p.player_id]?.proj ?? 10, floor: 5, ceiling: 15 };
       }),
     }));
-    return respond({ ok: true, lineups, build_snapshot: { id: `snapshot-${run}`, captured_at: "2026-10-10T12:00:00Z", inputs: body } });
+    return respond({ ok: true, lineups, build_snapshot: { id: `snapshot-${run}`, captured_at: "2026-10-10T12:00:00Z",
+      content: { schema_version: "dfs_build_inputs_v1", parameters: body, input_pool: players } } });
   }
   if (path.endsWith("/builds")) {
     if (state.failSave) return respond({ detail: "Fixture save failure" }, 503);
