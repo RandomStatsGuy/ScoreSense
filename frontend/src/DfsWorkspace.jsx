@@ -1,6 +1,8 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
 import DfsPortfolio from "./DfsPortfolio.jsx";
-import { buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
+import { auditPortfolio, buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
+import { downloadPortfolioBackup, readPortfolioBackupFile } from "./dfsPortfolioBackup.js";
+import { confirmDialog } from "./ui/confirm.jsx";
 import { DFS_PORTFOLIO_COPY as PC } from "./dfsToolPresentation.js";
 import DfsPoolCoverage, { DfsPoolFreshness, DfsSourceSummary } from "./DfsPoolCoverage.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -205,6 +207,8 @@ export default function DfsWorkspace({ b }) {
     [sameSlate, setSameSlate] = useState(false);
   const [usePortfolio, setUsePortfolio] = useState(false);
   const [exportingEntries, setExportingEntries] = useState(false);
+  const [restoringPortfolio, setRestoringPortfolio] = useState(false);
+  const entryBusy = exportingEntries || restoringPortfolio;
   const portfolioRows = useMemo(() => portfolioLineups(b.portfolio), [b.portfolio]);
   const portfolioEntries = useMemo(() => portfolioRows.map(p => p.entry), [portfolioRows]);
   const entryLineups = usePortfolio ? portfolioEntries : b.lineups;
@@ -246,7 +250,24 @@ export default function DfsWorkspace({ b }) {
     setTemplate(null);
     setAssignments({});
     setSameSlate(false);
-  }, [entrySite, entryLineups]);
+  }, [entrySite, entryLineups, b.portfolioRestoreRevision]);
+  useEffect(() => {
+    if (b.portfolioRestoreRevision) setUsePortfolio(true);
+  }, [b.portfolioRestoreRevision]);
+  const restorePortfolio = async file => {
+    if (!file || entryBusy) return;
+    setRestoringPortfolio(true);
+    b.setError("");
+    try {
+      const backup = await readPortfolioBackupFile(file);
+      const audit = auditPortfolio(backup.batches, backup.appearanceLimits);
+      if (b.portfolio.length && !(await confirmDialog({ title: PC.replaceTitle,
+        message: PC.replaceMessage(b.portfolio.length, audit), confirmLabel: PC.replace,
+        cancelLabel: PC.cancelRestore, danger: true }))) return;
+      b.replacePortfolio(backup);
+    } catch (e) { b.setError(e.message); }
+    finally { setRestoringPortfolio(false); }
+  };
   const pages = Math.max(1, Math.ceil(filtered.length / 8));
   const salary = lineup.reduce((s, p) => s + Number(p.salary || 0), 0);
   const cap = Number(b.config.salary_cap || 0);
@@ -275,7 +296,7 @@ export default function DfsWorkspace({ b }) {
     }
   };
   const exportEntries = async () => {
-    if (exportingEntries || !sameSlate) return;
+    if (entryBusy || !sameSlate) return;
     setExportingEntries(true);
     b.setError("");
     try {
@@ -897,7 +918,16 @@ export default function DfsWorkspace({ b }) {
               </div>
             )}
           </section>
-          {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={exportingEntries} />}
+          {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={entryBusy}>
+            <div className="dfw-actions">
+              <button type="button" disabled={entryBusy || !b.portfolio.length} onClick={() => {
+                try { downloadPortfolioBackup(b.portfolio, b.portfolioLimits); }
+                catch (e) { b.setError(e.message); }
+              }}>{PC.backup}</button>
+              <DfsFile label={PC.restore} accept=".json,application/json" disabled={entryBusy} onFile={restorePortfolio} />
+            </div>
+            <p className="dfw-note">{PC.backupHelp}</p>
+          </DfsPortfolio>}
           <section className="dfw-transfer">
           <div className="dfw-panel">
             <small>{C.newLineups}</small>
@@ -933,12 +963,12 @@ export default function DfsWorkspace({ b }) {
             {(b.context.site === "draftkings" || b.portfolio.length > 0 || usePortfolio) && <HubFilterMenu
               label={PC.source} value={usePortfolio ? "portfolio" : "build"}
               options={[{ id: "build", label: PC.currentBuild }, { id: "portfolio", label: PC.portfolio }]}
-              disabled={exportingEntries} onChange={v => setUsePortfolio(v === "portfolio")} />}
+              disabled={entryBusy} onChange={v => setUsePortfolio(v === "portfolio")} />}
             <DfsFile
               label={C.template}
               onFile={uploadTemplate}
               disabled={
-                exportingEntries || !entrySite.startsWith("draftkings") || !entryLineups.length
+                entryBusy || !entrySite.startsWith("draftkings") || !entryLineups.length
               }
             />
             <details>
@@ -952,7 +982,7 @@ export default function DfsWorkspace({ b }) {
             <div className="dfw-panel-head">
               <h2>{C.assignment}</h2>
               <button
-                disabled={exportingEntries}
+                disabled={entryBusy}
                 onClick={() =>
                   setAssignments(
                     Object.fromEntries(
@@ -986,7 +1016,7 @@ export default function DfsWorkspace({ b }) {
                         label: usePortfolio ? PC.assignment(i, portfolioRows[i].batch.label, portfolioRows[i].lineupIndex) : `${C.selected} ${i + 1}`,
                       })),
                     ]}
-                    disabled={exportingEntries}
+                    disabled={entryBusy}
                     onChange={(v) => setAssignments((a) => ({ ...a, [e.id]: v }))}
                   />
                 </div>
@@ -1001,7 +1031,7 @@ export default function DfsWorkspace({ b }) {
               {C.verifySlate}
             </label>
             {portfolioExportError && <p className="dfw-error" role="alert">{portfolioExportError}</p>}
-            <button disabled={!sameSlate || exportingEntries || Boolean(portfolioExportError)} onClick={exportEntries}>
+            <button disabled={!sameSlate || entryBusy || Boolean(portfolioExportError)} onClick={exportEntries}>
               {exportingEntries ? PC.exporting : usePortfolio ? PC.export : C.entryDownload}
             </button>
           </section>

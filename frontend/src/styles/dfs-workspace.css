@@ -325,6 +325,10 @@
   z-index: 1;
   background: var(--bg-elevated);
 }
+.dfw-classic-portfolio { gap: var(--space-3); }
+.dfw-classic-portfolio .dfw-batch-actions { align-items: flex-end; }
+.dfw-classic-portfolio .dfw-batch-actions .dfw-field { flex: 0 1 18rem; }
+.dfw-portfolio-progress { display: grid; gap: var(--space-2); padding-block: var(--space-2); }
 .dfw-table {
   border-collapse: collapse;
   width: 100%;

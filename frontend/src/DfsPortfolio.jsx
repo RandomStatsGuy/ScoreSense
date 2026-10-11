@@ -2,14 +2,15 @@ import React, { useMemo, useState } from "react";
 import { auditPortfolio } from "./dfsPortfolio.js";
 import { DFS_PORTFOLIO_COPY as C } from "./dfsToolPresentation.js";
 
-export default function DfsPortfolio({ b, disabled = false }) {
+export default function DfsPortfolio({ b, disabled = false, children }) {
   const [label, setLabel] = useState("");
   const audit = useMemo(() => auditPortfolio(b.portfolio, b.portfolioLimits), [b.portfolio, b.portfolioLimits]);
   return (
-    <section className="dfw-panel" aria-labelledby="dfw-portfolio-title">
+    <section className="dfw-panel dfw-classic-portfolio" aria-labelledby="dfw-portfolio-title">
       <h2 id="dfw-portfolio-title">{C.title}</h2>
       <p className="dfw-note">{C.help}</p>
-      <div className="dfw-actions">
+      {children}
+      <div className="dfw-actions dfw-batch-actions">
         <label className="dfw-field">
           <span>{C.label}</span>
           <input value={label} maxLength={100} onChange={e => setLabel(e.target.value)} disabled={disabled} />
@@ -17,8 +18,10 @@ export default function DfsPortfolio({ b, disabled = false }) {
         <button type="button" disabled={disabled || b.busy || b.building || !label.trim() || b.currentBuild?.context.site !== "draftkings"}
           onClick={() => { if (b.addPortfolioBatch(label)) setLabel(""); }}>{C.add}</button>
       </div>
-      <p role="status">{C.progress(audit.unique, audit.total, audit.batchCount, audit.duplicates.length, audit.shortfall)}</p>
-      <meter min="0" max="150" value={Math.min(150, audit.unique)} aria-label={C.title} />
+      <div className="dfw-portfolio-progress">
+        <p role="status">{C.progress(audit.unique, audit.total, audit.batchCount, audit.duplicates.length, audit.shortfall)}</p>
+        <meter min="0" max="150" value={Math.min(150, audit.unique)} aria-label={C.title} />
+      </div>
       {!b.portfolio.length && <p className="dfw-note">{C.empty}</p>}
       {b.portfolio.map(batch => (
         <div key={batch.id}>
