@@ -22,6 +22,10 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [FANTASY_WEEK_CONTEXT.md](./FANTASY_WEEK_CONTEXT.md) | Prepared weekly player snapshots, background publication, refresh behavior and backend comparison |
 | [LINEUP_ROADMAP.md](./LINEUP_ROADMAP.md) | Tools backlog - DFS is shipped; props / best ball are not nav |
 | [DFS_REFRESH_REUSE.md](./DFS_REFRESH_REUSE.md) | DFS input checks, forecast reuse eligibility, freshness and publication safeguards |
+| [DFS optimizer rebuild specification v0.2.0](./ScoreSense_DFS_Optimizer_Rebuild_Spec_v0.2.0.md) | Complete supplied rebuild requirements; preserved original source |
+| [DFS rebuild implementation and gaps](./DFS_REBUILD_IMPLEMENTATION.md) | Current inventory, all 65 rules / 36 acceptance cases, phased PR gates and actual validation |
+| [DFS rebuild rule registry](./DFS_REBUILD_RULE_MATRIX.json) | Machine-readable traceability; not executable optimizer configuration |
+| [DFS rebuild foundation review](./reviews/dfs-rebuild/README.md) | Scoped synthetic screenshots, responsive/theme task checks and verification limits |
 | [MOBILE_APP.md](./MOBILE_APP.md) | PWA and Android TWA |
 | [Fantasy mobile design](../.cursor/rules/fantasy-mobile.mdc) | Approved mobile parameters, controls, and mock foundation |
 | [Fantasy mobile review](./FANTASY_MOBILE_REVIEW.md) | Page-by-page review queue and Home design decisions |

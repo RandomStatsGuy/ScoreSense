@@ -55,11 +55,18 @@ def capture_build_snapshot(pool, players, *, site, parameters, context=None):
     rules = {"version": "legacy_roster_v1", "site": site,
              "certification": "unverified", "config": get_site_config(site)}
     from src.products.dfs_captain_comparison import comparison_budget
+    portfolio_budget = None
+    if parameters.get("portfolio_mode") == "global":
+        from src.products.dfs_portfolio_selection import GENERATION_SECONDS, SELECTION_SECONDS, MAX_CANDIDATES
+        portfolio_budget = {"generation_seconds": GENERATION_SECONDS,
+                            "selection_seconds": SELECTION_SECONDS, "max_candidates": MAX_CANDIDATES}
 
     payload = {
         "captain_comparison_budget": comparison_budget() if parameters.get("include_captain_comparison") else None,
+        "portfolio_selection_budget": portfolio_budget,
         "schema_version": SCHEMA_VERSION,
-        "engine": {"version": ENGINE_VERSION, "scipy": scipy.__version__, "numpy": np.__version__},
+        "engine": {"version": "global_candidate_milp_v1" if parameters.get("portfolio_mode") == "global" else ENGINE_VERSION,
+                   "scipy": scipy.__version__, "numpy": np.__version__},
         "rules": rules, "rules_id": content_id(rules),
         "forecast_semantics": "player_quantiles_not_joint_lineup_quantiles_or_expected_payout",
         "scope": "submitted_pool_and_eligible_players_not_verified_exact_slate",

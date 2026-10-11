@@ -107,8 +107,9 @@ export function buildSiteLineupCsv(site, lineups = [], salaryCatalog = null) {
         reason: `${config.label} player IDs are missing for ${missing.length} slot${missing.length === 1 ? "" : "s"}. Load a slate or import the ${config.label} salary CSV first.`,
       };
     }
-    if (ordered.some((row) => !String(row.player ?? "").trim() ||
-      (isDraftKings && !/^[1-9]\d*$/.test(String(row.dfs_id))))) {
+    if (ordered.some((row) => typeof row.dfs_id !== "string" || !String(row.player ?? "").trim() ||
+      /^[\s\uFEFF]*[=+@-]/.test(String(row.player)) ||
+      (isDraftKings && (!/^\d+$/.test(row.dfs_id) || /^0+$/.test(row.dfs_id))))) {
       return { ok: false, reason: "A player name or upload ID is invalid. Reload the site's salary file; keep IDs as text when editing CSVs." };
     }
     const captainMode = site === "draftkings_showdown" || site === "fanduel_single";
@@ -124,7 +125,7 @@ export function buildSiteLineupCsv(site, lineups = [], salaryCatalog = null) {
         const matches = salaryCatalog.filter(player => {
           const captain = row.slot === "CPT";
           const expectedId = captain ? player.cpt_dfs_id : row.slot === "MVP" ? (player.cpt_dfs_id || player.dfs_id) : player.dfs_id;
-          return expectedId != null && String(expectedId) === String(row.dfs_id);
+          return typeof expectedId === "string" && expectedId === row.dfs_id;
         });
         if (matches.length !== 1) return false;
         const player = matches[0];
