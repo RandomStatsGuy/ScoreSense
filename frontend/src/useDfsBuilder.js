@@ -15,6 +15,7 @@ import {
 import { parseDfsCsv, headerKey } from "./dfsCsv";
 import { captainComparisonRequest } from "./dfsCaptainComparisonRequest.js";
 import { DFS_CAPTAIN_COMPARISON_COPY as CC } from "./dfsToolPresentation";
+import { appendPortfolioBatch, createPortfolioBatch, freezeSnapshot, removePortfolioBatch, portfolioBuildPayload } from "./dfsPortfolio.js";
 
 async function jsonRequest(url, options) {
   const response = await apiFetch(url, options);
@@ -64,6 +65,10 @@ export default function useDfsBuilder(projMeta) {
   const [selected, setSelected] = useState(0);
   const [savedBuild, setSavedBuild] = useState(null);
   const [buildSettings, setBuildSettings] = useState(null);
+  const [currentBuild, setCurrentBuild] = useState(null);
+  const [portfolio, setPortfolio] = useState([]);
+  const [portfolioLimits, setPortfolioLimits] = useState({});
+  const portfolioBuildIds = useRef(new Map());
   const [locked, setLocked] = useState([]);
   const [excluded, setExcluded] = useState([]);
   const [overrides, setOverrides] = useState({});
@@ -521,7 +526,7 @@ export default function useDfsBuilder(projMeta) {
       setLineups(built);
       setSelected(0);
       setSavedBuild(null);
-      setBuildSettings({
+      const originalSettings = {
         ...request,
         note: settings.note,
         ownership,
@@ -533,7 +538,10 @@ export default function useDfsBuilder(projMeta) {
         ),
         build_snapshot: data.build_snapshot || null,
         snapshot_at: data.build_snapshot?.captured_at || new Date().toISOString(),
-      });
+      };
+      setBuildSettings(originalSettings);
+      setCurrentBuild(freezeSnapshot({ context, slateName, lineups: built,
+        settings: originalSettings, salaryCatalog: pool, salarySnapshot }));
       setNotice(
         built.length < settings.count
           ? `Built ${built.length} of ${settings.count}. Limits count toward the requested set; review actual exposure before exporting. ${data.note || ""}`
@@ -584,6 +592,28 @@ export default function useDfsBuilder(projMeta) {
       : p,
   );
   return {
+    currentBuild: lineups.length ? currentBuild : null,
+    portfolio,
+    portfolioLimits,
+    setPortfolioLimit: (id, value) => setPortfolioLimits(current => ({ ...current, [id]: value })),
+    clearPortfolioLimits: () => setPortfolioLimits({}),
+    addPortfolioBatch: (label) => {
+      try {
+        const batch = createPortfolioBatch(lineups.length ? currentBuild : null, label);
+        setPortfolio(appendPortfolioBatch(portfolio, batch));
+        setError("");
+        return true;
+      } catch (e) { setError(e.message); return false; }
+    },
+    removePortfolioBatch: (id) => setPortfolio(current => removePortfolioBatch(current, id)),
+    savePortfolioBatch: async (batch) => {
+      if (!portfolioBuildIds.current.has(batch.id)) {
+        const saved = await jsonRequest("/api/lineup/builds", { method: "POST",
+          body: JSON.stringify(portfolioBuildPayload(batch)) });
+        portfolioBuildIds.current.set(batch.id, saved.id);
+      }
+      return portfolioBuildIds.current.get(batch.id);
+    },
     dataUpdateAvailable,
     reloadPlayerPool: () => {
       generation.current++;
