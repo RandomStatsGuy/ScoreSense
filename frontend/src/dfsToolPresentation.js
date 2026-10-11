@@ -2,6 +2,22 @@
 
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
+export const DFS_EXPOSURE_COPY = {
+  view: "Exposure view", portfolio: "150-lineup portfolio", build: "Current build", units: "Enter maximum as", lineups: "Lineup count",
+  basis: "Actual % uses collected lineups. Maximum % uses 150. Remaining counts include every collected appearance, including locks and duplicates.",
+  buildBasis: n => `Actual usage in this ${n}-lineup build. Maximums and remaining room refer to the full 150-lineup portfolio.`,
+  useNext: "Use portfolio limits for next build", search: "Find player exposure", position: "Position", all: "All players", show: "Show", limited: "Limited players", over: "Over limit",
+  player: "Player", actual: "Actual", maximum: unit => unit === "percent" ? "Max %" : "Max count", room: "Remaining", unlimited: "No limit", of150: n => `${n} of 150`,
+  maxFor: name => `Portfolio maximum: ${name}`, select: name => `Select exposure: ${name}`, bulkLabel: "Maximum for selected players", bulk: (n, unit) => `${n} selected · maximum ${unit === "percent" ? "%" : "count"}`,
+  apply: "Apply maximum", clearSelection: "Clear selection", clearLimits: "Clear appearance limits", empty: "No players match these filters.",
+  invalid: "Enter 0–100% or a whole lineup count from 0 to 150. Leave blank for no limit.",
+  help: "Maximums are ceilings, not targets. They block portfolio export. Use portfolio limits for next build to enforce remaining allowances; the shared build cap also applies. Approved batches stay intact.",
+  lockConflict: (name, available, count) => `${name} is locked for ${count} lineups but has only ${available} appearances remaining. Unlock the player or adjust the maximum.`,
+  edit: "Edit exposures", openGame: name => `Choose stacks for ${name}`, chooseStacks: n => n ? `Choose stacks · ${n} selected` : "Choose stacks", included: n => `Included players · ${n}`,
+  stackHelp: "Leave both QBs unchecked for automatic choice. Include up to three same-team receivers and one opposing player, required only with that QB. Weights and exposure caps still apply.",
+  receiver: "With this QB", opposing: "Opposing player", noQb: "No eligible starter quarterback is available for this game.",
+};
+
 export const DFS_PORTFOLIO_COPY = {
   title: "Classic portfolio", label: "Batch label", add: "Add current build to portfolio", remove: "Remove batch",
   clearLimits: "Clear appearance limits",
@@ -14,7 +30,7 @@ export const DFS_PORTFOLIO_COPY = {
   replaceTitle: "Replace Classic portfolio?", replace: "Replace portfolio", cancelRestore: "Keep current portfolio",
   replaceMessage: (current, audit) => `Replace ${current} current batches with ${audit.batchCount} backup batches (${audit.total} lineups, ${audit.duplicates.length} duplicates, ${audit.errors.length} appearance-limit warnings)? This clears the current Edit Entries template and assignments. No batches will be merged.`,
   restored: "Portfolio restored with its original inputs and limits. Review the audit and import a fresh Edit Entries template before exporting.",
-  auditHelp: "Appearances count every collected lineup, including locked players and duplicates. Maximum counts only block portfolio export; they do not change builds.",
+  auditHelp: "Appearances include locked players and duplicates. Maximums block export when exceeded. In Exposure, enable Use portfolio limits for next build to carry remaining allowances into a new batch. Approved batches stay intact.",
   empty: "Label an approved build to start your portfolio.", player: "Player", count: "Appearances", countHeading: "Count", percent: "%", qb: "At QB", qbHeading: "QB", batches: "Batches", maximum: "Maximum appearances (optional)", maxHeading: "Max",
   progress: (unique, total, batches, duplicates, shortfall) => `${unique} / 150 unique · ${total} collected · ${batches} ${batches === 1 ? "batch" : "batches"} · ${duplicates} duplicates · ${shortfall} shortfall`,
   batchSummary: (label, count, time) => `${label} · ${count} lineups · ${time}`,
@@ -591,24 +607,15 @@ export function allocateMatchupWeights(weights = {}, lineupCount = 0) {
   const count = Math.max(0, Math.floor(Number(lineupCount) || 0));
   if (!entries.length || !count) return [];
   const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
-  const rows = entries.map((entry) => {
-    const exact = (entry.weight / totalWeight) * count;
-    return { ...entry, count: Math.floor(exact), remainder: exact % 1 };
-  });
-  const left = count - rows.reduce((sum, entry) => sum + entry.count, 0);
-  const order = rows
-    .map((entry, index) => ({ index, remainder: entry.remainder }))
-    .sort((leftEntry, rightEntry) => (
-      rightEntry.remainder - leftEntry.remainder || leftEntry.index - rightEntry.index
-    ));
-  for (let index = 0; index < left; index += 1) {
-    rows[order[index % order.length].index].count += 1;
+  // Match the builder's smooth weighted round-robin schedule, including ties.
+  const rows = entries.map(entry => ({ ...entry, score: 0, count: 0 }));
+  for (let index = 0; index < count; index++) {
+    rows.forEach(row => { row.score += row.weight; });
+    const selected = rows.reduce((best, row) => row.score > best.score ? row : best);
+    selected.score -= totalWeight;
+    selected.count++;
   }
-  return rows.map(({ gameId, weight, count: allocated }) => ({
-    gameId,
-    weight,
-    count: allocated,
-  }));
+  return rows.map(({ gameId, weight, count: allocated }) => ({ gameId, weight, count: allocated }));
 }
 
 export function dfsHeroCopy({

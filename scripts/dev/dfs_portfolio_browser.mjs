@@ -11,6 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const require = createRequire(path.join(root, "frontend/package.json"));
 const { chromium } = require("playwright");
 const output = path.join(root, "outputs/dfs-portfolio");
+const base = process.env.DFS_BROWSER_BASE || "http://127.0.0.1:5173";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const templateRows = [
@@ -40,7 +41,7 @@ try {
     const context = await browser.newContext({ viewport: { width, height: 900 }, acceptDownloads: true });
     const page = await context.newPage(), errors = [];
     page.on("pageerror", e => errors.push(e.message));
-    await page.goto("http://127.0.0.1:5173/test-fixtures/dfs-portfolio.html");
+    await page.goto(`${base}/test-fixtures/dfs-portfolio.html`);
     await page.locator("[aria-labelledby='dfw-portfolio-title']").screenshot({ path: path.join(output, `portfolio-empty-${width}.png`) });
     await page.getByRole("button", { name: /^Lineups:/ }).click();
     await page.getByRole("option", { name: "3", exact: true }).click();

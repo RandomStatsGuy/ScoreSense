@@ -21,7 +21,7 @@ from app.hub_http_timing import HubServerTimingMiddleware
 from app.injury_refresh import queue_injury_refresh
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictInt
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.staticfiles import NotModifiedResponse
@@ -254,6 +254,12 @@ class StackGameWeight(BaseModel):
     weight: int = Field(default=1, ge=1, le=4)
 
 
+class ClassicStackChoice(BaseModel):
+    game_id: str = Field(min_length=1, max_length=100)
+    qb_id: str = Field(min_length=1, max_length=100)
+    player_ids: list[str] = Field(default_factory=list, max_length=4)
+
+
 class LineupOptimizeRequest(BaseModel):
     season: Optional[int] = None
     week: Optional[int] = None
@@ -279,6 +285,8 @@ class LineupOptimizeRequest(BaseModel):
     max_overlap: int = 4
     # Multi-lineup construction: share of lineups a player may appear in (0–1).
     max_exposure: Optional[float] = None
+    player_maximum_counts: dict[str, StrictInt] = Field(default_factory=dict, max_length=5000)
+    stack_choices: list[ClassicStackChoice] = Field(default_factory=list, max_length=64)
     # Projection jitter between builds (0–1 of a standard deviation).
     randomness: Optional[float] = None
     seed: Optional[int] = None
@@ -2203,12 +2211,17 @@ def lineup_optimize(
     site = (request.site or "seasonal").lower()
     if any(not math.isfinite(v) or not 0 <= v <= 1 for v in request.captain_exposure_limits.values()):
         raise HTTPException(status_code=400, detail="Captain exposure limits must be between 0 and 1.")
+    if (request.player_maximum_counts or request.stack_choices) and site != "draftkings":
+        raise HTTPException(status_code=400, detail="Portfolio count limits and named stacks support DraftKings Classic only.")
+    if any(v < 0 or v > 150 for v in request.player_maximum_counts.values()):
+        raise HTTPException(status_code=400, detail="Player maximum counts must be between 0 and 150.")
     try:
         weighted_stack_teams = [team for game in request.stack_game_weights for team in game.teams if team]
         keep_player_ids = list(request.locked_player_ids or []) + list(
             request.stack_qb_ids or []
         )
         keep_player_ids += list(request.captain_exposure_limits) + list(request.projection_overrides)
+        keep_player_ids += [pid for choice in request.stack_choices for pid in [choice.qb_id, *choice.player_ids]]
         if request.locked_captain_id:
             keep_player_ids.append(request.locked_captain_id)
         pool, meta = build_lineup_pool(
@@ -2257,6 +2270,8 @@ def lineup_optimize(
             stack_teams=request.stack_teams,
             stack_qb_ids=request.stack_qb_ids,
             stack_game_weights=[game.model_dump() for game in request.stack_game_weights],
+            player_maximum_counts=request.player_maximum_counts,
+            stack_choices=[choice.model_dump() for choice in request.stack_choices],
             max_per_team=(
                 max(1, int(request.max_per_team)) if request.max_per_team else None
             ),

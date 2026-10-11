@@ -957,6 +957,8 @@ def optimize_multiple_lineups(
     seed: int | None = None,
     captain_exposure_limits: dict[str, float] | None = None,
     stack_game_weights: list[dict] | None = None,
+    player_maximum_counts: dict[str, int] | None = None,
+    stack_choices: list[dict] | None = None,
     **kwargs,
 ) -> dict:
     """Generate diverse lineups with overlap caps, exposure caps, and optional jitter."""
@@ -988,6 +990,16 @@ def optimize_multiple_lineups(
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
 
     stack_schedule = weighted_stack_schedule(stack_game_weights, count)
+    from src.products.dfs_classic_controls import classic_controls
+    explicit_caps = player_maximum_counts or {}
+    stack_constraints, stack_sources = classic_controls(
+        players, count, explicit_caps, stack_choices, stack_game_weights, locked, exposure_cap, stack_schedule,
+        source_qbs=kwargs.get("stack_qb_ids"),
+    ) if explicit_caps or stack_choices else ([], {})
+    extra.extend(stack_constraints)
+    for pid, cap in explicit_caps.items():
+        if cap == 0:
+            extra.append(({pid: 1.0}, 0, 0))
     for lineup_index in range(count):
         noise = None
         if randomness > 0:
@@ -1000,6 +1012,9 @@ def optimize_multiple_lineups(
             iteration_kwargs["excluded_captain_lineups"] = excluded_captain_lineups
         if stack_schedule:
             iteration_kwargs["stack_teams"] = stack_schedule[lineup_index]
+            teams = frozenset(normalize_team_for_match(t) for t in stack_schedule[lineup_index])
+            if teams in stack_sources:
+                iteration_kwargs["stack_qb_ids"] = stack_sources[teams]
         iteration_kwargs["excluded_captain_ids"] = set(kwargs.get("excluded_captain_ids") or []) | {
             pid for pid, cap in captain_caps.items() if captain_usage.get(pid, 0) >= cap
         }
@@ -1034,10 +1049,9 @@ def optimize_multiple_lineups(
         for pid in chosen_ids:
             usage[pid] = usage.get(pid, 0) + 1
             if (
-                exposure_cap is not None
-                and pid not in locked
+                (pid in explicit_caps or (exposure_cap is not None and pid not in locked))
                 and pid not in excluded_by_exposure
-                and usage[pid] >= exposure_cap
+                and usage[pid] >= min(explicit_caps.get(pid, count), exposure_cap if exposure_cap is not None and pid not in locked else count)
             ):
                 excluded_by_exposure.add(pid)
                 extra.append(({pid: 1.0}, 0, 0))
@@ -1139,6 +1153,8 @@ def optimize_from_pool_dataframe(
     stack_teams: list[str] | None = None,
     stack_qb_ids: list[str] | None = None,
     stack_game_weights: list[dict] | None = None,
+    player_maximum_counts: dict[str, int] | None = None,
+    stack_choices: list[dict] | None = None,
     max_per_team: int | None = None,
     min_salary: int | None = None,
     lineup_count: int = 1,
@@ -1152,6 +1168,8 @@ def optimize_from_pool_dataframe(
     snapshot_context: dict | None = None,
 ) -> dict:
     site = (site or "seasonal").lower()
+    if (player_maximum_counts or stack_choices) and site != "draftkings":
+        raise ValueError("Portfolio count limits and named stacks support DraftKings Classic only.")
     if include_captain_comparison:
         if not get_site_config(site)["roster"].get("cpt"):
             raise ValueError("Captain comparison requires a single-game format.")
@@ -1209,12 +1227,14 @@ def optimize_from_pool_dataframe(
         "stack_qb_ids": stack_qb_ids, "stack_game_weights": stack_game_weights,
         "lineup_count": lineup_count, "max_overlap": max_overlap,
         "max_exposure": max_exposure, "randomness": randomness, "seed": seed,
+        **({"player_maximum_counts": player_maximum_counts or {}, "stack_choices": stack_choices or []}
+           if player_maximum_counts or stack_choices else {}),
         "include_captain_comparison": include_captain_comparison,
     }).to_dict()
 
     if lineup_count <= 1 and max_exposure is not None and 0 < max_exposure < 1:
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
-    if lineup_count > 1:
+    if lineup_count > 1 or player_maximum_counts or stack_choices:
         result = optimize_multiple_lineups(
             players,
             count=lineup_count,
@@ -1224,6 +1244,8 @@ def optimize_from_pool_dataframe(
             seed=seed,
             captain_exposure_limits=captain_exposure_limits,
             stack_game_weights=stack_game_weights,
+            player_maximum_counts=player_maximum_counts,
+            stack_choices=stack_choices,
             **opt_kwargs,
         )
     else:
@@ -1245,6 +1267,10 @@ def optimize_from_pool_dataframe(
         max_per_team=max_per_team, locked_player_ids=locked_player_ids or (),
         locked_captain_id=locked_captain_id,
     )
+    if player_maximum_counts or stack_choices:
+        from src.products.dfs_classic_controls import validate_classic_result
+        result = validate_classic_result(result, player_maximum_counts, stack_choices,
+            stack_game_weights, weighted_stack_schedule(stack_game_weights, max(1, lineup_count)))
     result["build_snapshot"] = snapshot
     if include_captain_comparison and result.get("ok"):
         from src.products.dfs_captain_comparison import compare_captains

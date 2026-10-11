@@ -2,14 +2,14 @@ import { appendPortfolioBatch, auditPortfolio, createPortfolioBatch, freezeSnaps
 import { DFS_PORTFOLIO_COPY as C } from "./dfsToolPresentation.js";
 
 export const PORTFOLIO_BACKUP_SCHEMA = "scoresense_classic_portfolio";
-export const PORTFOLIO_BACKUP_VERSION = 1;
+export const PORTFOLIO_BACKUP_VERSION = 2;
 export const PORTFOLIO_BACKUP_MAX_BYTES = 20 * 1024 * 1024;
 const BATCH_KEYS = ["id", "label", "context", "slateName", "lineups", "settings", "salaryCatalog", "salarySnapshot"];
 const SETTING_KEYS = ["site", "slate_id", "season", "week", "slate_salaries", "salary_snapshot_id", "objective",
   "salary_cap", "locked_player_ids", "excluded_player_ids", "lineup_count", "max_overlap", "max_exposure",
   "randomness", "min_salary", "max_per_team", "qb_stack_count", "stack_bring_back", "stack_game_weights",
   "locked_captain_id", "captain_exposure_limits", "projection_overrides", "apply_injury_adjustments",
-  "block_bye_weeks", "note", "ownership", "projection_sources", "build_snapshot", "snapshot_at"];
+  "block_bye_weeks", "player_maximum_counts", "stack_choices", "portfolio_exposure_plan", "note", "ownership", "projection_sources", "build_snapshot", "snapshot_at"];
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype", "accesstoken", "refreshtoken", "idtoken",
   "authorization", "cookie", "credentials", "password", "auth", "authenticated", "session", "sessionid",
   "savedbuild", "savedbuilds", "portfoliobuildids", "buildids", "assignments", "entryassignments", "entrytemplate",
@@ -97,6 +97,26 @@ function validateBatch(batch) {
   for (const key of ["ownership", "projection_sources", "projection_overrides", "captain_exposure_limits"]) {
     if (s[key] !== undefined && !object(s[key])) fail();
   }
+  if (s.player_maximum_counts !== undefined) {
+    if (!object(s.player_maximum_counts) || Object.keys(s.player_maximum_counts).length > 5000 || Object.values(s.player_maximum_counts).some(v => !Number.isInteger(v) || v < 0 || v > 150)) fail();
+    Object.keys(s.player_maximum_counts).forEach(id => text(id, 100));
+  }
+  if (s.stack_choices !== undefined) {
+    if (!Array.isArray(s.stack_choices) || s.stack_choices.length > 64) fail();
+    s.stack_choices.forEach(choice => {
+      shape(choice, ["game_id", "qb_id", "player_ids"]);
+      text(choice.game_id, 100); text(choice.qb_id, 100);
+      if (!Array.isArray(choice.player_ids) || choice.player_ids.length > 4 || new Set(choice.player_ids).size !== choice.player_ids.length) fail();
+      choice.player_ids.forEach(id => text(id, 100));
+    });
+  }
+  if (s.portfolio_exposure_plan !== undefined) {
+    shape(s.portfolio_exposure_plan, ["target", "maximum_counts", "collected"]);
+    if (s.portfolio_exposure_plan.target !== 150 || !Number.isInteger(s.portfolio_exposure_plan.collected) || s.portfolio_exposure_plan.collected < 0 ||
+        !object(s.portfolio_exposure_plan.maximum_counts) || Object.keys(s.portfolio_exposure_plan.maximum_counts).length > 5000 ||
+        Object.values(s.portfolio_exposure_plan.maximum_counts).some(v => v != null && v !== "" && (!["string", "number"].includes(typeof v) || String(v).trim() === "" || !Number.isSafeInteger(Number(v)) || Number(v) < 0))) fail();
+    Object.keys(s.portfolio_exposure_plan.maximum_counts).forEach(id => text(id, 100));
+  }
   if (s.slate_salaries !== undefined && (!Array.isArray(s.slate_salaries) || s.slate_salaries.length > 5000)) fail();
   if (!Array.isArray(batch.salaryCatalog) || !batch.salaryCatalog.length || batch.salaryCatalog.length > 5000) fail();
   const dfsIds = new Set(), canonicalIds = new Set();
@@ -134,7 +154,7 @@ export function readPortfolioBackup(textValue) {
   try { data = JSON.parse(textValue); } catch { fail(); }
   validateJson(data);
   shape(data, ["schema", "version", "exportedAt", "batches", "appearanceLimits"]);
-  if (data.schema !== PORTFOLIO_BACKUP_SCHEMA || data.version !== PORTFOLIO_BACKUP_VERSION) throw new Error(C.backupVersion);
+  if (data.schema !== PORTFOLIO_BACKUP_SCHEMA || ![1, PORTFOLIO_BACKUP_VERSION].includes(data.version)) throw new Error(C.backupVersion);
   timestamp(data.exportedAt);
   if (!Array.isArray(data.batches) || data.batches.length > 50 || !object(data.appearanceLimits)) fail();
   let batches = [], count = 0;

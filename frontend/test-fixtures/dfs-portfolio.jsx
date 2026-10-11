@@ -16,6 +16,8 @@ const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
 const players = Array.from({ length: 180 }, (_, i) => ({ player_id: `p${i + 1}`, dfs_id: String(i + 1),
   Player: `Example ${i + 1}`, Team: i % 2 ? "BUF" : "KC", Position: positions[i] || "WR", salary: 4000,
   "Projected Points": 10, "Low (P10)": 5, "High (P90)": 15, projection_source: "ScoreSense" }));
+const exposureFixture = location.search.includes("exposure");
+if (exposureFixture) players.push({ ...players[0], player_id: "p181", dfs_id: "181", Player: "Other quarterback", Team: "BUF" });
 window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: false, repeatBuild: false, run: 0 };
 const nativeFetch = window.fetch.bind(window);
 window.fetch = async (url, options = {}) => {
@@ -31,13 +33,13 @@ window.fetch = async (url, options = {}) => {
       player_name: p.Player, position: p.Position, team: p.Team, salary: p.salary })), salary_snapshot: { id: (state.unrelatedCatalog ? "c" : "b").repeat(64) },
       slate: { name: "Classic fixture slate" }, meta: {} });
   }
-  if (path.includes("/vegas")) return respond({ games: [] });
+  if (path.includes("/vegas")) return respond({ games: exposureFixture ? [{ game_id: "kc-buf", away: "KC", home: "BUF", total: 53, away_implied: 27, home_implied: 26 }] : [] });
   if (path.endsWith("/optimize")) {
     state.requests.push(body);
     const run = state.repeatBuild ? 0 : state.run++;
     const lineups = Array.from({ length: body.lineup_count }, (_, index) => ({ total_salary: 36000, total_points: 90,
       lineup: slots.map((slot, i) => {
-        const p = players[i === 5 ? 9 + run * 50 + index : i];
+        const p = exposureFixture && i === 0 && index >= (body.player_maximum_counts?.p1 ?? body.lineup_count) ? players[180] : players[i === 5 ? 9 + run * 50 + index : i];
         return { slot, player_id: p.player_id, dfs_id: p.dfs_id, player: p.Player, position: p.Position, team: p.Team,
           salary: p.salary, proj: body.projection_overrides[p.player_id]?.proj ?? 10, floor: 5, ceiling: 15 };
       }),
@@ -59,6 +61,10 @@ function PopulatedAudit() {
   useEffect(() => {
     if (stage.current === 0 && b.pool.length && !b.busy) { stage.current = 1; b.run(); }
     if (stage.current === 1 && b.currentBuild && !b.building) { stage.current = 2; b.addPortfolioBatch("Audit sample batch"); }
+    if (stage.current === 2 && b.portfolio.length && location.search.includes("autoExposure")) {
+      stage.current = 3;
+      document.querySelectorAll(".dfw-tabs button").forEach(button => { if (button.textContent === "Exposure") button.click(); });
+    }
   }, [b.pool, b.busy, b.currentBuild, b.building]);
   return <div className="dfw"><DfsWorkspace b={b} /></div>;
 }

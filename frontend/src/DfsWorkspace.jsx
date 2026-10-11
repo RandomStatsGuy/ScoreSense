@@ -1,5 +1,8 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
 import DfsPortfolio from "./DfsPortfolio.jsx";
+import DfsExposure from "./DfsExposure.jsx";
+import DfsStackPicker from "./DfsStackPicker.jsx";
+import { DFS_EXPOSURE_COPY as EC } from "./dfsToolPresentation.js";
 import { auditPortfolio, buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
 import { downloadPortfolioBackup, readPortfolioBackupFile } from "./dfsPortfolioBackup.js";
 import { confirmDialog } from "./ui/confirm.jsx";
@@ -127,6 +130,7 @@ function DfsMatchupBoard({ b }) {
           </div>
           <div className="dfw-matchup-grid">
             {games.map((game) => {
+              const GameStage = b.context.site === "draftkings" ? "button" : "div";
               const weight = Number(b.stackWeights[game.game_id]) || 0;
               const movement = vegasLineMovement(game);
               const awayColors = nflTeamColors(game.away);
@@ -148,7 +152,12 @@ function DfsMatchupBoard({ b }) {
                     <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
                     {game.game_id === highestId && <strong>{DFS_STEP_COPY.highestTotal}</strong>}
                   </div>
-                  <div className="dfw-matchup-stage">
+                  <GameStage className="dfw-matchup-stage" {...(b.context.site === "draftkings" ? {
+                    type: "button", "aria-label": EC.openGame(gameStackLabel(game)), onClick: e => {
+                      const picker = e.currentTarget.closest("article")?.querySelector(".dfw-stack-picker");
+                      if (picker) { picker.open = true; picker.querySelector("summary")?.focus(); }
+                    },
+                  } : {})}>
                     <div className="dfw-matchup-team dfw-matchup-team--away">
                       <b>{game.away}</b>
                       <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.away_implied)} <small>{DFS_STEP_COPY.impliedTitle}</small></span>
@@ -158,7 +167,7 @@ function DfsMatchupBoard({ b }) {
                       <b>{game.home}</b>
                       <span title={DFS_STEP_COPY.impliedTitle}>{vegasImplied(game.home_implied)} <small>{DFS_STEP_COPY.impliedTitle}</small></span>
                     </div>
-                  </div>
+                  </GameStage>
                   <div className="dfw-matchup-markets" role="group" aria-label={DFS_STEP_COPY.currentLine}>
                     <div>
                       <span>Total</span>
@@ -179,6 +188,7 @@ function DfsMatchupBoard({ b }) {
                       <button type="button" aria-label={`${DFS_STEP_COPY.raiseWeight}: ${gameStackLabel(game)}`} disabled={weight >= 4 || b.building} onClick={() => b.changeStackWeight(game.game_id, 1)}>+</button>
                     </div>
                   </div>
+                  {b.context.site === "draftkings" && <DfsStackPicker b={b} game={game} />}
                 </article>
               );
             })}
@@ -208,7 +218,7 @@ export default function DfsWorkspace({ b }) {
   const [usePortfolio, setUsePortfolio] = useState(false);
   const [exportingEntries, setExportingEntries] = useState(false);
   const [restoringPortfolio, setRestoringPortfolio] = useState(false);
-  const entryBusy = exportingEntries || restoringPortfolio;
+  const entryBusy = exportingEntries || restoringPortfolio || b.building;
   const portfolioRows = useMemo(() => portfolioLineups(b.portfolio), [b.portfolio]);
   const portfolioEntries = useMemo(() => portfolioRows.map(p => p.entry), [portfolioRows]);
   const entryLineups = usePortfolio ? portfolioEntries : b.lineups;
@@ -612,7 +622,8 @@ export default function DfsWorkspace({ b }) {
                 </details>
               </>
             )}
-            {tab === "exposure" && (
+            {tab === "exposure" && b.context.site === "draftkings" && <DfsExposure b={b} disabled={entryBusy} />}
+            {tab === "exposure" && b.context.site !== "draftkings" && (
               <>
                 <p className="dfw-note">
                   {b.lineups.length} {C.count.toLowerCase()} · {C.lockNote}
@@ -919,6 +930,7 @@ export default function DfsWorkspace({ b }) {
             )}
           </section>
           {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={entryBusy}>
+            {b.context.site === "draftkings" && <button type="button" onClick={() => { setTab("exposure"); slateRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>{EC.edit}</button>}
             <div className="dfw-actions">
               <button type="button" disabled={entryBusy || !b.portfolio.length} onClick={() => {
                 try { downloadPortfolioBackup(b.portfolio, b.portfolioLimits); }

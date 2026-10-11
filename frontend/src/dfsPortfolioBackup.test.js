@@ -33,6 +33,21 @@ function batch(offset = 0, count = 75) {
 const original = () => [batch(), batch(75)];
 const document = () => JSON.parse(writePortfolioBackup(original(), { p0: "150", p1: "", removed: null }, timestamp));
 const restore = value => readPortfolioBackup(JSON.stringify(value));
+test("version 2 backups retain support for original version 1 portfolios", () => {
+  const data = document(); assert.equal(data.version, 2);
+  data.version = 1;
+  assert.deepEqual(restore(data).batches, original());
+});
+test("count allowances, named stacks and the original exposure plan survive backup", () => {
+  const data = document(), settings = data.batches[0].settings;
+  settings.player_maximum_counts = { p0: 20, p1: 0 };
+  settings.stack_choices = [{ game_id: "kc-buf", qb_id: "p0", player_ids: ["p3"] }];
+  settings.portfolio_exposure_plan = { target: 150, collected: 25, maximum_counts: { p0: "45" } };
+  assert.deepEqual(restore(data).batches[0].settings, settings);
+  for (const change of [s => { s.player_maximum_counts.p0 = 1.5; }, s => { s.stack_choices[0].player_ids = ["p3", "p3"]; }, s => { s.portfolio_exposure_plan.target = 100; }]) {
+    const bad = structuredClone(data); change(bad.batches[0].settings); assert.throws(() => restore(bad));
+  }
+});
 function template() {
   return readEntryTemplate(csvLines([["Entry ID", "Contest ID", "Contest Name", "Entry Fee", "QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "DST", "Note"],
     ...Array.from({ length: 151 }, (_, i) => [String(i + 1), "900", "Reserved Classic", "$3.00", ...Array(9).fill("Keep"), "Metadata"])]).join("\n"), "draftkings");
@@ -65,7 +80,7 @@ test("restores duplicate lineups and exceeded limits without repair, and both ex
 
 test("malformed, unsupported and oversized files reject before returning a replacement", async () => {
   for (const value of ["", "{", "null", "[]", '{"schema":"other"}']) assert.throws(() => readPortfolioBackup(value));
-  const d = document(); d.version = 2; assert.throws(() => restore(d), /supported version/);
+  const d = document(); d.version = 999; assert.throws(() => restore(d), /supported version/);
   assert.throws(() => readPortfolioBackup(" ".repeat(PORTFOLIO_BACKUP_MAX_BYTES + 1)), /20 MiB/);
   let read = false;
   await assert.rejects(readPortfolioBackupFile({ size: PORTFOLIO_BACKUP_MAX_BYTES + 1, text: () => { read = true; } }), /20 MiB/);

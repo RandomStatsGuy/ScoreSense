@@ -1,3 +1,4 @@
+import { remainingAppearanceCounts } from "./dfsExposure.js";
 import useDataRevision from "./useDataRevision";
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "./auth";
@@ -51,6 +52,9 @@ export default function useDfsBuilder(projMeta) {
   const [poolFreshness, setPoolFreshness] = useState({ checkedAt: null, refresh: null, failed: false });
   const [vegasGames, setVegasGames] = useState([]);
   const [stackWeights, setStackWeights] = useState({});
+  const [stackChoices, setStackChoices] = useState({});
+  const [usePortfolioLimits, setUsePortfolioLimits] = useState(false);
+  const [exposureUnit, setExposureUnit] = useState("percent");
   const [slateName, setSlateName] = useState("");
   const [busy, setBusy] = useState(false);
   const [building, setBuilding] = useState(false);
@@ -167,6 +171,8 @@ export default function useDfsBuilder(projMeta) {
     setStats(null);
     setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
     setStackWeights({});
+    setStackChoices({});
+    setUsePortfolioLimits(false);
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
@@ -217,6 +223,8 @@ export default function useDfsBuilder(projMeta) {
     if (context.season == null || context.week == null || isCaptain) {
       setVegasGames([]);
       setStackWeights({});
+      setStackChoices({});
+      setUsePortfolioLimits(false);
       return;
     }
     const abort = new AbortController();
@@ -339,6 +347,8 @@ export default function useDfsBuilder(projMeta) {
     setStats(null);
     setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
     setStackWeights({});
+    setStackChoices({});
+    setUsePortfolioLimits(false);
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
@@ -474,7 +484,7 @@ export default function useDfsBuilder(projMeta) {
       qb_stack_count: isCaptain ? 0 : settings.qbStack,
       stack_bring_back: !isCaptain && settings.bringBack,
       stack_game_weights: !isCaptain
-        ? slateGames(vegasGames, pool)
+        ? Object.keys(stackWeights).map(id => slateGames(vegasGames, pool).find(game => String(game.game_id) === id)).filter(Boolean)
             .filter((game) => Number(stackWeights[game.game_id]) > 0)
             .map((game) => ({
               game_id: String(game.game_id),
@@ -501,6 +511,12 @@ export default function useDfsBuilder(projMeta) {
         throw new Error(
           "Load salaries and check the salary range before building.",
         );
+      if (context.site === "draftkings") {
+        request.player_maximum_counts = usePortfolioLimits ? remainingAppearanceCounts(portfolio, portfolioLimits, settings.count, locked,
+          { context, salaryCatalog: pool, salarySnapshot }) : {};
+        request.stack_choices = Object.entries(stackChoices).filter(([gameId]) => Number(stackWeights[gameId]) > 0)
+          .flatMap(([game_id, choices]) => Object.entries(choices).map(([qb_id, player_ids]) => ({ game_id, qb_id, player_ids })));
+      }
       const data = await jsonRequest("/api/lineup/optimize", {
         method: "POST",
         body: JSON.stringify(comparingCaptains ? captainComparisonRequest(request) : request),
@@ -530,6 +546,7 @@ export default function useDfsBuilder(projMeta) {
       const originalSettings = {
         ...request,
         note: settings.note,
+        ...(context.site === "draftkings" && usePortfolioLimits ? { portfolio_exposure_plan: { target: 150, maximum_counts: structuredClone(portfolioLimits), collected: portfolio.reduce((sum, batch) => sum + batch.lineups.length, 0) } } : {}),
         ownership,
         projection_sources: Object.fromEntries(
           pool.map((p) => [
@@ -605,6 +622,20 @@ export default function useDfsBuilder(projMeta) {
       setNotice(PC.restored);
       setError("");
     },
+    usePortfolioLimits,
+    setUsePortfolioLimits,
+    exposureUnit,
+    setExposureUnit,
+    stackChoices,
+    setGameStack: (gameId, qbId, playerIds) => {
+      setStackChoices(current => {
+        const game = { ...current[gameId] };
+        if (playerIds === null) delete game[qbId]; else game[qbId] = playerIds;
+        return { ...current, [gameId]: game };
+      });
+      if (playerIds !== null && !stackWeights[gameId]) changeStackWeight(gameId, 1);
+    },
+    setPortfolioLimitsFor: (ids, value) => setPortfolioLimits(current => ({ ...current, ...Object.fromEntries(ids.map(id => [id, value])) })),
     setPortfolioLimit: (id, value) => setPortfolioLimits(current => ({ ...current, [id]: value })),
     clearPortfolioLimits: () => setPortfolioLimits({}),
     addPortfolioBatch: (label) => {
@@ -643,7 +674,7 @@ export default function useDfsBuilder(projMeta) {
     vegasGames,
     stackWeights,
     changeStackWeight,
-    clearStackWeights: () => setStackWeights({}),
+    clearStackWeights: () => { setStackWeights({}); setStackChoices({}); },
     slateName,
     busy,
     building,
