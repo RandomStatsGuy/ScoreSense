@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DEFAULT_FORMATS,
+  parseLineupCount,
   lineupDifferenceOptions,
   normalizeLineupDifferences,
   capMeterTone,
@@ -62,6 +63,16 @@ import {
   nextExclusiveChoice,
   objectiveSortColumn,
 } from "./dfsToolPresentation.js";
+
+test("lineup counts accept exact integers through 150 and reject invalid input", () => {
+  for (const count of [1, 2, 17, 37, 149, 150]) {
+    assert.equal(parseLineupCount(count), count);
+    assert.equal(parseLineupCount(String(count)), count);
+  }
+  for (const value of ["", " ", 0, -1, 151, 1.5, "37.5", "nope", NaN, Infinity, null, undefined]) {
+    assert.equal(parseLineupCount(value), null);
+  }
+});
 
 test("formatSalary and parseSalaryCap handle empty and numeric values", () => {
   assert.equal(formatSalary(50000), "$50,000");

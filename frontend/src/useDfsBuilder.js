@@ -4,6 +4,7 @@ import { apiFetch } from "./auth";
 import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
+  parseLineupCount,
   DFS_WORKSPACE_COPY as C,
   DFS_STEP_COPY,
   defaultSlateCategory,
@@ -434,6 +435,11 @@ export default function useDfsBuilder(projMeta) {
   const run = async (mode) => {
     const comparingCaptains = mode === "compare";
     if (comparingCaptains && !isCaptain) return;
+    const lineupCount = comparingCaptains ? 1 : parseLineupCount(settings.count);
+    if (lineupCount === null) {
+      setError(C.countHelp);
+      return;
+    }
     const comparisonSeq = comparingCaptains ? ++comparisonGeneration.current : null;
     const seq = generation.current;
     if (comparingCaptains) {
@@ -462,7 +468,7 @@ export default function useDfsBuilder(projMeta) {
       salary_cap: cap,
       locked_player_ids: locked,
       excluded_player_ids: excluded,
-      lineup_count: settings.count,
+      lineup_count: lineupCount,
       max_overlap: Math.max(
         0,
         (isCaptain ? 6 : isDfs ? 9 : 7) - normalizeLineupDifferences(settings.differences, isCaptain),
