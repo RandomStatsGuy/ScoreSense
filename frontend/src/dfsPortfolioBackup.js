@@ -32,12 +32,12 @@ const timestamp = value => {
       hour > 23 || minute > 59 || second > 59) fail();
 };
 
-// Snapshots and catalog columns retain their historical JSON, within bounded
-// depth/node/string limits. They are data, never authentication or executable state.
+// The 20 MiB file limit bounds total JSON size. A separate aggregate node cap
+// rejects supported portfolios as each batch retains its full historical pool.
+// Keep per-value limits; snapshots are data, never authentication or executable state.
 function validateJson(value) {
-  let nodes = 0;
   const walk = (v, depth) => {
-    if (++nodes > 500_000 || depth > 24) fail();
+    if (depth > 24) fail();
     if (v === null || typeof v === "boolean") return;
     if (typeof v === "number") { if (!Number.isFinite(v)) fail(); return; }
     if (typeof v === "string") { if (v.length > 20_000) fail(); return; }

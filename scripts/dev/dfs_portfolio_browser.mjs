@@ -42,8 +42,7 @@ try {
     page.on("pageerror", e => errors.push(e.message));
     await page.goto("http://127.0.0.1:5173/test-fixtures/dfs-portfolio.html");
     await page.locator("[aria-labelledby='dfw-portfolio-title']").screenshot({ path: path.join(output, `portfolio-empty-${width}.png`) });
-    await page.getByRole("button", { name: /^Lineups:/ }).click();
-    await page.getByRole("option", { name: "3", exact: true }).click();
+    await page.getByRole("spinbutton", { name: "Lineups", exact: true }).fill("3");
     await page.getByRole("button", { name: "Lock Example 1", exact: true }).click();
     await page.locator(".dfw-build-button").click();
     const label = page.getByLabel("Batch label", { exact: true });
@@ -155,8 +154,7 @@ try {
     console.log(`PASS ${width}: collect/export, backup, malformed/mixed rejection, cancel/replace, fresh entry template, cache reset, immutable history, portfolio spacing`);
     if (width === 1280) {
       await page.reload();
-      await page.getByRole("button", { name: /^Lineups:/ }).click();
-      await page.getByRole("option", { name: "50", exact: true }).click();
+      await page.getByRole("spinbutton", { name: "Lineups", exact: true }).fill("50");
       await page.getByRole("button", { name: "Lock Example 1", exact: true }).click();
       for (const labelText of ["First 50", "Second 50", "Third 50"]) {
         await page.locator(".dfw-build-button").click();
@@ -212,6 +210,39 @@ try {
       await max.fill("150"); assert.equal(await download.isEnabled(), true);
       console.log("PASS 150-lineup backup → reload → restore → identical export: identities, snapshots, timestamps, limits, audit, fresh account saves, duplicate/limit gates");
     }
+    await context.close();
+  }
+  for (const width of [1280, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, acceptDownloads: true });
+    const page = await context.newPage(), errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto("http://127.0.0.1:5173/test-fixtures/dfs-portfolio.html?large-pool");
+    await page.getByRole("spinbutton", { name: "Lineups", exact: true }).fill("20");
+    for (let i = 0; i < 7; i++) {
+      await page.locator(".dfw-build-button").click();
+      await page.getByLabel("Batch label", { exact: true }).fill(`Full-pool batch ${i + 1}`);
+      await page.getByRole("button", { name: "Add current build to portfolio", exact: true }).click();
+    }
+    await page.getByText("140 / 150 unique · 140 collected · 7 batches · 0 duplicates · 10 shortfall", { exact: true }).waitFor();
+    const downloaded = await backupFile(page, `large-pool-${width}`);
+    const original = readPortfolioBackup(downloaded.text);
+    assert.equal(auditPortfolio(original.batches).total, 140);
+    assert.equal(original.batches[0].salaryCatalog.length, 700);
+    // Ensure this fixture covers the removed 500,000-value ceiling.
+    let values = 0;
+    JSON.parse(downloaded.text, (_key, value) => { values++; return value; });
+    assert.ok(values > 500_000);
+    await page.locator("[aria-labelledby='dfw-portfolio-title']").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(output, `large-pool-${width}.png`) });
+    await page.reload();
+    await restoreFile(page, downloaded.text);
+    await page.getByText("140 / 150 unique · 140 collected · 7 batches · 0 duplicates · 10 shortfall", { exact: true }).waitFor();
+    const restored = readPortfolioBackup((await backupFile(page, `large-pool-restored-${width}`)).text);
+    assert.deepEqual(restored.batches, original.batches);
+    assert.deepEqual(restored.appearanceLimits, original.appearanceLimits);
+    assert.equal(await page.evaluate(() => window.__portfolioFixture.requests.length), 0);
+    assert.deepEqual(errors, []);
+    console.log(`PASS ${width}: 140-lineup full-pool backup downloads, restores after reload, and re-downloads without changed inputs (${values} values).`);
     await context.close();
   }
 } finally { await browser.close(); }

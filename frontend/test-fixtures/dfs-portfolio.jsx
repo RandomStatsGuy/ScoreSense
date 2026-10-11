@@ -13,7 +13,11 @@ import "../src/styles/fantasy-phone.css";
 
 const positions = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "WR", "DST"];
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
-const players = Array.from({ length: 180 }, (_, i) => ({ player_id: `p${i + 1}`, dfs_id: String(i + 1),
+const largePool = new URLSearchParams(location.search).has("large-pool");
+const historicalFeatures = largePool
+  ? Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`model_feature_${i}`, i / 100]))
+  : {};
+const players = Array.from({ length: largePool ? 700 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
   Player: `Example ${i + 1}`, Team: i % 2 ? "BUF" : "KC", Position: positions[i] || "WR", salary: 4000,
   "Projected Points": 10, "Low (P10)": 5, "High (P90)": 15, projection_source: "ScoreSense" }));
 window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: false, repeatBuild: false, run: 0 };
