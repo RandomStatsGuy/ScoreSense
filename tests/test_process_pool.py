@@ -1,5 +1,8 @@
 import asyncio
 import os
+import sqlite3
+from multiprocessing import get_start_method
+from threading import Event, Lock, Thread
 from concurrent.futures.process import BrokenProcessPool
 
 import pytest
@@ -87,3 +90,45 @@ def test_cancelled_observer_does_not_make_busy_worker_look_idle():
         finally:
             process_pool.shutdown_process_executor(wait=True)
     asyncio.run(exercise())
+
+
+# A forked worker inherits this locked object, but its owning thread disappears.
+# Keep the probe bounded so the regression fails without stranding a worker.
+_PARENT_THREAD_LOCK = Lock()
+
+
+def _fresh_worker_sqlite_probe():
+    acquired = _PARENT_THREAD_LOCK.acquire(timeout=1)
+    try:
+        with sqlite3.connect(":memory:") as conn:
+            value = conn.execute("SELECT 42").fetchone()[0]
+        return get_start_method(), acquired, value
+    finally:
+        if acquired:
+            _PARENT_THREAD_LOCK.release()
+
+
+@pytest.mark.parametrize("submit", [process_pool.submit_cpu_job, process_pool.submit_live_job],
+                         ids=["inference", "live-scoring"])
+def test_workers_start_fresh_while_parent_threads_hold_locks(submit):
+    held, release = Event(), Event()
+
+    def hold_parent_lock():
+        with _PARENT_THREAD_LOCK:
+            held.set()
+            release.wait()
+
+    holder = Thread(target=hold_parent_lock)
+    holder.start()
+    try:
+        assert held.wait(timeout=5)
+
+        async def exercise():
+            result = await asyncio.wait_for(submit(_fresh_worker_sqlite_probe), timeout=20)
+            assert result == ("spawn", True, 42)
+
+        asyncio.run(exercise())
+    finally:
+        release.set()
+        holder.join(timeout=5)
+        process_pool.shutdown_process_executor(wait=True)
