@@ -11,6 +11,7 @@ import logging
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from functools import partial
+from multiprocessing import get_context
 from typing import Callable, TypeVar
 from threading import Lock
 
@@ -24,6 +25,11 @@ _executor: ProcessPoolExecutor | None = None
 _live_executor: ProcessPoolExecutor | None = None
 _CPU_FUTURES: set = set()
 _CPU_LOCK = Lock()
+
+# The API already has threads and SQLite users when pools start. Fork can
+# inherit a locked SQLite mutex whose owning thread is absent in the child.
+# Spawn gives both workers fresh interpreter/library state on every platform.
+_WORKER_CONTEXT = get_context("spawn")
 
 
 def cpu_jobs_busy() -> bool:
@@ -40,7 +46,7 @@ def _cpu_finished(future):
 def init_process_executor(max_workers: int = 1) -> ProcessPoolExecutor:
     global _executor
     if _executor is None:
-        _executor = ProcessPoolExecutor(max_workers=max_workers)
+        _executor = ProcessPoolExecutor(max_workers=max_workers, mp_context=_WORKER_CONTEXT)
     return _executor
 
 
@@ -63,7 +69,7 @@ def get_process_executor() -> ProcessPoolExecutor:
 def get_live_executor() -> ProcessPoolExecutor:
     global _live_executor
     if _live_executor is None:
-        _live_executor = ProcessPoolExecutor(max_workers=1)
+        _live_executor = ProcessPoolExecutor(max_workers=1, mp_context=_WORKER_CONTEXT)
     return _live_executor
 
 
