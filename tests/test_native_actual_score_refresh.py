@@ -205,7 +205,7 @@ def test_rescheduled_unfinished_game_prevents_finalization_even_after_monday(hub
     assert storage.get_week_scoring_run(league["id"], 2025, 1) is None
 
 
-def test_missing_actual_player_statistics_are_visible_and_retried(hub_db):
+def test_missing_actual_player_statistics_are_visible_and_retried(hub_db, trusted_native_roster_rows):
     league, _, _ = seed(hub_db)
     complete = snapshot()
     missing = copy.deepcopy(complete)
