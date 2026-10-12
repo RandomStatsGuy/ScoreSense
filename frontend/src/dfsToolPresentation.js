@@ -2,6 +2,38 @@
 
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
+export const DFS_SHOWDOWN_COPY = {
+  pairing: "WR/TE Captain with own quarterback", policies: [{ id: "require", label: "Require" }, { id: "warn", label: "Warn" }, { id: "off", label: "Off" }],
+  strategyDefault: "Strategy default · not a contest rule", pairingHelp: "Require pairs a receiver Captain with an approved same-team quarterback. Verify your choice; backups are never selected automatically.",
+  qbChoice: team => `${team} pairing quarterback`, noQb: "Use verified starter, if available", verified: "Verified starter", approved: "Your approved choice", missingQb: "No verified quarterback is mapped. Choose one under Advanced rules before requiring this pairing.", pairingMissing: teams => `WR/TE Captains from ${teams.join(" / ")} need an approved QB. Choose under Advanced rules.`,
+  exception: policy => `Captain pairing: ${policy === "warn" ? "warn only" : "off"}`, legacyPolicy: "Historical rules · pairing was not required", explicitApproval: "Selecting a quarterback approves that identity for pairing; it does not lock him into every lineup.",
+  objectives: { median: "Projection sum", floor: "P10-input score", ceiling: "P90-input score", value: "Value-input score" },
+  pointUnits: "points", valueUnits: "points per $1,000", projection: "Projection sum", projectionUnknown: "Sum of player estimates · statistic unknown",
+  scoreHelp: { median: "Adds the player projection inputs with the Captain multiplier once. See source details for each input’s statistic.", floor: "Adds each player's P10 input, including the Captain multiplier. Not a predicted lineup percentile.", ceiling: "Adds each player's P90 input, including the Captain multiplier. Not a predicted lineup percentile.", value: "Adds each slot's projected points per $1,000 of salary. This score is not fantasy points." },
+  scoreMismatch: "The returned score differs from the roster inputs. Review the diagnostic before using this result.", scoring: "Scoring & input details", forecast: "Forecast snapshot", injurySnapshot: "Injury snapshot", conditioning: "Availability basis", unknown: "Unavailable",
+  status: { questionable: "Questionable", doubtful: "Doubtful", out: "Out", ir: "IR", limited: "Limited", active: "Active", unknown: "Unknown", inactive: "Inactive", pup: "PUP", suspended: "Suspended" },
+  atBuild: "At build", latest: "Latest", latestPending: "Latest available update · not applied", statusTime: "Status as of", source: "Source", role: "Role evidence", noRole: "Current role estimate unavailable.",
+  sourceDetails: "Source & role", raw: "Frozen input diagnostic", missingZero: "Zero-score probability unavailable.", inputValue: "Slot objective input", inclusion: "Construction inputs", inclusionHelp: "Salary, selected score and enforced rules describe this inclusion. They do not establish a projected workload or explain portfolio-wide omission.",
+  review: "Construction review", reviewCount: count => `${count} lineup${count === 1 ? " needs" : "s need"} review`, filter: "Show lineups needing review", all: "Show all lineups", warningCount: count => `${count} lineup${count === 1 ? "" : "s"}`, exceptionLabel: "Policy exception", noWarnings: "No returned construction findings.",
+  warnings: { receiver_captain_without_qb: "Receiver Captain without paired QB", receiver_captain_qb_unknown: "Captain pairing needs a QB identity", qb_opposing_dst: "Quarterback against opposing defense", captain_opposing_dst: "Captain against opposing defense", shared_backfield: "Shared backfield exposure", selected_availability: "Availability needs review", role_unavailable: "Role estimate unavailable", projection_fallback: "Fallback projection source", stale_forecast: "Forecast timestamp needs review", stale_role_evidence: "Role evidence needs review", shared_personnel_assumption: "Shared personnel assumption", high_captain_concentration: "Captain concentration" },
+  total: "Total", captain: "Captain", flex: "FLEX only", appearances: (count, share) => `${count} · ${(share * 100).toFixed(0)}%`,
+  compareTitle: "Compare with a player", comparePlayer: "Player to compare", choosePlayer: "Choose a player", placement: "Include as", placements: [{ id: "flex", label: "Include in FLEX" }, { id: "captain", label: "Use as Captain" }],
+  compare: "Compare complete lineups", comparing: "Comparing…", cancel: "Cancel comparison", cancelled: "Comparison cancelled. Previous result retained.",
+  compareHelp: "One lineup on your frozen inputs. Locks, skips, salary and Captain pairing apply; zero Captain limits stay excluded. Positive exposure limits and lineup count do not apply.",
+  exposureScope: "Positive exposure limits are recorded for context. Zero Captain limits remain excluded from that role.",
+  cancelHelp: "Cancel stops waiting; the server may finish its bounded solve.",
+  compareNeedsBuild: "Build a Showdown set first to compare on its original inputs.", baseline: "Baseline", forced: "With selected player", tradeoffs: "What changed", added: "Added", removed: "Removed", salary: "Salary used", unused: "Salary left", objectiveDelta: "Score change", newWarnings: "New findings", removedWarnings: "Resolved findings",
+  solver: { optimal: "Proved optimum for this single lineup", feasible: "Feasible · optimum unproved", infeasible: "No feasible lineup under these rules", conflict: "Selected player conflicts with the saved rules", unresolved: "Unresolved within the time limit", invalid: "Failed independent validation", not_evaluated: "Not evaluated" },
+  failure: "Comparison failed. Your build and previous comparison remain available.", stale: "Inputs changed. Run a new comparison on the reviewed build.", mismatch: "Comparison does not match the frozen build inputs.",
+  saveReview: "Download personal review", reopen: "Open saved review", savedTitle: "Saved Showdown review", savedScope: "Historical record · imported authenticity unverified. Current build and entry assignments are unchanged.", closeSaved: "Close saved review", reviewInvalid: "This is not a supported Showdown personal review. The current build is unchanged.",
+  downloadAccess: "Sign in again before saving this personal review.", snapshot: "Original snapshot", noComparisons: "No saved comparison", beforeBuild: "Build status is retained with the original inputs.",
+  availabilityFailed: "Current player status could not be checked. Retry before downloading this Showdown file.", unavailableExport: names => `Current unavailable status: ${names}. Keep this historical review; rebuild before downloading an entry file.`, elapsed: seconds => `${seconds}s elapsed`,
+  previous: "Previous", next: "Next",
+  warningPairs: "Pairs flagged for review",
+  builtCount: count => `${count} ${count === 1 ? "lineup" : "lineups"}`,
+  conditioningLabels: { conditional_active: "If active", scenario_mixture: "Availability scenarios", user_scenario: "Your availability scenario", unknown: "Unknown" },
+};
+
 export const DFS_FLOW_COPY = {
   title: "Build your lineups", workspace: "DFS workspace", goal: "Scoring goal",
   advanced: "Advanced rules", advancedHint: "Player limits · stacks · salary",
@@ -1325,7 +1357,7 @@ export const DFS_CAPTAIN_COMPARISON_COPY = {
   title: "Captain comparison",
   action: "Compare Captains",
   loading: "Comparing complete lineups…",
-  help: "Compare one complete lineup per eligible Captain using your score, salary range, team limit, locks and skipped players. Lineup count, exposure limits, minimum differences and randomness do not apply. Your current build stays in place.",
+  help: "Compare complete lineups using your score and lineup rules. Positive exposure limits, lineup count, minimum differences and randomness do not apply. Zero Captain limits stay excluded from that role.",
   empty: "Load a single-game player pool to compare Captains.",
   ready: "Run a comparison to see how changing Captain changes the full lineup.",
   locked: "Your Captain lock limits this comparison to one player. Clear it to compare alternatives.",
@@ -1354,7 +1386,7 @@ export function captainComparisonSummary(report) {
     complete: report?.complete === true && rows.length > 0 && rows.length === report.eligible_captains && rows.every(row =>
       row.status === "infeasible" || solved.includes(row)),
     count: `${solved.length} ${solved.length === 1 ? "lineup" : "lineups"} solved · ${report?.evaluated_captains ?? 0} of ${report?.eligible_captains ?? 0} Captains evaluated`,
-    objective: { median: "Sum of player P50s", floor: "Sum of player P10s", ceiling: "Sum of player P90s", value: "Sum of player points per $1,000" }[report?.objective] || "Objective sum",
+    objective: DFS_SHOWDOWN_COPY.objectives[report?.objective] || "Objective sum",
   };
 }
 

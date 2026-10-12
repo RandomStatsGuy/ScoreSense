@@ -167,12 +167,11 @@ def predict_from_features(
     ]
     if apply_injury_adjustments:
         roster = compute_vacated_usage(df)
-        name_col = _player_name_col(roster)
-        boost_map = roster.set_index(name_col)["injury_opportunity_boost"].to_dict()
-        note_map = roster.set_index(name_col)["injury_note"].to_dict()
-        mapped = result["Player"].map(boost_map).fillna(0.0)
+        # compute_vacated_usage preserves inference rows and their order. A
+        # display-name join can substitute a different team's same-name player.
+        mapped = pd.Series(roster["injury_opportunity_boost"].fillna(0.0).to_numpy(), index=result.index)
         attach_opportunity_adjustment(result, mapped)
-        result["Injury Note"] = result["Player"].map(note_map).fillna("")
+        result["Injury Note"] = roster["injury_note"].fillna("").to_numpy()
         multiplier = 1.0 + result[OPPORTUNITY_ADJUSTMENT_COL].clip(0, 0.35)
         for col in ("Projected Points", "Low (P10)", "High (P90)"):
             result[col] = result[col] * multiplier

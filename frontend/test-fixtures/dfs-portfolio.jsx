@@ -11,6 +11,7 @@ import sharedFixture from "./dfs-shared-data.json";
 import contestFixture from "./dfs-contest-data.json";
 import contestPortfolioFixture from "./dfs-contest-portfolio-data.json";
 import lateSwapFixture from "./dfs-late-swap-data.json";
+import showdownFixture from "./dfs-showdown-data.json";
 import "../src/styles.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
@@ -23,13 +24,14 @@ const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
 const largePool = new URLSearchParams(location.search).has("large-pool");
 const sharedMode = new URLSearchParams(location.search).has("shared");
 const lateSwapMode = new URLSearchParams(location.search).has("late-swap");
+const showdownMode = new URLSearchParams(location.search).has("showdown");
 const workflow = sharedMode || lateSwapMode || new URLSearchParams(location.search).has("workflow");
 const evidenceMode = new URLSearchParams(location.search).has("evidence");
 const guardrails = workflow || evidenceMode || new URLSearchParams(location.search).has("guardrails");
 const historicalFeatures = largePool
   ? Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`model_feature_${i}`, i / 100]))
   : {};
-const players = sharedMode ? sharedFixture.ui_pool : evidenceMode ? evidenceFixture.pool : Array.from({ length: largePool ? 700 : workflow ? 400 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
+const players = showdownMode ? showdownFixture.pool.players : sharedMode ? sharedFixture.ui_pool : evidenceMode ? evidenceFixture.pool : Array.from({ length: largePool ? 700 : workflow ? 400 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
   Player: `Example ${i + 1}`, Team: guardrails && i >= 9 ? "KC" : i % 2 ? "BUF" : "KC",
   Opponent: guardrails && i >= 9 ? "BUF" : i % 2 ? "KC" : "BUF",
   Position: guardrails && i === 178 ? "RB" : positions[i] || "WR", salary: 4000,
@@ -54,6 +56,7 @@ window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: f
   delayLateSwapPlan: false, ignoreLateSwapPlanAbort: false, lateSwapPlanAborts: 0, mismatchLateSwapPlan: false,
   publishDataRevision };
 const fixturePool = state => players.map((player, index) => ({ ...player,
+  ...(showdownMode && state.latestOut && player.player_id === "wb" ? { "Injury Status": "Out", availability_updated_at: "2026-10-12T14:00:00Z" } : {}),
   ...((workflow || evidenceMode) && state.poolVersion && index === 0 ? {
     "Projected Points": player["Projected Points"] + state.poolVersion * 2,
     "Low (P10)": player["Low (P10)"] + state.poolVersion, "High (P90)": player["High (P90)"] + state.poolVersion * 3,
@@ -84,6 +87,28 @@ window.fetch = async (url, options = {}) => {
     });
   };
   if (path.includes("/formats")) return respond({ formats: DEFAULT_FORMATS });
+  if (showdownMode && path.includes("/slates?")) return respond({ slates: [{ slate_id: "showdown-fixture", name: "Synthetic BUF at LA" }] });
+  if (showdownMode && (path.includes("/salaries/load") || path.includes("/pool?"))) {
+    state.poolRequests++;
+    if (state.failPool) return respond({ detail: "Synthetic status read failed." }, 503);
+    return respond({ ...showdownFixture.pool, players: fixturePool(state), salaries: showdownFixture.salaries });
+  }
+  if (showdownMode && path.includes("/vegas")) return respond({ games: [{ game_id: "synthetic-buf-la", home: "LA", away: "BUF", kickoff_et: "2030-10-14T00:20:00Z" }] });
+  if (showdownMode && path.endsWith("/optimize")) {
+    state.requests.push(body);
+    await delay("delayOptimize", "ignoreOptimizeAbort", "optimizeAborts");
+    if (state.failOptimize) return respond({ ok: false, error: "Synthetic comparison failure. Previous result retained." });
+    if (body.objective !== "ceiling" || canonical(body.showdown_rules) !== canonical(showdownFixture.build_request.showdown_rules) || body.lineup_count !== 1 ||
+        (body.locked_player_ids || []).length || (body.excluded_player_ids || []).length || body.locked_captain_id || body.salary_cap !== 50000)
+      return respond({ ok: false, error: "Request differs from the real-engine synthetic fixture." });
+    if (body.comparison_player_id || body.include_captain_comparison) {
+      if (canonical(body.comparison_snapshot) !== canonical(showdownFixture.build.build_snapshot)) return respond({ ok: false, error: "Comparison did not use its exact original build snapshot." });
+      if (body.comparison_player_id && (body.comparison_player_id !== "cheap" || body.comparison_player_slot !== "flex")) return respond({ ok: false, error: "Only the declared synthetic comparison has an engine result." });
+      const result = body.comparison_player_id ? showdownFixture.player_comparison : showdownFixture.captain_comparison;
+      return respond({ ...result, ...(state.mismatchComparison ? { comparison_source_snapshot_id: "wrong-synthetic-snapshot" } : {}) });
+    }
+    return respond(showdownFixture.build);
+  }
   if (path.includes("/slates?")) return respond({ slates: [{ slate_id: "classic-fixture", name: "Classic fixture slate" }] });
   if (lateSwapMode && path.includes("/late-swap/")) {
     const planning = path.endsWith("/plan");

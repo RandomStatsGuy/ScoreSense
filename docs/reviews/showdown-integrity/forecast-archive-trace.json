@@ -1,0 +1,938 @@
+{
+  "schema_version": "showdown_archive_trace_v1",
+  "requested_context": {
+    "season": 2026,
+    "week": 5
+  },
+  "read_only": true,
+  "original_twenty_lineup_audit_reproduced": false,
+  "requested_weekly_archives_present": 0,
+  "requested_deep_dfs_pool_present": false,
+  "original_build_manifest_supplied": false,
+  "salary_slate_supplied": false,
+  "archive_coverage": [
+    {
+      "path": "artifacts/weekly_predictions/2025_w19_qb.meta.json",
+      "context": {
+        "season": 2025,
+        "week": 19,
+        "position": "qb",
+        "injury_adjustments": true
+      },
+      "built_at": "2026-06-25T02:27:33.217361+00:00",
+      "rows_declared": 81,
+      "requested_context": false,
+      "metadata_sha256": "df5a7d51ceb00833a0bef211baa071554360198e6d0dd5501cc5498e99ad30fc",
+      "parquet_present": true,
+      "rows_actual": 81,
+      "parquet_sha256": "5a655c9a7207e04d563d503222a7c656908adfeb490596fc75e4a8e9b0f988e8"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2025_w19_qb_no_inj.meta.json",
+      "context": {
+        "season": 2025,
+        "week": 19,
+        "position": "qb",
+        "injury_adjustments": false
+      },
+      "built_at": "2026-06-25T02:27:33.224019+00:00",
+      "rows_declared": 81,
+      "requested_context": false,
+      "metadata_sha256": "f9cb035bc2ca7b35b88b199f6f94143a31c60ca453325236e2c42ecd40f39018",
+      "parquet_present": true,
+      "rows_actual": 81,
+      "parquet_sha256": "ea96773a1c5a4a8b162f6a481c7c3a2c7b6446222f809124086036eac6f98c58"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2025_w19_rb.meta.json",
+      "context": {
+        "season": 2025,
+        "week": 19,
+        "position": "rb",
+        "injury_adjustments": true
+      },
+      "built_at": "2026-06-25T02:27:34.476699+00:00",
+      "rows_declared": 157,
+      "requested_context": false,
+      "metadata_sha256": "e50ef1a5899d4233526683c72342ee8c199df88360cefff8a13fac19a1768f62",
+      "parquet_present": true,
+      "rows_actual": 157,
+      "parquet_sha256": "89bb3a7992f4aad03cce11f44f1cdab6029c015ea01632844b02bf1421d14133"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2025_w19_rb_no_inj.meta.json",
+      "context": {
+        "season": 2025,
+        "week": 19,
+        "position": "rb",
+        "injury_adjustments": false
+      },
+      "built_at": "2026-06-25T02:27:34.482856+00:00",
+      "rows_declared": 157,
+      "requested_context": false,
+      "metadata_sha256": "1ce88d5bd9a72fc99c6ab3bbbb8ef9b6e55c9cc497c08a4cf077c5c7ab68c593",
+      "parquet_present": true,
+      "rows_actual": 157,
+      "parquet_sha256": "d72106265c83a57aa95f00ad34bad6bfd03a2981d348342fc014be8df18edba1"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2025_w19_wr.meta.json",
+      "context": {
+        "season": 2025,
+        "week": 19,
+        "position": "wr",
+        "injury_adjustments": true
+      },
+      "built_at": "2026-06-25T02:27:35.850390+00:00",
+      "rows_declared": 378,
+      "requested_context": false,
+      "metadata_sha256": "d917869004968fba592a6835e3f971720c5b7b97952623bef2003ff421a2d5e4",
+      "parquet_present": true,
+      "rows_actual": 378,
+      "parquet_sha256": "8e73c12714fc4b0f855d794401d85d6694dc95e02a9aca6ecb05abc4846e60e1"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2025_w19_wr_no_inj.meta.json",
+      "context": {
+        "season": 2025,
+        "week": 19,
+        "position": "wr",
+        "injury_adjustments": false
+      },
+      "built_at": "2026-06-25T02:27:35.857554+00:00",
+      "rows_declared": 378,
+      "requested_context": false,
+      "metadata_sha256": "9f539d6dc74e7117b279f9de914a0053d15451e2a7e8149003ecf5f6a32120fa",
+      "parquet_present": true,
+      "rows_actual": 378,
+      "parquet_sha256": "878e8f0ddc3d680df67c7d3a65cb7e768ed68dde4b02d354d2fe22a516fa8449"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2026_w1_qb.meta.json",
+      "context": {
+        "season": 2026,
+        "week": 1,
+        "position": "qb",
+        "injury_adjustments": true
+      },
+      "built_at": "2026-06-25T02:27:48.454626+00:00",
+      "rows_declared": 32,
+      "requested_context": false,
+      "metadata_sha256": "a3020f1bd5a9c232379bc2e88055937e1a521ad7e3bf786573f246facf72ab15",
+      "parquet_present": true,
+      "rows_actual": 32,
+      "parquet_sha256": "b09eec8495bed886557484dc74e091f36a96eab8ed2ce24afb6ac3d8e7bd3f30"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2026_w1_qb_no_inj.meta.json",
+      "context": {
+        "season": 2026,
+        "week": 1,
+        "position": "qb",
+        "injury_adjustments": false
+      },
+      "built_at": "2026-06-25T02:27:57.076371+00:00",
+      "rows_declared": 32,
+      "requested_context": false,
+      "metadata_sha256": "684cd4bd62e4ba218e270abbfe680e1e35f832d2474a15155ade800fde9b2835",
+      "parquet_present": true,
+      "rows_actual": 32,
+      "parquet_sha256": "b33525e4d8d5cb07d38c1091bcd46e2c2df6a7040f832725eb54b8fe57c5a393"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2026_w1_rb.meta.json",
+      "context": {
+        "season": 2026,
+        "week": 1,
+        "position": "rb",
+        "injury_adjustments": true
+      },
+      "built_at": "2026-06-25T02:28:13.996635+00:00",
+      "rows_declared": 64,
+      "requested_context": false,
+      "metadata_sha256": "c8eef6a0a4012612ef1fa6854a9d6af6a94b07529308db9dbb2d6b40b6f3964c",
+      "parquet_present": true,
+      "rows_actual": 64,
+      "parquet_sha256": "ff3225d7f976ea592cde00c75087c233aad32c63e3c2dfb40f3562f5abce3935"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2026_w1_rb_no_inj.meta.json",
+      "context": {
+        "season": 2026,
+        "week": 1,
+        "position": "rb",
+        "injury_adjustments": false
+      },
+      "built_at": "2026-06-25T02:28:27.973805+00:00",
+      "rows_declared": 64,
+      "requested_context": false,
+      "metadata_sha256": "77d0368c9309037217913199869323fee88696b0427412bb7cfa14a5415a5129",
+      "parquet_present": true,
+      "rows_actual": 64,
+      "parquet_sha256": "6a13d7ffaca06dd078042dbde30e9795b54f817b4271c94fda4744491e63848d"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2026_w1_wr.meta.json",
+      "context": {
+        "season": 2026,
+        "week": 1,
+        "position": "wr",
+        "injury_adjustments": true
+      },
+      "built_at": "2026-06-25T02:28:59.095311+00:00",
+      "rows_declared": 96,
+      "requested_context": false,
+      "metadata_sha256": "6f89ff778a18214384bb650c96022316f9339c545a07845116752bc91a87a583",
+      "parquet_present": true,
+      "rows_actual": 96,
+      "parquet_sha256": "3574f5d9fa84415d958795fe9c0e0614bf931230017efd96aa3ebc2d69c4e352"
+    },
+    {
+      "path": "artifacts/weekly_predictions/2026_w1_wr_no_inj.meta.json",
+      "context": {
+        "season": 2026,
+        "week": 1,
+        "position": "wr",
+        "injury_adjustments": false
+      },
+      "built_at": "2026-06-22T02:39:59.689988+00:00",
+      "rows_declared": 96,
+      "requested_context": false,
+      "metadata_sha256": "7a2982f0340d4af2d02310fc0f35105d3f9858ba558778c41f703e61cca4b0fc",
+      "parquet_present": true,
+      "rows_actual": 96,
+      "parquet_sha256": "85653c2bc951b182f7da38ea224378622b49d73fe984522596835a4c0020fd88"
+    }
+  ],
+  "player_traces": [
+    {
+      "player_name": "Khalil Shakir",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.850390+00:00",
+          "canonical_id": "00-0037261",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 2.090791912917477,
+            "projection": 6.794254600729469,
+            "p90": 18.11709676040071
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.857554+00:00",
+          "canonical_id": "00-0037261",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 2.0071985631632328,
+            "projection": 6.52260896366287,
+            "p90": 17.392744998435848
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2026_w1_wr.meta.json",
+          "context": {
+            "season": 2026,
+            "week": 1,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:28:59.095311+00:00",
+          "canonical_id": "00-0037261",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 2.4180515222801016,
+            "projection": 9.494273023948669,
+            "p90": 22.726972653004317
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2026_w1_wr_no_inj.meta.json",
+          "context": {
+            "season": 2026,
+            "week": 1,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-22T02:39:59.689988+00:00",
+          "canonical_id": "00-0037261",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 2.151710172728568,
+            "projection": 8.44850643588823,
+            "p90": 20.22366264829682
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Keon Coleman",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.850390+00:00",
+          "canonical_id": "00-0039901",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 2.13879584550161,
+            "projection": 6.700768648387472,
+            "p90": 23.06660987178098
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.857554+00:00",
+          "canonical_id": "00-0039901",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 2.0569240166360774,
+            "projection": 6.444267222502365,
+            "p90": 22.18363380844963
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Elijah Moore",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.850390+00:00",
+          "canonical_id": "00-0036980",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.8741058854452124,
+            "projection": 4.974399659512382,
+            "p90": 16.497987714928257
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.857554+00:00",
+          "canonical_id": "00-0036980",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "WR",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.8025665089555205,
+            "projection": 4.784514203831465,
+            "p90": 15.868217666380449
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Tyler Higbee",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.850390+00:00",
+          "canonical_id": "00-0033110",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "LA",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.9612794840435754,
+            "projection": 6.0938302533698465,
+            "p90": 18.137595890135717
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.857554+00:00",
+          "canonical_id": "00-0033110",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "LA",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.9612794840435754,
+            "projection": 6.0938302533698465,
+            "p90": 18.137595890135717
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Ty Johnson",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_rb.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "rb",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:34.476699+00:00",
+          "canonical_id": "00-0035537",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "RB",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.2209137027829324,
+            "projection": 4.922691591913427,
+            "p90": 19.6453752821781
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_rb_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "rb",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:34.482856+00:00",
+          "canonical_id": "00-0035537",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "RB",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.086937971550023,
+            "projection": 4.382505005296049,
+            "p90": 17.489609880597804
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Dawson Knox",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.850390+00:00",
+          "canonical_id": "00-0035689",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.9904923581747382,
+            "projection": 6.596797460028537,
+            "p90": 22.934289848456075
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.857554+00:00",
+          "canonical_id": "00-0035689",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.9335754684205477,
+            "projection": 6.4081661436503765,
+            "p90": 22.278498108520825
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2026_w1_wr.meta.json",
+          "context": {
+            "season": 2026,
+            "week": 1,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:28:59.095311+00:00",
+          "canonical_id": "00-0035689",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.7989805994675943,
+            "projection": 6.260815926467444,
+            "p90": 20.5089829200702
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2026_w1_wr_no_inj.meta.json",
+          "context": {
+            "season": 2026,
+            "week": 1,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-22T02:39:59.689988+00:00",
+          "canonical_id": "00-0035689",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.6581318848287425,
+            "projection": 5.770633944463654,
+            "p90": 18.903260277092865
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Blake Corum",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_rb.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "rb",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:34.476699+00:00",
+          "canonical_id": "00-0039738",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "LA",
+          "position": "RB",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 0.7152571192933646,
+            "projection": 3.937063962496729,
+            "p90": 19.94840816769223
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_rb_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "rb",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:34.482856+00:00",
+          "canonical_id": "00-0039738",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "LA",
+          "position": "RB",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 0.7152571192933646,
+            "projection": 3.937063962496729,
+            "p90": 19.94840816769223
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2026_w1_rb.meta.json",
+          "context": {
+            "season": 2026,
+            "week": 1,
+            "position": "rb",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:28:13.996635+00:00",
+          "canonical_id": "00-0039738",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "LA",
+          "position": "RB",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 0.8683277096979234,
+            "projection": 3.9138127081513248,
+            "p90": 19.62088563169076
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2026_w1_rb_no_inj.meta.json",
+          "context": {
+            "season": 2026,
+            "week": 1,
+            "position": "rb",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:28:27.973805+00:00",
+          "canonical_id": "00-0039738",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "LA",
+          "position": "RB",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 0.8683277096979234,
+            "projection": 3.9138127081513248,
+            "p90": 19.62088563169076
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Jackson Hawes",
+      "archive_rows": [
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": true
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.850390+00:00",
+          "canonical_id": "00-0040194",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.7136799839191066,
+            "projection": 3.862810544524263,
+            "p90": 14.770658057879578
+          },
+          "status_at_archive": "",
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        },
+        {
+          "artifact": "artifacts/weekly_predictions/2025_w19_wr_no_inj.meta.json",
+          "context": {
+            "season": 2025,
+            "week": 19,
+            "position": "wr",
+            "injury_adjustments": false
+          },
+          "requested_context": false,
+          "forecast_at": "2026-06-25T02:27:35.857554+00:00",
+          "canonical_id": "00-0040194",
+          "provider_id": null,
+          "slate_id": null,
+          "team": "BUF",
+          "position": "TE",
+          "source_type": null,
+          "model_version_recorded": null,
+          "raw_flex_inputs": {
+            "p10": 1.6874130821313211,
+            "projection": 3.803602252340213,
+            "p90": 14.544256729633918
+          },
+          "status_at_archive": null,
+          "status_known_at": null,
+          "opportunity_fraction": null,
+          "injury_snapshot_id": null,
+          "active_conditioning_recorded": null,
+          "observed_period_recorded": null,
+          "exact_suspect_build_reproduced": false
+        }
+      ],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    },
+    {
+      "player_name": "Skyler Bell",
+      "archive_rows": [],
+      "requested_context_rows": 0,
+      "eligibility_exclusion_and_solver_coefficient": "unavailable_without_original_slate_and_build"
+    }
+  ],
+  "unresolved": [
+    "Original 20-lineup artifact, salary slate, frozen options and build manifest absent.",
+    "Other-week forecasts cannot verify suspect current inputs, exclusions, caps or exact exposures.",
+    "Unrecorded timestamps, model versions, role components and injury drivers remain unknown.",
+    "Installed model artifacts do not establish which model produced an old forecast."
+  ],
+  "read_failures": []
+}

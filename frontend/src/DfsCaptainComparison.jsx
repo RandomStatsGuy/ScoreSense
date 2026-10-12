@@ -1,5 +1,8 @@
 import React from "react";
 import { DFS_CAPTAIN_COMPARISON_COPY as C, captainComparisonSummary, formatSalary } from "./dfsToolPresentation";
+import { DfsBuildStatusTag, DfsShowdownFindings, DfsShowdownScore } from "./DfsShowdownReview.jsx";
+import { showdownAudit } from "./dfsShowdownReview.js";
+import { DFS_SHOWDOWN_COPY as SC } from "./dfsToolPresentation.js";
 
 const score = value => Number.isFinite(value) ? value.toFixed(2) : "—";
 
@@ -18,7 +21,7 @@ export default function DfsCaptainComparison({ b }) {
       <p className="dfw-note">{C.help}</p>
       {b.settings.lockedCaptain && <p className="dfw-note">{C.locked}</p>}
       {b.comparisonError && <p role="alert" className="dfw-error">{b.comparisonError}</p>}
-      {b.comparing && <p role="status" className="dfw-note">{C.loading}</p>}
+      {b.comparing && <div className="dfw-actions"><p role="status" className="dfw-note">{C.loading}</p><button onClick={b.cancelComparison}>{SC.cancel}</button></div>}
       {!report && !b.comparing && !b.comparisonError && <p className="dfw-note">{b.pool.length ? C.ready : C.empty}</p>}
       {report && <>
         <p role="status" className="dfw-note">{summary.count} · {summary.objective}</p>
@@ -30,12 +33,14 @@ export default function DfsCaptainComparison({ b }) {
           return valid ? (
             <details key={row.captain_id}>
               <summary>{row.captain_name} · {score(row.objective_score)} · {C.gap}: {score(row.gap_from_best_evaluated)}</summary>
+              <DfsShowdownScore entry={row.result} objective={report.objective} details />
               <p className="dfw-note">{C.salary}: {formatSalary(row.result.total_salary)}</p>
               {row.result.lineup.map(player => <div className="dfw-lineup-row" key={player.slot}>
                 <small>{player.slot}</small>
-                <div><strong>{player.player}</strong><small>{player.team} · {player.position}</small></div>
+                <div><strong>{player.player}</strong><DfsBuildStatusTag player={player} /><small>{player.team} · {player.position}</small></div>
                 <span>{formatSalary(player.salary)}</span>
               </div>)}
+              <DfsShowdownFindings findings={showdownAudit(row.result)} />
             </details>
           ) : <p className="dfw-note" key={row.captain_id}>{row.captain_name} · {row.status === "optimal" ? C.status.invalid : (C.status[row.status] || C.status.unresolved)}</p>;
         })}

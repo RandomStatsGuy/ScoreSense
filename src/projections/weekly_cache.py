@@ -42,7 +42,7 @@ def _artifact_paths(position: str, season: int, week: int, apply_injury: bool) -
     )
 
 
-WEEKLY_POOL_POLICY = "v4-complete-roster"
+WEEKLY_POOL_POLICY = "v5-opportunity-identity"
 
 
 def _with_roster_identity(

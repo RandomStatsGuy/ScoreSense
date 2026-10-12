@@ -18,6 +18,20 @@ def _isolate_supporting_context(monkeypatch):
 from src.projections import dfs_pool, predict, weekly_cache
 
 
+def _assert_forecasts_equivalent_with_fresh_provenance(actual, original):
+    # Two real refreshes retain their own actual artifact timestamps/IDs. Every
+    # numeric forecast, identity, source and other metadata field stays equal.
+    dynamic = ["projection_built_at", "forecast_snapshot_id"]
+    pd.testing.assert_frame_equal(actual.drop(columns=dynamic), original.drop(columns=dynamic))
+    for frame in (actual, original):
+        present = np.isfinite(pd.to_numeric(frame["Projected Points"], errors="coerce"))
+        assert pd.to_datetime(frame.loc[present, "projection_built_at"], utc=True).notna().all()
+        assert frame.loc[present, "forecast_snapshot_id"].str.fullmatch(r"[0-9a-f]{64}").all()
+        assert frame.loc[~present, "projection_built_at"].isna().all()
+        assert frame.loc[~present, "forecast_snapshot_id"].isna().all()
+        assert frame["Season"].eq(2026).all() and frame["Week"].eq(4).all()
+
+
 @pytest.fixture
 def prediction_env(tmp_path, monkeypatch):
     monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "availability"))
@@ -184,7 +198,7 @@ def test_scheduled_refresh_reuses_six_passes_with_equivalent_dfs_output(predicti
     for injury in (True, False):
         actual = dfs_pool.load_dfs_pool(2026, 4, injury)
         original = expected[injury]
-        pd.testing.assert_frame_equal(actual, original)
+        _assert_forecasts_equivalent_with_fresh_provenance(actual, original)
         assert actual.attrs.keys() == original.attrs.keys()
         assert {k: v for k, v in actual.attrs.items() if k != "built_at"} == {k: v for k, v in original.attrs.items() if k != "built_at"}
         assert not actual.player_id.duplicated().any()
@@ -316,7 +330,7 @@ def test_unchanged_refresh_reuses_weekly_and_keeps_ros_for_daily_worker(predicti
         actual = dfs_pool.load_dfs_pool(2026, 4, injury)
         skill = actual[actual.Position.isin(["QB", "RB", "WR", "TE"])]
         prior = expected[injury][expected[injury].Position.isin(["QB", "RB", "WR", "TE"])]
-        pd.testing.assert_frame_equal(skill.reset_index(drop=True), prior.reset_index(drop=True))
+        _assert_forecasts_equivalent_with_fresh_provenance(skill.reset_index(drop=True), prior.reset_index(drop=True))
         assert actual[actual.Position.isin(["K", "DST"])]["Projected Points"].eq(7).all()
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime, timezone
+import hashlib
 from pathlib import Path
 from uuid import uuid4
 
@@ -17,6 +18,58 @@ from src.projections.dfs_special_teams import VERSION, QUANTILES, features_befor
 
 POOL_VERSION = "dfs-deep-pool-v1"
 BUNDLE_PATH = MODEL_DIR / "dfs_special_teams.joblib"
+
+
+def with_forecast_provenance(frame, *, season, week, injury_adjusted):
+    """Keep actual artifact metadata on rows before concatenation loses attrs.
+
+    Older artifacts did not record model versions or component forecasts. Do
+    not reconstruct those from whichever model happens to be installed now.
+    """
+    out = frame.copy()
+    if out.empty:
+        return out
+    sources = out.get("projection_source", pd.Series("ScoreSense", index=out.index)).fillna("Unknown")
+    quantile_sources = sources.isin(["ScoreSense", "Roster estimate", "Historical estimate"])
+    skill = out.get("Position", pd.Series("", index=out.index)).fillna("").astype(str).str.upper().isin(["QB", "RB", "FB", "WR", "TE"])
+    active_conditioned = sources.isin(["ScoreSense", "Roster estimate"]) & skill
+    projection = pd.to_numeric(out.get("Projected Points", pd.Series(np.nan, index=out.index)), errors="coerce")
+    has_forecast = np.isfinite(projection)
+    defaults = {
+        "projection_statistic": pd.Series("unknown", index=out.index).mask(quantile_sources, "median"),
+        "availability_conditioning": pd.Series("unknown", index=out.index).mask(active_conditioned, "conditional_active"),
+        "projection_built_at": pd.Series(None, index=out.index, dtype=object).mask(has_forecast, frame.attrs.get("built_at")),
+        "projection_stale": bool(frame.attrs.get("projection_stale", False)),
+        "Season": int(season), "Week": int(week),
+    }
+    for column, default in defaults.items():
+        if column not in out:
+            out[column] = default
+        elif default is not None:
+            out[column] = out[column].where(out[column].notna(), default)
+    if frame.attrs.get("built_at"):
+        missing_at = has_forecast & out["projection_built_at"].isna()
+        out.loc[missing_at, "projection_built_at"] = frame.attrs["built_at"]
+    if frame.attrs.get("projection_stale"):
+        out["projection_stale"] = True
+    if "score_system_id" not in out:
+        out["score_system_id"] = out.get("projection_site", pd.Series(None, index=out.index, dtype=object))
+    out.loc[active_conditioned & out["score_system_id"].isna(), "score_system_id"] = "scoresense_ppr"
+    if "availability_adjustment" not in out:
+        out["availability_adjustment"] = np.nan
+        out.loc[active_conditioned, "availability_adjustment"] = 0.0  # existing assume-active contract
+    if "adjustments_embedded" not in out:
+        out["adjustments_embedded"] = None
+        if OPPORTUNITY_ADJUSTMENT_COL in out:
+            known = active_conditioned & pd.to_numeric(out[OPPORTUNITY_ADJUSTMENT_COL], errors="coerce").notna()
+            out.loc[known, "adjustments_embedded"] = bool(injury_adjusted)
+    if "forecast_snapshot_id" not in out or (has_forecast & out["forecast_snapshot_id"].isna()).any():
+        stamp = f"{season}:{week}:{int(injury_adjusted)}:{frame.attrs.get('built_at')}:{frame.to_json(orient='split', date_format='iso')}"
+        if "forecast_snapshot_id" not in out:
+            out["forecast_snapshot_id"] = None
+        missing_id = has_forecast & out["forecast_snapshot_id"].isna()
+        out.loc[missing_id, "forecast_snapshot_id"] = hashlib.sha256(stamp.encode()).hexdigest()
+    return out
 
 
 def pool_fingerprint():
@@ -46,7 +99,7 @@ def load_dfs_pool(season, week, injury=True):
         or bool(frame.attrs.get("special_history_refresh_failed"))
         or (week > 1 and frame.attrs.get("special_history_current_season_available") is False)
     )
-    return frame
+    return with_forecast_provenance(frame, season=season, week=week, injury_adjusted=injury)
 
 
 def starting_kickers(roster):
@@ -143,6 +196,7 @@ def refresh_dfs_pool(season, week, *, skill_predictions: Mapping[bool, Mapping[s
                                  errors="ignore") for frame in frames]
         if any(f.empty for f in frames):
             raise ValueError("Incomplete DFS skill-position output")
+        frames = [with_forecast_provenance(frame, season=season, week=week, injury_adjusted=injury) for frame in frames]
         out = pd.concat([*frames, special], ignore_index=True)
         out = pd.concat([out, unavailable_roster_rows(roster, out)], ignore_index=True)
         out.attrs = {"pool_version": POOL_VERSION, "season": int(season), "week": int(week),
