@@ -67,7 +67,7 @@ import {
 } from "./dfsToolPresentation.js";
 
 test("integrated workflow copy identifies exact artifacts, unavailable models and cancellation limits", () => {
-  assert.equal(WORKFLOW.generate(150), "Generate 150 lineups");
+  assert.equal(WORKFLOW.generate(150), "Build 150 lineups");
   assert.match(WORKFLOW.cancelHelp, /server may finish/i);
   assert.match(WORKFLOW.capabilityHelp, /not a lineup range/i);
   assert.match(WORKFLOW.exportScope, /Unrelated template rows stay intact/);
@@ -183,7 +183,7 @@ test("dfsSummaryItems lists consequence-first fields", () => {
     stackGameLabel: "2 games in the build",
   });
   assert.equal(multi.find((item) => item.id === "game")?.label, "Games");
-  assert.equal(byId.goal, "Ceiling (P90)");
+  assert.equal(byId.goal, "Player ceiling inputs");
   assert.equal(byId.locks, "2 / 1");
   assert.equal(byId.lineups, "3");
 });

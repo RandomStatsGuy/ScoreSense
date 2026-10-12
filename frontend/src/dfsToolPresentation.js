@@ -2,10 +2,28 @@
 
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
+export const DFS_FLOW_COPY = {
+  title: "Build your lineups", workspace: "DFS workspace", goal: "Scoring goal",
+  advanced: "Advanced rules", advancedHint: "Player limits · stacks · salary",
+  choose: "Choose players", research: "Compare & research", optional: "Optional",
+  recovery: "Save & restore", importInputs: "Import player estimates",
+  schedule: (season, week) => `${season || "Season"} · Week ${week || "—"}`,
+  playerChoices: (locks, skips) => [locks ? `${locks} locked` : "", skips ? `${skips} skipped` : ""].filter(Boolean).join(" · ") || "Optional",
+  buildSummary: (locks, skips, salary) => [locks ? `${locks} locked` : "", skips ? `${skips} skipped` : "", salary != null ? `Maximum salary $${Number(salary).toLocaleString()}` : "PPR scoring"].filter(Boolean).join(" · "),
+  built: "Lineups built", unique: "Unique lineups", appearances: "Player appearances",
+  appearancesHelp: "How often each player appears in this build.",
+  ready: "Ready to download?", downloadHelp: "Review your set, then choose the file you need.",
+  continue: "Continue to download", adjust: "Adjust & build again", backReview: "Back to review",
+  newCsv: "Download for My Lineups", games: "Games to stack", gameHelp: "What does this change?",
+  gameHint: "More weight means more quarterback stacks from that game. Players are not locked.",
+  marketDetails: "Game lines & details", total: "Total", spread: "Spread",
+};
+
 export const DFS_WORKFLOW_COPY = {
-  journey: "Build, review & download", stages: ["Build", "Review", "Entries"], portfolio: "Portfolio",
-  requested: "Requested", generated: "Generated", selected: "Selected", unique: "Unique", assigned: "Assigned",
-  generate: n => `Generate ${n} lineups`, review: "Review portfolio", entries: "Review entries", firstBatch: "Reviewed build",
+  journey: "Build, review & download", stages: ["Build", "Review", "Download"], portfolio: "Portfolio",
+  requested: "Lineups requested", generated: "Lineups built", selected: "Lineups selected", unique: "Unique lineups", assigned: "Entries assigned",
+  buildDetails: "Build details", reviewCount: n => ` · ${n}`,
+  generate: n => `Build ${n} lineups`, review: "Review portfolio", entries: "Review entries", firstBatch: "Reviewed build",
   noPool: "Choose a slate or import its salary CSV before building.", countBlocked: "Enter a whole lineup count from 1 to 150.",
   buildBusy: "Build request in progress", elapsed: seconds => `${seconds}s elapsed`, cancelBuild: "Cancel build",
   cancelHelp: "Cancel stops waiting and discards this response. The server may finish its bounded work. Your previous result stays available.",
@@ -81,10 +99,10 @@ function buildPlanBounds(rule) {
 }
 
 export const DFS_GLOBAL_COPY = {
-  title: "Global portfolio controls", enabled: "Select the portfolio together", legacy: "Off: keep the existing batch builder. On: select unique Classic lineups together under the controls below.",
-  help: "These controls apply to your next build. Minimum and Maximum are hard bounds. Target is a preference: selection first minimizes target misses, then maximizes your chosen score. Forecasts stay unchanged.",
-  search: "Find an exposure player", unit: "Exposure units", percent: "Percent", count: "Appearances", minimum: "Minimum", target: "Target", maximum: "Maximum", actual: "Actual",
-  rounding: "Percent minimums round up; maximums round down. Counts use the requested lineup total. Switching units preserves target appearances; editing Target sets a new preference.",
+  title: "Player & group limits", enabled: "Apply limits across the whole build", legacy: "Off uses the standard builder. On applies the limits below to the whole set.",
+  help: "Set how often each player can appear in the next build. Any minimum or maximum you set is a firm limit; target is a preference.",
+  search: "Find a player", unit: "Show limits as", percent: "Percent", count: "Appearances", minimum: "Minimum", target: "Target", maximum: "Maximum", actual: "Actual",
+  rounding: "Minimums round up; maximums round down. Counts use your requested total. Changing units keeps the same target count.",
   overlap: "Maximum shared players",
   nativeMigration: "Your existing stack minimum and opposing-player requirement were transferred to the exact Classic controls. Forecasts are unchanged.",
   ruleCount: (n, total) => `${n} of ${total}`, actualCount: (n, total) => `${n} of ${total} generated`,
@@ -112,7 +130,8 @@ export const DFS_GLOBAL_COPY = {
 };
 
 export const DFS_PORTFOLIO_COPY = {
-  title: "Classic portfolio", label: "Batch label", add: "Add current build to portfolio", remove: "Remove batch",
+  title: "Saved lineups", label: "Batch label", add: "Add current build to portfolio", remove: "Remove batch",
+  saveRestore: "Save & restore", saveSet: "Save this set", batchDetails: "Build batches & details",
   clearLimits: "Clear appearance limits",
   help: "Collect approved DraftKings Classic builds with their original inputs. Download a backup before leaving to restore this collection later.",
   backup: "Download portfolio backup", restore: "Restore portfolio backup",
@@ -125,7 +144,7 @@ export const DFS_PORTFOLIO_COPY = {
   replaceMessage: (current, audit) => `Replace ${current} current batches with ${audit.batchCount} backup batches (${audit.total} lineups, ${audit.duplicates.length} duplicates, ${audit.errors.length} appearance-limit warnings)? This clears the current Edit Entries template and assignments. No batches will be merged.`,
   restored: "Portfolio restored with its original inputs and limits. Review the audit and import a fresh Edit Entries template before exporting.",
   auditHelp: "Appearances count every collected lineup, including locked players and duplicates. Maximum counts only block portfolio export; they do not change builds.",
-  empty: "Label an approved build to start your portfolio.", player: "Player", count: "Appearances", countHeading: "Count", percent: "%", qb: "At QB", qbHeading: "QB", batches: "Batches", maximum: "Maximum appearances (optional)", maxHeading: "Max",
+  empty: "Build your lineups, or restore a saved set below.", emptyWithBuild: "Save this set to review player limits and download a backup.", player: "Player", count: "Appearances", countHeading: "Count", percent: "%", qb: "At QB", qbHeading: "QB", batches: "Batches", maximum: "Maximum appearances (optional)", maxHeading: "Max",
   progress: (unique, total, batches, duplicates, shortfall) => `${unique} / 150 unique · ${total} collected · ${batches} ${batches === 1 ? "batch" : "batches"} · ${duplicates} duplicates · ${shortfall} shortfall`,
   batchSummary: (label, count, time) => `${label} · ${count} lineups · ${time}`,
   duplicate: (first, index, batch) => `${batch}: lineup ${index + 1} repeats portfolio lineup ${first + 1}.`,
@@ -171,9 +190,9 @@ export const DFS_WORKSPACE_COPY = {
   uploadedUpdate: "New projections are available. Your uploaded player pool keeps its original estimates; choose a live slate to use the update.",
   eyebrow: "Tournament workspace", title: "Your lineups, built together.", support: "Choose your pool. Control your exposure. Review the whole set.",
   build: "Build lineups", results: "Results", settings: "Build settings", contest: "Contest", contestNote: "Projection-based construction. Contest-return estimates are not available.",
-  format: "Format", slate: "Slate", season: "Season", week: "Week", count: "Lineups", goal: "Score to optimize", captain: "Locked Captain", anyCaptain: "Choose from the pool", captainLimit: "Captain max", noCaptain: "No Captain", exposure: "Max player exposure", differences: "Minimum differences", salary: "Salary range", min: "Minimum salary", max: "Maximum salary", stacks: "Stacking & other rules", qbStack: "Pass catchers per QB", bringBack: "Include an opposing receiver", maxTeam: "Max players per team", jitter: "Projection variation", jitterNote: "Variation changes the input scores between builds. It is not a game simulation.", lockNote: "Locked players appear in every lineup. Other limits count toward the requested set; the Exposure tab shows actual usage.",
+  format: "Format", slate: "Slate", season: "Season", week: "Week", count: "Lineups", goal: "Score to optimize", captain: "Locked Captain", anyCaptain: "Choose from the pool", captainLimit: "Captain max", noCaptain: "No Captain", exposure: "Max appearances per player", differences: "Minimum different players", salary: "Salary range", min: "Minimum salary", max: "Maximum salary", stacks: "Stacking & other rules", qbStack: "Pass catchers per QB", bringBack: "Include an opposing receiver", maxTeam: "Max players per team", jitter: "Projection variation", jitterNote: "Variation changes the input scores between builds. It is not a game simulation.", lockNote: "Locked players appear in every lineup. Other limits count toward the requested set; the Exposure tab shows actual usage.",
   pool: "Player pool", exposureTab: "Exposure", notes: "Build notes", search: "Search players…", player: "Player", proj: "Proj.", own: "Own.", actions: "Actions", lock: "Lock", skip: "Skip", clear: "Clear locks and skips", noPlayers: "No players match these filters.", projections: "Import projections & ownership", salaryImport: "Import salary CSV", projectionHelp: "CSV columns: ID, Proj, Floor, Ceiling, optional Ownership (0–100). Use this slate’s FLEX IDs and base points, before Captain multipliers.", missingOwnership: "Ownership not loaded. Duplication and contest-return estimates are unavailable.", missingProjection: "Missing estimates are excluded from builds. Historical estimates use past scoring ranges; roster estimates use a player profile when individual history is missing. These are labeled separately from modeled projections.",
-  selected: "Selected lineup", empty: "Load a slate, choose your settings, and build your first lineup.", saved: "Saved with original inputs", save: "Save build for review", saveHelp: "Freezes tonight's projections and settings. After the game, link an entry to this build in Results to see what you projected against what happened.", savedHelp: "Frozen. Link an entry to it from Results once the game is scored.", used: "Salary used", unused: "Unused", rebuild: "Rebuild lineups", building: "Building…", lineupsTitle: "Your lineups", viewLineups: (n) => `View ${n} lineup${n === 1 ? "" : "s"}`, notesLabel: "Your game script and pregame reasoning", notesHelp: "These notes are saved with the build. They do not change the source projections.",
+  selected: "Selected lineup", empty: "Load a slate, choose your settings, and build your first lineup.", saved: "Saved with original inputs", save: "Save build for review", saveHelp: "Keeps this build’s original inputs for Results.", savedHelp: "Open Results to link an entry after scoring.", used: "Salary used", unused: "Unused", rebuild: "Rebuild lineups", building: "Building…", lineupsTitle: "Your lineups", viewLineups: (n) => `View ${n} lineup${n === 1 ? "" : "s"}`, notesLabel: "Your game script and pregame reasoning", notesHelp: "These notes are saved with the build. They do not change the source projections.",
   newLineups: "New lineups", upload: "Upload to My Lineups", uploadHelp: "A lineup CSV creates lineups. It does not enter a contest or edit reserved entries.", download: "Download lineup CSV", detail: "Download detail CSV", existing: "Reserved entries", edit: "Update existing entries", editHelp: "Import the CSV from DraftKings’ Edit Entries page, then review which lineup goes into each entry.", template: "Import Edit Entries CSV", assignment: "Entry assignments", keep: "Keep current lineup", sequential: "Assign lineups in order", entryDownload: "Download Edit Entries CSV", verifySlate: "I checked that this template is for the same slate and start time.", restriction: "If upload succeeds but entry is blocked, record the exact message, contest ID and time for DraftKings support. Export checks cannot verify account eligibility.",
   imported: "Imported", previous: "Previous", next: "Next", total: "Total", captainCount: "Captain", all: "All", loading: "Loading player pool",
 };
@@ -282,10 +301,10 @@ export const DFS_RESULTS_COPY = {
 };
 
 export const OBJECTIVES = [
-  { id: "median", label: "Proj (P50)", shortLabel: "Proj", hint: "Maximize the sum of player median projections" },
-  { id: "floor", label: "Floor (P10)", shortLabel: "Floor", hint: "Maximize the sum of player P10 estimates; this is not a lineup floor" },
-  { id: "ceiling", label: "Ceiling (P90)", shortLabel: "Ceiling", hint: "Maximize the sum of player P90 estimates; this is not a lineup ceiling or win probability" },
-  { id: "value", label: "Value (pts/$1k)", shortLabel: "Value", hint: "Maximize points per salary dollar", dfsOnly: true },
+  { id: "median", label: "Projected points", shortLabel: "Proj", hint: "Maximize the sum of player median projections" },
+  { id: "floor", label: "Player floor inputs", shortLabel: "Floor", hint: "Maximize the sum of player P10 estimates; this is not a lineup floor" },
+  { id: "ceiling", label: "Player ceiling inputs", shortLabel: "Ceiling", hint: "Maximize the sum of player P90 estimates; this is not a lineup ceiling or win probability" },
+  { id: "value", label: "Points per salary dollar", shortLabel: "Value", hint: "Maximize points per salary dollar", dfsOnly: true },
 ];
 
 export const DEFAULT_FORMATS = {
@@ -1379,16 +1398,16 @@ export function dfsPoolFreshness({ source, busy, checkedAt, refresh, failed, rec
   return { tone: "good", label: c.checkedAt(time(checkedAt)), detail: `${c.projectionsAt(time(timestamp))} · ${c.refreshCadence(Math.round(interval / 60))}` };
 }
 export const DFS_EVIDENCE_COPY = Object.freeze({
-  title: "Game & role evidence", open: "Review game & role evidence", refresh: "Refresh evidence",
+  title: "Lineup comparisons", open: "Review game & role evidence", refresh: "Refresh evidence",
   focusMissing: "A focused game has no eligible quarterback identity in this pool. Review the game scope before comparing.",
   invalidControls: "Review salary and team limits before selecting comparison inputs. Hard limits cannot be silently changed.",
   responseMismatch: "The comparison response belongs to different selected inputs. Your previous review is retained; retry using the current snapshot.",
-  select: "Use these inputs for comparisons", compare: "Compare complete lineups", download: "Download comparison review",
-  intro: "Review the whole eligible slate, then compare complete Classic lineups using one selected set of inputs.",
-  loading: "Loading saved evidence…", missing: "No verified evidence is available for this exact slate. Projection-guided builds and complete-lineup comparisons remain available.",
-  failed: "Evidence could not be loaded. Your selected inputs and saved builds are still available.",
-  selected: "Selected comparison inputs", newest: "New evidence is ready to review. Select it explicitly to replace comparison inputs.",
-  selectedWithoutEvidence: "This selected comparison snapshot has no verified evidence attached. Incoming evidence stays staged until you explicitly select it. Projection-guided comparisons remain available.",
+  select: "Use current inputs", compare: "Compare lineups", download: "Download comparison review",
+  intro: "Explore alternatives using a fixed set of player inputs.",
+  loading: "Loading evidence…", missing: "No game evidence for this slate. You can still compare player inputs.",
+  failed: "Evidence unavailable. Saved inputs remain available.",
+  selected: "Selected inputs", newest: "Updated evidence is ready. Select it to use it.",
+  selectedWithoutEvidence: "Using player inputs without game evidence.",
   stale: "Player inputs or controls changed. Select the current inputs before comparing again.",
   semantics: "Scores sum the selected player inputs. They are not lineup percentiles, win probabilities or expected payouts.",
   bounded: "Comparisons evaluate a bounded set of complete nine-player rosters. Best evaluated does not mean best across every possible lineup.",
@@ -1402,15 +1421,18 @@ export const DFS_EVIDENCE_COPY = Object.freeze({
   poolRequired: "Comparisons need 9–750 players with whole salaries and complete finite player inputs.",
   exactIds: "Comparison inputs require distinct exact canonical player IDs.", lockMissing: "A locked player lacks complete comparison inputs. Resolve that player before selecting inputs.",
   contextMismatch: "Evidence belongs to another slate. Refresh this slate’s evidence before selecting inputs.",
-  noSelection: "Select the current player inputs and evidence version to enable comparisons.",
+  noSelection: "Select inputs to begin.",
   progress: "Comparing complete lineups…", snapshot: "One frozen input snapshot", score: "Input score sum",
   cancel: "Cancel comparison", elapsed: seconds => `${seconds}s elapsed`,
   cancelled: "Comparison cancelled. The previous review is retained. The server may finish its bounded work; late responses are discarded.",
   currentScores: "Existing collection on selected inputs", unchanged: "Original saved build forecasts remain unchanged. Missing player coverage makes a comparison unavailable.",
   return: "Return to matchups", allGames: "All eligible games", primaryGames: "Primary QB focus", challengerGames: "Excluded QB alternatives",
   search: "Find a player", position: "Position", previous: "Previous", next: "Next", noRows: "No matching observations.",
-  retrospective: "Retrospective observations; archived pre-lock availability is not established.",
-  live: "Declared source times checked against the evidence cutoff; source authenticity is not independently attested.",
+  retrospective: "Retrospective evidence",
+  live: "Declared source times checked",
+  timingHelp: "Retrospective observations have no established archived pre-lock availability. Live evidence checks declared times against the cutoff; source authenticity is not independently attested.",
+  noEligibleGames: "No matching game evidence in this player pool.",
+  gameHelp: "How game evidence works", roleHelp: "Definitions & missing data", comparisonHelp: "Scoring & comparison limits",
   sourceHelp: "Content hashes identify imported bytes, not permission or authenticity. Personal analysis, hosting, display, redistribution, training and external-model rights are separate.",
   emptyComparison: "No comparisons yet.", notEvaluated: "Not evaluated within the comparison budget", conflicting: "Infeasible under the selected rules",
   controlSummary: (rule, noun) => rule?.mode === "optional" ? `${noun} optional` : rule?.mode === "forbidden" ? `No ${noun.toLowerCase()}` :
@@ -1424,4 +1446,58 @@ export const DFS_EVIDENCE_COPY = Object.freeze({
     sourceUri: "Source URI", hash: "Raw content SHA-256", period: "Observed period", definition: "Definition / units", filters: "Raw filters", publication: "Publication", retrieved: "Retrieved", knownAt: "Known at", revision: "Revision",
     allowed: "Allowed", denied: "Not allowed", unknown: "Unknown", bestPrimary: "Best evaluated primary alternative", bestChallenger: "Strongest evaluated excluded alternative",
     actualAttachments: "Actual same-team attachments", actualBringBack: "Actual opposing players", receivingEligibility: "Declared receiving RB IDs", noReceivingRbs: "None declared" },
+});
+
+export const DFS_SHARED_OUTCOMES_COPY = Object.freeze({
+  title: "Shared-game scenarios", intro: "Compare your lineups on the same supplied game outcomes.",
+  research: "Research only. Scenario percentiles are empirical scores, not calibrated forecasts or payouts.",
+  file: "Scenario JSON", fileHelp: "Import a permitted event bank for this exact slate (up to 8 MB).", fileSelected: name => `File: ${name}`, previewDetails: "Preview details",
+  scope: "Lineups to review", build: "Current build", collection: "Collection", settings: "Review settings", seed: "Random seed", draws: "Scenario draws",
+  preview: "Preview scenarios", use: "Use this scenario bank", evaluate: "Review lineups", download: "Download scenario review", cancel: "Cancel",
+  ready: "Ready to preview", fileReady: "File checked locally. Preview it to review the scenario bank.", previewReady: "Preview ready. Select this bank to use it.",
+  selected: "Scenario bank selected.", complete: "Scenario review complete.",
+  idle: "Import a scenario bank to begin.", reading: "Checking file…", previewing: "Previewing scenarios…", selecting: "Selecting inputs…", evaluating: "Reviewing lineups…", downloading: "Preparing download…",
+  elapsed: seconds => `${seconds}s elapsed`, counts: counts => `${counts.games} games · ${counts.profiles} profiles · ${counts.pool_players} players`,
+  selectedSummary: (name, count) => `${name} · ${count} ${count === 1 ? "lineup" : "lineups"} selected`,
+  stale: "Inputs changed. Preview and select the current inputs before reviewing again.",
+  previous: "Previous review — kept for reference.", previewStale: "Preview belongs to earlier inputs. Preview again before selecting.",
+  results: "Scenario results", lineupLabel: n => `Lineup ${n}`, roster: "Selected roster", playerResults: "Player scores", search: "Find a player",
+  mean: "Mean", p10: "Low scenario score (P10)", p50: "Middle scenario score (P50)", p90: "High scenario score (P90)", delta: "Mean change vs first lineup", zero: "Zero-score draws", negative: "Negative-score draws", min: "Minimum", max: "Maximum",
+  previousPage: "Previous", nextPage: "Next", noRows: "No matching players.",
+  audit: "Method, sources & checks", selectedInputs: "Selected inputs", snapshot: "Input snapshot", bank: "Scenario bank", frozen: "Selected at", gameDraws: "Game draws", lineupCount: "Lineups reviewed", poolCount: "Players covered", conservation: "Provided event ledgers conserved", passed: "Passed", runtime: "Server runtime", scoring: "Scoring version", source: "Source", hash: "Content SHA-256", rights: "Declared rights", allowed: "Allowed", denied: "Not allowed", unknown: "Unknown", decision: "Evidence cutoff", scopeLabel: "Evidence scope", period: "Observed period", published: "Published at", known: "Known at", retrieved: "Retrieved at", definition: "Definition", units: "Units",
+  method: "Each draw samples one whole-game profile and scores every participant from its events. Games are sampled independently; lineups share the same draws. P10, P50 and P90 are the 10th, 50th and 90th percentile scores within the supplied draws. They do not describe future probabilities. Separate generation, selection and evaluation random streams do not establish independent finalist selection or calibrated joint tails.",
+  limitations: "Source completeness, source authenticity, pre-lock availability, calibrated forecasts, calibrated joint tails and untouched finalist evaluation are not verified. Content hashes identify inputs; they do not prove authenticity or permission. This review changes no forecasts, saved builds or entries.",
+  exportHelp: "The download contains this review and source receipts. Raw event banks and source observations are omitted.",
+  sizeError: "Choose a scenario file smaller than 8 MB. The complete request must also fit this limit.", jsonError: "The file is not valid finite JSON.", structureError: "The scenario file is too deeply nested or contains too many values.", duplicateError: "Scenario JSON contains a duplicate or unsafe field.",
+  schemaError: "Use a supported declared scenario-bank file.", contextError: "The scenario bank belongs to another slate.", rightsError: "Each source must explicitly allow personal analysis, hosted ingestion and display before previewing.", gameError: "Exact game IDs, teams and kickoff times must match this slate’s salary pool.", coverageError: "The scenario bank must cover every game in the selected player pool.",
+  rosterError: "Each lineup needs nine distinct eligible players, legal Classic positions, at least two games and a salary of $50,000 or less.", duplicateLineups: "Remove duplicate lineups before reviewing this selection.", slateError: "Choose an exact DraftKings Classic slate before importing scenarios.", scopeError: "Choose the current build or collection.", identityError: "The player pool needs distinct exact player IDs.", poolError: "Scenario review needs 9–750 players with valid positions and whole salaries.", collectionContextError: "Selected lineups must belong to the current exact slate.", lineupLimit: "Review up to 150 lineups at a time.",
+  responseError: "The response does not match the selected scenario inputs. Your previous review is retained.", buildFirst: "Build or collect a complete lineup before reviewing it.", settingsError: "Use a whole seed from 0 to 2,147,483,647 and a supported draw count.", workerError: "The background file processor is unavailable. Try reloading this page.", cancelled: "Cancelled. Your previous review is retained; late responses are discarded.", failed: "Scenario review failed. Your previous review is retained.",
+});
+export const DFS_CONTEST_COPY = Object.freeze({
+  title: "Contest scenarios", intro: "See how different opponent assumptions affect these lineups.",
+  selectGames: "Select a current game-scenario file and complete lineups above first.",
+  file: "Contest assumptions file", preview: "Preview contest", use: "Use these assumptions", compare: "Compare scenarios",
+  download: "Save contest review", cancel: "Cancel", reading: "Reading file…", previewing: "Checking contest…",
+  evaluating: "Comparing scenarios…", downloading: "Preparing review…", ready: "Assumptions selected.", idle: "Optional research · no changes to your lineups.",
+  failed: "The comparison could not finish. Your last review is still available.",
+  fileError: "Use a contest file for these exact games, lineups and decision time, with a complete cash payout schedule.",
+  rightsError: "The file needs permission for personal analysis, hosted processing and display before upload.",
+  sizeError: "The complete research package must fit within 8 MB.", responseError: "The response does not match this review. Select the inputs again.",
+  workerError: "File processing is unavailable. Try reopening this page.", cancelled: "Comparison cancelled.",
+  settingsError: "Choose 32–256 draws and a top-finish cutoff within the contest size.",
+  stale: "Inputs changed. Preview and select the assumptions again.", previous: "Showing an earlier review. Its saved inputs are unchanged.",
+  contest: "Contest", entries: "Total entries", fee: "Fee per entry", results: "Under these assumptions",
+  assumptionLimit: "These are scenario results, not forecast returns. Dollar displays are rounded; saved results retain exact fractions.",
+  averageNet: "Average net", lowNet: "Low scenario net", highNet: "High scenario net",
+  topFinish: n => `Any top-${n} finish`, moreResults: "Payout and finish details", averagePayout: "Average payout", fees: "Fees for this set",
+  firstTie: "Tied for first", soleFirst: "First without a tie", cash: "Any paid finish",
+  sampleHelp: "Low and high mark the 10th and 90th percentiles of these samples. Finish percentages count samples only. Ties include all entries; fees are deducted once.",
+  settings: "Comparison settings", draws: "Draws", topK: "Top finish cutoff", settingsHelp: "Uses the seed selected above. More draws reduce sampling noise, not uncertainty in the assumptions.",
+  details: "Method and sources", method: "Whole legal opponent lineups preserve stacks and repeated entries. Each assumption uses the same game outcomes and the full declared contest size. Unsupported noncash prizes are unavailable.",
+  rights: "Files require declared processing rights. Personal downloads omit raw opponent templates and ownership observations; source declarations do not certify platform settlement.",
+  version: "Selected version", rounding: "Declared rounding rule",
+  ownershipScope: "Ownership audience", templateCount: "Distinct opponent lineups", knownOwnership: "Players with supplied ownership",
+  ownershipGap: "Average gap from lineup mix", source: "Source", sourceHash: "Source hash", sourceKnown: "Known at",
+  audience: value => ({ mini_max: "Mini-MAX", milly: "Millionaire", single_entry: "Single entry", three_max: "Three entry maximum", other_gpp: "Other tournament", broad_public: "Broad public board" }[value] || value),
+  roundingLabel: value => ({ exact_fraction: "Exact share before settlement", floor_cent: "Round down to the cent", half_up_cent: "Nearest cent, half up" }[value] || value),
 });

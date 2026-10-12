@@ -1,0 +1,70 @@
+{
+  "schema_version": "dfs_contest_engineering_receipt_v1",
+  "evidence_scope": "synthetic",
+  "input_sha256": "7ffd46ec9fc874224c87d28cf680e77a458811791ffafd647a31d449c9e923ce",
+  "request_bytes": 823961,
+  "environment": {
+    "python": "3.11.13",
+    "numpy": "2.4.6",
+    "platform": "Windows-10-10.0.26200-SP0"
+  },
+  "case": {
+    "pool_players": 750,
+    "games": 16,
+    "profiles": 32,
+    "events": 1372,
+    "own_entries": 150,
+    "contest_entries": 100000,
+    "assumptions": 4,
+    "templates_per_assumption": [
+      500,
+      500,
+      500,
+      500
+    ],
+    "draw_count": 256,
+    "cash_tiers": 4,
+    "missing_projected_ownership_retained": true
+  },
+  "checks": {
+    "whole_field_represented": true,
+    "all_own_entries_in_ties": true,
+    "validated_coherent_game_profiles": true,
+    "no_raw_provider_or_account_access": true,
+    "no_fitted_or_calibrated_claim": true
+  },
+  "timing": {
+    "preparation_seconds": 0.5119887000000745,
+    "timed_repeats": 3,
+    "replay_seconds": [
+      25.192795499999193,
+      30.994240599999102,
+      27.628151999999318
+    ],
+    "replay_p50_seconds": 27.628151999999318,
+    "replay_p95_seconds": 30.657631739999125
+  },
+  "memory": {
+    "separate_tracemalloc_replay_peak_bytes": 18540951,
+    "includes_preparation": false,
+    "is_process_rss": false
+  },
+  "capabilities": {
+    "legal_declared_field": true,
+    "full_field_multiplicity": true,
+    "exact_conditional_cash_ties": true,
+    "ownership_calibrated": false,
+    "joint_outcomes_calibrated": false,
+    "expected_payout": false,
+    "forward_forecast": false,
+    "platform_settlement_verified": false,
+    "portfolio_selection": false,
+    "untouched_evaluation_verified": false
+  },
+  "limitations": [
+    "Maximum replay-control dimensions are constructed, but only two profiles per game and four cash tiers are measured.",
+    "Synthetic salaries and game events exercise bounded engineering behavior; they are not a real slate or historical field sample.",
+    "Local warm-process timing and Python heap exclude hosting overhead, full process RSS and source-model uncertainty.",
+    "Declared template support does not validate opponent frequency calibration, extreme-rank probabilities or forward payout."
+  ]
+}

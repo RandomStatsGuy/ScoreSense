@@ -71,11 +71,18 @@ export function DfsInputUpdate({ b }) {
   </section>;
 }
 
-export function DfsJourney({ counts, stage, onReview, onEntries, canReview }) {
+export function DfsJourney({ counts = {}, stage, onBuild, onReview, onEntries, canReview, canBuild = true }) {
+  const builtCount = counts.selected || counts.generated || counts.unique || 0;
+  const actions = [onBuild, onReview, onEntries];
+  const metrics = Object.entries(counts).filter(([key, value]) => value != null && (key !== "assigned" || stage === 2));
   return <div className="dfw-journey" aria-label={C.journey} data-testid="dfs-workflow-summary">
     <ol>{C.stages.map((name, i) => <li key={name} aria-current={stage === i ? "step" : undefined}>
-      {i === 1 ? <button type="button" disabled={!canReview} onClick={onReview}>{name}</button> : i === 2 ? <button type="button" disabled={!canReview} onClick={onEntries}>{name}</button> : <span>{name}</span>}
+      <button type="button" data-testid={`dfs-flow-${["build", "review", "download"][i]}`} disabled={i === 0 ? !canBuild : !canReview} onClick={actions[i]} aria-current={stage === i ? "step" : undefined}>
+        <span className="dfw-journey-number" aria-hidden="true">{i + 1}</span>{name}{i === 1 && builtCount > 0 && <span className="dfw-journey-count">{C.reviewCount(builtCount)}</span>}
+      </button>
     </li>)}</ol>
-    <dl>{Object.entries(counts).map(([key, value]) => <div key={key}><dt>{C[key]}</dt><dd>{display(value)}</dd></div>)}</dl>
+    {builtCount > 0 && <details className="dfw-journey-details"><summary>{C.buildDetails}</summary>
+      <dl>{metrics.map(([key, value]) => <div key={key}><dt>{C[key]}</dt><dd>{display(value)}</dd></div>)}</dl>
+    </details>}
   </div>;
 }

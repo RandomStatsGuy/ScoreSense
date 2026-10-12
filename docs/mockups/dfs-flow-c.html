@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DFS redesign · C</title>
+  <!-- Keep direct asset links: mobile_mock.py stamps each file independently. -->
+  <link rel="stylesheet" href="mockup-shared.css?v=59aafa499be5">
+  <link rel="stylesheet" href="mobile-foundation.css?v=e47422348af2">
+  <!-- Add the page's stylesheet last. Reuse the shared classes below. -->
+<link rel="stylesheet" href="dfs-flow.css?v=6c1d42e9321c">
+</head>
+<body data-option="c" data-theme="dark">
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div class="concept-banner"><div><strong>DFS · C · Games first</strong><span> · Sample data</span></div><nav class="concept-nav" aria-label="Design options"><a href="dfs-flow.html">Compare options</a><a href="dfs-flow-a.html" >A</a><a href="dfs-flow-b.html" >B</a><a href="dfs-flow-c.html" class=is-on>C</a></nav></div>
+<div class="preview-settings" aria-label="Preview controls"><span class="meta">20-lineup design sample</span><label>State<select id="state-picker"><option value="empty">Before build</option><option value="ready">After build</option></select></label><label>Theme<select id="theme-picker"><option value="dark">Dark</option><option value="light">Light</option></select></label></div>
+<div class="mock-viewport">
+<header class="mock-header"><div class="mock-brand"><div><div class="mock-brand-name">ScoreSense</div><span class="mock-brand-sub">4th Down Labs</span></div><nav class="mock-topnav" aria-label="Product areas"><span>Projections</span><span>Fantasy</span><span class="active">Tools</span></nav></div><button class="text-action" data-preview="Account">Your account</button></header>
+<nav class="mock-subnav" aria-label="Tools destinations"><a href="#" aria-current="page">DFS</a><a href="#" data-preview="Mock draft">Mock draft</a><a href="#" data-preview="Best ball">Best ball</a></nav>
+<header class="phone-header" data-compact-header><button class="destination" data-preview="Tools destinations" aria-label="DFS · choose Tools destination"><span>DFS</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button><span class="phone-league">Tools</span><button class="more-control" data-preview="Account · More" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button></header>
+<div class="flow-head"><div><h1>Build your lineups</h1><p>DraftKings · NFL Classic</p></div><button class="quiet-link" data-preview="Your contest results">Results →</button></div>
+<section class="slate-strip" aria-label="Slate"><label>Format<select aria-label="Format"><option>Classic</option><option>Showdown</option></select></label><label>Slate<select aria-label="Slate"><option>Sunday main</option><option>Early games</option></select></label><span class="spacer"></span><span class="status-dot">Sample inputs ready</span><button class="quiet-link import-salary" data-demo="Import a salary CSV and review player matches before using it.">Import salary file</button></section>
+<nav class="route-tabs" id="flow-tabs" aria-label="Lineup workflow"></nav>
+<main id="main-content" tabindex="-1"><div id="stage-content"></div></main>
+<p class="footnote">Interactive design preview · Fictional players & numbers · No real builds or entries</p>
+</div>
+<nav class="phone-nav" aria-label="Product areas"><a href="#" data-preview="Projections"><span aria-hidden="true">▤</span>Projections</a><a href="#" data-preview="Fantasy"><span aria-hidden="true">◈</span>Fantasy</a><a href="#" aria-current="page" data-preview="Tools destinations"><span aria-hidden="true">▦</span>Tools</a><a href="#" data-preview="Account · More"><span aria-hidden="true">•••</span>More</a></nav>
+<div class="preview-toast" id="preview-toast" role="status" hidden></div>
+<script src="mobile-mock.js?v=ede2a46540ef"></script><script src="dfs-flow.js?v=2f7395794fb5"></script>
+</body></html>

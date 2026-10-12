@@ -5,6 +5,7 @@ import DfsResults from "./DfsResults.jsx";
 import {
   DFS_WORKSPACE_COPY as C,
   DFS_RESULTS_COPY as R,
+  DFS_FLOW_COPY as F,
 } from "./dfsToolPresentation";
 import "./styles/dfs-workspace.css";
 
@@ -14,24 +15,10 @@ export default function LineupOptimizer({ projMeta }) {
   return (
     <div className="dfw">
       <header className="dfw-title">
-        <small>{C.eyebrow}</small>
-        <h1>{view === "build" ? C.title : R.title}</h1>
-        <p>{view === "build" ? C.support : R.support}</p>
+        <div><h1>{view === "build" ? F.title : R.title}</h1>
+        {view === "results" && <p>{R.support}</p>}</div>
+        <button type="button" onClick={() => setView(view === "build" ? "results" : "build")}>{view === "build" ? C.results : C.build}</button>
       </header>
-      <nav className="dfw-tabs" aria-label="DFS workspace">
-        <button
-          aria-current={view === "build" ? "page" : undefined}
-          onClick={() => setView("build")}
-        >
-          {C.build}
-        </button>
-        <button
-          aria-current={view === "results" ? "page" : undefined}
-          onClick={() => setView("results")}
-        >
-          {C.results}
-        </button>
-      </nav>
       {view === "build" ? (
         <>
           {builder.dataUpdateAvailable && (

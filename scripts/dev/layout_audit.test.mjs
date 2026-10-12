@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 import {
   auditFailed,
   columnAlign,
@@ -12,6 +13,7 @@ import {
   laterSiblingCoversMenuHost,
   livingSurfaceRoutes,
   minTargetForWidth,
+  measureScript,
   parseArgs,
   parseGate,
   pickBarControl,
@@ -21,6 +23,8 @@ import {
   isCssGridTableRowGroup,
   elementClassName,
   COLUMN_PACK_RATIO,
+  BAR_CONTROL_SELECTOR,
+  NUMERIC_RE,
 } from "./layout_audit.mjs";
 
 test("numeric columns right-align", () => {
@@ -99,6 +103,80 @@ test("bar height prefers a composite trigger over a nested input", () => {
     querySelector: (sel) => (sel.includes("hub-filter-menu-trigger") ? trigger : input),
   };
   assert.equal(pickBarControl(field), trigger);
+});
+
+// Run the actual self-contained browser measurement with controlled DOMRects;
+// unrelated surface queries are empty, so no browser or running app is needed.
+function measureControlRow(rects, width = 1280) {
+  const rect = (left, top, boxWidth, height) => ({ left, top, width: boxWidth, height, right: left + boxWidth, bottom: top + height });
+  const control = (kind, box) => ({
+    getBoundingClientRect: () => box,
+    matches: (selector) => selector === BAR_CONTROL_SELECTOR || (kind === "menu" && selector.includes("hub-filter-menu-trigger")),
+    querySelector: () => null,
+  });
+  const children = rects.map((box, i) => {
+    const field = control(i === 1 ? "menu" : "input", box);
+    if (i === 2) return field; // The action is a direct child of the row.
+    const nestedInput = control("input", rect(box.left, box.top + 10, box.width, 17));
+    return {
+      matches: () => false,
+      // Label wrappers intentionally differ; only the actual controls matter.
+      getBoundingClientRect: () => rect(box.left, box.top - 20 * (i + 1), box.width, box.height + 20 * (i + 1)),
+      querySelector: (selector) => selector.includes("hub-filter-menu-trigger") ? (i === 1 ? field : null) : (i === 1 ? nestedInput : field),
+    };
+  });
+  const row = { children, getBoundingClientRect: () => rect(0, 0, width, 400), getAttribute: () => "setup-controls" };
+  const document = {
+    documentElement: { scrollWidth: width }, body: { scrollWidth: width }, styleSheets: [],
+    querySelector: () => null,
+    querySelectorAll: (selector) => selector === "[data-control-row]" ? [row] : [],
+  };
+  const result = runInNewContext(`(${measureScript().toString()})(args)`, {
+    document, innerWidth: width, window: { innerWidth: width, innerHeight: 900 },
+    getComputedStyle: () => ({ visibility: "visible", fontSize: "16px", getPropertyValue: () => "12px" }),
+    args: { minTarget: minTargetForWidth(width), numericRe: NUMERIC_RE.source, barControlSelector: BAR_CONTROL_SELECTOR },
+  });
+  return result.filter(item => item.rule === "control-rows");
+}
+
+const controlBox = (left, top, width = 120, height = 44) => ({ left, top, width, height, right: left + width, bottom: top + height });
+
+test("marked control rows measure actual fields, composite triggers and actions", () => {
+  const [result] = measureControlRow([controlBox(20, 56), controlBox(160, 56, 240), controlBox(420, 56)]);
+  assert.equal(result.ok, true);
+  assert.equal(result.selector, "setup-controls");
+});
+
+test("marked control rows reject side-by-side controls with different bottom edges", () => {
+  const [result] = measureControlRow([controlBox(20, 56), controlBox(160, 32, 240), controlBox(420, 56)]);
+  assert.equal(result.ok, false);
+  assert.match(result.detail, /side-by-side bottom edges/);
+  assert.doesNotMatch(result.detail, /control heights/);
+});
+
+test("marked control rows reject unequal heights even with aligned bottom edges", () => {
+  const [result] = measureControlRow([controlBox(20, 56), controlBox(160, 64, 240, 36), controlBox(420, 56)]);
+  assert.equal(result.ok, false);
+  assert.match(result.detail, /control heights 44.0, 36.0, 44.0px/);
+  assert.doesNotMatch(result.detail, /side-by-side bottom edges/);
+});
+
+test("marked control rows catch an action far below a neighboring column", () => {
+  const [result] = measureControlRow([controlBox(20, 56), controlBox(160, 56, 240), controlBox(420, 190)]);
+  assert.equal(result.ok, false);
+  assert.match(result.detail, /side-by-side bottom edges/);
+});
+
+test("marked control rows allow vertically stacked phone controls", () => {
+  const [result] = measureControlRow([controlBox(20, 40, 350), controlBox(20, 110, 350), controlBox(20, 180, 350)], 390);
+  assert.equal(result.ok, true);
+});
+
+test("marked phone control rows still reject a mismatched control height", () => {
+  const [result] = measureControlRow([controlBox(20, 40, 350), controlBox(20, 110, 350, 36), controlBox(20, 180, 350)], 390);
+  assert.equal(result.ok, false);
+  assert.match(result.detail, /control heights/);
+  assert.doesNotMatch(result.detail, /side-by-side bottom edges/);
 });
 
 test("text columns left-align", () => {

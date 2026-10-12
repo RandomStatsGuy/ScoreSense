@@ -1,0 +1,158 @@
+{
+  "sample_data_only": true,
+  "report": [
+    {
+      "option": "a",
+      "width": 1280,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": false,
+      "long_destination_320": false,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "a",
+      "width": 390,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": false,
+      "long_destination_320": false,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "a",
+      "width": 320,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": true,
+      "long_destination_320": true,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "b",
+      "width": 1280,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": false,
+      "long_destination_320": false,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "b",
+      "width": 390,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": false,
+      "long_destination_320": false,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "b",
+      "width": 320,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": true,
+      "long_destination_320": true,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "c",
+      "width": 1280,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": false,
+      "long_destination_320": false,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "c",
+      "width": 390,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": false,
+      "long_destination_320": false,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    },
+    {
+      "option": "c",
+      "width": 320,
+      "theme_checks": [
+        "dark",
+        "light"
+      ],
+      "workflow": "build/review/entry preview/check/download feedback passed",
+      "keyboard": "menus/disclosures passed",
+      "overflow": false,
+      "expanded_advanced_320": true,
+      "long_destination_320": true,
+      "network": "only local mock URLs; app API and remote requests blocked",
+      "request_count": 6,
+      "fixed_nav_clearance": true,
+      "page_errors": []
+    }
+  ]
+}
