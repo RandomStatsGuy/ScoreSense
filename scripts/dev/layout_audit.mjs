@@ -284,7 +284,17 @@ export function measureScript() {
     // consent controls beside the first line of their wrapping copy.
     const formVisible = (el) => {
       const box = el?.getBoundingClientRect();
-      return box?.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden";
+      if (!(box?.width > 0 && box.height > 0) || getComputedStyle(el).visibility === "hidden") return false;
+      // Chromium can retain layout rectangles for closed disclosure content.
+      // Only its first summary is painted; do not audit the hidden fields.
+      for (let parent = el; parent; parent = parent.parentElement) {
+        if (parent.hidden || getComputedStyle(parent).display === "none") return false;
+        if (parent.tagName === "DETAILS" && !parent.open) {
+          const summary = [...parent.children].find(child => child.tagName === "SUMMARY");
+          if (!summary?.contains(el)) return false;
+        }
+      }
+      return true;
     };
     document.querySelectorAll(".standalone-content").forEach((panel) => {
       if (!panel.querySelector(".account-auth-form") || !formVisible(panel)) return;
@@ -331,10 +341,18 @@ export function measureScript() {
       const heights = boxes.map(box => box.height);
       const sameHeight = Math.max(...heights) - Math.min(...heights) <= 2;
       const misaligned = [];
+      // A wrapping grid restarts at an earlier column. Keep the strict check
+      // for a misplaced action in a later column of the same row.
+      let visualRow = 0;
+      const visualRows = boxes.map((box, index) => {
+        const previous = boxes[index - 1];
+        if (previous && box.left <= previous.left + 1 && box.top >= previous.bottom - 2) visualRow++;
+        return visualRow;
+      });
       boxes.forEach((box, i) => {
         boxes.slice(i + 1).forEach((other, j) => {
           const separateColumns = box.right <= other.left + 1 || other.right <= box.left + 1;
-          if (separateColumns && Math.abs(box.bottom - other.bottom) > 2) {
+          if (separateColumns && visualRows[i] === visualRows[i + j + 1] && Math.abs(box.bottom - other.bottom) > 2) {
             misaligned.push(`${i + 1}/${i + j + 2}: ${box.bottom.toFixed(1)}/${other.bottom.toFixed(1)}px`);
           }
         });

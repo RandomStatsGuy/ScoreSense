@@ -1,6 +1,7 @@
 import React from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import useDfsContestResearch from "./useDfsContestResearch.js";
+import DfsContestPortfolio from "./DfsContestPortfolio.jsx";
 import { moneyFraction } from "./dfsContestResearch.js";
 import { DFS_CONTEST_COPY as C } from "./dfsToolPresentation.js";
 const money = value => `≈${(moneyFraction(value) / 100).toLocaleString("en-US", { style: "currency", currency: "USD" })}`;
@@ -36,6 +37,7 @@ export default function DfsContestResearch({ shared }) {
         </details>
       </li>)}</ul>
     </div>}
+    <DfsContestPortfolio shared={shared} contest={e} />
     <details><summary>{C.settings}</summary><div className="dfw-settings-grid dfw-control-fields" data-control-row>
       <div className="dfw-field"><span>{C.draws}</span><HubFilterMenu className="hub-filter-menu--field" label={C.draws} value={String(e.draws)} onChange={v => e.setDraws(Number(v))} options={[32, 64, 128, 256].map(n => ({ id: String(n), label: String(n) }))} /></div>
       <label className="dfw-field"><span>{C.topK}</span><input type="number" min="1" max="100000" value={Number.isNaN(e.topK) ? "" : e.topK} onChange={event => e.setTopK(event.target.value === "" ? NaN : Number(event.target.value))} /></label>

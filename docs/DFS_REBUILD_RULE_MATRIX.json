@@ -4,7 +4,7 @@
   "source_sha256": "a0cd7f50eed4f3a45d0158f587c2d00c1003c1b5425845a9bcfe9aa693fca96c",
   "inventory_commit": "45694c9355cbd6559da79ef688c4a62e5b94283d",
   "as_of": "2026-10-12",
-  "status_note": "PR1–5 foundations and guided A are retained. PR6 adds supplied legal correlated fields, ownership-assumption sensitivity, exact conditional cash ties and heldout field diagnostics. Actual field/ownership calibration, authenticated contracts, model promotion, untouched evaluation and platform acceptance remain separate gates.",
+  "status_note": "PR1–5 foundations and guided A are retained. PR6 adds supplied legal fields and exact conditional cash ties. PR7 adds bounded conditional joint selection for mean net, downside-adjusted net and top-finish coverage, with separate final baseline assessment. Actual field/ownership calibration, authenticated contracts, model promotion, untouched evaluation and platform acceptance remain separate gates.",
   "rules": [
     {
       "id": "GOV-01",
@@ -266,7 +266,7 @@
         "T23",
         "T36"
       ],
-      "remaining_work": "PR6 exact conditional cash ties include all own/opponent multiplicities, declared rounding and fees once. Sampled top-finish coverage is separate. Forecast EV, portfolio objective/selection, risk constraints, authenticated settlement and noncash awards remain unavailable."
+      "remaining_work": "PR7 conditional mean net, explicitly weighted CVaR loss utility and at-least-one top-finish coverage remain separate. Every trial and final set includes own/opponent ties and full multiplicities. Calibrated future EV, real settlement and noncash awards remain unavailable."
     },
     {
       "id": "PORT-02",
@@ -278,7 +278,7 @@
         "T13",
         "T36"
       ],
-      "remaining_work": "PR3 accumulated review counts all-slot pairs/cores, QB games, attachment/bring-back structure, FLEX, defense/team concentration, salary and recorded injury flags, with affected-lineup navigation. Flags are descriptive; modeled injury scenarios, joint dependence and validated concentration guidance remain. Common decision-time reevaluation and a shared-scenario concentration audit remain unavailable."
+      "remaining_work": "PR7 evaluates whole selected sets on common shared game/field draws and compares the constrained projection baseline on separate assessment streams across supplied provider/news assumptions. Empirical joint calibration and validated concentration guidance remain open. Scenario-loss concentration and marginal top-finish attribution guidance remain unfinished."
     },
     {
       "id": "PORT-03",
@@ -312,7 +312,7 @@
         "T30",
         "T35"
       ],
-      "remaining_work": "PR5 research manifests freeze bank/pool/event/scoring identities and effective seed/stream purpose. A manifest cannot prove that a user avoided inspecting earlier evaluation runs. Original incident inputs, accepted entries and prospective audits remain unavailable."
+      "remaining_work": "PR7 manifests retain candidate projections, controls, objective/risk units, selected scenario, supplied game-bank/scoring/field/payout package identities, effective purpose seeds and search budgets. Separate assessment draws do not authenticate pre-lock data or prove prior evaluation was untouched. Prospective portfolio evidence remains unavailable."
     },
     {
       "id": "OPS-01",
@@ -422,7 +422,7 @@
         "T24",
         "T36"
       ],
-      "remaining_work": "Projection-sum limitations are documented; PR1 adds selection status; validated forecast/EV claims stay unavailable."
+      "remaining_work": "PR7 exhaustive completion proves an optimum only over supplied candidates and frozen selection draws. Bounded single-swap or timed search returns feasible proposals with unknown conditional bounds/gaps; native failure statuses remain distinct. Calibrated EV and untouched forward claims stay unavailable."
     },
     {
       "id": "GOV-03",
@@ -579,7 +579,7 @@
         "T34",
         "T35"
       ],
-      "remaining_work": "PR1 adds native separate hard min/max and soft targets, counts all locks, and declares rounding in opt-in global mode."
+      "remaining_work": "PR7 conditional selection reuses native decimal min/target/max arithmetic, all-lock accounting and exact final incidence audits. Targets retain lexicographic preference ahead of conditional utility. Production calibrated recommendations remain gated."
     },
     {
       "id": "PORT-06",
@@ -591,7 +591,7 @@
         "T15",
         "T36"
       ],
-      "remaining_work": "Native per-build pair/core constraints and accumulated collection player/group hard bounds and soft target misses are available, with independent export gates. Collection bounds audit the approved set rather than reselect it. Modeled shared-assumption concentration and broader candidate sensitivity remain."
+      "remaining_work": "PR7 preserves native player/pair/core hard bounds and soft target misses while jointly selecting a candidate subset. Collection review bounds remain explicit and separate from build controls. Modeled shared-assumption calibration and broad candidate sensitivity remain open. Scenario-loss concentration and marginal top-finish attribution guidance remain unfinished."
     },
     {
       "id": "PORT-07",
@@ -626,7 +626,7 @@
         "T20",
         "T24"
       ],
-      "remaining_work": "Existing bounded candidate generation remains separate from PR5 supplied-finalist evaluation. Purpose-separated generation/selection/evaluation streams are available, but they are not yet an independently verified production candidate-selection pipeline."
+      "remaining_work": "PR7 supplied candidates are separate from joint subset search. Generation provenance is declared, selection and final assessment streams are purpose-separated, and candidate-pool limits are disclosed. Untouched production forward selection and wider-budget candidate sensitivity remain unverified."
     },
     {
       "id": "PORT-10",
@@ -741,7 +741,7 @@
         "T23",
         "T34"
       ],
-      "remaining_work": "PR6 shows concise conditional scenario net and finish samples in a closed optional panel; provenance, supplied-vs-template gaps and uncertainty stay disclosed. No calibrated EV or precision claim. Real-user task acceptance remains open."
+      "remaining_work": "PR7 closed optional choice controls separate average return, downside penalty and top-finish coverage, disclose exact goal units and compare actual separate-sample baseline results. No calibrated forecast or winner guarantee is claimed. Real-user task acceptance remains open."
     },
     {
       "id": "UX-05",
@@ -898,8 +898,8 @@
     {
       "id": "T20",
       "status": "partial",
-      "remaining_work": "PR5 purpose-separated reproducible generation/selection/evaluation streams provide common independent draws across supplied finalists. Separate domains can sample the same outcomes; manifests cannot prove no earlier evaluation inspection. Untouched production candidate/finalist selection remains unverified.",
-      "evidence": "tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; scripts/dev/verify_dfs_shared_outcomes.py; dfsSharedOutcomes.test.mjs"
+      "remaining_work": "PR7 freezes common selection draws before search, then assesses baseline and selected sets on the same purpose-separated evaluation draws. Those results do not feed finalist choice. Data provenance and earlier research exposure cannot be certified by stream domains; untouched forward evaluation remains open.",
+      "evidence": "tests/test_dfs_contest_portfolio.py; tests/test_dfs_contest_portfolio_oracles.py; scripts/dev/verify_dfs_contest_portfolio.py"
     },
     {
       "id": "T21",
@@ -916,14 +916,14 @@
     {
       "id": "T23",
       "status": "partial",
-      "remaining_work": "Missing payouts/rights/context and unsupported noncash prevent conditional research. All forecast EV/calibration capabilities stay false; existing projection builder remains unchanged, with no implicit objective fallback.",
-      "evidence": "tests/test_dfs_contest_research_api.py; frontend/src/dfsContestResearch.test.mjs; scripts/dev/dfs_contest_tasks.mjs"
+      "remaining_work": "PR7 permits only explicitly labeled conditional supplied-scenario objectives. Missing or changed admitted fields/payouts/rights block the research request without silently choosing a projection fallback. Calibrated forecast/EV capabilities remain false; the normal projection builder is unchanged.",
+      "evidence": "tests/test_dfs_contest_portfolio_api.py; frontend/src/dfsContestPortfolio.test.mjs; docs/reviews/DFS_CONTEST_PORTFOLIO_CONTRACT.md"
     },
     {
       "id": "T24",
       "status": "partial",
-      "remaining_work": "Latest returned solver status, requested/selected/unique/candidate counts and provided runtime/bounds/gap are disclosed; absent values stay unavailable. Client build state distinguishes running/cancelled/failed/partial/complete. Full numerical-scaling evidence remains.",
-      "evidence": "dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; tests/test_dfs_portfolio_selection.py; scripts/dev/dfs_flow_tasks.mjs"
+      "remaining_work": "PR7 distinguishes exhaustive supplied-pool optimality, feasible bounded improvement, feasible time limit and native no-result statuses. Exact rational objectives and final independent hard-bound recount prevent cash/coverage bounds being borrowed from projection MILP. Broad candidate/tier/model performance sensitivity remains open.",
+      "evidence": "tests/test_dfs_contest_portfolio.py; tests/test_dfs_contest_portfolio_oracles.py; scripts/dev/verify_dfs_contest_portfolio.py"
     },
     {
       "id": "T25",
@@ -982,20 +982,20 @@
     {
       "id": "T34",
       "status": "partial",
-      "remaining_work": "Approved A gives count/goal/Build first, closed optional controls, explicit Save this set, Review and Download. Both normal 150-entry flows preserve exact worker recovery and sealed CSV/unrelated rows. Historical and supplied-scenario research remain optional and frozen. Calibrated recommendations and contest-aware objectives remain unavailable.",
-      "evidence": "dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; docs/reviews/dfs-opportunity-evidence/README.md; scripts/dev/dfs_flow_tasks.mjs"
+      "remaining_work": "Approved A gives count/goal/Build first, closed optional controls, explicit Save this set, Review and Download. Both normal 150-entry flows preserve exact worker recovery and sealed CSV/unrelated rows. Historical and supplied-scenario research remain optional and frozen. PR7 adds conditional contest objectives; calibrated forecast recommendations remain unavailable.",
+      "evidence": "dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; docs/reviews/dfs-opportunity-evidence/README.md; scripts/dev/dfs_flow_tasks.mjs; scripts/dev/dfs_portfolio_selection_tasks.mjs"
     },
     {
       "id": "T35",
       "status": "partial",
-      "remaining_work": "PR5 research records raw/event/bank/pool/scoring identities, the actual official rules receipt and effective seed/purpose streams, and echoes selected bank/input IDs. Saved build history stays separate; complete production model/field manifests and archived live source proof remain.",
-      "evidence": "tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; scripts/dev/verify_dfs_shared_outcomes.py; scripts/dev/dfs_flow_tasks.mjs; dfsSharedOutcomes.test.mjs"
+      "remaining_work": "PR7 request/report identities bind candidate IDs and frozen projection scores, player/group/construction controls, explicit field assumption, objective/risk definition, count, package hashes, purpose seeds and search budgets. Raw events/opponent templates remain outside personal downloads; authenticated archived source/model provenance remains open.",
+      "evidence": "tests/test_dfs_contest_portfolio_api.py; frontend/src/dfsContestPortfolio.test.mjs; docs/reviews/DFS_CONTEST_PORTFOLIO_CONTRACT.md"
     },
     {
       "id": "T36",
       "status": "partial",
-      "remaining_work": "PR6 conditional fixed-set replay separates scenario net distributions from sampled top-finish coverage. Phase7 selection/objectives, defined risk limits and untouched forward portfolio evaluation remain gated.",
-      "evidence": "tests/test_dfs_contest_research.py; tests/test_dfs_contest_payouts.py; docs/reviews/DFS_CONTEST_RESEARCH_CONTRACT.md"
+      "remaining_work": "PR7 conditional mean net, CVaR loss-penalized utility and union top-finish coverage use separate exact goals. Every trial and final assessment prices all own entries jointly against the full counted opponent field. Independent cash/CVaR/coverage oracles establish engineering correctness; untouched multi-slate forecast evaluation remains unavailable.",
+      "evidence": "tests/test_dfs_contest_portfolio.py; tests/test_dfs_contest_portfolio_oracles.py; docs/reviews/dfs-contest-portfolio/README.md"
     }
   ],
   "phase2": {
@@ -1749,6 +1749,79 @@
       "Automatic field-size uncertainty scenarios",
       "Calibrated shared football outcomes and untouched forward evaluation",
       "Phase7 portfolio objectives/selection and Phase8 accepted-entry late swap"
+    ]
+  },
+  "phase7": {
+    "baseline_commit": "c26dd59d2befa3f74aa9956bfd9ee748d52faa37",
+    "scope": "Read-only conditional joint candidate selection in guided A, with separate mean-net/CVaR/top-finish goals and paired separate assessment; no calibrated forecast or live entry changes.",
+    "capabilities": {
+      "conditional_portfolio_selection": true,
+      "exact_joint_cash_ties": true,
+      "common_selection_draws": true,
+      "separate_final_evaluation_draws": true,
+      "ownership_calibrated": false,
+      "joint_outcomes_calibrated": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "platform_settlement_verified": false,
+      "untouched_evaluation_verified": false
+    },
+    "verification": {
+      "evidence_scope": "synthetic engineering and isolated production-component browser tasks",
+      "backend_scope": {
+        "passed": 1080,
+        "warnings": 1,
+        "seconds": 105.83,
+        "files": "tests/test_dfs*.py, tests/test_lineup*.py, tests/test_vegas*.py"
+      },
+      "policy": {
+        "passed": 36
+      },
+      "frontend_scoped": {
+        "tests": 294,
+        "pass": 294,
+        "fail": 0
+      },
+      "frontend_full": {
+        "tests": 1224,
+        "pass": 1221,
+        "fail": 3,
+        "baseline_failures_reproduced_on": "c26dd59d2befa3f74aa9956bfd9ee748d52faa37",
+        "failures": [
+          "auctionAwardContractLabel wording",
+          "accuracy-null copy",
+          "My team banner regex"
+        ]
+      },
+      "build": {
+        "passed": true,
+        "seconds": 14.94,
+        "existing_bundle_warning": true
+      },
+      "browser": {
+        "cases": 10,
+        "layout_states": 20,
+        "expanded_states": 4,
+        "guards": 9,
+        "receipt": "docs/reviews/dfs-contest-portfolio/browser-receipt.json"
+      },
+      "engineering_receipt": "docs/reviews/dfs-contest-portfolio/engineering-receipt.json",
+      "existing_export_recovery_smoke": {
+        "passed": true,
+        "width": 390,
+        "theme": "dark"
+      },
+      "whole_backend_gate_run": false,
+      "whole_backend_gate_note": "Affected suites only; no fresh whole-repository or ready-for-review CI result is claimed."
+    },
+    "open_gates": [
+      "untouched multi-slate forward portfolio evaluation",
+      "fitted football/field and extreme-rank calibration",
+      "authenticated actual payout/accepted-entry receipts",
+      "comparable compute-budget and wider candidate-search sensitivity",
+      "scenario-loss concentration and marginal top-finish attribution guidance",
+      "real user task acceptance",
+      "phase 8 exact accepted-entry late swap"
     ]
   }
 }
