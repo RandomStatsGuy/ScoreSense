@@ -4,6 +4,7 @@ import { auditPortfolio, buildPortfolioEntryCsv, classicLineupKey, createPortfol
 import { readEntryTemplate } from "./dfsEntryExport.js";
 import { csvLines } from "./dfsCsv.js";
 import { PORTFOLIO_BACKUP_MAX_BYTES, readPortfolioBackup, readPortfolioBackupFile, writePortfolioBackup } from "./dfsPortfolioBackup.js";
+import { createBuildPlan, previewBuildPlan } from "./dfsBuildPlans.js";
 
 const timestamp = "2026-10-10T12:00:00.123456+00:00";
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
@@ -33,6 +34,29 @@ function batch(offset = 0, count = 75) {
 const original = () => [batch(), batch(75)];
 const document = () => JSON.parse(writePortfolioBackup(original(), { p0: "150", p1: "", removed: null }, timestamp));
 const restore = value => readPortfolioBackup(JSON.stringify(value));
+
+test("T07/T14/T29 native group and stack rules retain applied-plan provenance through recovery", () => {
+  const native = structuredClone(batch(0, 2));
+  Object.assign(native.settings, { portfolio_mode: "global", lineup_count: 2, salary_cap: 50000,
+    min_salary: 0, max_per_team: 0, max_overlap: 8, max_exposure: 1, randomness: 0, objective: "median",
+    excluded_player_ids: [], qb_stack_count: 0, require_qb_stack: false, stack_bring_back: false,
+    stack_teams: [], stack_qb_ids: [], stack_game_weights: [], player_exposure_limits: {},
+    group_exposure_limits: [{ id: "pair:original", player_ids: ["p1", "p2"], min: { count: 2 }, max: { count: 2 } }],
+    classic_stack_rules: { version: 1, attachments: { mode: "optional", count: 0, receiving_rb_ids: ["p2"] }, bring_back: { mode: "optional", count: 0 } },
+    block_qb_opposing_dst: false });
+  const validation = { catalog: native.salaryCatalog, context: native.context, salarySnapshot: native.salarySnapshot, games: [] };
+  const plan = createBuildPlan({ id: "plan:original", label: "Original controls" }, native.settings, validation);
+  native.settings.plan_manifest = previewBuildPlan(plan, native.settings, validation).manifest;
+  native.settings.build_snapshot.content.parameters = structuredClone(plan.inputs);
+  const json = writePortfolioBackup([native], {}, timestamp), restored = readPortfolioBackup(json);
+  assert.deepEqual(restored.batches[0].settings.classic_stack_rules, native.settings.classic_stack_rules);
+  assert.deepEqual(restored.batches[0].settings.plan_manifest, native.settings.plan_manifest);
+  assert.deepEqual(restored.batches[0].settings.group_exposure_limits, native.settings.group_exposure_limits);
+  const changedPlan = JSON.parse(json); changedPlan.batches[0].settings.plan_manifest.requested.excluded_player_ids = ["p4"];
+  assert.throws(() => restore(changedPlan), /plan differs/);
+  const changedRole = JSON.parse(json); changedRole.batches[0].settings.classic_stack_rules.attachments.receiving_rb_ids = ["p0"];
+  assert.throws(() => restore(changedRole), /not an RB/);
+});
 
 function fullPoolBatch(offset, count, poolSize = 700) {
   const result = structuredClone(batch(offset, count));

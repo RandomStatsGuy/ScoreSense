@@ -1,5 +1,7 @@
 import { appendPortfolioBatch, auditPortfolio, createPortfolioBatch, freezeSnapshot } from "./dfsPortfolio.js";
 import { DFS_PORTFOLIO_COPY as C } from "./dfsToolPresentation.js";
+import { normalizeClassicStackRules } from "./dfsClassicStackRules.js";
+import { assertBuildPlanApplied } from "./dfsBuildPlans.js";
 
 export const PORTFOLIO_BACKUP_SCHEMA = "scoresense_classic_portfolio";
 export const PORTFOLIO_BACKUP_VERSION = 1;
@@ -10,7 +12,8 @@ const SETTING_KEYS = ["site", "slate_id", "season", "week", "slate_salaries", "s
   "randomness", "min_salary", "max_per_team", "qb_stack_count", "stack_bring_back", "stack_game_weights",
   "locked_captain_id", "captain_exposure_limits", "projection_overrides", "apply_injury_adjustments",
   "block_bye_weeks", "note", "ownership", "projection_sources", "build_snapshot", "snapshot_at",
-  "portfolio_mode", "player_exposure_limits", "group_exposure_limits", "block_qb_opposing_dst", "portfolio_selection", "game_schedule"];
+  "portfolio_mode", "player_exposure_limits", "group_exposure_limits", "block_qb_opposing_dst", "portfolio_selection", "game_schedule",
+  "classic_stack_rules", "plan_manifest", "require_qb_stack", "stack_teams", "stack_qb_ids"];
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype", "accesstoken", "refreshtoken", "idtoken",
   "authorization", "cookie", "credentials", "password", "auth", "authenticated", "session", "sessionid",
   "savedbuild", "savedbuilds", "portfoliobuildids", "buildids", "assignments", "entryassignments", "entrytemplate",
@@ -112,6 +115,14 @@ function validateBatch(batch) {
     dfsIds.add(p.dfs_id);
     text(p.Player ?? p.player_name); text(p.Position ?? p.position, 10); text(p.Team ?? p.team, 10);
   });
+  if (s.classic_stack_rules != null) {
+    normalizeClassicStackRules(s.classic_stack_rules, batch.salaryCatalog);
+    if (s.portfolio_mode !== "global" || s.require_qb_stack || s.qb_stack_count || s.stack_bring_back || s.stack_game_weights?.length) fail();
+  }
+  if (s.plan_manifest != null) {
+    if (!object(s.plan_manifest)) fail();
+    assertBuildPlanApplied(s.plan_manifest, s);
+  }
   if (!Array.isArray(batch.lineups) || !batch.lineups.length || batch.lineups.length > 150) fail();
   batch.lineups.forEach(entry => {
     shape(entry, ["lineup", "total_salary", "total_points", "salary_remaining", "objective", "ok", "note", "solver_status"], ["lineup", "total_salary", "total_points"]);

@@ -38,7 +38,7 @@ const parameters = result.build_snapshot.content.parameters;
 const settingKeys = ["objective", "salary_cap", "min_salary", "max_per_team", "block_bye_weeks",
   "locked_player_ids", "excluded_player_ids", "locked_captain_id", "captain_exposure_limits",
   "qb_stack_count", "stack_bring_back", "stack_game_weights", "lineup_count", "max_overlap",
-  "max_exposure", "randomness", "portfolio_mode", "player_exposure_limits", "group_exposure_limits", "block_qb_opposing_dst"];
+  "max_exposure", "randomness", "portfolio_mode", "player_exposure_limits", "group_exposure_limits", "block_qb_opposing_dst", "classic_stack_rules"];
 const snapshot = { context: { site, season: 2026, week: 1, slateId: "synthetic-classic", source: "upload" },
   slateName: "Synthetic fixture; no live slate", lineups: result.lineups, salaryCatalog: catalog, salarySnapshot: null,
   settings: { ...Object.fromEntries(settingKeys.map(key => [key, parameters[key]])),
@@ -73,6 +73,15 @@ assert.equal(audit.duplicates.length, 0);
 assert.equal(audit.errors.length, 0);
 const preferred = audit.players.find(player => player.id === "QB0")?.count || 0;
 if (count === 150) assert.equal(preferred, 60);
+if (request.classic_stack_rules) {
+  assert.equal(result.portfolio_selection.stack_audit.length, count);
+  assert.ok(result.portfolio_selection.stack_audit.every(row => row.ok && row.attachments.actual_count === 1));
+  const pairCount = restored.batches.flatMap(row => row.lineups).filter(entry => {
+    const ids = new Set(entry.lineup.map(row => row.player_id));
+    return ids.has("RB0") && ids.has("RB1");
+  }).length;
+  if (count === 150) assert.ok(pairCount >= 15 && pairCount <= 45);
+}
 await Promise.all([
   writeFile(join(output, "entry-template.csv"), templateCsv),
   writeFile(join(output, "entry-update.csv"), artifact.csv),
@@ -80,7 +89,10 @@ await Promise.all([
   writeFile(join(output, "entry-manifest.json"), JSON.stringify(artifact.manifest, null, 2)),
   writeFile(join(output, "portfolio-backup.json"), backup),
 ]);
-process.stdout.write(JSON.stringify({ synthetic: true, selected: count, unique: audit.unique, preferred_count: preferred,
+const exportEvidence = { synthetic: true, selected: count, unique: audit.unique, preferred_count: preferred,
   entry_csv_roundtrip: "PASS", backup_roundtrip: "PASS", untouched_entries: 1,
   acceptance: "unconfirmed", export_version: artifact.manifest.exportVersion,
-  output_csv_sha256: artifact.manifest.hashes.output_csv_sha256 }));
+  output_csv_sha256: artifact.manifest.hashes.output_csv_sha256 };
+await writeFile(join(output, "evidence.json"), JSON.stringify({ ...exportEvidence,
+  build_seconds: fixture.build_seconds, selection: result.portfolio_selection, validation: result.validation }, null, 2));
+process.stdout.write(JSON.stringify(exportEvidence));

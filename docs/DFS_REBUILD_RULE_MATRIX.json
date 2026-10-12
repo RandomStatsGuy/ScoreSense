@@ -4,7 +4,7 @@
   "source_sha256": "a0cd7f50eed4f3a45d0158f587c2d00c1003c1b5425845a9bcfe9aa693fca96c",
   "inventory_commit": "45694c9355cbd6559da79ef688c4a62e5b94283d",
   "as_of": "2026-10-11",
-  "status_note": "PR1 is a scoped foundation, not the complete specification; statuses are inventory/work tracking, not executable optimizer configuration or completion certification.",
+  "status_note": "PR1 is a scoped foundation; PR2 adds verified portfolio guardrails. Statuses track scoped implementation and remaining specification work, not model readiness or platform acceptance.",
   "rules": [
     {
       "id": "GOV-01",
@@ -535,14 +535,14 @@
     {
       "id": "STACK-05",
       "title": "Make group and bring-back semantics exact",
-      "status": "planned",
+      "status": "implemented_scoped",
       "phase": "2",
       "acceptance_tests": [
         "T07",
         "T14",
         "T35"
       ],
-      "remaining_work": "Existing QB stack minimum/boolean bring-back is retained; exact/forbidden/receiving-RB semantics and atomic plans remain."
+      "remaining_work": "PR2 implements minimum/maximum/exact/optional/forbidden, lock-inclusive counts, explicit receiving-RB IDs and atomic named plans with pre-Build matching. Automatic role evidence belongs to later phases."
     },
     {
       "id": "SIM-03",
@@ -591,7 +591,7 @@
         "T15",
         "T36"
       ],
-      "remaining_work": "PR1 introduces selector group bounds and RB-pair counts; polished pair/core editing and shared-assumption audit remain."
+      "remaining_work": "PR2 provides native per-build pair/core minimum/target/maximum editing, actual counts, group-aware candidate omission attempts and independent export enforcement. Combined collection pair/core counts and bounds across separately collected batches remain pending; the accumulated audit currently covers player/QB usage. Shared-assumption/scenario concentration and marginal alternative evaluation also remain."
     },
     {
       "id": "PORT-07",
@@ -626,7 +626,7 @@
         "T20",
         "T24"
       ],
-      "remaining_work": "PR1 separates bounded candidate generation and global selection; broader candidate diversity/re-search remains."
+      "remaining_work": "PR2 broadens bounded candidate generation using declared pair/core omission attempts; wider-budget/order sensitivity and model-based alternative evaluation remain."
     },
     {
       "id": "PORT-10",
@@ -640,7 +640,7 @@
         "T25",
         "T30"
       ],
-      "remaining_work": "PR1 reports conflicts/shortfalls without filling duplicates; replacement approval/version diff remains."
+      "remaining_work": "PR2 previews and atomically replaces named strategy inputs, blocks stale/context-mismatched plans before Build, and independently audits native exports. Full portfolio replacement approval/version comparison remains phase 3."
     },
     {
       "id": "OPS-08",
@@ -703,7 +703,7 @@
         "T33",
         "T34"
       ],
-      "remaining_work": "Approved compact production workspace/pagination is retained; PR1 task/visual checks cover scoped controls, not every future workflow."
+      "remaining_work": "Approved production layout and tokens are retained. PR2 pair/core/plan/stack controls pass four-width/two-theme task/layout checks with inspected scoped screenshots; later workflows remain."
     },
     {
       "id": "UX-02",
@@ -715,7 +715,7 @@
         "T25",
         "T34"
       ],
-      "remaining_work": "PR1 exposes one native global build; full recommendation/audit/replacement workflow remains."
+      "remaining_work": "Native build, pair/core controls, atomic plans, recovery and export are tested. The full integrated recommendation/audit/replacement journey remains phase 3."
     },
     {
       "id": "UX-03",
@@ -728,7 +728,7 @@
         "T34",
         "T35"
       ],
-      "remaining_work": "PR1 distinguishes hard minimum/maximum and soft target beside counts; exact stack UX remains."
+      "remaining_work": "PR2 distinguishes stack modes, explicit receiving-RB eligibility, pair/core hard bounds/soft targets and actual stack histograms. Later role/evidence and opportunity-cost guidance remain."
     },
     {
       "id": "UX-04",
@@ -755,7 +755,7 @@
         "T32",
         "T34"
       ],
-      "remaining_work": "PR1 adds durable draft/pending-sync recovery; cancellation, scoped retries and previewed replacement/data versions remain."
+      "remaining_work": "PR2 preserves prior batches and applied-plan manifests through preview/apply/rebuild and local-draft reload. Cancellation, scoped data retries and previewed data-version replacement remain."
     },
     {
       "id": "UX-06",
@@ -777,7 +777,7 @@
         "T33",
         "T34"
       ],
-      "remaining_work": "PR1 synthetic production-fixture tasks and screenshots cover exposure/export/recovery; full role-to-replacement workflow cannot pass before later stages."
+      "remaining_work": "PR2 synthetic production-fixture tasks and inspected screenshots cover pair/core, exact stacks and plans in both themes/four widths. Full role-to-replacement usability remains dependent on later phases."
     }
   ],
   "acceptance_tests": [
@@ -819,9 +819,9 @@
     },
     {
       "id": "T07",
-      "status": "partial",
-      "remaining_work": "Existing stack minimum/bring-back tested; exact/forbidden/receiving-RB semantics remain.",
-      "evidence": "tests/test_lineup_optimizer.py; phase 2"
+      "status": "implemented_scoped",
+      "remaining_work": "PR2 tests every native mode, lock-inclusive attachments/opponents, receiving-RB declaration and independent actual-roster audits. Role eligibility is explicitly user-declared, not a fitted football-role model.",
+      "evidence": "test_dfs_stack_rules.py; dfsBuildPlans.test.js; dfsGlobalExportValidation.test.js; dfs_guardrails_tasks.mjs"
     },
     {
       "id": "T08",
@@ -844,8 +844,8 @@
     {
       "id": "T11",
       "status": "partial",
-      "remaining_work": "PR1 group constraints, RB-pair display and synthetic 89/150 fixture; pair-cap editor and full selection integration remain.",
-      "evidence": "dfsGlobalExposure.test.js; phase 2/3"
+      "remaining_work": "PR2 per-build pair/core editor and real synthetic 150-lineup selection enforce pair target 30 within hard 15–45; independent export checks reject violations. Combined collection pair/core counts and bounds across separately collected batches remain pending. Original 89-pair incident inputs and broader shared-assumption evidence remain unavailable.",
+      "evidence": "test_dfs_build_retries.py; test_dfs_portfolio_selection.py; dfsGroupExposure.test.js; verify_dfs_rebuild.py --native-stacks; dfs_guardrails_tasks.mjs"
     },
     {
       "id": "T12",
@@ -861,15 +861,15 @@
     },
     {
       "id": "T14",
-      "status": "planned",
-      "remaining_work": "Atomic named-plan preview/application/manifest remains.",
-      "evidence": "Phase 2"
+      "status": "implemented_scoped",
+      "remaining_work": "PR2 atomic named-plan import/preview/cancel/apply replaces locks/skips/schedule/rules, retains immutable IDs and manifests, rejects stale/context changes, and blocks mismatched Build. Browser backup/reload preserves the original batches and applied-plan metadata.",
+      "evidence": "dfsBuildPlans.test.js; dfs_guardrails_tasks.mjs"
     },
     {
       "id": "T15",
       "status": "partial",
-      "remaining_work": "PR1 deterministic candidate selector; wider-budget/order sensitivity remains.",
-      "evidence": "tests/test_dfs_portfolio_selection.py (new)"
+      "remaining_work": "PR2 bounded generation adds pair/core omission attempts; 150-lineup synthetic fixture passes. Wider-budget, ordering and research-pool sensitivity comparisons remain.",
+      "evidence": "test_dfs_build_retries.py; test_dfs_portfolio_selection.py; verify_dfs_rebuild.py --native-stacks"
     },
     {
       "id": "T16",
@@ -952,8 +952,8 @@
     {
       "id": "T29",
       "status": "partial",
-      "remaining_work": "Existing bounded atomic version-1 restore and PR1 local draft recovery; compact content references remain.",
-      "evidence": "dfsPortfolioBackup.test.js; dfsLocalDraft.test.js; dfs_rebuild_browser.mjs"
+      "remaining_work": "Bounded version-1 backups and browser drafts preserve native rules and applied-plan manifests with no regeneration. Compact content references remain a stage-1 gap.",
+      "evidence": "dfsPortfolioBackup.test.js; dfsLocalDraft.test.js; dfs_guardrails_tasks.mjs; dfs_portfolio_browser.mjs"
     },
     {
       "id": "T30",
@@ -976,20 +976,20 @@
     {
       "id": "T33",
       "status": "partial",
-      "remaining_work": "PR1 four-width/two-theme task, keyboard/focus, layout and scoped screenshot checks; broader destinations/full accessibility evaluation not exercised.",
-      "evidence": "dfs_rebuild_browser.mjs; dfs_portfolio_browser.mjs; layout_audit.mjs"
+      "remaining_work": "PR2 pair/core/stack/plan tasks pass four widths/two themes plus scoped inspected screenshots. Existing keyboard/focus tasks pass; full accessibility and broader Fantasy/Projections contexts were not evaluated.",
+      "evidence": "dfs_rebuild_browser.mjs --guardrails-only; dfs_rebuild_browser.mjs; layout_audit.mjs"
     },
     {
       "id": "T34",
       "status": "partial",
-      "remaining_work": "PR1 exposure/generate/recover/export subset; role/pair/replacement journey remains.",
-      "evidence": "PR1 production fixture; phases 2–4"
+      "remaining_work": "PR2 verifies pair/core editing, exact stacks, atomic plan replacement and audited export/recovery. Full role recommendation and portfolio replacement journey remains phases 3–4.",
+      "evidence": "dfs_guardrails_tasks.mjs; docs/reviews/dfs-portfolio-guardrails/README.md"
     },
     {
       "id": "T35",
       "status": "partial",
-      "remaining_work": "Build settings/pool/seed snapshot exists; full rule/model/field/solver hashes and intents remain.",
-      "evidence": "tests/test_dfs_snapshots.py; tests/test_api_lineup.py"
+      "remaining_work": "Native rules and requested/applied plan manifests are frozen in build/backup settings; original-input export audits are retained. Complete rule/model/field/solver hashes and decision intent remain.",
+      "evidence": "dfsBuildPlans.test.js; dfsPortfolioBackup.test.js; test_dfs_snapshots.py; test_api_lineup.py"
     },
     {
       "id": "T36",
@@ -997,5 +997,127 @@
       "remaining_work": "No validated contest-aware objective/risk/top-finish selector exists.",
       "evidence": "Phases 6/7"
     }
-  ]
+  ],
+  "phase2": {
+    "baseline_commit": "a0de0a36",
+    "scope": [
+      "native_pair_core_controls",
+      "exact_classic_stack_semantics",
+      "explicit_receiving_rb_eligibility",
+      "atomic_named_plan_preview_apply"
+    ],
+    "baseline": {
+      "frontend_dfs": {
+        "passed": 156,
+        "failed": 0,
+        "seconds": 8.468
+      },
+      "backend_affected": {
+        "passed": 242,
+        "failed": 0,
+        "seconds": 22.27
+      },
+      "broad_frontend_failure_reproduction": {
+        "commit": "a0de0a36",
+        "passed": 33,
+        "failed": 3,
+        "seconds": 0.201,
+        "files": [
+          "DraftHub/draftRoomHelpers.test.js",
+          "accuracyPresentation.test.js",
+          "livingSurfaces.test.js"
+        ]
+      }
+    },
+    "implementation_verification": {
+      "backend_affected": {
+        "passed": 279,
+        "failed": 0,
+        "seconds": 35.71,
+        "modules": 14
+      },
+      "browser_guardrails": {
+        "cases": 8,
+        "passed": 8,
+        "failed": 0,
+        "widths": [
+          390,
+          768,
+          1280,
+          1440
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ],
+        "data": "synthetic production-component fixture"
+      },
+      "browser_foundation": {
+        "cases": 8,
+        "passed": 8,
+        "authorization_races": "pass"
+      },
+      "pipeline": {
+        "synthetic": true,
+        "requested": 150,
+        "selected": 150,
+        "unique": 150,
+        "candidates": 278,
+        "seconds": 15.141,
+        "qb_target": 60,
+        "qb_actual": 60,
+        "pair_target": 30,
+        "pair_actual": 30,
+        "pair_minimum": 15,
+        "pair_maximum": 45,
+        "group_omission_attempts": 23,
+        "exact_attachment_count": 1,
+        "independent_export_csv_backup": "pass",
+        "unrelated_entries_preserved": 1,
+        "platform_acceptance": "unconfirmed",
+        "output_csv_sha256": "90cbe3b9b2a2ee6f0b683eade4b59b23d2522cb2b3ce5c284bc8bb5a80ff67a1"
+      },
+      "frontend_dfs": {
+        "passed": 178,
+        "failed": 0
+      },
+      "frontend_broad": {
+        "tests": 1127,
+        "passed": 1124,
+        "failed": 3,
+        "failures_reproduced_at_baseline": true,
+        "seconds": 13.504
+      },
+      "production_build": {
+        "status": "pass",
+        "seconds": 10.76,
+        "existing_bundle_size_warning": true
+      },
+      "browser_portfolio": {
+        "widths": [
+          390,
+          1280
+        ],
+        "status": "pass",
+        "entries_selected": 150,
+        "unrelated_entries_preserved": 1,
+        "stress_backup_lineups": 140,
+        "stress_backup_players": 700,
+        "stress_backup_json_values": 588363,
+        "regenerated": false
+      }
+    },
+    "full_backend_gate": {
+      "status": "pass",
+      "passed": 2880,
+      "failed": 0,
+      "skipped": 2,
+      "warnings": 1,
+      "seconds": 1854.05,
+      "command": "PYTHONPATH=. \"C:/Users/Caelp/Desktop/Git Projects/ScoreSense/.venv/Scripts/python.exe\" -m pytest tests/ -q --basetemp=outputs/pytest-phase2-full --durations=15",
+      "log": "outputs/phase2-full-backend.log",
+      "backend_changed_after_start": false
+    },
+    "original_incident_available": false
+  }
 }

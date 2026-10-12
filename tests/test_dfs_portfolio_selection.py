@@ -133,7 +133,7 @@ def test_classic_pipeline_constraints_projections_and_snapshot_are_preserved():
     qb = next(row for row in result["exposure"] if row["player_id"] == "QB0")
     assert 2 <= qb["count"] <= 4
     assert result["build_snapshot"]["content"]["parameters"]["seed"] == 17
-    assert result["build_snapshot"]["content"]["engine"]["version"] == "global_candidate_milp_v1"
+    assert result["build_snapshot"]["content"]["engine"]["version"] == "global_candidate_milp_v2"
     pd.testing.assert_frame_equal(frame, original)
 
 

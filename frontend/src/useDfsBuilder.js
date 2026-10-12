@@ -17,7 +17,9 @@ import { parseDfsCsv, headerKey } from "./dfsCsv";
 import { captainComparisonRequest } from "./dfsCaptainComparisonRequest.js";
 import { DFS_CAPTAIN_COMPARISON_COPY as CC, DFS_PORTFOLIO_COPY as PC } from "./dfsToolPresentation";
 import { appendPortfolioBatch, createPortfolioBatch, freezeSnapshot, removePortfolioBatch, portfolioBuildPayload } from "./dfsPortfolio.js";
-import { exposureRequest, convertExposureUnits } from "./dfsGlobalExposure.js";
+import { exposureRequest, convertExposureUnits, groupExposureRequest, exposureRuleFromRequest } from "./dfsGlobalExposure.js";
+import { assertBuildPlanApplied } from "./dfsBuildPlans.js";
+import { normalizeClassicStackRules, DEFAULT_CLASSIC_STACK_RULES } from "./dfsClassicStackRules.js";
 import { DFS_GLOBAL_COPY as GC } from "./dfsToolPresentation.js";
 import { stableBuildKey } from "./dfsEntryExportSeal.js";
 
@@ -74,6 +76,10 @@ export default function useDfsBuilder(projMeta) {
   const [portfolioLimits, setPortfolioLimits] = useState({});
   const [globalExposure, setGlobalExposure] = useState({});
   const [globalUnit, setGlobalUnit] = useState("percent");
+  const [globalGroups, setGlobalGroups] = useState([]);
+  const [classicStackRules, setClassicStackRules] = useState(DEFAULT_CLASSIC_STACK_RULES);
+  const [stackScope, setStackScope] = useState({ teams: [], qbIds: [] });
+  const [appliedPlan, setAppliedPlan] = useState(null);
   const [portfolioSelection, setPortfolioSelection] = useState(null);
   const portfolioBuildIds = useRef(new Map());
   const [portfolioRestoreRevision, setPortfolioRestoreRevision] = useState(0);
@@ -88,6 +94,7 @@ export default function useDfsBuilder(projMeta) {
     exposure: 1,
     differences: 2,
     qbStack: 0,
+    requireQbStack: false,
     bringBack: false,
     maxTeam: 0,
     minSalary: 0,
@@ -108,6 +115,7 @@ export default function useDfsBuilder(projMeta) {
       generation.current++; revision.current++; portfolioBuildIds.current.clear();
       setPortfolio([]); setPortfolioLimits({}); setLineups([]); setCurrentBuild(null);
       setSavedBuild(null); setBuildSettings(null); setPortfolioSelection(null);
+      setAppliedPlan(null);
     };
     window.addEventListener("scoresense-auth-changed", reset);
     return () => window.removeEventListener("scoresense-auth-changed", reset);
@@ -122,8 +130,17 @@ export default function useDfsBuilder(projMeta) {
     setComparisonError("");
     return () => comparisonAbort.current?.abort();
   }, [context, settings, locked, excluded, overrides, salaries, salarySnapshot, pool, config]);
-  const changeSetting = (key, value) =>
-    setSettings((s) => ({ ...s, [key]: value }));
+  const changeSetting = (key, value) => {
+    if (key === "portfolioMode" && value === "global" && (settings.qbStack || settings.requireQbStack || settings.bringBack)) {
+      setClassicStackRules({ version: 1,
+        attachments: { mode: "minimum", count: Math.max(Number(settings.qbStack) || 0, settings.requireQbStack ? 1 : 0), receiving_rb_ids: [] },
+        bring_back: { mode: settings.bringBack ? "minimum" : "optional", count: settings.bringBack ? 1 : 0 } });
+      setNotice(GC.nativeMigration);
+    }
+    setSettings((s) => ({ ...s, [key]: value,
+      ...(key === "portfolioMode" && value === "global" ? { qbStack: 0, bringBack: false, requireQbStack: false } : {}),
+      ...(key === "qbStack" ? { requireQbStack: false } : {}) }));
+  };
   const changeStackWeight = (gameId, delta) => {
     const id = String(gameId || "");
     if (!id) return;
@@ -187,10 +204,14 @@ export default function useDfsBuilder(projMeta) {
     setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
     setStackWeights({});
     setGlobalExposure({}); setPortfolioSelection(null);
+    setGlobalGroups([]); setStackScope({ teams: [], qbIds: [] }); setAppliedPlan(null);
+    setClassicStackRules({ version: 1, attachments: { mode: "optional", count: 0, receiving_rb_ids: [] }, bring_back: { mode: "optional", count: 0 } });
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
-    if (patch.site) setSettings(s => ({ ...s, differences: normalizeLineupDifferences(s.differences, isCaptainFormat(patch.site, formats)) }));
+    if (patch.site) setSettings(s => ({ ...s,
+      ...(patch.site !== "draftkings" ? { portfolioMode: "legacy" } : {}),
+      differences: normalizeLineupDifferences(s.differences, isCaptainFormat(patch.site, formats)) }));
     setLocked([]);
     setExcluded([]);
     setCaptainLimits({});
@@ -363,6 +384,8 @@ export default function useDfsBuilder(projMeta) {
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
     setContext((c) => ({ ...c, source: "upload", slateId: "" }));
+    setGlobalExposure({}); setGlobalGroups([]); setPortfolioSelection(null); setAppliedPlan(null);
+    setStackScope({ teams: [], qbIds: [] }); setClassicStackRules(DEFAULT_CLASSIC_STACK_RULES);
     setBusy(true);
     setError("");
     setLocked([]);
@@ -451,6 +474,34 @@ export default function useDfsBuilder(projMeta) {
     );
     other((list) => list.filter((p) => p !== id));
   };
+  const strategyRequest = (effectiveCount = null) => {
+    const count = effectiveCount ?? parseLineupCount(settings.count);
+    if (count === null) throw new Error(C.countHelp);
+    const global = context.site === "draftkings" && settings.portfolioMode === "global";
+    const differences = isCaptain || !isDfs ? normalizeLineupDifferences(settings.differences, isCaptain) : Number(settings.differences);
+    if (!isCaptain && (!Number.isInteger(differences) || differences < (global ? 0 : 1) || differences > 9)) throw new Error("Choose a supported whole-number lineup difference.");
+    if (global && Object.values(stackWeights).some(w => Number(w) > 0)) throw new Error(GC.weightConflict);
+    const playerLimits = global ? exposureRequest(globalExposure, count, locked, excluded, settings.exposure) : {};
+    const groups = global ? groupExposureRequest(globalGroups, count, locked, excluded, globalExposure, settings.exposure, pool) : [];
+    return {
+      site: context.site, season: context.season, week: context.week,
+      slate_id: context.slateId || null, salary_snapshot_id: salarySnapshot?.id || null,
+      portfolio_mode: global ? "global" : "legacy", lineup_count: count, objective: settings.objective,
+      salary_cap: isDfs ? Math.min(Number(settings.maxSalary), Number(config.salary_cap)) : null,
+      min_salary: settings.minSalary || null, max_per_team: settings.maxTeam || null,
+      max_overlap: Math.max(0, (isCaptain ? 6 : isDfs ? 9 : 7) - differences),
+      max_exposure: settings.exposure, randomness: settings.randomness,
+      locked_player_ids: locked, excluded_player_ids: excluded,
+      qb_stack_count: isCaptain || global ? 0 : settings.qbStack, stack_bring_back: !isCaptain && !global && settings.bringBack,
+      require_qb_stack: !isCaptain && !global && settings.requireQbStack,
+      stack_teams: isCaptain ? [] : stackScope.teams, stack_qb_ids: isCaptain ? [] : stackScope.qbIds,
+      stack_game_weights: !isCaptain ? slateGames(vegasGames, pool).filter(game => Number(stackWeights[game.game_id]) > 0)
+        .map(game => ({ game_id: String(game.game_id), teams: gameTeamCodes(game), weight: Number(stackWeights[game.game_id]) })) : [],
+      classic_stack_rules: global ? normalizeClassicStackRules(classicStackRules, pool) : null,
+      player_exposure_limits: playerLimits, group_exposure_limits: groups,
+      block_qb_opposing_dst: settings.blockQbDst,
+    };
+  };
   const run = async (mode) => {
     const comparingCaptains = mode === "compare";
     if (comparingCaptains && !isCaptain) return;
@@ -459,13 +510,9 @@ export default function useDfsBuilder(projMeta) {
       setError(C.countHelp);
       return;
     }
-    let exposureLimits = {};
-    if (context.site === "draftkings" && settings.portfolioMode === "global") {
-      try {
-        if (Object.values(stackWeights).some(w => Number(w) > 0)) throw new Error(GC.weightConflict);
-        exposureLimits = exposureRequest(globalExposure, lineupCount, locked, excluded, settings.exposure);
-      } catch (e) { setError(e.message); return; }
-    }
+    let strategy;
+    try { strategy = strategyRequest(comparingCaptains ? 1 : null); if (appliedPlan) assertBuildPlanApplied(appliedPlan.manifest, strategy); }
+    catch (e) { setError(e.message); return; }
     const comparisonSeq = comparingCaptains ? ++comparisonGeneration.current : null;
     const seq = generation.current;
     if (comparingCaptains) {
@@ -484,36 +531,13 @@ export default function useDfsBuilder(projMeta) {
       ? Math.min(Number(settings.maxSalary), Number(config.salary_cap))
       : null;
     const request = {
+      ...strategy,
       site: context.site,
       slate_id: context.slateId || null,
       season: context.season,
       week: context.week,
       slate_salaries: salaries,
       salary_snapshot_id: salarySnapshot?.id || null,
-      objective: settings.objective,
-      salary_cap: cap,
-      locked_player_ids: locked,
-      excluded_player_ids: excluded,
-      lineup_count: lineupCount,
-      max_overlap: Math.max(
-        0,
-        (isCaptain ? 6 : isDfs ? 9 : 7) - normalizeLineupDifferences(settings.differences, isCaptain),
-      ),
-      max_exposure: settings.exposure,
-      randomness: settings.randomness,
-      min_salary: settings.minSalary || null,
-      max_per_team: settings.maxTeam || null,
-      qb_stack_count: isCaptain ? 0 : settings.qbStack,
-      stack_bring_back: !isCaptain && settings.bringBack,
-      stack_game_weights: !isCaptain
-        ? slateGames(vegasGames, pool)
-            .filter((game) => Number(stackWeights[game.game_id]) > 0)
-            .map((game) => ({
-              game_id: String(game.game_id),
-              teams: gameTeamCodes(game),
-              weight: Number(stackWeights[game.game_id]),
-            }))
-        : [],
       locked_captain_id: isCaptain ? settings.lockedCaptain || null : null,
       captain_exposure_limits: isCaptain ? captainLimits : {},
       projection_overrides: overrides,
@@ -521,10 +545,6 @@ export default function useDfsBuilder(projMeta) {
         context.season === meta?.default_season &&
         context.week === meta?.default_week,
       block_bye_weeks: true,
-      ...(context.site === "draftkings" && settings.portfolioMode === "global" ? {
-        portfolio_mode: "global", player_exposure_limits: exposureLimits,
-        block_qb_opposing_dst: settings.blockQbDst,
-      } : {}),
     };
     try {
       if (
@@ -579,6 +599,7 @@ export default function useDfsBuilder(projMeta) {
         game_schedule: vegasGames.map(game => ({ game_id: String(game.game_id || ""), home: String(game.home || ""), away: String(game.away || ""), kickoff_et: game.kickoff_et || null })),
         snapshot_at: data.build_snapshot?.captured_at || new Date().toISOString(),
         ...(data.portfolio_selection ? { portfolio_selection: data.portfolio_selection } : {}),
+        ...(appliedPlan ? { plan_manifest: appliedPlan.manifest } : {}),
       };
       setBuildSettings(originalSettings);
       setCurrentBuild(freezeSnapshot({ context, slateName, lineups: built,
@@ -636,20 +657,66 @@ export default function useDfsBuilder(projMeta) {
         }
       : p,
   );
+  let planMatches = true;
+  if (appliedPlan) { try { assertBuildPlanApplied(appliedPlan.manifest, strategyRequest()); } catch { planMatches = false; } }
   return {
     currentBuild: lineups.length ? currentBuild : null,
     portfolio,
     portfolioLimits,
     globalExposure,
+    globalGroups,
+    classicStackRules,
+    changeClassicStack: (section, patch) => setClassicStackRules(current => { const rules = current || DEFAULT_CLASSIC_STACK_RULES;
+      return { ...rules, [section]: { ...rules[section], ...patch } }; }),
+    addGlobalGroup: group => setGlobalGroups(current => [...current, group]),
+    removeGlobalGroup: id => setGlobalGroups(current => current.filter(g => g.id !== id)),
+    setGlobalGroup: (id, kind, value) => setGlobalGroups(current => current.map(g => {
+      if (g.id !== id) return g;
+      const next = { ...g, [kind]: value }; if (kind === "target") delete next.target_exact_count; return next;
+    })),
+    getStrategyRequest: strategyRequest,
+    buildPlanValidation: { catalog: visiblePool, context, salarySnapshot, games: slateGames(vegasGames, pool) },
+    appliedPlan,
+    planMatches,
+    releaseBuildPlan: () => setAppliedPlan(null),
+    applyBuildPlanInputs: result => {
+      const inputs = result.inputs;
+      const playerRules = Object.fromEntries(Object.entries(inputs.player_exposure_limits).map(([id, r]) => [id, exposureRuleFromRequest(r, inputs.lineup_count)]));
+      const groupRules = inputs.group_exposure_limits.map(g => ({ id: g.id, label: g.player_ids.map(id => pool.find(p => p.player_id === id)?.Player || id).join(" + "),
+        player_ids: [...g.player_ids], ...exposureRuleFromRequest(g, inputs.lineup_count) }));
+      const manifest = assertBuildPlanApplied(result.manifest, { ...inputs,
+        player_exposure_limits: exposureRequest(playerRules, inputs.lineup_count),
+        group_exposure_limits: groupExposureRequest(groupRules, inputs.lineup_count, inputs.locked_player_ids, inputs.excluded_player_ids, playerRules, inputs.max_exposure, pool) });
+      // Validation happens before this synchronous React batch; no partial application is observable.
+      setSettings(current => ({ ...current, portfolioMode: inputs.portfolio_mode, count: inputs.lineup_count,
+        objective: inputs.objective, maxSalary: inputs.salary_cap, minSalary: inputs.min_salary || 0,
+        maxTeam: inputs.max_per_team || 0, differences: 9 - inputs.max_overlap, exposure: inputs.max_exposure,
+        randomness: inputs.randomness, qbStack: inputs.qb_stack_count, requireQbStack: inputs.require_qb_stack, bringBack: inputs.stack_bring_back,
+        blockQbDst: inputs.block_qb_opposing_dst }));
+      setLocked([...inputs.locked_player_ids]); setExcluded([...inputs.excluded_player_ids]);
+      setStackWeights(Object.fromEntries(inputs.stack_game_weights.map(g => [g.game_id, g.weight])));
+      setStackScope({ teams: [...inputs.stack_teams], qbIds: [...inputs.stack_qb_ids] });
+      setGlobalUnit("count");
+      setGlobalExposure(playerRules); setGlobalGroups(groupRules);
+      setClassicStackRules(inputs.classic_stack_rules);
+      setAppliedPlan({ manifest, label: result.label || result.manifest.planId });
+      setError("");
+    },
     globalUnit,
     portfolioSelection,
     setGlobalUnit: unit => {
-      try { setGlobalExposure(convertExposureUnits(globalExposure, Number(settings.count), unit)); setGlobalUnit(unit); }
+      try {
+        const players = convertExposureUnits(globalExposure, Number(settings.count), unit);
+        const groups = globalGroups.map(g => ({ ...g, ...convertExposureUnits({ [g.id]: g }, Number(settings.count), unit)[g.id] }));
+        setGlobalExposure(players); setGlobalGroups(groups); setGlobalUnit(unit);
+      }
       catch (e) { setError(e.message); }
     },
-    setGlobalExposure: (id, kind, value) => setGlobalExposure(current => ({ ...current,
-      [id]: { ...current[id], unit: globalUnit, [kind]: value } })),
-    clearGlobalExposure: () => setGlobalExposure({}),
+    setGlobalExposure: (id, kind, value) => setGlobalExposure(current => {
+      const next = { ...current[id], unit: globalUnit, [kind]: value }; if (kind === "target") delete next.target_exact_count;
+      return { ...current, [id]: next };
+    }),
+    clearGlobalExposure: () => { setGlobalExposure({}); setGlobalGroups([]); },
     portfolioRestoreRevision,
     replacePortfolio: (backup) => {
       revision.current++;

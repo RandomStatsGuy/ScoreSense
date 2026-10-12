@@ -2,11 +2,58 @@
 
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
+export const DFS_GUARDRAIL_COPY = {
+  groups: "Pair & core controls", groupHelp: "Choose 2–9 players. An appearance counts only when every member is in the same lineup, across any slots. Bounds apply to the next global build; existing lineups stay as built.",
+  groupLabel: "Combination label (optional)", memberSearch: "Find a combination member", members: "Combination members",
+  selectedMembers: n => `${n} of 9 members selected`, addGroup: "Add combination", remove: "Remove", removeGroup: label => `Remove combination: ${label}`,
+  memberError: "Choose 2 to 9 players before adding this combination.", duplicateGroup: "This combination already has controls. Edit its existing bounds.",
+  noGroups: "No combination bounds set. Pair concentration remains visible in the structure audit.",
+  groupBound: (kind, label) => `${({ min: "Minimum", target: "Target", max: "Maximum" })[kind]} combination: ${label}`,
+  stackHelp: "Rules apply to each selected quarterback. Existing locked players count. Same-team attachments include WR/TE and only the receiving RBs you select below. Opposing players include RB/WR/TE; defense never counts.",
+  attachments: "Same-team attachments", bringBack: "Opposing players", stackCount: "Player count",
+  modes: [{ id: "minimum", label: "At least" }, { id: "maximum", label: "At most" }, { id: "exact", label: "Exactly" }, { id: "optional", label: "Optional" }, { id: "forbidden", label: "Forbidden" }],
+  semantics: (rule, section) => {
+    const subject = section === "attachments" ? "qualifying same-team attachments" : "opposing offensive players";
+    return rule.mode === "optional" ? `${subject}: neither required nor banned.` : rule.mode === "forbidden" ? `No ${subject} allowed.` : `${({ minimum: "At least", maximum: "At most", exact: "Exactly" })[rule.mode]} ${rule.count} ${subject}.`;
+  },
+  receivingRbs: "Qualifying receiving RBs", rbHelp: "Your explicit eligibility choice, not a modeled receiving-role recommendation. Other RBs do not count as same-team attachments. This does not lock selected RBs.",
+  rbSearch: "Find a receiving RB", noRbs: "No eligible running backs match this search.", rbSelected: n => `${n} receiving RB${n === 1 ? "" : "s"} selected`,
+  actualStacks: "Actual stack structure", unknown: "Unknown", actualCounts: (label, counts) => `${label}: ${Object.entries(counts).map(([size, n]) => `${size} players in ${n} lineups`).join(" · ")}`,
+  plans: "Named build plans", planHelp: "Download your next-build controls as a plan, or import one for this exact slate. Preview first; Apply replaces locks, skips, schedule and strategy controls together. It does not rebuild or replace your existing lineups.",
+  planName: "Plan name", downloadPlan: "Download build plan", importPlan: "Import build plan", applyPlan: "Apply reviewed plan", cancelPlan: "Keep current controls",
+  preview: "Plan preview", planChanges: "Controls that will change", unchanged: "All controls already match this plan.",
+  approved: label => `Applied plan: ${label}`, changed: "Controls differ from the applied plan. Reapply its preview or release the plan before building.",
+  release: "Use edited controls", releaseHelp: "Releases the plan match requirement. Your current controls remain and are saved with the next build.",
+  planReady: "Applied controls match the plan. The same match is checked again before Build.", planReadError: "This plan could not be read. Your controls have not changed.",
+  planContext: (n, locked, excluded, groups) => `${n} lineups · ${locked} locks · ${excluded} skips · ${groups} combinations`,
+  legacyRequired: "This plan requires at least one same-team WR/TE. Choosing an attachment count replaces that requirement.",
+  fields: { portfolio_mode: "Builder mode", lineup_count: "Lineup count", objective: "Score preference", salary_cap: "Salary cap", min_salary: "Minimum spend", max_per_team: "Team maximum", max_overlap: "Maximum shared players", max_exposure: "Shared exposure maximum", randomness: "Search variation", locked_player_ids: "Locks", excluded_player_ids: "Skips", qb_stack_count: "Legacy attachments", require_qb_stack: "Legacy required attachment", stack_bring_back: "Legacy bring-back", stack_teams: "Quarterback teams", stack_qb_ids: "Quarterbacks", stack_game_weights: "Game allocation schedule", classic_stack_rules: "Exact stack rules", player_exposure_limits: "Player exposure controls", group_exposure_limits: "Combination controls", block_qb_opposing_dst: "QB/defense safeguard" },
+};
+
+export function buildPlanValue(field, value, pool = []) {
+  const name = id => pool.find(p => p.player_id === id)?.Player || id;
+  if (value === null) return "None";
+  if (typeof value === "boolean") return value ? "On" : "Off";
+  if (["locked_player_ids", "excluded_player_ids", "stack_qb_ids"].includes(field)) return value.length ? value.map(name).join(", ") : "None";
+  if (field === "stack_game_weights") return value.length ? value.map(g => `${g.teams.join(" / ")}: ${g.weight}`).join("; ") : "No weighted schedule";
+  if (field === "classic_stack_rules") return `${DFS_GUARDRAIL_COPY.semantics(value.attachments, "attachments")} ${DFS_GUARDRAIL_COPY.semantics(value.bring_back, "bring_back")} Receiving RBs: ${value.attachments.receiving_rb_ids.map(name).join(", ") || "none"}.`;
+  if (field === "player_exposure_limits") return Object.entries(value).map(([id, rule]) => `${name(id)}: ${buildPlanBounds(rule)}`).join("; ") || "None";
+  if (field === "group_exposure_limits") return value.map(g => `${g.player_ids.map(name).join(" + ")}: ${buildPlanBounds(g)}`).join("; ") || "None";
+  if (field === "max_exposure" || field === "randomness") return `${Number(value) * 100}%`;
+  if (field === "salary_cap" || field === "min_salary") return `$${Number(value).toLocaleString()}`;
+  return Array.isArray(value) ? value.join(", ") || "None" : String(value);
+}
+function buildPlanBounds(rule) {
+  return ["min", "target", "max"].filter(k => rule[k] != null).map(k => `${({ min: "minimum", target: "target", max: "maximum" })[k]} ${typeof rule[k] === "object" ? `${rule[k].count} appearances` : `${Number(rule[k]) * 100}%`}`).join(", ") || "No bounds";
+}
+
 export const DFS_GLOBAL_COPY = {
   title: "Global portfolio controls", enabled: "Select the portfolio together", legacy: "Off: keep the existing batch builder. On: select unique Classic lineups together under the controls below.",
   help: "These controls apply to your next build. Minimum and Maximum are hard bounds. Target is a preference: selection first minimizes target misses, then maximizes your chosen score. Forecasts stay unchanged.",
   search: "Find an exposure player", unit: "Exposure units", percent: "Percent", count: "Appearances", minimum: "Minimum", target: "Target", maximum: "Maximum", actual: "Actual",
-  rounding: "Percent minimums round up; maximums round down. Counts use the requested lineup total. Fractional targets remain preferences.",
+  rounding: "Percent minimums round up; maximums round down. Counts use the requested lineup total. Switching units preserves target appearances; editing Target sets a new preference.",
+  overlap: "Maximum shared players",
+  nativeMigration: "Your existing stack minimum and opposing-player requirement were transferred to the exact Classic controls. Forecasts are unchanged.",
   ruleCount: (n, total) => `${n} of ${total}`, actualCount: (n, total) => `${n} of ${total} generated`,
   clear: "Clear global controls", noPlayers: "No players match this search.", lock: "Locked everywhere", skip: "Skipped",
   block: "Avoid QB against opposing defense", blockHelp: "Classic strategy safeguard. Turn off only when you intend this pairing; the choice is saved with the build.",

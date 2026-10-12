@@ -292,6 +292,7 @@ class LineupOptimizeRequest(BaseModel):
     player_exposure_limits: dict[str, dict[str, Any]] = Field(default_factory=dict, max_length=500)
     group_exposure_limits: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     block_qb_opposing_dst: bool = True
+    classic_stack_rules: Optional[dict[str, Any]] = None
 
 
 def _collect_route_paths(routes) -> set[str]:
@@ -2211,6 +2212,10 @@ def lineup_optimize(
         raise HTTPException(status_code=400, detail="Captain exposure limits must be between 0 and 1.")
     try:
         from src.products.dfs_portfolio_selection import exposure_counts
+        from src.products.dfs_stack_rules import validate_stack_request
+        classic_stack_rules = validate_stack_request(request.classic_stack_rules,
+            portfolio_mode=request.portfolio_mode, site=site, require_qb_stack=request.require_qb_stack,
+            qb_stack_count=request.qb_stack_count, stack_bring_back=request.stack_bring_back)
         for limits in request.player_exposure_limits.values():
             exposure_counts(limits, request.lineup_count)
         for group in request.group_exposure_limits:
@@ -2228,6 +2233,8 @@ def lineup_optimize(
         )
         keep_player_ids += list(request.captain_exposure_limits) + list(request.projection_overrides)
         keep_player_ids += list(request.player_exposure_limits)
+        if classic_stack_rules is not None:
+            keep_player_ids += classic_stack_rules["attachments"]["receiving_rb_ids"]
         keep_player_ids += [pid for group in request.group_exposure_limits for pid in group.get("player_ids", [])]
         if request.locked_captain_id:
             keep_player_ids.append(request.locked_captain_id)
@@ -2303,6 +2310,7 @@ def lineup_optimize(
             player_exposure_limits=request.player_exposure_limits,
             group_exposure_limits=request.group_exposure_limits,
             block_qb_opposing_dst=request.block_qb_opposing_dst,
+            classic_stack_rules=classic_stack_rules,
             snapshot_context={
                 "requested_season": request.season, "requested_week": request.week,
                 "client_slate_id": request.slate_id, "pool_meta": meta,
