@@ -4,13 +4,16 @@ import DfsGlobalExposure from "./DfsGlobalExposure.jsx";
 import DfsClassicStack from "./DfsClassicStack.jsx";
 import DfsBuildPlans from "./DfsBuildPlans.jsx";
 import DfsLocalDraft from "./DfsLocalDraft.jsx";
+import { DfsBuildStatus, DfsCapabilityReview, DfsInputUpdate, DfsJourney } from "./DfsWorkflow.jsx";
+import { workspaceCapabilities, countUniqueLineups } from "./dfsWorkspaceState.js";
+import { DFS_WORKFLOW_COPY as WC } from "./dfsToolPresentation.js";
 import { createEntryExportSession } from "./dfsEntryExportSession.js";
 import { sealEntryExportArtifact } from "./dfsEntryExportSeal.js";
 import { validateGlobalBuildForExport } from "./dfsGlobalExportValidation.js";
 import { validatePrelockExport } from "./dfsPrelockExport.js";
 import { DFS_GLOBAL_COPY as GC, DFS_GUARDRAIL_COPY as RC } from "./dfsToolPresentation.js";
 import { auditPortfolio, buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
-import { downloadPortfolioBackup, readPortfolioBackupFile } from "./dfsPortfolioBackup.js";
+import { downloadPortfolioBackupAsync, readPortfolioBackupFileAsync } from "./dfsPortfolioBackupAsync.js";
 import { confirmDialog } from "./ui/confirm.jsx";
 import { DFS_PORTFOLIO_COPY as PC } from "./dfsToolPresentation.js";
 import DfsPoolCoverage, { DfsPoolFreshness, DfsSourceSummary } from "./DfsPoolCoverage.jsx";
@@ -221,6 +224,8 @@ export default function DfsWorkspace({ b }) {
   const slateRef = useRef(null),
     poolScrollRef = useRef(null),
     lineupsRef = useRef(null);
+  const portfolioRef = useRef(null), entriesRef = useRef(null), buildButtonRef = useRef(null);
+  const [journeyStage, setJourneyStage] = useState(0);
   const [template, setTemplate] = useState(null),
     [assignments, setAssignments] = useState({}),
     [sameSlate, setSameSlate] = useState(false);
@@ -232,9 +237,19 @@ export default function DfsWorkspace({ b }) {
   const [exportState, setExportState] = useState(null);
   const exportSession = useRef(null);
   const exportReview = useRef(0);
+  const templateImportSerial = useRef(0);
   const [exportingEntries, setExportingEntries] = useState(false);
   const [restoringPortfolio, setRestoringPortfolio] = useState(false);
-  const entryBusy = exportingEntries || restoringPortfolio || b.building;
+  const [backupWorking, setBackupWorking] = useState(false);
+  const backupFocus = useRef(null);
+  const entryBusy = exportingEntries || restoringPortfolio || backupWorking || b.building;
+  useEffect(() => {
+    if (backupWorking) return;
+    const saved = backupFocus.current;
+    backupFocus.current = null;
+    if (saved && saved.review === exportReview.current && saved.button.isConnected && !saved.button.disabled &&
+        [document.body, saved.button].includes(document.activeElement)) saved.button.focus({ preventScroll: true });
+  }, [backupWorking]);
   useEffect(() => {
     const invalidate = () => { exportReview.current++; exportSession.current = null; setExportState(null); };
     window.addEventListener("scoresense-auth-changed", invalidate);
@@ -286,20 +301,23 @@ export default function DfsWorkspace({ b }) {
     setSameSlate(false);
     setSelectedContest(""); setEntryPage(0); setExportState(null); exportSession.current = null;
   }, [entrySite, entryLineups, b.portfolioRestoreRevision]);
-  useEffect(() => { exportReview.current++; setExportState(null); exportSession.current = null; }, [assignments, sameSlate, usePortfolio, b.portfolioLimits, template, entryLineups]);
+  useEffect(() => { exportReview.current++; setExportState(null); exportSession.current = null; }, [assignments, sameSlate, usePortfolio, b.portfolioLimits, b.portfolioRules, template, entryLineups]);
   useEffect(() => {
-    if (b.portfolioRestoreRevision) setUsePortfolio(true);
+    if (b.portfolioRestoreRevision) { setUsePortfolio(true); setJourneyStage(2); }
   }, [b.portfolioRestoreRevision]);
   const restorePortfolio = async file => {
     if (!file || entryBusy) return;
     setRestoringPortfolio(true);
+    const review = exportReview.current;
     b.setError("");
     try {
-      const backup = await readPortfolioBackupFile(file);
-      const audit = auditPortfolio(backup.batches, backup.appearanceLimits);
+      const backup = await readPortfolioBackupFileAsync(file);
+      if (review !== exportReview.current) throw new Error(GC.staleExport);
+      const audit = auditPortfolio(backup.batches, backup.appearanceLimits, backup.reviewRules);
       if (b.portfolio.length && !(await confirmDialog({ title: PC.replaceTitle,
         message: PC.replaceMessage(b.portfolio.length, audit), confirmLabel: PC.replace,
         cancelLabel: PC.cancelRestore, danger: true }))) return;
+      if (review !== exportReview.current) throw new Error(GC.staleExport);
       b.replacePortfolio(backup);
     } catch (e) { b.setError(e.message); }
     finally { setRestoringPortfolio(false); }
@@ -327,9 +345,13 @@ export default function DfsWorkspace({ b }) {
   }, [b.lineups]);
   useEffect(() => { setExposurePage(0); setLineupPage(0); }, [b.lineups]);
   const uploadTemplate = async (file) => {
+    const review = exportReview.current;
+    const serial = ++templateImportSerial.current;
+    const isCurrentImport = () => review === exportReview.current && serial === templateImportSerial.current;
     try {
       if (file) {
         const loaded = readEntryTemplate(await file.text(), entrySite);
+        if (!isCurrentImport()) return;
         setTemplate(loaded);
         const contests = [...new Set(loaded.entries.map(e => e.contestId))];
         setSelectedContest(contests.length === 1 ? contests[0] : "");
@@ -338,7 +360,7 @@ export default function DfsWorkspace({ b }) {
         setSameSlate(false);
       }
     } catch (e) {
-      b.setError(e.message);
+      if (isCurrentImport()) b.setError(e.message);
     }
   };
   const synchronizeEntries = async (result, review) => {
@@ -370,7 +392,7 @@ export default function DfsWorkspace({ b }) {
     b.setError("");
     try {
       if (!exportSession.current) {
-        const converted = usePortfolio ? buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits)
+        const converted = usePortfolio ? buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits, b.portfolioRules)
           : buildEntryCsv(template, b.lineups, assignments, b.currentBuild?.salaryCatalog || b.pool, { buildSource: b.currentBuild });
         const result = await sealEntryExportArtifact({ ...converted, manifest: { ...converted.manifest, prelockEvidence: prelockEvidence() } }, template);
         if (review !== exportReview.current) throw new Error(GC.staleExport);
@@ -405,7 +427,7 @@ export default function DfsWorkspace({ b }) {
   if (template) {
     try {
       prelockEvidence();
-      if (usePortfolio) buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits);
+      if (usePortfolio) buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits, b.portfolioRules);
       else {
         buildEntryCsv(template, b.lineups, assignments, b.currentBuild?.salaryCatalog || b.pool, { buildSource: b.currentBuild });
         if (b.currentBuild?.settings.portfolio_mode === "global" && Object.values(assignments).filter(i => i !== "" && i != null).length !== b.lineups.length)
@@ -419,8 +441,34 @@ export default function DfsWorkspace({ b }) {
     if (!target) return;
     const barHeight = slateRef.current?.offsetHeight || 0;
     const top = target.getBoundingClientRect().top + window.scrollY - barHeight - 16;
-    window.scrollTo({ top, behavior: "smooth" });
+    window.scrollTo({ top, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   };
+  useEffect(() => {
+    if (!b.lineups.length) return;
+    setJourneyStage(1);
+    if (["complete", "partial"].includes(b.buildJob?.status)) { lineupsRef.current?.focus({ preventScroll: true }); showLineups(); }
+  }, [b.lineups]);
+  const scrollToPanel = ref => {
+    const target = ref.current;
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - (slateRef.current?.offsetHeight || 0) - 16,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  };
+  const reviewPortfolio = () => {
+    if (b.context.site !== "draftkings") { showLineups(); return; }
+    if (!b.portfolio.length && b.currentBuild && !b.addPortfolioBatch(WC.firstBatch)) return;
+    setUsePortfolio(true); setJourneyStage(2); scrollToPanel(portfolioRef);
+  };
+  const reviewEntries = () => { setJourneyStage(2); scrollToPanel(entriesRef); };
+  const selectedCount = entryLineups.length;
+  const assignedCount = Object.values(assignments).filter(i => i !== "" && i != null && Number.isInteger(Number(i)) && Number(i) >= 0 && Number(i) < selectedCount).length;
+  const combinedAudit = useMemo(() => auditPortfolio(b.portfolio, b.portfolioLimits, b.portfolioRules), [b.portfolio, b.portfolioLimits, b.portfolioRules]);
+  const selectedUnique = usePortfolio ? combinedAudit.unique : countUniqueLineups(b.lineups);
+  const capabilities = workspaceCapabilities({ pool: b.pool, salaries: b.salaries, isDfs: b.isDfs, template,
+    assignmentError: portfolioExportError, prelockConfirmed: sameSlate, assigned: assignedCount, selected: selectedCount, exportState });
+  const readyForDownload = Boolean(template && sameSlate && selectedCount && !portfolioExportError);
+  const buildBlock = b.error || (!validLineupCount ? WC.countBlocked : !b.pool.length ? WC.noPool : b.planMatches === false ? RC.changed : "");
   const changeSort = (key) =>
     setSort((s) => ({ key, descending: s.key === key ? !s.descending : true }));
   return (
@@ -463,17 +511,29 @@ export default function DfsWorkspace({ b }) {
             </button>
           )}
           <button
+            ref={buildButtonRef}
+            data-testid="dfs-generate"
             type="button"
-            className="dfw-primary dfw-build-button"
-            aria-describedby={b.planMatches === false ? "dfw-plan-block" : undefined}
+            className={`dfw-build-button${(!b.lineups.length && !b.portfolio.length) || b.building ? " dfw-primary" : ""}`}
+            aria-describedby={buildBlock ? "dfw-build-block" : undefined}
             disabled={b.busy || b.building || !b.pool.length || !validLineupCount || b.planMatches === false}
             onClick={b.run}
           >
-            {b.building ? C.building : lineup.length ? C.rebuild : C.build}
+            {b.building ? C.building : lineup.length ? C.rebuild : WC.generate(b.settings.count)}
           </button>
+          {Boolean(b.lineups.length || b.portfolio.length) && !b.building && <button type="button" className="dfw-primary" disabled={entryBusy}
+            onClick={readyForDownload ? () => exportEntries() : journeyStage < 2 ? reviewPortfolio : reviewEntries}>
+            {readyForDownload ? GC.download : journeyStage < 2 ? WC.review : WC.entries}
+          </button>}
         </div>
       </div>
       <DfsPoolFreshness b={b} />
+      <DfsJourney stage={journeyStage} canReview={Boolean(b.lineups.length || b.portfolio.length)} onReview={reviewPortfolio} onEntries={reviewEntries}
+        counts={{ requested: usePortfolio ? b.portfolio.reduce((n, batch) => n + Number(batch.settings.lineup_count || batch.lineups.length), 0) : b.currentBuild?.settings.lineup_count ?? (validLineupCount ? Number(b.settings.count) : null), generated: usePortfolio ? portfolioEntries.length : b.lineups.length, selected: selectedCount, unique: selectedUnique, assigned: assignedCount }} />
+      {buildBlock && <p className={b.error ? "dfw-error" : "dfw-note"} id="dfw-build-block" role={b.error ? "alert" : "status"}>{buildBlock}</p>}
+      <DfsBuildStatus b={b} onCancel={() => { b.cancelBuild(); requestAnimationFrame(() => buildButtonRef.current?.focus()); }} />
+      <DfsCapabilityReview capabilities={capabilities} />
+      <DfsInputUpdate b={b} />
       {b.planMatches === false && <p className="dfw-error" id="dfw-plan-block" role="status">{RC.changed}</p>}
       <div className={`dfw-workspace${b.isCaptain ? " is-captain" : ""}`}>
         <section className="dfw-center">
@@ -492,6 +552,7 @@ export default function DfsWorkspace({ b }) {
                   {label}
                 </button>
               ))}
+              {(b.context.site === "draftkings" || b.portfolio.length > 0) && <button type="button" onClick={reviewPortfolio} disabled={!b.lineups.length && !b.portfolio.length}>{WC.portfolio}</button>}
             </nav>
             {tab === "pool" && (
               <>
@@ -557,7 +618,7 @@ export default function DfsWorkspace({ b }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {b.busy
+                      {b.busy && !b.pool.length
                         ? Array.from({ length: 6 }, (_, i) => (
                             <tr key={i}>
                               <td colSpan={poolColumns}>
@@ -901,7 +962,6 @@ export default function DfsWorkspace({ b }) {
           <p className="dfw-note">{C.lockNote}</p>
           <p className="dfw-note">{C.contestNote}</p>
           {b.context.site === "draftkings" && <p className="dfw-note">{b.settings.portfolioMode === "global" ? GC.enabled : GC.legacy}<button type="button" onClick={() => setTab("exposure")}>{C.exposureTab}</button></p>}
-          {b.error && <p className="dfw-error" role="alert">{b.error}</p>}
         </section>
           <DfsMatchupBoard b={b} />
           <DfsSourceSummary coverage={coverage} />
@@ -911,6 +971,7 @@ export default function DfsWorkspace({ b }) {
           <section
             ref={lineupsRef}
             id="dfw-lineups"
+            tabIndex={-1}
             className="dfw-panel dfw-lineups"
             aria-labelledby="dfw-lineups-title"
           >
@@ -1025,17 +1086,24 @@ export default function DfsWorkspace({ b }) {
             )}
           </section>
           {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsLocalDraft b={b} />}
+          <div ref={portfolioRef} tabIndex={-1} className="dfw-workflow-target">
           {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={entryBusy}>
             <div className="dfw-actions">
-              <button type="button" disabled={entryBusy || !b.portfolio.length} onClick={() => {
-                try { downloadPortfolioBackup(b.portfolio, b.portfolioLimits); }
+              <button type="button" disabled={entryBusy || !b.portfolio.length} onClick={async event => {
+                const button = event.currentTarget;
+                const review = exportReview.current; setBackupWorking(true);
+                backupFocus.current = { button, review };
+                try { await downloadPortfolioBackupAsync(b.portfolio, b.portfolioLimits, b.portfolioRules,
+                  { beforeDownload: () => { if (review !== exportReview.current) throw new Error(GC.staleExport); } }); }
                 catch (e) { b.setError(e.message); }
-              }}>{PC.backup}</button>
+                finally { setBackupWorking(false); }
+              }}>{backupWorking ? WC.backupWorking : PC.backup}</button>
               <DfsFile label={PC.restore} accept=".json,application/json" disabled={entryBusy} onFile={restorePortfolio} />
             </div>
             <p className="dfw-note">{PC.backupHelp}</p>
           </DfsPortfolio>}
-          <section className="dfw-transfer">
+          </div>
+          <section className="dfw-transfer dfw-workflow-target" ref={entriesRef} tabIndex={-1} aria-label={WC.exportTitle}>
           <div className="dfw-panel">
             <small>{C.newLineups}</small>
             <h2>{C.upload}</h2>
@@ -1067,6 +1135,8 @@ export default function DfsWorkspace({ b }) {
             <small>{C.existing}</small>
             <h2>{C.edit}</h2>
             <p className="dfw-note">{C.editHelp}</p>
+            <p className="dfw-note">{WC.exportScope}</p>
+            {!template && <p className="dfw-note">{WC.templateMissing}</p>}
             {(b.context.site === "draftkings" || b.portfolio.length > 0 || usePortfolio) && <HubFilterMenu
               label={PC.source} value={usePortfolio ? "portfolio" : "build"}
               options={[{ id: "build", label: PC.currentBuild }, { id: "portfolio", label: PC.portfolio }]}
@@ -1148,9 +1218,10 @@ export default function DfsWorkspace({ b }) {
               {GC.prelock}
             </label>
             <p className="dfw-note">{GC.prelockHelp}</p>
+            {!sameSlate && <p className="dfw-note">{WC.prelockMissing}</p>}
             {portfolioExportError && <p className="dfw-error" role="alert">{portfolioExportError}</p>}
             <button disabled={!sameSlate || entryBusy || Boolean(portfolioExportError)} onClick={() => exportEntries()}>
-              {exportingEntries ? GC.syncing : GC.download}
+              {exportingEntries ? GC.syncing : WC.downloadReviewed}
             </button>
             {exportState && <div className="dfw-export-status" role="status">
               <p className="dfw-note">{exportState.syncStatus === "pending" ? GC.pending : exportState.downloaded ? GC.synced : GC.syncReady}</p>

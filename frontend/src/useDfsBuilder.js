@@ -22,6 +22,9 @@ import { assertBuildPlanApplied } from "./dfsBuildPlans.js";
 import { normalizeClassicStackRules, DEFAULT_CLASSIC_STACK_RULES } from "./dfsClassicStackRules.js";
 import { DFS_GLOBAL_COPY as GC } from "./dfsToolPresentation.js";
 import { stableBuildKey } from "./dfsEntryExportSeal.js";
+import { poolVersion, previewPoolUpdate } from "./dfsWorkspaceState.js";
+import { DFS_WORKFLOW_COPY as WC } from "./dfsToolPresentation.js";
+import { applyPortfolioReplacement } from "./dfsPortfolioReview.js";
 
 async function jsonRequest(url, options) {
   const response = await apiFetch(url, options);
@@ -34,6 +37,13 @@ export default function useDfsBuilder(projMeta) {
   const seenRevision = useRef(dataRevision);
   const [dataUpdateAvailable, setDataUpdateAvailable] = useState(false);
   const [poolReload, setPoolReload] = useState(0);
+  const [poolUpdate, updatePoolUpdate] = useState(null);
+  const pendingPoolUpdate = useRef(poolUpdate);
+  const setPoolUpdate = next => { pendingPoolUpdate.current = next; updatePoolUpdate(next); };
+  const [poolUpdateHistory, setPoolUpdateHistory] = useState(null);
+  const [poolInputVersion, setPoolInputVersion] = useState(1);
+  const poolInputVersionRef = useRef(1);
+  const poolUndo = useRef(null);
   useEffect(() => {
     if (dataRevision !== seenRevision.current) {
       seenRevision.current = dataRevision;
@@ -60,6 +70,9 @@ export default function useDfsBuilder(projMeta) {
   const [slateName, setSlateName] = useState("");
   const [busy, setBusy] = useState(false);
   const [building, setBuilding] = useState(false);
+  const [buildJob, setBuildJob] = useState(null);
+  const buildAbort = useRef(null);
+  const buildGeneration = useRef(0);
   const [comparing, setComparing] = useState(false);
   const [comparison, setComparison] = useState(null);
   const [comparisonError, setComparisonError] = useState("");
@@ -74,6 +87,8 @@ export default function useDfsBuilder(projMeta) {
   const [currentBuild, setCurrentBuild] = useState(null);
   const [portfolio, setPortfolio] = useState([]);
   const [portfolioLimits, setPortfolioLimits] = useState({});
+  const [portfolioRules, setPortfolioRules] = useState({ version: 1, players: {}, groups: [] });
+  const [portfolioUndo, setPortfolioUndo] = useState(null);
   const [globalExposure, setGlobalExposure] = useState({});
   const [globalUnit, setGlobalUnit] = useState("percent");
   const [globalGroups, setGlobalGroups] = useState([]);
@@ -108,14 +123,33 @@ export default function useDfsBuilder(projMeta) {
   const activeWork = useRef(false);
   activeWork.current = building || comparing;
   const generation = useRef(0);
+  const projectionImportSerial = useRef(0);
   const revision = useRef(0);
+  const workingPool = useRef(pool);
+  workingPool.current = pool;
+  const workingSalarySnapshot = useRef(salarySnapshot);
+  workingSalarySnapshot.current = salarySnapshot;
+  const cancelBuild = () => {
+    buildGeneration.current++;
+    buildAbort.current?.abort();
+    buildAbort.current = null;
+    setBuilding(false);
+    setBuildJob(job => job?.status === "running" ? { ...job, status: "cancelled", finishedAt: Date.now() } : job);
+  };
+  useEffect(() => () => { buildGeneration.current++; buildAbort.current?.abort(); }, []);
   const config = formats[context.site] || DEFAULT_FORMATS[context.site];
   useEffect(() => {
     const reset = () => {
+      cancelBuild();
+      comparisonGeneration.current++; comparisonAbort.current?.abort(); comparisonAbort.current = null;
+      setComparing(false); setComparison(null); setComparisonError("");
       generation.current++; revision.current++; portfolioBuildIds.current.clear();
       setPortfolio([]); setPortfolioLimits({}); setLineups([]); setCurrentBuild(null);
       setSavedBuild(null); setBuildSettings(null); setPortfolioSelection(null);
       setAppliedPlan(null);
+      setBusy(false);
+      setPortfolioRules({ version: 1, players: {}, groups: [] }); setPortfolioUndo(null);
+      setPoolUpdate(null); setPoolUpdateHistory(null); poolUndo.current = null;
     };
     window.addEventListener("scoresense-auth-changed", reset);
     return () => window.removeEventListener("scoresense-auth-changed", reset);
@@ -189,6 +223,7 @@ export default function useDfsBuilder(projMeta) {
   const changeContext = (patch) => {
     if (context.source === "live" && Object.entries(patch).every(([key, value]) => context[key] === value)) return;
     generation.current++;
+    cancelBuild();
     revision.current++;
     setContext((c) => ({
       ...c,
@@ -197,6 +232,7 @@ export default function useDfsBuilder(projMeta) {
       source: "live",
     }));
     setDataUpdateAvailable(false);
+    setPoolUpdate(null); setPoolUpdateHistory(null); poolUndo.current = null;
     setPool([]);
     setSalaries([]);
     setSalarySnapshot(null);
@@ -275,6 +311,24 @@ export default function useDfsBuilder(projMeta) {
   }, [context.season, context.week, isCaptain]);
 
   const acceptPool = (data, name, background = false) => {
+    // A refresh is a proposal while usable inputs exist. Reviewed builds and working controls stay put.
+    // An explicitly imported catalog has priority even when the first live load is empty.
+    if (pendingPoolUpdate.current?.resetStrategy) return;
+    if (workingPool.current.length) {
+      const diff = previewPoolUpdate(workingPool.current, data, { fromVersion: poolInputVersionRef.current });
+      diff.metadataChanged = JSON.stringify(workingSalarySnapshot.current || null) !== JSON.stringify(data.salary_snapshot || null);
+      if (diff.changes.length || diff.metadataChanged) {
+        setPoolUpdate({ data: structuredClone(data), name, diff, resetStrategy: false });
+        setNotice(WC.updateReady);
+      } else {
+        if (pendingPoolUpdate.current?.diff.source === "live") { setPoolUpdate(null); setNotice(C.liveRefreshed); }
+        setPoolFreshness(previous => ({ ...previous, checkedAt: Date.now(), failed: false,
+          refresh: data.meta?.refresh || null, recovery: data.meta?.projection_recovery,
+          projectionStale: data.meta?.projection_stale }));
+      }
+      setDataUpdateAvailable(false);
+      return;
+    }
     setPool(data.players || []);
     setSalaries(data.salaries || []);
     setSalarySnapshot(data.salary_snapshot || null);
@@ -335,6 +389,7 @@ export default function useDfsBuilder(projMeta) {
             setError(C.liveRefreshFailed);
             return;
           }
+          if (workingPool.current.length) { setError(C.liveRefreshFailed); return; }
           if (/No salaries returned for slate/i.test(e.message)) {
             setPool([]);
             setSalaries([]);
@@ -373,26 +428,8 @@ export default function useDfsBuilder(projMeta) {
   const importSalary = async (file) => {
     if (!file) return;
     const seq = ++generation.current;
-    revision.current++;
-    setPool([]);
-    setSalaries([]);
-    setSalarySnapshot(null);
-    setStats(null);
-    setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
-    setStackWeights({});
-    setLineups([]);
-    setSavedBuild(null);
-    changeSetting("lockedCaptain", "");
-    setContext((c) => ({ ...c, source: "upload", slateId: "" }));
-    setGlobalExposure({}); setGlobalGroups([]); setPortfolioSelection(null); setAppliedPlan(null);
-    setStackScope({ teams: [], qbIds: [] }); setClassicStackRules(DEFAULT_CLASSIC_STACK_RULES);
     setBusy(true);
     setError("");
-    setLocked([]);
-    setExcluded([]);
-    setOverrides({});
-    setOwnership({});
-    setCaptainLimits({});
     try {
       const form = new FormData();
       form.append("file", file);
@@ -400,7 +437,12 @@ export default function useDfsBuilder(projMeta) {
         `/api/lineup/salaries/import?site=${context.site}&season=${context.season}&week=${context.week}`,
         { method: "POST", body: form },
       );
-      if (seq === generation.current) acceptPool(d, file.name);
+      if (seq === generation.current) {
+        const diff = previewPoolUpdate(workingPool.current, d, { fromVersion: poolInputVersionRef.current, source: "upload" });
+        setPoolUpdate({ data: structuredClone(d), name: file.name, diff, resetStrategy: true,
+          contextPatch: { source: "upload", slateId: "" } });
+        setNotice(WC.salaryReady);
+      }
     } catch (e) {
       if (seq === generation.current) setError(e.message);
     } finally {
@@ -409,8 +451,14 @@ export default function useDfsBuilder(projMeta) {
   };
   const importProjections = async (file) => {
     if (!file) return;
+    const seq = generation.current;
+    const version = poolInputVersionRef.current;
+    const importSerial = ++projectionImportSerial.current;
+    const isCurrentImport = () => seq === generation.current && version === poolInputVersionRef.current && importSerial === projectionImportSerial.current;
     try {
-      const rows = parseDfsCsv(await file.text()),
+      const contents = await file.text();
+      if (!isCurrentImport()) return;
+      const rows = parseDfsCsv(contents),
         keys = rows[0].map(headerKey);
       const columns = {
         id: keys.indexOf("id"),
@@ -463,7 +511,7 @@ export default function useDfsBuilder(projMeta) {
         `Imported projections for ${Object.keys(next).length} players. Rebuild to apply them.`,
       );
     } catch (e) {
-      setError(e.message);
+      if (isCurrentImport()) setError(e.message);
     }
   };
   const toggle = (id, kind) => {
@@ -515,6 +563,7 @@ export default function useDfsBuilder(projMeta) {
     catch (e) { setError(e.message); return; }
     const comparisonSeq = comparingCaptains ? ++comparisonGeneration.current : null;
     const seq = generation.current;
+    const jobSeq = comparingCaptains ? null : ++buildGeneration.current;
     if (comparingCaptains) {
       comparisonAbort.current?.abort();
       comparisonAbort.current = new AbortController();
@@ -522,10 +571,13 @@ export default function useDfsBuilder(projMeta) {
       setComparison(null);
       setComparisonError("");
     } else {
+      buildAbort.current?.abort();
+      buildAbort.current = new AbortController();
       revision.current++;
       setBuilding(true);
       setError("");
       setNotice("");
+      setBuildJob({ status: "running", stage: "request", startedAt: Date.now(), requested: lineupCount });
     }
     const cap = isDfs
       ? Math.min(Number(settings.maxSalary), Number(config.salary_cap))
@@ -560,7 +612,7 @@ export default function useDfsBuilder(projMeta) {
       const data = await jsonRequest("/api/lineup/optimize", {
         method: "POST",
         body: JSON.stringify(comparingCaptains ? captainComparisonRequest(request) : request),
-        ...(comparingCaptains ? { signal: comparisonAbort.current.signal } : {}),
+        signal: comparingCaptains ? comparisonAbort.current.signal : buildAbort.current.signal,
       });
       if (comparingCaptains) {
         if (comparisonSeq !== comparisonGeneration.current) return;
@@ -570,7 +622,7 @@ export default function useDfsBuilder(projMeta) {
         setComparison({ ...data.captain_comparison, captured_at: data.build_snapshot.captured_at });
         return;
       }
-      if (seq !== generation.current) return;
+      if (seq !== generation.current || jobSeq !== buildGeneration.current) return;
       setPortfolioSelection(data.portfolio_selection || null);
       if (!data.ok)
         throw new Error(data.error || "No lineup satisfies these settings.");
@@ -604,6 +656,7 @@ export default function useDfsBuilder(projMeta) {
       setBuildSettings(originalSettings);
       setCurrentBuild(freezeSnapshot({ context, slateName, lineups: built,
         settings: originalSettings, salaryCatalog: pool, salarySnapshot }));
+      setBuildJob(job => ({ ...job, status: built.length < lineupCount ? "partial" : "complete", finishedAt: Date.now(), generated: built.length }));
       setNotice(
         built.length < settings.count
           ? `Built ${built.length} of ${settings.count}. Limits count toward the requested set; review actual exposure before exporting. ${data.note || ""}`
@@ -612,11 +665,14 @@ export default function useDfsBuilder(projMeta) {
     } catch (e) {
       if (comparingCaptains) {
         if (comparisonSeq === comparisonGeneration.current && e.name !== "AbortError") setComparisonError(e.message || CC.failure);
-      } else if (seq === generation.current) setError(e.message);
+      } else if (seq === generation.current && jobSeq === buildGeneration.current && e.name !== "AbortError") {
+        setError(e.message);
+        setBuildJob(job => ({ ...job, status: "failed", finishedAt: Date.now() }));
+      }
     } finally {
       if (comparingCaptains) {
         if (comparisonSeq === comparisonGeneration.current) setComparing(false);
-      } else setBuilding(false);
+      } else if (jobSeq === buildGeneration.current) { setBuilding(false); buildAbort.current = null; }
     }
   };
   const save = async (rethrow = false) => {
@@ -657,12 +713,84 @@ export default function useDfsBuilder(projMeta) {
         }
       : p,
   );
+  const workingControls = () => ({ settings, locked, excluded, overrides, ownership, captainLimits,
+    stackWeights, globalExposure, globalGroups, classicStackRules, stackScope, appliedPlan, globalUnit });
+  const restoreControls = state => {
+    setSettings(state.settings); setLocked(state.locked); setExcluded(state.excluded); setOverrides(state.overrides);
+    setOwnership(state.ownership); setCaptainLimits(state.captainLimits); setStackWeights(state.stackWeights);
+    setGlobalExposure(state.globalExposure); setGlobalGroups(state.globalGroups); setClassicStackRules(state.classicStackRules);
+    setStackScope(state.stackScope); setAppliedPlan(state.appliedPlan); setGlobalUnit(state.globalUnit);
+  };
+  const resetControlsForCatalog = () => ({ ...workingControls(), settings: { ...settings, lockedCaptain: "" },
+    locked: [], excluded: [], overrides: {}, ownership: {}, captainLimits: {}, stackWeights: {}, globalExposure: {},
+    globalGroups: [], classicStackRules: DEFAULT_CLASSIC_STACK_RULES, stackScope: { teams: [], qbIds: [] }, appliedPlan: null });
+  const applyPoolUpdate = () => {
+    try {
+      if (!poolUpdate || building || busy) return;
+      if (poolUpdate.diff.beforeKey !== poolVersion(pool) || poolUpdate.diff.fromVersion !== poolInputVersionRef.current) throw new Error(WC.staleUpdate);
+      const previous = structuredClone({ pool, salaries, salarySnapshot, stats, poolFreshness, slateName, context, controls: workingControls() });
+      const { data, resetStrategy, contextPatch } = poolUpdate;
+      const nextControls = resetStrategy ? resetControlsForCatalog() : workingControls();
+      const nextContext = { ...context, ...contextPatch };
+      revision.current++;
+      poolUndo.current = { previous, revision: revision.current, afterPoolKey: poolVersion(data.players),
+        afterContext: JSON.stringify(nextContext), afterControls: JSON.stringify(nextControls) };
+      restoreControls(nextControls);
+      setPool(data.players); setSalaries(data.salaries || []); setSalarySnapshot(data.salary_snapshot || null);
+      setStats(data.stats || null); setSlateName(data.slate?.name || poolUpdate.name || slateName);
+      setPoolFreshness({ checkedAt: Date.now(), refresh: data.meta?.refresh || null,
+        recovery: data.meta?.projection_recovery, projectionStale: data.meta?.projection_stale, failed: false });
+      if (contextPatch) setContext(nextContext);
+      poolInputVersionRef.current++;
+      setPoolInputVersion(poolInputVersionRef.current);
+      setPoolUpdateHistory(freezeSnapshot({ ...poolUpdate.diff, resetStrategy, appliedAt: new Date().toISOString() }));
+      setPoolUpdate(null); setDataUpdateAvailable(false); setNotice(WC.updated); setError("");
+    } catch (e) { setError(e.message); }
+  };
+  const undoPoolUpdate = () => {
+    try {
+      const undo = poolUndo.current;
+      if (!undo || building || busy) return;
+      if (undo.revision !== revision.current || undo.afterPoolKey !== poolVersion(pool) || undo.afterContext !== JSON.stringify(context) || undo.afterControls !== JSON.stringify(workingControls()))
+        throw new Error(WC.staleUndo);
+      const p = undo.previous;
+      revision.current++;
+      setPool(p.pool); setSalaries(p.salaries); setSalarySnapshot(p.salarySnapshot); setStats(p.stats);
+      setPoolFreshness(p.poolFreshness); setSlateName(p.slateName); setContext(p.context); restoreControls(p.controls);
+      poolInputVersionRef.current++; setPoolInputVersion(poolInputVersionRef.current);
+      setPoolUpdateHistory(freezeSnapshot({ ...poolUpdateHistory, undoneAt: new Date().toISOString(), undoneAsVersion: poolInputVersionRef.current }));
+      setPoolUpdate(null); poolUndo.current = null; setNotice(WC.updateUndone); setError("");
+    } catch (e) { setError(e.message); }
+  };
   let planMatches = true;
   if (appliedPlan) { try { assertBuildPlanApplied(appliedPlan.manifest, strategyRequest()); } catch { planMatches = false; } }
   return {
     currentBuild: lineups.length ? currentBuild : null,
     portfolio,
     portfolioLimits,
+    portfolioRules,
+    setPortfolioRule: (id, kind, value) => { if (kind === "max") setPortfolioLimits(r => { const next = { ...r }; delete next[id]; return next; });
+      setPortfolioRules(r => ({ ...r, players: { ...r.players, [id]: { ...r.players[id], [kind]: value } } })); },
+    setPortfolioGroupRule: (id, kind, value) => setPortfolioRules(r => ({ ...r, groups: r.groups.map(g => g.id === id ? { ...g, [kind]: value } : g) })),
+    addPortfolioRuleGroup: group => setPortfolioRules(r => ({ ...r, groups: [...r.groups, group] })),
+    removePortfolioRuleGroup: id => setPortfolioRules(r => ({ ...r, groups: r.groups.filter(g => g.id !== id) })),
+    clearPortfolioRules: () => setPortfolioRules({ version: 1, players: {}, groups: [] }),
+    canUndoPortfolioReplacement: Boolean(portfolioUndo),
+    replacePortfolioBatch: preview => {
+      try {
+        const next = applyPortfolioReplacement(preview, portfolio, lineups.length ? currentBuild : null, portfolioLimits, portfolioRules);
+        setPortfolioUndo({ batches: portfolio, limits: portfolioLimits, rules: portfolioRules, next, rulesKey: JSON.stringify(portfolioRules), limitsKey: JSON.stringify(portfolioLimits) });
+        revision.current++; portfolioBuildIds.current.clear(); setPortfolio(next);
+        setPortfolioRestoreRevision(n => n + 1); setNotice(WC.replaced); setError(""); return true;
+      } catch (e) { setError(e.message); return false; }
+    },
+    undoPortfolioReplacement: () => {
+      if (!portfolioUndo) return;
+      if (portfolioUndo.next !== portfolio || portfolioUndo.rulesKey !== JSON.stringify(portfolioRules) || portfolioUndo.limitsKey !== JSON.stringify(portfolioLimits)) { setError(WC.staleUndo); return; }
+      revision.current++; portfolioBuildIds.current.clear(); setPortfolio(portfolioUndo.batches);
+      setPortfolioLimits(portfolioUndo.limits); setPortfolioRules(portfolioUndo.rules); setPortfolioUndo(null);
+      setPortfolioRestoreRevision(n => n + 1); setNotice(WC.replacementUndone); setError("");
+    },
     globalExposure,
     globalGroups,
     classicStackRules,
@@ -723,6 +851,7 @@ export default function useDfsBuilder(projMeta) {
       portfolioBuildIds.current.clear();
       setPortfolio(backup.batches);
       setPortfolioLimits(backup.appearanceLimits);
+      setPortfolioRules(backup.reviewRules || { version: 1, players: {}, groups: [] }); setPortfolioUndo(null);
       setPortfolioRestoreRevision(n => n + 1);
       setNotice(PC.restored);
       setError("");
@@ -732,12 +861,15 @@ export default function useDfsBuilder(projMeta) {
     addPortfolioBatch: (label) => {
       try {
         const batch = createPortfolioBatch(lineups.length ? currentBuild : null, label);
+        revision.current++;
         setPortfolio(appendPortfolioBatch(portfolio, batch));
+        setPortfolioUndo(null);
         setError("");
         return true;
       } catch (e) { setError(e.message); return false; }
     },
-    removePortfolioBatch: (id) => setPortfolio(current => removePortfolioBatch(current, id)),
+    removePortfolioBatch: (id) => { revision.current++; setPortfolioUndo(null); const next = removePortfolioBatch(portfolio, id); setPortfolio(next);
+      if (!next.length) { setPortfolioRules({ version: 1, players: {}, groups: [] }); setPortfolioLimits({}); } },
     savePortfolioBatch: async (batch) => {
       const version = revision.current, accountGeneration = generation.current;
       const requireCurrent = () => {
@@ -755,6 +887,10 @@ export default function useDfsBuilder(projMeta) {
       return portfolioBuildIds.current.get(batch.id);
     },
     dataUpdateAvailable,
+    poolUpdate, poolUpdateHistory, poolInputVersion,
+    applyPoolUpdate, undoPoolUpdate,
+    canUndoPoolUpdate: Boolean(poolUndo.current),
+    dismissPoolUpdate: () => { setPoolUpdate(null); setNotice(WC.updateKept); },
     reloadPlayerPool: () => {
       generation.current++;
       revision.current++;
@@ -777,6 +913,7 @@ export default function useDfsBuilder(projMeta) {
     slateName,
     busy,
     building,
+    buildJob, cancelBuild,
     comparing,
     comparison,
     comparisonError,

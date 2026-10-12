@@ -81,7 +81,8 @@ try {
     const request = await page.evaluate(() => window.__portfolioFixture.requests.at(-1));
     assert.equal(request.portfolio_mode, "global");
     assert.equal(request.block_qb_opposing_dst, true);
-    assert.deepEqual(request.player_exposure_limits.p1, { min: "0", target: "0.4", max: "1" });
+    assert.deepEqual(request.player_exposure_limits.p1, { min: "0", target: { count: 60 }, max: "1" },
+      "Changing display units retains the exact 60-appearance target");
     assert.deepEqual(request.projection_overrides, {}, "Exposure edits must not rewrite forecasts");
     assert.match(await global.locator(".dfw-exposure-identity").first().innerText(), /Actual: 150 of 150 generated/);
     await global.getByText("Pairs & FLEX structure", { exact: true }).click();
@@ -109,7 +110,7 @@ try {
     await page.reload();
     await page.getByText("A local draft is available to recover.", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Restore local draft", exact: true }).click();
-    await page.getByText("150 / 150 unique · 150 collected", { exact: false }).waitFor();
+    await page.getByText("150 / 150 requested unique · 150 collected", { exact: false }).waitFor();
     assert.equal(await page.evaluate(() => window.__portfolioFixture.requests.length), 0);
     const recovered = await backup(page, `local-draft-${theme}-${width}`);
     assert.equal(recovered.batches[0].lineups.length, 150);

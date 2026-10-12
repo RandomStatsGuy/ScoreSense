@@ -54,7 +54,7 @@ test("T10/T29 forged global bounds cannot bypass current-build export independen
 
 test("T29 restored global batches are checked on their original N without reinterpreting combined batches", () => {
   const original = source(), batch = createPortfolioBatch(original, "Original", "original");
-  const packageValue = JSON.parse(writePortfolioBackup([batch], {}));
+  const packageValue = JSON.parse(writePortfolioBackup([batch], {}, undefined, { version: 1 }));
   packageValue.batches[0].settings.player_exposure_limits.p5.min = { count: 2 };
   packageValue.batches[0].settings.player_exposure_limits.p5.max = { count: 2 };
   const restored = readPortfolioBackup(JSON.stringify(packageValue));

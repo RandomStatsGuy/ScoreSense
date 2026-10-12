@@ -3,8 +3,9 @@ import test from "node:test";
 import { auditPortfolio, buildPortfolioEntryCsv, classicLineupKey, createPortfolioBatch, portfolioBuildPayload } from "./dfsPortfolio.js";
 import { readEntryTemplate } from "./dfsEntryExport.js";
 import { csvLines } from "./dfsCsv.js";
-import { PORTFOLIO_BACKUP_MAX_BYTES, readPortfolioBackup, readPortfolioBackupFile, writePortfolioBackup } from "./dfsPortfolioBackup.js";
+import { PORTFOLIO_BACKUP_MAX_BYTES, PORTFOLIO_BACKUP_MAX_EXPANDED_BYTES, PORTFOLIO_BACKUP_MAX_EXPANDED_NODES, readPortfolioBackup, readPortfolioBackupFile, writePortfolioBackup } from "./dfsPortfolioBackup.js";
 import { createBuildPlan, previewBuildPlan } from "./dfsBuildPlans.js";
+import { previewPortfolioReplacement } from "./dfsPortfolioReview.js";
 
 const timestamp = "2026-10-10T12:00:00.123456+00:00";
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
@@ -32,7 +33,7 @@ function batch(offset = 0, count = 75) {
   }, `Batch ${offset}`, `batch-${offset}`);
 }
 const original = () => [batch(), batch(75)];
-const document = () => JSON.parse(writePortfolioBackup(original(), { p0: "150", p1: "", removed: null }, timestamp));
+const document = () => JSON.parse(writePortfolioBackup(original(), { p0: "150", p1: "", removed: null }, timestamp, { version: 1 }));
 const restore = value => readPortfolioBackup(JSON.stringify(value));
 
 test("T07/T14/T29 native group and stack rules retain applied-plan provenance through recovery", () => {
@@ -48,7 +49,7 @@ test("T07/T14/T29 native group and stack rules retain applied-plan provenance th
   const plan = createBuildPlan({ id: "plan:original", label: "Original controls" }, native.settings, validation);
   native.settings.plan_manifest = previewBuildPlan(plan, native.settings, validation).manifest;
   native.settings.build_snapshot.content.parameters = structuredClone(plan.inputs);
-  const json = writePortfolioBackup([native], {}, timestamp), restored = readPortfolioBackup(json);
+  const json = writePortfolioBackup([native], {}, timestamp, { version: 1 }), restored = readPortfolioBackup(json);
   assert.deepEqual(restored.batches[0].settings.classic_stack_rules, native.settings.classic_stack_rules);
   assert.deepEqual(restored.batches[0].settings.plan_manifest, native.settings.plan_manifest);
   assert.deepEqual(restored.batches[0].settings.group_exposure_limits, native.settings.group_exposure_limits);
@@ -91,6 +92,149 @@ test("full player-pool snapshots download and restore above 120 collected lineup
   assert.equal(auditPortfolio(restored.batches, limits).unique, 140);
 });
 
+test("v2 shares repeated immutable history and reduces the measured 140-lineup full-pool backup", t => {
+  const batches = Array.from({ length: 7 }, (_, i) => fullPoolBatch(i * 20, 20));
+  const limits = { p0: 140 };
+  const v1 = writePortfolioBackup(batches, limits, timestamp, { version: 1 });
+  const v2 = writePortfolioBackup(batches, limits, timestamp);
+  const size = value => new TextEncoder().encode(value).length;
+  const wire = JSON.parse(v2);
+  assert.equal(wire.version, 2);
+  assert.ok(wire.shared.length > 0);
+  assert.ok(size(v2) < size(v1) / 4, `${size(v2)} / ${size(v1)} bytes`);
+  assert.deepEqual(readPortfolioBackup(v2).batches, readPortfolioBackup(v1).batches);
+  assert.equal(Object.isFrozen(readPortfolioBackup(v2).batches[6].settings.build_snapshot.content.input_pool[0]), true);
+  t.diagnostic(`Synthetic 7-batch / 140-lineup / 700-player fixture: v1 ${size(v1)} bytes; v2 ${size(v2)} bytes (${(100 * size(v2) / size(v1)).toFixed(1)}%).`);
+});
+
+test("v2 rejects unknown, cyclic, malformed and unused references before returning replacement state", () => {
+  const current = original(), before = structuredClone(current);
+  const valid = JSON.parse(writePortfolioBackup(current, {}, timestamp));
+  const mutations = [
+    d => { d.batches = { $ref: "https://example.invalid/private" }; },
+    d => { d.batches = { $ref: "c999999" }; },
+    d => { d.batches = { $ref: "c0", extra: true }; },
+    d => { d.batches = { $ref: 0 }; },
+    d => { d.batches = { $ref: "c00" }; },
+    d => { d.shared[0] = [{ $ref: "c0" }]; d.batches = { $ref: "c0" }; },
+    d => { d.shared[0] = [{ $ref: "c1" }]; d.shared[1] = [{ $ref: "c0" }]; d.batches = { $ref: "c0" }; },
+    d => { d.shared.push({ unreferenced: true }); },
+    d => { d.batches = { $literal: [["constructor", "hidden"]] }; },
+    d => { d.batches = { $literal: [["x", 1], ["x", 2]] }; },
+  ];
+  for (const mutate of mutations) {
+    const d = structuredClone(valid); mutate(d);
+    assert.throws(() => restore(d));
+    assert.deepEqual(current, before);
+  }
+});
+
+test("v2 checks aggregate expansion bytes and values before expanding compact reference graphs", () => {
+  const base = { schema: "scoresense_classic_portfolio", version: 2, exportedAt: timestamp, appearanceLimits: {}, batches: { $ref: "c1" } };
+  const long = "x".repeat(20_000), byteBomb = { ...base, shared: [[long], Array.from({ length: Math.ceil(PORTFOLIO_BACKUP_MAX_EXPANDED_BYTES / long.length) + 1 }, () => ({ $ref: "c0" }))] };
+  assert.ok(JSON.stringify(byteBomb).length < PORTFOLIO_BACKUP_MAX_BYTES);
+  assert.throws(() => restore(byteBomb), /expanded|recovery limit/);
+  const nodeBomb = { ...base, shared: [Array(10_000).fill(0), Array.from({ length: Math.ceil(PORTFOLIO_BACKUP_MAX_EXPANDED_NODES / 10_000) + 1 }, () => ({ $ref: "c0" }))] };
+  assert.throws(() => restore(nodeBomb), /expanded|recovery limit/);
+  const deep = { ...base, shared: Array.from({ length: 25 }, (_, i) => i === 24 ? [] : [{ $ref: `c${i + 1}` }]), batches: { $ref: "c0" } };
+  assert.throws(() => restore(deep));
+});
+
+test("v2 escapes literal reference-like historical fields without resolving or rewriting them", () => {
+  const batches = structuredClone(original());
+  batches[0].settings.build_snapshot.content.research = { $ref: "https://example.invalid/data" };
+  batches[1].settings.build_snapshot.content.research = { $literal: [["example", { $ref: "c999" }]] };
+  const json = writePortfolioBackup(batches, {}, timestamp);
+  assert.deepEqual(readPortfolioBackup(json).batches, batches);
+});
+
+test("collection review rules survive v1/v2 recovery with violations visible and export blocked", () => {
+  const batches = [batch(0, 2)], rules = { version: 1, players: { p0: { max: "1", target: "1.25" }, p169: { min: 1 } },
+    groups: [{ id: "core:pair", player_ids: ["p2", "p1"], min: 0, target: 1.5, max: 1 }] };
+  const expected = { version: 1, players: { p0: { target: 1.25, max: 1 }, p169: { min: 1 } },
+    groups: [{ id: "core:pair", player_ids: ["p1", "p2"], min: 0, target: 1.5, max: 1 }] };
+  for (const version of [1, 2]) {
+    const restored = readPortfolioBackup(writePortfolioBackup(batches, {}, timestamp, { version, reviewRules: rules }));
+    assert.deepEqual(restored.reviewRules, expected);
+    const audit = auditPortfolio(restored.batches, restored.appearanceLimits, restored.reviewRules);
+    assert.equal(audit.bounds.errors.length, 3);
+    assert.equal(Object.isFrozen(restored.reviewRules.groups[0].player_ids), true);
+    const t = template(), assignments = Object.fromEntries(t.entries.slice(0, 2).map((e, i) => [e.id, i]));
+    assert.throws(() => buildPortfolioEntryCsv(t, restored.batches, assignments, restored.appearanceLimits, restored.reviewRules), /maximum|minimum/);
+  }
+  const invalid = [
+    { ...rules, players: { unknown: { max: 1 } } },
+    { ...rules, players: { p0: { min: 2, max: 1 } } },
+    { ...rules, players: { p0: { min: 1.5 } } },
+    { ...rules, groups: [{ ...rules.groups[0], label: "Untrusted label" }] },
+    { ...rules, groups: [...rules.groups, { ...rules.groups[0], id: "other" }] },
+  ];
+  for (const reviewRules of invalid) {
+    assert.throws(() => writePortfolioBackup(batches, {}, timestamp, { reviewRules }));
+    const d = JSON.parse(writePortfolioBackup(batches, {}, timestamp)); d.reviewRules = reviewRules;
+    assert.throws(() => restore(d));
+  }
+  assert.equal(readPortfolioBackup(writePortfolioBackup(batches, {}, timestamp, { version: 1 })).reviewRules, undefined);
+});
+
+test("recovery rejects padded canonical IDs instead of restoring an evadable hard player bound", () => {
+  const current = [batch(0, 1)], before = structuredClone(current);
+  const malformed = structuredClone(current);
+  malformed[0].salaryCatalog[0].player_id = " p0 ";
+  malformed[0].lineups[0].lineup[0].player_id = " p0 ";
+  const reviewRules = { version: 1, players: { " p0 ": { max: 0 } }, groups: [] };
+  // Simulate an older backup containing the inconsistent identity, rather than
+  // relying on the current writer to manufacture invalid recovery data.
+  const wire = JSON.parse(writePortfolioBackup(current, {}, timestamp, { version: 1 }));
+  wire.batches = malformed; wire.reviewRules = reviewRules;
+  assert.throws(() => restore(wire), /canonical player ID/);
+  for (const version of [1, 2]) {
+    assert.throws(() => writePortfolioBackup(malformed, {}, timestamp, { version, reviewRules }), /canonical player ID/);
+  }
+  assert.deepEqual(current, before);
+});
+
+test("flat single-lineup replacement history survives both backup versions with complete candidate inputs", () => {
+  const original = batch(0, 2), candidate = batch(20, 2);
+  const source = Object.fromEntries(["context", "slateName", "lineups", "settings", "salaryCatalog", "salarySnapshot"].map(key => [key, candidate[key]]));
+  const preview = previewPortfolioReplacement([original], original.id, source, {}, null, { lineupIndex: 1, candidateIndex: 0 });
+  assert.equal(preview.canApply, true);
+  const batches = preview.candidateBatches;
+  for (const version of [1, 2]) {
+    const restored = readPortfolioBackup(writePortfolioBackup(batches, {}, timestamp, { version }));
+    assert.deepEqual(restored.batches, batches);
+    assert.equal(Object.isFrozen(restored.batches[0].settings.replacement_manifest.replacements[0].candidate_source.settings.build_snapshot.content.input_pool), true);
+  }
+  const wire = JSON.parse(writePortfolioBackup(batches, {}, timestamp, { version: 1 }));
+  const mutations = [
+    m => { m.replacements[0].lineup_index = 2; },
+    m => { m.replacements[0].candidate_lineup_index = 2; },
+    m => { m.replacements.push(structuredClone(m.replacements[0])); },
+    m => { m.replacements[0].candidate_source.settings.replacement_manifest = structuredClone(m); },
+    m => { m.replacements[0].candidate_source.settings.credentials = "hidden"; },
+    m => { m.replacements[0].candidate_source.context.week++; },
+    m => { m.replacements[0].candidate_lineup_index = 1; },
+    m => { m.replacements[0].candidate_source.lineups[0].lineup[0].dfs_id = "999999"; },
+  ];
+  for (const mutate of mutations) {
+    const d = structuredClone(wire); mutate(d.batches[0].settings.replacement_manifest);
+    assert.throws(() => restore(d));
+  }
+});
+
+test("optional undefined JavaScript values keep the existing JSON omission behavior", () => {
+  const batches = structuredClone(original());
+  batches[0].settings.note = undefined;
+  batches[0].settings.projection_sources = { p0: undefined, p1: "ScoreSense" };
+  batches[0].settings.build_snapshot.content.optional_values = [undefined, , 1];
+  for (const version of [1, 2]) {
+    const restored = readPortfolioBackup(writePortfolioBackup(batches, {}, timestamp, { version }));
+    assert.equal(Object.hasOwn(restored.batches[0].settings, "note"), false);
+    assert.deepEqual(restored.batches[0].settings.projection_sources, { p1: "ScoreSense" });
+    assert.deepEqual(restored.batches[0].settings.build_snapshot.content.optional_values, [null, null, 1]);
+  }
+});
+
 test("a 150-lineup batch preserves a full supported salary catalog in its backup", () => {
   const batches = [fullPoolBatch(0, 150, 5000)];
   const json = writePortfolioBackup(batches, {}, timestamp);
@@ -130,7 +274,7 @@ test("restores duplicate lineups and exceeded limits without repair, and both ex
 
 test("malformed, unsupported and oversized files reject before returning a replacement", async () => {
   for (const value of ["", "{", "null", "[]", '{"schema":"other"}']) assert.throws(() => readPortfolioBackup(value));
-  const d = document(); d.version = 2; assert.throws(() => restore(d), /supported version/);
+  const d = document(); d.version = 3; assert.throws(() => restore(d), /supported version/);
   assert.throws(() => readPortfolioBackup(" ".repeat(PORTFOLIO_BACKUP_MAX_BYTES + 1)), /20 MiB/);
   let read = false;
   await assert.rejects(readPortfolioBackupFile({ size: PORTFOLIO_BACKUP_MAX_BYTES + 1, text: () => { read = true; } }), /20 MiB/);

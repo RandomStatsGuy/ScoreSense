@@ -41,3 +41,13 @@ test("T27 collected schedules inspect selected players without blocking unrelate
     { status: "known_not_started", knownPlayerCount: 1, unknownPlayerCount: 0 });
   assert.throws(() => validatePrelockExport(sources, selected, { now }), /started/i);
 });
+
+test("replacement sources cannot hide a known started game behind unknown original timing", () => {
+  const composed = { settings: { game_schedule: [], replacement_manifest: { replacements: [
+    { candidate_source: source("2026-10-11T16:59:59Z") },
+  ] } } };
+  assert.throws(() => validatePrelockExport(composed, selected, { now }), /started.*late swap/i);
+  assert.equal(validatePrelockExport(composed, [{ lineup: [row("te", "LA")] }], { now }).status, "known_not_started");
+  composed.settings.replacement_manifest.replacements[0].candidate_source = source("2026-10-11T17:00:01Z");
+  assert.deepEqual(validatePrelockExport(composed, selected, { now }), { status: "known_not_started", knownPlayerCount: 3, unknownPlayerCount: 0 });
+});

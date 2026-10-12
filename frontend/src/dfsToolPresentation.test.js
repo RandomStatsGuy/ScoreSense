@@ -4,6 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  DFS_WORKFLOW_COPY as WORKFLOW,
+  DFS_WORKSPACE_COPY as WORKSPACE,
   DEFAULT_FORMATS,
   parseLineupCount,
   lineupDifferenceOptions,
@@ -63,6 +65,18 @@ import {
   nextExclusiveChoice,
   objectiveSortColumn,
 } from "./dfsToolPresentation.js";
+
+test("integrated workflow copy identifies exact artifacts, unavailable models and cancellation limits", () => {
+  assert.equal(WORKFLOW.generate(150), "Generate 150 lineups");
+  assert.match(WORKFLOW.cancelHelp, /server may finish/i);
+  assert.match(WORKFLOW.capabilityHelp, /not a lineup range/i);
+  assert.match(WORKFLOW.exportScope, /Unrelated template rows stay intact/);
+  assert.match(WORKFLOW.exportScope, /acceptance remains unconfirmed/i);
+  assert.match(WORKSPACE.dataUpdate, /Compare/);
+  assert.doesNotMatch(WORKSPACE.dataUpdate, /clears.*build/);
+  assert.match(WORKFLOW.catalogReset, /clears locks, skips, imported estimates/);
+  assert.match(WORKFLOW.updated, /original inputs/);
+});
 
 test("lineup counts accept exact integers through 150 and reject invalid input", () => {
   for (const count of [1, 2, 17, 37, 149, 150]) {
