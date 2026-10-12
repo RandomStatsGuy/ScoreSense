@@ -64,7 +64,7 @@ def test_weekly_fingerprint_includes_pool_policy(monkeypatch, tmp_path):
     monkeypatch.setattr(wc, "MODEL_DIR", tmp_path)
     fp = wc.weekly_fingerprint()
     assert len(fp) == 16
-    assert wc.WEEKLY_POOL_POLICY == "v4-complete-roster"
+    assert wc.WEEKLY_POOL_POLICY == "v5-opportunity-identity"
 
 
 def test_empty_refresh_preserves_previous_artifact(monkeypatch, tmp_path):

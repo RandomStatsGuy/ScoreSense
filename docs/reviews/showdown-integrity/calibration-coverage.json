@@ -1,0 +1,28 @@
+{
+  "schema_version": "dfs_showdown_forecast_diagnostics_v1",
+  "evidence_scope": "retrospective",
+  "status": "coverage_only",
+  "source_authenticity_verified": false,
+  "model_fitted_or_promoted": false,
+  "metrics_scope": "descriptive pooled matched FLEX rows; compare compatible source/scoring/conditioning groups separately",
+  "input_sha256": "aa2a480762d7b3bc7a3296bfcf51e952d460033de330960fa90a51c939e8a48e",
+  "holdout_from": [
+    2026,
+    5
+  ],
+  "coverage": {
+    "forecast_rows": 0,
+    "outcome_rows": 0,
+    "matched_rows": 0,
+    "excluded": {}
+  },
+  "groups": [],
+  "metrics": null,
+  "limitations": [
+    "Declared archived timestamps and official source types are not independently authenticated.",
+    "Synthetic fixtures establish calculation correctness only; no calibration or profitable exposure claim.",
+    "Mean error uses actual means only; quantiles do not imply a zero-score probability.",
+    "Intervals resample whole slate/week blocks; fewer than two blocks leaves uncertainty unavailable.",
+    "Later weeks are evaluated separately; this report does not fit a model or use outcomes to choose forecasts."
+  ]
+}
