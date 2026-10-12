@@ -7,6 +7,7 @@ import DfsPortfolio from "./DfsPortfolio.jsx";
 import DfsGlobalExposure from "./DfsGlobalExposure.jsx";
 import DfsClassicStack from "./DfsClassicStack.jsx";
 import DfsBuildPlans from "./DfsBuildPlans.jsx";
+import DfsLateSwap from "./DfsLateSwap.jsx";
 import DfsLocalDraft from "./DfsLocalDraft.jsx";
 import { DfsBuildStatus, DfsCapabilityReview, DfsInputUpdate, DfsJourney } from "./DfsWorkflow.jsx";
 import { workspaceCapabilities, countUniqueLineups } from "./dfsWorkspaceState.js";
@@ -1202,6 +1203,7 @@ export default function DfsWorkspace({ b }) {
           </section>
         )}
           </section>
+          <DfsLateSwap b={b} />
           <details className="dfw-panel dfw-flow-disclosure">
             <summary><span className="dfw-summary"><strong>{F.newCsv}</strong></span></summary>
             <div className="dfw-detail-body"><div className="dfw-panel">
