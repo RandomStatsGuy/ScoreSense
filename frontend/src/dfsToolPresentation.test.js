@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   DFS_WORKFLOW_COPY as WORKFLOW,
   DFS_WORKSPACE_COPY as WORKSPACE,
+  dfsEstimateSources,
   DEFAULT_FORMATS,
   parseLineupCount,
   lineupDifferenceOptions,
@@ -94,6 +95,20 @@ test("formatSalary and parseSalaryCap handle empty and numeric values", () => {
   assert.equal(parseSalaryCap("50000"), 50000);
   assert.equal(parseSalaryCap(""), null);
   assert.equal(parseSalaryCap("nope"), null);
+});
+
+test("build source summary identifies loaded estimates and never guesses the vendor or statistic", () => {
+  const player = { "Projected Points": 2, "Low (P10)": 0, "High (P90)": 7, Position: "WR" };
+  const sources = dfsEstimateSources([
+    { ...player, projection_source: "ScoreSense" }, { ...player, projection_source: "Imported" },
+    { ...player, projection_source: "Imported" }, { ...player, projection_source: "Named source" },
+    { ...player }, { ...player, projection_source: "ScoreSense", "Injury Status": "Out" },
+    { ...player, projection_source: "ScoreSense", "Projected Points": null },
+  ]);
+  assert.deepEqual(sources, [{ source: "Imported", count: 2 }, { source: "Named source", count: 1 }, { source: "ScoreSense", count: 1 }, { source: "Source not identified", count: 1 }]);
+  assert.match(WORKSPACE.importEffect, /matched players.*reviewed lineups keep their original/);
+  assert.equal(WORKSPACE.importEstimates, "Import projections");
+  assert.equal(WORKSPACE.importSource("my-file.csv"), "Imported file: my-file.csv");
 });
 
 test("rosterHint and formatPersonality explain each format", () => {

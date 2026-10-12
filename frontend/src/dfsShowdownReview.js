@@ -4,8 +4,43 @@ const finite = value => value != null && value !== "" && Number.isFinite(Number(
 const sum = (rows, key) => rows.every(row => finite(row[key])) ? rows.reduce((n, row) => n + Number(row[key]), 0) : null;
 export const newShowdownRules = () => ({ receiver_captain_qb: "require", approved_qb_ids: {} });
 export function approvePairingQb(rules, team, id) {
-  const mapping = { ...rules?.approved_qb_ids }; if (id) mapping[team] = [id]; else delete mapping[team];
+  const normalized = normalizeDfsTeam(team);
+  const mapping = Object.fromEntries(Object.entries(rules?.approved_qb_ids || {}).filter(([key]) => normalizeDfsTeam(key) !== normalized));
+  if (id) mapping[normalized] = [id];
   return { receiver_captain_qb: rules?.receiver_captain_qb || "warn", approved_qb_ids: mapping };
+}
+export function approvedPairingIds(rules, team) {
+  return Object.entries(rules?.approved_qb_ids || {}).filter(([key]) => normalizeDfsTeam(key) === normalizeDfsTeam(team)).flatMap(([, ids]) => ids);
+}
+/** Exact salary identities define the selected slate; team membership is insufficient. */
+export function showdownSlatePool(pool = [], salaries) {
+  if (!Array.isArray(pool)) return [];
+  const salaried = row => finite(row.salary) && Number(row.salary) > 0;
+  if (!Array.isArray(salaries) || !salaries.length) return pool.filter(salaried);
+  const canonicalIds = new Set(salaries.filter(salaried).map(row => row.player_id).filter(Boolean));
+  const providerIds = new Set(salaries.filter(salaried).flatMap(row => [row.dfs_id, row.cpt_dfs_id]).filter(value => value != null && value !== "").map(String));
+  return pool.filter(row => salaried(row) && (canonicalIds.has(row.player_id) ||
+    [row.dfs_id, row.cpt_dfs_id].some(id => id != null && providerIds.has(String(id)))));
+}
+export function showdownComparisonPool(build) {
+  // Prefer the immutable solver inputs over a later live pool or a league-wide catalog.
+  const frozen = build?.settings?.build_snapshot?.content?.input_pool;
+  const rows = Array.isArray(frozen) ? frozen : build?.salaryCatalog || [];
+  return showdownSlatePool(rows, build?.settings?.slate_salaries);
+}
+export function showdownPlayerGaps(player, salaryCap = 50000) {
+  const d = player?.diagnostics || {};
+  const role = d.current_role_estimate;
+  const provided = value => typeof value === "number" ? Number.isFinite(value) : typeof value === "string" && Boolean(value.trim()) && !["unknown", "unavailable", "n/a", "null", "none"].includes(value.trim().toLowerCase());
+  const roleKnown = role != null && (typeof role === "object" ? Object.values(role).some(provided) : provided(role));
+  const zero = d.predicted_zero_probability;
+  const zeroKnown = (typeof zero === "number" || typeof zero === "string" && Boolean(zero.trim())) && finite(zero) && Number(zero) >= 0 && Number(zero) <= 1;
+  // DraftKings CPT salary is weighted. FanDuel MVP salary remains at base cost.
+  const multiplier = player?.slot === "CPT" ? Number(player.multiplier) || 1.5 : 1;
+  const baseSalary = finite(player?.salary) ? Number(player.salary) / multiplier : null;
+  return { statusUnknown: normalizedBuildStatus(player) === "unknown", roleUnknown: !roleKnown, zeroUnknown: !zeroKnown,
+    zeroProbability: zeroKnown ? Number(zero) : null, baseSalary,
+    lowSalary: baseSalary != null && baseSalary > 0 && finite(salaryCap) && baseSalary <= Number(salaryCap) * .1 };
 }
 export function showdownScoreMetadata(value) {
   const keys = ["objective_key", "objective_label", "objective_score", "objective_units", "objective_semantics", "projection_sum", "projection_statistic", "projection_label", "score_system_id", "captain_multiplier_applied", "forecast_snapshot_id", "injury_snapshot_id", "availability_conditioning", "solver_status", "precision", "display_precision", "numeric_tolerance"];
@@ -105,10 +140,10 @@ export function availablePairingQbs(pool) {
 }
 export function missingPairingTeams(pool, rules) {
   if (rules?.receiver_captain_qb !== "require") return [];
-  const receiverTeams = new Set(pool.filter(row => ["WR", "TE"].includes(row.Position || row.position)).map(row => normalizeDfsTeam(row.Team || row.team)));
+  const receiverTeams = new Set(pool.filter(row => ["WR", "TE"].includes(String(row.Position || row.position).toUpperCase())).map(row => normalizeDfsTeam(row.Team || row.team)).filter(Boolean));
   return [...receiverTeams].filter(team => !pool.some(row => normalizeDfsTeam(row.Team || row.team) === team && String(row.Position || row.position).toUpperCase() === "QB" &&
     !["out", "ir", "pup", "inactive", "suspended"].includes(normalizedBuildStatus(row)) &&
-    ((rules.approved_qb_ids?.[team] || []).includes(row.player_id) || row.verified_starting_qb === true || (row.qb_role_verified === true && row.qb_role === "starter")))).sort();
+    (approvedPairingIds(rules, team).includes(row.player_id) || row.verified_starting_qb === true || (row.qb_role_verified === true && row.qb_role === "starter")))).sort();
 }
 export function makeShowdownReview(build, comparison = null) {
   if (build?.context?.site !== "draftkings_showdown" || !build.lineups?.length || !build.settings?.build_snapshot) throw new Error(C.reviewInvalid);

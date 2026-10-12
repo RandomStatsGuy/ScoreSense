@@ -322,6 +322,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/dfsLateSwap.worker.js",
       "frontend/src/dfsEvidence.js",
       "frontend/src/dfsWorkspaceState.js",
+      "frontend/src/dfsNavigationDraft.js",
       "frontend/src/dfsPortfolioBackup.js",
       "frontend/src/dfsPortfolioBackupAsync.js",
       "frontend/src/dfsPortfolioBackup.worker.js",

@@ -1,0 +1,125 @@
+{
+  "base_sha": "87bd9a511bded9584c8f886370b5f6c27a3e3b37",
+  "captured_at_utc": "2026-10-12T23:10:33.6218635Z",
+  "scope": "showdown_workflow_followup",
+  "original_20_lineup_audit_reproduced": false,
+  "live_account_or_platform_verified": false,
+  "production_changed": false,
+  "models_or_player_forecasts_changed": false,
+  "checks": {
+    "affected_backend": {
+      "seconds": 117.85,
+      "whole_repository_backend_run": false,
+      "failed": 0,
+      "coverage": "all tests/test_(dfs|showdown|lineup|vegas)*.py",
+      "log": "outputs/showdown-backend-followup-final.log",
+      "warnings": 1,
+      "passed": 1432
+    },
+    "focused_backend": {
+      "seconds": 16.12,
+      "failed": 0,
+      "overlaps_affected_backend": true,
+      "log": "outputs/showdown-wire-regression.log",
+      "warnings": 1,
+      "passed": 160
+    },
+    "baseline_numeric_red": {
+      "expected_failures": 2,
+      "seconds": 1.54,
+      "actual_node_json_roundtrip": true,
+      "log": "outputs/showdown-wire-numeric-red.log"
+    },
+    "frontend": {
+      "seconds": 20.1705787,
+      "tests": 1279,
+      "failed": 3,
+      "discovery": "explicit recursive *.test.js and *.test.mjs enumeration plus layout_audit.test.mjs",
+      "log": "outputs/showdown-frontend-followup-final.log",
+      "baseline_failures_reproduced": true,
+      "passed": 1276
+    },
+    "unchanged_baseline_frontend": {
+      "tests": 3,
+      "failed": 3,
+      "seconds": 0.2043198,
+      "passed": 0,
+      "log": "outputs/baseline-87bd9a51/baseline-failures.log"
+    },
+    "product_living_surface": {
+      "failed": 0,
+      "seconds": 2.79,
+      "passed": 36,
+      "log": "outputs/showdown-policy-followup.log"
+    },
+    "production_build": {
+      "log": "outputs/showdown-build-followup.log",
+      "warning": "existing chunk-size warning",
+      "seconds": 10.79,
+      "result": "PASS"
+    },
+    "showdown_browser": {
+      "complete_deployed_route_navigation_tested": false,
+      "responsive_cases": 6,
+      "log": "outputs/showdown-browser-followup-final.log",
+      "production_components": true,
+      "synthetic_engine_responses": true,
+      "screenshots_inspected": [
+        "build-1280-light.png",
+        "build-390-dark.png",
+        "cheap-inputs-390-light.png",
+        "cheap-inputs-1280-light.png"
+      ],
+      "receipt": "browser-receipt.json",
+      "all_network_intercepted": true,
+      "result": "PASS",
+      "audited_states": 20,
+      "guard_groups": 14
+    },
+    "classic_browser": {
+      "checks": [
+        "guided flow",
+        "global exposure conflict",
+        "sealed CSV",
+        "unrelated entry preserved",
+        "exact worker backup recovery"
+      ],
+      "theme": "dark",
+      "log": "outputs/classic-smoke-followup.log",
+      "width": 390,
+      "result": "PASS"
+    }
+  },
+  "source_sha256": {
+    "app/api.py": "b4738f97598e6de89bce7e82bba09803618e2e9d14cc7cca593762978f4080db",
+    "frontend/src/DfsWorkspace.jsx": "43ebbbc17b995e8ce7e335900271e78352b30755a4863f2fe568d2f594a3ae75",
+    "frontend/src/DfsShowdownReview.jsx": "415852b9556d8ee0033e2e85207ec55276901d29bc91eb9c58d85b637665dc95",
+    "frontend/src/LineupOptimizer.jsx": "a75ac6f3b2106aaa5480ac12322daa3f4412d10a90814c85b830b9a931119cdf",
+    "frontend/src/useDfsBuilder.js": "b3e377468062b770ea19e34e8e5eb6169a389fc9c20435db0b6cf5bbf761a77b",
+    "frontend/src/dfsNavigationDraft.js": "c1fea6d5e0d15524d26d2ba4be96d7a3b7eddeaed4bae52085d2ff7a88ff91c7",
+    "frontend/src/dfsNavigationDraft.test.js": "d90072cad333a7c6fc8c4cff1cdcdbba32f3d36467368df603e05ae5be130f33",
+    "frontend/src/dfsShowdownReview.js": "b652c0cb207a0b5fb3d97856f9f024c0f42fd976bc0405c59d90b557772a5765",
+    "frontend/src/dfsShowdownReview.test.js": "eea942533223d31253a2e70c10005bca831e4bee8fab80c05ec922c3c762147c",
+    "frontend/src/dfsToolPresentation.js": "82530dcf09c2df5799f671beb4c3f1ac2e8cd1c49a373a9dd2c846c5c2db818f",
+    "frontend/src/dfsToolPresentation.test.js": "3dcdf00626cf95b5c3c974d80eae95360112bac473720b8e975ec7ce2a308666",
+    "frontend/src/livingSurfaces.js": "12b81c543b62dc2179a6637cefba0571642d7a6adf050a7db70ca91881f9896e",
+    "frontend/src/styles/dfs-workspace.css": "a799c78e8164c8f77b88360063e6192602e295cc817cc291d3ca30b6f29730ef",
+    "frontend/test-fixtures/dfs-portfolio.jsx": "48805f04515325b5855bb860b3e52d0949246d48161572d4a083a846a6279de6",
+    "frontend/test-fixtures/dfs-showdown-data.json": "b2dcdffbea2509baed9ddeabec136293a3b5a1c729e62dae93930f8b7d01a947",
+    "scripts/dev/dfs_showdown_tasks.mjs": "e009382eb3711d3213a6f62e1f7baa420492d695013473b9ef44c001b7ce6538",
+    "src/products/dfs_snapshots.py": "118b88fe8691156889ddecec76f59eb010a7d058ff1023aca66fa2787de411de",
+    "src/products/dfs_showdown_snapshot.py": "8421bb3dddce2acf4d071c9b030aa403615cd409496121bb96541ba469066ade",
+    "tests/test_dfs_showdown_api.py": "c145d3eb505d7dbd8d4adc6381058ccbc24a7ed398f42553ca627186c0341b3c",
+    "tests/test_dfs_snapshot_wire.py": "1d7c896d3d5370c92fb25781b7b53bfac617fdfceb12a32fe8e281396146d892"
+  },
+  "limits": {
+    "comparison_max_bytes": 8388608,
+    "legacy_failed_identity": "rebuild required without overwriting existing lineups",
+    "reload_recovery": "explicit existing local portfolio draft and portable backup",
+    "comparison_max_rows": 750,
+    "projection_calibration": "deferred historical evaluation; no inference or training changes",
+    "navigation_max_age_hours": 8,
+    "unknown_inputs": "availability snapshots, role estimates and zero-score probabilities remain unknown when absent",
+    "navigation_max_bytes": 33554432
+  }
+}
