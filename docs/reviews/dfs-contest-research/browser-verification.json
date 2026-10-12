@@ -1,0 +1,1689 @@
+{
+  "synthetic": true,
+  "productionComponents": true,
+  "actualEngineResponses": true,
+  "liveAccountOrPlatformVerified": false,
+  "cases": [
+    {
+      "width": 390,
+      "theme": "dark",
+      "passed": true,
+      "exactEngineRequestAndDownload": true,
+      "actualWorkerObserved": true,
+      "rawSourcesOmitted": true,
+      "originalHistoryUnchanged": true,
+      "unsortedAssumptionsJoinedById": true,
+      "audits": [
+        {
+          "state": "build",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-build-controls",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "1 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "70 targets ≥ 44"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "1 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        },
+        {
+          "state": "contest",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "4 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "114 targets ≥ 44"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "passed": true,
+      "exactEngineRequestAndDownload": true,
+      "actualWorkerObserved": true,
+      "rawSourcesOmitted": true,
+      "originalHistoryUnchanged": true,
+      "unsortedAssumptionsJoinedById": true,
+      "audits": [
+        {
+          "state": "build",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-build-controls",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "1 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "70 targets ≥ 44"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "1 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        },
+        {
+          "state": "contest",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "4 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "114 targets ≥ 44"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "passed": true,
+      "exactEngineRequestAndDownload": true,
+      "actualWorkerObserved": true,
+      "rawSourcesOmitted": true,
+      "originalHistoryUnchanged": true,
+      "unsortedAssumptionsJoinedById": true,
+      "audits": [
+        {
+          "state": "build",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-build-controls",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "1 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "70 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "1 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        },
+        {
+          "state": "contest",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "4 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "114 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "passed": true,
+      "exactEngineRequestAndDownload": true,
+      "actualWorkerObserved": true,
+      "rawSourcesOmitted": true,
+      "originalHistoryUnchanged": true,
+      "unsortedAssumptionsJoinedById": true,
+      "audits": [
+        {
+          "state": "build",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-build-controls",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "1 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "70 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "1 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        },
+        {
+          "state": "contest",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "4 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "114 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "passed": true,
+      "exactEngineRequestAndDownload": true,
+      "actualWorkerObserved": true,
+      "rawSourcesOmitted": true,
+      "originalHistoryUnchanged": true,
+      "unsortedAssumptionsJoinedById": true,
+      "audits": [
+        {
+          "state": "build",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-build-controls",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "1 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "70 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "1 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        },
+        {
+          "state": "contest",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "4 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "114 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "passed": true,
+      "exactEngineRequestAndDownload": true,
+      "actualWorkerObserved": true,
+      "rawSourcesOmitted": true,
+      "originalHistoryUnchanged": true,
+      "unsortedAssumptionsJoinedById": true,
+      "audits": [
+        {
+          "state": "build",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-build-controls",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "1 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "70 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "1 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        },
+        {
+          "state": "contest",
+          "overflow": false,
+          "measures": [
+            {
+              "rule": "form-controls",
+              "ok": true,
+              "selector": "hub-filter-menu-trigger",
+              "detail": "field uses the form control height"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "control-rows",
+              "ok": true,
+              "selector": "dfw-settings-grid dfw-control-fields",
+              "detail": "controls share a height and side-by-side bottom edge"
+            },
+            {
+              "rule": "bars",
+              "ok": true,
+              "selector": "",
+              "detail": "4 bars"
+            },
+            {
+              "rule": "collisions",
+              "ok": true,
+              "selector": "",
+              "detail": "no overlapping block siblings"
+            },
+            {
+              "rule": "tables",
+              "ok": true,
+              "selector": "",
+              "detail": "no tables or all aligned"
+            },
+            {
+              "rule": "grids",
+              "ok": true,
+              "selector": "",
+              "detail": "auto-fill card grids even or none"
+            },
+            {
+              "rule": "targets",
+              "ok": true,
+              "selector": "",
+              "detail": "114 targets ≥ 32"
+            },
+            {
+              "rule": "primaries",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible primary"
+            },
+            {
+              "rule": "type",
+              "ok": true,
+              "selector": "",
+              "detail": "≥ 12px"
+            },
+            {
+              "rule": "gutters",
+              "ok": true,
+              "selector": "",
+              "detail": "no band set"
+            },
+            {
+              "rule": "selects",
+              "ok": true,
+              "selector": "",
+              "detail": "0 visible native selects"
+            },
+            {
+              "rule": "overflow",
+              "ok": true,
+              "selector": "",
+              "detail": "no horizontal overflow"
+            },
+            {
+              "rule": "menus",
+              "ok": true,
+              "selector": "",
+              "detail": "no draft-hub"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "guards": [
+    {
+      "width": 390,
+      "theme": "dark",
+      "passed": true,
+      "checks": [
+        "denied rights rejected before API",
+        "invalid import keeps previous review",
+        "new valid file clears selection and labels retained review as earlier",
+        "backend failure retains review",
+        "mismatched response rejected",
+        "elapsed work status advances",
+        "cancel discards late response",
+        "changed settings stale selection",
+        "denied account access",
+        "account change clears review"
+      ]
+    }
+  ],
+  "supplements": [
+    {
+      "width": 390,
+      "theme": "dark",
+      "passed": true,
+      "check": "opened settings, payout and method/source details",
+      "settingsReachable": true,
+      "bothSettingsRowsMeasured": true,
+      "sourceHashesShown": true,
+      "audienceAndOwnershipGapShown": true,
+      "measurements": {
+        "state": "contest-details",
+        "overflow": false,
+        "measures": [
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "bars",
+            "ok": true,
+            "selector": "",
+            "detail": "4 bars"
+          },
+          {
+            "rule": "collisions",
+            "ok": true,
+            "selector": "",
+            "detail": "no overlapping block siblings"
+          },
+          {
+            "rule": "tables",
+            "ok": true,
+            "selector": "",
+            "detail": "no tables or all aligned"
+          },
+          {
+            "rule": "grids",
+            "ok": true,
+            "selector": "",
+            "detail": "auto-fill card grids even or none"
+          },
+          {
+            "rule": "targets",
+            "ok": true,
+            "selector": "",
+            "detail": "114 targets ≥ 44"
+          },
+          {
+            "rule": "primaries",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible primary"
+          },
+          {
+            "rule": "type",
+            "ok": true,
+            "selector": "",
+            "detail": "≥ 12px"
+          },
+          {
+            "rule": "gutters",
+            "ok": true,
+            "selector": "",
+            "detail": "no band set"
+          },
+          {
+            "rule": "selects",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible native selects"
+          },
+          {
+            "rule": "overflow",
+            "ok": true,
+            "selector": "",
+            "detail": "no horizontal overflow"
+          },
+          {
+            "rule": "menus",
+            "ok": true,
+            "selector": "",
+            "detail": "no draft-hub"
+          }
+        ]
+      }
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "passed": true,
+      "check": "opened settings, payout and method/source details",
+      "settingsReachable": true,
+      "bothSettingsRowsMeasured": true,
+      "sourceHashesShown": true,
+      "audienceAndOwnershipGapShown": true,
+      "measurements": {
+        "state": "contest-details",
+        "overflow": false,
+        "measures": [
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "bars",
+            "ok": true,
+            "selector": "",
+            "detail": "4 bars"
+          },
+          {
+            "rule": "collisions",
+            "ok": true,
+            "selector": "",
+            "detail": "no overlapping block siblings"
+          },
+          {
+            "rule": "tables",
+            "ok": true,
+            "selector": "",
+            "detail": "no tables or all aligned"
+          },
+          {
+            "rule": "grids",
+            "ok": true,
+            "selector": "",
+            "detail": "auto-fill card grids even or none"
+          },
+          {
+            "rule": "targets",
+            "ok": true,
+            "selector": "",
+            "detail": "114 targets ≥ 32"
+          },
+          {
+            "rule": "primaries",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible primary"
+          },
+          {
+            "rule": "type",
+            "ok": true,
+            "selector": "",
+            "detail": "≥ 12px"
+          },
+          {
+            "rule": "gutters",
+            "ok": true,
+            "selector": "",
+            "detail": "no band set"
+          },
+          {
+            "rule": "selects",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible native selects"
+          },
+          {
+            "rule": "overflow",
+            "ok": true,
+            "selector": "",
+            "detail": "no horizontal overflow"
+          },
+          {
+            "rule": "menus",
+            "ok": true,
+            "selector": "",
+            "detail": "no draft-hub"
+          }
+        ]
+      }
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "passed": true,
+      "check": "opened settings, payout and method/source details",
+      "settingsReachable": true,
+      "bothSettingsRowsMeasured": true,
+      "sourceHashesShown": true,
+      "audienceAndOwnershipGapShown": true,
+      "measurements": {
+        "state": "contest-details",
+        "overflow": false,
+        "measures": [
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "bars",
+            "ok": true,
+            "selector": "",
+            "detail": "4 bars"
+          },
+          {
+            "rule": "collisions",
+            "ok": true,
+            "selector": "",
+            "detail": "no overlapping block siblings"
+          },
+          {
+            "rule": "tables",
+            "ok": true,
+            "selector": "",
+            "detail": "no tables or all aligned"
+          },
+          {
+            "rule": "grids",
+            "ok": true,
+            "selector": "",
+            "detail": "auto-fill card grids even or none"
+          },
+          {
+            "rule": "targets",
+            "ok": true,
+            "selector": "",
+            "detail": "114 targets ≥ 32"
+          },
+          {
+            "rule": "primaries",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible primary"
+          },
+          {
+            "rule": "type",
+            "ok": true,
+            "selector": "",
+            "detail": "≥ 12px"
+          },
+          {
+            "rule": "gutters",
+            "ok": true,
+            "selector": "",
+            "detail": "no band set"
+          },
+          {
+            "rule": "selects",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible native selects"
+          },
+          {
+            "rule": "overflow",
+            "ok": true,
+            "selector": "",
+            "detail": "no horizontal overflow"
+          },
+          {
+            "rule": "menus",
+            "ok": true,
+            "selector": "",
+            "detail": "no draft-hub"
+          }
+        ]
+      }
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "passed": true,
+      "check": "opened settings, payout and method/source details",
+      "settingsReachable": true,
+      "bothSettingsRowsMeasured": true,
+      "sourceHashesShown": true,
+      "audienceAndOwnershipGapShown": true,
+      "measurements": {
+        "state": "contest-details",
+        "overflow": false,
+        "measures": [
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "form-controls",
+            "ok": true,
+            "selector": "hub-filter-menu-trigger",
+            "detail": "field uses the form control height"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "control-rows",
+            "ok": true,
+            "selector": "dfw-settings-grid dfw-control-fields",
+            "detail": "controls share a height and side-by-side bottom edge"
+          },
+          {
+            "rule": "bars",
+            "ok": true,
+            "selector": "",
+            "detail": "4 bars"
+          },
+          {
+            "rule": "collisions",
+            "ok": true,
+            "selector": "",
+            "detail": "no overlapping block siblings"
+          },
+          {
+            "rule": "tables",
+            "ok": true,
+            "selector": "",
+            "detail": "no tables or all aligned"
+          },
+          {
+            "rule": "grids",
+            "ok": true,
+            "selector": "",
+            "detail": "auto-fill card grids even or none"
+          },
+          {
+            "rule": "targets",
+            "ok": true,
+            "selector": "",
+            "detail": "114 targets ≥ 32"
+          },
+          {
+            "rule": "primaries",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible primary"
+          },
+          {
+            "rule": "type",
+            "ok": true,
+            "selector": "",
+            "detail": "≥ 12px"
+          },
+          {
+            "rule": "gutters",
+            "ok": true,
+            "selector": "",
+            "detail": "no band set"
+          },
+          {
+            "rule": "selects",
+            "ok": true,
+            "selector": "",
+            "detail": "0 visible native selects"
+          },
+          {
+            "rule": "overflow",
+            "ok": true,
+            "selector": "",
+            "detail": "no horizontal overflow"
+          },
+          {
+            "rule": "menus",
+            "ok": true,
+            "selector": "",
+            "detail": "no draft-hub"
+          }
+        ]
+      }
+    }
+  ]
+}

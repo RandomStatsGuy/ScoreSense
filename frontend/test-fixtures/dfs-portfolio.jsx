@@ -8,6 +8,7 @@ import { DEFAULT_FORMATS } from "../src/dfsToolPresentation.js";
 import { publishDataRevision } from "../src/useDataRevision.js";
 import evidenceFixture from "./dfs-evidence-data.json";
 import sharedFixture from "./dfs-shared-data.json";
+import contestFixture from "./dfs-contest-data.json";
 import "../src/styles.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
@@ -42,6 +43,8 @@ window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: f
   delaySharedEvaluate: false, ignoreSharedEvaluateAbort: false, sharedEvaluateAborts: 0,
   mismatchSharedPreview: false, mismatchSharedEvaluate: false,
   sharedAccessStatus: 200,
+  contestPreviewRequests: [], contestEvaluateRequests: [], failContestPreview: false, failContestEvaluate: false,
+  delayContestEvaluate: false, ignoreContestEvaluateAbort: false, contestEvaluateAborts: 0, mismatchContestEvaluate: false,
   publishDataRevision };
 const fixturePool = state => players.map((player, index) => ({ ...player,
   ...((workflow || evidenceMode) && state.poolVersion && index === 0 ? {
@@ -75,6 +78,23 @@ window.fetch = async (url, options = {}) => {
   };
   if (path.includes("/formats")) return respond({ formats: DEFAULT_FORMATS });
   if (path.includes("/slates?")) return respond({ slates: [{ slate_id: "classic-fixture", name: "Classic fixture slate" }] });
+  if (sharedMode && path.includes("/contest-research/")) {
+    const evaluation = path.endsWith("/evaluate");
+    (evaluation ? state.contestEvaluateRequests : state.contestPreviewRequests).push(body);
+    if (state.sharedAccessStatus !== 200) return respond({ detail: "Synthetic research account access denied." }, state.sharedAccessStatus);
+    if (evaluation) await delay("delayContestEvaluate", "ignoreContestEvaluateAbort", "contestEvaluateAborts");
+    if (state[evaluation ? "failContestEvaluate" : "failContestPreview"]) return respond({ detail: "Synthetic contest research failure. Last review retained." }, 503);
+    if (!matchesSharedInputs(body) || canonical(body.contest_field) !== canonical(contestFixture.file.contest_field) ||
+        canonical(body.payout_contract) !== canonical(contestFixture.file.payout_contract)) return respond({ detail: "Request differs from exact real-engine synthetic contest input." }, 400);
+    if (!evaluation) return respond(contestFixture.summary);
+    const expected = sharedFixture.engine_inputs.lineups;
+    if (body.seed !== 0 || body.draw_count !== 128 || body.top_k !== 10 || body.bank_id !== sharedFixture.summary.content_id ||
+        body.contest_research_id !== contestFixture.summary.content_id || body.lineups?.length !== expected.length ||
+        body.lineups.some((row, i) => canonical([...row.player_ids].sort()) !== canonical([...expected[i].player_ids].sort())))
+      return respond({ detail: "Request differs from exact real-engine synthetic contest evaluation." }, 400);
+    return respond({ ...(body.lineups[0]?.lineup_id?.startsWith("collection:") ? contestFixture.collection_evaluation : contestFixture.evaluation),
+      input_snapshot_id: state.mismatchContestEvaluate ? "wrong-synthetic-input" : body.input_snapshot_id });
+  }
   if (sharedMode && path.endsWith("/shared-outcomes/preview")) {
     state.sharedPreviewRequests.push(body);
     if (state.sharedAccessStatus !== 200) return respond({ detail: "Synthetic research account access denied." }, state.sharedAccessStatus);

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import useDfsSharedOutcomes from "./useDfsSharedOutcomes.js";
+import DfsContestResearch from "./DfsContestResearch.jsx";
 import { DFS_SHARED_OUTCOMES_COPY as C } from "./dfsToolPresentation.js";
 
 const num = value => Number.isFinite(value) ? value.toFixed(2) : "—";
@@ -68,9 +69,9 @@ export default function DfsSharedOutcomesReview({ b }) {
     </div>
     <p className="dfw-note">{C.fileHelp}</p>
     {e.candidate && <p className="dfw-note">{C.fileSelected(e.candidate.name)}</p>}
-    <details><summary>{C.settings}</summary><div className="dfw-review-controls">
+    <details><summary>{C.settings}</summary><div className="dfw-settings-grid dfw-control-fields" data-control-row>
       <label className="dfw-field"><span>{C.seed}</span><input type="number" min="0" max="2147483647" step="1" value={Number.isNaN(e.seed) ? "" : e.seed} onChange={event => e.setSeed(event.target.value === "" ? NaN : Number(event.target.value))} /></label>
-      <HubFilterMenu label={C.draws} value={String(e.drawCount)} onChange={value => e.setDrawCount(Number(value))} options={[32, 64, 128, 256, 512, 1024].map(n => ({ id: String(n), label: String(n) }))} />
+      <div className="dfw-field"><span>{C.draws}</span><HubFilterMenu className="hub-filter-menu--field" label={C.draws} value={String(e.drawCount)} onChange={value => e.setDrawCount(Number(value))} options={[32, 64, 128, 256, 512, 1024].map(n => ({ id: String(n), label: String(n) }))} /></div>
     </div></details>
     <div className="dfw-review-controls">
       {e.candidate && <button type="button" onClick={e.runPreview} disabled={e.busy || Boolean(e.inputError)}>{C.preview}</button>}
@@ -90,6 +91,7 @@ export default function DfsSharedOutcomesReview({ b }) {
     {e.previousReview && <p className="dfw-note" role="status">{C.previous}</p>}
     {e.review && <Results key={resultKey} review={e.review} />}
     {e.preview && (e.review || e.selected) && e.preview.summary.content_id !== (e.review?.preview || e.selected?.summary)?.content_id && <Receipts title={C.previewDetails} preview={e.preview.summary} />}
+    <DfsContestResearch shared={e} />
     <Receipts preview={e.review?.preview || e.selected?.summary || e.preview?.summary} snapshot={e.review?.snapshot || e.selected?.snapshot} report={e.review?.report} />
   </details>;
 }
