@@ -1,0 +1,527 @@
+{
+  "all_passed": true,
+  "report": [
+    {
+      "route": "/dfs-flow-a.html",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "1 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "71 targets \u2265 32"
+        },
+        {
+          "rule": "icons",
+          "ok": true,
+          "selector": "",
+          "detail": "control icons bounded with intrinsic dimensions"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "1 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "\u2265 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "filter menus",
+          "detail": "0 filter menus open with every option tappable"
+        }
+      ]
+    },
+    {
+      "route": "/dfs-flow-a.html",
+      "width": 390,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "1 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "71 targets \u2265 44"
+        },
+        {
+          "rule": "icons",
+          "ok": true,
+          "selector": "",
+          "detail": "control icons bounded with intrinsic dimensions"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".phone-header",
+          "detail": "61px; single destination/league row"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "1 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "\u2265 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "filter menus",
+          "detail": "0 filter menus open with every option tappable"
+        }
+      ]
+    },
+    {
+      "route": "/dfs-flow-b.html",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "1 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "71 targets \u2265 32"
+        },
+        {
+          "rule": "icons",
+          "ok": true,
+          "selector": "",
+          "detail": "control icons bounded with intrinsic dimensions"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "1 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "\u2265 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "filter menus",
+          "detail": "0 filter menus open with every option tappable"
+        }
+      ]
+    },
+    {
+      "route": "/dfs-flow-b.html",
+      "width": 390,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "1 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "71 targets \u2265 44"
+        },
+        {
+          "rule": "icons",
+          "ok": true,
+          "selector": "",
+          "detail": "control icons bounded with intrinsic dimensions"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".phone-header",
+          "detail": "61px; single destination/league row"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "1 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "\u2265 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "filter menus",
+          "detail": "0 filter menus open with every option tappable"
+        }
+      ]
+    },
+    {
+      "route": "/dfs-flow-c.html",
+      "width": 1280,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "1 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "71 targets \u2265 32"
+        },
+        {
+          "rule": "icons",
+          "ok": true,
+          "selector": "",
+          "detail": "control icons bounded with intrinsic dimensions"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "\u2265 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "filter menus",
+          "detail": "0 filter menus open with every option tappable"
+        }
+      ]
+    },
+    {
+      "route": "/dfs-flow-c.html",
+      "width": 390,
+      "results": [
+        {
+          "rule": "bars",
+          "ok": true,
+          "selector": "",
+          "detail": "1 bars"
+        },
+        {
+          "rule": "collisions",
+          "ok": true,
+          "selector": "",
+          "detail": "no overlapping block siblings"
+        },
+        {
+          "rule": "tables",
+          "ok": true,
+          "selector": "",
+          "detail": "no tables or all aligned"
+        },
+        {
+          "rule": "grids",
+          "ok": true,
+          "selector": "",
+          "detail": "auto-fill card grids even or none"
+        },
+        {
+          "rule": "targets",
+          "ok": true,
+          "selector": "",
+          "detail": "71 targets \u2265 44"
+        },
+        {
+          "rule": "icons",
+          "ok": true,
+          "selector": "",
+          "detail": "control icons bounded with intrinsic dimensions"
+        },
+        {
+          "rule": "phone-chrome",
+          "ok": true,
+          "selector": ".phone-header",
+          "detail": "61px; single destination/league row"
+        },
+        {
+          "rule": "primaries",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible primary"
+        },
+        {
+          "rule": "type",
+          "ok": true,
+          "selector": "",
+          "detail": "\u2265 12px"
+        },
+        {
+          "rule": "gutters",
+          "ok": true,
+          "selector": "",
+          "detail": "no band set"
+        },
+        {
+          "rule": "selects",
+          "ok": true,
+          "selector": "",
+          "detail": "0 visible native selects"
+        },
+        {
+          "rule": "overflow",
+          "ok": true,
+          "selector": "",
+          "detail": "no horizontal overflow"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "",
+          "detail": "no draft-hub"
+        },
+        {
+          "rule": "menus",
+          "ok": true,
+          "selector": "filter menus",
+          "detail": "0 filter menus open with every option tappable"
+        }
+      ]
+    }
+  ]
+}

@@ -4,7 +4,7 @@
   "source_sha256": "a0cd7f50eed4f3a45d0158f587c2d00c1003c1b5425845a9bcfe9aa693fca96c",
   "inventory_commit": "45694c9355cbd6559da79ef688c4a62e5b94283d",
   "as_of": "2026-10-12",
-  "status_note": "PR1 scoped foundation, PR2 portfolio guardrails, PR3 integrated workflow/recovery and PR4 source-aware historical opportunity screens plus bounded common-input Classic comparisons. Statuses never imply statistical promotion, source authenticity or platform acceptance.",
+  "status_note": "PR1 scoped foundation, PR2 portfolio guardrails, PR3 integrated workflow/recovery, PR4 historical evidence/common-input alternatives and PR5 bounded declared shared-event research with versioned DraftKings scoring. Statistical calibration, source authenticity, untouched finalist evaluation and platform acceptance remain separate gates.",
   "rules": [
     {
       "id": "GOV-01",
@@ -15,7 +15,7 @@
         "T05",
         "T35"
       ],
-      "remaining_work": "PR4 versions evidence artifacts, selected input snapshots and bounded comparison reports alongside earlier build/plan/export lineage. Complete rule/model/field manifests remain."
+      "remaining_work": "PR5 additionally versions declared scenario banks, event/scoring hashes, actual official rules receipts and purpose-separated random streams. Full production rule/model/field manifests and independent pre-lock source verification remain."
     },
     {
       "id": "DATA-01",
@@ -26,7 +26,7 @@
         "T01",
         "T02"
       ],
-      "remaining_work": "Classic/Captain format adapters and salary membership checks exist; exact game/scoring certification is incomplete."
+      "remaining_work": "PR5 research rejects other sites/formats, invalid exact game/player identities and Classic rosters missing the two-game minimum. Supported DraftKings scoring is versioned; other site scoring and platform-entry certification remain unavailable."
     },
     {
       "id": "DATA-02",
@@ -81,7 +81,7 @@
       "acceptance_tests": [
         "T18"
       ],
-      "remaining_work": "accepted_scrimmage_v1 explicitly excludes no-plays/kneels/spikes/two-point attempts, includes overtime, and reconciles plays=designed runs+dropbacks, dropbacks=sacks+scrambles+throws, throws=targeted+untargeted in retrospective input. A coherent shared-outcome simulator remains stage 5."
+      "remaining_work": "Historical accepted_scrimmage_v1 and PR5 supplied whole-game ledgers reconcile plays, runs, dropbacks, sacks, scrambles, throws and targets. Spikes/kneels/tries remain separate official-stat exceptions. A declared coherent ledger is not independently complete source coverage."
     },
     {
       "id": "MARKET-01",
@@ -140,7 +140,7 @@
         "T18",
         "T19"
       ],
-      "remaining_work": "Historical carries and targets are retained without inventing receiving-RB roles, goal-line values or DST event distributions. Location/scoring-specific specialist models remain stage 5."
+      "remaining_work": "PR5 applies actual DraftKings coefficients, bonuses and negative scoring to supplied passing/receiving/rushing events. Field-position opportunity values and conditional role/efficiency distributions are not fitted."
     },
     {
       "id": "ROLE-03",
@@ -156,14 +156,14 @@
     {
       "id": "ROLE-04",
       "title": "Redistribute opportunity, not just vacated totals",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4,5",
       "acceptance_tests": [
         "T05",
         "T18",
         "T19"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR5 declared profiles can represent normal/limited/inactive personnel and explicit residual actors without inventing missing participation. Their touch reallocations and weights are supplied scenarios, not a validated injury or vacated-opportunity model."
     },
     {
       "id": "MATCH-01",
@@ -212,37 +212,37 @@
     {
       "id": "STACK-03",
       "title": "Compare complete alternatives, not isolated players",
-      "status": "planned_gated",
-      "phase": "2,4",
+      "status": "partial",
+      "phase": "2,4,5",
       "acceptance_tests": [
         "T20",
         "T36"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR5 evaluates provided complete legal, distinct nine-player alternatives on common purpose-separated draws and returns paired differences. It does not certify calibrated football utility, untouched finalist selection or contest-return comparisons."
     },
     {
       "id": "SIM-01",
       "title": "Generate coherent joint game outcomes",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "5",
       "acceptance_tests": [
         "T18",
         "T19",
         "T20"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR5 validates and replays complete declared game event profiles, sharing offense/DST outcomes and explicit residual/availability states. Cross-game independence is disclosed. Conditional future roles, profile weights, player outcomes and joint tails are not calibrated forecasts."
     },
     {
       "id": "SIM-02",
       "title": "Do not add individual ceilings or assume normal tails",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "5",
       "acceptance_tests": [
         "T04",
         "T19",
         "T20"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR5 computes empirical quantiles from sampled complete lineup totals, retains zero/negative outcomes and applies no normal-tail fit or extra correlation bonus. More draws do not promote the supplied scenarios into a validated distribution."
     },
     {
       "id": "FIELD-01",
@@ -301,7 +301,7 @@
         "T19",
         "T20"
       ],
-      "remaining_work": "PR4 includes chronological earlier-tuning/later-held-out count/role alternatives, paired week-block uncertainty and frozen-source/source-lateness regressions. One retrospective season with unknown historical publication is not a live backtest; full additive-feature/joint/field ablations remain."
+      "remaining_work": "PR5 adds actual 2024 chronological home/away count profiles, exact empirical CRPS/coverage/zero-mass, covariance and independent-side joint-tail ablation with week-block uncertainty. Mixed sparse-tail results support no model promotion. Multi-season pre-lock player/DST/lineup calibration remains."
     },
     {
       "id": "VALID-02",
@@ -312,7 +312,7 @@
         "T30",
         "T35"
       ],
-      "remaining_work": "Portable selected-input/comparison receipts support decision audit without rewriting history. Original incident inputs, accepted entries and prospective outcome audits remain unavailable."
+      "remaining_work": "PR5 research manifests freeze bank/pool/event/scoring identities and effective seed/stream purpose. A manifest cannot prove that a user avoided inspecting earlier evaluation runs. Original incident inputs, accepted entries and prospective audits remain unavailable."
     },
     {
       "id": "OPS-01",
@@ -324,7 +324,7 @@
         "T32",
         "T35"
       ],
-      "remaining_work": "Independent visible loaded-identity/forecast/entry states coexist with unavailable role/joint/field/return/late-swap capabilities. Artifact-first forecasts remain in use. Statistical readiness and full source/scoring contracts remain gated."
+      "remaining_work": "PR5 read-only research uses the existing global CPU worker and bounded streamed request parsing; it never loads current models, fetches feeds or writes accounts/lineups. Ordinary builder reads remain artifact-first. Production statistical readiness remains gated."
     },
     {
       "id": "OPS-02",
@@ -483,19 +483,19 @@
         "T04",
         "T29"
       ],
-      "remaining_work": "Separate source rights gate hosted ingestion/display; hashes do not establish permission. Portable comparison reviews retain source receipts/references while omitting raw/derived observation ledgers. No data purchase or unsupported hosting authorization is assumed."
+      "remaining_work": "Existing separate declared source rights gate research analysis, hosting and display. PR5 returns only compact receipts/counts/capabilities in preview; raw source ledgers are not echoed there. Rights declarations and content hashes do not establish provider permission or authenticity; no purchase is assumed."
     },
     {
       "id": "DATA-07",
       "title": "Freeze one decision-time evaluation snapshot",
       "status": "partial",
-      "phase": "3,4",
+      "phase": "3–5",
       "acceptance_tests": [
         "T05",
         "T32",
         "T35"
       ],
-      "remaining_work": "PR4 explicitly selects one immutable pool/control/evidence snapshot, evaluates complete alternatives and existing collection projection inputs on it, and preserves original saved forecasts. Common joint scenarios, calibrated portfolio comparisons and archived live decision-time source proof remain."
+      "remaining_work": "PR5 research rebuilds and validates the supplied raw bank for each request, requires the explicitly selected immutable bank ID and evaluates complete finalists on common draws. It does not rewrite saved builds or certify untouched finalist selection, archived decision-time availability or calibrated utility."
     },
     {
       "id": "PACE-05",
@@ -519,7 +519,7 @@
         "T18",
         "T19"
       ],
-      "remaining_work": "Historical observations cover QB/RB/WR/TE and expose missing specialist evidence; complete comparisons retain off-focus complements. RB goal-line/DST distributions and broad permitted route/coverage sources remain unavailable."
+      "remaining_work": "PR5 supports QB/RB/WR/TE/DST and unselected residual actors in supplied complete event profiles, including separate designed QB runs/scrambles and supported returns. Permitted live routes, coverage, goal-line roles and calibrated specialist distributions remain absent."
     },
     {
       "id": "STACK-04",
@@ -547,14 +547,14 @@
     {
       "id": "SIM-03",
       "title": "Derive specialist outcomes from shared events",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "5",
       "acceptance_tests": [
         "T02",
         "T18",
         "T19"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR5 DraftKings Classic scoring derives both offenses and opposing DST sacks, turnovers, returns and points allowed from one supplied ledger, with supported bonuses/negative outcomes and current official-rule hashes. Unsupported rare plays reject; raw-provider normalization, source completeness and calibrated specialist distributions remain unavailable."
     },
     {
       "id": "FIELD-02",
@@ -602,7 +602,7 @@
         "T16",
         "T20"
       ],
-      "remaining_work": "Full cap remains allowed and minimum salary optional. PR4 complete-roster alternatives show salary and objective sums on common inputs; joint/contest-aware cost/value evaluation remains gated."
+      "remaining_work": "The full cap and optional spend floor remain. PR5 supplied-finalist review validates actual Classic salary and reports sampled score differences. Contest-aware opportunity cost/value and recommendations remain gated."
     },
     {
       "id": "PORT-08",
@@ -613,7 +613,7 @@
         "T13",
         "T20"
       ],
-      "remaining_work": "Current-build and accumulated FLEX distributions and RB pairs remain visible without a universal ban. Generic requested position-distribution constraints and complete-alternative football evaluation remain."
+      "remaining_work": "Current-build and collection FLEX structures remain descriptive. PR5 research accepts legal RB/WR/TE FLEX alternatives without a universal ban. Validated structure recommendations and generic optimizer position-distribution constraints remain."
     },
     {
       "id": "PORT-09",
@@ -626,7 +626,7 @@
         "T20",
         "T24"
       ],
-      "remaining_work": "PR2 broadens bounded candidate generation using declared pair/core omission attempts; wider-budget/order sensitivity and model-based alternative evaluation remain."
+      "remaining_work": "Existing bounded candidate generation remains separate from PR5 supplied-finalist evaluation. Purpose-separated generation/selection/evaluation streams are available, but they are not yet an independently verified production candidate-selection pipeline."
     },
     {
       "id": "PORT-10",
@@ -784,14 +784,14 @@
     {
       "id": "T01",
       "status": "partial",
-      "remaining_work": "Salary/slate/identity guards exist; complete sport/game/scoring contract remains.",
-      "evidence": "tests/test_dfs_salaries.py; tests/test_dfs_slate_snapshots.py; tests/test_dfs_validation.py"
+      "remaining_work": "Exact context/game/canonical identities and supported DK Classic membership are checked in PR5 research; complete cross-provider identity and accepted-entry certification remain.",
+      "evidence": "tests/test_dfs_salaries.py; tests/test_dfs_slate_snapshots.py; tests/test_dfs_validation.py; tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py"
     },
     {
       "id": "T02",
       "status": "partial",
-      "remaining_work": "Roster/salary adapter tested; exact scoring/bonuses and coherent specialists remain.",
-      "evidence": "tests/test_lineup_optimizer.py; tests/test_dfs_validation.py"
+      "remaining_work": "PR5 current official DraftKings Classic scoring tests bonuses, deductions, all points-allowed bands, two-game minimum and coherent specialist events. Other sites, raw-provider normalization and settlement certification remain unavailable.",
+      "evidence": "tests/test_dfs_event_scoring.py; tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; docs/reviews/DFS_CLASSIC_SCORING_CONTRACT.md"
     },
     {
       "id": "T03",
@@ -802,14 +802,14 @@
     {
       "id": "T04",
       "status": "partial",
-      "remaining_work": "Historical source coverage and missing specialist capabilities are explicit; hashes confer no source permission/authenticity. Forward roles/joint/field/EV/late swap remain gated.",
-      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_evidence_api.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs"
+      "remaining_work": "Missing participant/status/source/scoring coverage rejects rather than becoming zero. Explicit inactive/zero-event states are distinct. Research capabilities retain uncalibrated marginals/joint tails, unknown source completeness and absent field/payout support.",
+      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_event_scoring.py; tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py"
     },
     {
       "id": "T05",
       "status": "partial",
-      "remaining_work": "Evidence observations use declared compatible prior windows/known-at cutoffs; selected comparison inputs are immutable. Unknown historic publication remains retrospective, not certified pre-lock availability.",
-      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs"
+      "remaining_work": "PR5 enforces declared known-at/publication before a frozen cutoff and cutoff before target kickoffs, while immutable banks reject changed inputs. Unknown historical publication remains retrospective rather than certified pre-lock data.",
+      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_eval.py; tests/test_dfs_shared_outcomes_api.py"
     },
     {
       "id": "T06",
@@ -886,20 +886,20 @@
     {
       "id": "T18",
       "status": "partial",
-      "remaining_work": "Historical accepted-scrimmage count identities and team denominators reconcile. Joint game/opportunity outcomes, availability and specialist conservation remain stage 5.",
-      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; phase5"
+      "remaining_work": "PR5 supplied normalized game ledgers conserve plays/dropbacks/throws/targets/completions/pass-receive yards and TDs, residual actors and opposing sacks/turnovers; tries/kneels/spikes retain explicit units. Unsupported rare plays reject. Complete real-provider normalization and independently verified ledger coverage remain.",
+      "evidence": "tests/test_dfs_event_scoring.py; tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; docs/reviews/DFS_CLASSIC_SCORING_CONTRACT.md"
     },
     {
       "id": "T19",
       "status": "partial",
-      "remaining_work": "Actual 2024 earlier-tuning/later-held-out play/dropback and observed-touch role screens were compared with week-block uncertainty. No live publication archive, multi-season forward role model or calibrated joint/field model is validated.",
-      "evidence": "tests/test_dfs_opportunity_eval.py; docs/reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md"
+      "remaining_work": "PR5 actual 2024 chronological count-profile diagnostic measures marginal CRPS/coverage/zero mass and paired/independent home-away covariance/tails with week-block uncertainty. It does not calibrate player fantasy points, injury/availability, DST or whole-lineup tails; multi-season pre-lock validation remains.",
+      "evidence": "tests/test_dfs_shared_outcomes_eval.py; docs/reviews/DFS_SHARED_OUTCOMES_EVALUATION.md"
     },
     {
       "id": "T20",
       "status": "partial",
-      "remaining_work": "Bounded whole-nine-player primary/challenger comparisons and existing collection objective sums use one explicit snapshot with original forecasts preserved. Independent generation/evaluation draw separation remains gated until shared simulation exists.",
-      "evidence": "tests/test_dfs_classic_comparison.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs; phases 5/7"
+      "remaining_work": "PR5 purpose-separated reproducible generation/selection/evaluation streams provide common independent draws across supplied finalists. Separate domains can sample the same outcomes; manifests cannot prove no earlier evaluation inspection. Untouched production candidate/finalist selection remains unverified.",
+      "evidence": "tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; scripts/dev/verify_dfs_shared_outcomes.py"
     },
     {
       "id": "T21",
@@ -916,8 +916,8 @@
     {
       "id": "T23",
       "status": "partial",
-      "remaining_work": "Independent capability review labels role/joint/field/contest-return and late-swap unavailable while projection-guided legal construction remains usable. No silent research-objective fallback or EV claim is added; contest-aware objectives remain gated.",
-      "evidence": "dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; phases 4–7"
+      "remaining_work": "PR5 research explicitly separates verified site scoring/provided-ledger conservation from uncalibrated forecasts, source completeness, untouched finalist evaluation, field and payout support. It adds no EV objective or implicit fallback and leaves existing projection construction unchanged.",
+      "evidence": "tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs"
     },
     {
       "id": "T24",
@@ -988,8 +988,8 @@
     {
       "id": "T35",
       "status": "partial",
-      "remaining_work": "Selected common pool/control/evidence IDs and source receipts accompany comparison review; original builds/CSV seals remain immutable. Full model/field manifests and archived live source joins remain.",
-      "evidence": "dfsEvidence.test.mjs; tests/test_dfs_classic_comparison.py; tests/test_dfs_opportunity.py; dfs_evidence_tasks.mjs"
+      "remaining_work": "PR5 research records raw/event/bank/pool/scoring identities, the actual official rules receipt and effective seed/purpose streams, and echoes selected bank/input IDs. Saved build history stays separate; complete production model/field manifests and archived live source proof remain.",
+      "evidence": "tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; scripts/dev/verify_dfs_shared_outcomes.py"
     },
     {
       "id": "T36",
@@ -1509,5 +1509,109 @@
       "run_for_phase4": false,
       "reason": "Fresh affected backend/API suites passed; earlier phase2 whole-repository result belongs to that prior commit. Two unrelated network-dependent failures reproduce on frozen ddcbe804."
     }
+  },
+  "phase5": {
+    "baseline_commit": "522267b6339892656ad193ccca9cceebe30bf687",
+    "scope": "Read-only bounded declared shared-event research and versioned DraftKings Classic scoring; no production model promotion or calibrated tournament claim.",
+    "baseline": {
+      "affected_backend": {
+        "passed": 444,
+        "warnings": 1,
+        "seconds": 81.68,
+        "log": "outputs/dfs-phase5-python-baseline.log"
+      },
+      "frontend": {
+        "total": 1174,
+        "passed": 1171,
+        "failed_baseline": 3,
+        "seconds": 23.871,
+        "log": "outputs/dfs-phase5-frontend-baseline.log"
+      },
+      "policy": {
+        "passed": 36,
+        "seconds": 4.42,
+        "log": "outputs/dfs-phase5-policy-baseline.log"
+      }
+    },
+    "capabilities": {
+      "site_scoring_rules_verified": true,
+      "supplied_ledger_conservation": true,
+      "source_completeness_verified": false,
+      "calibrated_marginals": false,
+      "calibrated_joint_tail": false,
+      "forward_forecast": false,
+      "untouched_finalist_evaluation_verified": false,
+      "contest_field": false,
+      "expected_payout": false,
+      "late_swap": false
+    },
+    "verification": {
+      "affected_backend": {
+        "passed": 672,
+        "warnings": 1,
+        "seconds": 79.53,
+        "log": "outputs/dfs-phase5-python-final.log",
+        "scope": "Explicit test_dfs*.py, test_lineup_optimizer*.py and test_vegas_lines.py module set. Collected before the last two scenario/evaluation test additions."
+      },
+      "api": {
+        "passed": 94,
+        "warnings": 1,
+        "seconds": 8.98,
+        "log": "outputs/dfs-phase5-api-release.log"
+      },
+      "final_engines_evaluation_policy": {
+        "passed": 172,
+        "seconds": 6.2,
+        "log": "outputs/dfs-phase5-policy-release.log",
+        "scope": "Final scorer, shared scenarios, count evaluation and 36 product/living-surface policy checks, including both last test additions."
+      },
+      "synthetic_pipeline": {
+        "exit_code": 0,
+        "lineups": 2,
+        "draws": 256,
+        "elapsed_seconds": 0.008292499999697611,
+        "counts": {
+          "events": 8,
+          "games": 2,
+          "pool_players": 10,
+          "profiles": 4,
+          "unique_actors": 15
+        },
+        "bank_id": "a47cae7c9179687d81735a4daf3dc36064ca8fac582dce07693f0b088f2310da",
+        "receipt": "docs/reviews/dfs-shared-outcomes/engine-verification.json"
+      },
+      "synthetic_benchmark": {
+        "runs": 9,
+        "pool_players": 750,
+        "lineups": 150,
+        "draws": 1024,
+        "games": 16,
+        "profiles": 48,
+        "events_per_profile": 4,
+        "raw_bank_bytes": 314506,
+        "raw_bank_sha256": "0f89ecf61d98e42d3a84cb5db916db9e7f3de1c449e0a8f67749fe9982541a83",
+        "p50_seconds": 1.1472438000000693,
+        "p95_seconds": 1.2150879199998599,
+        "separate_tracemalloc_python_heap_peak_bytes": 18194266,
+        "memory_scope": "Separate instrumented run; Python allocations only, not RSS or native allocation coverage.",
+        "scope": "Maximum pool/lineup/draw fixture with short synthetic ledgers; not a maximum-byte/event bank, plausible slate or production budget."
+      },
+      "frontend": {
+        "rerun_after_backend_changes": false,
+        "reason": "No production frontend source changed. The frozen 1174-test baseline has 1171 passes and three existing failures; static mock checks are separate."
+      }
+    },
+    "whole_backend_gate": {
+      "run_for_phase5": false,
+      "reason": "This phase adds an isolated research router and pure research helpers; fresh affected DFS/API checks are recorded separately. Earlier whole-repository results belong to their earlier commits."
+    },
+    "ui": {
+      "production_changes": false,
+      "browser_gate_run_for_phase5": false,
+      "reason": "The user requested concrete redesign options alongside phase development. Research API work does not imply a newly accepted production interaction or current visual certification.",
+      "mock_options": "docs/mockups/dfs-flow.html",
+      "mock_review": "docs/mockups/dfs-flow-review/README.md"
+    },
+    "review": "docs/reviews/dfs-shared-outcomes/README.md"
   }
 }
