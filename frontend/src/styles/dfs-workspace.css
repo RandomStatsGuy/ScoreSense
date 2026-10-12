@@ -42,6 +42,16 @@
 .dfw-review-list { list-style: none; padding: 0; margin: 0; }
 .dfw-update-list > article, .dfw-review-list > article, .dfw-review-list > li { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--bg-base); border-radius: var(--radius-sm); }
 .dfw-review-list > li > div { display: grid; gap: var(--space-2); min-width: 0; }
+.dfw-late-swap :is(dd, p, h4) { overflow-wrap: anywhere; min-width: 0; }
+.dfw-late-slots { list-style: none; margin: var(--space-3) 0; padding: 0; display: grid; gap: var(--space-3); }
+.dfw-late-slots > li { display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.dfw-late-slots small { color: var(--text-secondary); font-size: var(--text-xs); }
+.dfw-late-swap .dfw-late-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dfw-late-facts > div { display: grid; gap: var(--space-1); align-content: start; }
+.dfw-late-facts dt { font-size: var(--text-xs); }
+.dfw-late-facts dd { text-align: left; }
+.dfw-late-intro { display: grid; gap: var(--space-2); }
+.dfw-late-intro > p, .dfw-late-swap > .dfw-detail-body > :is(p, dl), .dfw-late-swap .dfw-guardrail-body > :is(h3, p, dl) { margin: 0; }
 .dfw-update-list dl { display: grid; gap: var(--space-1); margin: 0; font-size: var(--text-sm); }
 .dfw-update-list dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
 .dfw-update-list dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }

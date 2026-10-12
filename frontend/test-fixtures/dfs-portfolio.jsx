@@ -10,6 +10,7 @@ import evidenceFixture from "./dfs-evidence-data.json";
 import sharedFixture from "./dfs-shared-data.json";
 import contestFixture from "./dfs-contest-data.json";
 import contestPortfolioFixture from "./dfs-contest-portfolio-data.json";
+import lateSwapFixture from "./dfs-late-swap-data.json";
 import "../src/styles.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
@@ -21,7 +22,8 @@ const positions = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "WR", "DST"];
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
 const largePool = new URLSearchParams(location.search).has("large-pool");
 const sharedMode = new URLSearchParams(location.search).has("shared");
-const workflow = sharedMode || new URLSearchParams(location.search).has("workflow");
+const lateSwapMode = new URLSearchParams(location.search).has("late-swap");
+const workflow = sharedMode || lateSwapMode || new URLSearchParams(location.search).has("workflow");
 const evidenceMode = new URLSearchParams(location.search).has("evidence");
 const guardrails = workflow || evidenceMode || new URLSearchParams(location.search).has("guardrails");
 const historicalFeatures = largePool
@@ -48,6 +50,8 @@ window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: f
   delayContestEvaluate: false, ignoreContestEvaluateAbort: false, contestEvaluateAborts: 0, mismatchContestEvaluate: false,
   contestSelectRequests: [], failContestSelect: false, delayContestSelect: false, ignoreContestSelectAbort: false,
   contestSelectAborts: 0, mismatchContestSelect: false,
+  lateSwapPreviewRequests: [], lateSwapPlanRequests: [], failLateSwapPreview: false, failLateSwapPlan: false,
+  delayLateSwapPlan: false, ignoreLateSwapPlanAbort: false, lateSwapPlanAborts: 0, mismatchLateSwapPlan: false,
   publishDataRevision };
 const fixturePool = state => players.map((player, index) => ({ ...player,
   ...((workflow || evidenceMode) && state.poolVersion && index === 0 ? {
@@ -81,6 +85,18 @@ window.fetch = async (url, options = {}) => {
   };
   if (path.includes("/formats")) return respond({ formats: DEFAULT_FORMATS });
   if (path.includes("/slates?")) return respond({ slates: [{ slate_id: "classic-fixture", name: "Classic fixture slate" }] });
+  if (lateSwapMode && path.includes("/late-swap/")) {
+    const planning = path.endsWith("/plan");
+    (planning ? state.lateSwapPlanRequests : state.lateSwapPreviewRequests).push(body);
+    if (state.accessStatus !== 200) return respond({ detail: "Synthetic account access denied." }, state.accessStatus);
+    if (planning) await delay("delayLateSwapPlan", "ignoreLateSwapPlanAbort", "lateSwapPlanAborts");
+    if (state[planning ? "failLateSwapPlan" : "failLateSwapPreview"]) return respond({ detail: "Synthetic snapshot comparison failed. Previous plan retained." }, 503);
+    if (canonical(body.package) === canonical(lateSwapFixture.blocked.locked_move.package)) return respond({ detail: lateSwapFixture.blocked.locked_move.error }, 400);
+    if (canonical(body.context) !== canonical(lateSwapFixture.package.context) || canonical(body.package) !== canonical(lateSwapFixture.package)) return respond({ detail: "Request differs from the actual-engine synthetic snapshot." }, 400);
+    if (!planning) return respond(lateSwapFixture.preview);
+    if (body.package_id !== lateSwapFixture.preview.content_id) return respond({ detail: "Wrong synthetic snapshot version." }, 400);
+    return respond({ ...lateSwapFixture.report, ...(state.mismatchLateSwapPlan ? { package_id: "f".repeat(64) } : {}) });
+  }
   if (sharedMode && path.endsWith("/contest-research/select")) {
     state.contestSelectRequests.push(body);
     if (state.sharedAccessStatus !== 200) return respond({ detail: "Synthetic research account access denied." }, state.sharedAccessStatus);

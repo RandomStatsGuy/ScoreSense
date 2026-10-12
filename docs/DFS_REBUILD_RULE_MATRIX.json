@@ -4,7 +4,7 @@
   "source_sha256": "a0cd7f50eed4f3a45d0158f587c2d00c1003c1b5425845a9bcfe9aa693fca96c",
   "inventory_commit": "45694c9355cbd6559da79ef688c4a62e5b94283d",
   "as_of": "2026-10-12",
-  "status_note": "PR1–5 foundations and guided A are retained. PR6 adds supplied legal fields and exact conditional cash ties. PR7 adds bounded conditional joint selection for mean net, downside-adjusted net and top-finish coverage, with separate final baseline assessment. Actual field/ownership calibration, authenticated contracts, model promotion, untouched evaluation and platform acceptance remain separate gates.",
+  "status_note": "PR1–7 foundations and guided A are retained. PR8 adds read-only exact-slot late-swap snapshot planning and internal synthetic CSV replay. Actual field/ownership calibration, authenticated contracts/readback, verified current locks, conditional live evaluation, model promotion, untouched evaluation and platform export/acceptance remain separate gates.",
   "rules": [
     {
       "id": "GOV-01",
@@ -672,13 +672,13 @@
     {
       "id": "OPS-10",
       "title": "Treat late swap as exact locked-slot optimization",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "8",
       "acceptance_tests": [
         "T31",
         "T32"
       ],
-      "remaining_work": "Late swap remains unavailable; exact accepted slots/current locks are not established by pre-lock generation."
+      "remaining_work": "PR8 supplied-snapshot planning preserves exact started slots and consumed salary, counts started appearances under native constraints and rejects unknown lock state. Internal synthetic CSV replay cannot authenticate accepted state/current platform locks. Live export and reliable conditional remaining-slate evaluation remain gated."
     },
     {
       "id": "VALID-03",
@@ -963,15 +963,15 @@
     },
     {
       "id": "T31",
-      "status": "planned_gated",
-      "remaining_work": "Late swap disabled; pre-lock tests cannot prove exact started-slot immutability.",
-      "evidence": "Phase 8; explicit gate test in dfsEntryRecovery.test.js"
+      "status": "partial",
+      "remaining_work": "PR8 exact WR ordinal/FLEX identities and consumed salary are immutable in supplied snapshots; unknown/contradictory locks block planning and started newcomers are rejected. Actual accepted platform readback/current locks and live export remain gated.",
+      "evidence": "tests/test_dfs_late_swap.py; tests/test_dfs_late_swap_api.py; dfsLateSwap.test.mjs; scripts/dev/dfs_late_swap_tasks.mjs; docs/reviews/dfs-late-swap/README.md"
     },
     {
       "id": "T32",
       "status": "partial",
-      "remaining_work": "PR5 explicit scenario selection binds complete current-build or collection rosters and common draws without changing saved history. Failed/mismatched/cancelled late results retain the previous review; changed inputs stale selection and account/context changes reset it. Calibrated joint forecasts remain unavailable.",
-      "evidence": "dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; dfsEvidence.test.mjs; scripts/dev/dfs_flow_tasks.mjs; dfsSharedOutcomes.test.mjs"
+      "remaining_work": "PR8 adds explicit supplied late-swap snapshot selection, exact per-entry diffs, stale/cancel/failure/account safeguards and a personal JSON download with fresh access check. Internal synthetic API-to-CSV replay preserves accepted exact slots and original metadata. Authentic live locks, platform export/acceptance and calibrated conditional forecasts remain unavailable.",
+      "evidence": "dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; dfsEvidence.test.mjs; scripts/dev/dfs_flow_tasks.mjs; dfsSharedOutcomes.test.mjs; scripts/dev/dfs_late_swap_tasks.mjs; tests/test_dfs_late_swap_api.py"
     },
     {
       "id": "T33",
@@ -988,8 +988,8 @@
     {
       "id": "T35",
       "status": "partial",
-      "remaining_work": "PR7 request/report identities bind candidate IDs and frozen projection scores, player/group/construction controls, explicit field assumption, objective/risk definition, count, package hashes, purpose seeds and search budgets. Raw events/opponent templates remain outside personal downloads; authenticated archived source/model provenance remains open.",
-      "evidence": "tests/test_dfs_contest_portfolio_api.py; frontend/src/dfsContestPortfolio.test.mjs; docs/reviews/DFS_CONTEST_PORTFOLIO_CONTRACT.md"
+      "remaining_work": "PR7 conditional research provenance is retained. PR8 binds exact accepted slots, prior portfolio/export versions, sources, decision time, catalog/control/candidate hashes and engine/NumPy/SciPy versions in the personal plan. Hashes and declared permission flags do not authenticate source ownership, accepted state, current locks or archived model provenance.",
+      "evidence": "tests/test_dfs_contest_portfolio_api.py; frontend/src/dfsContestPortfolio.test.mjs; docs/reviews/DFS_CONTEST_PORTFOLIO_CONTRACT.md; tests/test_dfs_late_swap.py; docs/DFS_LATE_SWAP_PACKAGE.md"
     },
     {
       "id": "T36",
@@ -1822,6 +1822,106 @@
       "scenario-loss concentration and marginal top-finish attribution guidance",
       "real user task acceptance",
       "phase 8 exact accepted-entry late swap"
+    ]
+  },
+  "phase8": {
+    "baseline_commit": "985567543c7692332cbd1ce5cc764ee56f215bf4",
+    "scope": "Read-only supplied-snapshot exact-slot late-swap planning in guided A, with native constraints, personal JSON review and internal synthetic original-template CSV replay; no live entries or platform export.",
+    "capabilities": {
+      "offline_exact_slot_planning": true,
+      "native_portfolio_controls": true,
+      "started_appearance_counts": true,
+      "independent_hard_constraint_audit": true,
+      "personal_json_review": true,
+      "internal_csv_dry_run": true,
+      "accepted_readback_authenticated": false,
+      "current_lock_verified": false,
+      "conditional_remaining_outcomes": false,
+      "conditional_contest_evaluation": false,
+      "platform_export_ready": false,
+      "expected_payout": false,
+      "forward_forecast": false
+    },
+    "verification": {
+      "evidence_scope": "synthetic engineering and isolated production-component browser tasks; no live account or platform acceptance",
+      "backend_scope": {
+        "passed": 1263,
+        "warnings": 1,
+        "seconds": 109.3,
+        "files": "tests/test_dfs*.py, tests/test_lineup*.py, tests/test_vegas*.py",
+        "precedes_final_isolated_timestamp_manifest_changes": true
+      },
+      "backend_final_targeted": {
+        "passed": 192,
+        "warnings": 1,
+        "seconds": 7.18,
+        "files": [
+          "tests/test_dfs_late_swap.py",
+          "tests/test_dfs_late_swap_api.py",
+          "tests/test_dfs_late_swap_oracles.py"
+        ]
+      },
+      "policy": {
+        "passed": 13,
+        "seconds": 2.29
+      },
+      "frontend_scoped": {
+        "tests": 313,
+        "pass": 313,
+        "fail": 0,
+        "seconds": 17.663
+      },
+      "frontend_full": {
+        "tests": 1243,
+        "pass": 1240,
+        "fail": 3,
+        "baseline_failures_reproduced_on": "985567543c7692332cbd1ce5cc764ee56f215bf4",
+        "failures": [
+          "auctionAwardContractLabel describes locked rookie and vet deals",
+          "accuracy copy names the miss, not a trust slogan",
+          "My team keeps the approved summary above a flat roster"
+        ],
+        "seconds": 18.315
+      },
+      "build": {
+        "passed": true,
+        "seconds": 10.16,
+        "existing_bundle_warning": true
+      },
+      "browser": {
+        "cases": 10,
+        "layout_states": 30,
+        "guards": 9,
+        "widths": [
+          320,
+          390,
+          768,
+          1280,
+          1440
+        ],
+        "themes": [
+          "light",
+          "dark"
+        ],
+        "receipt": "docs/reviews/dfs-late-swap/browser-receipt.json",
+        "last_change_note": "Final spacing verified in browser; subsequent malformed-audit response message guard covered by focused/full tests and production build."
+      },
+      "engineering_receipt": "docs/reviews/dfs-late-swap/engineering-receipt.json",
+      "existing_export_recovery_smoke": {
+        "passed": true,
+        "width": 390,
+        "theme": "dark"
+      },
+      "whole_backend_gate_run": false,
+      "overlapping_test_runs_not_summed": true
+    },
+    "open_gates": [
+      "Authenticated accepted-entry ownership/readback and exact contest rule contract",
+      "Verified current platform lock state and safe end-to-end platform acceptance replay",
+      "Conditional remaining-game and field evaluation with reliable live data",
+      "Platform-ready late-swap CSV release and verified account/contest eligibility",
+      "Earlier phases: fitted football/field/ownership and extreme-rank calibration",
+      "Earlier phases: untouched multi-slate forward evaluation and real-user task acceptance"
     ]
   }
 }

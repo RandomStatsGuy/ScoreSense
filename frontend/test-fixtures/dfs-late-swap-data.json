@@ -1,0 +1,3179 @@
+{
+  "synthetic": true,
+  "package": {
+    "schema_version": "dfs_late_swap_package_v1",
+    "context": {
+      "site": "draftkings",
+      "sport": "NFL",
+      "format": "classic",
+      "season": 2026,
+      "week": 5,
+      "slate_id": "classic-fixture"
+    },
+    "decision_at": "2026-10-11T20:00:00Z",
+    "objective": "projection_guided_snapshot",
+    "contest": {
+      "contest_id": "00042",
+      "name": "Synthetic \"late\" contest",
+      "late_swap_enabled": true,
+      "lock_policy": "individual_game",
+      "as_of": "2026-10-11T20:00:00Z"
+    },
+    "sources": [
+      {
+        "source_id": "readback",
+        "kind": "user_platform_readback",
+        "as_of": "2026-10-11T20:00:00Z",
+        "content_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "rules",
+        "kind": "rules",
+        "as_of": "2026-10-11T20:00:00Z",
+        "content_sha256": "4c15ed4e49b8043344e27d8cc6b8e45802141d5b66ee9976bd9a2d2ff0eb26a3",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "catalog",
+        "kind": "salary_catalog",
+        "as_of": "2026-10-11T20:00:00Z",
+        "content_sha256": "52400c9ee0bae97765786f82aeafd132fdbd5fba17812f817d04961af8deda87",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "locks",
+        "kind": "lock_snapshot",
+        "as_of": "2026-10-11T20:00:00Z",
+        "content_sha256": "8727a521ec87290c3d9193f4467fc665768e75178905e944cdab594b0ba8d857",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "projections",
+        "kind": "projection_inputs",
+        "as_of": "2026-10-11T20:00:00Z",
+        "content_sha256": "7ce4ec074eb7f5796a515c7f3bd09c1e59979c6d7fbf2487c1b821926031879a",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      }
+    ],
+    "accepted_state": {
+      "source_id": "readback",
+      "readback_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+      "portfolio_version": "synthetic-portfolio-1",
+      "export_version": "synthetic-export-1",
+      "as_of": "2026-10-11T20:00:00Z",
+      "entries": [
+        {
+          "entry_id": "000001",
+          "contest_id": "00042",
+          "slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w2",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          }
+        },
+        {
+          "entry_id": "000002",
+          "contest_id": "00042",
+          "slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w2",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          }
+        }
+      ]
+    },
+    "catalog": [
+      {
+        "player_id": "q0",
+        "dfs_id": "1000",
+        "name": "Synthetic q0",
+        "position": "QB",
+        "team": "BUF",
+        "opponent": "MIA",
+        "game_id": "early",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T19:00:00Z",
+        "lock_state": "locked",
+        "status": "eligible",
+        "projection": null
+      },
+      {
+        "player_id": "rb1",
+        "dfs_id": "1001",
+        "name": "Synthetic rb1",
+        "position": "RB",
+        "team": "KC",
+        "opponent": "LV",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "4"
+      },
+      {
+        "player_id": "rb2",
+        "dfs_id": "1002",
+        "name": "Synthetic rb2",
+        "position": "RB",
+        "team": "LV",
+        "opponent": "KC",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "5"
+      },
+      {
+        "player_id": "w0",
+        "dfs_id": "1003",
+        "name": "Synthetic w0",
+        "position": "WR",
+        "team": "BUF",
+        "opponent": "MIA",
+        "game_id": "early",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T19:00:00Z",
+        "lock_state": "locked",
+        "status": "eligible",
+        "projection": null
+      },
+      {
+        "player_id": "w2",
+        "dfs_id": "1004",
+        "name": "Synthetic w2",
+        "position": "WR",
+        "team": "KC",
+        "opponent": "LV",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "7"
+      },
+      {
+        "player_id": "w3",
+        "dfs_id": "1005",
+        "name": "Synthetic w3",
+        "position": "WR",
+        "team": "LV",
+        "opponent": "KC",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "8"
+      },
+      {
+        "player_id": "t0",
+        "dfs_id": "1006",
+        "name": "Synthetic t0",
+        "position": "TE",
+        "team": "KC",
+        "opponent": "LV",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "6"
+      },
+      {
+        "player_id": "flex",
+        "dfs_id": "1007",
+        "name": "Synthetic flex",
+        "position": "WR",
+        "team": "LV",
+        "opponent": "KC",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "3"
+      },
+      {
+        "player_id": "d0",
+        "dfs_id": "1008",
+        "name": "Synthetic d0",
+        "position": "DST",
+        "team": "KC",
+        "opponent": "LV",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "2"
+      },
+      {
+        "player_id": "rb3",
+        "dfs_id": "1009",
+        "name": "Synthetic rb3",
+        "position": "RB",
+        "team": "KC",
+        "opponent": "LV",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "14"
+      },
+      {
+        "player_id": "w4",
+        "dfs_id": "1010",
+        "name": "Synthetic w4",
+        "position": "WR",
+        "team": "LV",
+        "opponent": "KC",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "17"
+      },
+      {
+        "player_id": "rb4",
+        "dfs_id": "1011",
+        "name": "Synthetic rb4",
+        "position": "RB",
+        "team": "LV",
+        "opponent": "KC",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "11"
+      },
+      {
+        "player_id": "w5",
+        "dfs_id": "1012",
+        "name": "Synthetic w5",
+        "position": "WR",
+        "team": "KC",
+        "opponent": "LV",
+        "game_id": "late",
+        "salary": 4000,
+        "kickoff_at": "2026-10-11T22:00:00Z",
+        "lock_state": "unlocked",
+        "status": "eligible",
+        "projection": "13"
+      }
+    ],
+    "candidates": [
+      {
+        "candidate_id": "synthetic-000001-0",
+        "entry_id": "000001",
+        "slots": {
+          "QB": "q0",
+          "RB1": "rb3",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w2",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        }
+      },
+      {
+        "candidate_id": "synthetic-000001-1",
+        "entry_id": "000001",
+        "slots": {
+          "QB": "q0",
+          "RB1": "rb1",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w4",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        }
+      },
+      {
+        "candidate_id": "synthetic-000002-0",
+        "entry_id": "000002",
+        "slots": {
+          "QB": "q0",
+          "RB1": "rb3",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w2",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        }
+      },
+      {
+        "candidate_id": "synthetic-000002-1",
+        "entry_id": "000002",
+        "slots": {
+          "QB": "q0",
+          "RB1": "rb1",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w4",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        }
+      }
+    ],
+    "controls": {}
+  },
+  "preview": {
+    "schema_version": "dfs_late_swap_preview_v1",
+    "content_id": "fddbeda8ece6cccf4767608f93a2d576c216f614e7279c8dab09d850c33b2477",
+    "semantics": "offline_declared_exact_slot_projection_planning_not_live_late_swap",
+    "context": {
+      "site": "draftkings",
+      "sport": "NFL",
+      "format": "classic",
+      "slate_id": "classic-fixture",
+      "season": 2026,
+      "week": 5
+    },
+    "decision_at": "2026-10-11T20:00:00+00:00",
+    "contest": {
+      "contest_id": "00042",
+      "name": "Synthetic \"late\" contest",
+      "late_swap_enabled": true,
+      "lock_policy": "individual_game",
+      "as_of": "2026-10-11T20:00:00+00:00"
+    },
+    "entry_count": 2,
+    "candidate_count": 4,
+    "option_count": 6,
+    "locked_slot_count": 4,
+    "rejected_options": [],
+    "sources": [
+      {
+        "source_id": "locks",
+        "kind": "lock_snapshot",
+        "as_of": "2026-10-11T20:00:00+00:00",
+        "content_sha256": "8727a521ec87290c3d9193f4467fc665768e75178905e944cdab594b0ba8d857",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "projections",
+        "kind": "projection_inputs",
+        "as_of": "2026-10-11T20:00:00+00:00",
+        "content_sha256": "7ce4ec074eb7f5796a515c7f3bd09c1e59979c6d7fbf2487c1b821926031879a",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "rules",
+        "kind": "rules",
+        "as_of": "2026-10-11T20:00:00+00:00",
+        "content_sha256": "4c15ed4e49b8043344e27d8cc6b8e45802141d5b66ee9976bd9a2d2ff0eb26a3",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "catalog",
+        "kind": "salary_catalog",
+        "as_of": "2026-10-11T20:00:00+00:00",
+        "content_sha256": "52400c9ee0bae97765786f82aeafd132fdbd5fba17812f817d04961af8deda87",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      },
+      {
+        "source_id": "readback",
+        "kind": "user_platform_readback",
+        "as_of": "2026-10-11T20:00:00+00:00",
+        "content_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+        "rights": {
+          "personal_analysis": true,
+          "hosted_ingestion": true,
+          "display": true
+        }
+      }
+    ],
+    "capabilities": {
+      "offline_exact_slot_planning": true,
+      "independent_hard_constraint_audit": true,
+      "accepted_readback_authenticated": false,
+      "current_lock_verified": false,
+      "platform_export_ready": false,
+      "conditional_remaining_evaluation": false,
+      "expected_payout": false,
+      "forecast_performance_verified": false
+    },
+    "warnings": [
+      "Accepted entries, rules, timing, permissions and player status are supplied declarations, not authenticated platform evidence.",
+      "This is a read-only plan at the supplied timestamp; it does not change entries or verify current locks.",
+      "The objective sums supplied inputs for unstarted players only; it is not a remaining-points forecast or contest return.",
+      "The search covers supplied options only. Original accepted rosters and earlier exports remain unchanged.",
+      "Late-swap platform export remains unavailable until actual acceptance and current locks are independently verified."
+    ]
+  },
+  "report": {
+    "schema_version": "dfs_late_swap_plan_v1",
+    "semantics": "offline_declared_exact_slot_projection_planning_not_live_late_swap",
+    "package_id": "fddbeda8ece6cccf4767608f93a2d576c216f614e7279c8dab09d850c33b2477",
+    "context": {
+      "site": "draftkings",
+      "sport": "NFL",
+      "format": "classic",
+      "slate_id": "classic-fixture",
+      "season": 2026,
+      "week": 5
+    },
+    "decision_at": "2026-10-11T20:00:00+00:00",
+    "contest": {
+      "contest_id": "00042",
+      "name": "Synthetic \"late\" contest",
+      "late_swap_enabled": true,
+      "lock_policy": "individual_game",
+      "as_of": "2026-10-11T20:00:00+00:00"
+    },
+    "entry_count": 2,
+    "requested_count": 2,
+    "selected_count": 2,
+    "unique_count": 1,
+    "candidate_count": 4,
+    "option_count": 6,
+    "complete": true,
+    "entries": [
+      {
+        "entry_id": "000001",
+        "contest_id": "00042",
+        "candidate_id": "synthetic-000001-0",
+        "before_slots": {
+          "QB": "q0",
+          "RB1": "rb1",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w2",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        },
+        "after_slots": {
+          "QB": "q0",
+          "RB1": "rb3",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w2",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        },
+        "locked_slots": {
+          "QB": "q0",
+          "WR1": "w0"
+        },
+        "changes": [
+          {
+            "entry_id": "000001",
+            "slot": "RB1",
+            "before_player_id": "rb1",
+            "after_player_id": "rb3",
+            "before_dfs_id": "1001",
+            "after_dfs_id": "1009",
+            "locked": false
+          }
+        ],
+        "projection_before": "35",
+        "projection_after": "45",
+        "salary_before": 36000,
+        "salary_after": 36000,
+        "lineup": [
+          {
+            "slot": "QB",
+            "player_id": "q0",
+            "dfs_id": "1000",
+            "player": "Synthetic q0",
+            "position": "QB",
+            "team": "BUF",
+            "salary": 4000,
+            "projection": null,
+            "locked": true
+          },
+          {
+            "slot": "RB1",
+            "player_id": "rb3",
+            "dfs_id": "1009",
+            "player": "Synthetic rb3",
+            "position": "RB",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "14",
+            "locked": false
+          },
+          {
+            "slot": "RB2",
+            "player_id": "rb2",
+            "dfs_id": "1002",
+            "player": "Synthetic rb2",
+            "position": "RB",
+            "team": "LV",
+            "salary": 4000,
+            "projection": "5",
+            "locked": false
+          },
+          {
+            "slot": "WR1",
+            "player_id": "w0",
+            "dfs_id": "1003",
+            "player": "Synthetic w0",
+            "position": "WR",
+            "team": "BUF",
+            "salary": 4000,
+            "projection": null,
+            "locked": true
+          },
+          {
+            "slot": "WR2",
+            "player_id": "w2",
+            "dfs_id": "1004",
+            "player": "Synthetic w2",
+            "position": "WR",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "7",
+            "locked": false
+          },
+          {
+            "slot": "WR3",
+            "player_id": "w3",
+            "dfs_id": "1005",
+            "player": "Synthetic w3",
+            "position": "WR",
+            "team": "LV",
+            "salary": 4000,
+            "projection": "8",
+            "locked": false
+          },
+          {
+            "slot": "TE",
+            "player_id": "t0",
+            "dfs_id": "1006",
+            "player": "Synthetic t0",
+            "position": "TE",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "6",
+            "locked": false
+          },
+          {
+            "slot": "FLEX",
+            "player_id": "flex",
+            "dfs_id": "1007",
+            "player": "Synthetic flex",
+            "position": "WR",
+            "team": "LV",
+            "salary": 4000,
+            "projection": "3",
+            "locked": false
+          },
+          {
+            "slot": "DST",
+            "player_id": "d0",
+            "dfs_id": "1008",
+            "player": "Synthetic d0",
+            "position": "DST",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "2",
+            "locked": false
+          }
+        ]
+      },
+      {
+        "entry_id": "000002",
+        "contest_id": "00042",
+        "candidate_id": "synthetic-000002-0",
+        "before_slots": {
+          "QB": "q0",
+          "RB1": "rb1",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w2",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        },
+        "after_slots": {
+          "QB": "q0",
+          "RB1": "rb3",
+          "RB2": "rb2",
+          "WR1": "w0",
+          "WR2": "w2",
+          "WR3": "w3",
+          "TE": "t0",
+          "FLEX": "flex",
+          "DST": "d0"
+        },
+        "locked_slots": {
+          "QB": "q0",
+          "WR1": "w0"
+        },
+        "changes": [
+          {
+            "entry_id": "000002",
+            "slot": "RB1",
+            "before_player_id": "rb1",
+            "after_player_id": "rb3",
+            "before_dfs_id": "1001",
+            "after_dfs_id": "1009",
+            "locked": false
+          }
+        ],
+        "projection_before": "35",
+        "projection_after": "45",
+        "salary_before": 36000,
+        "salary_after": 36000,
+        "lineup": [
+          {
+            "slot": "QB",
+            "player_id": "q0",
+            "dfs_id": "1000",
+            "player": "Synthetic q0",
+            "position": "QB",
+            "team": "BUF",
+            "salary": 4000,
+            "projection": null,
+            "locked": true
+          },
+          {
+            "slot": "RB1",
+            "player_id": "rb3",
+            "dfs_id": "1009",
+            "player": "Synthetic rb3",
+            "position": "RB",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "14",
+            "locked": false
+          },
+          {
+            "slot": "RB2",
+            "player_id": "rb2",
+            "dfs_id": "1002",
+            "player": "Synthetic rb2",
+            "position": "RB",
+            "team": "LV",
+            "salary": 4000,
+            "projection": "5",
+            "locked": false
+          },
+          {
+            "slot": "WR1",
+            "player_id": "w0",
+            "dfs_id": "1003",
+            "player": "Synthetic w0",
+            "position": "WR",
+            "team": "BUF",
+            "salary": 4000,
+            "projection": null,
+            "locked": true
+          },
+          {
+            "slot": "WR2",
+            "player_id": "w2",
+            "dfs_id": "1004",
+            "player": "Synthetic w2",
+            "position": "WR",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "7",
+            "locked": false
+          },
+          {
+            "slot": "WR3",
+            "player_id": "w3",
+            "dfs_id": "1005",
+            "player": "Synthetic w3",
+            "position": "WR",
+            "team": "LV",
+            "salary": 4000,
+            "projection": "8",
+            "locked": false
+          },
+          {
+            "slot": "TE",
+            "player_id": "t0",
+            "dfs_id": "1006",
+            "player": "Synthetic t0",
+            "position": "TE",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "6",
+            "locked": false
+          },
+          {
+            "slot": "FLEX",
+            "player_id": "flex",
+            "dfs_id": "1007",
+            "player": "Synthetic flex",
+            "position": "WR",
+            "team": "LV",
+            "salary": 4000,
+            "projection": "3",
+            "locked": false
+          },
+          {
+            "slot": "DST",
+            "player_id": "d0",
+            "dfs_id": "1008",
+            "player": "Synthetic d0",
+            "position": "DST",
+            "team": "KC",
+            "salary": 4000,
+            "projection": "2",
+            "locked": false
+          }
+        ]
+      }
+    ],
+    "changes": [
+      {
+        "entry_id": "000001",
+        "slot": "RB1",
+        "before_player_id": "rb1",
+        "after_player_id": "rb3",
+        "before_dfs_id": "1001",
+        "after_dfs_id": "1009",
+        "locked": false
+      },
+      {
+        "entry_id": "000002",
+        "slot": "RB1",
+        "before_player_id": "rb1",
+        "after_player_id": "rb3",
+        "before_dfs_id": "1001",
+        "after_dfs_id": "1009",
+        "locked": false
+      }
+    ],
+    "constraints": [
+      {
+        "id": "d0",
+        "scope": "player",
+        "player_ids": [
+          "d0"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "flex",
+        "scope": "player",
+        "player_ids": [
+          "flex"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "q0",
+        "scope": "player",
+        "player_ids": [
+          "q0"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "rb1",
+        "scope": "player",
+        "player_ids": [
+          "rb1"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "rb2",
+        "scope": "player",
+        "player_ids": [
+          "rb2"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "rb3",
+        "scope": "player",
+        "player_ids": [
+          "rb3"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "rb4",
+        "scope": "player",
+        "player_ids": [
+          "rb4"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "t0",
+        "scope": "player",
+        "player_ids": [
+          "t0"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "w0",
+        "scope": "player",
+        "player_ids": [
+          "w0"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "w2",
+        "scope": "player",
+        "player_ids": [
+          "w2"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "w3",
+        "scope": "player",
+        "player_ids": [
+          "w3"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "w4",
+        "scope": "player",
+        "player_ids": [
+          "w4"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      },
+      {
+        "id": "w5",
+        "scope": "player",
+        "player_ids": [
+          "w5"
+        ],
+        "minimum_count": 0,
+        "maximum_count": 2,
+        "target_count": null
+      }
+    ],
+    "controls": {
+      "player_exposure_limits": {},
+      "group_exposure_limits": [],
+      "locked_player_ids": [],
+      "excluded_player_ids": [],
+      "max_exposure": null,
+      "max_overlap": null,
+      "classic_stack_rules": null,
+      "block_qb_opposing_dst": true,
+      "max_per_team": null,
+      "min_salary": null,
+      "max_salary": 50000
+    },
+    "targets": [],
+    "rejected_options": [],
+    "audit": {
+      "ok": true,
+      "issues": [],
+      "entry_count": 2,
+      "locked_slots_preserved": true,
+      "hard_counts": [
+        {
+          "id": "d0",
+          "scope": "player",
+          "player_ids": [
+            "d0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "flex",
+          "scope": "player",
+          "player_ids": [
+            "flex"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "q0",
+          "scope": "player",
+          "player_ids": [
+            "q0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "rb1",
+          "scope": "player",
+          "player_ids": [
+            "rb1"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 0
+        },
+        {
+          "id": "rb2",
+          "scope": "player",
+          "player_ids": [
+            "rb2"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "rb3",
+          "scope": "player",
+          "player_ids": [
+            "rb3"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "rb4",
+          "scope": "player",
+          "player_ids": [
+            "rb4"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 0
+        },
+        {
+          "id": "t0",
+          "scope": "player",
+          "player_ids": [
+            "t0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "w0",
+          "scope": "player",
+          "player_ids": [
+            "w0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "w2",
+          "scope": "player",
+          "player_ids": [
+            "w2"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "w3",
+          "scope": "player",
+          "player_ids": [
+            "w3"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 2
+        },
+        {
+          "id": "w4",
+          "scope": "player",
+          "player_ids": [
+            "w4"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 0
+        },
+        {
+          "id": "w5",
+          "scope": "player",
+          "player_ids": [
+            "w5"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null,
+          "actual_count": 0
+        }
+      ]
+    },
+    "solver": {
+      "status": "optimal_candidate_pool",
+      "method": "exact_candidate_assignment_enumeration",
+      "candidate_pool_only": true,
+      "proven_optimal": true,
+      "numerical_optimal": false,
+      "bound": null,
+      "gap": 0,
+      "evaluated_trials": 9,
+      "target_policy": "minimum absolute appearance miss, then unstarted-player input sum",
+      "objective": "unstarted_player_input_sum",
+      "time_limit_seconds": 8,
+      "target_stage_status": "exact_candidate_pool",
+      "target_deviation_count": "0"
+    },
+    "baseline": {
+      "projection_sum": "70",
+      "salary_sum": 72000
+    },
+    "proposed": {
+      "projection_sum": "90",
+      "salary_sum": 72000
+    },
+    "input_manifest": {
+      "package_id": "fddbeda8ece6cccf4767608f93a2d576c216f614e7279c8dab09d850c33b2477",
+      "engine": {
+        "version": "offline_exact_slot_assignment_v1",
+        "numpy": "2.4.6",
+        "scipy": "1.17.1"
+      },
+      "sources": [
+        {
+          "source_id": "locks",
+          "kind": "lock_snapshot",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "8727a521ec87290c3d9193f4467fc665768e75178905e944cdab594b0ba8d857",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "projections",
+          "kind": "projection_inputs",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "7ce4ec074eb7f5796a515c7f3bd09c1e59979c6d7fbf2487c1b821926031879a",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "rules",
+          "kind": "rules",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "4c15ed4e49b8043344e27d8cc6b8e45802141d5b66ee9976bd9a2d2ff0eb26a3",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "catalog",
+          "kind": "salary_catalog",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "52400c9ee0bae97765786f82aeafd132fdbd5fba17812f817d04961af8deda87",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "readback",
+          "kind": "user_platform_readback",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        }
+      ],
+      "accepted_readback_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+      "portfolio_version": "synthetic-portfolio-1",
+      "export_version": "synthetic-export-1",
+      "objective": "projection_guided_snapshot",
+      "controls_id": "2f1326bd02ff3081d92fac8a0e54da39ea2c4e07e6d631ca0f6f066c3d5dfa15",
+      "catalog_id": "504d3e01f437caaca53039beba8de3a5d808150e3e3bcfdd4cfb9b9670c0c9a9",
+      "accepted_state_id": "f2e4f619eb910547fa069336e21f10d7e59378b70097e4eafb6d2ae060d4b685",
+      "candidates_id": "4decf352a011835218318db036f9fb2d895b1549300ca8a08529badc526e4b44"
+    },
+    "capabilities": {
+      "offline_exact_slot_planning": true,
+      "independent_hard_constraint_audit": true,
+      "accepted_readback_authenticated": false,
+      "current_lock_verified": false,
+      "platform_export_ready": false,
+      "conditional_remaining_evaluation": false,
+      "expected_payout": false,
+      "forecast_performance_verified": false
+    },
+    "warnings": [
+      "Accepted entries, rules, timing, permissions and player status are supplied declarations, not authenticated platform evidence.",
+      "This is a read-only plan at the supplied timestamp; it does not change entries or verify current locks.",
+      "The objective sums supplied inputs for unstarted players only; it is not a remaining-points forecast or contest return.",
+      "The search covers supplied options only. Original accepted rosters and earlier exports remain unchanged.",
+      "Late-swap platform export remains unavailable until actual acceptance and current locks are independently verified."
+    ],
+    "runtime_seconds": 0.0,
+    "plan_id": "33f616f709c55788a99a4c09b9aec0c32a41a9f4f047dc599046c64170cd1b8a"
+  },
+  "blocked": {
+    "unknown_lock": {
+      "package": {
+        "schema_version": "dfs_late_swap_package_v1",
+        "context": {
+          "site": "draftkings",
+          "sport": "NFL",
+          "format": "classic",
+          "season": 2026,
+          "week": 5,
+          "slate_id": "classic-fixture"
+        },
+        "decision_at": "2026-10-11T20:00:00Z",
+        "objective": "projection_guided_snapshot",
+        "contest": {
+          "contest_id": "00042",
+          "name": "Synthetic \"late\" contest",
+          "late_swap_enabled": true,
+          "lock_policy": "individual_game",
+          "as_of": "2026-10-11T20:00:00Z"
+        },
+        "sources": [
+          {
+            "source_id": "readback",
+            "kind": "user_platform_readback",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "rules",
+            "kind": "rules",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "4c15ed4e49b8043344e27d8cc6b8e45802141d5b66ee9976bd9a2d2ff0eb26a3",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "catalog",
+            "kind": "salary_catalog",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "52400c9ee0bae97765786f82aeafd132fdbd5fba17812f817d04961af8deda87",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "locks",
+            "kind": "lock_snapshot",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "8727a521ec87290c3d9193f4467fc665768e75178905e944cdab594b0ba8d857",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "projections",
+            "kind": "projection_inputs",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "7ce4ec074eb7f5796a515c7f3bd09c1e59979c6d7fbf2487c1b821926031879a",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          }
+        ],
+        "accepted_state": {
+          "source_id": "readback",
+          "readback_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+          "portfolio_version": "synthetic-portfolio-1",
+          "export_version": "synthetic-export-1",
+          "as_of": "2026-10-11T20:00:00Z",
+          "entries": [
+            {
+              "entry_id": "000001",
+              "contest_id": "00042",
+              "slots": {
+                "QB": "q0",
+                "RB1": "rb1",
+                "RB2": "rb2",
+                "WR1": "w0",
+                "WR2": "w2",
+                "WR3": "w3",
+                "TE": "t0",
+                "FLEX": "flex",
+                "DST": "d0"
+              }
+            },
+            {
+              "entry_id": "000002",
+              "contest_id": "00042",
+              "slots": {
+                "QB": "q0",
+                "RB1": "rb1",
+                "RB2": "rb2",
+                "WR1": "w0",
+                "WR2": "w2",
+                "WR3": "w3",
+                "TE": "t0",
+                "FLEX": "flex",
+                "DST": "d0"
+              }
+            }
+          ]
+        },
+        "catalog": [
+          {
+            "player_id": "q0",
+            "dfs_id": "1000",
+            "name": "Synthetic q0",
+            "position": "QB",
+            "team": "BUF",
+            "opponent": "MIA",
+            "game_id": "early",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T19:00:00Z",
+            "lock_state": "unknown",
+            "status": "eligible",
+            "projection": null
+          },
+          {
+            "player_id": "rb1",
+            "dfs_id": "1001",
+            "name": "Synthetic rb1",
+            "position": "RB",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "4"
+          },
+          {
+            "player_id": "rb2",
+            "dfs_id": "1002",
+            "name": "Synthetic rb2",
+            "position": "RB",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "5"
+          },
+          {
+            "player_id": "w0",
+            "dfs_id": "1003",
+            "name": "Synthetic w0",
+            "position": "WR",
+            "team": "BUF",
+            "opponent": "MIA",
+            "game_id": "early",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T19:00:00Z",
+            "lock_state": "locked",
+            "status": "eligible",
+            "projection": null
+          },
+          {
+            "player_id": "w2",
+            "dfs_id": "1004",
+            "name": "Synthetic w2",
+            "position": "WR",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "7"
+          },
+          {
+            "player_id": "w3",
+            "dfs_id": "1005",
+            "name": "Synthetic w3",
+            "position": "WR",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "8"
+          },
+          {
+            "player_id": "t0",
+            "dfs_id": "1006",
+            "name": "Synthetic t0",
+            "position": "TE",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "6"
+          },
+          {
+            "player_id": "flex",
+            "dfs_id": "1007",
+            "name": "Synthetic flex",
+            "position": "WR",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "3"
+          },
+          {
+            "player_id": "d0",
+            "dfs_id": "1008",
+            "name": "Synthetic d0",
+            "position": "DST",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "2"
+          },
+          {
+            "player_id": "rb3",
+            "dfs_id": "1009",
+            "name": "Synthetic rb3",
+            "position": "RB",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "14"
+          },
+          {
+            "player_id": "w4",
+            "dfs_id": "1010",
+            "name": "Synthetic w4",
+            "position": "WR",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "17"
+          },
+          {
+            "player_id": "rb4",
+            "dfs_id": "1011",
+            "name": "Synthetic rb4",
+            "position": "RB",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "11"
+          },
+          {
+            "player_id": "w5",
+            "dfs_id": "1012",
+            "name": "Synthetic w5",
+            "position": "WR",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "13"
+          }
+        ],
+        "candidates": [
+          {
+            "candidate_id": "synthetic-000001-0",
+            "entry_id": "000001",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb3",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w2",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          },
+          {
+            "candidate_id": "synthetic-000001-1",
+            "entry_id": "000001",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb1",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w4",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          },
+          {
+            "candidate_id": "synthetic-000002-0",
+            "entry_id": "000002",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb3",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w2",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          },
+          {
+            "candidate_id": "synthetic-000002-1",
+            "entry_id": "000002",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb1",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w4",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          }
+        ],
+        "controls": {}
+      },
+      "error": "Unknown or missing player lock state blocks offline late-swap planning."
+    },
+    "locked_move": {
+      "package": {
+        "schema_version": "dfs_late_swap_package_v1",
+        "context": {
+          "site": "draftkings",
+          "sport": "NFL",
+          "format": "classic",
+          "season": 2026,
+          "week": 5,
+          "slate_id": "classic-fixture"
+        },
+        "decision_at": "2026-10-11T20:00:00Z",
+        "objective": "projection_guided_snapshot",
+        "contest": {
+          "contest_id": "00042",
+          "name": "Synthetic \"late\" contest",
+          "late_swap_enabled": true,
+          "lock_policy": "individual_game",
+          "as_of": "2026-10-11T20:00:00Z"
+        },
+        "sources": [
+          {
+            "source_id": "readback",
+            "kind": "user_platform_readback",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "rules",
+            "kind": "rules",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "4c15ed4e49b8043344e27d8cc6b8e45802141d5b66ee9976bd9a2d2ff0eb26a3",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "catalog",
+            "kind": "salary_catalog",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "52400c9ee0bae97765786f82aeafd132fdbd5fba17812f817d04961af8deda87",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "locks",
+            "kind": "lock_snapshot",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "8727a521ec87290c3d9193f4467fc665768e75178905e944cdab594b0ba8d857",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "projections",
+            "kind": "projection_inputs",
+            "as_of": "2026-10-11T20:00:00Z",
+            "content_sha256": "7ce4ec074eb7f5796a515c7f3bd09c1e59979c6d7fbf2487c1b821926031879a",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          }
+        ],
+        "accepted_state": {
+          "source_id": "readback",
+          "readback_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+          "portfolio_version": "synthetic-portfolio-1",
+          "export_version": "synthetic-export-1",
+          "as_of": "2026-10-11T20:00:00Z",
+          "entries": [
+            {
+              "entry_id": "000001",
+              "contest_id": "00042",
+              "slots": {
+                "QB": "q0",
+                "RB1": "rb1",
+                "RB2": "rb2",
+                "WR1": "w0",
+                "WR2": "w2",
+                "WR3": "w3",
+                "TE": "t0",
+                "FLEX": "flex",
+                "DST": "d0"
+              }
+            },
+            {
+              "entry_id": "000002",
+              "contest_id": "00042",
+              "slots": {
+                "QB": "q0",
+                "RB1": "rb1",
+                "RB2": "rb2",
+                "WR1": "w0",
+                "WR2": "w2",
+                "WR3": "w3",
+                "TE": "t0",
+                "FLEX": "flex",
+                "DST": "d0"
+              }
+            }
+          ]
+        },
+        "catalog": [
+          {
+            "player_id": "q0",
+            "dfs_id": "1000",
+            "name": "Synthetic q0",
+            "position": "QB",
+            "team": "BUF",
+            "opponent": "MIA",
+            "game_id": "early",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T19:00:00Z",
+            "lock_state": "locked",
+            "status": "eligible",
+            "projection": null
+          },
+          {
+            "player_id": "rb1",
+            "dfs_id": "1001",
+            "name": "Synthetic rb1",
+            "position": "RB",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "4"
+          },
+          {
+            "player_id": "rb2",
+            "dfs_id": "1002",
+            "name": "Synthetic rb2",
+            "position": "RB",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "5"
+          },
+          {
+            "player_id": "w0",
+            "dfs_id": "1003",
+            "name": "Synthetic w0",
+            "position": "WR",
+            "team": "BUF",
+            "opponent": "MIA",
+            "game_id": "early",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T19:00:00Z",
+            "lock_state": "locked",
+            "status": "eligible",
+            "projection": null
+          },
+          {
+            "player_id": "w2",
+            "dfs_id": "1004",
+            "name": "Synthetic w2",
+            "position": "WR",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "7"
+          },
+          {
+            "player_id": "w3",
+            "dfs_id": "1005",
+            "name": "Synthetic w3",
+            "position": "WR",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "8"
+          },
+          {
+            "player_id": "t0",
+            "dfs_id": "1006",
+            "name": "Synthetic t0",
+            "position": "TE",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "6"
+          },
+          {
+            "player_id": "flex",
+            "dfs_id": "1007",
+            "name": "Synthetic flex",
+            "position": "WR",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "3"
+          },
+          {
+            "player_id": "d0",
+            "dfs_id": "1008",
+            "name": "Synthetic d0",
+            "position": "DST",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "2"
+          },
+          {
+            "player_id": "rb3",
+            "dfs_id": "1009",
+            "name": "Synthetic rb3",
+            "position": "RB",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "14"
+          },
+          {
+            "player_id": "w4",
+            "dfs_id": "1010",
+            "name": "Synthetic w4",
+            "position": "WR",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "17"
+          },
+          {
+            "player_id": "rb4",
+            "dfs_id": "1011",
+            "name": "Synthetic rb4",
+            "position": "RB",
+            "team": "LV",
+            "opponent": "KC",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "11"
+          },
+          {
+            "player_id": "w5",
+            "dfs_id": "1012",
+            "name": "Synthetic w5",
+            "position": "WR",
+            "team": "KC",
+            "opponent": "LV",
+            "game_id": "late",
+            "salary": 4000,
+            "kickoff_at": "2026-10-11T22:00:00Z",
+            "lock_state": "unlocked",
+            "status": "eligible",
+            "projection": "13"
+          }
+        ],
+        "candidates": [
+          {
+            "candidate_id": "synthetic-000001-0",
+            "entry_id": "000001",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb3",
+              "RB2": "rb2",
+              "WR1": "flex",
+              "WR2": "w2",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "w0",
+              "DST": "d0"
+            }
+          },
+          {
+            "candidate_id": "synthetic-000001-1",
+            "entry_id": "000001",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb1",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w4",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          },
+          {
+            "candidate_id": "synthetic-000002-0",
+            "entry_id": "000002",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb3",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w2",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          },
+          {
+            "candidate_id": "synthetic-000002-1",
+            "entry_id": "000002",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb1",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w4",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          }
+        ],
+        "controls": {}
+      },
+      "error": "Alternative synthetic-000001-0 changes a locked player identity or exact slot."
+    }
+  },
+  "normalized": {
+    "package": {
+      "schema_version": "dfs_late_swap_package_v1",
+      "context": {
+        "site": "draftkings",
+        "sport": "NFL",
+        "format": "classic",
+        "season": 2026,
+        "week": 5,
+        "slate_id": "classic-fixture"
+      },
+      "decision_at": "2026-10-11T20:00:00Z",
+      "objective": "projection_guided_snapshot",
+      "contest": {
+        "contest_id": "00042",
+        "name": "Synthetic \"late\" contest",
+        "late_swap_enabled": true,
+        "lock_policy": "individual_game",
+        "as_of": "2026-10-11T20:00:00Z"
+      },
+      "sources": [
+        {
+          "source_id": "readback",
+          "kind": "user_platform_readback",
+          "as_of": "2026-10-11T20:00:00Z",
+          "content_sha256": "5E7B5FB7842C13CE01AB1AE3EC01145F484C731641635E4E411FFF77687F3343",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "rules",
+          "kind": "rules",
+          "as_of": "2026-10-11T20:00:00Z",
+          "content_sha256": "4C15ED4E49B8043344E27D8CC6B8E45802141D5B66EE9976BD9A2D2FF0EB26A3",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "catalog",
+          "kind": "salary_catalog",
+          "as_of": "2026-10-11T20:00:00Z",
+          "content_sha256": "52400C9EE0BAE97765786F82AEAFD132FDBD5FBA17812F817D04961AF8DEDA87",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "locks",
+          "kind": "lock_snapshot",
+          "as_of": "2026-10-11T20:00:00Z",
+          "content_sha256": "8727A521EC87290C3D9193F4467FC665768E75178905E944CDAB594B0BA8D857",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "projections",
+          "kind": "projection_inputs",
+          "as_of": "2026-10-11T20:00:00Z",
+          "content_sha256": "7CE4EC074EB7F5796A515C7F3BD09C1E59979C6D7FBF2487C1B821926031879A",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        }
+      ],
+      "accepted_state": {
+        "source_id": "readback",
+        "readback_sha256": "5E7B5FB7842C13CE01AB1AE3EC01145F484C731641635E4E411FFF77687F3343",
+        "portfolio_version": "synthetic-portfolio-1",
+        "export_version": "synthetic-export-1",
+        "as_of": "2026-10-11T20:00:00Z",
+        "entries": [
+          {
+            "entry_id": "000001",
+            "contest_id": "00042",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb1",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w2",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          },
+          {
+            "entry_id": "000002",
+            "contest_id": "00042",
+            "slots": {
+              "QB": "q0",
+              "RB1": "rb1",
+              "RB2": "rb2",
+              "WR1": "w0",
+              "WR2": "w2",
+              "WR3": "w3",
+              "TE": "t0",
+              "FLEX": "flex",
+              "DST": "d0"
+            }
+          }
+        ]
+      },
+      "catalog": [
+        {
+          "player_id": "q0",
+          "dfs_id": "1000",
+          "name": "Synthetic q0",
+          "position": "QB",
+          "team": "LAR",
+          "opponent": "JAC",
+          "game_id": "early",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T19:00:00Z",
+          "lock_state": "locked",
+          "status": "eligible",
+          "projection": null
+        },
+        {
+          "player_id": "rb1",
+          "dfs_id": "1001",
+          "name": "Synthetic rb1",
+          "position": "RB",
+          "team": "KC",
+          "opponent": "LV",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "4.000000000001"
+        },
+        {
+          "player_id": "rb2",
+          "dfs_id": "1002",
+          "name": "Synthetic rb2",
+          "position": "RB",
+          "team": "LV",
+          "opponent": "KC",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "5"
+        },
+        {
+          "player_id": "w0",
+          "dfs_id": "1003",
+          "name": "Synthetic w0",
+          "position": "WR",
+          "team": "LAR",
+          "opponent": "JAC",
+          "game_id": "early",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T19:00:00Z",
+          "lock_state": "locked",
+          "status": "eligible",
+          "projection": null
+        },
+        {
+          "player_id": "w2",
+          "dfs_id": "1004",
+          "name": "Synthetic w2",
+          "position": "WR",
+          "team": "KC",
+          "opponent": "LV",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "7"
+        },
+        {
+          "player_id": "w3",
+          "dfs_id": "1005",
+          "name": "Synthetic w3",
+          "position": "WR",
+          "team": "LV",
+          "opponent": "KC",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "8"
+        },
+        {
+          "player_id": "t0",
+          "dfs_id": "1006",
+          "name": "Synthetic t0",
+          "position": "TE",
+          "team": "KC",
+          "opponent": "LV",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "6"
+        },
+        {
+          "player_id": "flex",
+          "dfs_id": "1007",
+          "name": "Synthetic flex",
+          "position": "WR",
+          "team": "LV",
+          "opponent": "KC",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "3"
+        },
+        {
+          "player_id": "d0",
+          "dfs_id": "1008",
+          "name": "Synthetic d0",
+          "position": "DST",
+          "team": "KC",
+          "opponent": "LV",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "2"
+        },
+        {
+          "player_id": "rb3",
+          "dfs_id": "1009",
+          "name": "Synthetic rb3",
+          "position": "RB",
+          "team": "KC",
+          "opponent": "LV",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "14"
+        },
+        {
+          "player_id": "w4",
+          "dfs_id": "1010",
+          "name": "Synthetic w4",
+          "position": "WR",
+          "team": "LV",
+          "opponent": "KC",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "17"
+        },
+        {
+          "player_id": "rb4",
+          "dfs_id": "1011",
+          "name": "Synthetic rb4",
+          "position": "RB",
+          "team": "LV",
+          "opponent": "KC",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "11"
+        },
+        {
+          "player_id": "w5",
+          "dfs_id": "1012",
+          "name": "Synthetic w5",
+          "position": "WR",
+          "team": "KC",
+          "opponent": "LV",
+          "game_id": "late",
+          "salary": 4000,
+          "kickoff_at": "2026-10-11T22:00:00Z",
+          "lock_state": "unlocked",
+          "status": "eligible",
+          "projection": "13"
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "synthetic-000001-0",
+          "entry_id": "000001",
+          "slots": {
+            "QB": "q0",
+            "RB1": "rb3",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w2",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          }
+        },
+        {
+          "candidate_id": "synthetic-000001-1",
+          "entry_id": "000001",
+          "slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w4",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          }
+        },
+        {
+          "candidate_id": "synthetic-000002-0",
+          "entry_id": "000002",
+          "slots": {
+            "QB": "q0",
+            "RB1": "rb3",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w2",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          }
+        },
+        {
+          "candidate_id": "synthetic-000002-1",
+          "entry_id": "000002",
+          "slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w4",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          }
+        }
+      ],
+      "controls": {}
+    },
+    "preview": {
+      "schema_version": "dfs_late_swap_preview_v1",
+      "content_id": "8e342166a2f1238a86ca16565ac3c3600c56c96f34fcc5f22cee680c14726f97",
+      "semantics": "offline_declared_exact_slot_projection_planning_not_live_late_swap",
+      "context": {
+        "site": "draftkings",
+        "sport": "NFL",
+        "format": "classic",
+        "slate_id": "classic-fixture",
+        "season": 2026,
+        "week": 5
+      },
+      "decision_at": "2026-10-11T20:00:00+00:00",
+      "contest": {
+        "contest_id": "00042",
+        "name": "Synthetic \"late\" contest",
+        "late_swap_enabled": true,
+        "lock_policy": "individual_game",
+        "as_of": "2026-10-11T20:00:00+00:00"
+      },
+      "entry_count": 2,
+      "candidate_count": 4,
+      "option_count": 6,
+      "locked_slot_count": 4,
+      "rejected_options": [],
+      "sources": [
+        {
+          "source_id": "locks",
+          "kind": "lock_snapshot",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "8727a521ec87290c3d9193f4467fc665768e75178905e944cdab594b0ba8d857",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "projections",
+          "kind": "projection_inputs",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "7ce4ec074eb7f5796a515c7f3bd09c1e59979c6d7fbf2487c1b821926031879a",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "rules",
+          "kind": "rules",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "4c15ed4e49b8043344e27d8cc6b8e45802141d5b66ee9976bd9a2d2ff0eb26a3",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "catalog",
+          "kind": "salary_catalog",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "52400c9ee0bae97765786f82aeafd132fdbd5fba17812f817d04961af8deda87",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        },
+        {
+          "source_id": "readback",
+          "kind": "user_platform_readback",
+          "as_of": "2026-10-11T20:00:00+00:00",
+          "content_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+          "rights": {
+            "personal_analysis": true,
+            "hosted_ingestion": true,
+            "display": true
+          }
+        }
+      ],
+      "capabilities": {
+        "offline_exact_slot_planning": true,
+        "independent_hard_constraint_audit": true,
+        "accepted_readback_authenticated": false,
+        "current_lock_verified": false,
+        "platform_export_ready": false,
+        "conditional_remaining_evaluation": false,
+        "expected_payout": false,
+        "forecast_performance_verified": false
+      },
+      "warnings": [
+        "Accepted entries, rules, timing, permissions and player status are supplied declarations, not authenticated platform evidence.",
+        "This is a read-only plan at the supplied timestamp; it does not change entries or verify current locks.",
+        "The objective sums supplied inputs for unstarted players only; it is not a remaining-points forecast or contest return.",
+        "The search covers supplied options only. Original accepted rosters and earlier exports remain unchanged.",
+        "Late-swap platform export remains unavailable until actual acceptance and current locks are independently verified."
+      ]
+    },
+    "report": {
+      "schema_version": "dfs_late_swap_plan_v1",
+      "semantics": "offline_declared_exact_slot_projection_planning_not_live_late_swap",
+      "package_id": "8e342166a2f1238a86ca16565ac3c3600c56c96f34fcc5f22cee680c14726f97",
+      "context": {
+        "site": "draftkings",
+        "sport": "NFL",
+        "format": "classic",
+        "slate_id": "classic-fixture",
+        "season": 2026,
+        "week": 5
+      },
+      "decision_at": "2026-10-11T20:00:00+00:00",
+      "contest": {
+        "contest_id": "00042",
+        "name": "Synthetic \"late\" contest",
+        "late_swap_enabled": true,
+        "lock_policy": "individual_game",
+        "as_of": "2026-10-11T20:00:00+00:00"
+      },
+      "entry_count": 2,
+      "requested_count": 2,
+      "selected_count": 2,
+      "unique_count": 1,
+      "candidate_count": 4,
+      "option_count": 6,
+      "complete": true,
+      "entries": [
+        {
+          "entry_id": "000001",
+          "contest_id": "00042",
+          "candidate_id": "synthetic-000001-1",
+          "before_slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w2",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          },
+          "after_slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w4",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          },
+          "locked_slots": {
+            "QB": "q0",
+            "WR1": "w0"
+          },
+          "changes": [
+            {
+              "entry_id": "000001",
+              "slot": "WR2",
+              "before_player_id": "w2",
+              "after_player_id": "w4",
+              "before_dfs_id": "1004",
+              "after_dfs_id": "1010",
+              "locked": false
+            }
+          ],
+          "projection_before": "35.000000000001",
+          "projection_after": "45.000000000001",
+          "salary_before": 36000,
+          "salary_after": 36000,
+          "lineup": [
+            {
+              "slot": "QB",
+              "player_id": "q0",
+              "dfs_id": "1000",
+              "player": "Synthetic q0",
+              "position": "QB",
+              "team": "LA",
+              "salary": 4000,
+              "projection": null,
+              "locked": true
+            },
+            {
+              "slot": "RB1",
+              "player_id": "rb1",
+              "dfs_id": "1001",
+              "player": "Synthetic rb1",
+              "position": "RB",
+              "team": "KC",
+              "salary": 4000,
+              "projection": "4.000000000001",
+              "locked": false
+            },
+            {
+              "slot": "RB2",
+              "player_id": "rb2",
+              "dfs_id": "1002",
+              "player": "Synthetic rb2",
+              "position": "RB",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "5",
+              "locked": false
+            },
+            {
+              "slot": "WR1",
+              "player_id": "w0",
+              "dfs_id": "1003",
+              "player": "Synthetic w0",
+              "position": "WR",
+              "team": "LA",
+              "salary": 4000,
+              "projection": null,
+              "locked": true
+            },
+            {
+              "slot": "WR2",
+              "player_id": "w4",
+              "dfs_id": "1010",
+              "player": "Synthetic w4",
+              "position": "WR",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "17",
+              "locked": false
+            },
+            {
+              "slot": "WR3",
+              "player_id": "w3",
+              "dfs_id": "1005",
+              "player": "Synthetic w3",
+              "position": "WR",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "8",
+              "locked": false
+            },
+            {
+              "slot": "TE",
+              "player_id": "t0",
+              "dfs_id": "1006",
+              "player": "Synthetic t0",
+              "position": "TE",
+              "team": "KC",
+              "salary": 4000,
+              "projection": "6",
+              "locked": false
+            },
+            {
+              "slot": "FLEX",
+              "player_id": "flex",
+              "dfs_id": "1007",
+              "player": "Synthetic flex",
+              "position": "WR",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "3",
+              "locked": false
+            },
+            {
+              "slot": "DST",
+              "player_id": "d0",
+              "dfs_id": "1008",
+              "player": "Synthetic d0",
+              "position": "DST",
+              "team": "KC",
+              "salary": 4000,
+              "projection": "2",
+              "locked": false
+            }
+          ]
+        },
+        {
+          "entry_id": "000002",
+          "contest_id": "00042",
+          "candidate_id": "synthetic-000002-1",
+          "before_slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w2",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          },
+          "after_slots": {
+            "QB": "q0",
+            "RB1": "rb1",
+            "RB2": "rb2",
+            "WR1": "w0",
+            "WR2": "w4",
+            "WR3": "w3",
+            "TE": "t0",
+            "FLEX": "flex",
+            "DST": "d0"
+          },
+          "locked_slots": {
+            "QB": "q0",
+            "WR1": "w0"
+          },
+          "changes": [
+            {
+              "entry_id": "000002",
+              "slot": "WR2",
+              "before_player_id": "w2",
+              "after_player_id": "w4",
+              "before_dfs_id": "1004",
+              "after_dfs_id": "1010",
+              "locked": false
+            }
+          ],
+          "projection_before": "35.000000000001",
+          "projection_after": "45.000000000001",
+          "salary_before": 36000,
+          "salary_after": 36000,
+          "lineup": [
+            {
+              "slot": "QB",
+              "player_id": "q0",
+              "dfs_id": "1000",
+              "player": "Synthetic q0",
+              "position": "QB",
+              "team": "LA",
+              "salary": 4000,
+              "projection": null,
+              "locked": true
+            },
+            {
+              "slot": "RB1",
+              "player_id": "rb1",
+              "dfs_id": "1001",
+              "player": "Synthetic rb1",
+              "position": "RB",
+              "team": "KC",
+              "salary": 4000,
+              "projection": "4.000000000001",
+              "locked": false
+            },
+            {
+              "slot": "RB2",
+              "player_id": "rb2",
+              "dfs_id": "1002",
+              "player": "Synthetic rb2",
+              "position": "RB",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "5",
+              "locked": false
+            },
+            {
+              "slot": "WR1",
+              "player_id": "w0",
+              "dfs_id": "1003",
+              "player": "Synthetic w0",
+              "position": "WR",
+              "team": "LA",
+              "salary": 4000,
+              "projection": null,
+              "locked": true
+            },
+            {
+              "slot": "WR2",
+              "player_id": "w4",
+              "dfs_id": "1010",
+              "player": "Synthetic w4",
+              "position": "WR",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "17",
+              "locked": false
+            },
+            {
+              "slot": "WR3",
+              "player_id": "w3",
+              "dfs_id": "1005",
+              "player": "Synthetic w3",
+              "position": "WR",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "8",
+              "locked": false
+            },
+            {
+              "slot": "TE",
+              "player_id": "t0",
+              "dfs_id": "1006",
+              "player": "Synthetic t0",
+              "position": "TE",
+              "team": "KC",
+              "salary": 4000,
+              "projection": "6",
+              "locked": false
+            },
+            {
+              "slot": "FLEX",
+              "player_id": "flex",
+              "dfs_id": "1007",
+              "player": "Synthetic flex",
+              "position": "WR",
+              "team": "LV",
+              "salary": 4000,
+              "projection": "3",
+              "locked": false
+            },
+            {
+              "slot": "DST",
+              "player_id": "d0",
+              "dfs_id": "1008",
+              "player": "Synthetic d0",
+              "position": "DST",
+              "team": "KC",
+              "salary": 4000,
+              "projection": "2",
+              "locked": false
+            }
+          ]
+        }
+      ],
+      "changes": [
+        {
+          "entry_id": "000001",
+          "slot": "WR2",
+          "before_player_id": "w2",
+          "after_player_id": "w4",
+          "before_dfs_id": "1004",
+          "after_dfs_id": "1010",
+          "locked": false
+        },
+        {
+          "entry_id": "000002",
+          "slot": "WR2",
+          "before_player_id": "w2",
+          "after_player_id": "w4",
+          "before_dfs_id": "1004",
+          "after_dfs_id": "1010",
+          "locked": false
+        }
+      ],
+      "constraints": [
+        {
+          "id": "d0",
+          "scope": "player",
+          "player_ids": [
+            "d0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "flex",
+          "scope": "player",
+          "player_ids": [
+            "flex"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "q0",
+          "scope": "player",
+          "player_ids": [
+            "q0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "rb1",
+          "scope": "player",
+          "player_ids": [
+            "rb1"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "rb2",
+          "scope": "player",
+          "player_ids": [
+            "rb2"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "rb3",
+          "scope": "player",
+          "player_ids": [
+            "rb3"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "rb4",
+          "scope": "player",
+          "player_ids": [
+            "rb4"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "t0",
+          "scope": "player",
+          "player_ids": [
+            "t0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "w0",
+          "scope": "player",
+          "player_ids": [
+            "w0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "w2",
+          "scope": "player",
+          "player_ids": [
+            "w2"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "w3",
+          "scope": "player",
+          "player_ids": [
+            "w3"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "w4",
+          "scope": "player",
+          "player_ids": [
+            "w4"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        },
+        {
+          "id": "w5",
+          "scope": "player",
+          "player_ids": [
+            "w5"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 2,
+          "target_count": null
+        }
+      ],
+      "controls": {
+        "player_exposure_limits": {},
+        "group_exposure_limits": [],
+        "locked_player_ids": [],
+        "excluded_player_ids": [],
+        "max_exposure": null,
+        "max_overlap": null,
+        "classic_stack_rules": null,
+        "block_qb_opposing_dst": true,
+        "max_per_team": null,
+        "min_salary": null,
+        "max_salary": 50000
+      },
+      "targets": [],
+      "rejected_options": [],
+      "audit": {
+        "ok": true,
+        "issues": [],
+        "entry_count": 2,
+        "locked_slots_preserved": true,
+        "hard_counts": [
+          {
+            "id": "d0",
+            "scope": "player",
+            "player_ids": [
+              "d0"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "flex",
+            "scope": "player",
+            "player_ids": [
+              "flex"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "q0",
+            "scope": "player",
+            "player_ids": [
+              "q0"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "rb1",
+            "scope": "player",
+            "player_ids": [
+              "rb1"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "rb2",
+            "scope": "player",
+            "player_ids": [
+              "rb2"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "rb3",
+            "scope": "player",
+            "player_ids": [
+              "rb3"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 0
+          },
+          {
+            "id": "rb4",
+            "scope": "player",
+            "player_ids": [
+              "rb4"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 0
+          },
+          {
+            "id": "t0",
+            "scope": "player",
+            "player_ids": [
+              "t0"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "w0",
+            "scope": "player",
+            "player_ids": [
+              "w0"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "w2",
+            "scope": "player",
+            "player_ids": [
+              "w2"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 0
+          },
+          {
+            "id": "w3",
+            "scope": "player",
+            "player_ids": [
+              "w3"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "w4",
+            "scope": "player",
+            "player_ids": [
+              "w4"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 2
+          },
+          {
+            "id": "w5",
+            "scope": "player",
+            "player_ids": [
+              "w5"
+            ],
+            "minimum_count": 0,
+            "maximum_count": 2,
+            "target_count": null,
+            "actual_count": 0
+          }
+        ]
+      },
+      "solver": {
+        "status": "optimal_candidate_pool",
+        "method": "exact_candidate_assignment_enumeration",
+        "candidate_pool_only": true,
+        "proven_optimal": true,
+        "numerical_optimal": false,
+        "bound": null,
+        "gap": 0,
+        "evaluated_trials": 9,
+        "target_policy": "minimum absolute appearance miss, then unstarted-player input sum",
+        "objective": "unstarted_player_input_sum",
+        "time_limit_seconds": 8,
+        "target_stage_status": "exact_candidate_pool",
+        "target_deviation_count": "0"
+      },
+      "baseline": {
+        "projection_sum": "70.000000000002",
+        "salary_sum": 72000
+      },
+      "proposed": {
+        "projection_sum": "90.000000000002",
+        "salary_sum": 72000
+      },
+      "input_manifest": {
+        "package_id": "8e342166a2f1238a86ca16565ac3c3600c56c96f34fcc5f22cee680c14726f97",
+        "engine": {
+          "version": "offline_exact_slot_assignment_v1",
+          "numpy": "2.4.6",
+          "scipy": "1.17.1"
+        },
+        "sources": [
+          {
+            "source_id": "locks",
+            "kind": "lock_snapshot",
+            "as_of": "2026-10-11T20:00:00+00:00",
+            "content_sha256": "8727a521ec87290c3d9193f4467fc665768e75178905e944cdab594b0ba8d857",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "projections",
+            "kind": "projection_inputs",
+            "as_of": "2026-10-11T20:00:00+00:00",
+            "content_sha256": "7ce4ec074eb7f5796a515c7f3bd09c1e59979c6d7fbf2487c1b821926031879a",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "rules",
+            "kind": "rules",
+            "as_of": "2026-10-11T20:00:00+00:00",
+            "content_sha256": "4c15ed4e49b8043344e27d8cc6b8e45802141d5b66ee9976bd9a2d2ff0eb26a3",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "catalog",
+            "kind": "salary_catalog",
+            "as_of": "2026-10-11T20:00:00+00:00",
+            "content_sha256": "52400c9ee0bae97765786f82aeafd132fdbd5fba17812f817d04961af8deda87",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          },
+          {
+            "source_id": "readback",
+            "kind": "user_platform_readback",
+            "as_of": "2026-10-11T20:00:00+00:00",
+            "content_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+            "rights": {
+              "personal_analysis": true,
+              "hosted_ingestion": true,
+              "display": true
+            }
+          }
+        ],
+        "accepted_readback_sha256": "5e7b5fb7842c13ce01ab1ae3ec01145f484c731641635e4e411fff77687f3343",
+        "portfolio_version": "synthetic-portfolio-1",
+        "export_version": "synthetic-export-1",
+        "objective": "projection_guided_snapshot",
+        "controls_id": "2f1326bd02ff3081d92fac8a0e54da39ea2c4e07e6d631ca0f6f066c3d5dfa15",
+        "catalog_id": "91126271f0628f580e2d0af7d08a4362dffd1ccbd6c8236d6cf1b3b45fa10b64",
+        "accepted_state_id": "f2e4f619eb910547fa069336e21f10d7e59378b70097e4eafb6d2ae060d4b685",
+        "candidates_id": "4decf352a011835218318db036f9fb2d895b1549300ca8a08529badc526e4b44"
+      },
+      "capabilities": {
+        "offline_exact_slot_planning": true,
+        "independent_hard_constraint_audit": true,
+        "accepted_readback_authenticated": false,
+        "current_lock_verified": false,
+        "platform_export_ready": false,
+        "conditional_remaining_evaluation": false,
+        "expected_payout": false,
+        "forecast_performance_verified": false
+      },
+      "warnings": [
+        "Accepted entries, rules, timing, permissions and player status are supplied declarations, not authenticated platform evidence.",
+        "This is a read-only plan at the supplied timestamp; it does not change entries or verify current locks.",
+        "The objective sums supplied inputs for unstarted players only; it is not a remaining-points forecast or contest return.",
+        "The search covers supplied options only. Original accepted rosters and earlier exports remain unchanged.",
+        "Late-swap platform export remains unavailable until actual acceptance and current locks are independently verified."
+      ],
+      "runtime_seconds": 0.015,
+      "plan_id": "92d37c3add5667fc4f5ab54271c1d7b71e8a2578bdd5290721422f33d119a4da"
+    }
+  }
+}
