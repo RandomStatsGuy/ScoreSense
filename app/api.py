@@ -74,6 +74,7 @@ from app.auth import (
 from app.dfs_results_routes import router as dfs_results_router
 from app.dfs_evidence_routes import router as dfs_evidence_router
 from app.dfs_shared_outcomes_routes import router as dfs_shared_outcomes_router
+from app.dfs_contest_research_routes import router as dfs_contest_research_router
 from src.auth.rate_limit import check_rate_limit
 from src.products.accuracy_report import load_accuracy_report
 from src.analytics.season_long_eval import load_season_long_report
@@ -240,6 +241,7 @@ app.include_router(support_router)
 app.include_router(dfs_results_router)
 app.include_router(dfs_evidence_router)
 app.include_router(dfs_shared_outcomes_router)
+app.include_router(dfs_contest_research_router)
 
 
 class ProjectionRequest(BaseModel):

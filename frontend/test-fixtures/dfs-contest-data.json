@@ -1,0 +1,1126 @@
+{
+  "collection_evaluation": {
+    "assumptions": [
+      {
+        "fees_cents": {
+          "denominator": "1",
+          "numerator": "100",
+          "unit": "USD_cents"
+        },
+        "field_draw_content_id": "38f13a450f07f7a3a09fef1c73be214f905b1b78ab2ef65dade65067a0020385",
+        "gross": {
+          "max_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "141132938243891001408",
+            "numerator": "42202566929371806368525",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "93",
+            "numerator": "17000",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "43",
+            "numerator": "8500",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 5.4542820442218
+        },
+        "injury_assumption": "Declared alternative opponent mix; football outcomes unchanged",
+        "lineups": [
+          {
+            "lineup_id": "collection:0",
+            "net": {
+              "max_cents": {
+                "denominator": "39",
+                "numerator": "6550",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "141132938243891001408",
+                "numerator": "17886392219869732069625",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "1",
+                "numerator": "150",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 1.281411055977746
+            }
+          },
+          {
+            "lineup_id": "collection:1",
+            "net": {
+              "max_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "1616",
+                "numerator": "116825",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 6.657194012777183
+            }
+          }
+        ],
+        "net": {
+          "max_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "141132938243891001408",
+            "numerator": "28089273104982706227725",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "93",
+            "numerator": "7700",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "43",
+            "numerator": "4200",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 5.4542820442218
+        },
+        "provider": "Synthetic sensitivity provider",
+        "sampled_finish_fractions": {
+          "cash": 1.0,
+          "first_place_finish": 1.0,
+          "first_place_tie": 1.0,
+          "net_positive": 1.0,
+          "sole_first": 0.0,
+          "top_k": 1.0
+        },
+        "scenario_id": "alternative-news"
+      },
+      {
+        "fees_cents": {
+          "denominator": "1",
+          "numerator": "100",
+          "unit": "USD_cents"
+        },
+        "field_draw_content_id": "ff5ec1b1b7086709ba8c428295f60f8950b2ad90421343f29dc373ca6c2502f1",
+        "gross": {
+          "max_cents": {
+            "denominator": "1",
+            "numerator": "1000",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "137268318515328",
+            "numerator": "59169725562011335",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "1",
+            "numerator": "680",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 14.869609234699947
+        },
+        "injury_assumption": "all participants available",
+        "lineups": [
+          {
+            "lineup_id": "collection:0",
+            "net": {
+              "max_cents": {
+                "denominator": "1",
+                "numerator": "950",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "137268318515328",
+                "numerator": "35519396612363935",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "1",
+                "numerator": "630",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 21.148524154583093
+            }
+          },
+          {
+            "lineup_id": "collection:1",
+            "net": {
+              "max_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "1616",
+                "numerator": "116825",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 6.657194012777183
+            }
+          }
+        ],
+        "net": {
+          "max_cents": {
+            "denominator": "1",
+            "numerator": "900",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "137268318515328",
+            "numerator": "45442893710478535",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "1",
+            "numerator": "580",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 14.869609234699947
+        },
+        "provider": "synthetic test provider",
+        "sampled_finish_fractions": {
+          "cash": 1.0,
+          "first_place_finish": 1.0,
+          "first_place_tie": 1.0,
+          "net_positive": 1.0,
+          "sole_first": 0.0,
+          "top_k": 1.0
+        },
+        "scenario_id": "baseline"
+      }
+    ],
+    "bank_id": "1c90980152f9dbee7ad607e304b71f666a4cc7f734bf1bca1b7a37a518f7101c",
+    "capabilities": {
+      "exact_conditional_cash_ties": true,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "full_field_multiplicity": true,
+      "joint_outcomes_calibrated": false,
+      "legal_declared_field": true,
+      "ownership_calibrated": false,
+      "platform_settlement_verified": false,
+      "portfolio_selection": false,
+      "untouched_evaluation_verified": false
+    },
+    "contest": {
+      "contest_id": "synthetic-contest",
+      "contest_type": "mini_max",
+      "entrant_count": 101
+    },
+    "contest_research_id": "81df7f1d14e8d64ae5da644556cd8a5f6f0179fa5de1f83ce326db428f13c9dd",
+    "context": {
+      "format": "classic",
+      "season": 2026,
+      "site": "draftkings",
+      "slate_id": "classic-fixture",
+      "sport": "NFL",
+      "week": 5
+    },
+    "draw_count": 128,
+    "opponent_entry_count": 99,
+    "own_entry_count": 2,
+    "runtime_seconds": 0.0930000000007567,
+    "schema_version": "dfs_contest_research_review_v1",
+    "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+    "semantics": "conditional_supplied_field_and_game_replay_not_forecast_ev",
+    "stream_manifest": {
+      "common_game_draws_across_assumptions": true,
+      "finalist_choice_independence_verified": false,
+      "full_opponent_count": true,
+      "game_draw_content_id": "9ad90e2172a316eda5c0ea01089e03922e1340f503d664bc35272214d8e18578",
+      "game_stream_id": "8631ca5b07c26c06496a98aa7351217d773462dd0092c63a9caaa9bd78f08491",
+      "purpose": "evaluation",
+      "seed": 0
+    },
+    "top_k": 10,
+    "warnings": [
+      "Results depend on supplied game and opponent-lineup weights; they are not forecast returns.",
+      "Every opponent entry is represented. Limited template coverage can still omit important competing constructions.",
+      "Ownership assumptions change the opponent field, never player performance.",
+      "Sampling error measures replay noise only; it excludes data, ownership and game-model uncertainty.",
+      "Source and tie-policy receipts are declarations; platform settlement and historical availability are unverified.",
+      "Purpose-separated streams do not prove that evaluation was untouched during lineup selection."
+    ]
+  },
+  "draw_count": 128,
+  "evaluation": {
+    "assumptions": [
+      {
+        "fees_cents": {
+          "denominator": "1",
+          "numerator": "100",
+          "unit": "USD_cents"
+        },
+        "field_draw_content_id": "38f13a450f07f7a3a09fef1c73be214f905b1b78ab2ef65dade65067a0020385",
+        "gross": {
+          "max_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "141132938243891001408",
+            "numerator": "42202566929371806368525",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "93",
+            "numerator": "17000",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "43",
+            "numerator": "8500",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 5.4542820442218
+        },
+        "injury_assumption": "Declared alternative opponent mix; football outcomes unchanged",
+        "lineups": [
+          {
+            "lineup_id": "current:0",
+            "net": {
+              "max_cents": {
+                "denominator": "39",
+                "numerator": "6550",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "141132938243891001408",
+                "numerator": "17886392219869732069625",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "1",
+                "numerator": "150",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 1.281411055977746
+            }
+          },
+          {
+            "lineup_id": "current:1",
+            "net": {
+              "max_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "1616",
+                "numerator": "116825",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 6.657194012777183
+            }
+          }
+        ],
+        "net": {
+          "max_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "141132938243891001408",
+            "numerator": "28089273104982706227725",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "93",
+            "numerator": "7700",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "43",
+            "numerator": "4200",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 5.4542820442218
+        },
+        "provider": "Synthetic sensitivity provider",
+        "sampled_finish_fractions": {
+          "cash": 1.0,
+          "first_place_finish": 1.0,
+          "first_place_tie": 1.0,
+          "net_positive": 1.0,
+          "sole_first": 0.0,
+          "top_k": 1.0
+        },
+        "scenario_id": "alternative-news"
+      },
+      {
+        "fees_cents": {
+          "denominator": "1",
+          "numerator": "100",
+          "unit": "USD_cents"
+        },
+        "field_draw_content_id": "ff5ec1b1b7086709ba8c428295f60f8950b2ad90421343f29dc373ca6c2502f1",
+        "gross": {
+          "max_cents": {
+            "denominator": "1",
+            "numerator": "1000",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "137268318515328",
+            "numerator": "59169725562011335",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "34000",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "1",
+            "numerator": "680",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 14.869609234699947
+        },
+        "injury_assumption": "all participants available",
+        "lineups": [
+          {
+            "lineup_id": "current:0",
+            "net": {
+              "max_cents": {
+                "denominator": "1",
+                "numerator": "950",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "137268318515328",
+                "numerator": "35519396612363935",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "1",
+                "numerator": "630",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 21.148524154583093
+            }
+          },
+          {
+            "lineup_id": "current:1",
+            "net": {
+              "max_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "mean_cents": {
+                "denominator": "1616",
+                "numerator": "116825",
+                "unit": "USD_cents"
+              },
+              "min_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p10_cents": {
+                "denominator": "1",
+                "numerator": "-50",
+                "unit": "USD_cents"
+              },
+              "p50_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "p90_cents": {
+                "denominator": "101",
+                "numerator": "11950",
+                "unit": "USD_cents"
+              },
+              "replay_standard_error_cents": 6.657194012777183
+            }
+          }
+        ],
+        "net": {
+          "max_cents": {
+            "denominator": "1",
+            "numerator": "900",
+            "unit": "USD_cents"
+          },
+          "mean_cents": {
+            "denominator": "137268318515328",
+            "numerator": "45442893710478535",
+            "unit": "USD_cents"
+          },
+          "min_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p10_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p50_cents": {
+            "denominator": "101",
+            "numerator": "23900",
+            "unit": "USD_cents"
+          },
+          "p90_cents": {
+            "denominator": "1",
+            "numerator": "580",
+            "unit": "USD_cents"
+          },
+          "replay_standard_error_cents": 14.869609234699947
+        },
+        "provider": "synthetic test provider",
+        "sampled_finish_fractions": {
+          "cash": 1.0,
+          "first_place_finish": 1.0,
+          "first_place_tie": 1.0,
+          "net_positive": 1.0,
+          "sole_first": 0.0,
+          "top_k": 1.0
+        },
+        "scenario_id": "baseline"
+      }
+    ],
+    "bank_id": "1c90980152f9dbee7ad607e304b71f666a4cc7f734bf1bca1b7a37a518f7101c",
+    "capabilities": {
+      "exact_conditional_cash_ties": true,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "full_field_multiplicity": true,
+      "joint_outcomes_calibrated": false,
+      "legal_declared_field": true,
+      "ownership_calibrated": false,
+      "platform_settlement_verified": false,
+      "portfolio_selection": false,
+      "untouched_evaluation_verified": false
+    },
+    "contest": {
+      "contest_id": "synthetic-contest",
+      "contest_type": "mini_max",
+      "entrant_count": 101
+    },
+    "contest_research_id": "81df7f1d14e8d64ae5da644556cd8a5f6f0179fa5de1f83ce326db428f13c9dd",
+    "context": {
+      "format": "classic",
+      "season": 2026,
+      "site": "draftkings",
+      "slate_id": "classic-fixture",
+      "sport": "NFL",
+      "week": 5
+    },
+    "draw_count": 128,
+    "opponent_entry_count": 99,
+    "own_entry_count": 2,
+    "runtime_seconds": 0.10999999999876309,
+    "schema_version": "dfs_contest_research_review_v1",
+    "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+    "semantics": "conditional_supplied_field_and_game_replay_not_forecast_ev",
+    "stream_manifest": {
+      "common_game_draws_across_assumptions": true,
+      "finalist_choice_independence_verified": false,
+      "full_opponent_count": true,
+      "game_draw_content_id": "9ad90e2172a316eda5c0ea01089e03922e1340f503d664bc35272214d8e18578",
+      "game_stream_id": "8631ca5b07c26c06496a98aa7351217d773462dd0092c63a9caaa9bd78f08491",
+      "purpose": "evaluation",
+      "seed": 0
+    },
+    "top_k": 10,
+    "warnings": [
+      "Results depend on supplied game and opponent-lineup weights; they are not forecast returns.",
+      "Every opponent entry is represented. Limited template coverage can still omit important competing constructions.",
+      "Ownership assumptions change the opponent field, never player performance.",
+      "Sampling error measures replay noise only; it excludes data, ownership and game-model uncertainty.",
+      "Source and tie-policy receipts are declarations; platform settlement and historical availability are unverified.",
+      "Purpose-separated streams do not prove that evaluation was untouched during lineup selection."
+    ]
+  },
+  "file": {
+    "contest_field": {
+      "contest": {
+        "contest_id": "synthetic-contest",
+        "contest_type": "mini_max",
+        "entrant_count": 101
+      },
+      "context": {
+        "format": "classic",
+        "season": 2026,
+        "site": "draftkings",
+        "slate_id": "classic-fixture",
+        "sport": "NFL",
+        "week": 5
+      },
+      "decision_at": "2026-10-12T12:00:00Z",
+      "evidence_scope": "synthetic",
+      "mode": "declared_legal_lineup_templates",
+      "scenarios": [
+        {
+          "injury_assumption": "all participants available",
+          "known_at": "2026-10-11T00:00:00Z",
+          "ownership": [
+            {
+              "player_id": "buf-qb",
+              "projected_fraction": null
+            },
+            {
+              "player_id": "mia-wr2",
+              "projected_fraction": 0.2
+            }
+          ],
+          "ownership_contest_type": "mini_max",
+          "ownership_units": "fraction",
+          "provider": "synthetic test provider",
+          "scenario_id": "baseline",
+          "source_ids": [
+            "synthetic-rosters"
+          ],
+          "split_id": "synthetic-construction-split",
+          "templates": [
+            {
+              "player_ids": [
+                "buf-qb",
+                "buf-rb",
+                "mia-rb",
+                "buf-wr1",
+                "buf-wr2",
+                "mia-wr1",
+                "buf-te",
+                "kc-te",
+                "buf-dst"
+              ],
+              "template_id": "whole-0",
+              "weight": 1
+            },
+            {
+              "player_ids": [
+                "buf-qb",
+                "buf-rb",
+                "mia-rb",
+                "mia-wr2",
+                "buf-wr2",
+                "mia-wr1",
+                "buf-te",
+                "kc-te",
+                "buf-dst"
+              ],
+              "template_id": "whole-1",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "injury_assumption": "Declared alternative opponent mix; football outcomes unchanged",
+          "known_at": "2026-10-11T00:00:00Z",
+          "ownership": [
+            {
+              "player_id": "buf-qb",
+              "projected_fraction": null
+            },
+            {
+              "player_id": "mia-wr2",
+              "projected_fraction": 0.2
+            }
+          ],
+          "ownership_contest_type": "mini_max",
+          "ownership_units": "fraction",
+          "provider": "Synthetic sensitivity provider",
+          "scenario_id": "alternative-news",
+          "source_ids": [
+            "synthetic-rosters"
+          ],
+          "split_id": "synthetic-construction-split",
+          "templates": [
+            {
+              "player_ids": [
+                "buf-qb",
+                "buf-rb",
+                "mia-rb",
+                "buf-wr1",
+                "buf-wr2",
+                "mia-wr1",
+                "buf-te",
+                "kc-te",
+                "buf-dst"
+              ],
+              "template_id": "whole-0",
+              "weight": 6
+            },
+            {
+              "player_ids": [
+                "buf-qb",
+                "buf-rb",
+                "mia-rb",
+                "mia-wr2",
+                "buf-wr2",
+                "mia-wr1",
+                "buf-te",
+                "kc-te",
+                "buf-dst"
+              ],
+              "template_id": "whole-1",
+              "weight": 1
+            }
+          ]
+        }
+      ],
+      "schema_version": "dfs_contest_field_v1",
+      "sources": [
+        {
+          "content_sha256": "8d32f4cb7086c261b81bd0e82a1f0515cde1304adfe308b6f61d393acfc8b2f4",
+          "definition": "declared synthetic legal whole rosters",
+          "evidence_scope": "synthetic",
+          "known_at": "2026-10-10T00:00:00Z",
+          "period": {
+            "end_week": 2,
+            "season": 2026,
+            "start_week": 1
+          },
+          "provider": "explicit synthetic test fixture",
+          "published_at": "2026-10-10T00:00:00Z",
+          "retrieved_at": "2026-10-12T00:00:00Z",
+          "rights": {
+            "display": true,
+            "external_model": false,
+            "hosted_ingestion": true,
+            "personal_analysis": true,
+            "redistribution": false,
+            "training": false
+          },
+          "source_id": "synthetic-rosters",
+          "uri": "fixture:contest-rosters"
+        }
+      ]
+    },
+    "payout_contract": {
+      "contest_id": "synthetic-contest",
+      "currency": "USD",
+      "entrant_count": 101,
+      "entry_fee_cents": 50,
+      "noncash_prizes": [],
+      "paid_places": 3,
+      "payout_tiers": [
+        {
+          "end_rank": 1,
+          "prize_cents": 10000,
+          "start_rank": 1
+        },
+        {
+          "end_rank": 2,
+          "prize_cents": 5000,
+          "start_rank": 2
+        },
+        {
+          "end_rank": 3,
+          "prize_cents": 2000,
+          "start_rank": 3
+        }
+      ],
+      "schema_version": "dfs_cash_payout_contract_v1",
+      "tie_policy": {
+        "cash_split": "occupied_rank_mean",
+        "rounding": "exact_fraction",
+        "source": {
+          "as_of": "2026-10-12T12:00:00Z",
+          "content_sha256": "8d32f4cb7086c261b81bd0e82a1f0515cde1304adfe308b6f61d393acfc8b2f4",
+          "source_uri": "fixture:contest-rosters"
+        }
+      },
+      "unpaid_ranks": "zero"
+    }
+  },
+  "purpose": "Engineering replay; no forecast or field calibration evidence.",
+  "seed": 0,
+  "summary": {
+    "bank_id": "1c90980152f9dbee7ad607e304b71f666a4cc7f734bf1bca1b7a37a518f7101c",
+    "capabilities": {
+      "exact_conditional_cash_ties": true,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "full_field_multiplicity": true,
+      "joint_outcomes_calibrated": false,
+      "legal_declared_field": true,
+      "ownership_calibrated": false,
+      "platform_settlement_verified": false,
+      "portfolio_selection": false,
+      "untouched_evaluation_verified": false
+    },
+    "content_id": "81df7f1d14e8d64ae5da644556cd8a5f6f0179fa5de1f83ce326db428f13c9dd",
+    "field": {
+      "capabilities": {
+        "calibrated_extreme_ranks": false,
+        "contest_specific_ownership_verified": false,
+        "expected_payout": false,
+        "explicit_duplicate_multiplicity": true,
+        "fitted_opponent_generator": false,
+        "forward_forecast": false,
+        "held_out_field_calibration": false,
+        "legal_full_size_field": true,
+        "ownership_sensitivity": true,
+        "prelock_source_verified": false
+      },
+      "content_id": "7f42115c239c8d0dca6e6eed480fe37ec4d5bba986e91aeeb19ff8133db47c57",
+      "contest": {
+        "contest_id": "synthetic-contest",
+        "contest_type": "mini_max",
+        "entrant_count": 101
+      },
+      "context": {
+        "format": "classic",
+        "season": 2026,
+        "site": "draftkings",
+        "slate_id": "classic-fixture",
+        "sport": "NFL",
+        "week": 5
+      },
+      "decision_at": "2026-10-12T12:00:00Z",
+      "evidence_scope": "synthetic",
+      "pool_player_count": 10,
+      "raw_input_content_id": "ca96a6d48a918bd02e3ee32379259cdf757319b8017faffad4c5f4a4fc440b0f",
+      "scenarios": [
+        {
+          "declared_template_count": 2,
+          "injury_assumption": "Declared alternative opponent mix; football outcomes unchanged",
+          "known_at": "2026-10-11T00:00:00Z",
+          "known_projected_ownership_count": 1,
+          "ownership_consistency": {
+            "known_players": 1,
+            "maximum_absolute_fraction_gap": 0.05714285714285716,
+            "mean_absolute_fraction_gap": 0.05714285714285716,
+            "missing_players": 9,
+            "pool_players_with_template_support": 10,
+            "semantics": "declared_ownership_vs_whole_template_probabilities_not_empirical_calibration"
+          },
+          "ownership_contest_type": "mini_max",
+          "ownership_units": "fraction",
+          "provider": "Synthetic sensitivity provider",
+          "scenario_id": "alternative-news",
+          "source_ids": [
+            "synthetic-rosters"
+          ],
+          "split_id": "synthetic-construction-split",
+          "unique_template_count": 2
+        },
+        {
+          "declared_template_count": 2,
+          "injury_assumption": "all participants available",
+          "known_at": "2026-10-11T00:00:00Z",
+          "known_projected_ownership_count": 1,
+          "ownership_consistency": {
+            "known_players": 1,
+            "maximum_absolute_fraction_gap": 0.55,
+            "mean_absolute_fraction_gap": 0.55,
+            "missing_players": 9,
+            "pool_players_with_template_support": 10,
+            "semantics": "declared_ownership_vs_whole_template_probabilities_not_empirical_calibration"
+          },
+          "ownership_contest_type": "mini_max",
+          "ownership_units": "fraction",
+          "provider": "synthetic test provider",
+          "scenario_id": "baseline",
+          "source_ids": [
+            "synthetic-rosters"
+          ],
+          "split_id": "synthetic-construction-split",
+          "unique_template_count": 2
+        }
+      ],
+      "schema_version": "dfs_contest_field_v1",
+      "semantics": "declared_legal_lineup_assumptions_not_calibrated_opponent_forecasts",
+      "sources": [
+        {
+          "content_sha256": "8d32f4cb7086c261b81bd0e82a1f0515cde1304adfe308b6f61d393acfc8b2f4",
+          "definition": "declared synthetic legal whole rosters",
+          "evidence_scope": "synthetic",
+          "known_at": "2026-10-10T00:00:00Z",
+          "period": {
+            "end_week": 2,
+            "season": 2026,
+            "start_week": 1
+          },
+          "provider": "explicit synthetic test fixture",
+          "published_at": "2026-10-10T00:00:00Z",
+          "retrieved_at": "2026-10-12T00:00:00Z",
+          "rights": {
+            "display": true,
+            "external_model": false,
+            "hosted_ingestion": true,
+            "personal_analysis": true,
+            "redistribution": false,
+            "training": false
+          },
+          "source_id": "synthetic-rosters",
+          "uri": "fixture:contest-rosters"
+        }
+      ],
+      "warnings": [
+        "Whole-lineup weights and ownership are supplied assumptions, not fitted or calibrated forecasts.",
+        "All opponents are represented, including repeated rosters. The declared templates may omit real opponent constructions.",
+        "Source times, usage rights and hashes are declarations, not proof of authenticity or pre-lock availability.",
+        "Ownership changes do not change football outcomes. Broad public ownership is not certified for this contest.",
+        "Separate random streams and split labels do not prove that evaluation inputs were untouched.",
+        "Research ranks and payouts under these assumptions do not establish future win probabilities or expected returns."
+      ]
+    },
+    "payout_contract": {
+      "contest_id": "synthetic-contest",
+      "currency": "USD",
+      "entrant_count": 101,
+      "entry_fee_cents": 50,
+      "noncash_prizes": [],
+      "paid_places": 3,
+      "payout_tiers": [
+        {
+          "end_rank": 1,
+          "prize_cents": 10000,
+          "start_rank": 1
+        },
+        {
+          "end_rank": 2,
+          "prize_cents": 5000,
+          "start_rank": 2
+        },
+        {
+          "end_rank": 3,
+          "prize_cents": 2000,
+          "start_rank": 3
+        }
+      ],
+      "schema_version": "dfs_cash_payout_contract_v1",
+      "tie_policy": {
+        "cash_split": "occupied_rank_mean",
+        "rounding": "exact_fraction",
+        "source": {
+          "as_of": "2026-10-12T12:00:00+00:00",
+          "content_sha256": "8d32f4cb7086c261b81bd0e82a1f0515cde1304adfe308b6f61d393acfc8b2f4",
+          "source_uri": "fixture:contest-rosters"
+        }
+      },
+      "unpaid_ranks": "zero"
+    },
+    "schema_version": "dfs_contest_research_preview_v1",
+    "semantics": "conditional_supplied_field_and_game_replay_not_forecast_ev",
+    "warnings": [
+      "Results depend on supplied game and opponent-lineup weights; they are not forecast returns.",
+      "Every opponent entry is represented. Limited template coverage can still omit important competing constructions.",
+      "Ownership assumptions change the opponent field, never player performance.",
+      "Sampling error measures replay noise only; it excludes data, ownership and game-model uncertainty.",
+      "Source and tie-policy receipts are declarations; platform settlement and historical availability are unverified.",
+      "Purpose-separated streams do not prove that evaluation was untouched during lineup selection."
+    ]
+  },
+  "synthetic": true,
+  "top_k": 10
+}

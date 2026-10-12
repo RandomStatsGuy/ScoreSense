@@ -4,7 +4,7 @@
   "source_sha256": "a0cd7f50eed4f3a45d0158f587c2d00c1003c1b5425845a9bcfe9aa693fca96c",
   "inventory_commit": "45694c9355cbd6559da79ef688c4a62e5b94283d",
   "as_of": "2026-10-12",
-  "status_note": "PR1 foundation, PR2 guardrails, PR3 workflow/recovery, PR4 historical research and PR5 user-approved guided A plus bounded shared-event review with versioned DraftKings scoring. Statistical calibration, source authenticity, untouched finalist evaluation and platform acceptance remain separate gates.",
+  "status_note": "PR1–5 foundations and guided A are retained. PR6 adds supplied legal correlated fields, ownership-assumption sensitivity, exact conditional cash ties and heldout field diagnostics. Actual field/ownership calibration, authenticated contracts, model promotion, untouched evaluation and platform acceptance remain separate gates.",
   "rules": [
     {
       "id": "GOV-01",
@@ -15,7 +15,7 @@
         "T05",
         "T35"
       ],
-      "remaining_work": "PR5 additionally versions declared scenario banks, event/scoring hashes, actual official rules receipts and purpose-separated random streams. Full production rule/model/field manifests and independent pre-lock source verification remain."
+      "remaining_work": "PR6 content-addresses supplied fields, raw inputs, cash policies and common game/field streams. Source authenticity, untouched evaluation and production model manifests remain unverified."
     },
     {
       "id": "DATA-01",
@@ -99,24 +99,24 @@
       "id": "OWN-01",
       "title": "Ownership is a field forecast, not player ability",
       "status": "partial",
-      "phase": "6",
+      "phase": "6–7",
       "acceptance_tests": [
         "T04",
         "T21",
         "T23"
       ],
-      "remaining_work": "Ownership imports exist; exact contest/provider/scenario forecast contract and calibration remain."
+      "remaining_work": "PR6 retains provider, audience, injury assumption, known-at and explicit fraction/unknown ownership; supplied-vs-template gaps and provider sensitivity are diagnostics. Actual contest-specific ownership archives, forecast/actual errors and calibration remain absent."
     },
     {
       "id": "OWN-02",
       "title": "Do not multiply marginal ownership into stack ownership",
-      "status": "planned_gated",
-      "phase": "6",
+      "status": "partial",
+      "phase": "6–7",
       "acceptance_tests": [
         "T21",
         "T22"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR6 samples whole legal weighted rosters with duplicate multiplicities, conditional stacks and bring-backs; no marginal ownership product. Heldout empirical calibration and fitted archive models remain unavailable."
     },
     {
       "id": "ROLE-01",
@@ -247,26 +247,26 @@
     {
       "id": "FIELD-01",
       "title": "Simulate legal, correlated opponent lineups",
-      "status": "planned_gated",
-      "phase": "6",
+      "status": "partial",
+      "phase": "6–7",
       "acceptance_tests": [
         "T21",
         "T22",
         "T23"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR6 bounded declared whole-lineup sampler and offline chronological player/pair/stack/salary/duplicate diagnostics are implemented. No actual permitted field archives were evaluated; a fitted calibrated generator and extreme-rank validation remain gated."
     },
     {
       "id": "PORT-01",
       "title": "Declare objective and price ties correctly",
-      "status": "planned_gated",
-      "phase": "7",
+      "status": "partial",
+      "phase": "6–7",
       "acceptance_tests": [
         "T22",
         "T23",
         "T36"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR6 exact conditional cash ties include all own/opponent multiplicities, declared rounding and fees once. Sampled top-finish coverage is separate. Forecast EV, portfolio objective/selection, risk constraints, authenticated settlement and noncash awards remain unavailable."
     },
     {
       "id": "PORT-02",
@@ -559,14 +559,14 @@
     {
       "id": "FIELD-02",
       "title": "Use the actual contest and correct field size",
-      "status": "planned_gated",
-      "phase": "6",
+      "status": "partial",
+      "phase": "6–7",
       "acceptance_tests": [
         "T21",
         "T22",
         "T23"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR6 binds fields/payouts to one exact contest and full entrant count, including own entries. Separate 10/101/100000-entry oracle tests confirm exact-count math. Automatic field-size uncertainty, real contest archive support and extreme-rank calibration remain open."
     },
     {
       "id": "PORT-05",
@@ -741,7 +741,7 @@
         "T23",
         "T34"
       ],
-      "remaining_work": "Compare & research retains historical opportunity/complete-roster alternatives and adds explicitly selected provided-game scenarios. Results label supplied-draw P10/P50/P90, zero/negative outcomes and paired differences with source/scoring/rights receipts under details. Future calibration, joint probability and expected payout remain unavailable."
+      "remaining_work": "PR6 shows concise conditional scenario net and finish samples in a closed optional panel; provenance, supplied-vs-template gaps and uncertainty stay disclosed. No calibrated EV or precision claim. Real-user task acceptance remains open."
     },
     {
       "id": "UX-05",
@@ -755,7 +755,7 @@
         "T32",
         "T34"
       ],
-      "remaining_work": "PR5 guided browser checks preserve worker recovery, failed build/import history, explicit replacement/undo and staged input keep/apply/undo. Scenario failed/mismatched/cancelled late responses retain the prior review; account/context changes reset selection and changed controls stale it. Client cancellation does not promise server work has stopped. Original incident files remain absent."
+      "remaining_work": "PR6 failed/invalid imports, API failures, cancelled/late responses and changed inputs retain last review; account changes clear research. Browser guards pass on synthetic production components, not live account certification."
     },
     {
       "id": "UX-06",
@@ -903,21 +903,21 @@
     },
     {
       "id": "T21",
-      "status": "planned_gated",
-      "remaining_work": "No validated contest-conditioned legal opponent-field model.",
-      "evidence": "Phase 6"
+      "status": "partial",
+      "remaining_work": "Declared legal correlated fields, exact full counts and offline heldout frequency diagnostics implemented. No real contest archives evaluated, fitted ownership/field calibration or automatic field-size uncertainty comparison; remains partial.",
+      "evidence": "tests/test_dfs_contest_field.py; tests/test_dfs_contest_field_eval.py; src/analytics/dfs_contest_field_eval.py"
     },
     {
       "id": "T22",
       "status": "partial",
-      "remaining_work": "Descriptive contest tie helper exists; joint own/opponent multiplicities, currency/noncash adapter remain.",
-      "evidence": "dfsContest.test.js; phase 6"
+      "remaining_work": "Exact USD conditional cash ties, all own/opponent multiplicities, unpaid ranks, per-entry rounding and fees once tested with independent expanded oracles. Authenticated platform contracts, real settlement and noncash tie adapter remain absent.",
+      "evidence": "tests/test_dfs_contest_payouts.py; tests/test_dfs_contest_research.py; tests/test_dfs_contest_research_api.py"
     },
     {
       "id": "T23",
       "status": "partial",
-      "remaining_work": "PR5 research explicitly separates verified site scoring/provided-ledger conservation from uncalibrated forecasts, source completeness, untouched finalist evaluation, field and payout support. It adds no EV objective or implicit fallback and leaves existing projection construction unchanged.",
-      "evidence": "tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; scripts/dev/dfs_flow_tasks.mjs; dfsSharedOutcomes.test.mjs"
+      "remaining_work": "Missing payouts/rights/context and unsupported noncash prevent conditional research. All forecast EV/calibration capabilities stay false; existing projection builder remains unchanged, with no implicit objective fallback.",
+      "evidence": "tests/test_dfs_contest_research_api.py; frontend/src/dfsContestResearch.test.mjs; scripts/dev/dfs_contest_tasks.mjs"
     },
     {
       "id": "T24",
@@ -993,9 +993,9 @@
     },
     {
       "id": "T36",
-      "status": "planned_gated",
-      "remaining_work": "No validated contest-aware objective/risk/top-finish selector exists.",
-      "evidence": "Phases 6/7"
+      "status": "partial",
+      "remaining_work": "PR6 conditional fixed-set replay separates scenario net distributions from sampled top-finish coverage. Phase7 selection/objectives, defined risk limits and untouched forward portfolio evaluation remain gated.",
+      "evidence": "tests/test_dfs_contest_research.py; tests/test_dfs_contest_payouts.py; docs/reviews/DFS_CONTEST_RESEARCH_CONTRACT.md"
     }
   ],
   "phase2": {
@@ -1627,7 +1627,7 @@
         "layout_cases_passed": 14,
         "layout_audit_tests_passed": 25,
         "workflow_smoke_passed": true,
-        "production_build_seconds": 7.30,
+        "production_build_seconds": 7.3,
         "receipt": "docs/reviews/dfs-shared-outcomes/spacing-verification.json",
         "scope": "Aligned Build controls, container-width stacking, longest-goal and expanded-Advanced checks in both themes, plus the existing 390 dark sealed-export/worker-recovery smoke. No fresh broad-suite, live account or unrelated-page verification."
       },
@@ -1657,5 +1657,98 @@
       "production_review": "docs/reviews/dfs-shared-outcomes/README.md"
     },
     "review": "docs/reviews/dfs-shared-outcomes/README.md"
+  },
+  "phase6": {
+    "baseline_commit": "0ca877b4913dca8351da9db08304a0781dd4b2b7",
+    "scope": "Read-only supplied contest field/cash research inside guided A; no fitted ownership, calibrated EV, portfolio selector, entries or settlement writes.",
+    "capabilities": {
+      "legal_declared_field": true,
+      "full_field_multiplicity": true,
+      "exact_conditional_cash_ties": true,
+      "ownership_calibrated": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "platform_settlement_verified": false,
+      "portfolio_selection": false
+    },
+    "verification": {
+      "affected_backend": {
+        "passed": 928,
+        "seconds": 65.49,
+        "warnings": 1,
+        "log": "outputs/dfs-phase6-release-python.log"
+      },
+      "final_feature_and_product_policy": {
+        "passed": 290,
+        "seconds": 7.90,
+        "warnings": 1,
+        "log": "outputs/dfs-phase6-release-targeted.log",
+        "separate_run_not_added_to_broad_count": true
+      },
+      "frontend_scoped": {
+        "passed": 280,
+        "seconds": 12.252,
+        "log": "outputs/dfs-phase6-frontend-dfs-final.log"
+      },
+      "browser": {
+        "receipt": "docs/reviews/dfs-contest-research/browser-verification.json",
+        "synthetic": true,
+        "live_account_or_platform_verified": false,
+        "cases": 6,
+        "layout_states": 16,
+        "guards": 10,
+        "widths": [
+          320,
+          390,
+          1280
+        ],
+        "themes": [
+          "dark",
+          "light"
+        ]
+      },
+      "engineering": {
+        "strict_request": "docs/reviews/dfs-contest-research/engine-request-verification.json",
+        "core_repeats": "docs/reviews/dfs-contest-research/engine-core-verification.json",
+        "synthetic": true,
+        "calibration_evidence": false
+      },
+      "frontend_full": {
+        "total": 1210,
+        "passed": 1207,
+        "known_baseline_failures": 3,
+        "seconds": 14.128,
+        "log": "outputs/dfs-phase6-frontend-final.log",
+        "failures": [
+          "auctionAwardContractLabel wording",
+          "accuracy-null copy",
+          "My team banner regex"
+        ]
+      },
+      "build": {
+        "passed": true,
+        "seconds": 7.27,
+        "log": "outputs/dfs-phase6-build-final.log",
+        "existing_bundle_warning": true
+      },
+      "existing_flow_smoke": {
+        "passed": true,
+        "width": 390,
+        "theme": "dark",
+        "log": "outputs/dfs-phase6-existing-flow-smoke.log"
+      }
+    },
+    "whole_backend_gate": {
+      "run_for_phase6": false,
+      "reason": "Affected DFS/lineup/Vegas and new research API suites were run. No fresh whole-repository result or ready-for-review CI gate is claimed."
+    },
+    "remaining": [
+      "Permitted actual full-field and projected/actual ownership archives",
+      "Fitted contest-conditioned generator and heldout extreme-rank calibration",
+      "Authenticated real payout/rounding contracts and noncash adapters",
+      "Automatic field-size uncertainty scenarios",
+      "Calibrated shared football outcomes and untouched forward evaluation",
+      "Phase7 portfolio objectives/selection and Phase8 accepted-entry late swap"
+    ]
   }
 }

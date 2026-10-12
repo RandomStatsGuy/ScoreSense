@@ -31,11 +31,23 @@ Original `scoresense-portfolio-rescue.json`, `incident_audit.json`, paid source 
 | 3 | Integrated progressive workflow, accumulated audit, explicit replacements/undo, capability/error states and versioned input updates | Implemented scope in third dependent draft; final verification recorded below. Role/statistical recommendations remain gated. |
 | 4 | Provenance-aware opportunity/game evidence, inherited pace baseline and challenger comparisons | Scoped diagnostic implementation and chronological retrospective evaluation in PR4; no fitted forecast promotion. |
 | 5 | Coherent shared outcomes, verified site scoring and specialist distributions | Scoped provided-ledger scoring and bounded scenario research implemented in PR5; production calibration and source-completeness gates remain. |
-| 6 | Contest-conditioned legal field, ownership sensitivity, exact payouts/ties | Gated pending permitted full-field/ownership archives and actual contest payout contracts. |
+| 6 | Contest-conditioned legal field, ownership sensitivity, exact payouts/ties | Scoped declared-field research and exact cash math in PR6. Actual full-field calibration, verified contracts, noncash settlement and field-size uncertainty remain gated. |
 | 7 | Contest-aware joint portfolio evaluation and distinct risk/top-finish objectives | Gated pending untouched forward evaluation and comparable-budget baseline. |
 | 8 | Accepted-entry late swap preserving exact started slots | Separately gated; verified accepted state/current locks and end-to-end tests required. |
 
 No later stage is represented as delivered by PR1. Missing statistical/data dependencies must gate unsupported claims while independent engineering and design continue.
+
+## Sixth PR: supplied contest fields and exact cash ties
+
+This draft starts from merged phase-5 baseline `0ca877b4913dca8351da9db08304a0781dd4b2b7`. Optional **Contest scenarios** sits closed inside Shared-game scenarios and retains the approved Build → Review → Download flow. Import → Preview → Use these assumptions → Compare is explicit. Concise net summaries and sampled top-finish coverage use the same complete lineups and common game outcomes. Failure, cancellation, account changes and stale input handling retain their existing safeguards. No optimizer, entry, saved-history, result-ledger or live-lineup write occurs.
+
+The opponent sampler uses supplied weighted whole legal Classic rosters, keeping conditional stacks, bring-backs and duplicated constructions together. Four declared provider/news assumptions and up to 500 unique templates each are bounded to an exact total contest size of at most 100,000 entries. Multinomial multiplicities represent every opponent; no small-field rank multiplier or product of marginal player ownership is used. Unknown ownership remains missing, public ownership audiences remain distinct, and supplied-vs-template ownership gaps are diagnostic. This is a declared discrete field, not a fitted opponent model. Lazy field sampling avoids retaining every full-size draw.
+
+A complete supplied USD cash schedule explicitly covers ranks 1 through paid_places, with declared zero outside that range. Exact decimal scores determine ties without epsilon. All own entries and opponent multiplicities share the occupied rank-prize pool; per-entry declared exact/floor/half-up handling precedes a single fee deduction. Rational cents survive personal downloads. Noncash awards are rejected. A matching admitted payout source receipt and decision-time check do not authenticate a real platform contract or settlement policy.
+
+The offline field diagnostic separates construction and held-out blocks, checks declared freeze/source times and distinguishes partial samples from complete contest exports. It reports entry-weighted player/pair, QB-attachment, bring-back, salary and repeated-construction differences. No permitted actual contest/ownership archive or authenticated payout contract was supplied for this phase. Therefore T21 remains partial, no historical calibration result is claimed, and all forecast EV, calibrated extreme-rank, untouched finalist and production settlement capabilities remain false. Field-size sensitivity currently requires separate exact-count packages; automatic count-uncertainty comparison remains open. Phase 7 selection/objectives and phase 8 accepted-entry late swap remain separate work.
+
+Actual checks, responsive screenshots, synthetic maximum-bound measurements and remaining gates are recorded in [the phase-6 review](reviews/dfs-contest-research/README.md). Earlier phase verification below belongs to its own commits and is not relabeled as phase-6 evidence.
 
 ## Fifth PR: guided workflow and provided shared outcomes
 
@@ -131,8 +143,8 @@ Existing browser infrastructure: `scripts/dev/dfs_portfolio_browser.mjs` renders
 | PACE-03 | Separate volume, tempo, dropbacks and scoring | partial | 4 | T03, T17, T18 |
 | PACE-04 | Define a coherent count system | implemented_scoped | 4 | T18 |
 | MARKET-01 | Timestamp movement without inventing causes | partial | 4 | T05, T17, T19 |
-| OWN-01 | Ownership is a field forecast, not player ability | partial | 6 | T04, T21, T23 |
-| OWN-02 | Do not multiply marginal ownership into stack ownership | planned_gated | 6 | T21, T22 |
+| OWN-01 | Ownership is a field forecast, not player ability | partial | 6–7 | T04, T21, T23 |
+| OWN-02 | Do not multiply marginal ownership into stack ownership | partial | 6–7 | T21, T22 |
 | ROLE-01 | Project the role before the matchup | partial | 4,5 | T03, T18, T19 |
 | ROLE-02 | Value opportunities by location and scoring | partial | 4,5 | T02, T18, T19 |
 | ROLE-03 | Pool small samples and honor structural changes | partial | 4,5 | T05, T19 |
@@ -144,8 +156,8 @@ Existing browser infrastructure: `scripts/dev/dfs_portfolio_browser.mjs` renders
 | STACK-03 | Compare complete alternatives, not isolated players | partial | 2,4,5 | T20, T36 |
 | SIM-01 | Generate coherent joint game outcomes | partial | 5 | T18, T19, T20 |
 | SIM-02 | Do not add individual ceilings or assume normal tails | partial | 5 | T04, T19, T20 |
-| FIELD-01 | Simulate legal, correlated opponent lineups | planned_gated | 6 | T21, T22, T23 |
-| PORT-01 | Declare objective and price ties correctly | planned_gated | 7 | T22, T23, T36 |
+| FIELD-01 | Simulate legal, correlated opponent lineups | partial | 6–7 | T21, T22, T23 |
+| PORT-01 | Declare objective and price ties correctly | partial | 6–7 | T22, T23, T36 |
 | PORT-02 | Audit shared assumptions, not just shared names | partial | 2,3,7 | T11, T13, T36 |
 | PORT-03 | Three-to-four-game focus is a configuration, not a law | partial | 2,4 | T14, T20 |
 | VALID-01 | Test forward and remove layers one at a time | partial | 4–7 | T05, T19, T20 |
@@ -170,7 +182,7 @@ Existing browser infrastructure: `scripts/dev/dfs_portfolio_browser.mjs` renders
 | STACK-04 | Block QB versus opposing DST by default | partial | 1 initial / 2 complete | T01, T08 |
 | STACK-05 | Make group and bring-back semantics exact | implemented_scoped | 2 | T07, T14, T35 |
 | SIM-03 | Derive specialist outcomes from shared events | partial | 5 | T02, T18, T19 |
-| FIELD-02 | Use the actual contest and correct field size | planned_gated | 6 | T21, T22, T23 |
+| FIELD-02 | Use the actual contest and correct field size | partial | 6–7 | T21, T22, T23 |
 | PORT-05 | Native global minimum, target and maximum exposure | partial | 1 initial / 2 complete | T10, T12, T34, T35 |
 | PORT-06 | Expose and constrain pairs, cores and shared assumptions | partial | 1 initial / 2 complete | T11, T15, T36 |
 | PORT-07 | Allow full salary without requiring full spend | partial | 2,3 | T16, T20 |
@@ -215,9 +227,9 @@ Partial coverage does not mark the whole T-case passed. The JSON registry record
 | T18 | partial | PR5 supplied normalized game ledgers conserve plays/dropbacks/throws/targets/completions/pass-receive yards and TDs, residual actors and opposing sacks/turnovers; tries/kneels/spikes retain explicit units. Unsupported rare plays reject. Complete real-provider normalization and independently verified ledger coverage remain. `tests/test_dfs_event_scoring.py; tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; docs/reviews/DFS_CLASSIC_SCORING_CONTRACT.md` |
 | T19 | partial | PR5 actual 2024 chronological count-profile diagnostic measures marginal CRPS/coverage/zero mass and paired/independent home-away covariance/tails with week-block uncertainty. It does not calibrate player fantasy points, injury/availability, DST or whole-lineup tails; multi-season pre-lock validation remains. `tests/test_dfs_shared_outcomes_eval.py; docs/reviews/DFS_SHARED_OUTCOMES_EVALUATION.md` |
 | T20 | partial | PR5 purpose-separated reproducible generation/selection/evaluation streams provide common independent draws across supplied finalists. Separate domains can sample the same outcomes; manifests cannot prove no earlier evaluation inspection. Untouched production candidate/finalist selection remains unverified. `tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; scripts/dev/verify_dfs_shared_outcomes.py; dfsSharedOutcomes.test.mjs` |
-| T21 | planned_gated | No validated contest-conditioned legal opponent-field model. `Phase 6` |
-| T22 | partial | Descriptive contest tie helper exists; joint own/opponent multiplicities, currency/noncash adapter remain. `dfsContest.test.js; phase 6` |
-| T23 | partial | PR5 research explicitly separates verified site scoring/provided-ledger conservation from uncalibrated forecasts, source completeness, untouched finalist evaluation, field and payout support. It adds no EV objective or implicit fallback and leaves existing projection construction unchanged. `tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; scripts/dev/dfs_flow_tasks.mjs; dfsSharedOutcomes.test.mjs` |
+| T21 | partial | Declared legal correlated fields, exact full counts and offline heldout frequency diagnostics implemented. No real contest archives evaluated, fitted ownership/field calibration or automatic field-size uncertainty comparison; remains partial. `tests/test_dfs_contest_field.py; tests/test_dfs_contest_field_eval.py; src/analytics/dfs_contest_field_eval.py` |
+| T22 | partial | Exact USD conditional cash ties, all own/opponent multiplicities, unpaid ranks, per-entry rounding and fees once tested with independent expanded oracles. Authenticated platform contracts, real settlement and noncash tie adapter remain absent. `tests/test_dfs_contest_payouts.py; tests/test_dfs_contest_research.py; tests/test_dfs_contest_research_api.py` |
+| T23 | partial | Missing payouts/rights/context and unsupported noncash prevent conditional research. All forecast EV/calibration capabilities stay false; existing projection builder remains unchanged, with no implicit objective fallback. `tests/test_dfs_contest_research_api.py; frontend/src/dfsContestResearch.test.mjs; scripts/dev/dfs_contest_tasks.mjs` |
 | T24 | partial | Latest returned solver status, requested/selected/unique/candidate counts and provided runtime/bounds/gap are disclosed; absent values stay unavailable. Client build state distinguishes running/cancelled/failed/partial/complete. Full numerical-scaling evidence remains. `dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; tests/test_dfs_portfolio_selection.py; scripts/dev/dfs_flow_tasks.mjs` |
 | T25 | partial | Existing assignment tests; PR1 pure deterministic 150-entry serializer/recovery coverage. `dfsPortfolio.test.js; dfsEntryRecovery.test.js (new); dfs_portfolio_browser.mjs; scripts/dev/dfs_flow_tasks.mjs` |
 | T26 | partial | PR1 robust headers/preamble/ragged/quoted metadata conversion. `dfsEntryRecovery.test.js (new)` |
@@ -230,4 +242,4 @@ Partial coverage does not mark the whole T-case passed. The JSON registry record
 | T33 | partial | Approved A production Build/Review/Download and scenario review pass actual-DOM-theme task/layout checks at390/768/1280/1440/320 in dark/light, plus keyboard/focus and preserved advanced/research flows. Final inspected screenshots use synthetic inputs. Full accessibility certification and unrelated contexts remain unclaimed. `dfs_evidence_tasks.mjs; dfs_workflow_tasks.mjs; layout_audit.mjs; docs/reviews/dfs-opportunity-evidence/README.md; scripts/dev/dfs_flow_tasks.mjs` |
 | T34 | partial | Approved A gives count/goal/Build first, closed optional controls, explicit Save this set, Review and Download. Both normal 150-entry flows preserve exact worker recovery and sealed CSV/unrelated rows. Historical and supplied-scenario research remain optional and frozen. Calibrated recommendations and contest-aware objectives remain unavailable. `dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; docs/reviews/dfs-opportunity-evidence/README.md; scripts/dev/dfs_flow_tasks.mjs` |
 | T35 | partial | PR5 research records raw/event/bank/pool/scoring identities, the actual official rules receipt and effective seed/purpose streams, and echoes selected bank/input IDs. Saved build history stays separate; complete production model/field manifests and archived live source proof remain. `tests/test_dfs_shared_outcomes.py; tests/test_dfs_shared_outcomes_api.py; scripts/dev/verify_dfs_shared_outcomes.py; scripts/dev/dfs_flow_tasks.mjs; dfsSharedOutcomes.test.mjs` |
-| T36 | planned_gated | No validated contest-aware objective/risk/top-finish selector exists. `Phases 6/7` |
+| T36 | partial | PR6 conditional fixed-set replay separates scenario net distributions from sampled top-finish coverage. Phase7 selection/objectives, defined risk limits and untouched forward portfolio evaluation remain gated. `tests/test_dfs_contest_research.py; tests/test_dfs_contest_payouts.py; docs/reviews/DFS_CONTEST_RESEARCH_CONTRACT.md` |
