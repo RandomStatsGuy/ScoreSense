@@ -48,7 +48,7 @@ export default function DfsPortfolioReview({ b, audit, disabled = false }) {
   const [supportIds, setSupportIds] = useState([]), [supportPage, setSupportPage] = useState(0);
   const [batchId, setBatchId] = useState(""), [mode, setMode] = useState("batch"), [originalIndex, setOriginalIndex] = useState(0), [candidateIndex, setCandidateIndex] = useState(0);
   const [preview, setPreview] = useState(null), [error, setError] = useState("");
-  const previewButton = useRef(null), groupsDisclosure = useRef(null);
+  const previewButton = useRef(null), groupsDisclosure = useRef(null), replacementDisclosure = useRef(null);
   const catalog = useMemo(() => [...new Map(b.portfolio.flatMap(batch => batch.salaryCatalog.filter(p => p.salary != null).map(p => [p.player_id, p]))).values()], [b.portfolio]);
   const names = ids => ids.map(id => catalog.find(p => p.player_id === id)?.Player || id).join(" + ");
   const actualPlayers = new Map(audit.players.map(p => [p.id, p]));
@@ -90,13 +90,26 @@ export default function DfsPortfolioReview({ b, audit, disabled = false }) {
     [C.maxOverlap, preview.before.structure.overlap.max, preview.after.structure.overlap.max],
   ];
   return <div className="dfw-portfolio-review" data-testid="dfs-portfolio-review">
-    <h3>{C.title}</h3><p className="dfw-note">{C.help}</p>
+    <h3>{C.title}</h3>
     {!!b.portfolio.length && <>
-      <div className="dfw-review-summary"><p>{C.projections}: <strong>{number(structure.projectionSum)}</strong></p>
-        <p>{C.salary}: <strong>{structure.salary ? C.range(structure.salary.min, structure.salary.max, structure.salary.mean) : "—"}</strong></p>
-        <p>{C.overlaps}: <strong>{number(structure.overlap.max)}</strong></p></div>
-      <p className="dfw-note">{C.projectionHelp}</p>
-      {!structure.overlap.evaluated && <p className="dfw-note">{C.overlapUnavailable}</p>}
+      <dl className="dfw-review-summary">
+        <div><dt>{C.unique}</dt><dd>{number(audit.unique)}</dd></div>
+        <div><dt>{C.salary}</dt><dd>{structure.salary ? C.salaryRange(structure.salary.min, structure.salary.max) : "—"}</dd></div>
+        {audit.total > 1 && <div><dt>{C.overlaps}</dt><dd>{structure.overlap.evaluated ? number(structure.overlap.max) : C.unknown}</dd></div>}
+      </dl>
+      <details className="dfw-review-sources"><summary>{C.sources}</summary><div className="dfw-guardrail-body">
+        <p className="dfw-note">{C.help}</p>
+        <p>{C.projections}: <strong>{number(structure.projectionSum)}</strong></p>
+        <p className="dfw-note">{C.projectionHelp}</p>
+        {structure.salary && <p>{C.salaryDetails}: {C.range(structure.salary.min, structure.salary.max, structure.salary.mean)}</p>}
+        {!structure.overlap.evaluated && <p className="dfw-note">{C.overlapUnavailable}</p>}
+        <BoundedList rows={b.portfolio} size={5} render={batch => {
+          const usedIds = new Set(batch.lineups.flatMap(entry => entry.lineup.map(player => player.player_id)));
+          const sources = [...new Set([...usedIds].map(id => batch.settings.projection_sources?.[id]).filter(source => typeof source === "string" && source.trim()))];
+          return <li key={batch.id}><strong>{batch.label}</strong><span>{C.savedInputs}: {batch.settings.snapshot_at || C.unknown}</span>
+            <span>{C.recordedSources}: {sources.length ? sources.join(" · ") : C.unknown}</span></li>;
+        }} />
+      </div></details>
       <details><summary>{C.playerBounds}</summary><div className="dfw-guardrail-body">
         <label className="dfw-field"><span>{C.playerSearch}</span><input type="text" value={query} onChange={e => { setQuery(e.target.value); setPlayerPage(0); }} /></label>
         <div className="dfw-table-scroll"><table className="dfw-table dfw-portfolio-audit dfw-card-table dfw-review-player-bounds"><thead><tr>
@@ -146,10 +159,12 @@ export default function DfsPortfolioReview({ b, audit, disabled = false }) {
         {!support.total && <p className="dfw-note">{C.emptySupport}</p>}
         <ul className="dfw-review-list">{support.rows.map(row => <li key={`${row.batchId}:${row.lineupIndex}`}><div>
           <strong>{C.lineup(row.label, row.lineupIndex)}</strong><p className="dfw-note">{row.entry.lineup.map(player => `${player.slot} ${player.player}`).join(" · ")}</p></div>
-          <button type="button" disabled={disabled} onClick={() => { setBatchId(row.batchId); setOriginalIndex(row.lineupIndex); setMode("lineup"); setPreview(null); previewButton.current?.scrollIntoView({ block: "center" }); previewButton.current?.focus(); }}>{C.reviewLineup}</button></li>)}</ul>
+          <button type="button" disabled={disabled} onClick={() => { setBatchId(row.batchId); setOriginalIndex(row.lineupIndex); setMode("lineup"); setPreview(null); if (replacementDisclosure.current) replacementDisclosure.current.open = true; previewButton.current?.scrollIntoView({ block: "center" }); previewButton.current?.focus(); }}>{C.reviewLineup}</button></li>)}</ul>
         <Pager page={visibleSupportPage} pages={Math.ceil(support.total / 5)} onChange={setSupportPage} />
       </section>}
-      <section className="dfw-review-controls"><h4>{C.replacement}</h4><p className="dfw-note">{C.replacementHelp}</p>
+      {b.canUndoPortfolioReplacement && <button type="button" disabled={disabled} onClick={b.undoPortfolioReplacement}>{C.undo}</button>}
+      <details ref={replacementDisclosure} className="dfw-replacement-details"><summary>{C.replacement}</summary>
+      <section className="dfw-review-controls"><p className="dfw-note">{C.replacementHelp}</p>
         <div className="dfw-settings-grid"><HubFilterMenu label={C.batch} value={selectedBatch?.id || ""} options={b.portfolio.map(batch => ({ id: batch.id, label: batch.label }))}
           disabled={disabled} onChange={changeSelection(setBatchId)} />
           <HubFilterMenu label={C.mode} value={mode} options={C.modes} disabled={disabled} onChange={changeSelection(setMode)} />
@@ -159,9 +174,8 @@ export default function DfsPortfolioReview({ b, audit, disabled = false }) {
               disabled={disabled || !b.currentBuild} onChange={changeSelection(value => setCandidateIndex(Number(value)))} /></>}
         </div>
         {!b.currentBuild && <p className="dfw-note">{C.noCandidate}</p>}
-        <div className="dfw-plan-actions"><button ref={previewButton} type="button" disabled={disabled || !b.currentBuild || !selectedBatch} onClick={beginPreview}>{mode === "lineup" ? C.previewLineup : C.preview}</button>
-          {b.canUndoPortfolioReplacement && <button type="button" disabled={disabled} onClick={b.undoPortfolioReplacement}>{C.undo}</button>}</div>
-      </section>
+        <div className="dfw-plan-actions"><button ref={previewButton} type="button" disabled={disabled || !b.currentBuild || !selectedBatch} onClick={beginPreview}>{mode === "lineup" ? C.previewLineup : C.preview}</button></div>
+      </section></details>
       {preview && <section className="dfw-global-verdict" data-testid="dfs-portfolio-replacement-preview" aria-label={C.previewTitle}>
         <h4>{C.previewTitle}</h4><p>{C.identities(preview.delta.unchangedLineups, preview.delta.removedLineups, preview.delta.addedLineups)}</p>
         <p>{C.approvedLocks}: {preview.approvedLocks.length ? names(preview.approvedLocks) : C.noLocks}</p>

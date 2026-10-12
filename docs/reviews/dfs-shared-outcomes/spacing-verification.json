@@ -1,0 +1,337 @@
+{
+  "scope": "Isolated production DFS fixture with synthetic inputs; no live services or accounts.",
+  "full_guided_gate_commit": "5618918503e93c87fa1514a9f48934382b178cdc",
+  "layout_cases": [
+    {
+      "width": 1280,
+      "theme": "light",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        451.390625,
+        451.390625,
+        451.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        451.390625,
+        451.390625,
+        451.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        446.390625,
+        446.390625,
+        446.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        446.390625,
+        446.390625,
+        446.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 950,
+      "theme": "light",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        446.390625,
+        527.390625,
+        583.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 950,
+      "theme": "dark",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        446.390625,
+        527.390625,
+        583.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 900,
+      "theme": "light",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        495.390625,
+        495.390625,
+        495.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 900,
+      "theme": "dark",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        495.390625,
+        495.390625,
+        495.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        483.390625,
+        483.390625,
+        483.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        483.390625,
+        483.390625,
+        483.390625
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        649.78125,
+        730.78125,
+        786.78125
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        649.78125,
+        730.78125,
+        786.78125
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        677.78125,
+        758.78125,
+        814.78125
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "passed": true,
+      "control_heights": [
+        44,
+        44,
+        44
+      ],
+      "control_bottom_edges": [
+        677.78125,
+        758.78125,
+        814.78125
+      ],
+      "states_passed": [
+        "build",
+        "long-goal",
+        "advanced"
+      ],
+      "failed_checks": []
+    }
+  ],
+  "layout_audit_tests": {
+    "passed": 25,
+    "failed": 0,
+    "command": "node --test scripts/dev/layout_audit.test.mjs"
+  },
+  "workflow_smoke": {
+    "command": "node scripts/dev/dfs_flow_tasks.mjs --smoke",
+    "passed": true,
+    "width": 390,
+    "scope": "Build/review/download, sealed CSV, unrelated entry preservation and exact worker recovery.",
+    "theme": "dark"
+  },
+  "production_build": {
+    "warning": "Existing shared bundle above 500kB.",
+    "passed": true,
+    "seconds": 7.3
+  },
+  "unchecked": [
+    "Live accounts and provider/platform integration",
+    "Unrelated Fantasy and Projections pages",
+    "Fresh broad frontend/backend suite after this spacing-only correction"
+  ],
+  "audited_rules": [
+    "bars",
+    "collisions",
+    "control-rows",
+    "form-controls",
+    "grids",
+    "gutters",
+    "menus",
+    "overflow",
+    "primaries",
+    "selects",
+    "tables",
+    "targets",
+    "type"
+  ]
+}

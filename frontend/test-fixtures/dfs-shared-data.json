@@ -1,0 +1,1636 @@
+{
+  "built_lineups": [
+    {
+      "lineup": [
+        {
+          "ceiling": 15.0,
+          "dfs_id": "1",
+          "floor": 5.0,
+          "player": "Synthetic BUF-QB",
+          "player_id": "buf-qb",
+          "position": "QB",
+          "proj": 10.0,
+          "salary": 5000,
+          "slot": "QB",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "2",
+          "floor": 5.0,
+          "player": "Synthetic BUF-RB",
+          "player_id": "buf-rb",
+          "position": "RB",
+          "proj": 10.1,
+          "salary": 5000,
+          "slot": "RB1",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "3",
+          "floor": 5.0,
+          "player": "Synthetic MIA-RB",
+          "player_id": "mia-rb",
+          "position": "RB",
+          "proj": 10.2,
+          "salary": 5000,
+          "slot": "RB2",
+          "team": "MIA"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "4",
+          "floor": 5.0,
+          "player": "Synthetic BUF-WR1",
+          "player_id": "buf-wr1",
+          "position": "WR",
+          "proj": 10.3,
+          "salary": 5000,
+          "slot": "WR1",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "5",
+          "floor": 5.0,
+          "player": "Synthetic BUF-WR2",
+          "player_id": "buf-wr2",
+          "position": "WR",
+          "proj": 10.4,
+          "salary": 5000,
+          "slot": "WR2",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "6",
+          "floor": 5.0,
+          "player": "Synthetic MIA-WR1",
+          "player_id": "mia-wr1",
+          "position": "WR",
+          "proj": 10.5,
+          "salary": 5000,
+          "slot": "WR3",
+          "team": "MIA"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "7",
+          "floor": 5.0,
+          "player": "Synthetic BUF-TE",
+          "player_id": "buf-te",
+          "position": "TE",
+          "proj": 10.6,
+          "salary": 5000,
+          "slot": "TE",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "8",
+          "floor": 5.0,
+          "player": "Synthetic KC-TE",
+          "player_id": "kc-te",
+          "position": "TE",
+          "proj": 10.7,
+          "salary": 5000,
+          "slot": "FLEX",
+          "team": "KC"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "9",
+          "floor": 5.0,
+          "player": "Synthetic BUF-DST",
+          "player_id": "buf-dst",
+          "position": "DST",
+          "proj": 10.8,
+          "salary": 5000,
+          "slot": "DST",
+          "team": "BUF"
+        }
+      ],
+      "total_points": 93.6,
+      "total_salary": 45000
+    },
+    {
+      "lineup": [
+        {
+          "ceiling": 15.0,
+          "dfs_id": "1",
+          "floor": 5.0,
+          "player": "Synthetic BUF-QB",
+          "player_id": "buf-qb",
+          "position": "QB",
+          "proj": 10.0,
+          "salary": 5000,
+          "slot": "QB",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "2",
+          "floor": 5.0,
+          "player": "Synthetic BUF-RB",
+          "player_id": "buf-rb",
+          "position": "RB",
+          "proj": 10.1,
+          "salary": 5000,
+          "slot": "RB1",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "3",
+          "floor": 5.0,
+          "player": "Synthetic MIA-RB",
+          "player_id": "mia-rb",
+          "position": "RB",
+          "proj": 10.2,
+          "salary": 5000,
+          "slot": "RB2",
+          "team": "MIA"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "10",
+          "floor": 5.0,
+          "player": "Synthetic MIA-WR2",
+          "player_id": "mia-wr2",
+          "position": "WR",
+          "proj": 10.9,
+          "salary": 5000,
+          "slot": "WR1",
+          "team": "MIA"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "5",
+          "floor": 5.0,
+          "player": "Synthetic BUF-WR2",
+          "player_id": "buf-wr2",
+          "position": "WR",
+          "proj": 10.4,
+          "salary": 5000,
+          "slot": "WR2",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "6",
+          "floor": 5.0,
+          "player": "Synthetic MIA-WR1",
+          "player_id": "mia-wr1",
+          "position": "WR",
+          "proj": 10.5,
+          "salary": 5000,
+          "slot": "WR3",
+          "team": "MIA"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "7",
+          "floor": 5.0,
+          "player": "Synthetic BUF-TE",
+          "player_id": "buf-te",
+          "position": "TE",
+          "proj": 10.6,
+          "salary": 5000,
+          "slot": "TE",
+          "team": "BUF"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "8",
+          "floor": 5.0,
+          "player": "Synthetic KC-TE",
+          "player_id": "kc-te",
+          "position": "TE",
+          "proj": 10.7,
+          "salary": 5000,
+          "slot": "FLEX",
+          "team": "KC"
+        },
+        {
+          "ceiling": 15.0,
+          "dfs_id": "9",
+          "floor": 5.0,
+          "player": "Synthetic BUF-DST",
+          "player_id": "buf-dst",
+          "position": "DST",
+          "proj": 10.8,
+          "salary": 5000,
+          "slot": "DST",
+          "team": "BUF"
+        }
+      ],
+      "total_points": 94.2,
+      "total_salary": 45000
+    }
+  ],
+  "collection_evaluation": {
+    "audit": {
+      "all_actor_scores_derive_from_shared_events": true,
+      "all_profile_audits_passed": true,
+      "conservation_passed": true,
+      "game_draws": 512,
+      "lineups_evaluated": 2,
+      "pool_players_covered": 10,
+      "profiles_validated": 4
+    },
+    "bank_id": "1c90980152f9dbee7ad607e304b71f666a4cc7f734bf1bca1b7a37a518f7101c",
+    "capabilities": {
+      "calibrated_joint_tail": false,
+      "calibrated_marginals": false,
+      "coherent_event_scoring": true,
+      "contest_field": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "prelock_source_verified": false,
+      "shared_game_profiles": true,
+      "site_scoring_rules_verified": true,
+      "source_completeness_verified": false,
+      "untouched_finalist_evaluation_verified": false
+    },
+    "context": {
+      "format": "classic",
+      "season": 2026,
+      "site": "draftkings",
+      "slate_id": "classic-fixture",
+      "sport": "NFL",
+      "week": 5
+    },
+    "draw_count": 256,
+    "lineups": [
+      {
+        "lineup_id": "collection:0",
+        "max": 33.4,
+        "mean": 16.799609375,
+        "min": 8.7,
+        "negative_fraction": 0.0,
+        "p10": 8.7,
+        "p50": 10.0,
+        "p90": 33.4,
+        "paired_better_fraction_vs_first": 0.0,
+        "paired_delta_mean_vs_first": 0.0,
+        "paired_delta_p10_vs_first": 0.0,
+        "player_ids": [
+          "buf-qb",
+          "buf-rb",
+          "mia-rb",
+          "buf-wr1",
+          "buf-wr2",
+          "mia-wr1",
+          "buf-te",
+          "kc-te",
+          "buf-dst"
+        ],
+        "salary": 45000,
+        "zero_fraction": 0.0
+      },
+      {
+        "lineup_id": "collection:1",
+        "max": 21.4,
+        "mean": 13.096484375,
+        "min": 8.7,
+        "negative_fraction": 0.0,
+        "p10": 8.7,
+        "p50": 10.0,
+        "p90": 21.4,
+        "paired_better_fraction_vs_first": 0.0,
+        "paired_delta_mean_vs_first": -3.703125,
+        "paired_delta_p10_vs_first": -12.0,
+        "player_ids": [
+          "buf-qb",
+          "buf-rb",
+          "mia-rb",
+          "mia-wr2",
+          "buf-wr2",
+          "mia-wr1",
+          "buf-te",
+          "kc-te",
+          "buf-dst"
+        ],
+        "salary": 45000,
+        "zero_fraction": 0.0
+      }
+    ],
+    "players": [
+      {
+        "max": 10,
+        "mean": 10.0,
+        "min": 10,
+        "negative_fraction": 0.0,
+        "p10": 10.0,
+        "p50": 10.0,
+        "p90": 10.0,
+        "player_id": "buf-dst",
+        "zero_fraction": 0.0
+      },
+      {
+        "max": 6.8,
+        "mean": 1.77421875,
+        "min": -1.0,
+        "negative_fraction": 0.32421875,
+        "p10": -1.0,
+        "p50": 0.0,
+        "p90": 6.8,
+        "player_id": "buf-qb",
+        "zero_fraction": 0.3671875
+      },
+      {
+        "max": 0.8,
+        "mean": 0.14960937500000002,
+        "min": -0.3,
+        "negative_fraction": 0.32421875,
+        "p10": -0.3,
+        "p50": 0.0,
+        "p90": 0.8,
+        "player_id": "buf-rb",
+        "zero_fraction": 0.3671875
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "buf-te",
+        "zero_fraction": 1.0
+      },
+      {
+        "max": 12.0,
+        "mean": 3.703125,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 12.0,
+        "player_id": "buf-wr1",
+        "zero_fraction": 0.69140625
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "buf-wr2",
+        "zero_fraction": 1.0
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "kc-te",
+        "zero_fraction": 1.0
+      },
+      {
+        "max": 0.3,
+        "mean": 0.092578125,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.3,
+        "player_id": "mia-rb",
+        "zero_fraction": 0.69140625
+      },
+      {
+        "max": 3.5,
+        "mean": 1.080078125,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 3.5,
+        "player_id": "mia-wr1",
+        "zero_fraction": 0.69140625
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "mia-wr2",
+        "zero_fraction": 1.0
+      }
+    ],
+    "profile_selections": [
+      {
+        "draws": 83,
+        "game_id": "buf-mia",
+        "profile_id": "pressure-limited"
+      },
+      {
+        "draws": 79,
+        "game_id": "buf-mia",
+        "profile_id": "success"
+      },
+      {
+        "draws": 94,
+        "game_id": "buf-mia",
+        "profile_id": "zero-volume"
+      },
+      {
+        "draws": 256,
+        "game_id": "kc-lv",
+        "profile_id": "declared-zero-volume"
+      }
+    ],
+    "runtime_seconds": 0.0,
+    "schema_version": "dfs_shared_outcomes_review_v1",
+    "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+    "semantics": "empirical_declared_scenario_scores_not_calibrated_forecasts_or_payouts",
+    "stream_manifest": {
+      "common_draws_across_lineups": true,
+      "cross_game_independence_assumed": true,
+      "draw_content_id": "ae1915278a59a58dcd203a37586b87b2df5c815f07ab281d0f9af204c0e00f2f",
+      "finalist_choice_independence_verified": false,
+      "independent_streams_not_disjoint_outcomes": true,
+      "seed": 0,
+      "selected_purpose": "evaluation",
+      "streams": {
+        "evaluation": "8631ca5b07c26c06496a98aa7351217d773462dd0092c63a9caaa9bd78f08491",
+        "generation": "0ee3ff0e8ffd01f5b5c4654a407ade3a8313d9e0649346ced0a1560023657c26",
+        "selection": "a59f494d81d86ea9341d21d2df0b33935a7b29f6c18dfcb682ccc00dc01d5165"
+      },
+      "version": 1
+    },
+    "warnings": [
+      "Declared empirical scenarios are research inputs; their weights are not calibrated future probabilities.",
+      "Games are sampled independently. Within each game, all players and both defenses share one complete event profile.",
+      "Source timestamps, rights and hashes are declarations, not authentication or proof of historical availability.",
+      "More draws reduce replay noise; they do not establish marginal, joint-tail, injury or tournament calibration.",
+      "Purpose-specific random streams do not prove that finalists were chosen without seeing evaluation results; freeze inputs before assessment.",
+      "No opponent field, ownership, payout or contest-return estimate is available."
+    ]
+  },
+  "engine_inputs": {
+    "bank": {
+      "context": {
+        "format": "classic",
+        "season": 2026,
+        "site": "draftkings",
+        "slate_id": "classic-fixture",
+        "sport": "NFL",
+        "week": 5
+      },
+      "decision_at": "2026-10-12T12:00:00Z",
+      "evidence_scope": "synthetic",
+      "games": [
+        {
+          "away_team": "MIA",
+          "game_id": "buf-mia",
+          "home_team": "BUF",
+          "kickoff_at": "2099-09-20T17:00:00Z",
+          "profiles": [
+            {
+              "events": [
+                {
+                  "complete": true,
+                  "event_id": "p1",
+                  "intercepted": false,
+                  "kind": "pass",
+                  "passer_id": "buf-qb",
+                  "period": 1,
+                  "receiver_id": "buf-wr1",
+                  "td": true,
+                  "team": "BUF",
+                  "yards": 50
+                },
+                {
+                  "complete": true,
+                  "event_id": "p2",
+                  "intercepted": false,
+                  "kind": "pass",
+                  "passer_id": "buf-qb",
+                  "period": 1,
+                  "receiver_id": "buf-residual",
+                  "td": false,
+                  "team": "BUF",
+                  "yards": 20
+                },
+                {
+                  "event_id": "r1",
+                  "kind": "rush",
+                  "period": 1,
+                  "rush_type": "designed",
+                  "rusher_id": "buf-rb",
+                  "td": false,
+                  "team": "BUF",
+                  "yards": 8
+                },
+                {
+                  "event_id": "r2",
+                  "kind": "rush",
+                  "period": 1,
+                  "rush_type": "designed",
+                  "rusher_id": "mia-rb",
+                  "td": false,
+                  "team": "MIA",
+                  "yards": 3
+                },
+                {
+                  "complete": true,
+                  "event_id": "p3",
+                  "intercepted": false,
+                  "kind": "pass",
+                  "passer_id": "mia-qb",
+                  "period": 1,
+                  "receiver_id": "mia-wr1",
+                  "td": false,
+                  "team": "MIA",
+                  "yards": 25
+                }
+              ],
+              "ledger_complete": true,
+              "players": [
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-qb",
+                  "position": "QB",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-rb",
+                  "position": "RB",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-rb",
+                  "position": "RB",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-wr1",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-wr2",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-wr1",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-te",
+                  "position": "TE",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-wr2",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-qb",
+                  "position": "QB",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-residual",
+                  "position": "RESIDUAL",
+                  "residual": true,
+                  "status": "active",
+                  "team": "BUF"
+                }
+              ],
+              "profile_id": "success",
+              "shared_state": {
+                "game_script": "success",
+                "personnel": "declared synthetic rotation",
+                "weather": "clear"
+              },
+              "source_ids": [
+                "synthetic-events"
+              ],
+              "weight": 1
+            },
+            {
+              "events": [
+                {
+                  "complete": false,
+                  "event_id": "i1",
+                  "intercepted": true,
+                  "kind": "pass",
+                  "passer_id": "buf-qb",
+                  "period": 1,
+                  "receiver_id": "buf-wr1",
+                  "td": false,
+                  "team": "BUF",
+                  "yards": 0
+                },
+                {
+                  "event_id": "s1",
+                  "kind": "sack",
+                  "passer_id": "buf-qb",
+                  "period": 1,
+                  "team": "BUF",
+                  "yards": -7
+                },
+                {
+                  "event_id": "r3",
+                  "kind": "rush",
+                  "period": 1,
+                  "rush_type": "designed",
+                  "rusher_id": "buf-rb",
+                  "td": false,
+                  "team": "BUF",
+                  "yards": -3
+                }
+              ],
+              "ledger_complete": true,
+              "players": [
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-qb",
+                  "position": "QB",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "limited",
+                  "opponent": "MIA",
+                  "player_id": "buf-rb",
+                  "position": "RB",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-rb",
+                  "position": "RB",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-wr1",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "inactive",
+                  "opponent": "MIA",
+                  "player_id": "buf-wr2",
+                  "position": "WR",
+                  "status": "inactive",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-wr1",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-te",
+                  "position": "TE",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-wr2",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-qb",
+                  "position": "QB",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-residual",
+                  "position": "RESIDUAL",
+                  "residual": true,
+                  "status": "active",
+                  "team": "BUF"
+                }
+              ],
+              "profile_id": "pressure-limited",
+              "shared_state": {
+                "game_script": "pressure-limited",
+                "personnel": "declared synthetic rotation",
+                "weather": "wind"
+              },
+              "source_ids": [
+                "synthetic-events"
+              ],
+              "weight": 1
+            },
+            {
+              "events": [],
+              "ledger_complete": true,
+              "players": [
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-qb",
+                  "position": "QB",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-rb",
+                  "position": "RB",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-rb",
+                  "position": "RB",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-wr1",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-wr2",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-wr1",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-te",
+                  "position": "TE",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "BUF"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-wr2",
+                  "position": "WR",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-qb",
+                  "position": "QB",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "BUF",
+                  "player_id": "mia-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "MIA"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "MIA",
+                  "player_id": "buf-residual",
+                  "position": "RESIDUAL",
+                  "residual": true,
+                  "status": "active",
+                  "team": "BUF"
+                }
+              ],
+              "profile_id": "zero-volume",
+              "shared_state": {
+                "game_script": "zero-volume",
+                "personnel": "declared synthetic rotation",
+                "weather": "declared-low-volume"
+              },
+              "source_ids": [
+                "synthetic-events"
+              ],
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "away_team": "LV",
+          "game_id": "kc-lv",
+          "home_team": "KC",
+          "kickoff_at": "2099-09-20T17:00:00Z",
+          "profiles": [
+            {
+              "events": [],
+              "ledger_complete": true,
+              "players": [
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "LV",
+                  "player_id": "kc-te",
+                  "position": "TE",
+                  "status": "active",
+                  "team": "KC"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "LV",
+                  "player_id": "kc-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "KC"
+                },
+                {
+                  "availability_scenario": "normal",
+                  "opponent": "KC",
+                  "player_id": "lv-dst",
+                  "position": "DST",
+                  "status": "active",
+                  "team": "LV"
+                }
+              ],
+              "profile_id": "declared-zero-volume",
+              "shared_state": {
+                "game_script": "zero volume",
+                "personnel": "synthetic",
+                "weather": "declared"
+              },
+              "source_ids": [
+                "synthetic-events"
+              ],
+              "weight": 1
+            }
+          ]
+        }
+      ],
+      "mode": "declared_empirical_scenarios",
+      "schema_version": "dfs_shared_outcomes_bank_v1",
+      "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+      "sources": [
+        {
+          "content_sha256": "b93878ce85c153ad2fa7dfabda24328a28d6ad596cc347f6ec133583a7fef2ff",
+          "definition": "explicit complete synthetic event ledgers",
+          "evidence_scope": "synthetic",
+          "known_at": "2026-10-10T00:00:00Z",
+          "period": {
+            "end_week": 2,
+            "season": 2026,
+            "start_week": 1
+          },
+          "provider": "explicit synthetic test fixture",
+          "published_at": "2026-10-10T00:00:00Z",
+          "retrieved_at": "2026-10-12T00:00:00Z",
+          "rights": {
+            "display": true,
+            "external_model": false,
+            "hosted_ingestion": true,
+            "personal_analysis": true,
+            "redistribution": true,
+            "training": false
+          },
+          "source_id": "synthetic-events",
+          "uri": "fixture:shared-events"
+        }
+      ]
+    },
+    "context": {
+      "format": "classic",
+      "season": 2026,
+      "site": "draftkings",
+      "slate_id": "classic-fixture",
+      "sport": "NFL",
+      "week": 5
+    },
+    "draw_count": 256,
+    "lineups": [
+      {
+        "lineup_id": "current:0",
+        "player_ids": [
+          "buf-qb",
+          "buf-rb",
+          "mia-rb",
+          "buf-wr1",
+          "buf-wr2",
+          "mia-wr1",
+          "buf-te",
+          "kc-te",
+          "buf-dst"
+        ]
+      },
+      {
+        "lineup_id": "current:1",
+        "player_ids": [
+          "buf-qb",
+          "buf-rb",
+          "mia-rb",
+          "mia-wr2",
+          "buf-wr2",
+          "mia-wr1",
+          "buf-te",
+          "kc-te",
+          "buf-dst"
+        ]
+      }
+    ],
+    "pool": [
+      {
+        "game_id": "buf-mia",
+        "opponent": "MIA",
+        "player_id": "buf-qb",
+        "position": "QB",
+        "salary": 5000,
+        "team": "BUF"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "MIA",
+        "player_id": "buf-rb",
+        "position": "RB",
+        "salary": 5000,
+        "team": "BUF"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "BUF",
+        "player_id": "mia-rb",
+        "position": "RB",
+        "salary": 5000,
+        "team": "MIA"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "MIA",
+        "player_id": "buf-wr1",
+        "position": "WR",
+        "salary": 5000,
+        "team": "BUF"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "MIA",
+        "player_id": "buf-wr2",
+        "position": "WR",
+        "salary": 5000,
+        "team": "BUF"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "BUF",
+        "player_id": "mia-wr1",
+        "position": "WR",
+        "salary": 5000,
+        "team": "MIA"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "MIA",
+        "player_id": "buf-te",
+        "position": "TE",
+        "salary": 5000,
+        "team": "BUF"
+      },
+      {
+        "game_id": "kc-lv",
+        "opponent": "LV",
+        "player_id": "kc-te",
+        "position": "TE",
+        "salary": 5000,
+        "team": "KC"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "MIA",
+        "player_id": "buf-dst",
+        "position": "DST",
+        "salary": 5000,
+        "team": "BUF"
+      },
+      {
+        "game_id": "buf-mia",
+        "opponent": "BUF",
+        "player_id": "mia-wr2",
+        "position": "WR",
+        "salary": 5000,
+        "team": "MIA"
+      }
+    ],
+    "seed": 0
+  },
+  "evaluation": {
+    "audit": {
+      "all_actor_scores_derive_from_shared_events": true,
+      "all_profile_audits_passed": true,
+      "conservation_passed": true,
+      "game_draws": 512,
+      "lineups_evaluated": 2,
+      "pool_players_covered": 10,
+      "profiles_validated": 4
+    },
+    "bank_id": "1c90980152f9dbee7ad607e304b71f666a4cc7f734bf1bca1b7a37a518f7101c",
+    "capabilities": {
+      "calibrated_joint_tail": false,
+      "calibrated_marginals": false,
+      "coherent_event_scoring": true,
+      "contest_field": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "prelock_source_verified": false,
+      "shared_game_profiles": true,
+      "site_scoring_rules_verified": true,
+      "source_completeness_verified": false,
+      "untouched_finalist_evaluation_verified": false
+    },
+    "context": {
+      "format": "classic",
+      "season": 2026,
+      "site": "draftkings",
+      "slate_id": "classic-fixture",
+      "sport": "NFL",
+      "week": 5
+    },
+    "draw_count": 256,
+    "lineups": [
+      {
+        "lineup_id": "current:0",
+        "max": 33.4,
+        "mean": 16.799609375,
+        "min": 8.7,
+        "negative_fraction": 0.0,
+        "p10": 8.7,
+        "p50": 10.0,
+        "p90": 33.4,
+        "paired_better_fraction_vs_first": 0.0,
+        "paired_delta_mean_vs_first": 0.0,
+        "paired_delta_p10_vs_first": 0.0,
+        "player_ids": [
+          "buf-qb",
+          "buf-rb",
+          "mia-rb",
+          "buf-wr1",
+          "buf-wr2",
+          "mia-wr1",
+          "buf-te",
+          "kc-te",
+          "buf-dst"
+        ],
+        "salary": 45000,
+        "zero_fraction": 0.0
+      },
+      {
+        "lineup_id": "current:1",
+        "max": 21.4,
+        "mean": 13.096484375,
+        "min": 8.7,
+        "negative_fraction": 0.0,
+        "p10": 8.7,
+        "p50": 10.0,
+        "p90": 21.4,
+        "paired_better_fraction_vs_first": 0.0,
+        "paired_delta_mean_vs_first": -3.703125,
+        "paired_delta_p10_vs_first": -12.0,
+        "player_ids": [
+          "buf-qb",
+          "buf-rb",
+          "mia-rb",
+          "mia-wr2",
+          "buf-wr2",
+          "mia-wr1",
+          "buf-te",
+          "kc-te",
+          "buf-dst"
+        ],
+        "salary": 45000,
+        "zero_fraction": 0.0
+      }
+    ],
+    "players": [
+      {
+        "max": 10,
+        "mean": 10.0,
+        "min": 10,
+        "negative_fraction": 0.0,
+        "p10": 10.0,
+        "p50": 10.0,
+        "p90": 10.0,
+        "player_id": "buf-dst",
+        "zero_fraction": 0.0
+      },
+      {
+        "max": 6.8,
+        "mean": 1.77421875,
+        "min": -1.0,
+        "negative_fraction": 0.32421875,
+        "p10": -1.0,
+        "p50": 0.0,
+        "p90": 6.8,
+        "player_id": "buf-qb",
+        "zero_fraction": 0.3671875
+      },
+      {
+        "max": 0.8,
+        "mean": 0.14960937500000002,
+        "min": -0.3,
+        "negative_fraction": 0.32421875,
+        "p10": -0.3,
+        "p50": 0.0,
+        "p90": 0.8,
+        "player_id": "buf-rb",
+        "zero_fraction": 0.3671875
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "buf-te",
+        "zero_fraction": 1.0
+      },
+      {
+        "max": 12.0,
+        "mean": 3.703125,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 12.0,
+        "player_id": "buf-wr1",
+        "zero_fraction": 0.69140625
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "buf-wr2",
+        "zero_fraction": 1.0
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "kc-te",
+        "zero_fraction": 1.0
+      },
+      {
+        "max": 0.3,
+        "mean": 0.092578125,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.3,
+        "player_id": "mia-rb",
+        "zero_fraction": 0.69140625
+      },
+      {
+        "max": 3.5,
+        "mean": 1.080078125,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 3.5,
+        "player_id": "mia-wr1",
+        "zero_fraction": 0.69140625
+      },
+      {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "negative_fraction": 0.0,
+        "p10": 0.0,
+        "p50": 0.0,
+        "p90": 0.0,
+        "player_id": "mia-wr2",
+        "zero_fraction": 1.0
+      }
+    ],
+    "profile_selections": [
+      {
+        "draws": 83,
+        "game_id": "buf-mia",
+        "profile_id": "pressure-limited"
+      },
+      {
+        "draws": 79,
+        "game_id": "buf-mia",
+        "profile_id": "success"
+      },
+      {
+        "draws": 94,
+        "game_id": "buf-mia",
+        "profile_id": "zero-volume"
+      },
+      {
+        "draws": 256,
+        "game_id": "kc-lv",
+        "profile_id": "declared-zero-volume"
+      }
+    ],
+    "runtime_seconds": 0.015000000000327418,
+    "schema_version": "dfs_shared_outcomes_review_v1",
+    "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+    "semantics": "empirical_declared_scenario_scores_not_calibrated_forecasts_or_payouts",
+    "stream_manifest": {
+      "common_draws_across_lineups": true,
+      "cross_game_independence_assumed": true,
+      "draw_content_id": "ae1915278a59a58dcd203a37586b87b2df5c815f07ab281d0f9af204c0e00f2f",
+      "finalist_choice_independence_verified": false,
+      "independent_streams_not_disjoint_outcomes": true,
+      "seed": 0,
+      "selected_purpose": "evaluation",
+      "streams": {
+        "evaluation": "8631ca5b07c26c06496a98aa7351217d773462dd0092c63a9caaa9bd78f08491",
+        "generation": "0ee3ff0e8ffd01f5b5c4654a407ade3a8313d9e0649346ced0a1560023657c26",
+        "selection": "a59f494d81d86ea9341d21d2df0b33935a7b29f6c18dfcb682ccc00dc01d5165"
+      },
+      "version": 1
+    },
+    "warnings": [
+      "Declared empirical scenarios are research inputs; their weights are not calibrated future probabilities.",
+      "Games are sampled independently. Within each game, all players and both defenses share one complete event profile.",
+      "Source timestamps, rights and hashes are declarations, not authentication or proof of historical availability.",
+      "More draws reduce replay noise; they do not establish marginal, joint-tail, injury or tournament calibration.",
+      "Purpose-specific random streams do not prove that finalists were chosen without seeing evaluation results; freeze inputs before assessment.",
+      "No opponent field, ownership, payout or contest-return estimate is available."
+    ]
+  },
+  "purpose": "Engineering browser requests and replay; not calibrated model performance.",
+  "schema_version": "dfs_shared_browser_fixture_v1",
+  "summary": {
+    "capabilities": {
+      "calibrated_joint_tail": false,
+      "calibrated_marginals": false,
+      "coherent_event_scoring": true,
+      "contest_field": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "prelock_source_verified": false,
+      "shared_game_profiles": true,
+      "site_scoring_rules_verified": true,
+      "source_completeness_verified": false,
+      "untouched_finalist_evaluation_verified": false
+    },
+    "content_id": "1c90980152f9dbee7ad607e304b71f666a4cc7f734bf1bca1b7a37a518f7101c",
+    "context": {
+      "format": "classic",
+      "season": 2026,
+      "site": "draftkings",
+      "slate_id": "classic-fixture",
+      "sport": "NFL",
+      "week": 5
+    },
+    "counts": {
+      "events": 8,
+      "games": 2,
+      "pool_players": 10,
+      "profiles": 4,
+      "unique_actors": 15
+    },
+    "decision_at": "2026-10-12T12:00:00Z",
+    "evidence_scope": "synthetic",
+    "preparation_seconds": 0.0,
+    "schema_version": "dfs_shared_outcomes_bank_v1",
+    "scoring_source": {
+      "provider": "DraftKings",
+      "response_sha256": "4ae6599b4159852e5106f451d87f3632c2cecccb7b8502bc4968a15319ce6f18",
+      "retrieved_at": "2026-10-12T17:32:04.522766Z",
+      "rights": "Public rules consulted for scoring implementation; no raw source redistribution or feed/model license asserted.",
+      "section": "1.rules[name=NFL Classic]; gameTypes 1,158",
+      "section_sha256": "9c37b2570fc8282011a5af64e3549701b0c537242ee75712e79300fa5ee60c67",
+      "source_published_at": null,
+      "uri": "https://api.draftkings.com/rules-and-scoring/RulesAndScoring.json"
+    },
+    "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+    "semantics": "empirical_declared_scenario_scores_not_calibrated_forecasts_or_payouts",
+    "sources": [
+      {
+        "content_sha256": "b93878ce85c153ad2fa7dfabda24328a28d6ad596cc347f6ec133583a7fef2ff",
+        "definition": "explicit complete synthetic event ledgers",
+        "evidence_scope": "synthetic",
+        "known_at": "2026-10-10T00:00:00Z",
+        "period": {
+          "end_week": 2,
+          "season": 2026,
+          "start_week": 1
+        },
+        "provider": "explicit synthetic test fixture",
+        "published_at": "2026-10-10T00:00:00Z",
+        "retrieved_at": "2026-10-12T00:00:00Z",
+        "rights": {
+          "display": true,
+          "external_model": false,
+          "hosted_ingestion": true,
+          "personal_analysis": true,
+          "redistribution": true,
+          "training": false
+        },
+        "source_id": "synthetic-events",
+        "uri": "fixture:shared-events"
+      }
+    ],
+    "warnings": [
+      "Declared empirical scenarios are research inputs; their weights are not calibrated future probabilities.",
+      "Games are sampled independently. Within each game, all players and both defenses share one complete event profile.",
+      "Source timestamps, rights and hashes are declarations, not authentication or proof of historical availability.",
+      "More draws reduce replay noise; they do not establish marginal, joint-tail, injury or tournament calibration.",
+      "Purpose-specific random streams do not prove that finalists were chosen without seeing evaluation results; freeze inputs before assessment.",
+      "No opponent field, ownership, payout or contest-return estimate is available."
+    ]
+  },
+  "synthetic": true,
+  "ui_pool": [
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "MIA",
+      "Player": "Synthetic BUF-QB",
+      "Position": "QB",
+      "Projected Points": 10.0,
+      "Team": "BUF",
+      "dfs_id": "1",
+      "game_id": "buf-mia",
+      "opponent": "MIA",
+      "player_id": "buf-qb",
+      "position": "QB",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "BUF"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "MIA",
+      "Player": "Synthetic BUF-RB",
+      "Position": "RB",
+      "Projected Points": 10.1,
+      "Team": "BUF",
+      "dfs_id": "2",
+      "game_id": "buf-mia",
+      "opponent": "MIA",
+      "player_id": "buf-rb",
+      "position": "RB",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "BUF"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "BUF",
+      "Player": "Synthetic MIA-RB",
+      "Position": "RB",
+      "Projected Points": 10.2,
+      "Team": "MIA",
+      "dfs_id": "3",
+      "game_id": "buf-mia",
+      "opponent": "BUF",
+      "player_id": "mia-rb",
+      "position": "RB",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "MIA"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "MIA",
+      "Player": "Synthetic BUF-WR1",
+      "Position": "WR",
+      "Projected Points": 10.3,
+      "Team": "BUF",
+      "dfs_id": "4",
+      "game_id": "buf-mia",
+      "opponent": "MIA",
+      "player_id": "buf-wr1",
+      "position": "WR",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "BUF"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "MIA",
+      "Player": "Synthetic BUF-WR2",
+      "Position": "WR",
+      "Projected Points": 10.4,
+      "Team": "BUF",
+      "dfs_id": "5",
+      "game_id": "buf-mia",
+      "opponent": "MIA",
+      "player_id": "buf-wr2",
+      "position": "WR",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "BUF"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "BUF",
+      "Player": "Synthetic MIA-WR1",
+      "Position": "WR",
+      "Projected Points": 10.5,
+      "Team": "MIA",
+      "dfs_id": "6",
+      "game_id": "buf-mia",
+      "opponent": "BUF",
+      "player_id": "mia-wr1",
+      "position": "WR",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "MIA"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "MIA",
+      "Player": "Synthetic BUF-TE",
+      "Position": "TE",
+      "Projected Points": 10.6,
+      "Team": "BUF",
+      "dfs_id": "7",
+      "game_id": "buf-mia",
+      "opponent": "MIA",
+      "player_id": "buf-te",
+      "position": "TE",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "BUF"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "LV",
+      "Player": "Synthetic KC-TE",
+      "Position": "TE",
+      "Projected Points": 10.7,
+      "Team": "KC",
+      "dfs_id": "8",
+      "game_id": "kc-lv",
+      "opponent": "LV",
+      "player_id": "kc-te",
+      "position": "TE",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "KC"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "MIA",
+      "Player": "Synthetic BUF-DST",
+      "Position": "DST",
+      "Projected Points": 10.8,
+      "Team": "BUF",
+      "dfs_id": "9",
+      "game_id": "buf-mia",
+      "opponent": "MIA",
+      "player_id": "buf-dst",
+      "position": "DST",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "BUF"
+    },
+    {
+      "High (P90)": 15.0,
+      "Low (P10)": 5.0,
+      "Opponent": "BUF",
+      "Player": "Synthetic MIA-WR2",
+      "Position": "WR",
+      "Projected Points": 10.9,
+      "Team": "MIA",
+      "dfs_id": "10",
+      "game_id": "buf-mia",
+      "opponent": "BUF",
+      "player_id": "mia-wr2",
+      "position": "WR",
+      "projection_source": "Imported",
+      "salary": 5000,
+      "team": "MIA"
+    }
+  ]
+}

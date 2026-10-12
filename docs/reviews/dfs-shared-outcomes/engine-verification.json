@@ -1,0 +1,247 @@
+{
+  "audit": {
+    "all_actor_scores_derive_from_shared_events": true,
+    "all_profile_audits_passed": true,
+    "conservation_passed": true,
+    "game_draws": 512,
+    "lineups_evaluated": 2,
+    "pool_players_covered": 10,
+    "profiles_validated": 4
+  },
+  "bank": {
+    "capabilities": {
+      "calibrated_joint_tail": false,
+      "calibrated_marginals": false,
+      "coherent_event_scoring": true,
+      "contest_field": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "prelock_source_verified": false,
+      "shared_game_profiles": true,
+      "site_scoring_rules_verified": true,
+      "source_completeness_verified": false,
+      "untouched_finalist_evaluation_verified": false
+    },
+    "content_id": "a47cae7c9179687d81735a4daf3dc36064ca8fac582dce07693f0b088f2310da",
+    "context": {
+      "format": "classic",
+      "season": 2099,
+      "site": "draftkings",
+      "slate_id": "synthetic-shared-events",
+      "sport": "NFL",
+      "week": 3
+    },
+    "counts": {
+      "events": 8,
+      "games": 2,
+      "pool_players": 10,
+      "profiles": 4,
+      "unique_actors": 15
+    },
+    "decision_at": "2026-10-12T12:00:00Z",
+    "evidence_scope": "synthetic",
+    "preparation_seconds": 0.0,
+    "schema_version": "dfs_shared_outcomes_bank_v1",
+    "scoring_source": {
+      "provider": "DraftKings",
+      "response_sha256": "4ae6599b4159852e5106f451d87f3632c2cecccb7b8502bc4968a15319ce6f18",
+      "retrieved_at": "2026-10-12T17:32:04.522766Z",
+      "rights": "Public rules consulted for scoring implementation; no raw source redistribution or feed/model license asserted.",
+      "section": "1.rules[name=NFL Classic]; gameTypes 1,158",
+      "section_sha256": "9c37b2570fc8282011a5af64e3549701b0c537242ee75712e79300fa5ee60c67",
+      "source_published_at": null,
+      "uri": "https://api.draftkings.com/rules-and-scoring/RulesAndScoring.json"
+    },
+    "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+    "semantics": "empirical_declared_scenario_scores_not_calibrated_forecasts_or_payouts",
+    "sources": [
+      {
+        "content_sha256": "b93878ce85c153ad2fa7dfabda24328a28d6ad596cc347f6ec133583a7fef2ff",
+        "definition": "explicit complete synthetic event ledgers",
+        "evidence_scope": "synthetic",
+        "known_at": "2026-10-10T00:00:00Z",
+        "period": {
+          "end_week": 2,
+          "season": 2026,
+          "start_week": 1
+        },
+        "provider": "explicit synthetic test fixture",
+        "published_at": "2026-10-10T00:00:00Z",
+        "retrieved_at": "2026-10-12T00:00:00Z",
+        "rights": {
+          "display": true,
+          "external_model": false,
+          "hosted_ingestion": true,
+          "personal_analysis": true,
+          "redistribution": true,
+          "training": false
+        },
+        "source_id": "synthetic-events",
+        "uri": "fixture:shared-events"
+      }
+    ],
+    "warnings": [
+      "Declared empirical scenarios are research inputs; their weights are not calibrated future probabilities.",
+      "Games are sampled independently. Within each game, all players and both defenses share one complete event profile.",
+      "Source timestamps, rights and hashes are declarations, not authentication or proof of historical availability.",
+      "More draws reduce replay noise; they do not establish marginal, joint-tail, injury or tournament calibration.",
+      "Purpose-specific random streams do not prove that finalists were chosen without seeing evaluation results; freeze inputs before assessment.",
+      "No opponent field, ownership, payout or contest-return estimate is available."
+    ]
+  },
+  "benchmark": {
+    "capabilities": {
+      "calibrated_joint_tail": false,
+      "calibrated_marginals": false,
+      "coherent_event_scoring": true,
+      "contest_field": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "prelock_source_verified": false,
+      "shared_game_profiles": true,
+      "site_scoring_rules_verified": true,
+      "source_completeness_verified": false,
+      "untouched_finalist_evaluation_verified": false
+    },
+    "combined_seconds": [
+      0.829199000000699,
+      0.7920929000001706,
+      0.8609776000002967,
+      1.1620661999995718,
+      1.1472438000000693,
+      1.1609996000006504,
+      1.175740699999551,
+      1.2413194000000658,
+      1.138924799999586
+    ],
+    "draws": 1024,
+    "evaluation_seconds": [
+      0.7339999999994689,
+      0.6880000000001019,
+      0.75,
+      1.0159999999996217,
+      1.0,
+      1.0,
+      1.030999999999949,
+      1.094000000000051,
+      0.9849999999996726
+    ],
+    "events_per_profile": 4,
+    "games": 16,
+    "lineups": 150,
+    "machine": "AMD64",
+    "memory_scope": "Separate instrumented run; Python allocations only, not RSS or native allocation coverage.",
+    "os": "Windows",
+    "p50_seconds": 1.1472438000000693,
+    "p95_seconds": 1.2150879199998599,
+    "pool_players": 750,
+    "prepare_seconds": [
+      0.09400000000005093,
+      0.09400000000005093,
+      0.09400000000005093,
+      0.14000000000032742,
+      0.14000000000032742,
+      0.15599999999994907,
+      0.14100000000053114,
+      0.14000000000032742,
+      0.15599999999994907
+    ],
+    "processor": "AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",
+    "profiles": 48,
+    "python": "3.11.13",
+    "raw_bank_bytes": 314506,
+    "raw_bank_sha256": "0f89ecf61d98e42d3a84cb5db916db9e7f3de1c449e0a8f67749fe9982541a83",
+    "runs": 9,
+    "scope": "Maximum pool/lineup/draw fixture with short synthetic ledgers; not a maximum-byte/event bank, plausible slate or production budget.",
+    "scoring_source": {
+      "provider": "DraftKings",
+      "response_sha256": "4ae6599b4159852e5106f451d87f3632c2cecccb7b8502bc4968a15319ce6f18",
+      "retrieved_at": "2026-10-12T17:32:04.522766Z",
+      "rights": "Public rules consulted for scoring implementation; no raw source redistribution or feed/model license asserted.",
+      "section": "1.rules[name=NFL Classic]; gameTypes 1,158",
+      "section_sha256": "9c37b2570fc8282011a5af64e3549701b0c537242ee75712e79300fa5ee60c67",
+      "source_published_at": null,
+      "uri": "https://api.draftkings.com/rules-and-scoring/RulesAndScoring.json"
+    },
+    "scoring_version": "draftkings_nfl_classic_2026-10-12_v1",
+    "separate_tracemalloc_python_heap_peak_bytes": 18194266,
+    "synthetic": true
+  },
+  "caller_inputs_unchanged": true,
+  "capabilities": {
+    "calibrated_joint_tail": false,
+    "calibrated_marginals": false,
+    "coherent_event_scoring": true,
+    "contest_field": false,
+    "expected_payout": false,
+    "forward_forecast": false,
+    "prelock_source_verified": false,
+    "shared_game_profiles": true,
+    "site_scoring_rules_verified": true,
+    "source_completeness_verified": false,
+    "untouched_finalist_evaluation_verified": false
+  },
+  "context": {
+    "format": "classic",
+    "season": 2099,
+    "site": "draftkings",
+    "slate_id": "synthetic-shared-events",
+    "sport": "NFL",
+    "week": 3
+  },
+  "draws": 256,
+  "elapsed_seconds": 0.008292499999697611,
+  "lineups": 2,
+  "measurement_context": "Local Windows run while other verification was active; synthetic engineering evidence only. Not hosted latency, maximum-byte/event capacity or statistical model quality.",
+  "production_runtime_claim": false,
+  "purpose": "engineering conservation and replay only",
+  "stream_manifests": {
+    "evaluation": {
+      "common_draws_across_lineups": true,
+      "cross_game_independence_assumed": true,
+      "draw_content_id": "862483cab79fc25b7e1b672ad7629892e961a07eac35cece6bf9336d77720b65",
+      "finalist_choice_independence_verified": false,
+      "independent_streams_not_disjoint_outcomes": true,
+      "seed": 20261012,
+      "selected_purpose": "evaluation",
+      "streams": {
+        "evaluation": "c7f10092d759077ba7b0c3f1103be12da8c37f8bddc793c6c4f3eeb71357ebae",
+        "generation": "7d5d6620e51b3946d9004bf3d5785266bc611235b24ccecf031c52f916279a41",
+        "selection": "710fe422a2de413027229e043891be73e1d2eca2571fd864b3ca1f489d93f46b"
+      },
+      "version": 1
+    },
+    "generation": {
+      "common_draws_across_lineups": true,
+      "cross_game_independence_assumed": true,
+      "draw_content_id": "efcb8ab14b799441b277b582cd732ab8b45f4f02214ee17137077555aca7c02e",
+      "finalist_choice_independence_verified": false,
+      "independent_streams_not_disjoint_outcomes": true,
+      "seed": 20261012,
+      "selected_purpose": "generation",
+      "streams": {
+        "evaluation": "c7f10092d759077ba7b0c3f1103be12da8c37f8bddc793c6c4f3eeb71357ebae",
+        "generation": "7d5d6620e51b3946d9004bf3d5785266bc611235b24ccecf031c52f916279a41",
+        "selection": "710fe422a2de413027229e043891be73e1d2eca2571fd864b3ca1f489d93f46b"
+      },
+      "version": 1
+    },
+    "selection": {
+      "common_draws_across_lineups": true,
+      "cross_game_independence_assumed": true,
+      "draw_content_id": "00316c8b143f422a4b11c2ad5878e530fd790fbe754abf647d08c2b8f15d3e2f",
+      "finalist_choice_independence_verified": false,
+      "independent_streams_not_disjoint_outcomes": true,
+      "seed": 20261012,
+      "selected_purpose": "selection",
+      "streams": {
+        "evaluation": "c7f10092d759077ba7b0c3f1103be12da8c37f8bddc793c6c4f3eeb71357ebae",
+        "generation": "7d5d6620e51b3946d9004bf3d5785266bc611235b24ccecf031c52f916279a41",
+        "selection": "710fe422a2de413027229e043891be73e1d2eca2571fd864b3ca1f489d93f46b"
+      },
+      "version": 1
+    }
+  },
+  "synthetic": true,
+  "whole_repo_test_result": null
+}

@@ -316,6 +316,36 @@ export function measureScript() {
       const ok = heights.every(height => Math.abs(height - heights[0]) <= 1);
       results.push({ rule: "form-controls", ok, selector: ".standalone-form-row", detail: ok ? "paired controls share one height" : `paired control heights: ${heights.map(height => height.toFixed(1)).join(", ")}` });
     });
+    // Opt-in rows compare the actual fields, menu triggers and actions, rather
+    // than their differently sized label wrappers. Overlapping x ranges allow
+    // a phone stack; separate columns must keep a shared control bottom edge.
+    document.querySelectorAll("[data-control-row]").forEach((row) => {
+      if (!formVisible(row)) return;
+      const boxes = [...row.children].map((child) => {
+        const trigger = child.matches(".hub-filter-menu-trigger, [role='combobox']")
+          ? child : child.querySelector(".hub-filter-menu-trigger, [role='combobox']");
+        const control = trigger || (child.matches(barControlSelector) ? child : child.querySelector(barControlSelector));
+        return formVisible(control) ? control.getBoundingClientRect() : null;
+      }).filter(Boolean);
+      if (boxes.length < 2) return;
+      const heights = boxes.map(box => box.height);
+      const sameHeight = Math.max(...heights) - Math.min(...heights) <= 2;
+      const misaligned = [];
+      boxes.forEach((box, i) => {
+        boxes.slice(i + 1).forEach((other, j) => {
+          const separateColumns = box.right <= other.left + 1 || other.right <= box.left + 1;
+          if (separateColumns && Math.abs(box.bottom - other.bottom) > 2) {
+            misaligned.push(`${i + 1}/${i + j + 2}: ${box.bottom.toFixed(1)}/${other.bottom.toFixed(1)}px`);
+          }
+        });
+      });
+      const detail = [];
+      if (!sameHeight) detail.push(`control heights ${heights.map(height => height.toFixed(1)).join(", ")}px`);
+      if (misaligned.length) detail.push(`side-by-side bottom edges ${misaligned.join(", ")}`);
+      results.push({ rule: "control-rows", ok: sameHeight && !misaligned.length,
+        selector: elementClassName(row) || "[data-control-row]",
+        detail: detail.join("; ") || "controls share a height and side-by-side bottom edge" });
+    });
     document.querySelectorAll(".account-auth-form .legal-terms-checkbox").forEach((label) => {
       const checkbox = label.querySelector('input[type="checkbox"]'), copy = label.querySelector("span");
       if (!formVisible(checkbox) || !formVisible(copy)) return;
