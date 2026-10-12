@@ -1,4 +1,6 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
+import DfsEvidenceReview from "./DfsEvidenceReview.jsx";
+import { DFS_EVIDENCE_COPY as EC } from "./dfsToolPresentation.js";
 import DfsPortfolio from "./DfsPortfolio.jsx";
 import DfsGlobalExposure from "./DfsGlobalExposure.jsx";
 import DfsClassicStack from "./DfsClassicStack.jsx";
@@ -110,7 +112,7 @@ export function DfsField({ label, children }) {
   );
 }
 
-function DfsMatchupBoard({ b }) {
+function DfsMatchupBoard({ b, onEvidence, evidenceButtonRef }) {
   const games = useMemo(
     () => slateGames(b.vegasGames, b.pool),
     [b.vegasGames, b.pool],
@@ -134,6 +136,7 @@ function DfsMatchupBoard({ b }) {
           </button>
         )}
       </div>
+      {b.context.site === "draftkings" && <button ref={evidenceButtonRef} type="button" onClick={onEvidence}>{EC.open}</button>}
       {!games.length ? (
         <p className="dfw-note">{DFS_STEP_COPY.shootoutEmpty}</p>
       ) : (
@@ -211,6 +214,7 @@ function DfsMatchupBoard({ b }) {
 }
 
 export default function DfsWorkspace({ b }) {
+  const evidenceRef = useRef(null), evidenceButtonRef = useRef(null);
   const validLineupCount = parseLineupCount(b.settings.count) !== null;
   const [tab, setTab] = useState("pool"),
     [query, setQuery] = useState(""),
@@ -963,10 +967,11 @@ export default function DfsWorkspace({ b }) {
           <p className="dfw-note">{C.contestNote}</p>
           {b.context.site === "draftkings" && <p className="dfw-note">{b.settings.portfolioMode === "global" ? GC.enabled : GC.legacy}<button type="button" onClick={() => setTab("exposure")}>{C.exposureTab}</button></p>}
         </section>
-          <DfsMatchupBoard b={b} />
+          <DfsMatchupBoard b={b} evidenceButtonRef={evidenceButtonRef} onEvidence={() => { evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); evidenceRef.current?.focus({ preventScroll: true }); }} />
           <DfsSourceSummary coverage={coverage} />
         </div>
         <div className="dfw-after">
+          {b.context.site === "draftkings" && !b.isCaptain && <DfsEvidenceReview b={b} panelRef={evidenceRef} onReturn={() => { evidenceButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); evidenceButtonRef.current?.focus({ preventScroll: true }); }} />}
           <DfsCaptainComparison b={b} />
           <section
             ref={lineupsRef}

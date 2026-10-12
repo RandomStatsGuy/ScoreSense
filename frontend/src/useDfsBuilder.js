@@ -794,6 +794,7 @@ export default function useDfsBuilder(projMeta) {
     globalExposure,
     globalGroups,
     classicStackRules,
+    stackScope,
     changeClassicStack: (section, patch) => setClassicStackRules(current => { const rules = current || DEFAULT_CLASSIC_STACK_RULES;
       return { ...rules, [section]: { ...rules[section], ...patch } }; }),
     addGlobalGroup: group => setGlobalGroups(current => [...current, group]),

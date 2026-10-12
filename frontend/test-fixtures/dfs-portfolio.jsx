@@ -6,6 +6,7 @@ import useDfsBuilder from "../src/useDfsBuilder.js";
 import DfsWorkspace from "../src/DfsWorkspace.jsx";
 import { DEFAULT_FORMATS } from "../src/dfsToolPresentation.js";
 import { publishDataRevision } from "../src/useDataRevision.js";
+import evidenceFixture from "./dfs-evidence-data.json";
 import "../src/styles.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
@@ -16,11 +17,12 @@ const positions = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "WR", "DST"];
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
 const largePool = new URLSearchParams(location.search).has("large-pool");
 const workflow = new URLSearchParams(location.search).has("workflow");
-const guardrails = workflow || new URLSearchParams(location.search).has("guardrails");
+const evidenceMode = new URLSearchParams(location.search).has("evidence");
+const guardrails = workflow || evidenceMode || new URLSearchParams(location.search).has("guardrails");
 const historicalFeatures = largePool
   ? Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`model_feature_${i}`, i / 100]))
   : {};
-const players = Array.from({ length: largePool ? 700 : workflow ? 400 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
+const players = evidenceMode ? evidenceFixture.pool : Array.from({ length: largePool ? 700 : workflow ? 400 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
   Player: `Example ${i + 1}`, Team: guardrails && i >= 9 ? "KC" : i % 2 ? "BUF" : "KC",
   Opponent: guardrails && i >= 9 ? "BUF" : i % 2 ? "KC" : "BUF",
   Position: guardrails && i === 178 ? "RB" : positions[i] || "WR", salary: 4000,
@@ -29,11 +31,14 @@ window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: f
   accessStatus: 200, accessChecks: 0, saveAttempts: 0, delaySave: false, repeatBuild: false, run: 0,
   poolRequests: 0, poolVersion: 0, failPool: false, failSalaryImport: false,
   delayOptimize: false, ignoreOptimizeAbort: false, optimizeAborts: 0, failOptimize: false, partialCount: null, allAlternateRb: false,
+  evidenceRequests: 0, comparisonRequests: [], failEvidence: false, missingEvidence: false,
+  delayEvidence: false, ignoreEvidenceAbort: false, evidenceAborts: 0,
+  failComparison: false, delayComparison: false, ignoreComparisonAbort: false, comparisonAborts: 0, mismatchComparison: false,
   publishDataRevision };
 const fixturePool = state => players.map((player, index) => ({ ...player,
-  ...(workflow && state.poolVersion && index === 0 ? {
-    "Projected Points": 10 + state.poolVersion * 2,
-    "Low (P10)": 5 + state.poolVersion, "High (P90)": 15 + state.poolVersion * 3,
+  ...((workflow || evidenceMode) && state.poolVersion && index === 0 ? {
+    "Projected Points": player["Projected Points"] + state.poolVersion * 2,
+    "Low (P10)": player["Low (P10)"] + state.poolVersion, "High (P90)": player["High (P90)"] + state.poolVersion * 3,
   } : {}) }));
 const nativeFetch = window.fetch.bind(window);
 window.fetch = async (url, options = {}) => {
@@ -41,8 +46,36 @@ window.fetch = async (url, options = {}) => {
   const path = String(url), state = window.__portfolioFixture;
   const body = typeof options.body === "string" ? JSON.parse(options.body) : {};
   const respond = (data, status = 200) => Response.json(data, { status });
+  const delay = async (key, ignoreKey, abortedKey) => {
+    if (!state[key]) return;
+    await new Promise((resolve, reject) => {
+      let abort;
+      const release = `release${key.replace(/^delay/, "")}`;
+      state[release] = () => { options.signal?.removeEventListener("abort", abort); resolve(); };
+      if (!state[ignoreKey]) {
+        abort = () => { state[abortedKey]++; reject(new DOMException("Synthetic request cancelled", "AbortError")); };
+        if (options.signal?.aborted) abort();
+        else options.signal?.addEventListener("abort", abort, { once: true });
+      }
+    });
+  };
   if (path.includes("/formats")) return respond({ formats: DEFAULT_FORMATS });
   if (path.includes("/slates?")) return respond({ slates: [{ slate_id: "classic-fixture", name: "Classic fixture slate" }] });
+  if (evidenceMode && path.includes("/evidence?")) {
+    state.evidenceRequests++;
+    await delay("delayEvidence", "ignoreEvidenceAbort", "evidenceAborts");
+    if (state.failEvidence) return respond({ detail: "Synthetic evidence artifact could not be read. Last reviewed inputs are retained." }, 503);
+    const query = new URL(path, location.origin).searchParams;
+    if (state.missingEvidence || query.get("site") !== "draftkings" || query.get("week") !== "5" || query.get("slate_id") !== "classic-fixture")
+      return respond({ status: "unavailable", reason: "No synthetic evidence artifact for this exact slate and week.", context: { ...evidenceFixture.context, week: Number(query.get("week")), site: query.get("site"), slate_id: query.get("slate_id") } });
+    return respond(evidenceFixture.evidence);
+  }
+  if (evidenceMode && path.endsWith("/compare-classic")) {
+    state.comparisonRequests.push(body);
+    await delay("delayComparison", "ignoreComparisonAbort", "comparisonAborts");
+    if (state.failComparison) return respond({ detail: "Synthetic comparison failure. Current lineups are unchanged." }, 503);
+    return respond({ ...evidenceFixture.comparison, input_snapshot_id: state.mismatchComparison ? "wrong-synthetic-input" : body.input_snapshot_id, evidence_id: body.evidence_id });
+  }
   if (workflow && path.includes("/salaries/import")) {
     if (state.failSalaryImport) return respond({ detail: "Synthetic invalid salary file: required columns are missing." }, 400);
     return respond({ players: fixturePool(state), salaries: fixturePool(state).map(p => ({ dfs_id: p.dfs_id,
@@ -58,7 +91,11 @@ window.fetch = async (url, options = {}) => {
       player_name: p.Player, position: p.Position, team: p.Team, salary: p.salary })), salary_snapshot: { id: (state.unrelatedCatalog ? "c" : "b").repeat(64) },
       slate: { name: "Classic fixture slate" }, meta: {} });
   }
-  if (path.includes("/vegas")) return respond({ games: guardrails ? [{ game_id: "synthetic-kc-buf", home: "KC", away: "BUF",
+  if (path.includes("/vegas")) return respond({ games: evidenceMode ? evidenceFixture.evidence.games.map((game, index) => ({ ...game,
+    kickoff_et: game.kickoff_at, weekday: "Synthetic fixture", total_line: [47, 43, 40][index], spread_line: [3, -2, 1][index],
+    home_implied: [25, 20.5, 20.5][index], away_implied: [22, 22.5, 19.5][index],
+    first_seen_total_line: [48, null, 40][index], first_seen_spread_line: [3, null, 1][index],
+    line_first_seen_at: "2026-10-06T01:00:00Z" })) : guardrails ? [{ game_id: "synthetic-kc-buf", home: "KC", away: "BUF",
     kickoff_et: "2099-10-11T20:25:00Z", weekday: "Synthetic fixture", total: 47, spread_home: -3, home_implied: 25, away_implied: 22 }] : [] });
   if (path.endsWith("/export-access")) {
     state.accessChecks++;
@@ -80,6 +117,18 @@ window.fetch = async (url, options = {}) => {
       captain_comparison: { snapshot_id: "synthetic-comparison", complete: false, candidates: [],
         eligible_captains: 0, evaluated_captains: 0, objective: body.objective },
       build_snapshot: { id: "synthetic-comparison", captured_at: "2026-10-10T12:00:00Z" } });
+    if (evidenceMode) {
+      const report = evidenceFixture.comparison;
+      const selected = report.candidates.filter(candidate => candidate.in_primary_scope && candidate.completions[0]?.result?.validation?.ok)
+        .flatMap(candidate => candidate.completions.map(completion => completion.result));
+      const unique = [...new Map(selected.map(entry => [entry.lineup.map(player => player.player_id).sort().join("|"), entry])).values()];
+      // Normal multi-build validation belongs to the top-level response. The
+      // comparison helper separately validates every completion result.
+      const lineups = unique.slice(0, body.lineup_count).map(({ validation, ...entry }) => entry);
+      return respond({ ok: true, lineups, complete: lineups.length === body.lineup_count,
+        build_snapshot: { id: "synthetic-evidence-build", captured_at: evidenceFixture.evidence.decision_at,
+          content: { schema_version: "dfs_build_inputs_v1", parameters: body, input_pool: fixturePool(state) } } });
+    }
     const run = state.repeatBuild ? 0 : state.run++;
     const currentPool = fixturePool(state);
     const selectedCount = workflow && state.partialCount != null ? state.partialCount : body.lineup_count;

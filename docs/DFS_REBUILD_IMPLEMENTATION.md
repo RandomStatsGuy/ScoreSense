@@ -29,13 +29,27 @@ Original `scoresense-portfolio-rescue.json`, `incident_audit.json`, paid source 
 | 1 | Reliable entry serializer, authorized local recovery, durable draft, actionable pending state | Scoped foundation in PR1; compact version-2 worker recovery verified in PR3. |
 | 2 | Native global exposures, pair/core constraints, QB/DST guard, exact stacks, atomic plans | Foundation in PR1; PR2 adds pair/core UI, native exact semantics, independent audits and atomic plans. Final verification is recorded separately below. |
 | 3 | Integrated progressive workflow, accumulated audit, explicit replacements/undo, capability/error states and versioned input updates | Implemented scope in third dependent draft; final verification recorded below. Role/statistical recommendations remain gated. |
-| 4 | Provenance-aware opportunity/game evidence, inherited pace baseline and challenger comparisons | Pending; usable permitted source coverage and chronological count/role evaluation required. |
+| 4 | Provenance-aware opportunity/game evidence, inherited pace baseline and challenger comparisons | Scoped diagnostic implementation and chronological retrospective evaluation in PR4; no fitted forecast promotion. |
 | 5 | Coherent shared outcomes, verified site scoring and specialist distributions | Gated pending conservation/calibration/evaluation-draw tests and measured runtime. |
 | 6 | Contest-conditioned legal field, ownership sensitivity, exact payouts/ties | Gated pending permitted full-field/ownership archives and actual contest payout contracts. |
 | 7 | Contest-aware joint portfolio evaluation and distinct risk/top-finish objectives | Gated pending untouched forward evaluation and comparable-budget baseline. |
 | 8 | Accepted-entry late swap preserving exact started slots | Separately gated; verified accepted state/current locks and end-to-end tests required. |
 
 No later stage is represented as delivered by PR1. Missing statistical/data dependencies must gate unsupported claims while independent engineering and design continue.
+
+## Fourth PR: opportunity evidence and complete alternatives
+
+This draft starts from merged phase-3 baseline `ddcbe804`. The existing matchup rail opens a compact full-width evidence section with bounded Games, Player observations, Complete-lineup comparisons and Sources disclosures. Historical observations retain source URI/hash/period/definition/rights and declared publication/retrieval/known-at. Source hashes identify bytes, not source authenticity or permission. Missing/incompatible evidence stays unavailable; raw/derived source observations are omitted from portable reviews, which retain source references and receipts.
+
+The inherited screen is exactly 75% season plus 25% relevant venue plays for/against, followed by the team/opponent mean. Both team screens, combined values, sample counts, dates and season/venue/pooled alternatives are visible. Missing venue terms declare season fallback. Rough dropbacks use each team's compatible observed dropback rate, not neutral tempo or a calibrated forecast. Explicit duplicate receiving headers preserve grade versus routes and distinguish routes/player passing snaps from routes/team dropbacks. No routes are inferred from targets.
+
+Comparison selection freezes one complete eligible player pool, current controls and chosen evidence version. Both quarterback sides and excluded-QB alternatives receive bounded legal complete-roster searches; off-focus complementary players remain available. The review shows requested/actual attachments and opposing players, multiple complete rosters, salary and summed input objective, strongest evaluated excluded challenger and unresolved statuses. Ordinary game weights and named scopes identify primary QBs without imposing a fixed game count. Existing collection projection sums can be reevaluated on the selected pool while original snapshots and forecasts remain unchanged. Cancellation stops waiting and discards late responses; server work may finish its bounded request. Input/account/context changes and mismatched response IDs invalidate incoming results.
+
+The [actual 2024 chronological count/role study](reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md) is separate from synthetic engineering checks. It compares the inherited baseline with season/venue/pooled alternatives on an untouched later block and records uncertainty and unknown historical publication. The earlier-selected pooled alternative did not improve the inherited screen in that later block, so no fitted venue upgrade or production forecast adjustment is promoted. Historical observed-touch role evaluation does not establish active-player roles, route forecasts, injury/coverage adjustments or specialist distributions.
+
+Final verification: affected backend **442 passed** (75.43 s); full enumerated frontend **1,171 passed / 3 confirmed baseline failures of 1,174** (19.077 s); source/comparison/evaluation integration **48 passed** (5.71 s); API **24 passed** (3.25 s); policy **36 passed** (3.77 s); production build **passed** (9.14 s), retaining the existing bundle warning. The exact-request synthetic real-engine pipeline resolved 36 alternatives with 30 feasible candidates and 96 solves (1.188 s comparison), using the API default three completions. The final actual-theme browser gate exited 0 across eight evidence cases and eight failure/race supplements. Foundation and guardrail eight-case gates, 390/1280 portfolio150/worker stress, and the default integrated workflow with seven supplements plus both direct150 cases also exited 0. These are scoped engineering checks; the earlier phase2 whole-suite result is not a current whole-repository claim.
+
+[Phase-4 review evidence](reviews/dfs-opportunity-evidence/README.md) records exact commands, actual results, synthetic screenshots and remaining scope. Shared outcomes, legal field/ownership, contest payout/EV, calibrated portfolio objectives and accepted-entry late swap remain gated phases 5–8. Original incident artifacts and accepted-entry readback remain absent.
 
 ## Third PR: integrated workflow and recovery
 
@@ -45,7 +59,7 @@ Accumulated review now counts pairs/cores across slots and batches, QB games, at
 
 Selected-lineup and whole-batch replacements use an explicitly generated compatible candidate. Preview shows identities, salary/projection/overlap and player/pair deltas, preserves approved locks/core minima and rechecks hard bounds. Acceptance creates flat provenance, clears entry review and supports undo until another collection edit. Original snapshots and saved history remain frozen. This is an existing-candidate replacement workflow; automatic alternative generation and evidence-based game/core recommendations remain later work.
 
-Normal builds show elapsed time and running/cancelled/failed/partial/complete states. Cancel stops client waiting and discards late responses; server work may finish its bounded request. Failed builds, refreshes and invalid salary imports retain last usable work. Incoming data stages affected-player before/after values for explicit Keep or Apply, records an input version and permits undo. Live updates retain imported estimates. Historical collection projection sums deliberately use their original input versions; common-snapshot reevaluation is still a DATA-07 gap.
+Normal builds show elapsed time and running/cancelled/failed/partial/complete states. Cancel stops client waiting and discards late responses; server work may finish its bounded request. Failed builds, refreshes and invalid salary imports retain last usable work. Incoming data stages affected-player before/after values for explicit Keep or Apply, records an input version and permits undo. Live updates retain imported estimates. Historical collection projection sums deliberately use their original input versions; PR4 adds explicit common-input projection reevaluation; joint scenario reevaluation remains a DATA-07 gap.
 
 Compact version-2 backups deduplicate shared historical content and retain readable version-1 files. Bounded parsing/validation/encoding runs in a real browser worker, with account-partitioned drafts and fresh entry-review requirements. Reference expansion limits, cycles, unknown references and malformed files are rejected atomically. The 20 MiB encoded/64 MiB expanded/2M-value/depth-24 limits still bound recovery; writer/readback checks reject oversized histories before download while preserving work. Original incident inputs and accepted-entry readback remain unavailable.
 
@@ -94,16 +108,16 @@ Existing browser infrastructure: `scripts/dev/dfs_portfolio_browser.mjs` renders
 | GOV-01 | Version every rule and every build | partial | 1–7 | T05, T35 |
 | DATA-01 | Classic main slate only | partial | 2,5 | T01, T02 |
 | DATA-02 | Freeze source, identity and availability | partial | 1,4 | T04, T05, T06 |
-| PACE-01 | Combined-play screen: inherited 75/25 blend | planned_gated | 4 | T17 |
-| PACE-02 | Let sample size govern venue adjustment | planned_gated | 4 | T17, T19 |
-| PACE-03 | Separate volume, tempo, dropbacks and scoring | planned_gated | 4 | T03, T17, T18 |
-| PACE-04 | Define a coherent count system | planned_gated | 4 | T18 |
+| PACE-01 | Combined-play screen: inherited 75/25 blend | implemented_scoped | 4 | T17 |
+| PACE-02 | Let sample size govern venue adjustment | partial | 4 | T17, T19 |
+| PACE-03 | Separate volume, tempo, dropbacks and scoring | partial | 4 | T03, T17, T18 |
+| PACE-04 | Define a coherent count system | implemented_scoped | 4 | T18 |
 | MARKET-01 | Timestamp movement without inventing causes | partial | 4 | T05, T17, T19 |
 | OWN-01 | Ownership is a field forecast, not player ability | partial | 6 | T04, T21, T23 |
 | OWN-02 | Do not multiply marginal ownership into stack ownership | planned_gated | 6 | T21, T22 |
-| ROLE-01 | Project the role before the matchup | planned_gated | 4,5 | T03, T18, T19 |
-| ROLE-02 | Value opportunities by location and scoring | planned_gated | 4,5 | T02, T18, T19 |
-| ROLE-03 | Pool small samples and honor structural changes | planned_gated | 4,5 | T05, T19 |
+| ROLE-01 | Project the role before the matchup | partial | 4,5 | T03, T18, T19 |
+| ROLE-02 | Value opportunities by location and scoring | partial | 4,5 | T02, T18, T19 |
+| ROLE-03 | Pool small samples and honor structural changes | partial | 4,5 | T05, T19 |
 | ROLE-04 | Redistribute opportunity, not just vacated totals | planned_gated | 4,5 | T05, T18, T19 |
 | MATCH-01 | Match receiver role to defensive tendencies | planned_gated | 4 | T19, T20 |
 | MATCH-02 | Do not invent shadow coverage or automatic pressure beneficiaries | planned_gated | 4 | T04, T19 |
@@ -116,8 +130,8 @@ Existing browser infrastructure: `scripts/dev/dfs_portfolio_browser.mjs` renders
 | PORT-01 | Declare objective and price ties correctly | planned_gated | 7 | T22, T23, T36 |
 | PORT-02 | Audit shared assumptions, not just shared names | partial | 2,3,7 | T11, T13, T36 |
 | PORT-03 | Three-to-four-game focus is a configuration, not a law | partial | 2,4 | T14, T20 |
-| VALID-01 | Test forward and remove layers one at a time | planned_gated | 4–7 | T05, T19, T20 |
-| VALID-02 | Audit decisions before judging results | planned_gated | 4–7 | T30, T35 |
+| VALID-01 | Test forward and remove layers one at a time | partial | 4–7 | T05, T19, T20 |
+| VALID-02 | Audit decisions before judging results | partial | 4–7 | T30, T35 |
 | OPS-01 | Reuse artifact-first architecture; gate readiness | partial | 1–7 | T23, T32, T35 |
 | OPS-02 | Check availability and rights before promising a feed | policy | 4–6 | T03, T04 |
 | OPS-03 | Separate live-slate execution from model development | policy | all | T28, T32, T35 |
@@ -129,12 +143,12 @@ Existing browser infrastructure: `scripts/dev/dfs_portfolio_browser.mjs` renders
 | GOV-02 | Define optimality and prohibit false certainty | partial | 1,7 | T23, T24, T36 |
 | GOV-03 | Separate design requirements from historical decisions | policy | all | T05, T30, T31, T35 |
 | DATA-03 | Use exact, account-scoped slate and player identities | partial | 1,4 | T01, T06, T25, T29 |
-| DATA-04 | Preserve source windows and count denominators | planned_gated | 4 | T03, T05 |
+| DATA-04 | Preserve source windows and count denominators | partial | 4 | T03, T05 |
 | DATA-05 | Keep projection semantics and overrides explicit | partial | 1,4 | T04, T05, T35 |
 | DATA-06 | Gate data use by actual rights and coverage | policy | 4–6 | T03, T04, T29 |
 | DATA-07 | Freeze one decision-time evaluation snapshot | partial | 3,4 | T05, T32, T35 |
-| PACE-05 | Rank quarterback-side opportunity and challenge omissions | planned_gated | 4 | T17, T20 |
-| ROLE-05 | Research all complementary positions | planned_gated | 4,5 | T02, T04, T18, T19 |
+| PACE-05 | Rank quarterback-side opportunity and challenge omissions | partial | 4 | T17, T20 |
+| ROLE-05 | Research all complementary positions | partial | 4,5 | T02, T04, T18, T19 |
 | STACK-04 | Block QB versus opposing DST by default | partial | 1 initial / 2 complete | T01, T08 |
 | STACK-05 | Make group and bring-back semantics exact | implemented_scoped | 2 | T07, T14, T35 |
 | SIM-03 | Derive specialist outcomes from shared events | planned_gated | 5 | T02, T18, T19 |
@@ -165,9 +179,9 @@ Partial coverage does not mark the whole T-case passed. The JSON registry record
 |---|---|---|
 | T01 | partial | Salary/slate/identity guards exist; complete sport/game/scoring contract remains. `tests/test_dfs_salaries.py; tests/test_dfs_slate_snapshots.py; tests/test_dfs_validation.py` |
 | T02 | partial | Roster/salary adapter tested; exact scoring/bonuses and coherent specialists remain. `tests/test_lineup_optimizer.py; tests/test_dfs_validation.py` |
-| T03 | planned | No verified PFF-like route ledger/denominator parser is integrated. `Phase 4` |
-| T04 | partial | Independent capability states distinguish usable forecasts and loaded identity inputs from unavailable roles/joint/field/returns/late swap; unknown solver evidence stays unknown. Full source/status/scoring semantics remain. `dfsWorkspaceState.test.js; dfsPoolCoverage.test.js; dfs_workflow_tasks.mjs` |
-| T05 | partial | Immutable snapshots exist; full known-at as-of joins/source windows remain. `tests/test_dfs_snapshots.py; tests/test_dfs_slate_snapshots.py` |
+| T03 | partial | Explicit duplicate-header route/grade parsing, raw hash/period validation, zero/missing denominators and distinct passing-snap/team-dropback rates are tested. Original paid provider exports and broad actual route coverage remain absent. `tests/test_dfs_opportunity.py; scripts/dev/verify_dfs_evidence.py; scripts/dev/dfs_evidence_tasks.mjs` |
+| T04 | partial | Historical source coverage and missing specialist capabilities are explicit; hashes confer no source permission/authenticity. Forward roles/joint/field/EV/late swap remain gated. `tests/test_dfs_opportunity.py; tests/test_dfs_evidence_api.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs` |
+| T05 | partial | Evidence observations use declared compatible prior windows/known-at cutoffs; selected comparison inputs are immutable. Unknown historic publication remains retrospective, not certified pre-lock availability. `tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs` |
 | T06 | partial | Guarded identities and string export IDs tested; persistent cross-provider mapping remains. `dfsExport.test.js; tests/test_dfs_salaries.py` |
 | T07 | implemented_scoped | PR2 tests every native mode, lock-inclusive attachments/opponents, receiving-RB declaration and independent actual-roster audits. Role eligibility is explicitly user-declared, not a fitted football-role model. `test_dfs_stack_rules.py; dfsBuildPlans.test.js; dfsGlobalExportValidation.test.js; dfs_guardrails_tasks.mjs` |
 | T08 | partial | PR1 global-mode strategy guard; original 11-conflict file was not provided. `PR1 synthetic regression; phase 2 exact-game audit` |
@@ -178,11 +192,11 @@ Partial coverage does not mark the whole T-case passed. The JSON registry record
 | T13 | partial | Current-build and collection FLEX/RB-pair distributions are descriptive, including synthetic 114/150 regression, with no automatic ban. Generic requested position-distribution constraints remain. `dfsGlobalExposure.test.js; dfsPortfolioReview.test.js; dfs_workflow_tasks.mjs` |
 | T14 | implemented_scoped | PR2 atomic named-plan import/preview/cancel/apply replaces locks/skips/schedule/rules, retains immutable IDs and manifests, rejects stale/context changes, and blocks mismatched Build. Browser backup/reload preserves the original batches and applied-plan metadata. `dfsBuildPlans.test.js; dfs_guardrails_tasks.mjs` |
 | T15 | partial | PR2 bounded generation adds pair/core omission attempts; 150-lineup synthetic fixture passes. Wider-budget, ordering and research-pool sensitivity comparisons remain. `test_dfs_build_retries.py; test_dfs_portfolio_selection.py; verify_dfs_rebuild.py --native-stacks` |
-| T16 | partial | Optional minimum and full cap exist; broader full-lineup cost comparison remains. `tests/test_lineup_optimizer.py` |
-| T17 | planned | Inherited pace baseline and source/sample display not implemented as specified. `Phase 4` |
-| T18 | planned_gated | No coherent game/opportunity conservation simulator integrated. `Phase 5` |
-| T19 | planned_gated | No forward validation of this proposed joint/opportunity/field model. `Phases 4–7` |
-| T20 | planned_gated | Generation/evaluation draw separation not applicable to current projection-sum baseline. `Phases 5/7` |
+| T16 | partial | Common-input complete-roster alternatives display actual legal salary and summed objectives while optional minimum/full cap remain. Joint contest-aware cost comparison remains. `tests/test_dfs_classic_comparison.py; dfs_evidence_tasks.mjs` |
+| T17 | implemented_scoped | Exact 75/25 inherited team/combined screens, sample/source/window values, missing-venue fallback and unfitted alternatives are tested and displayed. Actual chronological research does not promote a fitted venue effect. `tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; verify_dfs_evidence.py; dfs_evidence_tasks.mjs; docs/reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md` |
+| T18 | partial | Historical accepted-scrimmage count identities and team denominators reconcile. Joint game/opportunity outcomes, availability and specialist conservation remain stage 5. `tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; phase5` |
+| T19 | partial | Actual 2024 earlier-tuning/later-held-out play/dropback and observed-touch role screens were compared with week-block uncertainty. No live publication archive, multi-season forward role model or calibrated joint/field model is validated. `tests/test_dfs_opportunity_eval.py; docs/reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md` |
+| T20 | partial | Bounded whole-nine-player primary/challenger comparisons and existing collection objective sums use one explicit snapshot with original forecasts preserved. Independent generation/evaluation draw separation remains gated until shared simulation exists. `tests/test_dfs_classic_comparison.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs; phases 5/7` |
 | T21 | planned_gated | No validated contest-conditioned legal opponent-field model. `Phase 6` |
 | T22 | partial | Descriptive contest tie helper exists; joint own/opponent multiplicities, currency/noncash adapter remain. `dfsContest.test.js; phase 6` |
 | T23 | partial | Independent capability review labels role/joint/field/contest-return and late-swap unavailable while projection-guided legal construction remains usable. No silent research-objective fallback or EV claim is added; contest-aware objectives remain gated. `dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; phases 4–7` |
@@ -194,8 +208,8 @@ Partial coverage does not mark the whole T-case passed. The JSON registry record
 | T29 | partial | Compact shared-content version-2 backups and off-thread browser draft/manual recovery retain exact history, native rules, applied plans and collection bounds; version 1 remains readable. Bounded expansion and malformed restore are tested. Original incident file is absent. Compact encoding does not remove the 20 MiB input/64 MiB expanded/2M-value/depth-24 capacity limits. `dfsPortfolioBackup.test.js; dfsPortfolioBackupAsync.test.js; dfsLocalDraft.test.js; dfs_portfolio_browser.mjs; dfs_workflow_tasks.mjs` |
 | T30 | partial | Frozen output metadata/order and exact-byte seals remain; explicit selected-lineup/whole-batch replacements show deltas and retain flat lineage/undo. Acceptance remains unconfirmed without platform readback; original incident files are unavailable. `dfsPortfolioReview.test.js; dfsPortfolioBackup.test.js; dfsEntryExportSession.test.js; dfs_workflow_tasks.mjs` |
 | T31 | planned_gated | Late swap disabled; pre-lock tests cannot prove exact started-slot immutability. `Phase 8; explicit gate test in dfsEntryRecovery.test.js` |
-| T32 | partial | PR3 client cancel/late response guards, failed refresh/import preservation, explicit input version preview/apply/undo and hidden-tab polling checks retain reviewed work. Server work may finish after client cancel; common-snapshot statistical reevaluation remains. `dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; tests/test_dfs_freshness.py; tests/test_dfs_refresh_ticker.py` |
-| T33 | partial | PR3 task/keyboard/focus and measured layouts cover 390/768/1280/1440 in both themes, with scoped screenshots inspected before final handoff. Full accessibility certification and unrelated Fantasy/Projections contexts are not claimed. `dfs_workflow_tasks.mjs; dfs_rebuild_browser.mjs; dfs_guardrails_tasks.mjs; layout_audit.mjs` |
-| T34 | partial | Integrated generation/review, accumulated pair/core audit, previewed replacements/undo, input updates, recovery and correct entry export are exercised through production components. Role/opportunity recommendations remain unavailable pending phase 4 evidence. Direct Generate150 → auto-collected review → 150 entry assignments/export/recovery passed at 390 dark and 1280 light. `dfs_workflow_tasks.mjs; dfs_rebuild_browser.mjs; docs/reviews/dfs-integrated-workflow/README.md` |
-| T35 | partial | Native rules, applied plans, input update versions, original-source audits, flat replacement lineage and CSV seals retain provenance. Complete rule/model/field/solver hashes and known-at source joins remain. `dfsPortfolioReview.test.js; dfsPortfolioBackup.test.js; dfsWorkspaceState.test.js; dfsEntryExportSeal.test.js; tests/test_dfs_snapshots.py` |
+| T32 | partial | PR3 workflow preservation remains; PR4 explicitly staged evidence/current-input selection, client comparison cancellation and stale response guards retain reviewed work. Joint scenario reevaluation remains unavailable. `dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; dfsEvidence.test.mjs` |
+| T33 | partial | PR4 actual-theme-asserted evidence tasks/layouts at 390/768/1280/1440 in both themes and keyboard/focus/cancel/source-staging checks extend prior workflow acceptance. Inspected screenshots are synthetic. Full accessibility certification and unrelated Fantasy/Projections contexts remain unclaimed. `dfs_evidence_tasks.mjs; dfs_workflow_tasks.mjs; layout_audit.mjs; docs/reviews/dfs-opportunity-evidence/README.md` |
+| T34 | partial | Integrated150 generation/review/recovery/export remains. PR4 diagnostic evidence and complete alternatives are reviewable without changing saved builds. Calibrated role/opportunity recommendations and contest-aware objectives remain unavailable. `dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; docs/reviews/dfs-opportunity-evidence/README.md` |
+| T35 | partial | Selected common pool/control/evidence IDs and source receipts accompany comparison review; original builds/CSV seals remain immutable. Full model/field manifests and archived live source joins remain. `dfsEvidence.test.mjs; tests/test_dfs_classic_comparison.py; tests/test_dfs_opportunity.py; dfs_evidence_tasks.mjs` |
 | T36 | planned_gated | No validated contest-aware objective/risk/top-finish selector exists. `Phases 6/7` |
