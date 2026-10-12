@@ -553,43 +553,47 @@ export default function DfsWorkspace({ b }) {
         <div className="dfw-flow-main">
           <section className="dfw-panel dfw-settings" ref={buildPanelRef} tabIndex={-1} aria-labelledby="dfw-settings-title">
             <h2 id="dfw-settings-title">{C.settings}</h2>
-            <div className="dfw-settings-grid">          <DfsField label={C.count}>
-            <input
-              aria-label={C.count}
-              aria-describedby="dfw-count-help"
-              aria-invalid={!validLineupCount}
-              type="number"
-              inputMode="numeric"
-              min="1"
-              max={MAX_LINEUP_COUNT}
-              step="1"
-              required
-              value={b.settings.count}
-              onChange={(e) => b.changeSetting("count", e.target.value)}
-              disabled={b.building}
-            />
-            <p id="dfw-count-help" className="dfw-note">
-              {C.countHelp}
-            </p>
-          </DfsField>
-          <HubFilterMenu
-            label={F.goal}
-            value={b.settings.objective}
-            options={filterObjectives(b.isDfs).map((o) => ({
-              ...o,
-              shortLabel: o.label,
-              detail: o.hint,
-            }))}
-            onChange={(v) => b.changeSetting("objective", v)}
-          />
-</div>
-            <div className="dfw-build-action">
-              <button ref={buildButtonRef} data-testid="dfs-generate" type="button" className="dfw-primary btn-primary"
-                aria-describedby={buildBlock ? "dfw-build-block" : undefined}
-                disabled={b.busy || b.building || !b.pool.length || !validLineupCount || b.planMatches === false} onClick={b.run}>
-                {b.building ? C.building : WC.generate(b.settings.count)}
-              </button>
-              <p className="dfw-note">{F.buildSummary(b.locked.length, b.excluded.length, b.isDfs ? b.settings.maxSalary : null)}</p>
+            <div className="dfw-build-setup">
+              <div className="dfw-build-controls" data-control-row>
+                <DfsField label={C.count}>
+                  <input
+                    aria-label={C.count}
+                    aria-describedby="dfw-count-help"
+                    aria-invalid={!validLineupCount}
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    max={MAX_LINEUP_COUNT}
+                    step="1"
+                    required
+                    value={b.settings.count}
+                    onChange={(e) => b.changeSetting("count", e.target.value)}
+                    disabled={b.building}
+                  />
+                </DfsField>
+                <DfsField label={F.goal}>
+                  <HubFilterMenu
+                    className="hub-filter-menu--field"
+                    label={F.goal}
+                    value={b.settings.objective}
+                    options={filterObjectives(b.isDfs).map((o) => ({
+                      ...o,
+                      shortLabel: o.label,
+                      detail: o.hint,
+                    }))}
+                    onChange={(v) => b.changeSetting("objective", v)}
+                  />
+                </DfsField>
+                <button ref={buildButtonRef} data-testid="dfs-generate" type="button" className="dfw-primary btn-primary"
+                  aria-describedby={buildBlock ? "dfw-build-block" : undefined}
+                  disabled={b.busy || b.building || !b.pool.length || !validLineupCount || b.planMatches === false} onClick={b.run}>
+                  {b.building ? C.building : WC.generate(b.settings.count)}
+                </button>
+              </div>
+              <div className="dfw-build-notes">
+                <p id="dfw-count-help" className="dfw-note">{C.countHelp}</p>
+                <p className="dfw-note">{F.buildSummary(b.locked.length, b.excluded.length, b.isDfs ? b.settings.maxSalary : null)}</p>
+              </div>
               {buildBlock && <p className={b.error ? "dfw-error" : "dfw-note"} id="dfw-build-block" role={b.error ? "alert" : "status"}>{buildBlock}</p>}
             </div>
             <DfsBuildStatus b={b} onCancel={() => { b.cancelBuild(); requestAnimationFrame(() => buildButtonRef.current?.focus()); }} />

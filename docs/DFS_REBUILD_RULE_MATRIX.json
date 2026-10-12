@@ -1622,6 +1622,15 @@
         "log": "outputs/guided-policy.log",
         "environment_retry": "Default sandbox temporary directory denied fixture setup; rerun with workspace --basetemp passed without source changes."
       },
+      "spacing_followup": {
+        "prior_guided_checks_commit": "5618918503e93c87fa1514a9f48934382b178cdc",
+        "layout_cases_passed": 14,
+        "layout_audit_tests_passed": 25,
+        "workflow_smoke_passed": true,
+        "production_build_seconds": 7.30,
+        "receipt": "docs/reviews/dfs-shared-outcomes/spacing-verification.json",
+        "scope": "Aligned Build controls, container-width stacking, longest-goal and expanded-Advanced checks in both themes, plus the existing 390 dark sealed-export/worker-recovery smoke. No fresh broad-suite, live account or unrelated-page verification."
+      },
       "browser": {
         "passed": true,
         "exit_code": 0,

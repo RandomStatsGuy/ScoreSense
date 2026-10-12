@@ -13,6 +13,7 @@ import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
+import "../src/styles/standalone-dialogs.css";
 
 const positions = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "WR", "DST"];
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
