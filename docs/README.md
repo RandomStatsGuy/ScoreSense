@@ -28,6 +28,8 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [DFS rebuild foundation review](./reviews/dfs-rebuild/README.md) | Scoped synthetic screenshots, responsive/theme task checks and verification limits |
 | [DFS portfolio guardrails review](./reviews/dfs-portfolio-guardrails/README.md) | Pair/core controls, exact stacks, atomic plans and scoped synthetic verification |
 | [DFS integrated workflow review](./reviews/dfs-integrated-workflow/README.md) | Accumulated audits, explicit replacements, versioned updates and compact worker recovery |
+| [DFS opportunity evidence review](./reviews/dfs-opportunity-evidence/README.md) | Source-aware historical screens, complete Classic alternatives and synthetic browser acceptance |
+| [DFS 2024 count/role retrospective](./reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md) | Actual chronological public-data study, withheld later block and model-promotion limits |
 | [MOBILE_APP.md](./MOBILE_APP.md) | PWA and Android TWA |
 | [Fantasy mobile design](../.cursor/rules/fantasy-mobile.mdc) | Approved mobile parameters, controls, and mock foundation |
 | [Fantasy mobile review](./FANTASY_MOBILE_REVIEW.md) | Page-by-page review queue and Home design decisions |

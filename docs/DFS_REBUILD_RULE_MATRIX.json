@@ -3,8 +3,8 @@
   "spec_version": "0.2.0",
   "source_sha256": "a0cd7f50eed4f3a45d0158f587c2d00c1003c1b5425845a9bcfe9aa693fca96c",
   "inventory_commit": "45694c9355cbd6559da79ef688c4a62e5b94283d",
-  "as_of": "2026-10-11",
-  "status_note": "PR1 is a scoped foundation; PR2 adds verified portfolio guardrails; PR3 integrates reviewed workflow, collection audits/replacement and compact recovery. Statuses describe scoped engineering, never statistical readiness or platform acceptance.",
+  "as_of": "2026-10-12",
+  "status_note": "PR1 scoped foundation, PR2 portfolio guardrails, PR3 integrated workflow/recovery and PR4 source-aware historical opportunity screens plus bounded common-input Classic comparisons. Statuses never imply statistical promotion, source authenticity or platform acceptance.",
   "rules": [
     {
       "id": "GOV-01",
@@ -15,7 +15,7 @@
         "T05",
         "T35"
       ],
-      "remaining_work": "Build and plan snapshots, input-update versions and flat replacement lineage retain original inputs. Complete rule/model/field/solver manifests remain incomplete."
+      "remaining_work": "PR4 versions evidence artifacts, selected input snapshots and bounded comparison reports alongside earlier build/plan/export lineage. Complete rule/model/field manifests remain."
     },
     {
       "id": "DATA-01",
@@ -38,50 +38,50 @@
         "T05",
         "T06"
       ],
-      "remaining_work": "Frozen build/catalog inputs and freshness labels exist; source known-at times, game IDs and all availability scenarios are incomplete."
+      "remaining_work": "PR4 validates source receipts, exact observation periods/count definitions and declared known-at cutoffs; unknown historical publication is explicitly retrospective. Full live availability/scoring archives and independent source authenticity remain unavailable."
     },
     {
       "id": "PACE-01",
       "title": "Combined-play screen: inherited 75/25 blend",
-      "status": "planned_gated",
+      "status": "implemented_scoped",
       "phase": "4",
       "acceptance_tests": [
         "T17"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "Exact inherited 75% season/25% venue for/against screen, team and combined values, sample counts/windows and declared missing-venue season fallback are implemented as unfitted diagnostics; no production projection adjustment is promoted."
     },
     {
       "id": "PACE-02",
       "title": "Let sample size govern venue adjustment",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4",
       "acceptance_tests": [
         "T17",
         "T19"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR4 displays season-only, venue-only and declared pooled alternatives. An earlier-block-selected prior was evaluated on an untouched later 2024 block and did not beat the inherited baseline. Multi-season validation and any fitted promotion remain gated."
     },
     {
       "id": "PACE-03",
       "title": "Separate volume, tempo, dropbacks and scoring",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4",
       "acceptance_tests": [
         "T03",
         "T17",
         "T18"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "Same-universe historical play/dropback counts and team-specific observed rates are separate from market lines, tempo and scoring. Game-script/market/neutral-situation predictive components remain unavailable."
     },
     {
       "id": "PACE-04",
       "title": "Define a coherent count system",
-      "status": "planned_gated",
+      "status": "implemented_scoped",
       "phase": "4",
       "acceptance_tests": [
         "T18"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "accepted_scrimmage_v1 explicitly excludes no-plays/kneels/spikes/two-point attempts, includes overtime, and reconciles plays=designed runs+dropbacks, dropbacks=sacks+scrambles+throws, throws=targeted+untargeted in retrospective input. A coherent shared-outcome simulator remains stage 5."
     },
     {
       "id": "MARKET-01",
@@ -121,37 +121,37 @@
     {
       "id": "ROLE-01",
       "title": "Project the role before the matchup",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4,5",
       "acceptance_tests": [
         "T03",
         "T18",
         "T19"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR4 exposes historical target/carry counts and full-offense shares, plus independently sourced routes when valid. Chronological observed-touch role baselines are evaluated separately. Forward active-player role, personnel/availability and route forecasts remain gated."
     },
     {
       "id": "ROLE-02",
       "title": "Value opportunities by location and scoring",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4,5",
       "acceptance_tests": [
         "T02",
         "T18",
         "T19"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "Historical carries and targets are retained without inventing receiving-RB roles, goal-line values or DST event distributions. Location/scoring-specific specialist models remain stage 5."
     },
     {
       "id": "ROLE-03",
       "title": "Pool small samples and honor structural changes",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4,5",
       "acceptance_tests": [
         "T05",
         "T19"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "Observation windows, counts, missing venue fallback and retrospective pooling alternatives are explicit. Chronological role comparisons do not validate structural injury/personnel adjustment or active-roster forecasting."
     },
     {
       "id": "ROLE-04",
@@ -289,30 +289,30 @@
         "T14",
         "T20"
       ],
-      "remaining_work": "Weighted QB-game schedules exist; full-slate challenger review and comparison remain."
+      "remaining_work": "Named plans and ordinary game weights can define comparison primary QBs without a fixed game count; all other games remain complementary and excluded-QB challengers are evaluated within a disclosed budget. No calibrated game-focus recommendation is claimed."
     },
     {
       "id": "VALID-01",
       "title": "Test forward and remove layers one at a time",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4–7",
       "acceptance_tests": [
         "T05",
         "T19",
         "T20"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR4 includes chronological earlier-tuning/later-held-out count/role alternatives, paired week-block uncertainty and frozen-source/source-lateness regressions. One retrospective season with unknown historical publication is not a live backtest; full additive-feature/joint/field ablations remain."
     },
     {
       "id": "VALID-02",
       "title": "Audit decisions before judging results",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4–7",
       "acceptance_tests": [
         "T30",
         "T35"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "Portable selected-input/comparison receipts support decision audit without rewriting history. Original incident inputs, accepted entries and prospective outcome audits remain unavailable."
     },
     {
       "id": "OPS-01",
@@ -453,13 +453,13 @@
     {
       "id": "DATA-04",
       "title": "Preserve source windows and count denominators",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4",
       "acceptance_tests": [
         "T03",
         "T05"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR4 parses duplicate grade/route headers by explicit column identity, preserves raw hash/windows/filters/units, distinct passing-snap versus team-dropback denominators, missingness and contradictory period flags. Paid original exports and broad provider integration were not supplied."
     },
     {
       "id": "DATA-05",
@@ -483,7 +483,7 @@
         "T04",
         "T29"
       ],
-      "remaining_work": "Only synthetic/public fixtures are permitted here; paid source rights/latency review is not complete."
+      "remaining_work": "Separate source rights gate hosted ingestion/display; hashes do not establish permission. Portable comparison reviews retain source receipts/references while omitting raw/derived observation ledgers. No data purchase or unsupported hosting authorization is assumed."
     },
     {
       "id": "DATA-07",
@@ -495,23 +495,23 @@
         "T32",
         "T35"
       ],
-      "remaining_work": "PR3 stages incoming player changes, preserves frozen reviewed builds, records before/after input versions and supports explicit apply/undo. Collection projection sums deliberately use each historical input version; common-snapshot reevaluation and source known-at contracts remain."
+      "remaining_work": "PR4 explicitly selects one immutable pool/control/evidence snapshot, evaluates complete alternatives and existing collection projection inputs on it, and preserves original saved forecasts. Common joint scenarios, calibrated portfolio comparisons and archived live decision-time source proof remain."
     },
     {
       "id": "PACE-05",
       "title": "Rank quarterback-side opportunity and challenge omissions",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4",
       "acceptance_tests": [
         "T17",
         "T20"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "PR4 reviews all exact eligible game sides, explicit QB focus and strongest evaluated excluded challenger using complete legal rosters and unrestricted complementary players on one frozen pool. Bounded unresolved alternatives stay labeled; a fitted QB opportunity forecast is not promoted."
     },
     {
       "id": "ROLE-05",
       "title": "Research all complementary positions",
-      "status": "planned_gated",
+      "status": "partial",
       "phase": "4,5",
       "acceptance_tests": [
         "T02",
@@ -519,7 +519,7 @@
         "T18",
         "T19"
       ],
-      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+      "remaining_work": "Historical observations cover QB/RB/WR/TE and expose missing specialist evidence; complete comparisons retain off-focus complements. RB goal-line/DST distributions and broad permitted route/coverage sources remain unavailable."
     },
     {
       "id": "STACK-04",
@@ -602,7 +602,7 @@
         "T16",
         "T20"
       ],
-      "remaining_work": "Full platform maximum and optional minimum salary exist; measured constraint-cost comparisons remain."
+      "remaining_work": "Full cap remains allowed and minimum salary optional. PR4 complete-roster alternatives show salary and objective sums on common inputs; joint/contest-aware cost/value evaluation remains gated."
     },
     {
       "id": "PORT-08",
@@ -741,7 +741,7 @@
         "T23",
         "T34"
       ],
-      "remaining_work": "PR3 independent capability states and returned solver evidence leave missing runtime/bound/gap unknown and identify projection-guided scope. Source-based role/game evidence, joint uncertainty and validated contest utility remain unavailable."
+      "remaining_work": "PR4 compact, paginated evidence and complete-roster comparisons disclose unfitted semantics, sample/window/source rights, missingness, bounded statuses and strongest excluded alternative. Joint probability and expected payout remain unavailable."
     },
     {
       "id": "UX-05",
@@ -755,7 +755,7 @@
         "T32",
         "T34"
       ],
-      "remaining_work": "PR3 normal builds support client cancel/late-response rejection, elapsed status and retained previous results; incoming pools/imports stage atomic versions with apply/keep/undo. Explicit replacement/undo and compact recovery preserve history. Server work may finish after client cancellation; no fake completion percentage is shown."
+      "remaining_work": "Earlier recovery/update guards remain. PR4 refresh retains last-good evidence, explicit selection stages new evidence, cancellation and stale account/context/controls reject late responses while retaining prior review. Server bounded work may finish after client cancellation."
     },
     {
       "id": "UX-06",
@@ -795,21 +795,21 @@
     },
     {
       "id": "T03",
-      "status": "planned",
-      "remaining_work": "No verified PFF-like route ledger/denominator parser is integrated.",
-      "evidence": "Phase 4"
+      "status": "partial",
+      "remaining_work": "Explicit duplicate-header route/grade parsing, raw hash/period validation, zero/missing denominators and distinct passing-snap/team-dropback rates are tested. Original paid provider exports and broad actual route coverage remain absent.",
+      "evidence": "tests/test_dfs_opportunity.py; scripts/dev/verify_dfs_evidence.py; scripts/dev/dfs_evidence_tasks.mjs"
     },
     {
       "id": "T04",
       "status": "partial",
-      "remaining_work": "Independent capability states distinguish usable forecasts and loaded identity inputs from unavailable roles/joint/field/returns/late swap; unknown solver evidence stays unknown. Full source/status/scoring semantics remain.",
-      "evidence": "dfsWorkspaceState.test.js; dfsPoolCoverage.test.js; dfs_workflow_tasks.mjs"
+      "remaining_work": "Historical source coverage and missing specialist capabilities are explicit; hashes confer no source permission/authenticity. Forward roles/joint/field/EV/late swap remain gated.",
+      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_evidence_api.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs"
     },
     {
       "id": "T05",
       "status": "partial",
-      "remaining_work": "Immutable snapshots exist; full known-at as-of joins/source windows remain.",
-      "evidence": "tests/test_dfs_snapshots.py; tests/test_dfs_slate_snapshots.py"
+      "remaining_work": "Evidence observations use declared compatible prior windows/known-at cutoffs; selected comparison inputs are immutable. Unknown historic publication remains retrospective, not certified pre-lock availability.",
+      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs"
     },
     {
       "id": "T06",
@@ -874,32 +874,32 @@
     {
       "id": "T16",
       "status": "partial",
-      "remaining_work": "Optional minimum and full cap exist; broader full-lineup cost comparison remains.",
-      "evidence": "tests/test_lineup_optimizer.py"
+      "remaining_work": "Common-input complete-roster alternatives display actual legal salary and summed objectives while optional minimum/full cap remain. Joint contest-aware cost comparison remains.",
+      "evidence": "tests/test_dfs_classic_comparison.py; dfs_evidence_tasks.mjs"
     },
     {
       "id": "T17",
-      "status": "planned",
-      "remaining_work": "Inherited pace baseline and source/sample display not implemented as specified.",
-      "evidence": "Phase 4"
+      "status": "implemented_scoped",
+      "remaining_work": "Exact 75/25 inherited team/combined screens, sample/source/window values, missing-venue fallback and unfitted alternatives are tested and displayed. Actual chronological research does not promote a fitted venue effect.",
+      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; verify_dfs_evidence.py; dfs_evidence_tasks.mjs; docs/reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md"
     },
     {
       "id": "T18",
-      "status": "planned_gated",
-      "remaining_work": "No coherent game/opportunity conservation simulator integrated.",
-      "evidence": "Phase 5"
+      "status": "partial",
+      "remaining_work": "Historical accepted-scrimmage count identities and team denominators reconcile. Joint game/opportunity outcomes, availability and specialist conservation remain stage 5.",
+      "evidence": "tests/test_dfs_opportunity.py; tests/test_dfs_opportunity_eval.py; phase5"
     },
     {
       "id": "T19",
-      "status": "planned_gated",
-      "remaining_work": "No forward validation of this proposed joint/opportunity/field model.",
-      "evidence": "Phases 4–7"
+      "status": "partial",
+      "remaining_work": "Actual 2024 earlier-tuning/later-held-out play/dropback and observed-touch role screens were compared with week-block uncertainty. No live publication archive, multi-season forward role model or calibrated joint/field model is validated.",
+      "evidence": "tests/test_dfs_opportunity_eval.py; docs/reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md"
     },
     {
       "id": "T20",
-      "status": "planned_gated",
-      "remaining_work": "Generation/evaluation draw separation not applicable to current projection-sum baseline.",
-      "evidence": "Phases 5/7"
+      "status": "partial",
+      "remaining_work": "Bounded whole-nine-player primary/challenger comparisons and existing collection objective sums use one explicit snapshot with original forecasts preserved. Independent generation/evaluation draw separation remains gated until shared simulation exists.",
+      "evidence": "tests/test_dfs_classic_comparison.py; dfsEvidence.test.mjs; dfs_evidence_tasks.mjs; phases 5/7"
     },
     {
       "id": "T21",
@@ -970,26 +970,26 @@
     {
       "id": "T32",
       "status": "partial",
-      "remaining_work": "PR3 client cancel/late response guards, failed refresh/import preservation, explicit input version preview/apply/undo and hidden-tab polling checks retain reviewed work. Server work may finish after client cancel; common-snapshot statistical reevaluation remains.",
-      "evidence": "dfsWorkspaceState.test.js; dfs_workflow_tasks.mjs; tests/test_dfs_freshness.py; tests/test_dfs_refresh_ticker.py"
+      "remaining_work": "PR3 workflow preservation remains; PR4 explicitly staged evidence/current-input selection, client comparison cancellation and stale response guards retain reviewed work. Joint scenario reevaluation remains unavailable.",
+      "evidence": "dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; dfsEvidence.test.mjs"
     },
     {
       "id": "T33",
       "status": "partial",
-      "remaining_work": "PR3 task/keyboard/focus and measured layouts cover 390/768/1280/1440 in both themes, with scoped screenshots inspected before final handoff. Full accessibility certification and unrelated Fantasy/Projections contexts are not claimed.",
-      "evidence": "dfs_workflow_tasks.mjs; dfs_rebuild_browser.mjs; dfs_guardrails_tasks.mjs; layout_audit.mjs"
+      "remaining_work": "PR4 actual-theme-asserted evidence tasks/layouts at 390/768/1280/1440 in both themes and keyboard/focus/cancel/source-staging checks extend prior workflow acceptance. Inspected screenshots are synthetic. Full accessibility certification and unrelated Fantasy/Projections contexts remain unclaimed.",
+      "evidence": "dfs_evidence_tasks.mjs; dfs_workflow_tasks.mjs; layout_audit.mjs; docs/reviews/dfs-opportunity-evidence/README.md"
     },
     {
       "id": "T34",
       "status": "partial",
-      "remaining_work": "Integrated generation/review, accumulated pair/core audit, previewed replacements/undo, input updates, recovery and correct entry export are exercised through production components. Role/opportunity recommendations remain unavailable pending phase 4 evidence. Direct Generate150 → auto-collected review → 150 entry assignments/export/recovery passed at 390 dark and 1280 light.",
-      "evidence": "dfs_workflow_tasks.mjs; dfs_rebuild_browser.mjs; docs/reviews/dfs-integrated-workflow/README.md"
+      "remaining_work": "Integrated150 generation/review/recovery/export remains. PR4 diagnostic evidence and complete alternatives are reviewable without changing saved builds. Calibrated role/opportunity recommendations and contest-aware objectives remain unavailable.",
+      "evidence": "dfs_workflow_tasks.mjs; dfs_evidence_tasks.mjs; docs/reviews/dfs-opportunity-evidence/README.md"
     },
     {
       "id": "T35",
       "status": "partial",
-      "remaining_work": "Native rules, applied plans, input update versions, original-source audits, flat replacement lineage and CSV seals retain provenance. Complete rule/model/field/solver hashes and known-at source joins remain.",
-      "evidence": "dfsPortfolioReview.test.js; dfsPortfolioBackup.test.js; dfsWorkspaceState.test.js; dfsEntryExportSeal.test.js; tests/test_dfs_snapshots.py"
+      "remaining_work": "Selected common pool/control/evidence IDs and source receipts accompany comparison review; original builds/CSV seals remain immutable. Full model/field manifests and archived live source joins remain.",
+      "evidence": "dfsEvidence.test.mjs; tests/test_dfs_classic_comparison.py; tests/test_dfs_opportunity.py; dfs_evidence_tasks.mjs"
     },
     {
       "id": "T36",
@@ -1265,6 +1265,249 @@
     "whole_backend_gate": {
       "run_for_phase3": false,
       "reason": "No backend/API code changed. Phase2 whole-suite result belongs to its earlier commit, not this draft."
+    }
+  },
+  "phase4": {
+    "base_commit": "ddcbe804",
+    "scope": "Provenance-aware historical opportunity screens and bounded common-input complete Classic comparisons; no production forecast/model promotion.",
+    "synthetic_engine": {
+      "synthetic": true,
+      "evidence_roundtrip": true,
+      "exact_inherited_screen": true,
+      "future_source_excluded": true,
+      "denominators_distinct": true,
+      "missing_venue_fallback": true,
+      "missing_evidence_stays_null": true,
+      "common_snapshot_evaluation": true,
+      "historical_result_unchanged": true,
+      "complete_nine_player_audits": true,
+      "candidate_count": 36,
+      "feasible_candidates": 30,
+      "attempt_count": 96,
+      "comparison_complete": true,
+      "completion_search_complete": true,
+      "comparison_seconds": 1.188,
+      "seconds": 2.609,
+      "evidence_content_id": "9a6e72873cb4f3d201b21262988bcfb05830e23f4c08ad3fd4399395cca75b98",
+      "comparison_snapshot_id": "1f0991178a8d1b1a261b586a665b01f4aad6a3e8fb2358cf932f4cde898ab5af",
+      "forward_role_model": false,
+      "contest_ev": false,
+      "platform_acceptance": "unconfirmed"
+    },
+    "browser": {
+      "command": "node scripts/dev/dfs_evidence_tasks.mjs",
+      "passed": true,
+      "exit_code": 0,
+      "cases": 8,
+      "widths": [
+        390,
+        768,
+        1280,
+        1440
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "actual_theme_asserted": true,
+      "supplemental_checks": [
+        "last-good evidence",
+        "failed comparison retains review",
+        "wrong response IDs rejected",
+        "cancel late response",
+        "missing-to-available explicit selection",
+        "control-change late comparison",
+        "slate-change late evidence",
+        "account-change late comparison"
+      ],
+      "browser_errors": 0,
+      "log": "outputs/dfs-phase4-evidence-browser-final.log",
+      "review": "docs/reviews/dfs-opportunity-evidence/README.md",
+      "request_matches_real_engine_inputs": true
+    },
+    "actual_count_role_research": "docs/reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md",
+    "remaining": [
+      "Archived live source availability and independent source authenticity",
+      "Broad permitted route/coverage/active-player/injury/goal-line/DST evidence",
+      "Multi-season additive-feature forward validation; no pooled venue promotion",
+      "Coherent shared outcomes, legal contest field, ownership, payouts and joint portfolio objectives",
+      "Accepted-entry exact-lock late swap and original incident inputs"
+    ],
+    "baseline": {
+      "python": {
+        "passed": 44,
+        "seconds": 15.46,
+        "scope": [
+          "test_vegas_lines.py",
+          "test_projection_role_features.py",
+          "test_projection_temporal_inputs.py",
+          "test_forecast_candidate_eval.py"
+        ]
+      },
+      "frontend": {
+        "passed": 39,
+        "milliseconds": 259.534,
+        "scope": [
+          "dfsToolPresentation.test.js",
+          "dfsWorkspaceState.test.js",
+          "dfsPoolCoverage.test.js"
+        ]
+      },
+      "broad_failure_frozen_base": {
+        "commit": "ddcbe804",
+        "passed": 33,
+        "failed": 3,
+        "milliseconds": 175.169,
+        "files": [
+          "draftRoomHelpers.test.js",
+          "accuracyPresentation.test.js",
+          "livingSurfaces.test.js"
+        ]
+      }
+    },
+    "final_checks": {
+      "affected_backend": {
+        "passed": 442,
+        "seconds": 75.43,
+        "warnings": 1,
+        "log": "outputs/dfs-phase4-python-final.log"
+      },
+      "frontend_explicit": {
+        "total": 1174,
+        "passed": 1171,
+        "failed_baseline": 3,
+        "milliseconds": 19077.1322,
+        "log": "outputs/dfs-phase4-frontend-final.log"
+      },
+      "evidence_helpers": {
+        "passed": 48,
+        "seconds": 5.71,
+        "modules": [
+          "tests/test_dfs_opportunity.py",
+          "tests/test_dfs_classic_comparison.py",
+          "tests/test_dfs_opportunity_eval.py"
+        ]
+      },
+      "evidence_api": {
+        "passed": 24,
+        "seconds": 3.25,
+        "log": "outputs/dfs-phase4-evidence-api-release.log"
+      },
+      "product_policy": {
+        "passed": 36,
+        "seconds": 3.77
+      },
+      "production_build": {
+        "passed": true,
+        "seconds": 9.14,
+        "existing_chunk_size_warning": true,
+        "log": "outputs/dfs-phase4-build-final.log"
+      },
+      "foundation_browser": {
+        "passed": true,
+        "cases": 8,
+        "authorization_races": 2,
+        "log": "outputs/dfs-phase4-foundation-browser.log"
+      },
+      "guardrails_browser": {
+        "passed": true,
+        "cases": 8,
+        "log": "outputs/dfs-phase4-guardrails-browser.log"
+      },
+      "portfolio_browser": {
+        "passed": true,
+        "exit_code": 0,
+        "widths": [
+          390,
+          1280
+        ],
+        "entries": 150,
+        "exact_restore": true,
+        "log": "outputs/dfs-phase4-portfolio-browser.log"
+      },
+      "compact_worker_stress": [
+        {
+          "width": 1280,
+          "synthetic": true,
+          "lineups": 140,
+          "players": 700,
+          "version1Bytes": 12389150,
+          "version2Bytes": 1085295,
+          "legacyValues": 588367,
+          "compactValues": 57594,
+          "workerObserved": true,
+          "exactRestore": true,
+          "regenerated": false,
+          "browserErrors": 0,
+          "animationFrames": 77,
+          "busyAnimationFrames": 66,
+          "browserDownloadRoundTripMs": 1296
+        },
+        {
+          "width": 390,
+          "synthetic": true,
+          "lineups": 140,
+          "players": 700,
+          "version1Bytes": 12389150,
+          "version2Bytes": 1085295,
+          "legacyValues": 588367,
+          "compactValues": 57594,
+          "workerObserved": true,
+          "exactRestore": true,
+          "regenerated": false,
+          "browserErrors": 0,
+          "animationFrames": 57,
+          "busyAnimationFrames": 47,
+          "browserDownloadRoundTripMs": 944
+        }
+      ],
+      "workflow_browser": {
+        "passed": true,
+        "exit_code": 0,
+        "cases": 8,
+        "supplemental_checks": [
+          "hidden-tab scheduled refresh",
+          "live update retains imported estimates",
+          "delayed estimate context guard",
+          "latest estimate selection and input version guard",
+          "latest entry-template selection",
+          "delayed entry account guard",
+          "delete during pending autosave"
+        ],
+        "normal150": [
+          {
+            "width": 390,
+            "theme": "dark",
+            "synthetic": true,
+            "generated": 150,
+            "batches": 1,
+            "unique": 150,
+            "assigned": 150,
+            "unrelatedEntriesPreserved": 1,
+            "sealedCsvHashMatches": true,
+            "exactRestore": true,
+            "regenerated": false
+          },
+          {
+            "width": 1280,
+            "theme": "light",
+            "synthetic": true,
+            "generated": 150,
+            "batches": 1,
+            "unique": 150,
+            "assigned": 150,
+            "unrelatedEntriesPreserved": 1,
+            "sealedCsvHashMatches": true,
+            "exactRestore": true,
+            "regenerated": false
+          }
+        ],
+        "log": "outputs/dfs-phase4-workflow-browser.log"
+      }
+    },
+    "whole_backend_gate": {
+      "run_for_phase4": false,
+      "reason": "Fresh affected backend/API suites passed; earlier phase2 whole-repository result belongs to that prior commit. Two unrelated network-dependent failures reproduce on frozen ddcbe804."
     }
   }
 }
