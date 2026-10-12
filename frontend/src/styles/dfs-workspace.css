@@ -3,6 +3,23 @@
   gap: var(--space-5);
   color: var(--text-primary);
 }
+.dfw-evidence-review { display: grid; gap: var(--space-4); min-width: 0; scroll-margin-block: var(--space-6); }
+.dfw-evidence-review > details { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); min-width: 0; }
+.dfw-evidence-review summary { cursor: pointer; min-height: var(--control-h-sm); padding-block: var(--space-2); font-weight: var(--font-weight-medium); }
+.dfw-evidence-review .dfw-evidence-values { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.dfw-evidence-review dd, .dfw-evidence-review p { overflow-wrap: anywhere; }
+.dfw-evidence-review input { width: 100%; max-width: 100%; min-height: var(--control-h-sm); color: var(--text-primary); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); font: inherit; }
+.dfw-evidence-review .dfw-field { min-width: 0; max-width: 100%; }
+.dfw-evidence-games { display: grid; gap: var(--space-4); margin-top: var(--space-3); }
+.dfw-evidence-games > details, .dfw-evidence-roster { background: var(--bg-subtle); border-radius: var(--radius-md); padding: var(--space-3); min-width: 0; }
+.dfw-evidence-sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.dfw-evidence-sides .dfw-evidence-values { grid-template-columns: minmax(0, 1fr); }
+.dfw-evidence-candidate { margin-block: var(--space-2); padding: var(--space-2); border-bottom: 1px solid var(--border); }
+.dfw-evidence-candidate > summary, .dfw-evidence-roster li { display: flex; justify-content: space-between; gap: var(--space-3); }
+.dfw-evidence-candidate > summary > span { min-width: 0; overflow-wrap: anywhere; }
+.dfw-evidence-roster ol { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+.dfw-evidence-review .dfw-review-controls > button { min-height: var(--control-h-sm); white-space: normal; }
+@media (max-width: 600px) { .dfw-evidence-sides { grid-template-columns: minmax(0, 1fr); } .dfw-evidence-review .dfw-review-controls > button { flex: 1 1 140px; min-height: var(--control-h-lg, 44px); } }
 .dfw-journey { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--bg-subtle); border-radius: var(--radius-md); }
 .dfw-journey ol { display: flex; list-style: none; align-items: center; gap: var(--space-2); padding: 0; margin: 0; }
 .dfw-journey li { color: var(--text-secondary); font-size: var(--text-sm); }
