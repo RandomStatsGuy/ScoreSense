@@ -21,6 +21,7 @@ def validate_generated_lineups(
     max_per_team: int | None = None,
     locked_player_ids: list[str] | tuple[str, ...] = (),
     locked_captain_id: str | None = None,
+    showdown_rules: dict | None = None,
 ) -> dict:
     if not result.get("ok"):
         return result
@@ -62,6 +63,11 @@ def validate_generated_lineups(
         captain = next((row.get("player_id") for row in rows if row.get("slot") == captain_label), None)
         if captain_mode and locked_captain_id and captain != locked_captain_id:
             codes.add("captain_lock")
+        if captain_mode:
+            from src.products.dfs_showdown_rules import pairing_issue
+            issue = pairing_issue(rows, showdown_rules)
+            if issue:
+                codes.add(issue)
         identity = (captain if captain_mode else None, tuple(sorted(str(pid) for pid in ids)))
         if identity in seen_lineups:
             codes.add("duplicate_lineup")

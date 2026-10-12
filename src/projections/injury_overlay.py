@@ -27,6 +27,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from src.core.team_codes import normalize_team_for_match
+
 from src.config import (
     INJURY_OVERLAY_DEBOUNCE_SECONDS,
     INJURY_OVERLAYS_DIR,
@@ -272,8 +274,9 @@ def build_overlays_for_teams(
     injured_df = injured_frame_from_snapshot(injury_snapshot)
 
     # Opportunity math needs share columns; fall back to baseline-only zeros.
-    boost_by_name: dict[str, float] = {}
-    note_by_name: dict[str, str] = {}
+    opportunity_by_identity: dict[tuple[str, str], tuple[float, str]] = {}
+    opportunity_by_name_team: dict[tuple[str, str], tuple[float, str]] = {}
+    ambiguous_names: set[tuple[str, str]] = set()
     if roster_df is not None and not roster_df.empty:
         roster = roster_df.copy()
         if "team" in roster.columns:
@@ -294,10 +297,15 @@ def build_overlays_for_teams(
                     name = str(row.get(name_col) or "").strip()
                     if not name:
                         continue
-                    boost_by_name[name.lower()] = float(
-                        row.get("injury_opportunity_boost") or 0.0
-                    )
-                    note_by_name[name.lower()] = str(row.get("injury_note") or "")
+                    team = normalize_team_for_match(_json_safe(row.get("team")) or "")
+                    pid = str(_json_safe(row.get("player_id")) or "").strip()
+                    adjustment = (float(row.get("injury_opportunity_boost") or 0.0), str(row.get("injury_note") or ""))
+                    if pid:
+                        opportunity_by_identity[(pid, team)] = adjustment
+                    name_key = (name.lower(), team)
+                    if name_key in opportunity_by_name_team:
+                        ambiguous_names.add(name_key)
+                    opportunity_by_name_team[name_key] = adjustment
 
     avail_index = index_availability_by_player_id(injury_snapshot)
     name_index = name_to_player_ids(injury_snapshot)
@@ -316,8 +324,12 @@ def build_overlays_for_teams(
         if baseline is None:
             continue
 
-        boost = float(boost_by_name.get(player_name.lower(), 0.0))
-        note = note_by_name.get(player_name.lower(), "")
+        team_key = normalize_team_for_match(team or "")
+        adjustment = opportunity_by_identity.get((pid, team_key))
+        name_key = (player_name.lower(), team_key)
+        if adjustment is None and name_key not in ambiguous_names:
+            adjustment = opportunity_by_name_team.get(name_key)
+        boost, note = adjustment or (0.0, "")
         multiplier = 1.0 + max(0.0, min(float(boost), _MAX_OPP_BOOST))
         opportunity_points = round(float(baseline) * (multiplier - 1.0), 4)
 

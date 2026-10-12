@@ -1,0 +1,138 @@
+{
+  "schema_version": "showdown_integrity_verification_v1",
+  "recorded_at": "2026-10-12T22:36:21.674839+00:00",
+  "baseline_commit": "51d0210c1e294f3fc49305ba5c29c72282a292a5",
+  "plan_sha256": "60b87419d706774d04c8a2f3354880ab945fc317e8c168b2a7ff189e290b0216",
+  "evidence_scope": "synthetic engineering and local read-only archive inventory; no live account/platform or original 20-lineup reproduction",
+  "source_hashes": {
+    "app/api.py": "48386b55d81b1ad73db03a6bf019fdc92d92b8fe4fbcf5a1b26465284b45f02e",
+    "frontend/src/DfsCaptainComparison.jsx": "5d484cb3819dd10bd9bae5e4e7aab1e22e69f88338100b296a3b63eec2468017",
+    "frontend/src/DfsShowdownReview.jsx": "7ffef84b6c74bc19ea83ba0b4a1e507d222c083efa388edbc90b1301c58687e3",
+    "frontend/src/DfsWorkspace.jsx": "30a315cc14ea89491e8f7e44f58099dbe0461c1bebe6c157add8554709e91c69",
+    "frontend/src/dfsCaptainComparison.test.js": "1c06e9eb5702d9d0bd7c8912ab4188abc495ff8cbe3100db0344a4471d3890e7",
+    "frontend/src/dfsExport.js": "08e9adeb01d14980f534df401914af9bf1a6ca619327074592c8e767caf10566",
+    "frontend/src/dfsShowdownReview.js": "f5da1cba1b60939d07334f5954aac75c4924a942642612bed4bbf4c04bfb9881",
+    "frontend/src/dfsShowdownReview.test.js": "7a009ae9bad5251edb5a15eb3babd53b3a58b5cea44d5f4916474f91fec4926a",
+    "frontend/src/dfsToolPresentation.js": "4ae9a85c8be40288d4a64a41067bdbc077c1f5d1148a3ea2904422596e6bc948",
+    "frontend/src/livingSurfaces.js": "2204ca681726267680c4f70ba6b2bb169abff4f24c230a70ba02a50b84843e31",
+    "frontend/src/styles/dfs-workspace.css": "d04861276a5e76bc67ac186733c641f573c6b76dc026b24413642f1107d26444",
+    "frontend/src/useDfsBuilder.js": "0e7060282fd5e66ba0cc4fde45732835d7fbd7416dd0fda48b67716d30f6e941",
+    "frontend/test-fixtures/dfs-portfolio.jsx": "3a151b52a6f67b527fb4ee4016c9e423c70a384253254c174487ec0387c29401",
+    "scripts/dev/build_dfs_showdown_browser_fixture.py": "dc3929426205ac95c7c131191ba130026d81f49dac9c09cc34e0087418fbe356",
+    "scripts/dev/dfs_showdown_tasks.mjs": "c74c8595571a89731a2eb088bfc1ea89f46b32da4022cf4ba9138938a60a6e20",
+    "scripts/dev/trace_showdown_forecasts.py": "1e63ec246b0f4d2e28d88ee7d3d08a88752b56cc537476f42378655a120e88cf",
+    "src/analytics/dfs_showdown_calibration.py": "9e8f6976dc1a91b92290edaf10af70a580cb644bdae93f3ecf91bbb3bddbc8c1",
+    "src/products/dfs_captain_comparison.py": "ddf5174345062d41262d28ae3db0c88b09e4e16b868361f58c8d85c274ad0452",
+    "src/products/dfs_showdown_integrity.py": "746db1d8312bd2846177aa333174574a61e2d534f102a6a3a1a15cf12e24e396",
+    "src/products/dfs_showdown_rules.py": "a206b6e69809b83874e1e64afeed72e2f4334a5efd8c15461d07053e8723fd1a",
+    "src/products/dfs_showdown_snapshot.py": "836c63b7fbfa0c07e2caeb1d40e86711ebc88bb1556744f6dd35d72a81c71f9b",
+    "src/products/dfs_snapshots.py": "be277af90ecc709012d5ac925bcecda73b53b109cc81783112cb9781405cd05b",
+    "src/products/dfs_validation.py": "05aa96f40376627568569a3e5e350f1967acf7286c08070f389afd3ab5b79fe8",
+    "src/products/lineup_optimizer.py": "1080a0f25ba7a9398a926e29d0bb1fc5981da0dfc7e3e677a3df32d921b81a59",
+    "src/projections/dfs_pool.py": "f5558c5c21fe4e838b213a1534567b07ebdbef41164da0898e89cf96084c92d1",
+    "src/projections/injury_overlay.py": "340b8c8a3bb2929a9d0b88f90aad582c491fd0bf09109d5fd1f4ac8f1e0e3cb5",
+    "src/projections/predict.py": "47f21b9a14854ced3b1f0a3d4d111cf838f69100fedae278524b9a247ea47f56",
+    "src/projections/weekly_cache.py": "f76830de2b05634d24a0a0955ed2d81a28f5de3b4afc953bdd4aa8c5763034d8",
+    "tests/test_dfs_refresh_reuse.py": "bef4ba2ce9fbfd88e1f8b29e2f0a4a6e4ea1d931cb800c0e77b585f9873ffed1",
+    "tests/test_dfs_showdown_api.py": "070a34e0849becc45482d19688603704885b85f5adb98974ba1b2712aec4efc7",
+    "tests/test_dfs_showdown_calibration.py": "681042258d11ad1d68127c3acebc3e9553b166f64392381292341a686f7edcb8",
+    "tests/test_dfs_showdown_rules.py": "a313e388789ab9374ebc36b25e9d43d7e10d5031def5897811674a987ac2ddcd",
+    "tests/test_dfs_showdown_snapshot.py": "3f2b5a097df27973c63398dc28b09fab842ef535aa6e2737124444d07d16136e",
+    "tests/test_showdown_input_composition.py": "b5a1bf2588df8a4f11a6cfd997032b7bca069b5ab6a95e1b562e5b199325e5fa",
+    "tests/test_showdown_integrity.py": "06a32fff25d6a713722818771e2e42b7b45a79bc6345a483b2a3460646c0c249",
+    "tests/test_weekly_cache.py": "7bc5811e6ef638f2c2de4013dbbcde37ec34ae3aa1cdd71b882187acd345151e"
+  },
+  "checks": {
+    "backend_affected": {
+      "passed": 1404,
+      "warnings": 1,
+      "seconds": 121.88,
+      "scope": "test_dfs*.py, test_showdown*.py, test_lineup*.py, test_vegas*.py",
+      "precedes_final_boundary_guards": true
+    },
+    "backend_final_showdown": {
+      "passed": 142,
+      "warnings": 1,
+      "seconds": 9.66,
+      "includes_final_boundary_time_scalar_and_zero_captain_guards": true
+    },
+    "forecast_injury_cache_refresh": {
+      "passed": 109,
+      "warnings": 1,
+      "seconds": 21.32
+    },
+    "frontend_full": {
+      "total": 1269,
+      "passed": 1266,
+      "failed": 3,
+      "seconds": 24.439,
+      "failures_reproduced_on_unchanged_baseline": true
+    },
+    "frontend_scoped": {
+      "passed": 48,
+      "failed": 0,
+      "milliseconds": 243.9076
+    },
+    "production_build": {
+      "passed": true,
+      "seconds": 13.82,
+      "existing_bundle_warning": true
+    },
+    "instruction_product_surface": {
+      "passed": 49,
+      "seconds": 3.71
+    },
+    "browser": {
+      "cases": 6,
+      "layout_states": 18,
+      "guards": 8,
+      "widths": [
+        390,
+        768,
+        1280
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "receipt": "browser-receipt.json"
+    },
+    "classic_export_recovery_smoke": {
+      "passed": true,
+      "width": 390,
+      "theme": "dark"
+    },
+    "whole_backend": {
+      "status": "completed",
+      "passed": 3907,
+      "skipped": 2,
+      "warnings": 1,
+      "seconds": 1785.5,
+      "log": "outputs/showdown-backend-full.log",
+      "precedes_final_isolated_boundary_guards": true
+    }
+  },
+  "confirmed_input_corrections": [
+    "row-aligned opportunity composition in inference",
+    "canonical/team or unambiguous name/team opportunity overlay join",
+    "old inference policy cache invalidation",
+    "canonical injury-status aliases in pool eligibility"
+  ],
+  "open_data_dependencies": [
+    "original 20-lineup export, exact salary slate and build manifest",
+    "authenticated pre-lock same-slate forecast/injury/role archives and official completed outcomes",
+    "real-user task acceptance"
+  ],
+  "capabilities": {
+    "scoring_semantics": true,
+    "verified_or_explicit_captain_pairing": true,
+    "read_only_frozen_player_comparison": true,
+    "offline_calculation_tool": true,
+    "original_audit_reproduced": false,
+    "calibration_verified": false,
+    "profitable_exposure_verified": false,
+    "current_platform_locks_verified": false,
+    "entry_submission": false
+  },
+  "overlapping_runs_not_summed": true
+}

@@ -49,6 +49,7 @@ class LineupPlayer:
     cpt_salary: int | None = None
     cpt_dfs_id: str = ""
     eligible_slots: tuple[str, ...] = field(default_factory=tuple)
+    diagnostics: dict = field(default_factory=dict)
 
     @property
     def unavailable(self) -> bool:
@@ -168,6 +169,9 @@ def build_lineup_pool(
             preds["Position"] = "QB"
         elif "Position" not in preds.columns:
             preds["Position"] = position.upper()
+        from src.projections.dfs_pool import with_forecast_provenance
+        preds = with_forecast_provenance(preds, season=season, week=week,
+                                        injury_adjusted=apply_injury_adjustments)
         frames.append(preds)
 
     if deep_pool.empty:
@@ -252,6 +256,7 @@ def _players_from_pool(
     require_salary: bool = False,
     block_bye_weeks: bool = True,
 ) -> list[LineupPlayer]:
+    from src.products.dfs_showdown_integrity import player_provenance, normalize_injury_status
     locked_player_ids = locked_player_ids or set()
     excluded_player_ids = excluded_player_ids or set()
 
@@ -282,7 +287,7 @@ def _players_from_pool(
             else None
         )
 
-        injury = str(row.get("Injury Status") or "")
+        injury = normalize_injury_status(row.get("Injury Status"))
         on_bye_raw = row.get("on_bye")
         on_bye = bool(on_bye_raw) and bool(pd.notna(on_bye_raw))
         if on_bye and block_bye_weeks and pid not in locked_player_ids:
@@ -318,6 +323,7 @@ def _players_from_pool(
                 opponent=opponent,
                 cpt_salary=cpt_salary,
                 cpt_dfs_id=str(row.get("cpt_dfs_id") or ""),
+                diagnostics=player_provenance(row, pool_metadata=pool.attrs),
             )
         )
     return players
@@ -497,6 +503,7 @@ def optimize_lineup(
     locked_captain_id: str | None = None,
     excluded_captain_lineups: list[tuple[str, tuple[str, ...]]] | None = None,
     solver_time_limit: float | None = None,
+    showdown_rules: dict | None = None,
 ) -> dict:
     """Maximize projected points (or value) under roster and optional salary-cap constraints."""
     locked_player_ids = locked_player_ids or set()
@@ -507,6 +514,10 @@ def optimize_lineup(
     stack_count = int(qb_stack_count) if qb_stack_count is not None else (1 if require_qb_stack else 0)
 
     if roster.get("cpt"):
+        if showdown_rules is not None and showdown_rules.get("version") != "showdown_strategy_v1":
+            from src.products.dfs_showdown_rules import resolve_showdown_rules
+            showdown_rules = resolve_showdown_rules(showdown_rules,
+                site="fanduel_single" if captain_label == "MVP" else "draftkings_showdown", players=players)
         return _optimize_captain_lineup(
             players,
             objective=objective,
@@ -524,6 +535,7 @@ def optimize_lineup(
             locked_captain_id=locked_captain_id,
             excluded_captain_lineups=excluded_captain_lineups,
             solver_time_limit=solver_time_limit,
+            showdown_rules=showdown_rules,
         )
 
     n = len(players)
@@ -704,6 +716,7 @@ def _optimize_captain_lineup(
     locked_captain_id: str | None = None,
     excluded_captain_lineups: list[tuple[str, tuple[str, ...]]] | None = None,
     solver_time_limit: float | None = None,
+    showdown_rules: dict | None = None,
 ) -> dict:
     """Single-game captain-mode MILP: one CPT/MVP slot at boosted points/salary + FLEX."""
     locked_player_ids = locked_player_ids or set()
@@ -717,6 +730,11 @@ def _optimize_captain_lineup(
         return {"ok": False, "error": "No eligible players in the pool.", "lineup": []}
 
     idx = {p.player_id: i for i, p in enumerate(players)}
+    from src.products.dfs_showdown_rules import pairing_blocker
+    blocker = pairing_blocker(showdown_rules, locked_captain_id)
+    if blocker:
+        return {"ok": False, "error": blocker["reason"], "lineup": [],
+                "strategy_diagnostics": [blocker], "solver_status": 2}
     if locked_captain_id and locked_captain_id not in idx:
         return {"ok": False, "error": "The locked Captain is not eligible for this slate.", "lineup": []}
     for pid in locked_player_ids:
@@ -770,6 +788,18 @@ def _optimize_captain_lineup(
         lock = players[i].player_id in locked_player_ids
         constraints.append(LinearConstraint(row.reshape(1, -1), lb=1 if lock else 0, ub=1))
 
+    if showdown_rules and showdown_rules.get("receiver_captain_qb") == "require":
+        for i, p in enumerate(players):
+            if p.position not in {"WR", "TE"}:
+                continue
+            row = np.zeros(n_vars)
+            row[n + i] = 1.0
+            for pid in showdown_rules.get("qb_by_team", {}).get(normalize_team_for_match(p.team), []):
+                if pid in idx:
+                    row[idx[pid]] -= 1.0
+                    row[n + idx[pid]] -= 1.0
+            constraints.append(LinearConstraint(row.reshape(1, -1), lb=-np.inf, ub=0))
+
     if salary_cap is not None:
         floor_spend = float(min_salary) if min_salary else 0.0
         constraints.append(
@@ -821,9 +851,13 @@ def _optimize_captain_lineup(
             "solver_status": int(result.status),
             "error": (
                 "Could not build a valid single-game lineup. "
-                "Load a single-game slate (two teams) and check locks against the cap."
+                "Check salary, locks, exposure limits and the receiver Captain quarterback strategy."
             ),
             "lineup": [],
+            "strategy_diagnostics": ([{"code": "showdown_pairing_or_constraints_conflict",
+                "player_ids": sorted(locked_player_ids | ({locked_captain_id} if locked_captain_id else set())),
+                "reason": "No lineup satisfied the active pairing and roster constraints. No quarterback exposure exemption was added."}]
+                if showdown_rules and showdown_rules.get("receiver_captain_qb") == "require" else []),
         }
 
     flex_chosen = [players[i] for i in range(n) if result.x[i] > 0.5]
@@ -850,6 +884,11 @@ def _optimize_captain_lineup(
                 ),
                 "dfs_id": p.cpt_dfs_id or (p.dfs_id if captain_label == "MVP" else None),
                 "multiplier": captain_multiplier,
+                "projection_coefficient": p.proj * captain_multiplier,
+                "objective_coefficient": (
+                    p.proj * captain_multiplier / cpt_salary * 1000
+                    if objective == "value" and cpt_salary > 0
+                    else _objective_value(p, objective) * captain_multiplier),
             }
         )
         slots.append(row)
@@ -861,9 +900,15 @@ def _optimize_captain_lineup(
         total_salary += cpt_salary
 
     for i, p in enumerate(sorted(flex_chosen, key=lambda x: -x.proj)):
-        slots.append(_slot_row(f"FLEX{i + 1}", p))
+        slots.append({**_slot_row(f"FLEX{i + 1}", p), "objective_coefficient": _objective_value(p, objective)})
         total_points += _objective_value(p, objective)
         total_salary += p.salary or 0
+
+    from src.products.dfs_showdown_rules import pairing_issue
+    issue = pairing_issue(slots, showdown_rules)
+    if issue:
+        return {"ok": False, "error": "Generated lineup failed the receiver Captain pairing check.",
+                "lineup": [], "strategy_diagnostics": [{"code": issue}]}
 
     remaining = (salary_cap - total_salary) if salary_cap is not None else None
     note_parts = [
@@ -880,6 +925,9 @@ def _optimize_captain_lineup(
     return {
         "ok": True,
         "objective": objective,
+        "solver_status": int(result.status),
+        "solver_outcome": "optimal",
+        "showdown_rules": showdown_rules,
         "total_points": round(total_points, 2),
         "total_salary": total_salary if salary_cap is not None else None,
         "salary_remaining": remaining,
@@ -946,6 +994,7 @@ def _slot_row(slot: str, player: LineupPlayer) -> dict:
         "team": player.team,
         "position": player.position,
         "proj": round(player.proj, 2),
+        "projection_coefficient": player.proj,
         "floor": round(player.floor, 2),
         "ceiling": round(player.ceiling, 2),
         "salary": player.salary,
@@ -953,6 +1002,7 @@ def _slot_row(slot: str, player: LineupPlayer) -> dict:
         "dfs_id": player.dfs_id or None,
         "injury_status": player.injury_status or None,
         "on_bye": player.on_bye,
+        "diagnostics": dict(player.diagnostics),
     }
 
 
@@ -1013,6 +1063,19 @@ def optimize_multiple_lineups(
         }
         result = optimize_lineup(players, extra_constraints=extra, objective_noise=noise, **iteration_kwargs)
         if not result.get("ok"):
+            rules = kwargs.get("showdown_rules") or {}
+            if rules.get("receiver_captain_qb") == "require":
+                blocked = []
+                for player in players:
+                    if player.position not in {"WR", "TE"}:
+                        continue
+                    pairing = set(rules.get("qb_by_team", {}).get(normalize_team_for_match(player.team), []))
+                    if pairing and pairing.issubset(excluded_by_exposure):
+                        blocked.append({"captain_id": player.player_id, "quarterback_ids": sorted(pairing)})
+                if blocked:
+                    result.setdefault("strategy_diagnostics", []).append({
+                        "code": "receiver_captain_qb_exposure_exhausted", "blocked_pairings": blocked,
+                        "reason": "Required quarterback choices reached the total appearance limit. The pairing rule and quarterback limit remain binding."})
             if lineups:
                 return _multi_result(
                     lineups,
@@ -1026,6 +1089,7 @@ def optimize_multiple_lineups(
                     locked=locked,
                     max_exposure=max_exposure,
                     captain_exposure_limits=captain_exposure_limits,
+                    strategy_diagnostics=result.get("strategy_diagnostics", []),
                 )
             return result
 
@@ -1077,6 +1141,7 @@ def _multi_result(
     locked: set[str],
     max_exposure: float | None,
     captain_exposure_limits: dict[str, float] | None,
+    strategy_diagnostics: list[dict] | None = None,
 ) -> dict:
     built = len(lineups)
     exposure = []
@@ -1090,6 +1155,11 @@ def _multi_result(
                 "position": p.position if p else "",
                 "count": used,
                 "pct": round(used / built * 100, 1) if built else 0.0,
+                "captain_count": sum(any(row["player_id"] == pid and row["slot"] in ("CPT", "MVP")
+                                         for row in entry["lineup"]) for entry in lineups),
+                "flex_count": sum(any(row["player_id"] == pid and row["slot"] not in ("CPT", "MVP")
+                                      for row in entry["lineup"]) for entry in lineups),
+                "legacy_total_lock_exempt": pid in locked and exposure_cap is not None,
             }
         )
 
@@ -1127,6 +1197,9 @@ def _multi_result(
         "exposure_valid": not violations,
         "exposure_violations": violations,
         "exposure_basis": {"enforced_count": requested, "reported_count": built, "locks_exempt": sorted(locked)},
+        "shortfall": requested - built,
+        "shortfall_reason": note if built < requested else None,
+        "strategy_diagnostics": strategy_diagnostics or [],
         "note": note,
         "exposure": exposure,
     }
@@ -1163,6 +1236,9 @@ def optimize_from_pool_dataframe(
     group_exposure_limits: list[dict] | None = None,
     block_qb_opposing_dst: bool = True,
     classic_stack_rules: dict | None = None,
+    showdown_rules: dict | None = None,
+    comparison_player_id: str | None = None,
+    comparison_player_slot: str | None = None,
 ) -> dict:
     site = (site or "seasonal").lower()
     from src.products.dfs_stack_rules import validate_stack_request
@@ -1180,7 +1256,13 @@ def optimize_from_pool_dataframe(
         seed = 0 if seed is None else seed
     elif player_exposure_limits or group_exposure_limits:
         raise ValueError("Minimum, target, maximum and pair/core controls require global portfolio mode.")
-    if include_captain_comparison:
+    if bool(comparison_player_id) != bool(comparison_player_slot):
+        raise ValueError("Choose both a comparison player and FLEX or Captain.")
+    if comparison_player_slot not in {None, "flex", "captain"}:
+        raise ValueError("Player comparison slot must be flex or captain.")
+    if include_captain_comparison and comparison_player_id:
+        raise ValueError("Choose either Captain comparison or a forced-player comparison at a time.")
+    if include_captain_comparison or comparison_player_id:
         if not get_site_config(site)["roster"].get("cpt"):
             raise ValueError("Captain comparison requires a single-game format.")
         if (lineup_count != 1 or randomness or max_exposure is not None
@@ -1207,6 +1289,8 @@ def optimize_from_pool_dataframe(
         require_salary=require_salary,
         block_bye_weeks=block_bye_weeks,
     )
+    from src.products.dfs_showdown_rules import resolve_showdown_rules
+    resolved_showdown_rules = resolve_showdown_rules(showdown_rules, site=site, players=players, pool=pool)
     opt_kwargs = {
         "objective": objective,
         "locked_player_ids": set(locked_player_ids or []),
@@ -1225,7 +1309,10 @@ def optimize_from_pool_dataframe(
         "captain_label": site_cfg.get("captain_label", "CPT"),
         "excluded_captain_ids": {pid for pid, limit in (captain_exposure_limits or {}).items() if math.floor(limit * max(1, lineup_count) + 1e-9) == 0},
         "locked_captain_id": locked_captain_id,
+        "showdown_rules": resolved_showdown_rules,
     }
+    if snapshot_context and (include_captain_comparison or comparison_player_id):
+        opt_kwargs["excluded_captain_ids"].update(snapshot_context.get("original_captain_exclusions") or [])
     from src.products.dfs_snapshots import capture_build_snapshot
 
     snapshot = capture_build_snapshot(pool, players, site=site, context=snapshot_context, parameters={
@@ -1245,7 +1332,36 @@ def optimize_from_pool_dataframe(
         "group_exposure_limits": group_exposure_limits or [],
         "block_qb_opposing_dst": block_qb_opposing_dst if portfolio_mode == "global" else None,
         "classic_stack_rules": classic_stack_rules,
+        "showdown_rules": showdown_rules,
+        "resolved_showdown_rules": resolved_showdown_rules,
+        "comparison_player_id": comparison_player_id,
+        "comparison_player_slot": comparison_player_slot,
     }).to_dict()
+
+    # Diagnostics are bounded from their first solve. A separate ordinary build
+    # here would consume unbounded work before the declared comparison budget.
+    if include_captain_comparison or comparison_player_id:
+        from src.products.dfs_captain_comparison import compare_captains, compare_with_player
+        from src.products.dfs_showdown_integrity import showdown_portfolio_review
+        if comparison_player_id:
+            report = compare_with_player(players, site=site, options=opt_kwargs, snapshot_id=snapshot["id"],
+                player_id=comparison_player_id, slot=comparison_player_slot,
+                context={"excluded_player_ids": excluded_player_ids or [],
+                         "candidate_player_ids": candidate_player_ids,
+                         "captain_exposure_limits": captain_exposure_limits or {},
+                         "max_exposure": max_exposure, "portfolio_scope": "single_lineup_only",
+                         "original_portfolio_controls": (snapshot_context or {}).get("original_portfolio_controls")})
+            baseline = report["baseline"].get("result")
+            report_key = "player_comparison"
+        else:
+            report = compare_captains(players, site=site, options=opt_kwargs, snapshot_id=snapshot["id"])
+            baseline = next((row["result"] for row in report["candidates"] if row["status"] == "optimal"), None)
+            report_key = "captain_comparison"
+        result = {**(baseline or {"lineup": []}), "ok": True, "comparison_only": True,
+                  "build_snapshot": snapshot, "showdown_rules": resolved_showdown_rules, report_key: report}
+        if baseline:
+            result["showdown_review"] = showdown_portfolio_review([baseline], showdown_rules=resolved_showdown_rules)
+        return result
 
     if portfolio_mode == "global":
         from src.products.dfs_portfolio_selection import generate_global_portfolio
@@ -1285,12 +1401,19 @@ def optimize_from_pool_dataframe(
         result, players, site=site, salary_cap=cap, min_salary=min_salary,
         max_per_team=max_per_team, locked_player_ids=locked_player_ids or (),
         locked_captain_id=locked_captain_id,
+        showdown_rules=resolved_showdown_rules,
     )
     result["build_snapshot"] = snapshot
-    if include_captain_comparison and result.get("ok"):
-        from src.products.dfs_captain_comparison import compare_captains
-        result["captain_comparison"] = compare_captains(players, site=site, options=opt_kwargs,
-                                                        snapshot_id=snapshot["id"])
+    if resolved_showdown_rules is not None:
+        result["showdown_rules"] = resolved_showdown_rules
+    from src.products.dfs_showdown_integrity import score_lineup, showdown_portfolio_review
+    for entry in (result.get("lineups") or ([result] if result.get("lineup") else [])):
+        if site_cfg["roster"].get("cpt"):
+            entry.update(score_lineup(entry["lineup"], objective, forecast_snapshot_id=snapshot["id"],
+                                      solver_status=entry.get("solver_outcome", "unknown")))
+    if site_cfg["roster"].get("cpt") and result.get("ok"):
+        result["showdown_review"] = showdown_portfolio_review(
+            result.get("lineups") or [result], showdown_rules=resolved_showdown_rules)
     return result
 
 
