@@ -301,6 +301,10 @@ class LineupOptimizeRequest(BaseModel):
     group_exposure_limits: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     block_qb_opposing_dst: bool = True
     classic_stack_rules: Optional[dict[str, Any]] = None
+    showdown_rules: Optional[dict[str, Any]] = Field(default=None, max_length=2)
+    comparison_player_id: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    comparison_player_slot: Optional[str] = Field(default=None, pattern="^(flex|captain)$")
+    comparison_snapshot: Optional[dict[str, Any]] = Field(default=None, max_length=3)
 
 
 def _collect_route_paths(routes) -> set[str]:
@@ -2246,16 +2250,31 @@ def lineup_optimize(
         keep_player_ids += [pid for group in request.group_exposure_limits for pid in group.get("player_ids", [])]
         if request.locked_captain_id:
             keep_player_ids.append(request.locked_captain_id)
-        pool, meta = build_lineup_pool(
-            season=request.season,
-            week=request.week,
-            apply_injury_adjustments=request.apply_injury_adjustments,
-            site=site,
-            keep_teams=list(request.stack_teams or []) + weighted_stack_teams,
-            keep_player_ids=keep_player_ids,
-        )
+        if request.comparison_player_id:
+            keep_player_ids.append(request.comparison_player_id)
+        if request.showdown_rules:
+            from src.products.dfs_showdown_rules import validate_showdown_rule_shape
+            validate_showdown_rule_shape(request.showdown_rules)
+            keep_player_ids += [pid for ids in request.showdown_rules.get("approved_qb_ids", {}).values() for pid in ids]
+        frozen_context = None
+        if request.comparison_snapshot is not None:
+            from src.products.dfs_showdown_snapshot import restore_comparison_inputs
+            pool, meta, frozen_context = restore_comparison_inputs(
+                request.comparison_snapshot, site=site, request_values=request.model_dump())
+        else:
+            pool, meta = build_lineup_pool(
+                season=request.season,
+                week=request.week,
+                apply_injury_adjustments=request.apply_injury_adjustments,
+                site=site,
+                keep_teams=list(request.stack_teams or []) + weighted_stack_teams,
+                keep_player_ids=keep_player_ids,
+            )
         salary_snapshot = None
-        if request.salary_snapshot_id:
+        if frozen_context is not None:
+            salary_snapshot = frozen_context.get("salary_snapshot")
+            sal_df = None
+        elif request.salary_snapshot_id:
             if not _user or not _user.get("sub"):
                 raise HTTPException(status_code=401, detail="Sign in to use this salary snapshot.")
             from src.products.dfs_slate_snapshots import resolve_salary_snapshot
@@ -2270,7 +2289,8 @@ def lineup_optimize(
             pool, sal_stats = attach_salaries_to_pool(pool, sal_df)
             meta["salary_import"] = sal_stats
         from src.products.dfs_inputs import apply_projection_overrides
-        pool = apply_projection_overrides(pool, request.projection_overrides)
+        if frozen_context is None:
+            pool = apply_projection_overrides(pool, request.projection_overrides)
         from src.products.dfs_coverage import projection_coverage
         meta["projection_coverage"] = projection_coverage(pool)
         result = optimize_from_pool_dataframe(
@@ -2319,7 +2339,10 @@ def lineup_optimize(
             group_exposure_limits=request.group_exposure_limits,
             block_qb_opposing_dst=request.block_qb_opposing_dst,
             classic_stack_rules=classic_stack_rules,
-            snapshot_context={
+            showdown_rules=request.showdown_rules,
+            comparison_player_id=request.comparison_player_id,
+            comparison_player_slot=request.comparison_player_slot,
+            snapshot_context=frozen_context or {
                 "requested_season": request.season, "requested_week": request.week,
                 "client_slate_id": request.slate_id, "pool_meta": meta,
                 "salary_snapshot": salary_snapshot,
@@ -2335,7 +2358,9 @@ def lineup_optimize(
     return {
         "meta": meta,
         **result,
-        "slate_validation": salary_snapshot or {"scope": "unbound_client_inputs", "scoring_verified": False, "lock_state_verified": False},
+        **({"comparison_source_snapshot_id": request.comparison_snapshot["id"]} if frozen_context is not None else {}),
+        "slate_validation": ({"scope": "supplied_frozen_comparison", "scoring_verified": False, "lock_state_verified": False}
+                             if frozen_context is not None else salary_snapshot or {"scope": "unbound_client_inputs", "scoring_verified": False, "lock_state_verified": False}),
     }
 
 
