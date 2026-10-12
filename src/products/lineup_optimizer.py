@@ -1162,8 +1162,12 @@ def optimize_from_pool_dataframe(
     player_exposure_limits: dict | None = None,
     group_exposure_limits: list[dict] | None = None,
     block_qb_opposing_dst: bool = True,
+    classic_stack_rules: dict | None = None,
 ) -> dict:
     site = (site or "seasonal").lower()
+    from src.products.dfs_stack_rules import validate_stack_request
+    classic_stack_rules = validate_stack_request(classic_stack_rules, portfolio_mode=portfolio_mode, site=site,
+        require_qb_stack=require_qb_stack, qb_stack_count=qb_stack_count, stack_bring_back=stack_bring_back)
     if portfolio_mode not in ("legacy", "global"):
         raise ValueError("Portfolio mode must be legacy or global.")
     if portfolio_mode == "global":
@@ -1240,6 +1244,7 @@ def optimize_from_pool_dataframe(
         "player_exposure_limits": player_exposure_limits or {},
         "group_exposure_limits": group_exposure_limits or [],
         "block_qb_opposing_dst": block_qb_opposing_dst if portfolio_mode == "global" else None,
+        "classic_stack_rules": classic_stack_rules,
     }).to_dict()
 
     if portfolio_mode == "global":
@@ -1247,7 +1252,7 @@ def optimize_from_pool_dataframe(
         result = generate_global_portfolio(players, count=lineup_count,
             player_exposure_limits=player_exposure_limits, group_exposure_limits=group_exposure_limits,
             max_exposure=max_exposure, max_overlap=max_overlap, randomness=randomness, seed=seed,
-            block_qb_opposing_dst=block_qb_opposing_dst, **opt_kwargs)
+            block_qb_opposing_dst=block_qb_opposing_dst, classic_stack_rules=classic_stack_rules, **opt_kwargs)
     elif lineup_count <= 1 and max_exposure is not None and 0 < max_exposure < 1:
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
     elif lineup_count > 1:

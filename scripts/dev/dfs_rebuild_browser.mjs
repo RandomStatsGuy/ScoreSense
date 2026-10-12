@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { attachDfsFixture } from "./dfs_fixture_runtime.mjs";
+import { verifyGuardrails } from "./dfs_guardrails_tasks.mjs";
 import { readPortfolioBackup } from "../../frontend/src/dfsPortfolioBackup.js";
 import { measureScript, minTargetForWidth, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX,
   COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS } from "./layout_audit.mjs";
@@ -26,6 +27,10 @@ async function backup(page, name) {
   return readPortfolioBackup(await readFile(filepath, "utf8"));
 }
 try {
+  if (process.argv.includes("--guardrails-only")) {
+    await verifyGuardrails(browser, root);
+    process.exitCode = 0;
+  } else {
   for (const width of [390, 768, 1280, 1440]) for (const theme of ["dark", "light"]) {
     const context = await browser.newContext({ viewport: { width, height: 960 }, acceptDownloads: true, reducedMotion: "reduce" });
     await context.addInitScript(value => localStorage.setItem("scoresense-color-theme", value), theme);
@@ -170,6 +175,7 @@ try {
   assert.equal(staleDownloads.length, 0, "An account change prevents stale CSV download");
   console.log("PASS account change during save: no later batch save, ledger write or stale CSV download");
   await staleContext.close();
+  }
 } finally {
   await writeFile(path.join(output, "report.json"), JSON.stringify({ report, viewportFailures }, null, 2));
   await browser.close();

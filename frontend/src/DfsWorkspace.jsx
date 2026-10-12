@@ -1,12 +1,14 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
 import DfsPortfolio from "./DfsPortfolio.jsx";
 import DfsGlobalExposure from "./DfsGlobalExposure.jsx";
+import DfsClassicStack from "./DfsClassicStack.jsx";
+import DfsBuildPlans from "./DfsBuildPlans.jsx";
 import DfsLocalDraft from "./DfsLocalDraft.jsx";
 import { createEntryExportSession } from "./dfsEntryExportSession.js";
 import { sealEntryExportArtifact } from "./dfsEntryExportSeal.js";
 import { validateGlobalBuildForExport } from "./dfsGlobalExportValidation.js";
 import { validatePrelockExport } from "./dfsPrelockExport.js";
-import { DFS_GLOBAL_COPY as GC } from "./dfsToolPresentation.js";
+import { DFS_GLOBAL_COPY as GC, DFS_GUARDRAIL_COPY as RC } from "./dfsToolPresentation.js";
 import { auditPortfolio, buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
 import { downloadPortfolioBackup, readPortfolioBackupFile } from "./dfsPortfolioBackup.js";
 import { confirmDialog } from "./ui/confirm.jsx";
@@ -463,7 +465,8 @@ export default function DfsWorkspace({ b }) {
           <button
             type="button"
             className="dfw-primary dfw-build-button"
-            disabled={b.busy || b.building || !b.pool.length || !validLineupCount}
+            aria-describedby={b.planMatches === false ? "dfw-plan-block" : undefined}
+            disabled={b.busy || b.building || !b.pool.length || !validLineupCount || b.planMatches === false}
             onClick={b.run}
           >
             {b.building ? C.building : lineup.length ? C.rebuild : C.build}
@@ -471,6 +474,7 @@ export default function DfsWorkspace({ b }) {
         </div>
       </div>
       <DfsPoolFreshness b={b} />
+      {b.planMatches === false && <p className="dfw-error" id="dfw-plan-block" role="status">{RC.changed}</p>}
       <div className={`dfw-workspace${b.isCaptain ? " is-captain" : ""}`}>
         <section className="dfw-center">
           <div className="dfw-panel">
@@ -800,17 +804,17 @@ export default function DfsWorkspace({ b }) {
           <HubFilterMenu
             label={C.exposure}
             value={b.settings.exposure}
-            options={[1, 0.8, 0.7, 0.6, 0.5, 0.3, 0.2].map((v) => ({
+            options={[...new Set([1, 0.8, 0.7, 0.6, 0.5, 0.3, 0.2, Number(b.settings.exposure)])].sort((a, z) => z - a).map((v) => ({
               id: v,
               label: `${v * 100}% · ${Math.floor(v * b.settings.count + 1e-9)} / ${b.settings.count}`,
             }))}
             onChange={(v) => b.changeSetting("exposure", Number(v))}
           />
           <HubFilterMenu
-            label={C.differences}
-            value={b.settings.differences}
-            options={lineupDifferenceOptions(b.isCaptain)}
-            onChange={(v) => b.changeSetting("differences", Number(v))}
+            label={b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? GC.overlap : C.differences}
+            value={b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? 9 - Number(b.settings.differences) : b.settings.differences}
+            options={b.isCaptain || !b.isDfs ? lineupDifferenceOptions(b.isCaptain) : Array.from({ length: b.settings.portfolioMode === "global" ? 10 : 9 }, (_, i) => ({ id: b.settings.portfolioMode === "global" ? i : i + 1, label: String(b.settings.portfolioMode === "global" ? i : i + 1) }))}
+            onChange={(v) => b.changeSetting("differences", b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? 9 - Number(v) : Number(v))}
           />
           {b.isCaptain && b.settings.differences === 0 && <p className="dfw-note">{C.captainRotationHelp}</p>}
           </div>
@@ -846,14 +850,15 @@ export default function DfsWorkspace({ b }) {
           <details>
             <summary>{C.stacks}</summary>
             <div className="dfw-settings-grid">
-              {!b.isCaptain && (
+              {!b.isCaptain && b.settings.portfolioMode !== "global" && (
                 <>
                   <HubFilterMenu
                     label={C.qbStack}
                     value={b.settings.qbStack}
-                    options={options([0, 1, 2, 3])}
+                    options={options([...new Set([0, 1, 2, 3, Number(b.settings.qbStack)])].sort((a, z) => a - z))}
                     onChange={(v) => b.changeSetting("qbStack", Number(v))}
                   />
+                  {b.settings.requireQbStack && <p className="dfw-note">{RC.legacyRequired}</p>}
                   <label className="dfw-check">
                     <input
                       type="checkbox"
@@ -866,16 +871,17 @@ export default function DfsWorkspace({ b }) {
                   </label>
                 </>
               )}
+              {b.context.site === "draftkings" && b.settings.portfolioMode === "global" && <DfsClassicStack b={b} />}
               <HubFilterMenu
                 label={C.maxTeam}
                 value={b.settings.maxTeam}
-                options={options([0, 2, 3, 4, 5])}
+                options={options(Array.from({ length: 10 }, (_, i) => i))}
                 onChange={(v) => b.changeSetting("maxTeam", Number(v))}
               />
               <HubFilterMenu
                 label={C.jitter}
                 value={b.settings.randomness}
-                options={[0, 0.05, 0.12, 0.25].map((v) => ({
+                options={[...new Set([0, 0.05, 0.12, 0.25, Number(b.settings.randomness)])].sort((a, z) => a - z).map((v) => ({
                   id: v,
                   label: `${v * 100}%`,
                 }))}
@@ -884,6 +890,7 @@ export default function DfsWorkspace({ b }) {
               <p className="dfw-note">{C.jitterNote}</p>
             </div>
           </details>
+          {b.context.site === "draftkings" && <DfsBuildPlans b={b} />}
           <p className="dfw-note">
             {
               filterObjectives(b.isDfs).find(

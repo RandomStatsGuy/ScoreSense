@@ -65,7 +65,7 @@ def capture_build_snapshot(pool, players, *, site, parameters, context=None):
         "captain_comparison_budget": comparison_budget() if parameters.get("include_captain_comparison") else None,
         "portfolio_selection_budget": portfolio_budget,
         "schema_version": SCHEMA_VERSION,
-        "engine": {"version": "global_candidate_milp_v1" if parameters.get("portfolio_mode") == "global" else ENGINE_VERSION,
+        "engine": {"version": "global_candidate_milp_v2" if parameters.get("portfolio_mode") == "global" else ENGINE_VERSION,
                    "scipy": scipy.__version__, "numpy": np.__version__},
         "rules": rules, "rules_id": content_id(rules),
         "forecast_semantics": "player_quantiles_not_joint_lineup_quantiles_or_expected_payout",

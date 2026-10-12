@@ -919,12 +919,25 @@
 .dfw-global-verdict, .dfw-export-status { display: grid; gap: var(--space-3); padding: var(--space-3); background: var(--bg-subtle); border-radius: var(--radius-sm); }
 .dfw-local-draft { display: grid; gap: var(--space-3); }
 .dfw-global :focus-visible, .dfw-local-draft :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dfw-guardrail-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3) 0; min-width: 0; }
+.dfw-guardrail-body > *, .dfw-member-list { min-width: 0; }
+.dfw-guardrail-body .dfw-field input { width: 100%; min-width: 0; }
+.dfw-member-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+.dfw-member-list .dfw-check { min-height: var(--control-h-md); }
+.dfw-member-list .dfw-check span { min-width: 0; overflow-wrap: anywhere; }
+.dfw-member-list small { display: block; font-size: var(--text-xs); color: var(--text-secondary); }
+.dfw-plan-changes { display: grid; gap: var(--space-2); margin: 0; padding-left: var(--space-5); overflow-wrap: anywhere; }
+.dfw-plan-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.dfw-plan-actions > * { min-width: 0; }
+.dfw-plans :focus-visible, .dfw-guardrail-body :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 1100px) { .dfw-exposure-row { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 750px) {
   .dfw-global input { font-size: var(--text-md); }
   .dfw-global button, .dfw-local-draft button, .dfw-export-status button { min-height: var(--touch-target, 44px); }
   .dfw-exposure-controls .dfw-field { min-width: 0; }
   .dfw-global-tools > label { flex-basis: 100%; }
+  .dfw-guardrail-body button, .dfw-member-list .dfw-check, .dfw-plans button { min-height: var(--touch-target, 44px); }
+  .dfw-guardrail-body input { font-size: var(--text-md); }
 }
 @media (max-width: 1100px) { .dfw-workspace.is-captain { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 750px) {

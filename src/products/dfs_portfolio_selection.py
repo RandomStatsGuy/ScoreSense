@@ -65,7 +65,7 @@ def select_portfolio(candidates: list[dict], *, count: int, player_ids: list[str
                      group_exposure_limits: list[dict] | None = None,
                      locked_player_ids=(), max_exposure=None, max_overlap=None,
                      objective: str = "median", time_limit: float = SELECTION_SECONDS,
-                     candidate_scores: dict | None = None) -> dict:
+                     candidate_scores: dict | None = None, classic_stack_rules=None) -> dict:
     """Select exactly count unique candidates, or return a truthful unresolved result."""
     started = time.monotonic()
     if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= 150:
@@ -121,10 +121,11 @@ def select_portfolio(candidates: list[dict], *, count: int, player_ids: list[str
     entries = [unique[key] for key in keys]
     sets = [set(key) for key in keys]
     m = len(entries)
-    manifest_data = {"version": 1, "requested_count": count, "objective": objective,
+    manifest_data = {"version": 2, "requested_count": count, "objective": objective,
                      "objective_mode": "projection-guided", "candidate_keys": keys,
                      "candidate_scores": [float((candidate_scores or {}).get(key, entry["total_points"])) for key, entry in zip(keys, entries)],
                      "constraints": rules, "max_overlap": max_overlap,
+                     "classic_stack_rules": classic_stack_rules,
                      "target_policy": "minimum absolute appearance miss, then original objective sum"}
     manifest = hashlib.sha256(json.dumps(manifest_data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     report = {"requested_count": count, "selected_count": 0, "unique_count": 0, "candidate_count": m,
@@ -273,20 +274,30 @@ def qb_dst_audit(entry, by_id):
 def generate_global_portfolio(players, *, count, player_exposure_limits=None,
                               group_exposure_limits=None, max_exposure=None,
                               max_overlap=None, randomness=0., seed=0,
-                              block_qb_opposing_dst=True, **options):
+                              block_qb_opposing_dst=True, classic_stack_rules=None, **options):
     """Bounded diverse legal search; final selection never uses exhaustion caps."""
     from src.products.lineup_optimizer import optimize_lineup, _objective_value
+    from src.products.dfs_stack_rules import (normalize_classic_stack_rules, compile_classic_stack_constraints,
+        audit_classic_stack, locked_stack_conflicts)
     started = time.monotonic()
+    classic_stack_rules = normalize_classic_stack_rules(classic_stack_rules)
     by_id = {p.player_id: p for p in players}
     if len(by_id) != len(players):
         raise ValueError("Duplicate canonical player IDs in the eligible pool. Resolve the slate mapping before building.")
     # Validate the full request before spending the candidate-generation budget.
     preflight = select_portfolio([], count=count, player_ids=list(by_id),
         player_exposure_limits=player_exposure_limits, group_exposure_limits=group_exposure_limits,
-        max_exposure=max_exposure, locked_player_ids=options.get("locked_player_ids", ()))
+        max_exposure=max_exposure, locked_player_ids=options.get("locked_player_ids", ()),
+        classic_stack_rules=classic_stack_rules)
     if preflight["portfolio_selection"]["conflicts"]:
         return preflight
-    base = []
+    base = compile_classic_stack_constraints(players, classic_stack_rules)
+    stack_conflicts = locked_stack_conflicts(players, classic_stack_rules, options.get("locked_player_ids") or set())
+    if stack_conflicts:
+        preflight["portfolio_selection"].update(solver_status="constraint_conflict", classic_stack_rules=classic_stack_rules)
+        preflight["portfolio_selection"]["conflicts"].extend(stack_conflicts)
+        preflight["error"] = " ".join(stack_conflicts)
+        return preflight
     unknown_pairs = 0
     if block_qb_opposing_dst:
         for qb in (p for p in players if p.position == "QB"):
@@ -305,13 +316,28 @@ def generate_global_portfolio(players, *, count, player_exposure_limits=None,
     for rule in rules:
         if rule["maximum_count"] == 0:
             base.append((dict.fromkeys(rule["player_ids"], 1), 0, len(rule["player_ids"])-1))
-    emphasis = [set(rule["player_ids"]) for rule in rules if rule["minimum_count"] or (rule["target_count"] is not None and Decimal(rule["target_count"]) > 0)]
-    # Alternating capped-player omissions gives selection alternatives to popular cores.
-    omissions = [pid for rule in rules if rule["scope"] == "player" and 0 < rule["maximum_count"] < count for pid in rule["player_ids"]]
+    emphasis = [rule for rule in rules if rule["minimum_count"] or (rule["target_count"] is not None and Decimal(rule["target_count"]) > 0)]
+    # A positive pair/core cap needs completions that break the entire core,
+    # even when every individual player cap remains unrestricted.
+    omissions = [rule for rule in rules if 0 < rule["maximum_count"] < count]
     candidates, scores, cuts = [], {}, []
     rng = np.random.default_rng(seed or 0)
     budget = min(MAX_CANDIDATES, max(40, count*3))
     attempts = 0
+    group_omission_attempts = 0
+
+    def search_rule(controls, *, include):
+        def coverage_need(rule):
+            members = set(rule["player_ids"])
+            appearances = sum(members.issubset(key) for key in scores)
+            required = max(rule["minimum_count"], float(rule["target_count"] or 0)) if include else count-rule["maximum_count"]
+            available = appearances if include else len(scores)-appearances
+            return (required-available)/max(required, 1)
+        priority = max(coverage_need(rule) for rule in controls)
+        if priority > 0:
+            return max(controls, key=coverage_need)
+        return controls[(attempts//3) % len(controls)]
+
     while len(candidates) < budget and attempts < budget*2:
         remaining = GENERATION_SECONDS - (time.monotonic()-started)
         if remaining <= 0:
@@ -320,9 +346,11 @@ def generate_global_portfolio(players, *, count, player_exposure_limits=None,
         trial["locked_player_ids"] = set(options.get("locked_player_ids") or ())
         controls = base + cuts
         if attempts % 3 == 1 and emphasis:
-            trial["locked_player_ids"].update(emphasis[(attempts//3) % len(emphasis)])
+            trial["locked_player_ids"].update(search_rule(emphasis, include=True)["player_ids"])
         if attempts % 3 == 2 and omissions:
-            controls = controls + [({omissions[(attempts//3) % len(omissions)]: 1}, 0, 0)]
+            omission = search_rule(omissions, include=False)
+            controls = controls + [(dict.fromkeys(omission["player_ids"], 1), 0, len(omission["player_ids"])-1)]
+            group_omission_attempts += omission["scope"] == "group"
         trial["solver_time_limit"] = min(1., remaining)
         if attempts:
             trial["objective_noise"] = {pid: float(np.clip(rng.normal(1., max(.12, randomness)), .05, None)) for pid in by_id}
@@ -342,15 +370,27 @@ def generate_global_portfolio(players, *, count, player_exposure_limits=None,
     result = select_portfolio(candidates, count=count, player_ids=list(by_id),
         player_exposure_limits=player_exposure_limits, group_exposure_limits=group_exposure_limits,
         max_exposure=max_exposure, locked_player_ids=options.get("locked_player_ids", ()),
-        max_overlap=max_overlap, objective=options.get("objective", "median"), candidate_scores=scores)
+        max_overlap=max_overlap, objective=options.get("objective", "median"), candidate_scores=scores,
+        classic_stack_rules=classic_stack_rules)
     report = result["portfolio_selection"]
     report["generation"] = {"candidate_budget": budget, "attempt_count": attempts,
         "time_budget_seconds": GENERATION_SECONDS, "runtime_seconds": round(time.monotonic()-started-report["runtime_seconds"], 4),
         "seed": seed or 0, "unknown_qb_dst_pairs_excluded": unknown_pairs,
+        "group_omission_attempts": group_omission_attempts,
+        "coverage": [{"id": rule["id"], "scope": rule["scope"],
+            "including_candidates": sum(set(rule["player_ids"]).issubset(key) for key in scores),
+            "excluding_candidates": sum(not set(rule["player_ids"]).issubset(key) for key in scores)}
+            for rule in rules if rule in emphasis or rule in omissions],
         "search": "unique projection solves with targeted locks/omissions and seeded objective jitter; not a football simulation"}
     report["block_qb_opposing_dst"] = block_qb_opposing_dst
     report["strategy_evidence"] = "eligible-pool opponent/team fields; exact game identity is not independently verified"
     report["strategy_audit"] = [qb_dst_audit(entry, by_id) for entry in result.get("lineups", [])]
+    report["classic_stack_rules"] = classic_stack_rules
+    report["stack_audit"] = [audit_classic_stack(entry, players, classic_stack_rules)
+                             for entry in result.get("lineups", [])] if classic_stack_rules is not None else []
+    if any(not audit["ok"] for audit in report["stack_audit"]):
+        result.update(ok=False, exposure_valid=False,
+            error="Selected candidates failed the independent Classic stack/bring-back audit. No construction rule was relaxed.")
     if block_qb_opposing_dst and any(audit["conflicts"] or audit["unknown"] for audit in report["strategy_audit"]):
         result.update(ok=False, exposure_valid=False,
             error="Selected candidates failed the independent QB/opposing-DST strategy audit. Change locks or explicitly review the safeguard override before rebuilding.")

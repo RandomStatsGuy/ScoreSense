@@ -26,6 +26,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [DFS rebuild implementation and gaps](./DFS_REBUILD_IMPLEMENTATION.md) | Current inventory, all 65 rules / 36 acceptance cases, phased PR gates and actual validation |
 | [DFS rebuild rule registry](./DFS_REBUILD_RULE_MATRIX.json) | Machine-readable traceability; not executable optimizer configuration |
 | [DFS rebuild foundation review](./reviews/dfs-rebuild/README.md) | Scoped synthetic screenshots, responsive/theme task checks and verification limits |
+| [DFS portfolio guardrails review](./reviews/dfs-portfolio-guardrails/README.md) | Pair/core controls, exact stacks, atomic plans and scoped synthetic verification |
 | [MOBILE_APP.md](./MOBILE_APP.md) | PWA and Android TWA |
 | [Fantasy mobile design](../.cursor/rules/fantasy-mobile.mdc) | Approved mobile parameters, controls, and mock foundation |
 | [Fantasy mobile review](./FANTASY_MOBILE_REVIEW.md) | Page-by-page review queue and Home design decisions |
