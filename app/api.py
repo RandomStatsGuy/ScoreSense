@@ -2291,6 +2291,13 @@ def lineup_optimize(
         from src.products.dfs_inputs import apply_projection_overrides
         if frozen_context is None:
             pool = apply_projection_overrides(pool, request.projection_overrides)
+        if sal_df is not None and site in {"draftkings_showdown", "fanduel_single"}:
+            # Compose known imported estimates before limiting the weekly NFL
+            # pool. Freeze only this salary catalog, including slate players
+            # whose forecasts are still missing; other import rows stay unused.
+            salary = pd.to_numeric(pool["salary"], errors="coerce")
+            pool = pool.loc[salary.gt(0) & salary.lt(float("inf"))].copy()
+            meta["input_pool_scope"] = "selected_salary_catalog_not_verified_platform_slate"
         from src.products.dfs_coverage import projection_coverage
         meta["projection_coverage"] = projection_coverage(pool)
         result = optimize_from_pool_dataframe(

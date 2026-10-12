@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import useDfsBuilder from "./useDfsBuilder";
 import DfsWorkspace from "./DfsWorkspace";
 import DfsResults from "./DfsResults.jsx";
@@ -11,7 +11,8 @@ import "./styles/dfs-workspace.css";
 
 export default function LineupOptimizer({ projMeta }) {
   const builder = useDfsBuilder(projMeta);
-  const [view, setView] = useState("build");
+  const view = builder.workspaceUi.view;
+  const setView = value => builder.changeWorkspaceUi("view", value);
   return (
     <div className="dfw">
       <header className="dfw-title">

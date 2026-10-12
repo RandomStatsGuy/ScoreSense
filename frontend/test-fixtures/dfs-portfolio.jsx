@@ -1,5 +1,5 @@
 // Production builder/workspace with deterministic, local-only API responses.
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import LineupOptimizer from "../src/LineupOptimizer.jsx";
 import useDfsBuilder from "../src/useDfsBuilder.js";
@@ -25,6 +25,7 @@ const largePool = new URLSearchParams(location.search).has("large-pool");
 const sharedMode = new URLSearchParams(location.search).has("shared");
 const lateSwapMode = new URLSearchParams(location.search).has("late-swap");
 const showdownMode = new URLSearchParams(location.search).has("showdown");
+const leaguePoolMode = showdownMode && new URLSearchParams(location.search).has("league-pool");
 const workflow = sharedMode || lateSwapMode || new URLSearchParams(location.search).has("workflow");
 const evidenceMode = new URLSearchParams(location.search).has("evidence");
 const guardrails = workflow || evidenceMode || new URLSearchParams(location.search).has("guardrails");
@@ -55,7 +56,12 @@ window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: f
   lateSwapPreviewRequests: [], lateSwapPlanRequests: [], failLateSwapPreview: false, failLateSwapPlan: false,
   delayLateSwapPlan: false, ignoreLateSwapPlanAbort: false, lateSwapPlanAborts: 0, mismatchLateSwapPlan: false,
   publishDataRevision };
-const fixturePool = state => players.map((player, index) => ({ ...player,
+// Deliberately retain unrelated league forecasts in the API fixture. They have
+// no selected-slate salary identity and must never become pairing/comparison choices.
+const otherTeams = ["ARI", "ATL", "BAL", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAX", "KC", "LAC", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS"];
+const outsideSlate = otherTeams.flatMap(team => ["QB", "WR"].map(position => ({ player_id: `outside-${team}-${position}`, Player: `${team} Outside ${position}`, Team: team,
+  Position: position, Opponent: "", salary: null, dfs_id: null, "Projected Points": 10, "Low (P10)": 1, "High (P90)": 20, projection_source: "synthetic_model" })));
+const fixturePool = state => [...players, ...(leaguePoolMode ? outsideSlate : [])].map((player, index) => ({ ...player,
   ...(showdownMode && state.latestOut && player.player_id === "wb" ? { "Injury Status": "Out", availability_updated_at: "2026-10-12T14:00:00Z" } : {}),
   ...((workflow || evidenceMode) && state.poolVersion && index === 0 ? {
     "Projected Points": player["Projected Points"] + state.poolVersion * 2,
@@ -311,4 +317,11 @@ function PopulatedAudit() {
   }, [b.pool, b.busy, b.currentBuild, b.building]);
   return <div className="dfw"><DfsWorkspace b={b} /></div>;
 }
-createRoot(document.getElementById("root")).render(<div className="app"><main id="main-content">{location.search.includes("audit") ? <PopulatedAudit /> : <LineupOptimizer projMeta={meta} />}</main></div>);
+function NavigationFixture() {
+  const [away, setAway] = useState(false);
+  // This intentionally unmounts the production optimizer, as leaving its route
+  // does. Nothing is hidden or kept mounted to simulate successful restoration.
+  return <><div className="dfw"><button type="button" data-testid="fixture-research-navigation" onClick={() => setAway(value => !value)}>{away ? "Return to DFS" : "Research projections"}</button></div>
+    {away ? <div data-testid="fixture-projections">Synthetic research destination</div> : <LineupOptimizer projMeta={meta} />}</>;
+}
+createRoot(document.getElementById("root")).render(<div className="app"><main id="main-content">{location.search.includes("audit") ? <PopulatedAudit /> : leaguePoolMode ? <NavigationFixture /> : <LineupOptimizer projMeta={meta} />}</main></div>);

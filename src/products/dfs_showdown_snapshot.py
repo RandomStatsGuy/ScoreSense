@@ -28,8 +28,13 @@ def restore_comparison_inputs(record, *, site, request_values):
         raw = canonical_json(record)
     except (ValueError, TypeError, RecursionError):
         raise ValueError("The comparison snapshot must contain finite, bounded JSON inputs.") from None
-    if len(raw.encode()) > MAX_BYTES or not verify_build_snapshot(record):
-        raise ValueError("The comparison snapshot is too large or its content identity changed.")
+    if len(raw.encode()) > MAX_BYTES:
+        raise ValueError("The comparison snapshot exceeds the 8 MB limit. Build again with the selected slate to compare; existing lineups are unchanged.")
+    if not verify_build_snapshot(record):
+        content = record.get("content")
+        if isinstance(content, dict) and content.get("content_hash_encoding") is None:
+            raise ValueError("This older build snapshot could not be verified: its content identity changed. Build again to compare; existing lineups are unchanged.")
+        raise ValueError("The comparison snapshot content identity changed. Build again to compare; existing lineups are unchanged.")
     content = record["content"]
     if not isinstance(content.get("rules"), dict) or content["rules"].get("site") != site:
         raise ValueError("This comparison snapshot belongs to another format.")

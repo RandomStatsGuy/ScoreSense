@@ -38,6 +38,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [DFS late-swap package](./DFS_LATE_SWAP_PACKAGE.md) | Exact accepted slots, complete declared lock evidence and bounded read-only planning contract |
 | [Showdown integrity plan](./reviews/ScoreSense_Showdown_Integrity_One_PR_Plan.md) | Original supplied single-PR requirements, version 0.2.1 |
 | [Showdown integrity review](./reviews/showdown-integrity/README.md) | Scoring semantics, verified/approved Captain pairing, input collision fix, frozen comparisons and actual verification limits |
+| [Showdown workflow follow-up](./reviews/showdown-workflow/README.md) | Slate-scoped controls, browser-safe frozen comparisons, navigation draft recovery and visible missing-input evidence |
 | [DFS late-swap review](./reviews/dfs-late-swap/README.md) | Phase-8 actual checks, synthetic export replay and remaining live-data/platform gates |
 | [DFS Classic scoring contract](./reviews/DFS_CLASSIC_SCORING_CONTRACT.md) | Versioned official DraftKings rules, supported coherent events and rejected rare patterns |
 | [DFS shared count-profile evaluation](./reviews/DFS_SHARED_OUTCOMES_EVALUATION.md) | Actual 2024 chronological joint-count diagnostic, sparse tails and no model promotion |

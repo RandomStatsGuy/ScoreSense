@@ -9,7 +9,7 @@ import DfsClassicStack from "./DfsClassicStack.jsx";
 import DfsBuildPlans from "./DfsBuildPlans.jsx";
 import DfsLateSwap from "./DfsLateSwap.jsx";
 import DfsShowdownReview, { DfsBuildStatusTag, DfsShowdownFindings, DfsShowdownPlayerDetails, DfsShowdownRules, DfsShowdownScore } from "./DfsShowdownReview.jsx";
-import { assertShowdownAvailable, groupedShowdownFindings, missingPairingTeams, showdownAudit, showdownScore, showdownWarningPairs } from "./dfsShowdownReview.js";
+import { assertShowdownAvailable, groupedShowdownFindings, missingPairingTeams, showdownAudit, showdownScore, showdownSlatePool, showdownWarningPairs } from "./dfsShowdownReview.js";
 import { DFS_SHOWDOWN_COPY as SC } from "./dfsToolPresentation.js";
 import DfsLocalDraft from "./DfsLocalDraft.jsx";
 import { DfsBuildStatus, DfsCapabilityReview, DfsInputUpdate, DfsJourney } from "./DfsWorkflow.jsx";
@@ -30,6 +30,7 @@ import { HubFilterMenu } from "./DraftHub/HubUILayout";
 import {
   allocateMatchupWeights,
   dfsPoolCoverage,
+  dfsEstimateSources,
   dfsPlayerStatus,
   lineupDifferenceOptions,
   MAX_LINEUP_COUNT,
@@ -239,11 +240,14 @@ export default function DfsWorkspace({ b }) {
     lineupsRef = useRef(null);
   const selectedLineupRef = useRef(null);
   const portfolioRef = useRef(null), entriesRef = useRef(null), buildButtonRef = useRef(null);
-  const [journeyStage, setJourneyStage] = useState(0);
+  const journeyStage = b.workspaceUi?.stage ?? 0;
+  const setJourneyStage = value => b.changeWorkspaceUi("stage", value);
+  const initialLineups = useRef(b.lineups);
   const [template, setTemplate] = useState(null),
     [assignments, setAssignments] = useState({}),
     [sameSlate, setSameSlate] = useState(false);
-  const [usePortfolio, setUsePortfolio] = useState(false);
+  const usePortfolio = b.workspaceUi?.usePortfolio ?? false;
+  const setUsePortfolio = value => b.changeWorkspaceUi("usePortfolio", value);
   const [selectedContest, setSelectedContest] = useState("");
   const [entryPage, setEntryPage] = useState(0);
   const [exposurePage, setExposurePage] = useState(0);
@@ -282,7 +286,8 @@ export default function DfsWorkspace({ b }) {
   const showdownReview = useMemo(() => groupedShowdownFindings(b.lineups), [b.lineups]);
   const shownLineups = b.lineups.map((entry, index) => ({ entry, index })).filter(row => !onlyReview || showdownReview.affected.includes(row.index));
   const builtObjective = b.currentBuild?.settings?.objective || b.settings.objective;
-  const pairingMissing = b.context.site === "draftkings_showdown" ? missingPairingTeams(b.pool, b.settings.showdownRules) : [];
+  const selectedSlatePool = b.context.site === "draftkings_showdown" ? showdownSlatePool(b.pool, b.salaries) : b.pool;
+  const pairingMissing = b.context.site === "draftkings_showdown" ? missingPairingTeams(selectedSlatePool, b.settings.showdownRules) : [];
   const warningPairs = useMemo(() => showdownWarningPairs(b.lineups), [b.lineups]);
   const latestStatusPool = latestStatusRead || b.poolUpdate?.data?.players || b.pool;
   useEffect(() => { setLatestStatusRead(null); }, [b.context.site, b.context.slateId, b.context.season, b.context.week, b.currentBuild, b.poolUpdate]);
@@ -306,8 +311,9 @@ export default function DfsWorkspace({ b }) {
     assertShowdownAvailable(rows, current.players);
   };
   const ids = new Set(lineup.map((p) => p.player_id));
-  const eligible = b.pool.filter((p) => (!b.isDfs || p.salary != null) && (b.isCaptain || p.Position !== "K"));
+  const eligible = selectedSlatePool.filter((p) => (!b.isDfs || p.salary != null) && (b.isCaptain || p.Position !== "K"));
   const coverage = dfsPoolCoverage(eligible);
+  const estimateSources = dfsEstimateSources(eligible);
   const showOwnership = Object.values(b.ownership).some(value => value != null);
   const poolColumns = 4 + Number(b.isDfs) + Number(b.isCaptain) + Number(showOwnership);
   useEffect(() => {
@@ -334,9 +340,9 @@ export default function DfsWorkspace({ b }) {
             (sort.descending ? -1 : 1)
           );
         }),
-    [b.pool, b.isDfs, b.isCaptain, pos, availability, query, sort],
+    [b.pool, b.salaries, b.context.site, b.isDfs, b.isCaptain, pos, availability, query, sort],
   );
-  useEffect(() => setPage(0), [query, pos, availability, b.pool, sort]);
+  useEffect(() => setPage(0), [query, pos, availability, b.pool, b.salaries, sort]);
   useEffect(() => {
     setTemplate(null);
     setAssignments({});
@@ -489,6 +495,7 @@ export default function DfsWorkspace({ b }) {
     requestAnimationFrame(() => scrollToPanel(lineupsRef));
   };
   useEffect(() => {
+    if (b.navigationDraftRestored && initialLineups.current === b.lineups) return;
     if (!b.lineups.length) { if (!b.portfolio.length) setJourneyStage(0); return; }
     setJourneyStage(1);
     if (["complete", "partial"].includes(b.buildJob?.status)) requestAnimationFrame(() => scrollToPanel(lineupsRef));
@@ -638,6 +645,14 @@ export default function DfsWorkspace({ b }) {
               {buildBlock && <p className={b.error ? "dfw-error" : "dfw-note"} id="dfw-build-block" role={b.error ? "alert" : "status"}>{buildBlock}</p>}
             </div>
             <DfsBuildStatus b={b} onCancel={() => { b.cancelBuild(); requestAnimationFrame(() => buildButtonRef.current?.focus()); }} />
+            <div className="dfw-estimate-inputs" data-testid="dfs-estimate-inputs">
+              <div className="dfw-estimate-source-row"><div><strong>{C.estimates}</strong><small>{estimateSources.length ? estimateSources.map(({ source, count }) => C.sourceCount(source, count)).join(" · ") : C.noEstimateSources}</small>{b.projectionImportSource?.name && <small>{C.importSource(b.projectionImportSource.name)}</small>}</div>
+                <DfsFile label={C.importEstimates} onFile={b.importProjections} disabled={!eligible.length || b.busy || b.building} />
+              </div>
+              <details><summary>{C.importFormat}</summary><div className="dfw-detail-body"><p className="dfw-note">{C.projectionHelp}</p><p className="dfw-note">{C.importEffect}</p>
+                {estimateSources.map(({ source }) => C.sourceDescriptions[source] && <p className="dfw-note" key={source}>{source}: {C.sourceDescriptions[source]}</p>)}
+              </div></details>
+            </div>
             <details className="dfw-flow-disclosure" ref={advancedRef} data-testid="dfs-advanced">
               <summary><span className="dfw-summary"><strong>{F.advanced}</strong><small>{F.advancedHint}</small></span></summary>
               <div className="dfw-detail-body">
@@ -1059,7 +1074,7 @@ export default function DfsWorkspace({ b }) {
                 <small>
                   {p.team} · {p.position}
                 </small>
-                {b.isCaptain && <DfsShowdownPlayerDetails player={p} buildAt={b.currentBuild?.settings.snapshot_at}
+                {b.isCaptain && <DfsShowdownPlayerDetails player={p} buildAt={b.currentBuild?.settings.snapshot_at} salaryCap={b.currentBuild?.settings.salary_cap ?? cap}
                   latest={latestStatusPool.find(player => player.player_id === p.player_id)} latestPending={!latestStatusRead && Boolean(b.poolUpdate)} />}
               </div>
               <span>

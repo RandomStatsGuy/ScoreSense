@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout.jsx";
 import { DFS_SHOWDOWN_COPY as C, formatSalary } from "./dfsToolPresentation.js";
-import { approvePairingQb, availablePairingQbs, makeShowdownReview, normalizedBuildStatus, readShowdownReview, showdownAudit, showdownScore } from "./dfsShowdownReview.js";
+import { approvePairingQb, approvedPairingIds, availablePairingQbs, makeShowdownReview, normalizedBuildStatus, readShowdownReview, showdownAudit, showdownComparisonPool, showdownPlayerGaps, showdownScore, showdownSlatePool } from "./dfsShowdownReview.js";
 import { jsonRequest } from "./useDfsBuilder.js";
 
 const score = n => n == null || !Number.isFinite(Number(n)) ? "—" : Number(n).toFixed(2);
@@ -11,11 +11,11 @@ export function DfsShowdownRules({ b }) {
   if (b.context.site !== "draftkings_showdown") return null;
   const rules = b.settings.showdownRules;
   const policy = rules?.receiver_captain_qb || "warn";
-  const qbs = availablePairingQbs(b.pool);
+  const qbs = availablePairingQbs(showdownSlatePool(b.pool, b.salaries));
   return <div className="dfw-showdown-rules" data-testid="dfs-showdown-rules">
     <HubFilterMenu label={C.pairing} value={policy} options={C.policies} disabled={b.building} onChange={value => b.changeSetting("showdownRules", { ...(rules || {}), receiver_captain_qb: value, approved_qb_ids: rules?.approved_qb_ids || {} })} />
     <p className="dfw-note">{rules ? C.strategyDefault : C.legacyPolicy}</p>
-      {qbs.map(([team, players]) => <HubFilterMenu key={team} label={C.qbChoice(team)} value={rules?.approved_qb_ids?.[team]?.[0] || ""}
+      {qbs.map(([team, players]) => <HubFilterMenu key={team} label={C.qbChoice(team)} value={approvedPairingIds(rules, team)[0] || ""}
         options={[{ id: "", label: C.noQb }, ...players.map(player => ({ id: player.player_id, label: player.Player || player.player,
           detail: player.verified_starting_qb === true || (player.qb_role_verified === true && player.qb_role === "starter") ? C.verified : C.approved }))]}
         disabled={b.building} onChange={id => b.changeSetting("showdownRules", approvePairingQb(rules, team, id))} />)}
@@ -26,26 +26,30 @@ export function DfsShowdownRules({ b }) {
 }
 export function DfsBuildStatusTag({ player }) {
   const key = normalizedBuildStatus(player);
-  return <span className={`dfw-player-status is-${key === "out" || key === "ir" ? "unavailable" : ["questionable", "doubtful", "limited"].includes(key) ? "attention" : "neutral"}`}>{C.atBuild}: {status(player)}</span>;
+  return <span className={`dfw-player-status is-${key === "out" || key === "ir" ? "unavailable" : ["unknown", "questionable", "doubtful", "limited"].includes(key) ? "attention" : "neutral"}`}>{C.atBuild}: {status(player)}</span>;
 }
-export function DfsShowdownPlayerDetails({ player, latest, buildAt, latestPending = false }) {
+export function DfsShowdownPlayerDetails({ player, latest, buildAt, latestPending = false, salaryCap = 50000 }) {
   const d = player.diagnostics || {};
+  const gaps = showdownPlayerGaps(player, salaryCap);
+  const missing = Object.keys(C.gapLabels).filter(key => gaps[key]).map(key => C.gapLabels[key]);
   const latestTime = latest?.diagnostics?.injury_status_at || latest?.injury_status_at || latest?.availability_updated_at;
   const changed = latest && (normalizedBuildStatus(latest) !== normalizedBuildStatus(player) || latestTime !== d.injury_status_at);
-  return <details className="dfw-player-diagnostic"><summary>{C.sourceDetails}</summary><div className="dfw-detail-body">
+  return <>
+    {gaps.lowSalary && missing.length > 0 && <div className="dfw-player-input-gaps" data-testid="dfs-player-input-gaps"><strong>{C.lowSalary}</strong><small>{C.gapSummary(missing)}</small><small>{C.lowSalaryHelp}</small></div>}
+    <details className="dfw-player-diagnostic"><summary>{C.sourceDetails}</summary><div className="dfw-detail-body">
     <dl className="dfw-showdown-facts">
       <div><dt>{C.atBuild}</dt><dd>{status(player)}<small>{time(d.injury_status_at)}</small></dd></div>
       <div><dt>{latestPending ? C.latestPending : C.latest}</dt><dd>{latest ? status(latest) : C.status.unknown}<small>{time(latestTime)}</small></dd></div>
       <div><dt>{C.source}</dt><dd>{d.source_type || d.projection_source || player.projection_source || C.unknown}</dd></div>
       <div><dt>{C.conditioning}</dt><dd>{C.conditioningLabels[d.availability_conditioning] || C.unknown}</dd></div>
     </dl>
-    {!d.current_role_estimate && <p className="dfw-note">{C.noRole}</p>}
-    {d.current_role_estimate && <pre>{JSON.stringify(d.current_role_estimate, null, 2)}</pre>}
+    {gaps.roleUnknown && <p className="dfw-note">{C.noRole}</p>}
+    {!gaps.roleUnknown && <pre>{JSON.stringify(d.current_role_estimate, null, 2)}</pre>}
     {d.role_evidence && <pre>{JSON.stringify(d.role_evidence, null, 2)}</pre>}
-    {d.predicted_zero_probability == null && <p className="dfw-note">{C.missingZero}</p>}
+    {gaps.zeroUnknown ? <p className="dfw-note">{C.missingZero}</p> : <p className="dfw-note">{C.zeroChance}: {(gaps.zeroProbability * 100).toFixed(1)}%</p>}
     {changed && <p className="dfw-note">{C.beforeBuild}</p>}
     <details><summary>{C.raw}</summary><pre>{JSON.stringify(d, null, 2)}</pre></details>
-  </div></details>;
+  </div></details></>;
 }
 export function DfsShowdownScore({ entry, objective, details = false }) {
   const metadata = showdownScore(entry, objective);
@@ -77,7 +81,7 @@ function ComparedRoster({ row, label, objective, salaryCap = 50000 }) {
   return <article className="dfw-showdown-completion"><h3>{label}</h3><p className="dfw-note">{statusLabel}</p>
     {result?.lineup && <><DfsShowdownScore entry={result} objective={objective} />
       <dl className="dfw-showdown-facts"><div><dt>{C.salary}</dt><dd>{formatSalary(result.total_salary)}</dd></div><div><dt>{C.unused}</dt><dd>{formatSalary(salaryCap - Number(result.total_salary))}</dd></div></dl>
-      <details><summary>{C.inclusion}</summary><div className="dfw-detail-body">{result.lineup.map(player => <div className="dfw-lineup-row" key={player.slot}><small>{player.slot}</small><div><strong>{player.player}</strong><DfsBuildStatusTag player={player} /><small>{player.team} · {player.position}</small></div><span>{formatSalary(player.salary)}</span></div>)}
+      <details><summary>{C.inclusion}</summary><div className="dfw-detail-body">{result.lineup.map(player => <div className="dfw-lineup-row" key={player.slot}><small>{player.slot}</small><div><strong>{player.player}</strong><DfsBuildStatusTag player={player} /><small>{player.team} · {player.position}</small><DfsShowdownPlayerDetails player={player} salaryCap={salaryCap} /></div><span>{formatSalary(player.salary)}</span></div>)}
         <p className="dfw-note">{C.inclusionHelp}</p><DfsShowdownFindings findings={row.findings || showdownAudit(result)} /></div></details>
     </>}
     {row?.reason && <p className="dfw-note">{row.reason}</p>}
@@ -95,7 +99,7 @@ export default function DfsShowdownReview({ b }) {
   useEffect(() => { if (report) resultRef.current?.focus({ preventScroll: true }); }, [report]);
   if (b.context.site !== "draftkings_showdown") return null;
   const build = b.currentBuild;
-  const catalog = build?.salaryCatalog || b.pool;
+  const catalog = showdownComparisonPool(build);
   const names = ids => (ids || []).map(id => catalog.find(p => p.player_id === id)?.Player || id).join(" · ") || "—";
   const save = async () => {
     const version = epoch.current; setError("");
@@ -113,9 +117,9 @@ export default function DfsShowdownReview({ b }) {
       <p className="dfw-note">{C.compareHelp}</p>
       {!build?.settings?.build_snapshot && <p className="dfw-note">{C.compareNeedsBuild}</p>}
       <div className="dfw-showdown-compare-controls">
-        <HubFilterMenu label={C.comparePlayer} value={playerId} options={[{ id: "", label: C.choosePlayer }, ...catalog.map(p => ({ id: p.player_id, label: p.Player || p.player }))]} onChange={setPlayerId} disabled={b.comparing} />
+        <HubFilterMenu label={C.comparePlayer} value={playerId} options={[{ id: "", label: C.choosePlayer }, ...catalog.map(p => ({ id: p.player_id, label: p.Player || p.player }))]} onChange={setPlayerId} disabled={b.comparing || !catalog.length} />
         <HubFilterMenu label={C.placement} value={slot} options={C.placements} onChange={setSlot} disabled={b.comparing} />
-        <button type="button" disabled={!playerId || !build?.settings?.build_snapshot || b.building || b.comparing} onClick={() => b.comparePlayer(playerId, slot)}>{b.comparing ? C.comparing : C.compare}</button>
+        <button type="button" disabled={!catalog.some(player => player.player_id === playerId) || !build?.settings?.build_snapshot || b.building || b.comparing} onClick={() => b.comparePlayer(playerId, slot)}>{b.comparing ? C.comparing : C.compare}</button>
       </div>
       {b.comparing && <><div className="dfw-actions"><p role="status" className="dfw-note">{C.elapsed(seconds)}</p><button type="button" onClick={b.cancelComparison}>{C.cancel}</button></div><p className="dfw-note">{C.cancelHelp}</p></>}
       {b.comparisonError && <p className="dfw-error" role="alert">{b.comparisonError}</p>}

@@ -1,6 +1,8 @@
 import useDataRevision from "./useDataRevision";
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "./auth";
+import { apiFetch, getToken } from "./auth";
+import { localDraftScope } from "./dfsLocalDraft.js";
+import { dfsNavigationDraft } from "./dfsNavigationDraft.js";
 import { readJsonResponse } from "./apiJson.js";
 import {
   DEFAULT_FORMATS,
@@ -35,16 +37,22 @@ async function jsonRequest(url, options) {
 export { jsonRequest };
 
 export default function useDfsBuilder(projMeta) {
+  const [initial, setInitial] = useState(() => dfsNavigationDraft.read(localDraftScope(getToken())));
+  const draftScope = useRef(localDraftScope(getToken()));
+  const accountEpoch = useRef(0);
+  const [accountRevision, setAccountRevision] = useState(0);
+  const latestDraft = useRef(null);
+  const [workspaceUi, setWorkspaceUi] = useState(initial?.workspaceUi || { stage: 0, view: "build" });
   const dataRevision = useDataRevision();
-  const seenRevision = useRef(dataRevision);
-  const [dataUpdateAvailable, setDataUpdateAvailable] = useState(false);
+  const seenRevision = useRef(initial?.seenRevision ?? dataRevision);
+  const [dataUpdateAvailable, setDataUpdateAvailable] = useState(initial?.dataUpdateAvailable || false);
   const [poolReload, setPoolReload] = useState(0);
-  const [poolUpdate, updatePoolUpdate] = useState(null);
+  const [poolUpdate, updatePoolUpdate] = useState(initial?.poolUpdate || null);
   const pendingPoolUpdate = useRef(poolUpdate);
   const setPoolUpdate = next => { pendingPoolUpdate.current = next; updatePoolUpdate(next); };
-  const [poolUpdateHistory, setPoolUpdateHistory] = useState(null);
-  const [poolInputVersion, setPoolInputVersion] = useState(1);
-  const poolInputVersionRef = useRef(1);
+  const [poolUpdateHistory, setPoolUpdateHistory] = useState(initial?.poolUpdateHistory || null);
+  const [poolInputVersion, setPoolInputVersion] = useState(initial?.poolInputVersion || 1);
+  const poolInputVersionRef = useRef(initial?.poolInputVersion || 1);
   const poolUndo = useRef(null);
   useEffect(() => {
     if (dataRevision !== seenRevision.current) {
@@ -52,62 +60,63 @@ export default function useDfsBuilder(projMeta) {
       setDataUpdateAvailable(true);
     }
   }, [dataRevision]);
-  const [meta, setMeta] = useState(projMeta);
-  const [formats, setFormats] = useState(DEFAULT_FORMATS);
-  const [context, setContext] = useState({
+  const [meta, setMeta] = useState(projMeta || initial?.meta);
+  const [formats, setFormats] = useState(initial?.formats || DEFAULT_FORMATS);
+  const [context, setContext] = useState(initial?.context || {
     site: "draftkings",
     season: null,
     week: null,
     slateId: "",
     source: "live",
   });
-  const [slates, setSlates] = useState([]);
-  const [pool, setPool] = useState([]);
-  const [salaries, setSalaries] = useState([]);
-  const [salarySnapshot, setSalarySnapshot] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [poolFreshness, setPoolFreshness] = useState({ checkedAt: null, refresh: null, failed: false });
-  const [vegasGames, setVegasGames] = useState([]);
-  const [stackWeights, setStackWeights] = useState({});
-  const [slateName, setSlateName] = useState("");
+  const [slates, setSlates] = useState(initial?.slates || []);
+  const [pool, setPool] = useState(initial?.pool || []);
+  const [salaries, setSalaries] = useState(initial?.salaries || []);
+  const [salarySnapshot, setSalarySnapshot] = useState(initial?.salarySnapshot || null);
+  const [stats, setStats] = useState(initial?.stats || null);
+  const [poolFreshness, setPoolFreshness] = useState(initial?.poolFreshness || { checkedAt: null, refresh: null, failed: false });
+  const [vegasGames, setVegasGames] = useState(initial?.vegasGames || []);
+  const [stackWeights, setStackWeights] = useState(initial?.stackWeights || {});
+  const [slateName, setSlateName] = useState(initial?.slateName || "");
   const [busy, setBusy] = useState(false);
   const [building, setBuilding] = useState(false);
-  const [buildJob, setBuildJob] = useState(null);
+  const [buildJob, setBuildJob] = useState(initial?.buildJob || null);
   const buildAbort = useRef(null);
   const buildGeneration = useRef(0);
   const [comparing, setComparing] = useState(false);
-  const [comparison, setComparison] = useState(null);
+  const [comparison, setComparison] = useState(initial?.comparison || null);
   const [comparisonError, setComparisonError] = useState("");
-  const [playerComparison, setPlayerComparison] = useState(null);
-  const [comparisonStartedAt, setComparisonStartedAt] = useState(null);
+  const [playerComparison, setPlayerComparison] = useState(initial?.playerComparison || null);
+  const [comparisonStartedAt, setComparisonStartedAt] = useState(initial?.comparisonStartedAt || null);
   const comparisonGeneration = useRef(0);
   const comparisonAbort = useRef(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [lineups, setLineups] = useState([]);
-  const [selected, setSelected] = useState(0);
-  const [savedBuild, setSavedBuild] = useState(null);
-  const [buildSettings, setBuildSettings] = useState(null);
-  const [currentBuild, setCurrentBuild] = useState(null);
-  const [portfolio, setPortfolio] = useState([]);
-  const [portfolioLimits, setPortfolioLimits] = useState({});
-  const [portfolioRules, setPortfolioRules] = useState({ version: 1, players: {}, groups: [] });
+  const [notice, setNotice] = useState(initial ? WC.draftResumed : "");
+  const [lineups, setLineups] = useState(initial?.lineups || []);
+  const [selected, setSelected] = useState(initial?.selected || 0);
+  const [savedBuild, setSavedBuild] = useState(initial?.savedBuild || null);
+  const [buildSettings, setBuildSettings] = useState(initial?.buildSettings || null);
+  const [currentBuild, setCurrentBuild] = useState(() => initial?.currentBuild ? freezeSnapshot(initial.currentBuild) : null);
+  const [portfolio, setPortfolio] = useState(() => initial?.portfolio ? freezeSnapshot(initial.portfolio) : []);
+  const [portfolioLimits, setPortfolioLimits] = useState(initial?.portfolioLimits || {});
+  const [portfolioRules, setPortfolioRules] = useState(initial?.portfolioRules || { version: 1, players: {}, groups: [] });
   const [portfolioUndo, setPortfolioUndo] = useState(null);
-  const [globalExposure, setGlobalExposure] = useState({});
-  const [globalUnit, setGlobalUnit] = useState("percent");
-  const [globalGroups, setGlobalGroups] = useState([]);
-  const [classicStackRules, setClassicStackRules] = useState(DEFAULT_CLASSIC_STACK_RULES);
-  const [stackScope, setStackScope] = useState({ teams: [], qbIds: [] });
-  const [appliedPlan, setAppliedPlan] = useState(null);
-  const [portfolioSelection, setPortfolioSelection] = useState(null);
+  const [globalExposure, setGlobalExposure] = useState(initial?.globalExposure || {});
+  const [globalUnit, setGlobalUnit] = useState(initial?.globalUnit || "percent");
+  const [globalGroups, setGlobalGroups] = useState(initial?.globalGroups || []);
+  const [classicStackRules, setClassicStackRules] = useState(initial?.classicStackRules || DEFAULT_CLASSIC_STACK_RULES);
+  const [stackScope, setStackScope] = useState(initial?.stackScope || { teams: [], qbIds: [] });
+  const [appliedPlan, setAppliedPlan] = useState(initial?.appliedPlan || null);
+  const [portfolioSelection, setPortfolioSelection] = useState(initial?.portfolioSelection || null);
   const portfolioBuildIds = useRef(new Map());
   const [portfolioRestoreRevision, setPortfolioRestoreRevision] = useState(0);
-  const [locked, setLocked] = useState([]);
-  const [excluded, setExcluded] = useState([]);
-  const [overrides, setOverrides] = useState({});
-  const [ownership, setOwnership] = useState({});
-  const [captainLimits, setCaptainLimits] = useState({});
-  const [settings, setSettings] = useState({
+  const [locked, setLocked] = useState(initial?.locked || []);
+  const [excluded, setExcluded] = useState(initial?.excluded || []);
+  const [overrides, setOverrides] = useState(initial?.overrides || {});
+  const [ownership, setOwnership] = useState(initial?.ownership || {});
+  const [projectionImportSource, setProjectionImportSource] = useState(initial?.projectionImportSource || null);
+  const [captainLimits, setCaptainLimits] = useState(initial?.captainLimits || {});
+  const defaultSettings = {
     count: 20,
     objective: "median",
     exposure: 1,
@@ -124,7 +133,8 @@ export default function useDfsBuilder(projMeta) {
     portfolioMode: "legacy",
     blockQbDst: true,
     showdownRules: newShowdownRules(),
-  });
+  };
+  const [settings, setSettings] = useState(initial?.settings || defaultSettings);
   const activeWork = useRef(false);
   activeWork.current = building || comparing;
   const generation = useRef(0);
@@ -134,6 +144,27 @@ export default function useDfsBuilder(projMeta) {
   workingPool.current = pool;
   const workingSalarySnapshot = useRef(salarySnapshot);
   workingSalarySnapshot.current = salarySnapshot;
+  const restoredContext = useRef(Boolean(initial));
+  const keepRestoredComparison = useRef(Boolean(initial));
+  latestDraft.current = { scope: draftScope.current, epoch: accountEpoch.current, state: {
+    meta, formats, context, slates, pool, salaries, salarySnapshot, stats, poolFreshness, vegasGames,
+    stackWeights, slateName, lineups, selected, savedBuild, buildSettings, currentBuild, portfolio,
+    portfolioLimits, portfolioRules, globalExposure, globalUnit, globalGroups, classicStackRules,
+    stackScope, appliedPlan, portfolioSelection, locked, excluded, overrides, ownership, captainLimits,
+    settings, poolInputVersion, poolUpdate, poolUpdateHistory, dataUpdateAvailable, workspaceUi,
+    comparison, playerComparison, comparisonStartedAt, buildJob, projectionImportSource,
+    seenRevision: seenRevision.current,
+  } };
+  useEffect(() => () => {
+    const latest = latestDraft.current;
+    if (latest?.epoch === accountEpoch.current && latest.scope === localDraftScope(getToken())) {
+      dfsNavigationDraft.write(latest.scope, latest.state);
+    }
+    generation.current++;
+    projectionImportSerial.current++;
+    comparisonGeneration.current++;
+    comparisonAbort.current?.abort();
+  }, []);
   const cancelBuild = () => {
     buildGeneration.current++;
     buildAbort.current?.abort();
@@ -145,6 +176,13 @@ export default function useDfsBuilder(projMeta) {
   const config = formats[context.site] || DEFAULT_FORMATS[context.site];
   useEffect(() => {
     const reset = () => {
+      const currentMeta = latestDraft.current?.state.meta;
+      accountEpoch.current++;
+      draftScope.current = localDraftScope(getToken());
+      dfsNavigationDraft.clear();
+      setInitial(null);
+      restoredContext.current = false;
+      setAccountRevision(value => value + 1);
       cancelBuild();
       comparisonGeneration.current++; comparisonAbort.current?.abort(); comparisonAbort.current = null;
       setComparing(false); setComparison(null); setPlayerComparison(null); setComparisonError("");
@@ -155,7 +193,16 @@ export default function useDfsBuilder(projMeta) {
       setBusy(false);
       setPortfolioRules({ version: 1, players: {}, groups: [] }); setPortfolioUndo(null);
       setPoolUpdate(null); setPoolUpdateHistory(null); poolUndo.current = null;
-      setSettings(s => ({ ...s, showdownRules: newShowdownRules() }));
+      poolInputVersionRef.current = 1; setPoolInputVersion(1);
+      setSettings(defaultSettings);
+      setContext({ site: "draftkings", season: currentMeta?.default_season ?? null, week: currentMeta?.default_week ?? null, slateId: "", source: "live" });
+      workingPool.current = []; workingSalarySnapshot.current = null;
+      setPool([]); setSalaries([]); setSalarySnapshot(null); setStats(null); setSlates([]); setSlateName("");
+      setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
+      setLocked([]); setExcluded([]); setOverrides({}); setOwnership({}); setCaptainLimits({}); setProjectionImportSource(null);
+      setGlobalExposure({}); setGlobalGroups([]); setGlobalUnit("percent");
+      setClassicStackRules(DEFAULT_CLASSIC_STACK_RULES); setStackScope({ teams: [], qbIds: [] }); setStackWeights({});
+      setWorkspaceUi({ stage: 0, view: "build" }); setSelected(0); setBuildJob(null); setError(""); setNotice("");
     };
     window.addEventListener("scoresense-auth-changed", reset);
     return () => window.removeEventListener("scoresense-auth-changed", reset);
@@ -163,6 +210,7 @@ export default function useDfsBuilder(projMeta) {
   const isDfs = context.site !== "seasonal";
   const isCaptain = isCaptainFormat(context.site, formats);
   useEffect(() => {
+    if (keepRestoredComparison.current) { keepRestoredComparison.current = false; return; }
     comparisonGeneration.current++;
     comparisonAbort.current?.abort();
     setComparing(false);
@@ -211,7 +259,10 @@ export default function useDfsBuilder(projMeta) {
           if (!abort.signal.aborted) setError(e.message);
         });
     jsonRequest("/api/lineup/formats", { signal: abort.signal })
-      .then((d) => setFormats(d.formats || DEFAULT_FORMATS))
+      .then((d) => setFormats(current => {
+        const next = d.formats || DEFAULT_FORMATS;
+        return JSON.stringify(current) === JSON.stringify(next) ? current : next;
+      }))
       .catch(() => {});
     return () => abort.abort();
   }, [projMeta]);
@@ -220,11 +271,10 @@ export default function useDfsBuilder(projMeta) {
   }, [projMeta]);
   useEffect(() => {
     if (meta)
-      setContext((c) => ({
-        ...c,
-        season: c.season ?? meta.default_season,
-        week: c.week ?? meta.default_week,
-      }));
+      setContext((c) => {
+        const season = c.season ?? meta.default_season, week = c.week ?? meta.default_week;
+        return season === c.season && week === c.week ? c : { ...c, season, week };
+      });
   }, [meta]);
 
   const changeContext = (patch) => {
@@ -232,6 +282,7 @@ export default function useDfsBuilder(projMeta) {
     generation.current++;
     cancelBuild();
     revision.current++;
+    restoredContext.current = false;
     setContext((c) => ({
       ...c,
       ...patch,
@@ -260,6 +311,7 @@ export default function useDfsBuilder(projMeta) {
     setCaptainLimits({});
     setOverrides({});
     setOwnership({});
+    setProjectionImportSource(null);
     setError("");
     setNotice("");
     if (patch.site)
@@ -272,30 +324,31 @@ export default function useDfsBuilder(projMeta) {
   useEffect(() => {
     if (!isDfs || context.source !== "live") return;
     const abort = new AbortController();
+    const epoch = accountEpoch.current;
     setBusy(true);
     jsonRequest(
       `/api/lineup/slates?site=${context.site}&category=${defaultSlateCategory(context.site, formats)}`,
       { signal: abort.signal },
     )
       .then((d) => {
-        if (abort.signal.aborted) return;
+        if (abort.signal.aborted || epoch !== accountEpoch.current) return;
         const list = d.slates || [];
         setSlates(list);
-        setContext((c) => ({
-          ...c,
-          slateId: list.some((s) => String(s.slate_id) === c.slateId)
+        setContext((c) => {
+          const slateId = (restoredContext.current && c.slateId) || list.some((s) => String(s.slate_id) === c.slateId)
             ? c.slateId
-            : String(list[0]?.slate_id || ""),
-        }));
+            : String(list[0]?.slate_id || "");
+          return slateId === c.slateId ? c : { ...c, slateId };
+        });
       })
       .catch((e) => {
-        if (!abort.signal.aborted) setError(e.message);
+        if (!abort.signal.aborted && epoch === accountEpoch.current) setError(e.message);
       })
       .finally(() => {
-        if (!abort.signal.aborted) setBusy(false);
+        if (!abort.signal.aborted && epoch === accountEpoch.current) setBusy(false);
       });
     return () => abort.abort();
-  }, [context.site, context.source, isDfs]);
+  }, [context.site, context.source, isDfs, accountRevision]);
 
   useEffect(() => {
     if (context.season == null || context.week == null || isCaptain) {
@@ -304,18 +357,19 @@ export default function useDfsBuilder(projMeta) {
       return;
     }
     const abort = new AbortController();
+    const epoch = accountEpoch.current;
     jsonRequest(
       `/api/lineup/vegas?season=${context.season}&week=${context.week}`,
       { signal: abort.signal },
     )
       .then((data) => {
-        if (!abort.signal.aborted) setVegasGames(data.games || []);
+        if (!abort.signal.aborted && epoch === accountEpoch.current) setVegasGames(data.games || []);
       })
       .catch(() => {
-        if (!abort.signal.aborted) setVegasGames([]);
+        if (!abort.signal.aborted && epoch === accountEpoch.current) setVegasGames([]);
       });
     return () => abort.abort();
-  }, [context.season, context.week, isCaptain]);
+  }, [context.season, context.week, isCaptain, accountRevision]);
 
   const acceptPool = (data, name, background = false) => {
     // A refresh is a proposal while usable inputs exist. Reviewed builds and working controls stay put.
@@ -361,6 +415,7 @@ export default function useDfsBuilder(projMeta) {
     )
       return;
     const abort = new AbortController();
+    const epoch = accountEpoch.current;
     setBusy(true);
     setError("");
     const params = new URLSearchParams({
@@ -384,13 +439,13 @@ export default function useDfsBuilder(projMeta) {
       })
         .then((d) => {
           checkDelay = ['queued','running','busy'].includes(d.meta?.projection_recovery?.status) ? 5000 : 300000;
-          if (!abort.signal.aborted && (!background || !activeWork.current)) {
+          if (!abort.signal.aborted && epoch === accountEpoch.current && (!background || !activeWork.current)) {
             acceptPool(d, undefined, background);
             setError("");
           }
         })
         .catch((e) => {
-          if (abort.signal.aborted) return;
+          if (abort.signal.aborted || epoch !== accountEpoch.current) return;
           setPoolFreshness(previous => ({ ...previous, failed: true }));
           if (background) {
             setError(C.liveRefreshFailed);
@@ -412,7 +467,7 @@ export default function useDfsBuilder(projMeta) {
         })
         .finally(() => {
           pending = false;
-          if (!abort.signal.aborted && !background) setBusy(false);
+          if (!abort.signal.aborted && epoch === accountEpoch.current && !background) setBusy(false);
         });
     };
     const schedule = () => {
@@ -430,6 +485,7 @@ export default function useDfsBuilder(projMeta) {
     context.source,
     isDfs,
     poolReload,
+    accountRevision,
   ]);
 
   const importSalary = async (file) => {
@@ -514,6 +570,7 @@ export default function useDfsBuilder(projMeta) {
       }
       setOverrides(next);
       setOwnership(own);
+      setProjectionImportSource({ name: file.name, count: Object.keys(next).length, importedAt: new Date().toISOString() });
       setNotice(
         `Imported projections for ${Object.keys(next).length} players. Rebuild to apply them.`,
       );
@@ -672,6 +729,7 @@ export default function useDfsBuilder(projMeta) {
             overrides[p.player_id] ? "Imported" : p.projection_source,
           ]),
         ),
+        ...(projectionImportSource ? { projection_import: projectionImportSource } : {}),
         build_snapshot: data.build_snapshot || null,
         ...(data.showdown_rules ? { resolved_showdown_rules: data.showdown_rules } : {}),
         game_schedule: vegasGames.map(game => ({ game_id: String(game.game_id || ""), home: String(game.home || ""), away: String(game.away || ""), kickoff_et: game.kickoff_et || null })),
@@ -739,16 +797,16 @@ export default function useDfsBuilder(projMeta) {
         }
       : p,
   );
-  const workingControls = () => ({ settings, locked, excluded, overrides, ownership, captainLimits,
+  const workingControls = () => ({ settings, locked, excluded, overrides, ownership, projectionImportSource, captainLimits,
     stackWeights, globalExposure, globalGroups, classicStackRules, stackScope, appliedPlan, globalUnit });
   const restoreControls = state => {
     setSettings(state.settings); setLocked(state.locked); setExcluded(state.excluded); setOverrides(state.overrides);
-    setOwnership(state.ownership); setCaptainLimits(state.captainLimits); setStackWeights(state.stackWeights);
+    setOwnership(state.ownership); setProjectionImportSource(state.projectionImportSource || null); setCaptainLimits(state.captainLimits); setStackWeights(state.stackWeights);
     setGlobalExposure(state.globalExposure); setGlobalGroups(state.globalGroups); setClassicStackRules(state.classicStackRules);
     setStackScope(state.stackScope); setAppliedPlan(state.appliedPlan); setGlobalUnit(state.globalUnit);
   };
   const resetControlsForCatalog = () => ({ ...workingControls(), settings: { ...settings, lockedCaptain: "" },
-    locked: [], excluded: [], overrides: {}, ownership: {}, captainLimits: {}, stackWeights: {}, globalExposure: {},
+    locked: [], excluded: [], overrides: {}, ownership: {}, projectionImportSource: null, captainLimits: {}, stackWeights: {}, globalExposure: {},
     globalGroups: [], classicStackRules: DEFAULT_CLASSIC_STACK_RULES, stackScope: { teams: [], qbIds: [] }, appliedPlan: null });
   const applyPoolUpdate = () => {
     try {
@@ -791,6 +849,9 @@ export default function useDfsBuilder(projMeta) {
   let planMatches = true;
   if (appliedPlan) { try { assertBuildPlanApplied(appliedPlan.manifest, strategyRequest()); } catch { planMatches = false; } }
   return {
+    navigationDraftRestored: Boolean(initial),
+    workspaceUi,
+    changeWorkspaceUi: (key, value) => setWorkspaceUi(current => ({ ...current, [key]: value })),
     currentBuild: lineups.length ? currentBuild : null,
     portfolio,
     portfolioLimits,
@@ -964,6 +1025,7 @@ export default function useDfsBuilder(projMeta) {
     toggle,
     overrides,
     ownership,
+    projectionImportSource,
     captainLimits,
     setCaptainLimits,
     settings,

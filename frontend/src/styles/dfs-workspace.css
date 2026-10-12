@@ -14,6 +14,13 @@
 .dfw-player-status { display: block; color: var(--text-secondary); font-size: var(--text-xs); font-weight: var(--font-weight-normal); line-height: 1.5; }
 .dfw-player-status.is-attention { color: var(--tone-caution); }
 .dfw-player-status.is-unavailable { color: var(--tone-negative); }
+.dfw-player-input-gaps { display: grid; gap: var(--space-1); padding: var(--space-2) 0; color: var(--tone-caution); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.dfw-player-input-gaps strong { font-size: inherit; }
+.dfw-player-input-gaps small { font-size: inherit; color: inherit; }
+.dfw-estimate-inputs { display: grid; gap: var(--space-2); min-width: 0; }
+.dfw-estimate-source-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
+.dfw-estimate-source-row > div { display: grid; gap: var(--space-1); min-width: 0; flex: 1 1 180px; font-size: var(--text-sm); }
+.dfw-estimate-source-row small { font-size: var(--text-xs); color: var(--text-secondary); overflow-wrap: anywhere; }
 .dfw-player-diagnostic { margin-top: var(--space-1); min-width: 0; }
 .dfw-player-diagnostic summary { font-weight: var(--font-weight-normal); }
 .dfw-player-diagnostic .dfw-detail-body { padding-inline: 0; }
