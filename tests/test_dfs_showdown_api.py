@@ -102,3 +102,42 @@ def test_patron_denial_precedes_comparison_execution(monkeypatch):
         assert response.status_code == 401
     finally:
         api.app.dependency_overrides = previous
+
+
+@pytest.mark.parametrize("site", ["draftkings_showdown", "fanduel_single"])
+def test_single_game_build_freezes_selected_salary_catalog_not_entire_league(monkeypatch, site):
+    from src.products.dfs_salaries import parse_salary_csv
+    from test_dfs_snapshots import pool as synthetic_pool
+    from test_dfs_snapshot_wire import browser_roundtrip
+
+    selected = synthetic_pool()
+    selected["Team"] = ["BUF" if i % 2 else "LA" for i in range(len(selected))]
+    elsewhere = pd.DataFrame([{"player_id": f"elsewhere-{i}", "Player": f"Elsewhere {i}",
+        "Position": "WR", "Team": "NE", "Projected Points": 8.0,
+        "Low (P10)": 0.0, "High (P90)": 15.0} for i in range(800)])
+    weekly = pd.concat([selected.drop(columns=["salary", "cpt_salary", "dfs_id", "cpt_dfs_id"]), elsewhere], ignore_index=True)
+    csv = "Name,Position,TeamAbbrev,Salary,ID\n" + "\n".join(
+        f"{row.Player},{row.Position},{row.Team},{row.salary},{100+i}"
+        for i, row in enumerate(selected.itertuples(index=False)))
+    csv += "\nUnmatched specialist,K,BUF,500,999"
+    catalog = parse_salary_csv(csv).to_dict("records")
+    monkeypatch.setattr(api, "build_lineup_pool", lambda **kwargs: (weekly.copy(), {}))
+    values = {"site": site, "season": 2026, "week": 5, "slate_id": "synthetic-catalog",
+        "slate_salaries": catalog, "objective": "ceiling", "max_per_team": 5,
+        "projection_overrides": {"elsewhere-1": {"proj": 9, "floor": 1, "ceiling": 20}}}
+    result = api.lineup_optimize(api.LineupOptimizeRequest(**values), _user=None)
+    assert result["ok"]
+    record = result["build_snapshot"]
+    rows = record["content"]["input_pool"]
+    assert len(rows) == len(selected) + 1
+    assert {row["Team"] for row in rows} == {"BUF", "LA"}
+    missing = next(row for row in rows if row["Player"] == "Unmatched specialist")
+    assert missing["salary"] == 500 and missing["Projected Points"] is None
+    assert result["meta"]["salary_import"]["pool_without_salary"] == 800
+    assert result["meta"]["projection_coverage"]["slate_players"] == len(selected) + 1
+
+    monkeypatch.setattr(api, "build_lineup_pool", lambda **kwargs: pytest.fail("Frozen comparison cannot reload forecasts"))
+    compared = api.lineup_optimize(api.LineupOptimizeRequest(**values,
+        comparison_snapshot=browser_roundtrip(record), comparison_player_id="p2", comparison_player_slot="flex"), _user=None)
+    assert compared["ok"] and compared["player_comparison"]["forced"]["status"] == "optimal"
+    assert compared["comparison_source_snapshot_id"] == record["id"]

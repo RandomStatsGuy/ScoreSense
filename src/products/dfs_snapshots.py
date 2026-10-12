@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 
 import numpy as np
 import scipy
@@ -19,6 +20,8 @@ from src.products.dfs_config import get_site_config
 SCHEMA_VERSION = "dfs_build_inputs_v1"
 ENGINE_VERSION = "legacy_milp_v1"
 SHOWDOWN_ENGINE_VERSION = "showdown_integrity_milp_v1"
+NUMERIC_HASH_ENCODING = "json_numeric_values_v1"
+MAX_EXACT_JSON_INTEGER = 2**53 - 1
 
 
 def _plain(value):
@@ -37,7 +40,32 @@ def canonical_json(value):
     return json.dumps(_plain(value), sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
+def _numeric_identity(value):
+    """Give equal JSON numbers one identity across Python and browser JSON.
+
+    JavaScript parses 10.0 as 10 and serializes -0.0 as 0. Neither changes a
+    solver input. Canonicalize those representations for explicitly versioned
+    snapshots only; older records and other content-addressed contracts keep
+    their original hashes. Reject unsafe integer values rather than letting a
+    browser round distinct source values to the same number.
+    """
+    value = _plain(value)
+    if isinstance(value, dict):
+        return {key: _numeric_identity(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_numeric_identity(item) for item in value]
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if abs(value) > MAX_EXACT_JSON_INTEGER or not math.isfinite(value):
+            raise ValueError("Build snapshot numbers must be finite and safe for JSON transfer; use text for identifiers.")
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+    return value
+
+
 def content_id(value):
+    if (isinstance(value, dict) and value.get("schema_version") == SCHEMA_VERSION
+            and value.get("content_hash_encoding") == NUMERIC_HASH_ENCODING):
+        value = _numeric_identity(value)
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
@@ -55,6 +83,7 @@ class BuildSnapshot:
 def capture_build_snapshot(pool, players, *, site, parameters, context=None):
     rules = {"version": "legacy_roster_v1", "site": site,
              "certification": "unverified", "config": get_site_config(site)}
+    numeric_encoding = bool(get_site_config(site)["roster"].get("cpt"))
     from src.products.dfs_captain_comparison import comparison_budget
     portfolio_budget = None
     if parameters.get("portfolio_mode") == "global":
@@ -68,7 +97,7 @@ def capture_build_snapshot(pool, players, *, site, parameters, context=None):
         "schema_version": SCHEMA_VERSION,
         "engine": {"version": "global_candidate_milp_v2" if parameters.get("portfolio_mode") == "global" else SHOWDOWN_ENGINE_VERSION if get_site_config(site)["roster"].get("cpt") else ENGINE_VERSION,
                    "scipy": scipy.__version__, "numpy": np.__version__},
-        "rules": rules, "rules_id": content_id(rules),
+        "rules": rules, "rules_id": content_id(_numeric_identity(rules) if numeric_encoding else rules),
         "forecast_semantics": "player_quantiles_not_joint_lineup_quantiles_or_expected_payout",
         "scope": "submitted_pool_and_eligible_players_not_verified_exact_slate",
         "source_context": context or {},
@@ -79,14 +108,19 @@ def capture_build_snapshot(pool, players, *, site, parameters, context=None):
         "input_pool": json.loads(pool.to_json(orient="records", date_format="iso", double_precision=15)),
         "eligible_players": [asdict(player) for player in players],
     }
+    if numeric_encoding:
+        payload["content_hash_encoding"] = NUMERIC_HASH_ENCODING
     return BuildSnapshot(canonical_json(payload), datetime.now(timezone.utc).isoformat())
 
 
 def verify_build_snapshot(record):
     """Detect altered content; this is not a signature or a trust attestation."""
     try:
-        return (record["content"]["schema_version"] == SCHEMA_VERSION
+        numeric_encoding = record["content"].get("content_hash_encoding") == NUMERIC_HASH_ENCODING
+        return (record["content"].get("content_hash_encoding") in {None, NUMERIC_HASH_ENCODING}
+                and record["content"]["schema_version"] == SCHEMA_VERSION
                 and record["id"] == content_id(record["content"])
-                and record["content"]["rules_id"] == content_id(record["content"]["rules"]))
-    except (KeyError, TypeError, ValueError):
+                and record["content"]["rules_id"] == content_id(
+                    _numeric_identity(record["content"]["rules"]) if numeric_encoding else record["content"]["rules"]))
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError):
         return False

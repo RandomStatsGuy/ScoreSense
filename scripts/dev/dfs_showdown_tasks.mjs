@@ -14,14 +14,14 @@ const fixture = JSON.parse(await readFile(path.join(root, "frontend/test-fixture
 const receipt = { synthetic: true, actualEngineResponses: true, productionComponents: true, original20LineupAuditReproduced: false, liveAccountOrPlatformVerified: false, cases: [], guards: [] };
 async function open(page, id) { const panel = page.getByTestId(id); if (!await panel.evaluate(el => el.open)) await panel.locator(":scope > summary").click(); return panel; }
 async function choose(scope, label, option) { await scope.getByRole("button", { name: new RegExp(`^${RegExp.escape(label)}:`) }).click(); await scope.getByRole("option", { name: new RegExp(`^${RegExp.escape(option)}(?:\\s|$)`) }).click(); }
-async function setup(browser, width, theme) {
+async function setup(browser, width, theme, extraQuery = "") {
   const context = await browser.newContext({ viewport: { width, height: 960 }, acceptDownloads: true, colorScheme: theme, reducedMotion: "reduce", serviceWorkers: "block" });
   const blocked = [], errors = [];
   await context.route("**/*", route => { blocked.push(route.request().url()); return route.abort("blockedbyclient"); });
   await context.addInitScript(theme => localStorage.setItem("scoresense-color-theme", theme), theme);
   await attachDfsFixture(context); const page = await context.newPage(); page.setDefaultTimeout(15000);
   page.on("pageerror", error => errors.push(error.message));
-  await page.goto("http://127.0.0.1:5173/test-fixtures/dfs-portfolio.html?showdown"); await page.getByTestId("dfs-generate").waitFor();
+  await page.goto(`http://127.0.0.1:5173/test-fixtures/dfs-portfolio.html?showdown${extraQuery}`); await page.getByTestId("dfs-generate").waitFor();
   await choose(page, W.format, "DraftKings Showdown"); await page.getByRole("spinbutton", { name: W.count, exact: true }).fill("1");
   await choose(page, "Scoring goal", C.objectives.ceiling);
   assert.equal(await page.getByTestId("dfs-advanced").evaluate(el => el.open), false);
@@ -53,7 +53,7 @@ try {
   for (const width of [390, 768, 1280]) for (const theme of ["light", "dark"]) {
     const session = await setup(browser, width, theme), { page } = session;
     try {
-      const states = [await audit(page, width, theme, "build")]; await build(page);
+      const states = [await audit(page, width, theme, "build")]; await shot(page, width, theme, "build"); await build(page);
       assert.match(await page.locator(".dfw-portfolio").innerText(), /217.0.*P90-input score/s);
       await page.getByTestId("dfs-showdown-audit").getByRole("button", { name: C.reviewCount(1), exact: true }).click();
       assert.equal(await page.locator(".dfw-portfolio > button").count(), 1);
@@ -111,5 +111,77 @@ try {
     await page.evaluate(() => dispatchEvent(new CustomEvent("scoresense-auth-changed"))); await panel.getByTestId("dfs-showdown-comparison").waitFor({ state: "detached" }); await panel.getByTestId("dfs-showdown-saved").waitFor({ state: "detached" }); receipt.guards.push("account change clears personal build and review");
     assert.deepEqual(session.errors, []); assert.deepEqual(session.blocked, []);
   } catch (error) { await fail(session, "guards", error); throw error; } finally { await session.context.close(); }
+  for (const width of [390, 1280]) {
+    const scoped = await setup(browser, width, "light", "&league-pool"), { page } = scoped;
+    try {
+      const advanced = await open(page, "dfs-advanced");
+      assert.equal(await advanced.getByRole("button", { name: /pairing quarterback:/ }).count(), 2);
+      assert.doesNotMatch(await advanced.innerText(), /Outside QB|ARI pairing|NYJ pairing/);
+      await advanced.locator(":scope > summary").click();
+      await build(page); const original = await history(page);
+      await page.getByTestId("dfs-flow-build").click();
+      const importBar = page.getByTestId("dfs-estimate-inputs");
+      assert.equal(await importBar.isVisible(), true);
+      assert.equal(await page.getByTestId("dfs-choose-players").evaluate(el => el.open), false);
+      await importBar.getByLabel(W.importEstimates, { exact: true }).setInputFiles({ name: "synthetic-user-estimates.csv", mimeType: "text/csv", buffer: Buffer.from("ID,Proj,Floor,Ceiling\n109,3.5,1,12\n") });
+      await importBar.getByText(W.importSource("synthetic-user-estimates.csv"), { exact: true }).waitFor();
+      await page.getByTestId("dfs-flow-review").click();
+      await page.getByTestId("fixture-research-navigation").click();
+      await page.getByTestId("fixture-projections").waitFor();
+      assert.equal(await page.getByTestId("dfs-generate").count(), 0);
+      await page.evaluate(() => window.__portfolioFixture.failPool = true);
+      await page.getByTestId("fixture-research-navigation").click();
+      await page.getByTestId("dfs-flow-review").waitFor();
+      assert.equal(await page.getByTestId("dfs-flow-review").isEnabled(), true);
+      assert.match(await page.locator(".dfw-portfolio").innerText(), /217.0.*P90-input score/s);
+      assert.match(await page.getByRole("button", { name: /^Format:/ }).innerText(), /DraftKings Showdown/);
+      await page.evaluate(() => window.__portfolioFixture.failPool = false);
+      await page.getByTestId("dfs-flow-build").click();
+      await page.getByTestId("dfs-estimate-inputs").getByText(W.importSource("synthetic-user-estimates.csv"), { exact: true }).waitFor();
+      await page.getByTestId("fixture-research-navigation").click(); await page.getByTestId("fixture-projections").waitFor();
+      await page.getByTestId("fixture-research-navigation").click(); await page.getByTestId("dfs-estimate-inputs").waitFor();
+      assert.equal(await page.getByTestId("dfs-estimate-inputs").isVisible(), true);
+      await page.getByTestId("dfs-flow-download").click();
+      await page.getByTestId("fixture-research-navigation").click(); await page.getByTestId("fixture-projections").waitFor();
+      await page.getByTestId("fixture-research-navigation").click();
+      assert.equal(await page.getByTestId("dfs-flow-download").getAttribute("aria-current"), "step");
+      await page.getByTestId("dfs-flow-review").click();
+      const panel = await open(page, "dfs-showdown-review");
+      await panel.getByRole("button", { name: new RegExp(`^${RegExp.escape(C.comparePlayer)}:`) }).click();
+      assert.doesNotMatch(await page.getByRole("listbox").innerText(), /Outside/);
+      assert.equal(await page.getByRole("option").count(), fixture.pool.players.length + 1);
+      await page.getByRole("option", { name: /^Drew Reserve/ }).click();
+      await panel.getByRole("button", { name: C.compare, exact: true }).click();
+      await panel.getByTestId("dfs-showdown-comparison").waitFor();
+      assert.equal(await page.evaluate(() => window.__portfolioFixture.requests.at(-1).comparison_snapshot.id), fixture.build.build_snapshot.id);
+      const forced = panel.locator(".dfw-showdown-completion").nth(1);
+      await forced.locator("details").first().locator(":scope > summary").click();
+      const gaps = forced.getByTestId("dfs-player-input-gaps").filter({ hasText: /role estimate.*zero-score chance/ });
+      assert.equal(await gaps.count() > 0, true);
+      assert.equal(await gaps.first().isVisible(), true);
+      await forced.screenshot({ path: path.join(output, `cheap-inputs-${width}-light.png`) });
+      await forced.locator("details").first().locator(":scope > summary").click();
+      assert.equal(await history(page), original);
+      const comparisonBeforeNavigation = await panel.getByTestId("dfs-showdown-comparison").textContent();
+      await page.getByTestId("fixture-research-navigation").click();
+      await page.getByTestId("fixture-projections").waitFor();
+      await page.getByTestId("fixture-research-navigation").click();
+      const resumedPanel = await open(page, "dfs-showdown-review");
+      await page.waitForTimeout(250);
+      assert.equal(await resumedPanel.getByTestId("dfs-showdown-comparison").textContent(), comparisonBeforeNavigation);
+      assert.equal(await history(page), original);
+      await audit(page, width, "light", "navigation-restored"); await shot(page, width, "light", "navigation-restored");
+      receipt.guards.push(`${width}: league forecasts excluded from slate choices; unmounted navigation restores frozen build despite failed pool read`);
+      receipt.guards.push(`${width}: import is discoverable with closed player controls; file receipt, completed comparison and all three stages survive navigation; low-salary input gaps are visible`);
+      await page.getByTestId("fixture-research-navigation").click();
+      await page.evaluate(() => dispatchEvent(new CustomEvent("scoresense-auth-changed")));
+      await page.getByTestId("fixture-research-navigation").click();
+      await page.getByTestId("dfs-generate").waitFor();
+      assert.equal(await page.getByTestId("dfs-flow-review").isEnabled(), false);
+      receipt.guards.push(`${width}: auth event while away prevents personal navigation restore`);
+      assert.deepEqual(scoped.errors, []); assert.deepEqual(scoped.blocked, []);
+    } catch (error) { await fail(scoped, `scoped-navigation-${width}`, error); throw error; }
+    finally { await scoped.context.close(); }
+  }
   await writeFile(path.join(output, "receipt.json"), JSON.stringify(receipt, null, 2)); process.stdout.write(JSON.stringify({ cases: receipt.cases.length, guards: receipt.guards, output }, null, 2));
 } finally { await browser.close(); }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { approvePairingQb, assertShowdownAvailable, availablePairingQbs, groupedShowdownFindings, makeShowdownReview, missingPairingTeams, newShowdownRules, normalizedBuildStatus, readShowdownReview, showdownExposures, showdownRulesFromSettings, showdownScore } from "./dfsShowdownReview.js";
+import { approvePairingQb, approvedPairingIds, assertShowdownAvailable, availablePairingQbs, groupedShowdownFindings, makeShowdownReview, missingPairingTeams, newShowdownRules, normalizedBuildStatus, readShowdownReview, showdownComparisonPool, showdownExposures, showdownPlayerGaps, showdownRulesFromSettings, showdownScore, showdownSlatePool } from "./dfsShowdownReview.js";
 import { captainComparisonRequest } from "./dfsCaptainComparisonRequest.js";
 import { buildLineupDetailCsv, buildSiteLineupCsv } from "./dfsExport.js";
 import { DFS_SHOWDOWN_COPY as C } from "./dfsToolPresentation.js";
@@ -57,6 +57,66 @@ test("clearing an approved QB removes the key instead of sending an invalid empt
   assert.deepEqual(approvePairingQb(original, "BUF", ""), { receiver_captain_qb: "require", approved_qb_ids: { LA: ["qb"] } });
   assert.deepEqual(original.approved_qb_ids.BUF, ["qa"]);
   assert.deepEqual(missingPairingTeams([{ player_id: "qa", Team: "BUF", Position: "QB" }, { player_id: "wr", Team: "BUF", Position: "WR" }], newShowdownRules()), ["BUF"]);
+});
+
+test("Showdown approvals and warnings use exact salary identities instead of all league teams", () => {
+  const selected = [
+    { player_id: "qa", Team: "BUF", Position: "QB", salary: 10000 },
+    { player_id: "qb", Team: "LAR", Position: "QB", salary: 9000 },
+    { player_id: "wa", Team: "BUF", Position: "WR", salary: 6000 },
+    { player_id: "wb", Team: "LA", Position: "TE", salary: 200 },
+  ];
+  const offSlate = Array.from({ length: 30 }, (_, i) => [
+    { player_id: `q${i}`, Team: `TEAM${i}`, Position: "QB", salary: null },
+    { player_id: `w${i}`, Team: `TEAM${i}`, Position: "WR", salary: null },
+  ]).flat();
+  const pool = [...selected, ...offSlate, { player_id: "another-buf-qb", Team: "BUF", Position: "QB", salary: 6000 }];
+  const before = structuredClone(pool), slate = showdownSlatePool(pool, selected);
+  assert.deepEqual(slate.map(player => player.player_id), ["qa", "qb", "wa", "wb"]);
+  assert.deepEqual(availablePairingQbs(slate).map(([team]) => team), ["BUF", "LA"]);
+  assert.deepEqual(missingPairingTeams(slate, newShowdownRules()), ["BUF", "LA"]);
+  const approved = { receiver_captain_qb: "require", approved_qb_ids: { BUF: ["qa"], LAR: ["qb"] } };
+  assert.deepEqual(missingPairingTeams(slate, approved), []);
+  assert.deepEqual(approvedPairingIds(approved, "LA"), ["qb"]);
+  assert.deepEqual(approvePairingQb(approved, "LA", "qb").approved_qb_ids, { BUF: ["qa"], LA: ["qb"] });
+  assert.deepEqual(pool, before);
+});
+
+test("salary scope handles provider IDs and fails closed when a known catalog does not match", () => {
+  const pool = [{ player_id: "wa", dfs_id: "10", salary: 600 }, { player_id: "wb", dfs_id: "11", salary: 200 }];
+  assert.deepEqual(showdownSlatePool(pool, [{ dfs_id: 10, salary: 600 }]).map(player => player.player_id), ["wa"]);
+  assert.deepEqual(showdownSlatePool(pool, [{ player_id: "absent", salary: 600 }]), []);
+  assert.deepEqual(showdownSlatePool([...pool, { player_id: "missing", salary: null }]).map(player => player.player_id), ["wa", "wb"]);
+});
+
+test("player comparisons use the frozen slate and cannot gain players from a later catalog", () => {
+  const frozen = [{ player_id: "cheap", Player: "Synthetic reserve", salary: 200 }, { player_id: "unsalaried", salary: null }];
+  const build = { salaryCatalog: [{ player_id: "new-player", salary: 200 }], settings: { build_snapshot: { content: { input_pool: frozen } }, slate_salaries: [{ player_id: "cheap", salary: 200 }] } };
+  const before = structuredClone(build);
+  assert.deepEqual(showdownComparisonPool(build).map(player => player.player_id), ["cheap"]);
+  assert.deepEqual(showdownComparisonPool(null), []);
+  assert.deepEqual(build, before);
+});
+
+test("cheap-player review distinguishes absent role, availability and zero chance from a real zero", () => {
+  const cheap = { salary: 600, injury_status: "Unknown", diagnostics: { current_role_estimate: {}, predicted_zero_probability: null } };
+  const gaps = showdownPlayerGaps(cheap);
+  assert.equal(gaps.lowSalary, true); assert.equal(gaps.statusUnknown, true); assert.equal(gaps.roleUnknown, true); assert.equal(gaps.zeroUnknown, true);
+  assert.equal(gaps.zeroProbability, null);
+  const known = showdownPlayerGaps({ ...cheap, injury_status: "Active", diagnostics: { current_role_estimate: { routes: 12 }, predicted_zero_probability: 0 } });
+  assert.equal(known.statusUnknown, false); assert.equal(known.roleUnknown, false); assert.equal(known.zeroUnknown, false); assert.equal(known.zeroProbability, 0);
+  for (const invalid of [-1, 2, "unknown", " ", NaN, Infinity, false, true, [], {}]) assert.equal(showdownPlayerGaps({ ...cheap, diagnostics: { predicted_zero_probability: invalid } }).zeroUnknown, true);
+  assert.equal(showdownPlayerGaps({ ...cheap, diagnostics: { predicted_zero_probability: "0" } }).zeroProbability, 0);
+  for (const invalid of [false, true, NaN, Infinity, "Unavailable", "unknown", { routes: null }]) assert.equal(showdownPlayerGaps({ ...cheap, diagnostics: { current_role_estimate: invalid } }).roleUnknown, true);
+});
+
+test("low-salary attention uses base salary, declared cap and Captain multiplier exactly once", () => {
+  assert.equal(showdownPlayerGaps({ salary: 7500, slot: "CPT", multiplier: 1.5 }, 50000).lowSalary, true);
+  assert.equal(showdownPlayerGaps({ salary: 7501, slot: "CPT", multiplier: 1.5 }, 50000).lowSalary, false);
+  assert.equal(showdownPlayerGaps({ salary: 5000 }, 40000).lowSalary, false);
+  assert.equal(showdownPlayerGaps({ salary: 6000, slot: "MVP", multiplier: 1.5 }, 50000).lowSalary, false);
+  assert.equal(showdownPlayerGaps({ salary: 0 }).lowSalary, false);
+  assert.match(C.lowSalary, /10%/); assert.match(C.lowSalaryHelp, /does not establish workload/);
 });
 test("all Captain comparisons retain single-lineup Showdown rules and exclusions", () => {
   const request = { showdown_rules: { receiver_captain_qb: "require", approved_qb_ids: { BUF: ["qa"] } }, excluded_player_ids: ["backup"], lineup_count: 20, max_exposure: .5, captain_exposure_limits: { qa: .2 } };
