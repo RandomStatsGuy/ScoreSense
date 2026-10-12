@@ -33,9 +33,19 @@ Original `scoresense-portfolio-rescue.json`, `incident_audit.json`, paid source 
 | 5 | Coherent shared outcomes, verified site scoring and specialist distributions | Scoped provided-ledger scoring and bounded scenario research implemented in PR5; production calibration and source-completeness gates remain. |
 | 6 | Contest-conditioned legal field, ownership sensitivity, exact payouts/ties | Scoped declared-field research and exact cash math in PR6. Actual full-field calibration, verified contracts, noncash settlement and field-size uncertainty remain gated. |
 | 7 | Contest-aware joint portfolio evaluation and distinct risk/top-finish objectives | Scoped supplied-scenario selection in PR7, with exact joint trial pricing and separate baseline assessment. Calibrated recommendations remain gated pending untouched forward evaluation. |
-| 8 | Accepted-entry late swap preserving exact started slots | Separately gated; verified accepted state/current locks and end-to-end tests required. |
+| 8 | Accepted-entry late swap preserving exact started slots | Scoped read-only supplied-snapshot planning in PR8; exact-slot engineering and synthetic export replay are implemented. Authentic accepted readback, current locks, conditional live evaluation and platform export remain gated. |
 
 No later stage is represented as delivered by PR1. Missing statistical/data dependencies must gate unsupported claims while independent engineering and design continue.
+
+## Eighth PR: exact-slot late-swap snapshot planning
+
+This phase starts from merged phase-7 baseline `985567543c7692332cbd1ce5cc764ee56f215bf4`. It adds a separate read-only planner, never an ordinary pre-lock regeneration after kickoff. A bounded supplied package binds exact accepted entry IDs and ordered slot assignments, the salary catalog, declared contest rules, lock ledger, source receipts, decision time and prior portfolio/export versions. Complete known lock state is required. Every started player's identity and exact slot remain fixed, including WR1/WR2/WR3 versus FLEX; original salary remains consumed. Already-started newcomers are rejected. Distinct entries may retain identical scoring rosters.
+
+One option per accepted entry is selected with native player and pair/core bounds, target precedence, overlap and construction controls. Started appearances still count. Only unstarted slots' supplied frozen projection inputs contribute to the score. This is a bounded snapshot comparison, not a calibrated remaining-points forecast, behind/ahead strategy or conditional payout recommendation. An independent recount checks the proposal. A versioned personal review preserves exact before/after slots and hashes; it never updates a collection, history ledger or platform entry.
+
+The closed **Plan late swaps** section belongs in Download and follows Import → Preview → Use this snapshot → Compare. Entry changes are paginated, source/method detail is disclosed, failed work retains its last usable review, and context/account changes discard stale work. Personal JSON downloads recheck account access. The existing pre-lock export remains separately guarded. A pure internal CSV dry run exercises original template metadata and exact locked columns with synthetic fixtures; there is no live CSV export endpoint or download control.
+
+[The package contract](DFS_LATE_SWAP_PACKAGE.md) and [phase-8 review](reviews/dfs-late-swap/README.md) document scope, actual checks and release gates. No authentic accepted-entry readback, verified current platform lock feed or reliable conditional live game/field data was supplied. Imported receipt hashes, source names and permission declarations do not establish them. Platform export and acceptance, live lock verification and conditional remaining-slate evaluation remain unavailable. This is the final numbered phase's engineering foundation, not completion of the rebuild's statistical, data and platform release gates.
 
 ## Seventh PR: conditional joint portfolio selection
 

@@ -35,6 +35,8 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [DFS contest research contract](./reviews/DFS_CONTEST_RESEARCH_CONTRACT.md) | Bounded import/API schema, provenance, cash policies and offline field diagnostics |
 | [DFS conditional portfolio contract](./reviews/DFS_CONTEST_PORTFOLIO_CONTRACT.md) | Joint candidate selection, separate cash/risk/coverage goals, search evidence and frozen research proposals |
 | [DFS conditional portfolio review](./reviews/dfs-contest-portfolio/README.md) | Phase-7 actual tests, independent oracles, screenshots, synthetic engineering measurements and remaining forward-evaluation gates |
+| [DFS late-swap package](./DFS_LATE_SWAP_PACKAGE.md) | Exact accepted slots, complete declared lock evidence and bounded read-only planning contract |
+| [DFS late-swap review](./reviews/dfs-late-swap/README.md) | Phase-8 actual checks, synthetic export replay and remaining live-data/platform gates |
 | [DFS Classic scoring contract](./reviews/DFS_CLASSIC_SCORING_CONTRACT.md) | Versioned official DraftKings rules, supported coherent events and rejected rare patterns |
 | [DFS shared count-profile evaluation](./reviews/DFS_SHARED_OUTCOMES_EVALUATION.md) | Actual 2024 chronological joint-count diagnostic, sparse tails and no model promotion |
 | [DFS workflow design options](./mockups/dfs-flow.html) | A/B/C static workflow alternatives; A selected and implemented in production |

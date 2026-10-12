@@ -1,0 +1,187 @@
+{
+  "schema_version": "dfs_late_swap_engineering_receipt_v1",
+  "evidence_scope": "synthetic",
+  "input_sha256": "0f8aa31d1e67e5f966eab6492cd0fde65c40d14d32762303ca1e84cbe89480af",
+  "request_bytes": 318284,
+  "environment": {
+    "python": "3.11.13",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "processor": "AMD64 Family 25 Model 33 Stepping 2, AuthenticAMD",
+    "logical_cpus": 16
+  },
+  "case": {
+    "entries": 150,
+    "supplied_alternatives": 600,
+    "automatic_baselines": 150,
+    "pool_players": 750,
+    "locked_slots": 300,
+    "soft_target_appearance_count": 50,
+    "hard_new_rb_maximum": 75,
+    "projection_values": "explicit synthetic unstarted-player inputs",
+    "declared_decision_at": "2026-10-11T20:00:00Z"
+  },
+  "timing": {
+    "preview_parse_seconds": 0.0201736000017263,
+    "preview_cpu_helper_seconds": 0.5785877999987861,
+    "plan_parse_seconds": 0.02692360000219196,
+    "plan_cpu_helper_seconds": 2.6921820000025036,
+    "internal_csv_seconds": 1.3357791999987967,
+    "timed_repeats": 1,
+    "percentile_estimate": null
+  },
+  "checks": {
+    "strict_bounded_request": true,
+    "complete_exact_entry_assignments": true,
+    "locked_exact_slots_preserved": true,
+    "independent_final_audit_passed": true,
+    "all_locked_appearances_counted": true,
+    "hard_player_and_pair_maximum_held": true,
+    "target_actual_retained": true,
+    "no_authenticity_currentness_or_forecast_claim": true,
+    "csv_metadata_and_unselected_rows_preserved": true,
+    "dry_run_not_platform_ready": true
+  },
+  "limitations": [
+    "All identities, receipts, accepted states, rules and player inputs are synthetic declarations.",
+    "One local measurement is not a p50/p95 estimate or hosted latency promise.",
+    "The internal CSV is an engineering dry run and is not available for platform submission.",
+    "Peak memory was not measured; other local validation may share this host.",
+    "No account, provider, production database, live lineup, model calibration or financial return was accessed or verified."
+  ],
+  "source_hashes": {
+    "src/products/dfs_late_swap.py": "9213e343b4d85846c0b4f6f49b972b1fb507fa081f66a66b68eed5c6c797f3be",
+    "app/dfs_late_swap_routes.py": "08b4c41ec298ecaa9f321990402e026cfec6acaf6af4f832d6f9a25a5696b849",
+    "scripts/dev/verify_dfs_late_swap.py": "d63d26b74e2c9265f9a23dfb6834d563ff12301b1ab2832c1b9793431deff104"
+  },
+  "report_summary": {
+    "schema_version": "dfs_late_swap_plan_v1",
+    "semantics": "offline_declared_exact_slot_projection_planning_not_live_late_swap",
+    "package_id": "8dc12a4dc25f77425c3bcf75a46a3f5aad5ead8fc3d9bc66fb51aa661f0a6a24",
+    "plan_id": "ca444a544c1b4034e6c38676cafa8995737a608ee181fe26adaaf304e665f53b",
+    "entry_count": 150,
+    "requested_count": 150,
+    "selected_count": 150,
+    "unique_count": 3,
+    "candidate_count": 600,
+    "option_count": 750,
+    "complete": true,
+    "solver": {
+      "status": "feasible_candidate_pool",
+      "method": "bounded_per_entry_candidate_milp",
+      "candidate_pool_only": true,
+      "proven_optimal": false,
+      "numerical_optimal": true,
+      "bound": -6650.0,
+      "gap": 0.0,
+      "evaluated_trials": 0,
+      "target_policy": "minimum absolute appearance miss, then unstarted-player input sum",
+      "objective": "unstarted_player_input_sum",
+      "time_limit_seconds": 8,
+      "target_stage_status": "numerical_optimal",
+      "bound_units": "minimized negative unstarted-player input sum; floating numerical certificate",
+      "target_deviation_count": "0"
+    },
+    "baseline": {
+      "projection_sum": "5250",
+      "salary_sum": 5400000
+    },
+    "proposed": {
+      "projection_sum": "6650",
+      "salary_sum": 5400000
+    },
+    "capabilities": {
+      "offline_exact_slot_planning": true,
+      "independent_hard_constraint_audit": true,
+      "accepted_readback_authenticated": false,
+      "current_lock_verified": false,
+      "platform_export_ready": false,
+      "conditional_remaining_evaluation": false,
+      "expected_payout": false,
+      "forecast_performance_verified": false
+    },
+    "runtime_seconds": 2.563,
+    "engine": {
+      "version": "offline_exact_slot_assignment_v1",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1"
+    },
+    "audit": {
+      "ok": true,
+      "issues": [],
+      "entry_count": 150,
+      "locked_slots_preserved": true,
+      "hard_rule_count": 751,
+      "selected_counts": [
+        {
+          "id": "q0",
+          "scope": "player",
+          "player_ids": [
+            "q0"
+          ],
+          "minimum_count": 150,
+          "maximum_count": 150,
+          "target_count": null,
+          "actual_count": 150
+        },
+        {
+          "id": "rb3",
+          "scope": "player",
+          "player_ids": [
+            "rb3"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 75,
+          "target_count": null,
+          "actual_count": 60
+        },
+        {
+          "id": "rb4",
+          "scope": "player",
+          "player_ids": [
+            "rb4"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 150,
+          "target_count": "50",
+          "actual_count": 50
+        },
+        {
+          "id": "w0",
+          "scope": "player",
+          "player_ids": [
+            "w0"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 150,
+          "target_count": null,
+          "actual_count": 150
+        },
+        {
+          "id": "locked-qb-new-rb",
+          "scope": "group",
+          "player_ids": [
+            "q0",
+            "rb3"
+          ],
+          "minimum_count": 0,
+          "maximum_count": 75,
+          "target_count": null,
+          "actual_count": 60
+        }
+      ]
+    }
+  },
+  "csv_manifest_summary": {
+    "schema_version": "dfs_late_swap_csv_dry_run_v1",
+    "package_id": "8dc12a4dc25f77425c3bcf75a46a3f5aad5ead8fc3d9bc66fb51aa661f0a6a24",
+    "plan_id": "ca444a544c1b4034e6c38676cafa8995737a608ee181fe26adaaf304e665f53b",
+    "artifact": "internal_engineering_preview",
+    "platform_export_ready": false,
+    "selected_entry_count": 150,
+    "template_sha256": "a89e9c400ac79b7eda0ceb269ac7512a06a67d9c781ad0ef2f331cd13c43f910",
+    "csv_sha256": "9c78c60bf8d1085aba55bb2da99caca100bf1c605b9494f8096ca1ebf1b04d2d",
+    "metadata_preserved": true,
+    "unselected_rows_preserved": true,
+    "round_trip_passed": true
+  }
+}

@@ -1537,3 +1537,28 @@ export const DFS_CONTEST_PORTFOLIO_COPY = Object.freeze({
   frozen: "Frozen input version", request: "Set comparison version", selectionDraws: "Selection draws", reviewDraws: "Separate review draws", source: "Opponent assumption", fees: "Fees for this set", exportHelp: "Personal review includes the chosen rosters and frozen inputs. Raw opponent lineups, ownership observations and game events are omitted.",
   archiveScope: "Personal analysis only. Computed proposal and source receipts; raw game events, opponent templates and ownership observations omitted. No entry submission or platform acceptance is recorded.",
 });
+
+export const DFS_LATE_SWAP_COPY = Object.freeze({
+  title: "Plan late swaps", intro: "Compare remaining players while keeping started players in their exact slots.",
+  scope: "Snapshot comparison only · no entry updates", file: "Late-swap snapshot JSON", fileHelp: "Snapshot format", fileFormat: "Use a supplied accepted-entry and lock snapshot for this exact slate (up to 8 MB).",
+  preview: "Preview snapshot", use: "Use this snapshot", compare: "Compare remaining players", download: "Save late-swap plan", cancel: "Cancel",
+  idle: "Import a snapshot to begin.", reading: "Checking snapshot…", previewing: "Checking entries and locks…", planning: "Comparing remaining players…", downloading: "Preparing plan…",
+  ready: "Snapshot selected.", elapsed: n => `${n}s elapsed`, failed: "The comparison could not finish. Your previous plan is still available.",
+  cancelled: "Comparison cancelled. Your previous plan is retained.", previous: "Earlier plan — kept with its original snapshot.", stale: "The slate changed. Preview and select a matching snapshot before comparing again.",
+  unavailable: "Choose an exact DraftKings Classic slate before importing a snapshot.", sizeError: "Choose a snapshot smaller than 8 MB.", fileError: "Use a complete late-swap package with accepted entries, exact roster slots and known lock states.",
+  contextError: "This snapshot belongs to another slate.", rightsError: "Each source needs permission for personal analysis, hosted processing and display.",
+  lockError: "Every player needs a known game time and started status in this snapshot.",
+  responseError: "The response does not match this snapshot. Your previous plan is retained.", workerError: "Background file processing is unavailable. Try reopening this page.", accessError: "Sign in to this account again before downloading the plan.",
+  previewTitle: "Snapshot to review", contest: "Contest", entries: "Accepted entries", decision: "Comparison time", locked: "Started slots", candidates: "Supplied alternatives",
+  result: "Late-swap plan", changed: n => `${n} ${n === 1 ? "entry changes" : "entries change"}`, unchanged: n => `${n} ${n === 1 ? "entry stays" : "entries stay"} the same`,
+  rosters: "Review exact slots", entry: id => `Entry ${id}`, accepted: "Accepted snapshot", proposed: "Proposed", same: "Unchanged", lockedLabel: "Started", changedLabel: "Changed",
+  before: "Before", after: "After", inputSum: "Unstarted-player input sum", inputHelp: "Sums the supplied inputs for players whose games have not started. Started players’ scores are excluded; this is not a remaining-points forecast.",
+  salary: "Salary", previousPage: "Previous", nextPage: "Next", details: "Sources and planning details", version: "Snapshot version", planVersion: "Plan version", source: "Source", hash: "Content hash", known: "Known at",
+  method: "Supplied accepted entries, contest rules and lock records are declarations. Their authenticity and current platform state are not verified.",
+  exportGate: "Platform-ready late-swap CSV is unavailable. This personal plan does not change or submit entries.",
+  search: "Search result", optimal: "Best supplied alternatives found", limited: "Complete plan; best score not proved", timeLimited: "Time limit reached; complete plan found", noSet: "No complete plan found", conflicts: "Conflicts to resolve", runtime: "Server time", tried: "Sets reviewed", unknown: "Unavailable",
+  inputCount: "Supplied alternatives", bound: "Score bound", gap: "Optimality gap", targets: "Appearance preferences", targetMiss: (name, actual, target) => `${name}: ${actual} appearances; target ${target}.`, rejected: "Alternatives blocked by your rules",
+  issue: code => ({ missing_global_lock: "Missing a required player", global_exclusion: "Includes a skipped player", strategy_salary_range: "Outside your salary limits", strategy_team_limit: "Exceeds your team limit", unstarted_status_not_declared_eligible: "Player status needs confirmation", qb_opposing_dst: "Quarterback faces selected defense", locked_exact_slot: "Started slot changed", incoming_started_player: "Adds a started player", hard_overlap: "Exceeds shared-player limit" }[code] || (code.startsWith("classic_stack:") ? "Stack rule unmet" : "Rule conflict")),
+  downloadScope: "Personal snapshot comparison. Includes declared accepted entries and exact-slot proposal; no platform acceptance or submission is recorded.",
+  sourceKinds: { user_platform_readback: "Accepted-entry readback", rules: "Contest rules", salary_catalog: "Salary catalog", lock_snapshot: "Started-game snapshot", projection_inputs: "Player inputs" },
+});
