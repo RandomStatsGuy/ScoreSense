@@ -107,7 +107,7 @@ test("bar height prefers a composite trigger over a nested input", () => {
 
 // Run the actual self-contained browser measurement with controlled DOMRects;
 // unrelated surface queries are empty, so no browser or running app is needed.
-function measureControlRow(rects, width = 1280) {
+function measureControlRow(rects, width = 1280, disclosure = null) {
   const rect = (left, top, boxWidth, height) => ({ left, top, width: boxWidth, height, right: left + boxWidth, bottom: top + height });
   const control = (kind, box) => ({
     getBoundingClientRect: () => box,
@@ -126,6 +126,10 @@ function measureControlRow(rects, width = 1280) {
     };
   });
   const row = { children, getBoundingClientRect: () => rect(0, 0, width, 400), getAttribute: () => "setup-controls" };
+  if (disclosure) {
+    const summary = { tagName: "SUMMARY", contains: element => disclosure.inSummary && element === row };
+    row.parentElement = { tagName: "DETAILS", open: disclosure.open, children: [summary] };
+  }
   const document = {
     documentElement: { scrollWidth: width }, body: { scrollWidth: width }, styleSheets: [],
     querySelector: () => null,
@@ -165,6 +169,16 @@ test("marked control rows catch an action far below a neighboring column", () =>
   const [result] = measureControlRow([controlBox(20, 56), controlBox(160, 56, 240), controlBox(420, 190)]);
   assert.equal(result.ok, false);
   assert.match(result.detail, /side-by-side bottom edges/);
+});
+test("marked control rows allow a real grid wrap without weakening misplaced-action checks", () => {
+  const [result] = measureControlRow([controlBox(20, 56), controlBox(160, 56, 240), controlBox(20, 130)]);
+  assert.equal(result.ok, true);
+});
+test("closed disclosure fields with retained rectangles are excluded from measurement", () => {
+  const rects = [controlBox(20, 56), controlBox(160, 32, 240), controlBox(420, 56)];
+  assert.equal(measureControlRow(rects, 1280, { open: false }).length, 0);
+  assert.equal(measureControlRow(rects, 1280, { open: true })[0].ok, false);
+  assert.equal(measureControlRow(rects, 1280, { open: false, inSummary: true })[0].ok, false);
 });
 
 test("marked control rows allow vertically stacked phone controls", () => {
