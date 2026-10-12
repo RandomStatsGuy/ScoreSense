@@ -74,6 +74,7 @@ class Build(BaseModel):
     lineups: list[dict] = Field(min_length=1, max_length=150)
     settings: dict
     note: str = Field(default="", max_length=4000)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9:_-]+$")
 
 
 @router.get("/results")
@@ -81,11 +82,17 @@ def get_results(account=Depends(owner)):
     return dfs_results.read_results(account)
 
 
+@router.get("/export-access")
+def export_access(account=Depends(owner)):
+    """Check the current account without optional ledger-storage availability."""
+    return {"allowed": True}
+
+
 @router.post("/results/import")
 def import_results(request: EntryImport, account=Depends(owner), compact: bool = False):
     records = [row.model_dump(mode="json", exclude_none=True) for row in request.entries]
-    owned_builds = ({b["id"]: b for b in dfs_results.read_results(account)["builds"]}
-                    if any(row.get("build_id") for row in records) else {})
+    build_ids = {row["build_id"] for row in records if row.get("build_id")}
+    owned_builds = dfs_results.read_builds(account, build_ids) if build_ids else {}
     seen = set()
     for row in records:
         key = (row["site"], row["contest_id"], row["entry_id"])
@@ -101,7 +108,7 @@ def import_results(request: EntryImport, account=Depends(owner), compact: bool =
 
 @router.post("/builds")
 def save_build(request: Build, account=Depends(owner)):
-    payload = request.model_dump()
+    payload = request.model_dump(exclude={"idempotency_key"})
     try:
         serialized = json.dumps(payload, allow_nan=False)
     except ValueError:
@@ -109,7 +116,10 @@ def save_build(request: Build, account=Depends(owner)):
     if len(serialized) > 2_000_000:
         raise HTTPException(413, "Save a smaller lineup set.")
     payload.update(id=str(uuid4()), saved_at=datetime.now(timezone.utc).isoformat())
-    return dfs_results.save_build(account, payload)
+    try:
+        return dfs_results.save_build(account, payload, idempotency_key=request.idempotency_key)
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
 
 
 @router.get("/contests")

@@ -174,13 +174,14 @@ const template =
   'Entry ID,Contest Name,Contest ID,Entry Fee,CPT,FLEX,FLEX,FLEX,FLEX,FLEX\r\n0001,"Contest, One",0010,$5,,,,,,\r\n0002,Second,0020,$10,old,old,old,old,old,old';
 test("Edit Entries preserves IDs, contest metadata and unassigned entries", () => {
   const t = readEntryTemplate(template, "draftkings_showdown");
-  const out = buildEntryCsv(t, [lineup], { "0001": 0 });
+  const catalog = lineup.lineup.map(p => ({ ...p, cpt_dfs_id: p.dfs_id, cpt_salary: p.salary }));
+  const out = buildEntryCsv(t, [lineup], { "0001": 0 }, catalog);
   const rows = parseDfsCsv(out.lines.join("\r\n"));
   assert.deepEqual(rows[1].slice(0, 4), ["0001", "Contest, One", "0010", "$5"]);
   // Showdown writes "Name (ID)" cells; dfsExport's cellId reads them back.
   assert.equal(rows[1][4], "Player 0 (100)");
   assert.equal(rows[2][4], "old");
-  assert.throws(() => buildEntryCsv(t, [lineup], { unknown: 0 }), /assignment/);
+  assert.throws(() => buildEntryCsv(t, [lineup], { unknown: 0 }, catalog), /assignment/);
   assert.throws(() => readEntryTemplate(template, "draftkings"), /format/);
   assert.throws(
     () => readEntryTemplate("CPT,FLEX\n1,2", "draftkings_showdown"),

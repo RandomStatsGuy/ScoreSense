@@ -17,6 +17,9 @@ import { parseDfsCsv, headerKey } from "./dfsCsv";
 import { captainComparisonRequest } from "./dfsCaptainComparisonRequest.js";
 import { DFS_CAPTAIN_COMPARISON_COPY as CC, DFS_PORTFOLIO_COPY as PC } from "./dfsToolPresentation";
 import { appendPortfolioBatch, createPortfolioBatch, freezeSnapshot, removePortfolioBatch, portfolioBuildPayload } from "./dfsPortfolio.js";
+import { exposureRequest, convertExposureUnits } from "./dfsGlobalExposure.js";
+import { DFS_GLOBAL_COPY as GC } from "./dfsToolPresentation.js";
+import { stableBuildKey } from "./dfsEntryExportSeal.js";
 
 async function jsonRequest(url, options) {
   const response = await apiFetch(url, options);
@@ -69,6 +72,9 @@ export default function useDfsBuilder(projMeta) {
   const [currentBuild, setCurrentBuild] = useState(null);
   const [portfolio, setPortfolio] = useState([]);
   const [portfolioLimits, setPortfolioLimits] = useState({});
+  const [globalExposure, setGlobalExposure] = useState({});
+  const [globalUnit, setGlobalUnit] = useState("percent");
+  const [portfolioSelection, setPortfolioSelection] = useState(null);
   const portfolioBuildIds = useRef(new Map());
   const [portfolioRestoreRevision, setPortfolioRestoreRevision] = useState(0);
   const [locked, setLocked] = useState([]);
@@ -89,12 +95,23 @@ export default function useDfsBuilder(projMeta) {
     randomness: 0,
     lockedCaptain: "",
     note: "",
+    portfolioMode: "legacy",
+    blockQbDst: true,
   });
   const activeWork = useRef(false);
   activeWork.current = building || comparing;
   const generation = useRef(0);
   const revision = useRef(0);
   const config = formats[context.site] || DEFAULT_FORMATS[context.site];
+  useEffect(() => {
+    const reset = () => {
+      generation.current++; revision.current++; portfolioBuildIds.current.clear();
+      setPortfolio([]); setPortfolioLimits({}); setLineups([]); setCurrentBuild(null);
+      setSavedBuild(null); setBuildSettings(null); setPortfolioSelection(null);
+    };
+    window.addEventListener("scoresense-auth-changed", reset);
+    return () => window.removeEventListener("scoresense-auth-changed", reset);
+  }, []);
   const isDfs = context.site !== "seasonal";
   const isCaptain = isCaptainFormat(context.site, formats);
   useEffect(() => {
@@ -153,6 +170,7 @@ export default function useDfsBuilder(projMeta) {
   }, [meta]);
 
   const changeContext = (patch) => {
+    if (context.source === "live" && Object.entries(patch).every(([key, value]) => context[key] === value)) return;
     generation.current++;
     revision.current++;
     setContext((c) => ({
@@ -168,6 +186,7 @@ export default function useDfsBuilder(projMeta) {
     setStats(null);
     setPoolFreshness({ checkedAt: null, refresh: null, failed: false });
     setStackWeights({});
+    setGlobalExposure({}); setPortfolioSelection(null);
     setLineups([]);
     setSavedBuild(null);
     changeSetting("lockedCaptain", "");
@@ -440,6 +459,13 @@ export default function useDfsBuilder(projMeta) {
       setError(C.countHelp);
       return;
     }
+    let exposureLimits = {};
+    if (context.site === "draftkings" && settings.portfolioMode === "global") {
+      try {
+        if (Object.values(stackWeights).some(w => Number(w) > 0)) throw new Error(GC.weightConflict);
+        exposureLimits = exposureRequest(globalExposure, lineupCount, locked, excluded, settings.exposure);
+      } catch (e) { setError(e.message); return; }
+    }
     const comparisonSeq = comparingCaptains ? ++comparisonGeneration.current : null;
     const seq = generation.current;
     if (comparingCaptains) {
@@ -495,6 +521,10 @@ export default function useDfsBuilder(projMeta) {
         context.season === meta?.default_season &&
         context.week === meta?.default_week,
       block_bye_weeks: true,
+      ...(context.site === "draftkings" && settings.portfolioMode === "global" ? {
+        portfolio_mode: "global", player_exposure_limits: exposureLimits,
+        block_qb_opposing_dst: settings.blockQbDst,
+      } : {}),
     };
     try {
       if (
@@ -521,6 +551,7 @@ export default function useDfsBuilder(projMeta) {
         return;
       }
       if (seq !== generation.current) return;
+      setPortfolioSelection(data.portfolio_selection || null);
       if (!data.ok)
         throw new Error(data.error || "No lineup satisfies these settings.");
       const built = data.lineups || [
@@ -530,6 +561,7 @@ export default function useDfsBuilder(projMeta) {
           total_points: data.total_points,
         },
       ];
+      revision.current++;
       setLineups(built);
       setSelected(0);
       setSavedBuild(null);
@@ -544,7 +576,9 @@ export default function useDfsBuilder(projMeta) {
           ]),
         ),
         build_snapshot: data.build_snapshot || null,
+        game_schedule: vegasGames.map(game => ({ game_id: String(game.game_id || ""), home: String(game.home || ""), away: String(game.away || ""), kickoff_et: game.kickoff_et || null })),
         snapshot_at: data.build_snapshot?.captured_at || new Date().toISOString(),
+        ...(data.portfolio_selection ? { portfolio_selection: data.portfolio_selection } : {}),
       };
       setBuildSettings(originalSettings);
       setCurrentBuild(freezeSnapshot({ context, slateName, lineups: built,
@@ -564,19 +598,22 @@ export default function useDfsBuilder(projMeta) {
       } else setBuilding(false);
     }
   };
-  const save = async () => {
+  const save = async (rethrow = false) => {
     const version = revision.current;
     try {
+      const payload = {
+        site: currentBuild?.context.site || context.site,
+        slate_id: currentBuild?.context.slateId || context.slateId,
+        slate_name: currentBuild?.slateName || slateName,
+        lineups: currentBuild?.lineups || lineups,
+        settings: currentBuild?.settings || buildSettings || {},
+        note: currentBuild?.settings.note || buildSettings?.note || "",
+      };
+      const key = await stableBuildKey(payload);
+      if (version !== revision.current) return null;
       const saved = await jsonRequest("/api/lineup/builds", {
         method: "POST",
-        body: JSON.stringify({
-          site: context.site,
-          slate_id: context.slateId,
-          slate_name: slateName,
-          lineups,
-          settings: buildSettings || {},
-          note: buildSettings?.note || "",
-        }),
+        body: JSON.stringify({ ...payload, idempotency_key: key }),
       });
       if (version !== revision.current) return null;
       setSavedBuild(saved);
@@ -584,6 +621,7 @@ export default function useDfsBuilder(projMeta) {
       return saved;
     } catch (e) {
       setError(e.message);
+      if (rethrow === true) throw e;
       return null;
     }
   };
@@ -602,8 +640,19 @@ export default function useDfsBuilder(projMeta) {
     currentBuild: lineups.length ? currentBuild : null,
     portfolio,
     portfolioLimits,
+    globalExposure,
+    globalUnit,
+    portfolioSelection,
+    setGlobalUnit: unit => {
+      try { setGlobalExposure(convertExposureUnits(globalExposure, Number(settings.count), unit)); setGlobalUnit(unit); }
+      catch (e) { setError(e.message); }
+    },
+    setGlobalExposure: (id, kind, value) => setGlobalExposure(current => ({ ...current,
+      [id]: { ...current[id], unit: globalUnit, [kind]: value } })),
+    clearGlobalExposure: () => setGlobalExposure({}),
     portfolioRestoreRevision,
     replacePortfolio: (backup) => {
+      revision.current++;
       portfolioBuildIds.current.clear();
       setPortfolio(backup.batches);
       setPortfolioLimits(backup.appearanceLimits);
@@ -623,9 +672,17 @@ export default function useDfsBuilder(projMeta) {
     },
     removePortfolioBatch: (id) => setPortfolio(current => removePortfolioBatch(current, id)),
     savePortfolioBatch: async (batch) => {
+      const version = revision.current, accountGeneration = generation.current;
+      const requireCurrent = () => {
+        if (version !== revision.current || accountGeneration !== generation.current) throw new Error(GC.staleExport);
+      };
       if (!portfolioBuildIds.current.has(batch.id)) {
+        const payload = portfolioBuildPayload(batch);
+        const key = await stableBuildKey(payload);
+        requireCurrent();
         const saved = await jsonRequest("/api/lineup/builds", { method: "POST",
-          body: JSON.stringify(portfolioBuildPayload(batch)) });
+          body: JSON.stringify({ ...payload, idempotency_key: key }) });
+        requireCurrent();
         portfolioBuildIds.current.set(batch.id, saved.id);
       }
       return portfolioBuildIds.current.get(batch.id);

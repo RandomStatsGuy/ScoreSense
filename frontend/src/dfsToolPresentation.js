@@ -2,6 +2,34 @@
 
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
+export const DFS_GLOBAL_COPY = {
+  title: "Global portfolio controls", enabled: "Select the portfolio together", legacy: "Off: keep the existing batch builder. On: select unique Classic lineups together under the controls below.",
+  help: "These controls apply to your next build. Minimum and Maximum are hard bounds. Target is a preference: selection first minimizes target misses, then maximizes your chosen score. Forecasts stay unchanged.",
+  search: "Find an exposure player", unit: "Exposure units", percent: "Percent", count: "Appearances", minimum: "Minimum", target: "Target", maximum: "Maximum", actual: "Actual",
+  rounding: "Percent minimums round up; maximums round down. Counts use the requested lineup total. Fractional targets remain preferences.",
+  ruleCount: (n, total) => `${n} of ${total}`, actualCount: (n, total) => `${n} of ${total} generated`,
+  clear: "Clear global controls", noPlayers: "No players match this search.", lock: "Locked everywhere", skip: "Skipped",
+  block: "Avoid QB against opposing defense", blockHelp: "Classic strategy safeguard. Turn off only when you intend this pairing; the choice is saved with the build.",
+  summary: (s) => `${s.selected_count} of ${s.requested_count} selected · ${s.unique_count} unique · ${s.candidate_count} candidates · ${s.solver_status}`,
+  candidateNote: "Projection-guided candidate-pool selection. This does not estimate tournament returns or prove optimality over every legal lineup.",
+  targetMiss: (id, count, target) => `${id}: actual ${count}; target ${target}.`,
+  share: "Share", actualPages: "Actual exposure pages", lineupPages: "Lineup pages",
+  structure: "Pairs & FLEX structure", pair: "Pair", appearances: "Appearances", rbPairs: "Running-back pairs", pairNote: "Repeated pairs count across every slot. There is no universal safe pair percentage.",
+  flex: (counts, total) => `FLEX: ${counts.RB} RB · ${counts.WR} WR · ${counts.TE} TE of ${total}. Concentration is a review signal, not a ban.`,
+  synced: "CSV created · history synchronized · acceptance unconfirmed", pending: "History sync pending. Your validated CSV and portfolio remain available. A download does not confirm platform acceptance.",
+  syncReady: "History synchronized. Download the entry-update CSV when ready. Acceptance is unconfirmed.",
+  formulaNotice: "This template contains formula-like metadata. Those original cells are preserved; review them before opening the file in spreadsheet software.",
+  staleExport: "The entry review changed while preparing this file. Review assignments and download again.",
+  recovery: "Download local recovery CSV", retry: "Retry history sync", manifest: "Download export audit", syncing: "Preparing entry-update CSV…", download: "Download DraftKings entry-update CSV",
+  authorization: "Sign in again before downloading. Account access must be checked even for local recovery.",
+  localTitle: "Local draft", localHelp: "Saved on this browser for this account. Restore reviews original inputs and clears entry assignments; import a fresh entries template.",
+  localSaved: "Local draft saved", localSaving: "Saving local draft…", localError: "Local draft could not save. Download a backup before leaving.", localAvailable: "A local draft is available to recover.", localRestore: "Restore local draft", localDiscard: "Delete local draft", localEmpty: "No local draft saved yet.",
+  contest: "Entries to update", allContests: "Choose a contest", selectedContest: (name, count) => `${name} · ${count} reservations`,
+  prelock: "I checked the slate and start time; none of the assigned players have locked.",
+  prelockHelp: "Platform lock state is unverified. Known scheduled starts block this pre-lock export; check your entries on DraftKings before continuing.",
+  weightConflict: "Global selection cannot apply a weighted batch schedule yet. Clear game weights or turn off global selection before building.",
+};
+
 export const DFS_PORTFOLIO_COPY = {
   title: "Classic portfolio", label: "Batch label", add: "Add current build to portfolio", remove: "Remove batch",
   clearLimits: "Clear appearance limits",
@@ -31,7 +59,7 @@ export const DFS_PORTFOLIO_COPY = {
   assignmentRepeat: "Assign each portfolio lineup exactly once. Repeated or missing assignments block export.",
   missingBuild: "An original batch could not be saved. Retry before exporting.",
   source: "Reserved-entry lineup source", currentBuild: "Current build", portfolio: "Reviewed portfolio",
-  export: "Download portfolio Edit Entries CSV", exporting: "Saving original batches…",
+  export: "Download DraftKings entry-update CSV", exporting: "Preparing entry-update CSV…",
   selected: (selected, total) => `${selected} selected entries · ${total} portfolio lineups`,
   assignment: (index, label, originalIndex) => `Portfolio ${index + 1} · ${label} · lineup ${originalIndex + 1}`,
 };

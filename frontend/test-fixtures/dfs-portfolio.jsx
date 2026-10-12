@@ -13,10 +13,15 @@ import "../src/styles/fantasy-phone.css";
 
 const positions = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "WR", "DST"];
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
-const players = Array.from({ length: 180 }, (_, i) => ({ player_id: `p${i + 1}`, dfs_id: String(i + 1),
-  Player: `Example ${i + 1}`, Team: i % 2 ? "BUF" : "KC", Position: positions[i] || "WR", salary: 4000,
+const largePool = new URLSearchParams(location.search).has("large-pool");
+const historicalFeatures = largePool
+  ? Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`model_feature_${i}`, i / 100]))
+  : {};
+const players = Array.from({ length: largePool ? 700 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
+  Player: `Example ${i + 1}`, Team: i % 2 ? "BUF" : "KC", Opponent: i % 2 ? "KC" : "BUF", Position: positions[i] || "WR", salary: 4000,
   "Projected Points": 10, "Low (P10)": 5, "High (P90)": 15, projection_source: "ScoreSense" }));
-window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: false, repeatBuild: false, run: 0 };
+window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: false, failLedger: false,
+  accessStatus: 200, accessChecks: 0, saveAttempts: 0, delaySave: false, repeatBuild: false, run: 0 };
 const nativeFetch = window.fetch.bind(window);
 window.fetch = async (url, options = {}) => {
   if (!String(url).startsWith("/api/")) return nativeFetch(url, options);
@@ -32,6 +37,10 @@ window.fetch = async (url, options = {}) => {
       slate: { name: "Classic fixture slate" }, meta: {} });
   }
   if (path.includes("/vegas")) return respond({ games: [] });
+  if (path.endsWith("/export-access")) {
+    state.accessChecks++;
+    return respond(state.accessStatus === 200 ? { allowed: true } : { detail: "Fixture account access denied" }, state.accessStatus);
+  }
   if (path.endsWith("/optimize")) {
     state.requests.push(body);
     const run = state.repeatBuild ? 0 : state.run++;
@@ -42,15 +51,29 @@ window.fetch = async (url, options = {}) => {
           salary: p.salary, proj: body.projection_overrides[p.player_id]?.proj ?? 10, floor: 5, ceiling: 15 };
       }),
     }));
-    return respond({ ok: true, lineups, build_snapshot: { id: `snapshot-${run}`, captured_at: "2026-10-10T12:00:00Z",
+    return respond({ ok: true, lineups,
+      ...(body.portfolio_mode === "global" ? { portfolio_selection: {
+        requested_count: body.lineup_count, selected_count: lineups.length, unique_count: lineups.length,
+        candidate_count: lineups.length, solver_status: "fixture response", conflicts: [],
+      } } : {}),
+      build_snapshot: { id: `snapshot-${run}`, captured_at: "2026-10-10T12:00:00Z",
       content: { schema_version: "dfs_build_inputs_v1", parameters: body, input_pool: players } } });
   }
-  if (path.endsWith("/builds")) {
+  if (path.startsWith("/api/lineup/results") && !path.endsWith("/import")) {
+    state.accessChecks++;
+    return respond({ entries: [], total: 0 }, state.accessStatus);
+  }
+  if (path.endsWith("/builds") && options.method === "POST") {
+    state.saveAttempts++;
+    if (state.delaySave) await new Promise(resolve => { state.releaseSave = resolve; });
     if (state.failSave) return respond({ detail: "Fixture save failure" }, 503);
     const saved = { ...body, id: `saved-${state.builds.length + 1}` };
     state.builds.push(saved); return respond(saved);
   }
-  if (path.endsWith("/results/import")) { state.imports.push(body); return respond({ imported: body.entries.length }); }
+  if (path.endsWith("/results/import")) {
+    if (state.failLedger) return respond({ detail: "Fixture ledger failure" }, 503);
+    state.imports.push(body); return respond({ imported: body.entries.length });
+  }
   return respond({});
 };
 const meta = { default_season: 2026, default_week: 5, seasons: [2026], weeks_by_season: { 2026: [5] } };

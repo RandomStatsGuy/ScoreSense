@@ -618,14 +618,21 @@ def optimize_lineup(
         )
     )
 
-    result = milp(c, integrality=integrality, bounds=bounds, constraints=constraints)
-    if not result.success:
+    result = milp(c, integrality=integrality, bounds=bounds, constraints=constraints,
+                  options={"time_limit": solver_time_limit} if solver_time_limit is not None else None)
+    solver_status = {0: "optimal", 1: "time_limit", 2: "infeasible"}.get(result.status, "solver_error")
+    feasible_incumbent = result.x is not None and all(abs(v-round(v)) < 1e-5 for v in result.x)
+    if feasible_incumbent:
+        feasible_incumbent = all(np.all(constraint.A @ result.x >= np.asarray(constraint.lb)-1e-5)
+                                 and np.all(constraint.A @ result.x <= np.asarray(constraint.ub)+1e-5)
+                                 for constraint in constraints)
+    if not result.success and not (solver_time_limit is not None and result.status == 1 and feasible_incumbent):
         msg = "Could not find a valid lineup with the current pool and locks."
         if salary_cap is not None:
             msg += " Try raising the cap, importing salaries, or relaxing locks."
         if stack_count or stack_bring_back or max_per_team or min_salary:
             msg += " Stacking and team-limit rules also narrow the pool."
-        return {"ok": False, "error": msg, "lineup": []}
+        return {"ok": False, "error": msg, "lineup": [], "solver_status": solver_status}
 
     chosen = [players[i] for i, val in enumerate(result.x) if val > 0.5]
     if len(chosen) != total:
@@ -670,6 +677,7 @@ def optimize_lineup(
         "salary_remaining": remaining,
         "lineup": slots,
         "note": " ".join(note_parts),
+        "solver_status": "feasible_time_limit" if solver_status == "time_limit" else solver_status,
     }
 
 
@@ -1150,8 +1158,24 @@ def optimize_from_pool_dataframe(
     locked_captain_id: str | None = None,
     include_captain_comparison: bool = False,
     snapshot_context: dict | None = None,
+    portfolio_mode: str = "legacy",
+    player_exposure_limits: dict | None = None,
+    group_exposure_limits: list[dict] | None = None,
+    block_qb_opposing_dst: bool = True,
 ) -> dict:
     site = (site or "seasonal").lower()
+    if portfolio_mode not in ("legacy", "global"):
+        raise ValueError("Portfolio mode must be legacy or global.")
+    if portfolio_mode == "global":
+        if site not in ("draftkings", "fanduel"):
+            raise ValueError("Global portfolio selection supports NFL Classic only; use the existing workflow for this format.")
+        if stack_game_weights:
+            raise ValueError("Weighted batch schedules are not supported by global selection yet. Clear game weights or use the existing workflow.")
+        if captain_exposure_limits or locked_captain_id or include_captain_comparison:
+            raise ValueError("Captain settings do not apply to global Classic selection.")
+        seed = 0 if seed is None else seed
+    elif player_exposure_limits or group_exposure_limits:
+        raise ValueError("Minimum, target, maximum and pair/core controls require global portfolio mode.")
     if include_captain_comparison:
         if not get_site_config(site)["roster"].get("cpt"):
             raise ValueError("Captain comparison requires a single-game format.")
@@ -1163,6 +1187,8 @@ def optimize_from_pool_dataframe(
         import secrets
         seed = secrets.randbits(32)
     site_cfg = get_site_config(site)
+    if portfolio_mode == "global" and salary_cap is not None and not 0 < salary_cap <= site_cfg["salary_cap"]:
+        raise ValueError(f"Classic salary cap must be positive and cannot exceed the site maximum ${site_cfg['salary_cap']:,}.")
     cap = salary_cap if salary_cap is not None else site_cfg["salary_cap"]
     require_salary = cap is not None
     if max_per_team is None:
@@ -1210,11 +1236,21 @@ def optimize_from_pool_dataframe(
         "lineup_count": lineup_count, "max_overlap": max_overlap,
         "max_exposure": max_exposure, "randomness": randomness, "seed": seed,
         "include_captain_comparison": include_captain_comparison,
+        "portfolio_mode": portfolio_mode,
+        "player_exposure_limits": player_exposure_limits or {},
+        "group_exposure_limits": group_exposure_limits or [],
+        "block_qb_opposing_dst": block_qb_opposing_dst if portfolio_mode == "global" else None,
     }).to_dict()
 
-    if lineup_count <= 1 and max_exposure is not None and 0 < max_exposure < 1:
+    if portfolio_mode == "global":
+        from src.products.dfs_portfolio_selection import generate_global_portfolio
+        result = generate_global_portfolio(players, count=lineup_count,
+            player_exposure_limits=player_exposure_limits, group_exposure_limits=group_exposure_limits,
+            max_exposure=max_exposure, max_overlap=max_overlap, randomness=randomness, seed=seed,
+            block_qb_opposing_dst=block_qb_opposing_dst, **opt_kwargs)
+    elif lineup_count <= 1 and max_exposure is not None and 0 < max_exposure < 1:
         return {"ok": False, "error": "The exposure limit allows zero appearances at this lineup count. Increase the count or limit.", "lineup": []}
-    if lineup_count > 1:
+    elif lineup_count > 1:
         result = optimize_multiple_lineups(
             players,
             count=lineup_count,

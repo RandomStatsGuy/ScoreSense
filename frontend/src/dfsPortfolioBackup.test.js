@@ -33,6 +33,47 @@ function batch(offset = 0, count = 75) {
 const original = () => [batch(), batch(75)];
 const document = () => JSON.parse(writePortfolioBackup(original(), { p0: "150", p1: "", removed: null }, timestamp));
 const restore = value => readPortfolioBackup(JSON.stringify(value));
+
+function fullPoolBatch(offset, count, poolSize = 700) {
+  const result = structuredClone(batch(offset, count));
+  // Full build snapshots retain model columns as well as the displayed catalog,
+  // eligible solver players, and original salary rows for every collected batch.
+  const features = Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`model_feature_${i}`, i / 100]));
+  result.salaryCatalog = Array.from({ length: poolSize }, (_, i) => ({
+    ...result.salaryCatalog[i % result.salaryCatalog.length], ...features,
+    player_id: `p${i}`, dfs_id: String(i + 1), Player: `Player ${i}`, Position: positions[i] || "WR",
+  }));
+  result.settings.slate_salaries = result.salaryCatalog.map(p => ({
+    dfs_id: p.dfs_id, salary: p.salary, player_name: p.Player, team: p.Team, position: p.Position,
+  }));
+  result.settings.projection_sources = Object.fromEntries(result.salaryCatalog.map(p => [p.player_id, "ScoreSense"]));
+  result.settings.build_snapshot.content.input_pool = result.salaryCatalog;
+  result.settings.build_snapshot.content.eligible_players = result.salaryCatalog.map(p => ({
+    player_id: p.player_id, dfs_id: p.dfs_id, name: p.Player, team: p.Team, position: p.Position,
+    salary: p.salary, proj: 10, floor: 5, ceiling: 15, cpt_dfs_id: null, cpt_salary: null,
+    injury_status: "", on_bye: false,
+  }));
+  return result;
+}
+
+test("full player-pool snapshots download and restore above 120 collected lineups", () => {
+  const batches = Array.from({ length: 7 }, (_, i) => fullPoolBatch(i * 20, 20));
+  const limits = { p0: 140 };
+  const json = writePortfolioBackup(batches, limits, timestamp);
+  assert.ok(new TextEncoder().encode(json).length < PORTFOLIO_BACKUP_MAX_BYTES);
+  const restored = readPortfolioBackup(json);
+  assert.deepEqual(restored.batches, batches);
+  assert.deepEqual(restored.appearanceLimits, limits);
+  assert.equal(auditPortfolio(restored.batches, limits).unique, 140);
+});
+
+test("a 150-lineup batch preserves a full supported salary catalog in its backup", () => {
+  const batches = [fullPoolBatch(0, 150, 5000)];
+  const json = writePortfolioBackup(batches, {}, timestamp);
+  assert.ok(new TextEncoder().encode(json).length < PORTFOLIO_BACKUP_MAX_BYTES);
+  assert.deepEqual(readPortfolioBackup(json).batches, batches);
+});
+
 function template() {
   return readEntryTemplate(csvLines([["Entry ID", "Contest ID", "Contest Name", "Entry Fee", "QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "DST", "Note"],
     ...Array.from({ length: 151 }, (_, i) => [String(i + 1), "900", "Reserved Classic", "$3.00", ...Array(9).fill("Keep"), "Metadata"])]).join("\n"), "draftkings");
@@ -115,9 +156,13 @@ test("bounds cover batches, lineup totals, catalog rows, nested data and nonfini
   const oversized = document(); oversized.batches[0].salaryCatalog = Array(5001).fill(oversized.batches[0].salaryCatalog[0]); assert.throws(() => restore(oversized));
   const tooMany = document(); tooMany.batches[0].lineups = Array(151).fill(tooMany.batches[0].lineups[0]); assert.throws(() => restore(tooMany));
   const total = document(); total.batches = Array.from({ length: 7 }, (_, i) => ({ ...total.batches[0], id: `batch-${i}` })); assert.throws(() => restore(total));
-  const nested = document(); let cursor = nested.batches[0].settings.build_snapshot;
+  const nested = document(); let cursor = nested.batches[0].settings.build_snapshot.content;
   for (let i = 0; i < 25; i++) cursor = cursor.child = {};
   assert.throws(() => restore(nested));
+  const longString = document(); longString.batches[0].settings.build_snapshot.content.notes = "x".repeat(20_001);
+  assert.throws(() => restore(longString));
+  const longArray = document(); longArray.batches[0].settings.build_snapshot.content.values = Array(10_001).fill(0);
+  assert.throws(() => restore(longArray));
   assert.throws(() => readPortfolioBackup(JSON.stringify(document()).replace('"total_points":90', '"total_points":1e999')));
   const changed = structuredClone(original()); changed[0].lineups[0].total_points = NaN;
   assert.throws(() => writePortfolioBackup(changed, {}));

@@ -15,10 +15,10 @@ export async function readJsonResponse(response, url = "") {
   try {
     data = await response.json();
   } catch {
-    throw new Error(C.notJson(url, response.status));
+    throw Object.assign(new Error(C.notJson(url, response.status)), { status: response.status });
   }
   if (!response.ok) {
-    throw new Error(typeof data?.detail === "string" ? data.detail : C.requestFailed);
+    throw Object.assign(new Error(typeof data?.detail === "string" ? data.detail : C.requestFailed), { status: response.status });
   }
   return data;
 }

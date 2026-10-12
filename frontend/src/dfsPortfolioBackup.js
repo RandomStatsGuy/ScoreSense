@@ -9,7 +9,8 @@ const SETTING_KEYS = ["site", "slate_id", "season", "week", "slate_salaries", "s
   "salary_cap", "locked_player_ids", "excluded_player_ids", "lineup_count", "max_overlap", "max_exposure",
   "randomness", "min_salary", "max_per_team", "qb_stack_count", "stack_bring_back", "stack_game_weights",
   "locked_captain_id", "captain_exposure_limits", "projection_overrides", "apply_injury_adjustments",
-  "block_bye_weeks", "note", "ownership", "projection_sources", "build_snapshot", "snapshot_at"];
+  "block_bye_weeks", "note", "ownership", "projection_sources", "build_snapshot", "snapshot_at",
+  "portfolio_mode", "player_exposure_limits", "group_exposure_limits", "block_qb_opposing_dst", "portfolio_selection", "game_schedule"];
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype", "accesstoken", "refreshtoken", "idtoken",
   "authorization", "cookie", "credentials", "password", "auth", "authenticated", "session", "sessionid",
   "savedbuild", "savedbuilds", "portfoliobuildids", "buildids", "assignments", "entryassignments", "entrytemplate",
@@ -32,12 +33,12 @@ const timestamp = value => {
       hour > 23 || minute > 59 || second > 59) fail();
 };
 
-// Snapshots and catalog columns retain their historical JSON, within bounded
-// depth/node/string limits. They are data, never authentication or executable state.
+// The 20 MiB file limit bounds total JSON size. A separate aggregate node cap
+// rejects supported portfolios as each batch retains its full historical pool.
+// Keep per-value limits; snapshots are data, never authentication or executable state.
 function validateJson(value) {
-  let nodes = 0;
   const walk = (v, depth) => {
-    if (++nodes > 500_000 || depth > 24) fail();
+    if (depth > 24) fail();
     if (v === null || typeof v === "boolean") return;
     if (typeof v === "number") { if (!Number.isFinite(v)) fail(); return; }
     if (typeof v === "string") { if (v.length > 20_000) fail(); return; }
@@ -113,7 +114,7 @@ function validateBatch(batch) {
   });
   if (!Array.isArray(batch.lineups) || !batch.lineups.length || batch.lineups.length > 150) fail();
   batch.lineups.forEach(entry => {
-    shape(entry, ["lineup", "total_salary", "total_points", "salary_remaining", "objective", "ok", "note"], ["lineup", "total_salary", "total_points"]);
+    shape(entry, ["lineup", "total_salary", "total_points", "salary_remaining", "objective", "ok", "note", "solver_status"], ["lineup", "total_salary", "total_points"]);
     if (!Array.isArray(entry.lineup) || entry.lineup.length !== 9 ||
         typeof entry.total_points !== "number" || !Number.isSafeInteger(entry.total_salary)) fail();
     entry.lineup.forEach(p => {

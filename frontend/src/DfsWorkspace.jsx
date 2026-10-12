@@ -1,5 +1,12 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
 import DfsPortfolio from "./DfsPortfolio.jsx";
+import DfsGlobalExposure from "./DfsGlobalExposure.jsx";
+import DfsLocalDraft from "./DfsLocalDraft.jsx";
+import { createEntryExportSession } from "./dfsEntryExportSession.js";
+import { sealEntryExportArtifact } from "./dfsEntryExportSeal.js";
+import { validateGlobalBuildForExport } from "./dfsGlobalExportValidation.js";
+import { validatePrelockExport } from "./dfsPrelockExport.js";
+import { DFS_GLOBAL_COPY as GC } from "./dfsToolPresentation.js";
 import { auditPortfolio, buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
 import { downloadPortfolioBackup, readPortfolioBackupFile } from "./dfsPortfolioBackup.js";
 import { confirmDialog } from "./ui/confirm.jsx";
@@ -38,6 +45,13 @@ import { jsonRequest } from "./useDfsBuilder";
 const num = (n) =>
   n == null || !Number.isFinite(Number(n)) ? "—" : Number(n).toFixed(1);
 const options = (values) => values.map((v) => ({ id: v, label: String(v) }));
+// Download the exact sealed bytes; generic table downloads normalize newlines.
+function downloadEntryArtifact(artifact) {
+  const url = URL.createObjectURL(new Blob([artifact.csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url; link.download = `${artifact.filename}-${Date.now()}.csv`;
+  link.click(); URL.revokeObjectURL(url);
+}
 /** Surname only, so a row of six names still fits. Team defenses keep their name. */
 export function shortName(name) {
   const parts = String(name || "").trim().split(/\s+/);
@@ -209,13 +223,28 @@ export default function DfsWorkspace({ b }) {
     [assignments, setAssignments] = useState({}),
     [sameSlate, setSameSlate] = useState(false);
   const [usePortfolio, setUsePortfolio] = useState(false);
+  const [selectedContest, setSelectedContest] = useState("");
+  const [entryPage, setEntryPage] = useState(0);
+  const [exposurePage, setExposurePage] = useState(0);
+  const [lineupPage, setLineupPage] = useState(0);
+  const [exportState, setExportState] = useState(null);
+  const exportSession = useRef(null);
+  const exportReview = useRef(0);
   const [exportingEntries, setExportingEntries] = useState(false);
   const [restoringPortfolio, setRestoringPortfolio] = useState(false);
-  const entryBusy = exportingEntries || restoringPortfolio;
+  const entryBusy = exportingEntries || restoringPortfolio || b.building;
+  useEffect(() => {
+    const invalidate = () => { exportReview.current++; exportSession.current = null; setExportState(null); };
+    window.addEventListener("scoresense-auth-changed", invalidate);
+    return () => { window.removeEventListener("scoresense-auth-changed", invalidate); exportReview.current++; exportSession.current = null; };
+  }, []);
   const portfolioRows = useMemo(() => portfolioLineups(b.portfolio), [b.portfolio]);
   const portfolioEntries = useMemo(() => portfolioRows.map(p => p.entry), [portfolioRows]);
   const entryLineups = usePortfolio ? portfolioEntries : b.lineups;
   const entrySite = usePortfolio ? "draftkings" : b.context.site;
+  const prelockEvidence = () => validatePrelockExport(usePortfolio ? b.portfolio : b.currentBuild,
+    Object.values(assignments).filter(index => index !== "" && index != null).map(index => entryLineups[Number(index)]).filter(Boolean));
+  const selectedEntries = template?.entries.filter(e => e.contestId === selectedContest) || [];
   const lineup = b.lineups[b.selected]?.lineup || [];
   const ids = new Set(lineup.map((p) => p.player_id));
   const eligible = b.pool.filter((p) => (!b.isDfs || p.salary != null) && (b.isCaptain || p.Position !== "K"));
@@ -253,7 +282,9 @@ export default function DfsWorkspace({ b }) {
     setTemplate(null);
     setAssignments({});
     setSameSlate(false);
+    setSelectedContest(""); setEntryPage(0); setExportState(null); exportSession.current = null;
   }, [entrySite, entryLineups, b.portfolioRestoreRevision]);
+  useEffect(() => { exportReview.current++; setExportState(null); exportSession.current = null; }, [assignments, sameSlate, usePortfolio, b.portfolioLimits, template, entryLineups]);
   useEffect(() => {
     if (b.portfolioRestoreRevision) setUsePortfolio(true);
   }, [b.portfolioRestoreRevision]);
@@ -274,7 +305,12 @@ export default function DfsWorkspace({ b }) {
   const pages = Math.max(1, Math.ceil(filtered.length / 8));
   const salary = lineup.reduce((s, p) => s + Number(p.salary || 0), 0);
   const cap = Number(b.config.salary_cap || 0);
-  const exportCheck = buildSiteLineupCsv(b.context.site, b.lineups, b.pool);
+  const exportCheck = useMemo(() => {
+    try {
+      validateGlobalBuildForExport(b.currentBuild, b.lineups);
+      return buildSiteLineupCsv(b.context.site, b.lineups, b.currentBuild?.salaryCatalog || b.pool);
+    } catch (error) { return { ok: false, reason: error.message }; }
+  }, [b.context.site, b.lineups, b.currentBuild, b.pool]);
   const exposure = useMemo(() => {
     const map = new Map();
     b.lineups.forEach((e) =>
@@ -287,10 +323,15 @@ export default function DfsWorkspace({ b }) {
     );
     return [...map.values()].sort((a, z) => z.count - a.count);
   }, [b.lineups]);
+  useEffect(() => { setExposurePage(0); setLineupPage(0); }, [b.lineups]);
   const uploadTemplate = async (file) => {
     try {
       if (file) {
-        setTemplate(readEntryTemplate(await file.text(), entrySite));
+        const loaded = readEntryTemplate(await file.text(), entrySite);
+        setTemplate(loaded);
+        const contests = [...new Set(loaded.entries.map(e => e.contestId))];
+        setSelectedContest(contests.length === 1 ? contests[0] : "");
+        setEntryPage(0);
         setAssignments({});
         setSameSlate(false);
       }
@@ -298,41 +339,60 @@ export default function DfsWorkspace({ b }) {
       b.setError(e.message);
     }
   };
-  const exportEntries = async () => {
+  const synchronizeEntries = async (result, review) => {
+    const requireCurrent = () => { if (review !== exportReview.current) throw new Error(GC.staleExport); };
+    requireCurrent();
+    if (usePortfolio) {
+      const buildIds = {};
+      for (const batch of b.portfolio) {
+        requireCurrent();
+        buildIds[batch.id] = await b.savePortfolioBatch(batch);
+        requireCurrent();
+      }
+      const entries = portfolioEntryRecords(template, b.portfolio, assignments, buildIds);
+      requireCurrent();
+      return jsonRequest("/api/lineup/results/import", { method: "POST", body: JSON.stringify({ entries }) });
+    }
+    const build = b.savedBuild || await b.save(true);
+    requireCurrent();
+    if (!build) throw new Error(GC.authorization);
+    const entries = result.manifest.assignments.map(e => ({ site: "draftkings", entry_id: e.entryId,
+      contest_id: e.contestId, contest_name: e.contestName, fee_cents: moneyCents(e.fee),
+      status: "unsettled", build_id: build.id, lineup_index: e.lineupIndex }));
+    return jsonRequest("/api/lineup/results/import", { method: "POST", body: JSON.stringify({ entries }) });
+  };
+  const exportEntries = async (action = "prepare") => {
     if (entryBusy || !sameSlate) return;
+    const review = exportReview.current;
     setExportingEntries(true);
     b.setError("");
     try {
-      if (usePortfolio) {
-        const result = buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits);
-        const buildIds = {};
-        for (const batch of b.portfolio) buildIds[batch.id] = await b.savePortfolioBatch(batch);
-        const entries = portfolioEntryRecords(template, b.portfolio, assignments, buildIds);
-        await jsonRequest("/api/lineup/results/import", { method: "POST", body: JSON.stringify({ entries }) });
-        downloadCsv(result.filename, result.lines);
+      if (!exportSession.current) {
+        const converted = usePortfolio ? buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits)
+          : buildEntryCsv(template, b.lineups, assignments, b.currentBuild?.salaryCatalog || b.pool, { buildSource: b.currentBuild });
+        const result = await sealEntryExportArtifact({ ...converted, manifest: { ...converted.manifest, prelockEvidence: prelockEvidence() } }, template);
+        if (review !== exportReview.current) throw new Error(GC.staleExport);
+        exportSession.current = createEntryExportSession({ artifact: result,
+          authorize: async () => (await jsonRequest("/api/lineup/export-access")).allowed === true,
+          synchronize: () => synchronizeEntries(result, review) });
+      }
+      const session = exportSession.current;
+      const download = result => {
+        if (session !== exportSession.current || review !== exportReview.current) throw new Error(GC.staleExport);
+        prelockEvidence();
+        downloadEntryArtifact(result);
+      };
+      if (action === "recovery" && session.snapshot().syncStatus === "pending") {
+        const recovered = await session.download(download, { skipPendingSync: true });
+        if (review === exportReview.current) setExportState(recovered);
         return;
       }
-      const result = buildEntryCsv(template, b.lineups, assignments, b.pool);
-      // Saving links the actual reserved entry IDs to the immutable input snapshot.
-      const build = b.savedBuild || (await b.save());
-      if (!build) return;
-      const entries = template.entries
-        .filter((e) => assignments[e.id] !== "" && assignments[e.id] != null)
-        .map((e) => ({
-          site: "draftkings",
-          entry_id: e.id,
-          contest_id: e.contestId,
-          contest_name: e.contest,
-          fee_cents: moneyCents(e.fee),
-          status: "unsettled",
-          build_id: build.id,
-          lineup_index: Number(assignments[e.id]),
-        }));
-      await jsonRequest("/api/lineup/results/import", {
-        method: "POST",
-        body: JSON.stringify({ entries }),
-      });
-      downloadCsv(result.filename, result.lines);
+      const prepared = await session.retrySync();
+      if (review !== exportReview.current) throw new Error(GC.staleExport);
+      setExportState(prepared);
+      if (action === "retry" || (prepared.syncStatus === "pending" && action !== "recovery")) return;
+      const completed = await session.download(download);
+      if (review === exportReview.current) setExportState(completed);
     } catch (e) {
       b.setError(e.message);
     } finally {
@@ -340,8 +400,16 @@ export default function DfsWorkspace({ b }) {
     }
   };
   let portfolioExportError = "";
-  if (usePortfolio && template) {
-    try { buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits); }
+  if (template) {
+    try {
+      prelockEvidence();
+      if (usePortfolio) buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits);
+      else {
+        buildEntryCsv(template, b.lineups, assignments, b.currentBuild?.salaryCatalog || b.pool, { buildSource: b.currentBuild });
+        if (b.currentBuild?.settings.portfolio_mode === "global" && Object.values(assignments).filter(i => i !== "" && i != null).length !== b.lineups.length)
+          throw new Error(PC.countMismatch(Object.values(assignments).filter(i => i !== "" && i != null).length, b.lineups.length));
+      }
+    }
     catch (e) { portfolioExportError = e.message; }
   }
   const showLineups = () => {
@@ -617,21 +685,22 @@ export default function DfsWorkspace({ b }) {
             )}
             {tab === "exposure" && (
               <>
+                {b.context.site === "draftkings" && <DfsGlobalExposure b={b} />}
                 <p className="dfw-note">
                   {b.lineups.length} {C.count.toLowerCase()} · {C.lockNote}
                 </p>
                 <div className="dfw-table-scroll">
-                  <table className="dfw-table">
+                  <table className="dfw-table dfw-actual-exposure">
                     <thead>
                       <tr>
                         <th>{C.player}</th>
                         <th className="num">{C.total}</th>
-                        <th className="num">%</th>
+                        <th className="num">{GC.share}</th>
                         <th className="num">{C.captainCount}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {exposure.map((p) => (
+                      {exposure.slice(exposurePage * 10, exposurePage * 10 + 10).map((p) => (
                         <tr key={p.player_id}>
                           <td>{p.player}</td>
                           <td className="num">{p.count}</td>
@@ -644,6 +713,11 @@ export default function DfsWorkspace({ b }) {
                     </tbody>
                   </table>
                 </div>
+                {exposure.length > 10 && <div className="dfw-pagination" aria-label={GC.actualPages}>
+                  <small>{exposurePage + 1} / {Math.ceil(exposure.length / 10)}</small>
+                  <button disabled={exposurePage === 0} onClick={() => setExposurePage(p => p - 1)}>{C.previous}</button>
+                  <button disabled={(exposurePage + 1) * 10 >= exposure.length} onClick={() => setExposurePage(p => p + 1)}>{C.next}</button>
+                </div>}
               </>
             )}
             {tab === "notes" && (
@@ -819,6 +893,8 @@ export default function DfsWorkspace({ b }) {
           </p>
           <p className="dfw-note">{C.lockNote}</p>
           <p className="dfw-note">{C.contestNote}</p>
+          {b.context.site === "draftkings" && <p className="dfw-note">{b.settings.portfolioMode === "global" ? GC.enabled : GC.legacy}<button type="button" onClick={() => setTab("exposure")}>{C.exposureTab}</button></p>}
+          {b.error && <p className="dfw-error" role="alert">{b.error}</p>}
         </section>
           <DfsMatchupBoard b={b} />
           <DfsSourceSummary coverage={coverage} />
@@ -854,7 +930,9 @@ export default function DfsWorkspace({ b }) {
             ) : (
               <div className="dfw-lineups-body">
               <div className="dfw-portfolio">
-                {b.lineups.map((entry, i) => (
+                {b.lineups.slice(lineupPage * 10, lineupPage * 10 + 10).map((entry, localIndex) => {
+                  const i = lineupPage * 10 + localIndex;
+                  return (
                   <button
                     key={i}
                     aria-pressed={b.selected === i}
@@ -879,7 +957,12 @@ export default function DfsWorkspace({ b }) {
                       pts
                     </span>
                   </button>
-                ))}
+                ); })}
+                {b.lineups.length > 10 && <div className="dfw-pagination" aria-label={GC.lineupPages}>
+                  <small>{lineupPage + 1} / {Math.ceil(b.lineups.length / 10)}</small>
+                  <button disabled={lineupPage === 0} onClick={() => setLineupPage(p => p - 1)}>{C.previous}</button>
+                  <button disabled={(lineupPage + 1) * 10 >= b.lineups.length} onClick={() => setLineupPage(p => p + 1)}>{C.next}</button>
+                </div>}
               </div>
                 <div className="dfw-lineup">
                   <div className="dfw-panel-head">
@@ -934,6 +1017,7 @@ export default function DfsWorkspace({ b }) {
               </div>
             )}
           </section>
+          {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsLocalDraft b={b} />}
           {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={entryBusy}>
             <div className="dfw-actions">
               <button type="button" disabled={entryBusy || !b.portfolio.length} onClick={() => {
@@ -998,11 +1082,11 @@ export default function DfsWorkspace({ b }) {
             <div className="dfw-panel-head">
               <h2>{C.assignment}</h2>
               <button
-                disabled={entryBusy}
+                disabled={entryBusy || !selectedContest || selectedEntries.length < entryLineups.length}
                 onClick={() =>
                   setAssignments(
                     Object.fromEntries(
-                      template.entries
+                      selectedEntries
                         .slice(0, entryLineups.length)
                         .map((e, i) => [e.id, i]),
                     ),
@@ -1012,9 +1096,14 @@ export default function DfsWorkspace({ b }) {
                 {C.sequential}
               </button>
             </div>
+            <HubFilterMenu label={GC.contest} value={selectedContest} disabled={entryBusy} options={[
+              { id: "", label: GC.allContests },
+              ...[...new Set(template.entries.map(e => e.contestId))].map(id => ({ id, label: GC.selectedContest(template.entries.find(e => e.contestId === id).contest, template.entries.filter(e => e.contestId === id).length) }))
+            ]} onChange={id => { setSelectedContest(id); setEntryPage(0); setAssignments({}); setSameSlate(false); }} />
+            {!!selectedContest && selectedEntries.length < entryLineups.length && <p className="dfw-note">{PC.countMismatch(selectedEntries.length, entryLineups.length)}</p>}
             {usePortfolio && <p role="status">{PC.selected(Object.values(assignments).filter(v => v !== "" && v != null).length, entryLineups.length)}</p>}
             <div className="dfw-assignment-list">
-              {template.entries.map((e) => (
+              {selectedEntries.slice(entryPage * 10, entryPage * 10 + 10).map((e) => (
                 <div className="dfw-assignment" key={e.id}>
                   <span>
                     {e.contest}
@@ -1029,6 +1118,7 @@ export default function DfsWorkspace({ b }) {
                       { id: "", label: C.keep },
                       ...entryLineups.map((_, i) => ({
                         id: i,
+                        shortLabel: String(i + 1),
                         label: usePortfolio ? PC.assignment(i, portfolioRows[i].batch.label, portfolioRows[i].lineupIndex) : `${C.selected} ${i + 1}`,
                       })),
                     ]}
@@ -1038,18 +1128,34 @@ export default function DfsWorkspace({ b }) {
                 </div>
               ))}
             </div>
+            {selectedEntries.length > 10 && <div className="dfw-pagination"><span>{entryPage + 1} / {Math.ceil(selectedEntries.length / 10)}</span>
+              <button disabled={entryBusy || entryPage === 0} onClick={() => setEntryPage(p => p - 1)}>{C.previous}</button>
+              <button disabled={entryBusy || (entryPage + 1) * 10 >= selectedEntries.length} onClick={() => setEntryPage(p => p + 1)}>{C.next}</button></div>}
             <label className="dfw-check">
               <input
                 type="checkbox"
                 checked={sameSlate}
+                disabled={entryBusy}
                 onChange={(e) => setSameSlate(e.target.checked)}
               />
-              {C.verifySlate}
+              {GC.prelock}
             </label>
+            <p className="dfw-note">{GC.prelockHelp}</p>
             {portfolioExportError && <p className="dfw-error" role="alert">{portfolioExportError}</p>}
-            <button disabled={!sameSlate || entryBusy || Boolean(portfolioExportError)} onClick={exportEntries}>
-              {exportingEntries ? PC.exporting : usePortfolio ? PC.export : C.entryDownload}
+            <button disabled={!sameSlate || entryBusy || Boolean(portfolioExportError)} onClick={() => exportEntries()}>
+              {exportingEntries ? GC.syncing : GC.download}
             </button>
+            {exportState && <div className="dfw-export-status" role="status">
+              <p className="dfw-note">{exportState.syncStatus === "pending" ? GC.pending : exportState.downloaded ? GC.synced : GC.syncReady}</p>
+              {!!exportState.artifact.manifest.preservedFormulaCells?.length && <p className="dfw-note">{GC.formulaNotice}</p>}
+              {exportState.syncStatus === "pending" && <><p className="dfw-note">{exportState.syncError}</p><div className="dfw-actions">
+                <button disabled={entryBusy || !sameSlate} onClick={() => exportEntries("recovery")}>{GC.recovery}</button>
+                <button disabled={entryBusy || !sameSlate} onClick={() => exportEntries("retry")}>{GC.retry}</button></div></>}
+              <button disabled={entryBusy} onClick={() => {
+                const url = URL.createObjectURL(new Blob([JSON.stringify(exportState.artifact.manifest, null, 2)], { type: "application/json" }));
+                const link = document.createElement("a"); link.href = url; link.download = "scoresense-entry-export-audit.json"; link.click(); URL.revokeObjectURL(url);
+              }}>{GC.manifest}</button>
+            </div>}
           </section>
         )}
         </div>
