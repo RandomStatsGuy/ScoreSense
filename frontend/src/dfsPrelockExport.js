@@ -1,4 +1,4 @@
-import { normalizeDfsTeam } from "./dfsToolPresentation.js";
+import { normalizeDfsTeam, DFS_WORKFLOW_COPY as C } from "./dfsToolPresentation.js";
 
 // Free-form provider labels such as "1:00 PM ET" are not reliable timestamps.
 function strictKickoff(value) {
@@ -14,7 +14,15 @@ function strictKickoff(value) {
 /** Retained schedules provide evidence, never authoritative platform lock state. */
 export function validatePrelockExport(sources, selectedLineups, { now = Date.now() } = {}) {
   if (!Number.isFinite(now) || !Array.isArray(selectedLineups)) throw new Error("Review the entry assignments before checking pre-lock export.");
-  const schedules = (Array.isArray(sources) ? sources : [sources]).flatMap(source =>
+  const originals = Array.isArray(sources) ? sources : [sources];
+  // Composed lineups retain their original rules and also carry the generated
+  // alternative's schedule. Unknown original timing cannot erase known kickoff evidence.
+  const allSources = originals.flatMap(source => {
+    const records = source?.settings?.replacement_manifest?.replacements ?? [];
+    if (!Array.isArray(records) || records.length > 150) throw new Error(C.prelockReplacement);
+    return [source, ...records.map(record => record.candidate_source)];
+  });
+  const schedules = allSources.flatMap(source =>
     Array.isArray(source?.settings?.game_schedule) ? source.settings.game_schedule : []);
   const kickoffs = new Map();
   for (const game of schedules) {

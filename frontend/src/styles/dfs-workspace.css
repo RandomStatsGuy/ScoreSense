@@ -3,9 +3,54 @@
   gap: var(--space-5);
   color: var(--text-primary);
 }
+.dfw-journey { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--bg-subtle); border-radius: var(--radius-md); }
+.dfw-journey ol { display: flex; list-style: none; align-items: center; gap: var(--space-2); padding: 0; margin: 0; }
+.dfw-journey li { color: var(--text-secondary); font-size: var(--text-sm); }
+.dfw-journey li > span { display: inline-block; padding: var(--space-2); }
+.dfw-journey li[aria-current="step"] { color: var(--accent-muted); font-weight: var(--font-weight-semibold); }
+.dfw-journey dl, .dfw-review-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); margin: 0; }
+.dfw-journey dl > div, .dfw-review-summary > div { display: grid; gap: var(--space-1); }
+.dfw-journey dt, .dfw-review-summary dt { font-size: var(--text-xs); color: var(--text-secondary); }
+.dfw-journey dd, .dfw-review-summary dd { margin: 0; font-variant-numeric: tabular-nums; font-size: var(--text-sm); }
+.dfw-build-status, .dfw-input-update, .dfw-capabilities, .dfw-portfolio-review { display: grid; gap: var(--space-3); min-width: 0; }
+.dfw-capabilities { padding: var(--space-3) var(--space-4); background: var(--bg-subtle); border-radius: var(--radius-md); }
+.dfw-capabilities:not([open]) { display: block; }
+.dfw-capabilities > summary { cursor: pointer; min-height: var(--control-h-sm); line-height: var(--control-h-sm); font-size: var(--text-sm); }
+.dfw-capabilities[open] > summary { margin-bottom: var(--space-3); }
+.dfw-evidence-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-3) var(--space-5); margin: var(--space-3) 0; }
+.dfw-evidence-values > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); font-size: var(--text-sm); }
+.dfw-evidence-values dt { color: var(--text-secondary); }
+.dfw-evidence-values dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.dfw-update-list, .dfw-review-list { display: grid; gap: var(--space-3); min-width: 0; }
+.dfw-review-list { list-style: none; padding: 0; margin: 0; }
+.dfw-update-list > article, .dfw-review-list > article, .dfw-review-list > li { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--bg-base); border-radius: var(--radius-sm); }
+.dfw-review-list > li > div { display: grid; gap: var(--space-2); min-width: 0; }
+.dfw-update-list dl { display: grid; gap: var(--space-1); margin: 0; font-size: var(--text-sm); }
+.dfw-update-list dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.dfw-update-list dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.dfw-update-list dd, .dfw-review-list p { overflow-wrap: anywhere; }
+.dfw-workflow-target, #dfw-lineups, .dfw-input-update { scroll-margin-block: var(--space-8); }
+.dfw-review-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.dfw-review-bounds { display: flex; gap: var(--space-2); justify-content: flex-end; }
+.dfw-review-bounds .dfw-field { min-width: 64px; max-width: 90px; }
+.dfw-review-rosters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.dfw-review-rosters > div { display: grid; align-content: start; gap: var(--space-2); padding: var(--space-3); background: var(--bg-base); border-radius: var(--radius-sm); min-width: 0; }
+@media (max-width: 750px) {
+  .dfw-journey { align-items: stretch; }
+  .dfw-journey ol { width: 100%; justify-content: space-between; }
+  .dfw-journey dl { width: 100%; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2); }
+  .dfw-capabilities > summary { min-height: var(--control-h-lg); line-height: var(--control-h-lg); }
+  .dfw-evidence-values { grid-template-columns: minmax(0, 1fr); }
+  .dfw-review-rosters { grid-template-columns: minmax(0, 1fr); }
+  .dfw-review-controls { align-items: stretch; }
+  .dfw-review-controls > .hub-filter-menu { flex: 1 1 100%; }
+  .dfw-review-bounds { flex-wrap: wrap; }
+}
 .dfw h1,
 .dfw h2,
 .dfw h3,
+.dfw h4,
+.dfw h5,
 .dfw p {
   margin: 0;
 }
@@ -319,6 +364,9 @@
 .dfw-table.dfw-portfolio-audit {
   min-width: 0;
 }
+.dfw-table.dfw-review-compare { min-width: 0; }
+.dfw-review-rosters .dfw-table { min-width: 0; }
+.dfw-review-rosters :is(th, td):nth-child(2) { width: auto; white-space: normal; overflow-wrap: anywhere; }
 .dfw-portfolio-audit :is(th, td):first-child {
   position: sticky;
   left: 0;
@@ -868,6 +916,28 @@
   }
   .dfw-card-table td:first-child::before {
     content: none;
+  }
+  .dfw-review-player-bounds :is(th, td):first-child {
+    position: static;
+    background: transparent;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .dfw-review-player-bounds td.dfw-review-player-controls {
+    display: block;
+    padding-block: var(--space-3);
+  }
+  .dfw-review-player-bounds td:not(:first-child) {
+    width: auto;
+    white-space: normal;
+  }
+  .dfw-review-player-bounds .dfw-review-bounds {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dfw-review-player-bounds .dfw-review-bounds .dfw-field {
+    min-width: 0;
+    max-width: none;
   }
 }
 

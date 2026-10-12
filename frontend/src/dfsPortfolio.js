@@ -3,6 +3,7 @@ import { buildEntryCsv } from "./dfsEntryExport.js";
 import { moneyCents } from "./dfsCsv.js";
 import { DFS_PORTFOLIO_COPY as C } from "./dfsToolPresentation.js";
 import { validateGlobalBuildForExport } from "./dfsGlobalExportValidation.js";
+import { auditPortfolioRules, auditPortfolioStructure, validatePortfolioReplacementLineage } from "./dfsPortfolioReview.js";
 
 export const PORTFOLIO_TARGET = 150;
 
@@ -19,10 +20,16 @@ export function freezeSnapshot(value) {
   return freeze(copy);
 }
 
-const playerId = (row) => String(row.player_id ?? "").trim();
+// Canonical identities are exact keys shared by roster rows, bounds and saved
+// inputs. Trimming/coercing only appearance counts can make a hard cap miss.
+const playerId = (row) => {
+  const id = row?.player_id;
+  if (typeof id !== "string" || !id || id !== id.trim()) throw new Error(C.missingIdentity);
+  return id;
+};
+const validateCatalogIds = (snapshot) => snapshot.salaryCatalog.filter(p => p.salary != null).forEach(playerId);
 export function classicLineupKey(entry) {
   const ids = entry.lineup.map(playerId);
-  if (ids.some(id => !id)) throw new Error(C.missingIdentity);
   return JSON.stringify([...new Set(ids)].sort());
 }
 
@@ -45,10 +52,11 @@ export function createPortfolioBatch(snapshot, label, id = crypto.randomUUID()) 
   if (snapshot?.context?.site !== "draftkings") throw new Error(C.classicOnly);
   if (!snapshot.salaryCatalog?.length || !snapshot.settings || !snapshot.lineups?.length)
     throw new Error(C.buildFirst);
+  validateCatalogIds(snapshot);
+  snapshot.lineups.forEach(classicLineupKey);
   const check = buildSiteLineupCsv("draftkings", snapshot.lineups, snapshot.salaryCatalog);
   if (!check.ok) throw new Error(check.reason);
-  snapshot.lineups.forEach(classicLineupKey);
-  return freezeSnapshot({ id, label: label.trim(), ...snapshot });
+  return freezeSnapshot({ ...snapshot, id, label: label.trim() });
 }
 
 export function appendPortfolioBatch(batches, batch) {
@@ -67,7 +75,8 @@ export function portfolioLineups(batches) {
   })));
 }
 
-export function auditPortfolio(batches, limits = {}) {
+export function auditPortfolio(batches, limits = {}, rules = null) {
+  batches.forEach(validateCatalogIds);
   const lineups = portfolioLineups(batches), seen = new Map(), players = new Map(), duplicates = [];
   lineups.forEach(({ entry, batch }, index) => {
     const key = classicLineupKey(entry);
@@ -92,32 +101,39 @@ export function auditPortfolio(batches, limits = {}) {
     else if (count > max) errors.push(C.limitExceeded(players.get(id)?.player || id, count, max));
   }
   batches.forEach(batch => {
-    try { validateGlobalBuildForExport(batch); }
+    try { validateGlobalBuildForExport(batch); validatePortfolioReplacementLineage(batch); }
     catch (error) { errors.push(`${batch.label}: ${error.message}`); }
   });
+  const playerRows = [...players.values()].map(p => ({ ...p, batchCount: p.batches.size,
+    percent: lineups.length ? p.count / lineups.length * 100 : 0,
+  })).sort((a, b) => b.count - a.count || a.player.localeCompare(b.player));
+  let bounds = { players: [], groups: [], errors: [] };
+  try { bounds = auditPortfolioRules(batches, playerRows, rules); errors.push(...bounds.errors); }
+  catch (error) { errors.push(error.message); }
   return {
     total: lineups.length, unique: seen.size, duplicates,
+    requestedCount: batches.reduce((sum, batch) => sum + (Number.isSafeInteger(batch.settings.lineup_count) && batch.settings.lineup_count > 0 ? batch.settings.lineup_count : batch.lineups.length), 0),
     shortfall: Math.max(0, PORTFOLIO_TARGET - seen.size), batchCount: batches.length, errors,
-    players: [...players.values()].map(p => ({ ...p, batchCount: p.batches.size,
-      percent: lineups.length ? p.count / lineups.length * 100 : 0,
-    })).sort((a, b) => b.count - a.count || a.player.localeCompare(b.player)),
+    players: playerRows, bounds, structure: auditPortfolioStructure(batches),
   };
 }
 
 /** Validate the whole reviewed set before any saved-build or entry-ledger writes. */
-export function buildPortfolioEntryCsv(template, batches, assignments, limits = {}) {
-  const audit = auditPortfolio(batches, limits);
+export function buildPortfolioEntryCsv(template, batches, assignments, limits = {}, rules = null) {
+  const audit = auditPortfolio(batches, limits, rules);
   if (!audit.total) throw new Error(C.buildFirst);
   if (template.site !== "draftkings") throw new Error(C.classicOnly);
   if (audit.duplicates.length) throw new Error(C.duplicateBlock);
   if (audit.errors.length) throw new Error(audit.errors.join(" "));
-  const globalBuilds = [];
+  const globalBuilds = [], replacementSources = [];
   batches.forEach(batch => {
     if (batch.context.site !== "draftkings" || identity(batch) !== identity(batches[0])) throw new Error(C.incompatible);
     const check = buildSiteLineupCsv("draftkings", batch.lineups, batch.salaryCatalog);
     if (!check.ok) throw new Error(check.reason);
     const global = validateGlobalBuildForExport(batch);
     if (global) globalBuilds.push({ batchId: batch.id, ...global });
+    const replacements = validatePortfolioReplacementLineage(batch);
+    if (replacements) replacementSources.push({ batchId: batch.id, ...replacements });
   });
   const selected = Object.values(assignments).filter(v => v !== "" && v != null);
   if (selected.length !== audit.total) throw new Error(C.countMismatch(selected.length, audit.total));
@@ -125,7 +141,10 @@ export function buildPortfolioEntryCsv(template, batches, assignments, limits = 
   if (indices.some(i => !Number.isInteger(i) || i < 0 || i >= audit.total) || new Set(indices).size !== audit.total)
     throw new Error(C.assignmentRepeat);
   const result = buildEntryCsv(template, portfolioLineups(batches).map(p => p.entry), assignments, batches[0].salaryCatalog);
-  return globalBuilds.length ? { ...result, manifest: { ...result.manifest, globalBuilds } } : result;
+  return { ...result, manifest: { ...result.manifest, ...(globalBuilds.length ? { globalBuilds } : {}),
+    ...(replacementSources.length ? { replacementSources } : {}),
+    collectionReview: { version: 1, total: audit.total, unique: audit.unique, rules: audit.bounds.normalized,
+      players: audit.bounds.players, groups: audit.bounds.groups, structure: audit.structure } } };
 }
 
 export function portfolioBuildPayload(batch) {

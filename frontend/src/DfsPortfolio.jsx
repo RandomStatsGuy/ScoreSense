@@ -1,10 +1,21 @@
 import React, { useMemo, useState } from "react";
 import { auditPortfolio } from "./dfsPortfolio.js";
 import { DFS_PORTFOLIO_COPY as C } from "./dfsToolPresentation.js";
+import DfsPortfolioReview from "./DfsPortfolioReview.jsx";
+import { DFS_REVIEW_COPY as R } from "./dfsPortfolioReviewPresentation.js";
+
+function BatchLineups({ batch }) {
+  const [page, setPage] = useState(0), pages = Math.ceil(batch.lineups.length / 5), visiblePage = Math.min(page, Math.max(0, pages - 1));
+  return <><ol start={visiblePage * 5 + 1}>{batch.lineups.slice(visiblePage * 5, visiblePage * 5 + 5).map((entry, index) => <li key={visiblePage * 5 + index}>
+    <p className="dfw-note">{entry.lineup.map(p => `${p.slot} ${p.player}`).join(" · ")}</p></li>)}</ol>
+    {pages > 1 && <div className="dfw-pagination"><span>{visiblePage + 1} / {pages}</span>
+      <button type="button" disabled={!visiblePage} onClick={() => setPage(visiblePage - 1)}>{R.previous}</button>
+      <button type="button" disabled={visiblePage + 1 >= pages} onClick={() => setPage(visiblePage + 1)}>{R.next}</button></div>}</>;
+}
 
 export default function DfsPortfolio({ b, disabled = false, children }) {
   const [label, setLabel] = useState("");
-  const audit = useMemo(() => auditPortfolio(b.portfolio, b.portfolioLimits), [b.portfolio, b.portfolioLimits]);
+  const audit = useMemo(() => auditPortfolio(b.portfolio, b.portfolioLimits, b.portfolioRules), [b.portfolio, b.portfolioLimits, b.portfolioRules]);
   return (
     <section className="dfw-panel dfw-classic-portfolio" aria-labelledby="dfw-portfolio-title">
       <h2 id="dfw-portfolio-title">{C.title}</h2>
@@ -19,8 +30,8 @@ export default function DfsPortfolio({ b, disabled = false, children }) {
           onClick={() => { if (b.addPortfolioBatch(label)) setLabel(""); }}>{C.add}</button>
       </div>
       <div className="dfw-portfolio-progress">
-        <p role="status">{C.progress(audit.unique, audit.total, audit.batchCount, audit.duplicates.length, audit.shortfall)}</p>
-        <meter min="0" max="150" value={Math.min(150, audit.unique)} aria-label={C.title} />
+        <p role="status">{R.progress(audit.unique, audit.total, audit.requestedCount, audit.batchCount, audit.duplicates.length)}</p>
+        <meter min="0" max={Math.max(1, audit.requestedCount)} value={Math.min(audit.requestedCount, audit.unique)} aria-label={C.title} />
       </div>
       {!b.portfolio.length && <p className="dfw-note">{C.empty}</p>}
       {b.portfolio.map(batch => (
@@ -29,26 +40,14 @@ export default function DfsPortfolio({ b, disabled = false, children }) {
             <details>
               <summary>{C.batchSummary(batch.label, batch.lineups.length, batch.settings.snapshot_at)}</summary>
               <p className="dfw-note">{batch.slateName}</p>
-              <ol>{batch.lineups.map((entry, index) => <li key={index}><p className="dfw-note">{entry.lineup.map(p => `${p.slot} ${p.player}`).join(" · ")}</p></li>)}</ol>
+              <BatchLineups batch={batch} />
             </details>
             <button type="button" disabled={disabled} aria-label={`${C.remove}: ${batch.label}`} onClick={() => b.removePortfolioBatch(batch.id)}>{C.remove}</button>
           </div>
         </div>
       ))}
       {audit.duplicates.map(d => <p className="dfw-error" key={d.index}>{C.duplicate(d.first, d.index, d.batch)}</p>)}
-      <p className="dfw-note">{C.auditHelp}</p>
-      {!!Object.keys(b.portfolioLimits).length && <button type="button" disabled={disabled} onClick={b.clearPortfolioLimits}>{C.clearLimits}</button>}
-      {!!audit.players.length && (
-        <div className="dfw-table-scroll">
-          <table className="dfw-table dfw-portfolio-audit">
-            <thead><tr><th>{C.player}</th><th className="num" title={C.count}>{C.countHeading}</th><th className="num">{C.percent}</th><th className="num" title={C.qb}>{C.qbHeading}</th><th className="num">{C.batches}</th><th className="num" title={C.maximum}>{C.maxHeading}</th></tr></thead>
-            <tbody>{audit.players.map(p => <tr key={p.id}>
-              <td>{p.player}</td><td className="num">{p.count}</td><td className="num">{`${p.percent.toFixed(1)}%`}</td><td className="num">{p.quarterbacks}</td><td className="num">{p.batchCount}</td>
-              <td className="num"><input className="dfw-appearance-limit" type="number" min="0" step="1" aria-label={`${C.maximum}: ${p.player}`} value={b.portfolioLimits[p.id] ?? ""} disabled={disabled} onChange={e => b.setPortfolioLimit(p.id, e.target.value)} /></td>
-            </tr>)}</tbody>
-          </table>
-        </div>
-      )}
+      <DfsPortfolioReview b={b} audit={audit} disabled={disabled} />
       {audit.errors.map((error, i) => <p className="dfw-error" role="alert" key={i}>{error}</p>)}
     </section>
   );

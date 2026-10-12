@@ -1,20 +1,22 @@
-// Run with Vite on :5173. Uses production controls and the local-only fixture API.
+// Isolated production controls; intercepted assets and API responses are synthetic.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { parseDfsCsv, csvLines } from "../../frontend/src/dfsCsv.js";
 import { auditPortfolio, classicLineupKey } from "../../frontend/src/dfsPortfolio.js";
-import { readPortfolioBackup } from "../../frontend/src/dfsPortfolioBackup.js";
+import { readPortfolioBackup, writePortfolioBackup } from "../../frontend/src/dfsPortfolioBackup.js";
 import { attachDfsFixture } from "./dfs_fixture_runtime.mjs";
+import { DFS_WORKFLOW_COPY } from "../../frontend/src/dfsToolPresentation.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(path.join(root, "frontend/package.json"));
 const { chromium } = require("playwright");
 const output = path.join(root, "outputs/dfs-portfolio");
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
+const stressReport = [];
 const templateRows = [
   ["Entry ID", "Contest ID", "Contest Name", "Entry Fee", "QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "DST", "Note"],
   ...Array.from({ length: 7 }, (_, i) => [String(101 + i), "900", "Reserved Classic", "$3.00", ...Array(9).fill("Unchanged"), "Preserve me"]),
@@ -51,27 +53,30 @@ try {
     const label = page.getByLabel("Batch label", { exact: true });
     const add = page.getByRole("button", { name: "Add current build to portfolio", exact: true });
     await label.fill("Original batch"); await add.click();
-    await page.getByText("3 / 150 unique · 3 collected", { exact: false }).waitFor();
+    await page.getByText("3 / 3 requested unique · 3 collected", { exact: false }).waitFor();
     // Adding the same build reports duplicates, then removal restores every total.
     await label.fill("Duplicate batch"); await add.click();
-    await page.getByText("3 / 150 unique · 6 collected · 2 batches · 3 duplicates", { exact: false }).waitFor();
+    await page.getByText("3 / 6 requested unique · 6 collected · 2 batches · 3 duplicates", { exact: false }).waitFor();
     await page.getByRole("button", { name: "Remove batch: Duplicate batch", exact: true }).click();
-    await page.getByText("3 / 150 unique · 3 collected · 1 batch · 0 duplicates", { exact: false }).waitFor();
+    await page.getByText("3 / 3 requested unique · 3 collected · 1 batches · 0 duplicates", { exact: false }).waitFor();
     await page.getByLabel("Import projections & ownership", { exact: true }).setInputFiles({ name: "projections.csv", mimeType: "text/csv", buffer: Buffer.from("ID,Proj,Floor,Ceiling\n1,14,5,15") });
     await page.getByRole("button", { name: "Rebuild lineups", exact: true }).click();
     await label.fill("Imported projections"); await add.click();
-    await page.getByText("6 / 150 unique · 6 collected · 2 batches · 0 duplicates", { exact: false }).waitFor();
+    await page.getByText("6 / 6 requested unique · 6 collected · 2 batches · 0 duplicates", { exact: false }).waitFor();
     const portfolio = page.locator("[aria-labelledby='dfw-portfolio-title']");
+    const openPlayerBounds = () => portfolio.getByText("Player bounds across collection", { exact: true }).first()
+      .evaluate(summary => { if (!summary.parentElement.open) summary.click(); });
+    await openPlayerBounds();
     const qbRow = portfolio.getByRole("row").filter({ has: page.getByRole("cell", { name: "Example 1", exact: true }) });
-    assert.deepEqual(await qbRow.getByRole("cell").allTextContents(), ["Example 1", "6", "100.0%", "6", "2", ""]);
+    assert.deepEqual((await qbRow.getByRole("cell").allTextContents()).slice(0, 4), ["Example 1", "6 / 6", "6", "2"]);
     await page.getByRole("button", { name: /^Reserved-entry lineup source:/ }).click();
     await page.getByRole("option", { name: "Reviewed portfolio", exact: true }).click();
     await page.getByLabel("Import Edit Entries CSV", { exact: true }).setInputFiles({ name: "entries.csv", mimeType: "text/csv", buffer: Buffer.from(csvLines(templateRows).join("\n")) });
-    const download = page.getByRole("button", { name: "Download DraftKings entry-update CSV", exact: true });
+    const download = page.getByRole("button", { name: "Download reviewed entry-update CSV", exact: true });
     assert.equal(await download.isDisabled(), true);
     await page.getByRole("button", { name: "Assign lineups in order", exact: true }).click();
     await page.getByRole("checkbox", { name: "I checked the slate and start time; none of the assigned players have locked.", exact: true }).check();
-    const max = page.getByRole("spinbutton", { name: "Maximum appearances (optional): Example 1", exact: true });
+    const max = page.getByRole("spinbutton", { name: "Maximum collection appearances: Example 1", exact: true });
     await max.fill("5"); assert.equal(await download.isDisabled(), true);
     await max.fill("6"); assert.equal(await download.isEnabled(), true);
     // Optional history failure preserves the validated artifact; recovery is an
@@ -138,6 +143,7 @@ try {
       const unchanged = readPortfolioBackup((await backupFile(page, `unchanged-${width}`)).text);
       assert.deepEqual(unchanged.batches, originalBackup.batches);
       assert.deepEqual(unchanged.appearanceLimits, originalBackup.appearanceLimits);
+      assert.deepEqual(unchanged.reviewRules, originalBackup.reviewRules);
     }
     await restoreFile(page, backup.text);
     await replacement(page).screenshot({ path: path.join(output, `portfolio-replace-${width}.png`) });
@@ -191,7 +197,8 @@ try {
         await page.locator(".dfw-build-button").click();
         await label.fill(labelText); await add.click();
       }
-      await page.getByText("150 / 150 unique · 150 collected · 3 batches · 0 duplicates · 0 shortfall", { exact: true }).waitFor();
+      await page.getByText("150 / 150 requested unique · 150 collected · 3 batches · 0 duplicates · 0 shortfall", { exact: true }).waitFor();
+      await openPlayerBounds();
       await max.fill("150");
       await page.getByRole("button", { name: /^Reserved-entry lineup source:/ }).click();
       await page.getByRole("option", { name: "Reviewed portfolio", exact: true }).click();
@@ -210,15 +217,16 @@ try {
       console.log("PASS 150-lineup browser export: three batches, 150 selected entries, original batch links, unrelated entry preserved");
       const fullBackup = await backupFile(page, "150-lineup-backup"), beforeReload = readPortfolioBackup(fullBackup.text);
       await page.reload();
-      await page.getByText("0 / 150 unique · 0 collected", { exact: false }).waitFor();
+      await page.getByText("0 / 0 requested unique · 0 collected", { exact: false }).waitFor();
       await restoreFile(page, fullBackup.text);
-      await page.getByText("150 / 150 unique · 150 collected · 3 batches · 0 duplicates · 0 shortfall", { exact: true }).waitFor();
+      await page.getByText("150 / 150 requested unique · 150 collected · 3 batches · 0 duplicates · 0 shortfall", { exact: true }).waitFor();
       assert.equal(await replacement(page).count(), 0, "An empty portfolio restores without replacement confirmation");
       const afterReload = readPortfolioBackup((await backupFile(page, "150-lineup-restored")).text);
       assert.deepEqual(afterReload.batches, beforeReload.batches);
       assert.deepEqual(afterReload.appearanceLimits, beforeReload.appearanceLimits);
+      assert.deepEqual(afterReload.reviewRules, beforeReload.reviewRules);
       assert.deepEqual(afterReload.batches.flatMap(b => b.lineups.map(classicLineupKey)), beforeReload.batches.flatMap(b => b.lineups.map(classicLineupKey)));
-      assert.deepEqual(auditPortfolio(afterReload.batches, afterReload.appearanceLimits), auditPortfolio(beforeReload.batches, beforeReload.appearanceLimits));
+      assert.deepEqual(auditPortfolio(afterReload.batches, afterReload.appearanceLimits, afterReload.reviewRules), auditPortfolio(beforeReload.batches, beforeReload.appearanceLimits, beforeReload.reviewRules));
       assert.equal(await page.evaluate(() => window.__portfolioFixture.requests.length), 0, "Restore must never regenerate lineups");
       await assignEntries(page, largeRows);
       const recoveredDownload = page.waitForEvent("download"); await download.click();
@@ -232,7 +240,7 @@ try {
       bad.appearanceLimits.p1 = "149";
       await restoreFile(page, JSON.stringify(bad));
       await replacement(page).getByRole("button", { name: "Replace portfolio", exact: true }).click();
-      await page.getByText("149 / 150 unique · 150 collected · 3 batches · 1 duplicates · 1 shortfall", { exact: true }).waitFor();
+      await page.getByText("149 / 150 requested unique · 150 collected · 3 batches · 1 duplicates · 1 shortfall", { exact: true }).waitFor();
       await portfolio.getByRole("alert").filter({ hasText: "150 appearances exceeds the maximum of 149" }).waitFor();
       await assignEntries(page, largeRows); assert.equal(await download.isDisabled(), true);
       const limitOnly = { schema: beforeReload.schema, version: 1, exportedAt: beforeReload.exportedAt,
@@ -240,6 +248,7 @@ try {
       await restoreFile(page, JSON.stringify(limitOnly));
       await replacement(page).getByRole("button", { name: "Replace portfolio", exact: true }).click();
       await assignEntries(page, largeRows); assert.equal(await download.isDisabled(), true);
+      await openPlayerBounds();
       await max.fill("150"); assert.equal(await download.isEnabled(), true);
       console.log("PASS 150-lineup backup → reload → restore → identical export: identities, snapshots, timestamps, limits, audit, fresh account saves, duplicate/limit gates");
     }
@@ -248,8 +257,9 @@ try {
   for (const width of [1280, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, acceptDownloads: true });
     await attachDfsFixture(context);
-    const page = await context.newPage(), errors = [];
+    const page = await context.newPage(), errors = [], workerUrls = [];
     page.on("pageerror", e => errors.push(e.message));
+    page.on("worker", worker => workerUrls.push(worker.url()));
     await page.goto("http://127.0.0.1:5173/test-fixtures/dfs-portfolio.html?large-pool");
     await page.getByRole("spinbutton", { name: "Lineups", exact: true }).fill("20");
     for (let i = 0; i < 7; i++) {
@@ -257,26 +267,58 @@ try {
       await page.getByLabel("Batch label", { exact: true }).fill(`Full-pool batch ${i + 1}`);
       await page.getByRole("button", { name: "Add current build to portfolio", exact: true }).click();
     }
-    await page.getByText("140 / 150 unique · 140 collected · 7 batches · 0 duplicates · 10 shortfall", { exact: true }).waitFor();
+    await page.getByText("140 / 140 requested unique · 140 collected · 7 batches · 0 duplicates · 0 shortfall", { exact: true }).waitFor();
+    await page.evaluate(backupBusyLabel => {
+      window.__backupAnimationFrames = 0;
+      window.__backupBusyFrames = 0;
+      window.__backupStartedAt = performance.now();
+      const frame = () => {
+        window.__backupAnimationFrames++;
+        if ([...document.querySelectorAll("button")].some(button => button.textContent === backupBusyLabel)) window.__backupBusyFrames++;
+        window.__backupFrame = requestAnimationFrame(frame);
+      };
+      window.__backupFrame = requestAnimationFrame(frame);
+    }, DFS_WORKFLOW_COPY.backupWorking);
+    const framesBefore = await page.evaluate(() => window.__backupAnimationFrames);
     const downloaded = await backupFile(page, `large-pool-${width}`);
+    assert.ok(await page.evaluate(() => window.__backupAnimationFrames) > framesBefore,
+      "Animation frames continue while the real worker encodes the large backup");
+    const responsiveness = await page.evaluate(() => ({ animationFrames: window.__backupAnimationFrames,
+      busyAnimationFrames: window.__backupBusyFrames, browserDownloadRoundTripMs: Math.round(performance.now() - window.__backupStartedAt) }));
+    assert.ok(responsiveness.busyAnimationFrames > 0, "The main thread paints frames while the backup button shows its busy state");
+    await page.evaluate(() => cancelAnimationFrame(window.__backupFrame));
+    assert.ok(workerUrls.some(url => url.endsWith("/dfsPortfolioBackup.worker.js")), "The production backup worker was actually used");
     const original = readPortfolioBackup(downloaded.text);
     assert.equal(auditPortfolio(original.batches).total, 140);
     assert.equal(original.batches[0].salaryCatalog.length, 700);
-    // Ensure this fixture covers the removed 500,000-value ceiling.
-    let values = 0;
-    JSON.parse(downloaded.text, (_key, value) => { values++; return value; });
+    // Keep the expanded historical stress case while measuring the real
+    // compact wire format against the same supported version-1 content.
+    const legacyText = writePortfolioBackup(original.batches, original.appearanceLimits, original.exportedAt,
+      { version: 1, reviewRules: original.reviewRules });
+    let values = 0, compactValues = 0;
+    JSON.parse(legacyText, (_key, value) => { values++; return value; });
+    JSON.parse(downloaded.text, (_key, value) => { compactValues++; return value; });
     assert.ok(values > 500_000);
+    assert.equal(JSON.parse(downloaded.text).version, 2);
+    assert.ok(Buffer.byteLength(downloaded.text) < Buffer.byteLength(legacyText) * 0.8,
+      "Shared references must materially reduce the repeated full-pool backup");
+    assert.deepEqual(readPortfolioBackup(legacyText).batches, original.batches, "Version-1 backups remain readable");
     await page.locator("[aria-labelledby='dfw-portfolio-title']").scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(output, `large-pool-${width}.png`) });
     await page.reload();
     await restoreFile(page, downloaded.text);
-    await page.getByText("140 / 150 unique · 140 collected · 7 batches · 0 duplicates · 10 shortfall", { exact: true }).waitFor();
+    await page.getByText("140 / 140 requested unique · 140 collected · 7 batches · 0 duplicates · 0 shortfall", { exact: true }).waitFor();
     const restored = readPortfolioBackup((await backupFile(page, `large-pool-restored-${width}`)).text);
     assert.deepEqual(restored.batches, original.batches);
     assert.deepEqual(restored.appearanceLimits, original.appearanceLimits);
     assert.equal(await page.evaluate(() => window.__portfolioFixture.requests.length), 0);
     assert.deepEqual(errors, []);
-    console.log(`PASS ${width}: 140-lineup full-pool backup downloads, restores after reload, and re-downloads without changed inputs (${values} values).`);
+    stressReport.push({ width, synthetic: true, lineups: 140, players: 700,
+      version1Bytes: Buffer.byteLength(legacyText), version2Bytes: Buffer.byteLength(downloaded.text),
+      legacyValues: values, compactValues, workerObserved: true, exactRestore: true, regenerated: false,
+      browserErrors: 0, ...responsiveness });
+    console.log(`PASS ${width}: 140-lineup/700-player compact backup restores exact history with no regeneration; v1 ${Buffer.byteLength(legacyText)} bytes/${values} values → v2 ${Buffer.byteLength(downloaded.text)} bytes/${compactValues} values.`);
+    console.log(`Worker responsiveness ${width}: ${responsiveness.busyAnimationFrames} animation frames during visible busy state; download round trip ${responsiveness.browserDownloadRoundTripMs}ms (synthetic browser/file workflow, not a production timing benchmark).`);
     await context.close();
   }
-} finally { await browser.close(); }
+} finally { await writeFile(path.join(output, "stress-report.json"), JSON.stringify({ synthetic: true, stressReport }, null, 2)); await browser.close(); }

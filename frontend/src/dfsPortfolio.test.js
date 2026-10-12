@@ -157,6 +157,27 @@ test("each lineup still passes the existing slot, ID, position, salary and eligi
   assert.throws(() => buildPortfolioEntryCsv(t, [b], { 101: 0 }), /eligible-player/);
 });
 
+test("canonical identities cannot be trimmed or coerced to evade a hard collection bound", () => {
+  for (const id of [" p1 ", "p1\t", "\np1", 1, null, ""]) {
+    const malformed = source();
+    malformed.salaryCatalog[0].player_id = id;
+    malformed.lineups[0].lineup[0].player_id = id;
+    const before = structuredClone(malformed), template = entryTemplate(1);
+    const rules = { version: 1, players: { [String(id)]: { max: 0 } }, groups: [] };
+    assert.throws(() => createPortfolioBatch(malformed, "Invalid canonical identity"), /canonical player ID/);
+    // Export must independently reject malformed restored/caller-created batches,
+    // even if they skipped createPortfolioBatch and match the raw catalog ID.
+    assert.throws(() => auditPortfolio([malformed], {}, rules), /canonical player ID/);
+    assert.throws(() => buildPortfolioEntryCsv(template, [malformed], { 101: 0 }, {}, rules), /canonical player ID/);
+    assert.deepEqual(malformed, before);
+  }
+  const catalogOnly = source(); catalogOnly.salaryCatalog.at(-1).player_id = " p170 ";
+  assert.throws(() => createPortfolioBatch(catalogOnly, "Invalid eligible catalog"), /canonical player ID/);
+  assert.throws(() => auditPortfolio([catalogOnly]), /canonical player ID/);
+  assert.throws(() => buildPortfolioEntryCsv(entryTemplate(1), [batch()], { 101: 0 }, {},
+    { version: 1, players: { p1: { max: 0 } }, groups: [] }), /maximum/);
+});
+
 test("150 unique collected lineups export to 150 selected entries, preserving other entries", () => {
   const a = batch(75), b = batch(75, 75, "B"), batches = [a, b], t = entryTemplate(151);
   const assignments = Object.fromEntries(t.entries.slice(0, 150).map((e, i) => [e.id, i]));
@@ -172,4 +193,18 @@ test("portfolio copy explains explicit recovery and export-only limits", () => {
   assert.match(C.help, /backup before leaving/); assert.match(C.auditHelp, /do not change builds/);
   assert.match(C.backupHelp, /fresh Edit Entries template/);
   assert.match(C.backupHelp, /not proof of ownership or authenticity/);
+});
+
+test("combined min/max count rules gate the exact CSV atomically and soft targets retain misses", () => {
+  const batches = [batch(2)], template = entryTemplate(), assignments = { 101: 0, 102: 1 }, before = structuredClone(template.rows);
+  const controls = { version: 1, players: { p1: { min: 2, max: 2, target: 1.5 } },
+    groups: [{ id: "core", player_ids: ["p2", "p3"], max: 1 }] };
+  assert.throws(() => buildPortfolioEntryCsv(template, batches, assignments, {}, controls), /core.*exceeds/i);
+  assert.deepEqual(template.rows, before); assert.deepEqual(assignments, { 101: 0, 102: 1 });
+  controls.groups[0].max = 2;
+  const result = buildPortfolioEntryCsv(template, batches, assignments, {}, controls);
+  assert.equal(result.changed, 2); assert.equal(result.manifest.collectionReview.groups[0].actual, 2);
+  assert.equal(result.manifest.collectionReview.players[0].targetMiss, 0.5);
+  assert.equal(result.manifest.collectionReview.structure.flex.WR, 2);
+  assert.deepEqual(template.rows, before);
 });

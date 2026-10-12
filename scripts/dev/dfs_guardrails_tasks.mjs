@@ -140,7 +140,9 @@ export async function verifyGuardrails(browser, root) {
       await count.fill("4");
       assert.equal(await page.locator(".dfw-build-button").isDisabled(), true);
       await page.locator("#dfw-plan-block").getByText("Controls differ from the applied plan. Reapply its preview or release the plan before building.", { exact: true }).waitFor();
-      assert.equal(await page.locator(".dfw-build-button").getAttribute("aria-describedby"), "dfw-plan-block");
+      const buildDescription = await page.locator(".dfw-build-button").getAttribute("aria-describedby");
+      assert.ok(buildDescription, "Blocked Build is associated with its visible reason");
+      assert.match(await page.locator(`#${buildDescription}`).innerText(), /Controls differ from the applied plan/);
       assert.equal(await page.evaluate(() => window.__portfolioFixture.requests.length), 1, "Plan mismatch blocks before API");
       await count.fill("3"); assert.equal(await page.locator(".dfw-build-button").isEnabled(), true); await page.locator(".dfw-build-button").click();
       await page.waitForFunction(() => window.__portfolioFixture.requests.length === 2);
