@@ -7,6 +7,7 @@ import DfsWorkspace from "../src/DfsWorkspace.jsx";
 import { DEFAULT_FORMATS } from "../src/dfsToolPresentation.js";
 import { publishDataRevision } from "../src/useDataRevision.js";
 import evidenceFixture from "./dfs-evidence-data.json";
+import sharedFixture from "./dfs-shared-data.json";
 import "../src/styles.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
@@ -16,13 +17,14 @@ import "../src/styles/fantasy-phone.css";
 const positions = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "WR", "DST"];
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
 const largePool = new URLSearchParams(location.search).has("large-pool");
-const workflow = new URLSearchParams(location.search).has("workflow");
+const sharedMode = new URLSearchParams(location.search).has("shared");
+const workflow = sharedMode || new URLSearchParams(location.search).has("workflow");
 const evidenceMode = new URLSearchParams(location.search).has("evidence");
 const guardrails = workflow || evidenceMode || new URLSearchParams(location.search).has("guardrails");
 const historicalFeatures = largePool
   ? Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`model_feature_${i}`, i / 100]))
   : {};
-const players = evidenceMode ? evidenceFixture.pool : Array.from({ length: largePool ? 700 : workflow ? 400 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
+const players = sharedMode ? sharedFixture.ui_pool : evidenceMode ? evidenceFixture.pool : Array.from({ length: largePool ? 700 : workflow ? 400 : 180 }, (_, i) => ({ ...historicalFeatures, player_id: `p${i + 1}`, dfs_id: String(i + 1),
   Player: `Example ${i + 1}`, Team: guardrails && i >= 9 ? "KC" : i % 2 ? "BUF" : "KC",
   Opponent: guardrails && i >= 9 ? "BUF" : i % 2 ? "KC" : "BUF",
   Position: guardrails && i === 178 ? "RB" : positions[i] || "WR", salary: 4000,
@@ -34,6 +36,11 @@ window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: f
   evidenceRequests: 0, comparisonRequests: [], failEvidence: false, missingEvidence: false,
   delayEvidence: false, ignoreEvidenceAbort: false, evidenceAborts: 0,
   failComparison: false, delayComparison: false, ignoreComparisonAbort: false, comparisonAborts: 0, mismatchComparison: false,
+  sharedPreviewRequests: [], sharedEvaluateRequests: [], failSharedPreview: false, failSharedEvaluate: false,
+  delaySharedPreview: false, ignoreSharedPreviewAbort: false, sharedPreviewAborts: 0,
+  delaySharedEvaluate: false, ignoreSharedEvaluateAbort: false, sharedEvaluateAborts: 0,
+  mismatchSharedPreview: false, mismatchSharedEvaluate: false,
+  sharedAccessStatus: 200,
   publishDataRevision };
 const fixturePool = state => players.map((player, index) => ({ ...player,
   ...((workflow || evidenceMode) && state.poolVersion && index === 0 ? {
@@ -41,6 +48,12 @@ const fixturePool = state => players.map((player, index) => ({ ...player,
     "Low (P10)": player["Low (P10)"] + state.poolVersion, "High (P90)": player["High (P90)"] + state.poolVersion * 3,
   } : {}) }));
 const nativeFetch = window.fetch.bind(window);
+const canonical = value => JSON.stringify(value, (_key, item) => item && typeof item === "object" && !Array.isArray(item)
+  ? Object.fromEntries(Object.entries(item).sort(([left], [right]) => left.localeCompare(right))) : item);
+const byPlayerId = rows => [...rows].sort((a, b) => a.player_id.localeCompare(b.player_id));
+const matchesSharedInputs = body => canonical(body.context) === canonical(sharedFixture.engine_inputs.context) &&
+  canonical(byPlayerId(body.pool || [])) === canonical(byPlayerId(sharedFixture.engine_inputs.pool)) &&
+  canonical(body.bank) === canonical(sharedFixture.engine_inputs.bank);
 window.fetch = async (url, options = {}) => {
   if (!String(url).startsWith("/api/")) return nativeFetch(url, options);
   const path = String(url), state = window.__portfolioFixture;
@@ -61,6 +74,34 @@ window.fetch = async (url, options = {}) => {
   };
   if (path.includes("/formats")) return respond({ formats: DEFAULT_FORMATS });
   if (path.includes("/slates?")) return respond({ slates: [{ slate_id: "classic-fixture", name: "Classic fixture slate" }] });
+  if (sharedMode && path.endsWith("/shared-outcomes/preview")) {
+    state.sharedPreviewRequests.push(body);
+    if (state.sharedAccessStatus !== 200) return respond({ detail: "Synthetic research account access denied." }, state.sharedAccessStatus);
+    await delay("delaySharedPreview", "ignoreSharedPreviewAbort", "sharedPreviewAborts");
+    if (state.failSharedPreview) return respond({ detail: "Synthetic scenario preview failure. Existing work is retained." }, 503);
+    if (!matchesSharedInputs(body)) return respond({ detail: "This exact request differs from the real-engine synthetic input. No invented preview is returned." }, 400);
+    return respond({ ...sharedFixture.summary,
+      ...(state.mismatchSharedPreview ? { context: { ...sharedFixture.summary.context, slate_id: "wrong-synthetic-slate" } } : {}) });
+  }
+  if (sharedMode && path.endsWith("/shared-outcomes/evaluate")) {
+    state.sharedEvaluateRequests.push(body);
+    if (state.sharedAccessStatus !== 200) return respond({ detail: "Synthetic research account access denied." }, state.sharedAccessStatus);
+    await delay("delaySharedEvaluate", "ignoreSharedEvaluateAbort", "sharedEvaluateAborts");
+    if (state.failSharedEvaluate) return respond({ detail: "Synthetic scenario evaluation failure. Existing work is retained." }, 503);
+    const expected = sharedFixture.engine_inputs.lineups;
+    const exactRosters = body.lineups?.length === expected.length && body.lineups.every((row, index) =>
+      canonical([...row.player_ids].sort()) === canonical([...expected[index].player_ids].sort()));
+    if (!matchesSharedInputs(body) || !exactRosters || body.bank_id !== sharedFixture.summary.content_id || body.seed !== 0 || body.draw_count !== 256)
+      return respond({ detail: "This exact request differs from the real-engine synthetic evaluation. No invented scores are returned." }, 400);
+    return respond({ ...(body.lineups[0]?.lineup_id?.startsWith("collection:") ? sharedFixture.collection_evaluation : sharedFixture.evaluation),
+      input_snapshot_id: state.mismatchSharedEvaluate ? "wrong-synthetic-input" : body.input_snapshot_id,
+      bank_id: body.bank_id });
+  }
+  if (sharedMode && path.includes("/evidence?")) {
+    const query = new URL(path, location.origin).searchParams;
+    return respond({ status: "unavailable", reason: "No opportunity artifact is included in this isolated shared-scenario fixture.",
+      context: { site: query.get("site"), sport: "NFL", season: Number(query.get("season")), week: Number(query.get("week")), slate_id: query.get("slate_id"), format: "classic" } });
+  }
   if (evidenceMode && path.includes("/evidence?")) {
     state.evidenceRequests++;
     await delay("delayEvidence", "ignoreEvidenceAbort", "evidenceAborts");
@@ -91,12 +132,14 @@ window.fetch = async (url, options = {}) => {
       player_name: p.Player, position: p.Position, team: p.Team, salary: p.salary })), salary_snapshot: { id: (state.unrelatedCatalog ? "c" : "b").repeat(64) },
       slate: { name: "Classic fixture slate" }, meta: {} });
   }
-  if (path.includes("/vegas")) return respond({ games: evidenceMode ? evidenceFixture.evidence.games.map((game, index) => ({ ...game,
+  if (path.includes("/vegas")) return respond({ games: sharedMode ? sharedFixture.engine_inputs.bank.games.map(game => ({ game_id: game.game_id,
+    home: game.home_team, away: game.away_team, kickoff_et: game.kickoff_at, kickoff_at: game.kickoff_at,
+    weekday: "Synthetic fixture", total_line: 47, spread_line: -3, home_implied: 25, away_implied: 22 })) : evidenceMode ? evidenceFixture.evidence.games.map((game, index) => ({ ...game,
     kickoff_et: game.kickoff_at, weekday: "Synthetic fixture", total_line: [47, 43, 40][index], spread_line: [3, -2, 1][index],
     home_implied: [25, 20.5, 20.5][index], away_implied: [22, 22.5, 19.5][index],
     first_seen_total_line: [48, null, 40][index], first_seen_spread_line: [3, null, 1][index],
     line_first_seen_at: "2026-10-06T01:00:00Z" })) : guardrails ? [{ game_id: "synthetic-kc-buf", home: "KC", away: "BUF",
-    kickoff_et: "2099-10-11T20:25:00Z", weekday: "Synthetic fixture", total: 47, spread_home: -3, home_implied: 25, away_implied: 22 }] : [] });
+    kickoff_et: "2099-10-11T20:25:00Z", weekday: "Synthetic fixture", total_line: 47, spread_line: -3, home_implied: 25, away_implied: 22 }] : [] });
   if (path.endsWith("/export-access")) {
     state.accessChecks++;
     return respond(state.accessStatus === 200 ? { allowed: true } : { detail: "Fixture account access denied" }, state.accessStatus);
@@ -117,6 +160,12 @@ window.fetch = async (url, options = {}) => {
       captain_comparison: { snapshot_id: "synthetic-comparison", complete: false, candidates: [],
         eligible_captains: 0, evaluated_captains: 0, objective: body.objective },
       build_snapshot: { id: "synthetic-comparison", captured_at: "2026-10-10T12:00:00Z" } });
+    if (sharedMode) {
+      const lineups = sharedFixture.built_lineups.slice(0, body.lineup_count);
+      return respond({ ok: true, lineups, complete: lineups.length === body.lineup_count,
+        build_snapshot: { id: "synthetic-shared-build", captured_at: sharedFixture.engine_inputs.bank.decision_at,
+          content: { schema_version: "dfs_build_inputs_v1", parameters: body, input_pool: fixturePool(state) } } });
+    }
     if (evidenceMode) {
       const report = evidenceFixture.comparison;
       const selected = report.candidates.filter(candidate => candidate.in_primary_scope && candidate.completions[0]?.result?.validation?.ok)

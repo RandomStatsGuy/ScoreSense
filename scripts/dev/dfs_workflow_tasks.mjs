@@ -240,7 +240,7 @@ async function verifyNormal150(browser) {
     try {
       await page.goto(fixtureUrl); await page.getByRole("button", { name: "Lock Example 1", exact: true }).waitFor();
       await startGlobalBuild(page, "150");
-      await page.getByRole("button", { name: "Generate 150 lineups", exact: true }).click();
+      await page.getByRole("button", { name: "Build 150 lineups", exact: true }).click();
       await page.getByText("Built 150 lineups.", { exact: true }).waitFor();
       await page.getByRole("button", { name: "Review portfolio", exact: true }).click();
       const original = await backup(page, `normal150-${width}.json`);

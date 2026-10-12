@@ -1,5 +1,7 @@
 import DfsCaptainComparison from "./DfsCaptainComparison.jsx";
 import DfsEvidenceReview from "./DfsEvidenceReview.jsx";
+import DfsSharedOutcomesReview from "./DfsSharedOutcomesReview.jsx";
+import { DFS_FLOW_COPY as F } from "./dfsToolPresentation.js";
 import { DFS_EVIDENCE_COPY as EC } from "./dfsToolPresentation.js";
 import DfsPortfolio from "./DfsPortfolio.jsx";
 import DfsGlobalExposure from "./DfsGlobalExposure.jsx";
@@ -14,7 +16,7 @@ import { sealEntryExportArtifact } from "./dfsEntryExportSeal.js";
 import { validateGlobalBuildForExport } from "./dfsGlobalExportValidation.js";
 import { validatePrelockExport } from "./dfsPrelockExport.js";
 import { DFS_GLOBAL_COPY as GC, DFS_GUARDRAIL_COPY as RC } from "./dfsToolPresentation.js";
-import { auditPortfolio, buildPortfolioEntryCsv, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
+import { auditPortfolio, buildPortfolioEntryCsv, createPortfolioBatch, portfolioLineups, portfolioEntryRecords } from "./dfsPortfolio.js";
 import { downloadPortfolioBackupAsync, readPortfolioBackupFileAsync } from "./dfsPortfolioBackupAsync.js";
 import { confirmDialog } from "./ui/confirm.jsx";
 import { DFS_PORTFOLIO_COPY as PC } from "./dfsToolPresentation.js";
@@ -125,10 +127,8 @@ function DfsMatchupBoard({ b, onEvidence, evidenceButtonRef }) {
     <section className="dfw-panel dfw-matchups" aria-labelledby="dfw-matchups-title">
       <div className="dfw-matchups-head">
         <div>
-          <h2 id="dfw-matchups-title">{DFS_STEP_COPY.shootoutTitle}</h2>
-          <p className="dfw-note">{DFS_STEP_COPY.shootoutSupport}</p>
-          <p className="dfw-note">{DFS_STEP_COPY.impliedNote}</p>
-          {showsLineMoves && <p className="dfw-note">{DFS_STEP_COPY.lineMoveNote}</p>}
+          <h2 id="dfw-matchups-title">{F.games}</h2>
+          <small>{F.optional}</small>
         </div>
         {!!allocation.length && (
           <button type="button" onClick={b.clearStackWeights}>
@@ -136,20 +136,11 @@ function DfsMatchupBoard({ b, onEvidence, evidenceButtonRef }) {
           </button>
         )}
       </div>
-      {b.context.site === "draftkings" && <button ref={evidenceButtonRef} type="button" onClick={onEvidence}>{EC.open}</button>}
       {!games.length ? (
         <p className="dfw-note">{DFS_STEP_COPY.shootoutEmpty}</p>
       ) : (
         <>
-          <div className="dfw-matchup-plan">
-            <h3>{DFS_STEP_COPY.lineupPlan}</h3>
-            {!allocation.length ? <p className="dfw-note">{DFS_STEP_COPY.noWeightedGames}</p> : allocation.map((entry) => {
-              const game = games.find((item) => item.game_id === entry.gameId);
-              return game ? <div className="dfw-matchup-plan-row" key={entry.gameId}><span>{gameStackLabel(game)}</span><strong>{DFS_STEP_COPY.lineupAllocation(entry.count)}</strong></div> : null;
-            })}
-            <p className="dfw-note">{DFS_STEP_COPY.weightOnNote}</p>
-          </div>
-          <div className="dfw-matchup-grid">
+          <div className="dfw-game-list">
             {games.map((game) => {
               const weight = Number(b.stackWeights[game.game_id]) || 0;
               const movement = vegasLineMovement(game);
@@ -158,7 +149,7 @@ function DfsMatchupBoard({ b, onEvidence, evidenceButtonRef }) {
               return (
                 <article
                   key={game.game_id}
-                  className={`dfw-matchup-card${weight ? " is-active" : ""}`}
+                  className={`dfw-game-row${weight ? " is-active" : ""}`}
                   style={{
                     "--dfw-away-top": awayColors.jersey[0],
                     "--dfw-away-bottom": awayColors.jersey[1],
@@ -168,10 +159,16 @@ function DfsMatchupBoard({ b, onEvidence, evidenceButtonRef }) {
                     "--dfw-home-mark": homeColors.plate,
                   }}
                 >
-                  <div className="dfw-matchup-kick">
-                    <span>{vegasKickoffLabel(game.kickoff_et, game.weekday)}</span>
-                    {game.game_id === highestId && <strong>{DFS_STEP_COPY.highestTotal}</strong>}
+                  <div className="dfw-game-summary">
+                    <div><strong>{game.away} at {game.home}</strong><small>{vegasKickoffLabel(game.kickoff_et, game.weekday)} · {vegasTotalValue(game)} {F.total.toLowerCase()}</small></div>
+                    <div className="dfw-game-weight" role="group" aria-label={`${DFS_STEP_COPY.stackWeight}: ${gameStackLabel(game)}`}>
+                      <button type="button" aria-label={`${DFS_STEP_COPY.lowerWeight}: ${gameStackLabel(game)}`} disabled={!weight || b.building} onClick={() => b.changeStackWeight(game.game_id, -1)}>−</button>
+                      <strong aria-live="polite">{matchupWeightLabel(weight)}</strong>
+                      <button type="button" aria-label={`${DFS_STEP_COPY.raiseWeight}: ${gameStackLabel(game)}`} disabled={weight >= 4 || b.building} onClick={() => b.changeStackWeight(game.game_id, 1)}>+</button>
+                    </div>
                   </div>
+                  <details className="dfw-game-lines"><summary>{F.marketDetails}</summary>
+                  {game.game_id === highestId && <small>{DFS_STEP_COPY.highestTotal}</small>}
                   <div className="dfw-matchup-stage">
                     <div className="dfw-matchup-team dfw-matchup-team--away">
                       <b>{game.away}</b>
@@ -185,28 +182,35 @@ function DfsMatchupBoard({ b, onEvidence, evidenceButtonRef }) {
                   </div>
                   <div className="dfw-matchup-markets" role="group" aria-label={DFS_STEP_COPY.currentLine}>
                     <div>
-                      <span>Total</span>
+                      <span>{F.total}</span>
                       <strong>{vegasTotalValue(game)}</strong>
                       <small className={movement.totalChanged ? "has-moved" : ""}>{movement.total}</small>
                     </div>
                     <div>
-                      <span>Spread</span>
+                      <span>{F.spread}</span>
                       <strong>{vegasSpreadLabel(game)}</strong>
                       <small className={movement.spreadChanged ? "has-moved" : ""}>{movement.spread}</small>
                     </div>
                   </div>
-                  <div className="dfw-matchup-weight" role="group" aria-label={`${DFS_STEP_COPY.stackWeight}: ${gameStackLabel(game)}`}>
-                    <span>{DFS_STEP_COPY.weightShort}</span>
-                    <div>
-                      <button type="button" aria-label={`${DFS_STEP_COPY.lowerWeight}: ${gameStackLabel(game)}`} disabled={!weight || b.building} onClick={() => b.changeStackWeight(game.game_id, -1)}>−</button>
-                      <strong aria-live="polite">{matchupWeightLabel(weight)}</strong>
-                      <button type="button" aria-label={`${DFS_STEP_COPY.raiseWeight}: ${gameStackLabel(game)}`} disabled={weight >= 4 || b.building} onClick={() => b.changeStackWeight(game.game_id, 1)}>+</button>
-                    </div>
-                  </div>
+                  </details>
                 </article>
               );
             })}
           </div>
+          <details className="dfw-flow-disclosure">
+            <summary>{F.gameHelp}</summary>
+            <div className="dfw-detail-body">
+              <p className="dfw-note">{F.gameHint}</p>
+              <p className="dfw-note">{DFS_STEP_COPY.weightOnNote}</p>
+              {!!allocation.length && <div className="dfw-matchup-plan">
+                <h3>{DFS_STEP_COPY.lineupPlan}</h3>
+                {allocation.map(entry => { const game = games.find(item => item.game_id === entry.gameId); return game ? <div className="dfw-matchup-plan-row" key={entry.gameId}><span>{gameStackLabel(game)}</span><strong>{DFS_STEP_COPY.lineupAllocation(entry.count)}</strong></div> : null; })}
+              </div>}
+              <p className="dfw-note">{DFS_STEP_COPY.impliedNote}</p>
+              {showsLineMoves && <p className="dfw-note">{DFS_STEP_COPY.lineMoveNote}</p>}
+              {b.context.site === "draftkings" && <button ref={evidenceButtonRef} type="button" onClick={onEvidence}>{EC.open}</button>}
+            </div>
+          </details>
         </>
       )}
     </section>
@@ -215,6 +219,7 @@ function DfsMatchupBoard({ b, onEvidence, evidenceButtonRef }) {
 
 export default function DfsWorkspace({ b }) {
   const evidenceRef = useRef(null), evidenceButtonRef = useRef(null);
+  const advancedRef = useRef(null), researchRef = useRef(null), buildPanelRef = useRef(null);
   const validLineupCount = parseLineupCount(b.settings.count) !== null;
   const [tab, setTab] = useState("pool"),
     [query, setQuery] = useState(""),
@@ -228,6 +233,7 @@ export default function DfsWorkspace({ b }) {
   const slateRef = useRef(null),
     poolScrollRef = useRef(null),
     lineupsRef = useRef(null);
+  const selectedLineupRef = useRef(null);
   const portfolioRef = useRef(null), entriesRef = useRef(null), buildButtonRef = useRef(null);
   const [journeyStage, setJourneyStage] = useState(0);
   const [template, setTemplate] = useState(null),
@@ -307,7 +313,7 @@ export default function DfsWorkspace({ b }) {
   }, [entrySite, entryLineups, b.portfolioRestoreRevision]);
   useEffect(() => { exportReview.current++; setExportState(null); exportSession.current = null; }, [assignments, sameSlate, usePortfolio, b.portfolioLimits, b.portfolioRules, template, entryLineups]);
   useEffect(() => {
-    if (b.portfolioRestoreRevision) { setUsePortfolio(true); setJourneyStage(2); }
+    if (b.portfolioRestoreRevision) { setUsePortfolio(true); setJourneyStage(1); requestAnimationFrame(() => portfolioRef.current?.focus()); }
   }, [b.portfolioRestoreRevision]);
   const restorePortfolio = async file => {
     if (!file || entryBusy) return;
@@ -441,16 +447,13 @@ export default function DfsWorkspace({ b }) {
     catch (e) { portfolioExportError = e.message; }
   }
   const showLineups = () => {
-    const target = lineupsRef.current;
-    if (!target) return;
-    const barHeight = slateRef.current?.offsetHeight || 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - barHeight - 16;
-    window.scrollTo({ top, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    setJourneyStage(1);
+    requestAnimationFrame(() => scrollToPanel(lineupsRef));
   };
   useEffect(() => {
-    if (!b.lineups.length) return;
+    if (!b.lineups.length) { if (!b.portfolio.length) setJourneyStage(0); return; }
     setJourneyStage(1);
-    if (["complete", "partial"].includes(b.buildJob?.status)) { lineupsRef.current?.focus({ preventScroll: true }); showLineups(); }
+    if (["complete", "partial"].includes(b.buildJob?.status)) requestAnimationFrame(() => scrollToPanel(lineupsRef));
   }, [b.lineups]);
   const scrollToPanel = ref => {
     const target = ref.current;
@@ -460,18 +463,29 @@ export default function DfsWorkspace({ b }) {
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   };
   const reviewPortfolio = () => {
-    if (b.context.site !== "draftkings") { showLineups(); return; }
-    if (!b.portfolio.length && b.currentBuild && !b.addPortfolioBatch(WC.firstBatch)) return;
-    setUsePortfolio(true); setJourneyStage(2); scrollToPanel(portfolioRef);
+    setJourneyStage(1);
+    requestAnimationFrame(() => scrollToPanel(b.lineups.length ? lineupsRef : portfolioRef));
   };
-  const reviewEntries = () => { setJourneyStage(2); scrollToPanel(entriesRef); };
+  const reviewEntries = () => { setJourneyStage(2); requestAnimationFrame(() => scrollToPanel(entriesRef)); };
+  const reviewBuild = () => { setJourneyStage(0); requestAnimationFrame(() => scrollToPanel(buildPanelRef)); };
+  const openResearch = () => {
+    setJourneyStage(0);
+    if (researchRef.current) researchRef.current.open = true;
+    requestAnimationFrame(() => scrollToPanel(evidenceRef));
+  };
+  const returnToGames = () => {
+    setJourneyStage(0);
+    const button = evidenceButtonRef.current || buildPanelRef.current;
+    const details = button?.closest("details");
+    if (details) details.open = true;
+    requestAnimationFrame(() => { button?.scrollIntoView({ block: "center" }); button?.focus({ preventScroll: true }); });
+  };
   const selectedCount = entryLineups.length;
   const assignedCount = Object.values(assignments).filter(i => i !== "" && i != null && Number.isInteger(Number(i)) && Number(i) >= 0 && Number(i) < selectedCount).length;
   const combinedAudit = useMemo(() => auditPortfolio(b.portfolio, b.portfolioLimits, b.portfolioRules), [b.portfolio, b.portfolioLimits, b.portfolioRules]);
   const selectedUnique = usePortfolio ? combinedAudit.unique : countUniqueLineups(b.lineups);
   const capabilities = workspaceCapabilities({ pool: b.pool, salaries: b.salaries, isDfs: b.isDfs, template,
     assignmentError: portfolioExportError, prelockConfirmed: sameSlate, assigned: assignedCount, selected: selectedCount, exportState });
-  const readyForDownload = Boolean(template && sameSlate && selectedCount && !portfolioExportError);
   const buildBlock = b.error || (!validLineupCount ? WC.countBlocked : !b.pool.length ? WC.noPool : b.planMatches === false ? RC.changed : "");
   const changeSort = (key) =>
     setSort((s) => ({ key, descending: s.key === key ? !s.descending : true }));
@@ -508,44 +522,194 @@ export default function DfsWorkspace({ b }) {
           onFile={b.importSalary}
           disabled={!b.isDfs || b.busy || b.building || !b.context.week}
         />
-        <div className="dfw-build">
-          {!!b.lineups.length && !b.building && (
-            <button type="button" onClick={showLineups}>
-              {C.viewLineups(b.lineups.length)}
-            </button>
-          )}
-          <button
-            ref={buildButtonRef}
-            data-testid="dfs-generate"
-            type="button"
-            className={`dfw-build-button${(!b.lineups.length && !b.portfolio.length) || b.building ? " dfw-primary" : ""}`}
-            aria-describedby={buildBlock ? "dfw-build-block" : undefined}
-            disabled={b.busy || b.building || !b.pool.length || !validLineupCount || b.planMatches === false}
-            onClick={b.run}
-          >
-            {b.building ? C.building : lineup.length ? C.rebuild : WC.generate(b.settings.count)}
-          </button>
-          {Boolean(b.lineups.length || b.portfolio.length) && !b.building && <button type="button" className="dfw-primary" disabled={entryBusy}
-            onClick={readyForDownload ? () => exportEntries() : journeyStage < 2 ? reviewPortfolio : reviewEntries}>
-            {readyForDownload ? GC.download : journeyStage < 2 ? WC.review : WC.entries}
-          </button>}
-        </div>
+
+        <details className="dfw-calendar"><summary>{F.schedule(b.context.season, b.context.week)}</summary><div className="dfw-settings-grid">          <HubFilterMenu
+            label={C.season}
+            value={b.context.season}
+            options={options(
+              b.meta?.seasons || [b.context.season].filter(Boolean),
+            )}
+            onChange={(season) => b.changeContext({ season: Number(season) })}
+            disabled={b.building}
+          />
+          <HubFilterMenu
+            label={C.week}
+            value={b.context.week}
+            options={options(
+              b.meta?.weeks_by_season?.[String(b.context.season)] ||
+                [b.context.week].filter(Boolean),
+            )}
+            onChange={(week) => b.changeContext({ week: Number(week) })}
+            disabled={b.building}
+          />
+</div></details>
       </div>
       <DfsPoolFreshness b={b} />
-      <DfsJourney stage={journeyStage} canReview={Boolean(b.lineups.length || b.portfolio.length)} onReview={reviewPortfolio} onEntries={reviewEntries}
+      <DfsJourney stage={journeyStage} canReview={Boolean(b.lineups.length || b.portfolio.length)} onBuild={reviewBuild} onReview={reviewPortfolio} onEntries={reviewEntries}
         counts={{ requested: usePortfolio ? b.portfolio.reduce((n, batch) => n + Number(batch.settings.lineup_count || batch.lineups.length), 0) : b.currentBuild?.settings.lineup_count ?? (validLineupCount ? Number(b.settings.count) : null), generated: usePortfolio ? portfolioEntries.length : b.lineups.length, selected: selectedCount, unique: selectedUnique, assigned: assignedCount }} />
-      {buildBlock && <p className={b.error ? "dfw-error" : "dfw-note"} id="dfw-build-block" role={b.error ? "alert" : "status"}>{buildBlock}</p>}
-      <DfsBuildStatus b={b} onCancel={() => { b.cancelBuild(); requestAnimationFrame(() => buildButtonRef.current?.focus()); }} />
-      <DfsCapabilityReview capabilities={capabilities} />
       <DfsInputUpdate b={b} />
-      {b.planMatches === false && <p className="dfw-error" id="dfw-plan-block" role="status">{RC.changed}</p>}
-      <div className={`dfw-workspace${b.isCaptain ? " is-captain" : ""}`}>
-        <section className="dfw-center">
-          <div className="dfw-panel">
+      {b.error && journeyStage !== 0 && <p className="dfw-error" role="alert">{b.error}</p>}
+      <div className="dfw-flow-layout" hidden={journeyStage !== 0}>
+        <div className="dfw-flow-main">
+          <section className="dfw-panel dfw-settings" ref={buildPanelRef} tabIndex={-1} aria-labelledby="dfw-settings-title">
+            <h2 id="dfw-settings-title">{C.settings}</h2>
+            <div className="dfw-settings-grid">          <DfsField label={C.count}>
+            <input
+              aria-label={C.count}
+              aria-describedby="dfw-count-help"
+              aria-invalid={!validLineupCount}
+              type="number"
+              inputMode="numeric"
+              min="1"
+              max={MAX_LINEUP_COUNT}
+              step="1"
+              required
+              value={b.settings.count}
+              onChange={(e) => b.changeSetting("count", e.target.value)}
+              disabled={b.building}
+            />
+            <p id="dfw-count-help" className="dfw-note">
+              {C.countHelp}
+            </p>
+          </DfsField>
+          <HubFilterMenu
+            label={F.goal}
+            value={b.settings.objective}
+            options={filterObjectives(b.isDfs).map((o) => ({
+              ...o,
+              shortLabel: o.label,
+              detail: o.hint,
+            }))}
+            onChange={(v) => b.changeSetting("objective", v)}
+          />
+</div>
+            <div className="dfw-build-action">
+              <button ref={buildButtonRef} data-testid="dfs-generate" type="button" className="dfw-primary btn-primary"
+                aria-describedby={buildBlock ? "dfw-build-block" : undefined}
+                disabled={b.busy || b.building || !b.pool.length || !validLineupCount || b.planMatches === false} onClick={b.run}>
+                {b.building ? C.building : WC.generate(b.settings.count)}
+              </button>
+              <p className="dfw-note">{F.buildSummary(b.locked.length, b.excluded.length, b.isDfs ? b.settings.maxSalary : null)}</p>
+              {buildBlock && <p className={b.error ? "dfw-error" : "dfw-note"} id="dfw-build-block" role={b.error ? "alert" : "status"}>{buildBlock}</p>}
+            </div>
+            <DfsBuildStatus b={b} onCancel={() => { b.cancelBuild(); requestAnimationFrame(() => buildButtonRef.current?.focus()); }} />
+            <details className="dfw-flow-disclosure" ref={advancedRef} data-testid="dfs-advanced">
+              <summary><span className="dfw-summary"><strong>{F.advanced}</strong><small>{F.advancedHint}</small></span></summary>
+              <div className="dfw-detail-body">
+                <div className="dfw-settings-grid">          {b.isCaptain && (
+            <HubFilterMenu
+              label={C.captain}
+              value={b.settings.lockedCaptain}
+              options={[
+                { id: "", label: C.anyCaptain },
+                ...eligible
+                  .filter((p) => ["Projected Points", "Low (P10)", "High (P90)"].every((key) => p[key] != null && Number.isFinite(Number(p[key]))))
+                  .map((p) => ({ id: p.player_id, label: p.Player })),
+              ]}
+              onChange={(v) => b.changeSetting("lockedCaptain", v)}
+            />
+          )}
+          <HubFilterMenu
+            label={C.exposure}
+            value={b.settings.exposure}
+            options={[...new Set([1, 0.8, 0.7, 0.6, 0.5, 0.3, 0.2, Number(b.settings.exposure)])].sort((a, z) => z - a).map((v) => ({
+              id: v,
+              label: `${v * 100}% · ${Math.floor(v * b.settings.count + 1e-9)} / ${b.settings.count}`,
+            }))}
+            onChange={(v) => b.changeSetting("exposure", Number(v))}
+          />
+          <HubFilterMenu
+            label={b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? GC.overlap : C.differences}
+            value={b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? 9 - Number(b.settings.differences) : b.settings.differences}
+            options={b.isCaptain || !b.isDfs ? lineupDifferenceOptions(b.isCaptain) : Array.from({ length: b.settings.portfolioMode === "global" ? 10 : 9 }, (_, i) => ({ id: b.settings.portfolioMode === "global" ? i : i + 1, label: String(b.settings.portfolioMode === "global" ? i : i + 1) }))}
+            onChange={(v) => b.changeSetting("differences", b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? 9 - Number(v) : Number(v))}
+          />
+          {b.isCaptain && b.settings.differences === 0 && <p className="dfw-note">{C.captainRotationHelp}</p>}
+</div>
+                          {b.isDfs && (
+            <DfsField label={C.salary}>
+              <div className="dfw-range">
+                <input
+                  aria-label={C.min}
+                  type="number"
+                  min="0"
+                  max={cap}
+                  step="100"
+                  value={b.settings.minSalary}
+                  onChange={(e) =>
+                    b.changeSetting("minSalary", Number(e.target.value))
+                  }
+                />
+                <span>–</span>
+                <input
+                  aria-label={C.max}
+                  type="number"
+                  min="0"
+                  max={cap}
+                  step="100"
+                  value={b.settings.maxSalary}
+                  onChange={(e) =>
+                    b.changeSetting("maxSalary", Number(e.target.value))
+                  }
+                />
+              </div>
+            </DfsField>
+          )}
+          <details>
+            <summary>{C.stacks}</summary>
+            <div className="dfw-settings-grid">
+              {!b.isCaptain && b.settings.portfolioMode !== "global" && (
+                <>
+                  <HubFilterMenu
+                    label={C.qbStack}
+                    value={b.settings.qbStack}
+                    options={options([...new Set([0, 1, 2, 3, Number(b.settings.qbStack)])].sort((a, z) => a - z))}
+                    onChange={(v) => b.changeSetting("qbStack", Number(v))}
+                  />
+                  {b.settings.requireQbStack && <p className="dfw-note">{RC.legacyRequired}</p>}
+                  <label className="dfw-check">
+                    <input
+                      type="checkbox"
+                      checked={b.settings.bringBack}
+                      onChange={(e) =>
+                        b.changeSetting("bringBack", e.target.checked)
+                      }
+                    />
+                    {C.bringBack}
+                  </label>
+                </>
+              )}
+              {b.context.site === "draftkings" && b.settings.portfolioMode === "global" && <DfsClassicStack b={b} />}
+              <HubFilterMenu
+                label={C.maxTeam}
+                value={b.settings.maxTeam}
+                options={options(Array.from({ length: 10 }, (_, i) => i))}
+                onChange={(v) => b.changeSetting("maxTeam", Number(v))}
+              />
+              <HubFilterMenu
+                label={C.jitter}
+                value={b.settings.randomness}
+                options={[...new Set([0, 0.05, 0.12, 0.25, Number(b.settings.randomness)])].sort((a, z) => a - z).map((v) => ({
+                  id: v,
+                  label: `${v * 100}%`,
+                }))}
+                onChange={(v) => b.changeSetting("randomness", Number(v))}
+              />
+              <p className="dfw-note">{C.jitterNote}</p>
+            </div>
+          </details>
+          {b.context.site === "draftkings" && <DfsBuildPlans b={b} />}
+
+                {b.context.site === "draftkings" && <DfsGlobalExposure b={b} />}
+              </div>
+            </details>
+          </section>
+          <details className="dfw-panel dfw-flow-disclosure" data-testid="dfs-choose-players">
+            <summary><span className="dfw-summary"><strong>{F.choose}</strong><small>{F.playerChoices(b.locked.length, b.excluded.length)}</small></span></summary>
+            <div className="dfw-detail-body">          <div className="dfw-panel">
             <nav className="dfw-tabs" aria-label={C.pool}>
               {[
                 ["pool", C.pool],
-                ["exposure", C.exposureTab],
                 ["notes", C.notes],
               ].map(([id, label]) => (
                 <button
@@ -557,6 +721,10 @@ export default function DfsWorkspace({ b }) {
                 </button>
               ))}
               {(b.context.site === "draftkings" || b.portfolio.length > 0) && <button type="button" onClick={reviewPortfolio} disabled={!b.lineups.length && !b.portfolio.length}>{WC.portfolio}</button>}
+              {Boolean(b.locked.length || b.excluded.length) && <button type="button" onClick={() => {
+                b.locked.forEach(id => b.toggle(id, "lock"));
+                b.excluded.forEach(id => b.toggle(id, "skip"));
+              }}>{C.clear}</button>}
             </nav>
             {tab === "pool" && (
               <>
@@ -738,57 +906,15 @@ export default function DfsWorkspace({ b }) {
                     {C.next}
                   </button>
                 </div>
-                {!Object.keys(b.ownership).length && (
-                  <p className="dfw-note">{C.missingOwnership}</p>
-                )}
-                <DfsFile
-                  label={C.projections}
-                  onFile={b.importProjections}
-                  disabled={!b.pool.length || b.busy || b.building}
-                />
                 <details>
-                  <summary>{C.projectionHelp.split(".")[0]}</summary>
+                  <summary>{F.importInputs}</summary>
+                  <DfsFile label={C.projections} onFile={b.importProjections} disabled={!b.pool.length || b.busy || b.building} />
+                  {!Object.keys(b.ownership).length && <p className="dfw-note">{C.missingOwnership}</p>}
                   <p className="dfw-note">{C.projectionHelp}</p>
                 </details>
               </>
             )}
-            {tab === "exposure" && (
-              <>
-                {b.context.site === "draftkings" && <DfsGlobalExposure b={b} />}
-                <p className="dfw-note">
-                  {b.lineups.length} {C.count.toLowerCase()} · {C.lockNote}
-                </p>
-                <div className="dfw-table-scroll">
-                  <table className="dfw-table dfw-actual-exposure">
-                    <thead>
-                      <tr>
-                        <th>{C.player}</th>
-                        <th className="num">{C.total}</th>
-                        <th className="num">{GC.share}</th>
-                        <th className="num">{C.captainCount}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {exposure.slice(exposurePage * 10, exposurePage * 10 + 10).map((p) => (
-                        <tr key={p.player_id}>
-                          <td>{p.player}</td>
-                          <td className="num">{p.count}</td>
-                          <td className="num">
-                            {num((p.count / b.lineups.length) * 100)}%
-                          </td>
-                          <td className="num">{p.captains}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {exposure.length > 10 && <div className="dfw-pagination" aria-label={GC.actualPages}>
-                  <small>{exposurePage + 1} / {Math.ceil(exposure.length / 10)}</small>
-                  <button disabled={exposurePage === 0} onClick={() => setExposurePage(p => p - 1)}>{C.previous}</button>
-                  <button disabled={(exposurePage + 1) * 10 >= exposure.length} onClick={() => setExposurePage(p => p + 1)}>{C.next}</button>
-                </div>}
-              </>
-            )}
+
             {tab === "notes" && (
               <DfsField label={C.notesLabel}>
                 <textarea
@@ -800,180 +926,16 @@ export default function DfsWorkspace({ b }) {
                 <p className="dfw-note">{C.notesHelp}</p>
               </DfsField>
             )}
-          </div>
-        </section>
-        <div className="dfw-rail">
-          <section className="dfw-panel dfw-settings" aria-labelledby="dfw-settings-title">
-          <h2 id="dfw-settings-title">{C.settings}</h2>
-          <div className="dfw-settings-grid">
-          <HubFilterMenu
-            label={C.season}
-            value={b.context.season}
-            options={options(
-              b.meta?.seasons || [b.context.season].filter(Boolean),
-            )}
-            onChange={(season) => b.changeContext({ season: Number(season) })}
-            disabled={b.building}
-          />
-          <HubFilterMenu
-            label={C.week}
-            value={b.context.week}
-            options={options(
-              b.meta?.weeks_by_season?.[String(b.context.season)] ||
-                [b.context.week].filter(Boolean),
-            )}
-            onChange={(week) => b.changeContext({ week: Number(week) })}
-            disabled={b.building}
-          />
-          <DfsField label={C.count}>
-            <input
-              aria-label={C.count}
-              aria-describedby="dfw-count-help"
-              aria-invalid={!validLineupCount}
-              type="number"
-              inputMode="numeric"
-              min="1"
-              max={MAX_LINEUP_COUNT}
-              step="1"
-              required
-              value={b.settings.count}
-              onChange={(e) => b.changeSetting("count", e.target.value)}
-              disabled={b.building}
-            />
-            <p id="dfw-count-help" className="dfw-note">
-              {C.countHelp}
-            </p>
-          </DfsField>
-          <HubFilterMenu
-            label={C.goal}
-            value={b.settings.objective}
-            options={filterObjectives(b.isDfs).map((o) => ({
-              ...o,
-              detail: o.hint,
-            }))}
-            onChange={(v) => b.changeSetting("objective", v)}
-          />
-          {b.isCaptain && (
-            <HubFilterMenu
-              label={C.captain}
-              value={b.settings.lockedCaptain}
-              options={[
-                { id: "", label: C.anyCaptain },
-                ...eligible
-                  .filter((p) => ["Projected Points", "Low (P10)", "High (P90)"].every((key) => p[key] != null && Number.isFinite(Number(p[key]))))
-                  .map((p) => ({ id: p.player_id, label: p.Player })),
-              ]}
-              onChange={(v) => b.changeSetting("lockedCaptain", v)}
-            />
-          )}
-          <HubFilterMenu
-            label={C.exposure}
-            value={b.settings.exposure}
-            options={[...new Set([1, 0.8, 0.7, 0.6, 0.5, 0.3, 0.2, Number(b.settings.exposure)])].sort((a, z) => z - a).map((v) => ({
-              id: v,
-              label: `${v * 100}% · ${Math.floor(v * b.settings.count + 1e-9)} / ${b.settings.count}`,
-            }))}
-            onChange={(v) => b.changeSetting("exposure", Number(v))}
-          />
-          <HubFilterMenu
-            label={b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? GC.overlap : C.differences}
-            value={b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? 9 - Number(b.settings.differences) : b.settings.differences}
-            options={b.isCaptain || !b.isDfs ? lineupDifferenceOptions(b.isCaptain) : Array.from({ length: b.settings.portfolioMode === "global" ? 10 : 9 }, (_, i) => ({ id: b.settings.portfolioMode === "global" ? i : i + 1, label: String(b.settings.portfolioMode === "global" ? i : i + 1) }))}
-            onChange={(v) => b.changeSetting("differences", b.settings.portfolioMode === "global" && b.context.site === "draftkings" ? 9 - Number(v) : Number(v))}
-          />
-          {b.isCaptain && b.settings.differences === 0 && <p className="dfw-note">{C.captainRotationHelp}</p>}
-          </div>
-          {b.isDfs && (
-            <DfsField label={C.salary}>
-              <div className="dfw-range">
-                <input
-                  aria-label={C.min}
-                  type="number"
-                  min="0"
-                  max={cap}
-                  step="100"
-                  value={b.settings.minSalary}
-                  onChange={(e) =>
-                    b.changeSetting("minSalary", Number(e.target.value))
-                  }
-                />
-                <span>–</span>
-                <input
-                  aria-label={C.max}
-                  type="number"
-                  min="0"
-                  max={cap}
-                  step="100"
-                  value={b.settings.maxSalary}
-                  onChange={(e) =>
-                    b.changeSetting("maxSalary", Number(e.target.value))
-                  }
-                />
-              </div>
-            </DfsField>
-          )}
-          <details>
-            <summary>{C.stacks}</summary>
-            <div className="dfw-settings-grid">
-              {!b.isCaptain && b.settings.portfolioMode !== "global" && (
-                <>
-                  <HubFilterMenu
-                    label={C.qbStack}
-                    value={b.settings.qbStack}
-                    options={options([...new Set([0, 1, 2, 3, Number(b.settings.qbStack)])].sort((a, z) => a - z))}
-                    onChange={(v) => b.changeSetting("qbStack", Number(v))}
-                  />
-                  {b.settings.requireQbStack && <p className="dfw-note">{RC.legacyRequired}</p>}
-                  <label className="dfw-check">
-                    <input
-                      type="checkbox"
-                      checked={b.settings.bringBack}
-                      onChange={(e) =>
-                        b.changeSetting("bringBack", e.target.checked)
-                      }
-                    />
-                    {C.bringBack}
-                  </label>
-                </>
-              )}
-              {b.context.site === "draftkings" && b.settings.portfolioMode === "global" && <DfsClassicStack b={b} />}
-              <HubFilterMenu
-                label={C.maxTeam}
-                value={b.settings.maxTeam}
-                options={options(Array.from({ length: 10 }, (_, i) => i))}
-                onChange={(v) => b.changeSetting("maxTeam", Number(v))}
-              />
-              <HubFilterMenu
-                label={C.jitter}
-                value={b.settings.randomness}
-                options={[...new Set([0, 0.05, 0.12, 0.25, Number(b.settings.randomness)])].sort((a, z) => a - z).map((v) => ({
-                  id: v,
-                  label: `${v * 100}%`,
-                }))}
-                onChange={(v) => b.changeSetting("randomness", Number(v))}
-              />
-              <p className="dfw-note">{C.jitterNote}</p>
-            </div>
+          </div></div>
           </details>
-          {b.context.site === "draftkings" && <DfsBuildPlans b={b} />}
-          <p className="dfw-note">
-            {
-              filterObjectives(b.isDfs).find(
-                (o) => o.id === b.settings.objective,
-              )?.hint
-            }
-          </p>
-          <p className="dfw-note">{C.lockNote}</p>
-          <p className="dfw-note">{C.contestNote}</p>
-          {b.context.site === "draftkings" && <p className="dfw-note">{b.settings.portfolioMode === "global" ? GC.enabled : GC.legacy}<button type="button" onClick={() => setTab("exposure")}>{C.exposureTab}</button></p>}
-        </section>
-          <DfsMatchupBoard b={b} evidenceButtonRef={evidenceButtonRef} onEvidence={() => { evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); evidenceRef.current?.focus({ preventScroll: true }); }} />
-          <DfsSourceSummary coverage={coverage} />
         </div>
-        <div className="dfw-after">
-          {b.context.site === "draftkings" && !b.isCaptain && <DfsEvidenceReview b={b} panelRef={evidenceRef} onReturn={() => { evidenceButtonRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); evidenceButtonRef.current?.focus({ preventScroll: true }); }} />}
-          <DfsCaptainComparison b={b} />
-          <section
+        <aside className="dfw-flow-rail">
+          <DfsMatchupBoard b={b} evidenceButtonRef={evidenceButtonRef} onEvidence={openResearch} />
+        </aside>
+      </div>
+      <div className="dfw-flow-layout" hidden={journeyStage !== 1}>
+        <div className="dfw-flow-main">
+                    <section
             ref={lineupsRef}
             id="dfw-lineups"
             tabIndex={-1}
@@ -986,21 +948,15 @@ export default function DfsWorkspace({ b }) {
                   ? `${b.lineups.length} ${C.count.toLowerCase()}`
                   : C.lineupsTitle}
               </h2>
-              {!!b.lineups.length && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    b.locked.forEach((id) => b.toggle(id, "lock"));
-                    b.excluded.forEach((id) => b.toggle(id, "skip"));
-                  }}
-                >
-                  {C.clear}
-                </button>
-              )}
             </div>
             {!b.lineups.length ? (
               <p className="dfw-note">{C.empty}</p>
             ) : (
+              <>
+              <dl className="dfw-review-facts">
+                <div><dt>{F.built}</dt><dd>{b.lineups.length} / {b.currentBuild?.settings.lineup_count ?? b.lineups.length}</dd></div>
+                <div><dt>{F.unique}</dt><dd>{countUniqueLineups(b.lineups)}</dd></div>
+              </dl>
               <div className="dfw-lineups-body">
               <div className="dfw-portfolio">
                 {b.lineups.slice(lineupPage * 10, lineupPage * 10 + 10).map((entry, localIndex) => {
@@ -1009,7 +965,7 @@ export default function DfsWorkspace({ b }) {
                   <button
                     key={i}
                     aria-pressed={b.selected === i}
-                    onClick={() => b.setSelected(i)}
+                    onClick={() => { b.setSelected(i); if (selectedLineupRef.current) selectedLineupRef.current.open = true; }}
                   >
                     <span>{String(i + 1).padStart(2, "0")}</span>
                     <span>
@@ -1037,11 +993,9 @@ export default function DfsWorkspace({ b }) {
                   <button disabled={(lineupPage + 1) * 10 >= b.lineups.length} onClick={() => setLineupPage(p => p + 1)}>{C.next}</button>
                 </div>}
               </div>
-                <div className="dfw-lineup">
-                  <div className="dfw-panel-head">
-                    <h3>{C.selected}</h3>
-                    <small>{`${b.selected + 1} / ${b.lineups.length}`}</small>
-                  </div>
+                <details className="dfw-lineup dfw-flow-disclosure" ref={selectedLineupRef}>
+                  <summary><span className="dfw-summary"><strong>{C.selected}</strong><small>{`${b.selected + 1} / ${b.lineups.length}`}</small></span></summary>
+                  <div className="dfw-detail-body">
           {lineup.map((p, i) => (
             <div
               key={p.slot}
@@ -1086,62 +1040,65 @@ export default function DfsWorkspace({ b }) {
               </p>
             </>
           )}
-                </div>
+                  </div>
+                </details>
               </div>
+              </>
             )}
           </section>
-          {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsLocalDraft b={b} />}
+          {!!b.lineups.length && <details className="dfw-panel dfw-flow-disclosure">
+            <summary><span className="dfw-summary"><strong>{F.appearances}</strong></span></summary>
+            <div className="dfw-detail-body">
+<p className="dfw-note">{F.appearancesHelp}</p>
+                <div className="dfw-table-scroll">
+                  <table className="dfw-table dfw-actual-exposure">
+                    <thead>
+                      <tr>
+                        <th>{C.player}</th>
+                        <th className="num">{C.total}</th>
+                        <th className="num">{GC.share}</th>
+                        <th className="num">{C.captainCount}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {exposure.slice(exposurePage * 10, exposurePage * 10 + 10).map((p) => (
+                        <tr key={p.player_id}>
+                          <td>{p.player}</td>
+                          <td className="num">{p.count}</td>
+                          <td className="num">
+                            {num((p.count / b.lineups.length) * 100)}%
+                          </td>
+                          <td className="num">{p.captains}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {exposure.length > 10 && <div className="dfw-pagination" aria-label={GC.actualPages}>
+                  <small>{exposurePage + 1} / {Math.ceil(exposure.length / 10)}</small>
+                  <button disabled={exposurePage === 0} onClick={() => setExposurePage(p => p - 1)}>{C.previous}</button>
+                  <button disabled={(exposurePage + 1) * 10 >= exposure.length} onClick={() => setExposurePage(p => p + 1)}>{C.next}</button>
+                </div>}</div>
+          </details>}
           <div ref={portfolioRef} tabIndex={-1} className="dfw-workflow-target">
-          {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={entryBusy}>
-            <div className="dfw-actions">
-              <button type="button" disabled={entryBusy || !b.portfolio.length} onClick={async event => {
-                const button = event.currentTarget;
-                const review = exportReview.current; setBackupWorking(true);
-                backupFocus.current = { button, review };
-                try { await downloadPortfolioBackupAsync(b.portfolio, b.portfolioLimits, b.portfolioRules,
-                  { beforeDownload: () => { if (review !== exportReview.current) throw new Error(GC.staleExport); } }); }
-                catch (e) { b.setError(e.message); }
-                finally { setBackupWorking(false); }
-              }}>{backupWorking ? WC.backupWorking : PC.backup}</button>
-              <DfsFile label={PC.restore} accept=".json,application/json" disabled={entryBusy} onFile={restorePortfolio} />
-            </div>
-            <p className="dfw-note">{PC.backupHelp}</p>
-          </DfsPortfolio>}
+            {(b.context.site === "draftkings" || b.portfolio.length > 0) && <DfsPortfolio b={b} disabled={entryBusy} />}
           </div>
-          <section className="dfw-transfer dfw-workflow-target" ref={entriesRef} tabIndex={-1} aria-label={WC.exportTitle}>
-          <div className="dfw-panel">
-            <small>{C.newLineups}</small>
-            <h2>{C.upload}</h2>
-            <p className="dfw-note">{C.uploadHelp}</p>
-            <div className="dfw-actions">
-              <button
-                disabled={!exportCheck.ok}
-                onClick={() =>
-                  downloadCsv(exportCheck.filename, exportCheck.lines)
-                }
-              >
-                {C.download}
-              </button>
-              <button
-                disabled={!b.lineups.length}
-                onClick={() => {
-                  const d = buildLineupDetailCsv(b.lineups, { isDfs: b.isDfs });
-                  if (d.ok) downloadCsv(d.filename, d.lines);
-                }}
-              >
-                {C.detail}
-              </button>
-            </div>
-            {b.lineups.length && !exportCheck.ok ? (
-              <p className="dfw-note">{exportCheck.reason}</p>
-            ) : null}
-          </div>
-          <div className="dfw-panel">
+        </div>
+        <aside className="dfw-flow-rail">
+          <section className="dfw-panel">
+            <h2>{F.ready}</h2><p className="dfw-note">{F.downloadHelp}</p>
+            <button type="button" className="dfw-primary btn-primary" disabled={entryBusy || (!b.lineups.length && !b.portfolio.length)} onClick={reviewEntries}>{F.continue}</button>
+            <button type="button" onClick={reviewBuild}>{F.adjust}</button>
+          </section>
+        </aside>
+      </div>
+      <div className="dfw-flow-layout" hidden={journeyStage !== 2}>
+        <div className="dfw-flow-main">
+          <section className="dfw-workflow-target" ref={entriesRef} tabIndex={-1} aria-label={WC.exportTitle}>
+            <div className="dfw-panel">
             <small>{C.existing}</small>
             <h2>{C.edit}</h2>
             <p className="dfw-note">{C.editHelp}</p>
-            <p className="dfw-note">{WC.exportScope}</p>
-            {!template && <p className="dfw-note">{WC.templateMissing}</p>}
             {(b.context.site === "draftkings" || b.portfolio.length > 0 || usePortfolio) && <HubFilterMenu
               label={PC.source} value={usePortfolio ? "portfolio" : "build"}
               options={[{ id: "build", label: PC.currentBuild }, { id: "portfolio", label: PC.portfolio }]}
@@ -1158,8 +1115,7 @@ export default function DfsWorkspace({ b }) {
               <p className="dfw-note">{C.restriction}</p>
             </details>
           </div>
-        </section>
-        {template && (
+                    {template && (
           <section className="dfw-panel">
             <div className="dfw-panel-head">
               <h2>{C.assignment}</h2>
@@ -1225,7 +1181,7 @@ export default function DfsWorkspace({ b }) {
             <p className="dfw-note">{GC.prelockHelp}</p>
             {!sameSlate && <p className="dfw-note">{WC.prelockMissing}</p>}
             {portfolioExportError && <p className="dfw-error" role="alert">{portfolioExportError}</p>}
-            <button disabled={!sameSlate || entryBusy || Boolean(portfolioExportError)} onClick={() => exportEntries()}>
+            <button className="dfw-primary btn-primary" disabled={!sameSlate || entryBusy || Boolean(portfolioExportError)} onClick={() => exportEntries()}>
               {exportingEntries ? GC.syncing : WC.downloadReviewed}
             </button>
             {exportState && <div className="dfw-export-status" role="status">
@@ -1241,7 +1197,74 @@ export default function DfsWorkspace({ b }) {
             </div>}
           </section>
         )}
+          </section>
+          <details className="dfw-panel dfw-flow-disclosure">
+            <summary><span className="dfw-summary"><strong>{F.newCsv}</strong></span></summary>
+            <div className="dfw-detail-body"><div className="dfw-panel">
+            <small>{C.newLineups}</small>
+            <h2>{C.upload}</h2>
+            <p className="dfw-note">{C.uploadHelp}</p>
+            <div className="dfw-actions">
+              <button
+                disabled={!exportCheck.ok}
+                onClick={() =>
+                  downloadCsv(exportCheck.filename, exportCheck.lines)
+                }
+              >
+                {C.download}
+              </button>
+              <button
+                disabled={!b.lineups.length}
+                onClick={() => {
+                  const d = buildLineupDetailCsv(b.lineups, { isDfs: b.isDfs });
+                  if (d.ok) downloadCsv(d.filename, d.lines);
+                }}
+              >
+                {C.detail}
+              </button>
+            </div>
+            {b.lineups.length && !exportCheck.ok ? (
+              <p className="dfw-note">{exportCheck.reason}</p>
+            ) : null}
+          </div>
+</div>
+          </details>
         </div>
+        <aside className="dfw-flow-rail">
+          <DfsCapabilityReview capabilities={capabilities} />
+          <button type="button" onClick={reviewPortfolio}>{F.backReview}</button>
+        </aside>
+      </div>
+      <div className="dfw-flow-extras">
+        <details className="dfw-panel dfw-flow-disclosure" data-testid="dfs-research" ref={researchRef}>
+          <summary><span className="dfw-summary"><strong>{F.research}</strong><small>{F.optional}</small></span></summary>
+          <div className="dfw-detail-body">
+            {b.context.site === "draftkings" && !b.isCaptain && <DfsEvidenceReview b={b} panelRef={evidenceRef} onReturn={returnToGames} />}
+            {b.context.site === "draftkings" && !b.isCaptain && <DfsSharedOutcomesReview b={b} />}
+            <DfsCaptainComparison b={b} />
+            <DfsSourceSummary coverage={coverage} />
+          </div>
+        </details>
+        {(b.context.site === "draftkings" || b.portfolio.length > 0) && <details className="dfw-panel dfw-flow-disclosure" data-testid="dfs-recovery">
+          <summary><span className="dfw-summary"><strong>{F.recovery}</strong></span></summary>
+          <div className="dfw-detail-body">
+            <DfsLocalDraft b={b} />
+                        <div className="dfw-actions">
+              <button type="button" disabled={entryBusy || (!b.portfolio.length && !b.currentBuild) || (!b.portfolio.length && b.currentBuild?.context.site !== "draftkings")} onClick={async event => {
+                const button = event.currentTarget;
+                const review = exportReview.current; setBackupWorking(true);
+                backupFocus.current = { button, review };
+                try { const batches = b.portfolio.length ? b.portfolio : [createPortfolioBatch(b.currentBuild, WC.firstBatch)];
+                  await downloadPortfolioBackupAsync(batches, b.portfolioLimits, b.portfolioRules,
+                  { beforeDownload: () => { if (review !== exportReview.current) throw new Error(GC.staleExport); } }); }
+                catch (e) { b.setError(e.message); }
+                finally { setBackupWorking(false); }
+              }}>{backupWorking ? WC.backupWorking : PC.backup}</button>
+              <DfsFile label={PC.restore} accept=".json,application/json" disabled={entryBusy} onFile={restorePortfolio} />
+            </div>
+            <p className="dfw-note">{PC.backupHelp}</p>
+          </div>
+        </details>}
       </div>
     </>
   );

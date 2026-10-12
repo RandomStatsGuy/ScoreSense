@@ -24,10 +24,15 @@ This phase adds an explicitly declared scenario research layer. Engineering cons
 | Final scoring, shared scenarios, count evaluation and policy checks after the last test additions | 172 passed, 6.20 s |
 | Real-engine synthetic conservation/replay pipeline | Exit 0; 2 complete legal lineups, 256 draws, 0.0082925 s |
 | Synthetic maximum pool/portfolio/draw benchmark, 9 runs | p50 1.147244 s / p95 1.215088 s; separate instrumented Python heap peak 18,194,266 bytes |
+| Final production frontend, explicit module enumeration plus layout audit tests | 1,191 total: 1,188 passed / the same 3 baseline failures, 20.703 s |
+| Final scoped DFS/frontend tests | 242 passed, 17.519 s |
+| Final production build | Passed, 10.11 s; existing >500 kB chunk warning |
+| Final product/living-surface policy after guided UI | 36 passed, 3.23 s |
+| Consolidated isolated production browser run | Exit 0: 10 guided + 10 scenario size/theme cases, two 150-entry cases and six advanced/research/safety supplements |
 
 The three frontend failures are the existing contract-label, accuracy-null-copy and My team banner expectations. They reproduce before this phase's source changes. The package's directory-based frontend test launcher is incompatible with this Windows Node environment; explicit file enumeration runs the actual test modules instead.
 
-The broad regression collected before the last two count-evaluation/scenario test additions. The final 172-test check above includes those additions and all 36 policy tests; it is a separate completed run, not an invented larger broad-suite count. No fresh whole-repository Python run is claimed. No production frontend source changed, so the frozen frontend result remains the recorded frontend baseline, not a new production browser gate.
+The broad regression collected before the last two count-evaluation/scenario test additions. The final 172-test check above includes those additions and all 36 policy tests; it is a separate completed run, not an invented larger broad-suite count. No fresh whole-repository Python run is claimed. The final approved production UI was subsequently checked by the frontend/build/policy/browser gates below. The recorded broad backend count is not enlarged by those later checks.
 
 ## Implemented contract
 
@@ -46,16 +51,36 @@ Run from the repository root with `PYTHONPATH=.` and the existing Python environ
 ```powershell
 python -m pytest tests/test_dfs_event_scoring.py tests/test_dfs_shared_outcomes.py tests/test_dfs_shared_outcomes_eval.py tests/test_dfs_shared_outcomes_api.py -q
 python scripts/dev/verify_dfs_shared_outcomes.py --benchmark --runs 9
+python scripts/dev/build_dfs_shared_browser_fixture.py
+node scripts/dev/dfs_flow_tasks.mjs
 ```
+
+The browser run uses existing Playwright/browser dependencies and no application server. On this Windows sandbox, local browser downloads and Vite dependency resolution required the approved local execution path; default sandbox attempts failed on download/realpath access without a product error. Policy fixture setup similarly needed workspace `--basetemp`; the successful final 36-test run used it. The initial browser harness was adapted to the approved labels/disclosures and corrected its synthetic unrelated-entry ID before the consolidated clean run.
+
+Final frontend/build/browser logs are `outputs/dfs-phase5-frontend-final.log`, `outputs/dfs-phase5-frontend-dfs-final.log`, `outputs/dfs-phase5-build-final.log`, `outputs/guided-policy.log` and `outputs/dfs-flow-production-final.log`.
 
 The broad affected-suite file selection was `rg --files tests` filtered for `test_dfs*.py`, `test_lineup_optimizer*.py` and `test_vegas_lines.py`. Policy checks are `tests/test_living_surfaces.py` and `tests/test_product_constitution.py`. Actual local logs are `outputs/dfs-phase5-python-final.log`, `outputs/dfs-phase5-api-release.log`, `outputs/dfs-phase5-policy-release.log` and `outputs/dfs-phase5-engine-final.log`.
 
 The compact [synthetic engine receipt](engine-verification.json) records the actual bank/stream hashes, counts, capabilities and measurements. Its normal input has 2 games, 4 profiles, 8 events, 10 pool players and 15 unique actors. The benchmark has 750 pool players, 150 legal lineups, 1,024 draws, 16 games and 48 profiles with four events each. Its compact raw bank is 314,506 bytes. This stresses the pool/portfolio/draw caps, not the maximum byte/event bank or a plausible NFL slate. Timing was measured locally on Windows/Python 3.11.13/AMD64 with other verification activity; it is not a hosted latency promise. The separate tracemalloc run covers Python allocations, not process RSS or all native memory.
 
-## Remaining gates and design review
+## Approved guided production workflow
 
-The user requested simpler, denser controls during this phase. [A/B/C workflow mockups](../../mockups/dfs-flow.html) provide concrete alternatives and their [separate mock review](../../mockups/dfs-flow-review/README.md) records static layout/interaction evidence. A mock is not a production implementation. Production React/CSS and existing Generate/Review/Export/Recovery flows are unchanged; no newly accepted production redesign or current end-to-end browser certification is claimed here.
+The user chose A from [concrete workflow alternatives](../../mockups/dfs-flow.html); their [separate mock review](../../mockups/dfs-flow-review/README.md) remains prototype evidence. Production now follows Build → Review → Download. The count, scoring goal and primary action lead; optional player choices, advanced rules, research and recovery start closed. The matchup rail remains compact. **Save this set** explicitly collects a current build; navigating to Review is read-only and current-build backup also works directly. This supersedes PR3's automatic first-build collection.
 
-Remaining phase-5 gates include independently complete permitted event/availability sources, validated conditional roles and personnel probabilities, calibrated player and specialist marginals, joint/whole-lineup tails, multi-season pre-lock data, untouched finalist evaluation and a measured production integration. Purpose-separated seeds and passing conservation do not satisfy those statistical gates. Contest field/ownership, exact payout/EV, portfolio risk objectives and accepted-entry late swap remain later gated phases 6–8. Original incident artifacts and platform accepted-entry readback remain absent.
+The optional Shared-game scenarios panel reads bounded JSON in a real worker, checks declared personal-analysis/host/display rights and exact pool game/kickoff identity before upload, previews receipts and requires explicit selection. Current-build and collection review share full-game draws without rewriting saved inputs. Results display supplied-draw P10/P50/P90 and paired differences, including zero and negative outcomes, with calibration limitations and source/scoring details. Personal-review downloads include computed empirical summaries and source-right receipts, omit raw bank/events/observations, and make no redistribution permission claim.
 
-No servers, live accounts, providers, submissions or lineup changes were used by these backend tests. Raw fixture reports, downloads, logs and temporary build files stay uncommitted under local `outputs/`. The supplied specification remains byte-identical, and all 65 rules / 36 acceptance cases remain in the synchronized tracker and JSON registry.
+The [consolidated production browser receipt](browser-verification.json) records 10 guided cases and 10 scenario cases across 390/768/1280/1440/320 in actual DOM-asserted dark/light themes. Build, expanded Advanced rules, Review, Download and scenario states pass the repository geometry checks without page overflow. Both normal 150-entry cases preserve the exact CSV seal, unrelated reservations and worker-based reload recovery. Further phone/desktop tasks exercise collection bounds, selected replacement preview/cancel/accept/undo, versioned input keep/apply/undo, Captain comparison and the prior real-engine evidence comparison. Failure supplements cover build cancellation/late results, failed builds/salary imports, fresh export authorization, optional history failure and shared rights/schema/kickoff/failure/mismatch/cancel/stale/account reset.
+
+The shared fixture is generated by the actual scoring/scenario engine from explicitly synthetic two-game ledgers. Every preview/evaluation request matches its context, pool, raw bank, legal finalists and default seed 0/draw count 256 before the fixture returns that engine output. Its second lineup's paired mean difference is -3.703125; that demonstrates plumbing, not model performance. All APIs are intercepted inside an isolated bundled production fixture. No running application, live account, provider, entry upload or accepted-entry readback was exercised.
+
+| Inspected synthetic production view | Phone | Desktop |
+|---|---|---|
+| Default Build | [390 dark](build-390-dark.png) | [1280 light](build-1280-light.png) |
+| Review / Download | [Review 390 dark](review-390-dark.png) | [Download 1280 light](download-1280-light.png) |
+| Explicit shared-scenario review | [390 light](shared-390-light.png) | [1280 dark](shared-1280-dark.png) |
+
+The parent reviewer inspected the final production captures, including light-theme action contrast and compact phone layout. These screenshots show real components with synthetic inputs, not the earlier HTML mocks.
+
+Remaining phase-5 gates include independently complete permitted event/availability sources, validated conditional roles and personnel probabilities, calibrated player and specialist marginals, joint/whole-lineup tails, multi-season pre-lock data, untouched finalist evaluation and real-account/permitted-provider integration. Purpose-separated seeds and passing conservation do not satisfy those statistical gates. Contest field/ownership, exact payout/EV, portfolio risk objectives and accepted-entry late swap remain later gated phases 6–8. Original incident artifacts and platform accepted-entry readback remain absent.
+
+No servers, live accounts, providers, submissions or live-lineup changes were used by these checks. Curated compact receipts and six synthetic screenshots are attached here; raw fixture reports, downloads, logs and temporary build files stay uncommitted under local `outputs/`. The supplied specification remains byte-identical, and all 65 rules / 36 acceptance cases remain in the synchronized tracker and JSON registry.

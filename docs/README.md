@@ -30,10 +30,10 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [DFS integrated workflow review](./reviews/dfs-integrated-workflow/README.md) | Accumulated audits, explicit replacements, versioned updates and compact worker recovery |
 | [DFS opportunity evidence review](./reviews/dfs-opportunity-evidence/README.md) | Source-aware historical screens, complete Classic alternatives and synthetic browser acceptance |
 | [DFS 2024 count/role retrospective](./reviews/DFS_OPPORTUNITY_2024_RETROSPECTIVE.md) | Actual chronological public-data study, withheld later block and model-promotion limits |
-| [DFS shared outcomes review](./reviews/dfs-shared-outcomes/README.md) | Bounded provided-event scenarios, read-only API, actual verification and remaining statistical gates |
+| [DFS shared outcomes review](./reviews/dfs-shared-outcomes/README.md) | Approved guided A workflow, bounded provided-event scenarios, actual task/API verification and remaining statistical gates |
 | [DFS Classic scoring contract](./reviews/DFS_CLASSIC_SCORING_CONTRACT.md) | Versioned official DraftKings rules, supported coherent events and rejected rare patterns |
 | [DFS shared count-profile evaluation](./reviews/DFS_SHARED_OUTCOMES_EVALUATION.md) | Actual 2024 chronological joint-count diagnostic, sparse tails and no model promotion |
-| [DFS workflow design options](./mockups/dfs-flow.html) | A/B/C static simplification alternatives; production redesign choice pending |
+| [DFS workflow design options](./mockups/dfs-flow.html) | A/B/C static workflow alternatives; A selected and implemented in production |
 | [MOBILE_APP.md](./MOBILE_APP.md) | PWA and Android TWA |
 | [Fantasy mobile design](../.cursor/rules/fantasy-mobile.mdc) | Approved mobile parameters, controls, and mock foundation |
 | [Fantasy mobile review](./FANTASY_MOBILE_REVIEW.md) | Page-by-page review queue and Home design decisions |

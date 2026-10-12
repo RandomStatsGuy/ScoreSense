@@ -1,6 +1,8 @@
 # DFS flow options
 
-Design previews requested alongside the phase-5 build. These are mock-only HTML/CSS/JS: no production React/CSS changes, network requests, generated real lineups, uploads or submissions. Every player and number is fictional. This is a layout choice, not a model-performance comparison.
+Design previews requested alongside the phase-5 build. These HTML/CSS/JS files make no app API requests, generate no real lineups and perform no uploads or submissions. Every player and number is fictional. This is a layout choice, not a model-performance comparison.
+
+**Approved: A — Guided flow**, selected by the user on October 12, 2026. Production implementation and its separate verification are recorded in the [shared-outcomes review](../../reviews/dfs-shared-outcomes/README.md). The checks below apply only to these static previews.
 
 - [A: Guided flow](../dfs-flow-a.html): quick build first, with player choices and advanced rules disclosed on demand.
 - [B: Compact workspace](../dfs-flow-b.html): player table and settings side by side, followed by Lineups and Entries.
@@ -8,7 +10,7 @@ Design previews requested alongside the phase-5 build. These are mock-only HTML/
 
 All options retain player locks/skips, individual/global appearance limits, stacks and game weights, saved plans, comparisons, research, backup/recovery, and separate My Lineups / reserved-entry downloads. Secondary tools use explanatory preview feedback; this is not their full production implementation. This preview uses a fixed 20-lineup sample and resets temporary settings between stages. The production tool's 1–150 count and other formats remain existing features outside this Classic layout preview.
 
-The flow shows Build → Review → Download. Review uses named counts after a sample build; detailed duplicate/batch/shortfall information stays in Build details. Missing data and file-creation blockers remain beside the affected action. Prototype selection awaits the user's A/B/C choice; the existing page is preserved in the meantime.
+The flow shows Build → Review → Download. Review uses named counts after a sample build; detailed duplicate/batch/shortfall information stays in Build details. Missing data and file-creation blockers remain beside the affected action.
 
 ## Actual checks
 
