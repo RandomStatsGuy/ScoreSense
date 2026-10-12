@@ -17,6 +17,7 @@
 import { normalizeDfsTeam } from "./dfsToolPresentation.js";
 
 import { csvQuote } from "./table/csv.js";
+import { showdownScore, normalizedBuildStatus } from "./dfsShowdownReview.js";
 
 const CLASSIC_SLOT_ORDER = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
 const CAPTAIN_FLEX_ORDER = ["FLEX1", "FLEX2", "FLEX3", "FLEX4", "FLEX5"];
@@ -167,7 +168,7 @@ export function buildSiteLineupCsv(site, lineups = [], salaryCatalog = null) {
 }
 
 /** Detail CSV — every slot with salary and projection columns, one row per slot. */
-export function buildLineupDetailCsv(lineups = [], { isDfs = true } = {}) {
+export function buildLineupDetailCsv(lineups = [], { isDfs = true, objective = "median", isCaptain = false } = {}) {
   const entries = lineups.filter((entry) => entry?.lineup?.length);
   if (!entries.length) {
     return { ok: false, reason: "Build a lineup first." };
@@ -175,13 +176,18 @@ export function buildLineupDetailCsv(lineups = [], { isDfs = true } = {}) {
   const headers = ["Lineup", "Slot", "Player", "Team", "Pos"];
   if (isDfs) headers.push("Salary", "Value");
   headers.push("Proj", "Floor", "Ceiling");
+  if (isCaptain) headers.push("Objective", "Objective score", "Objective units", "Objective semantics", "Projection sum", "Projection statistic", "At build status", "Status as of", "Forecast snapshot", "Injury snapshot", "Availability basis");
 
   const lines = [headers.map(csvQuote).join(",")];
   entries.forEach((entry, index) => {
+    const metadata = isCaptain ? showdownScore(entry, objective) : null;
     for (const row of entry.lineup) {
       const cells = [index + 1, row.slot, row.player, row.team, row.position];
       if (isDfs) cells.push(row.salary ?? "", row.value ?? "");
       cells.push(row.proj ?? "", row.floor ?? "", row.ceiling ?? "");
+      if (metadata) cells.push(metadata.objective_label, metadata.objective_score ?? "", metadata.objective_units, metadata.objective_semantics,
+        metadata.projection_sum ?? "", metadata.projection_statistic, normalizedBuildStatus(row), row.diagnostics?.injury_status_at || "",
+        metadata.forecast_snapshot_id || "", metadata.injury_snapshot_id || "", metadata.availability_conditioning || "unknown");
       lines.push(cells.map(csvQuote).join(","));
     }
   });

@@ -24,7 +24,7 @@ test("only validated full candidates count as solved", () => {
   const report = { complete: true, eligible_captains: 2, evaluated_captains: 2, objective: "median", candidates: [solved, { status: "infeasible" }] };
   assert.equal(captainComparisonSummary(report).complete, true);
   assert.equal(captainComparisonSummary(report).solved.length, 1);
-  assert.equal(captainComparisonSummary(report).objective, "Sum of player P50s");
+  assert.equal(captainComparisonSummary(report).objective, "Projection sum");
   for (const broken of [{ ...solved, objective_score: NaN }, { ...solved, result: {} }, { status: "unresolved" }, { status: "not_evaluated" }]) {
     const summary = captainComparisonSummary({ ...report, candidates: [solved, broken] });
     assert.equal(summary.complete, false);

@@ -25,6 +25,8 @@ import { stableBuildKey } from "./dfsEntryExportSeal.js";
 import { poolVersion, previewPoolUpdate } from "./dfsWorkspaceState.js";
 import { DFS_WORKFLOW_COPY as WC } from "./dfsToolPresentation.js";
 import { applyPortfolioReplacement } from "./dfsPortfolioReview.js";
+import { newShowdownRules, showdownScoreMetadata } from "./dfsShowdownReview.js";
+import { DFS_SHOWDOWN_COPY as SC } from "./dfsToolPresentation.js";
 
 async function jsonRequest(url, options) {
   const response = await apiFetch(url, options);
@@ -76,6 +78,8 @@ export default function useDfsBuilder(projMeta) {
   const [comparing, setComparing] = useState(false);
   const [comparison, setComparison] = useState(null);
   const [comparisonError, setComparisonError] = useState("");
+  const [playerComparison, setPlayerComparison] = useState(null);
+  const [comparisonStartedAt, setComparisonStartedAt] = useState(null);
   const comparisonGeneration = useRef(0);
   const comparisonAbort = useRef(null);
   const [error, setError] = useState("");
@@ -119,6 +123,7 @@ export default function useDfsBuilder(projMeta) {
     note: "",
     portfolioMode: "legacy",
     blockQbDst: true,
+    showdownRules: newShowdownRules(),
   });
   const activeWork = useRef(false);
   activeWork.current = building || comparing;
@@ -142,7 +147,7 @@ export default function useDfsBuilder(projMeta) {
     const reset = () => {
       cancelBuild();
       comparisonGeneration.current++; comparisonAbort.current?.abort(); comparisonAbort.current = null;
-      setComparing(false); setComparison(null); setComparisonError("");
+      setComparing(false); setComparison(null); setPlayerComparison(null); setComparisonError("");
       generation.current++; revision.current++; portfolioBuildIds.current.clear();
       setPortfolio([]); setPortfolioLimits({}); setLineups([]); setCurrentBuild(null);
       setSavedBuild(null); setBuildSettings(null); setPortfolioSelection(null);
@@ -150,6 +155,7 @@ export default function useDfsBuilder(projMeta) {
       setBusy(false);
       setPortfolioRules({ version: 1, players: {}, groups: [] }); setPortfolioUndo(null);
       setPoolUpdate(null); setPoolUpdateHistory(null); poolUndo.current = null;
+      setSettings(s => ({ ...s, showdownRules: newShowdownRules() }));
     };
     window.addEventListener("scoresense-auth-changed", reset);
     return () => window.removeEventListener("scoresense-auth-changed", reset);
@@ -161,6 +167,7 @@ export default function useDfsBuilder(projMeta) {
     comparisonAbort.current?.abort();
     setComparing(false);
     setComparison(null);
+    setPlayerComparison(null);
     setComparisonError("");
     return () => comparisonAbort.current?.abort();
   }, [context, settings, locked, excluded, overrides, salaries, salarySnapshot, pool, config]);
@@ -550,8 +557,9 @@ export default function useDfsBuilder(projMeta) {
       block_qb_opposing_dst: settings.blockQbDst,
     };
   };
-  const run = async (mode) => {
-    const comparingCaptains = mode === "compare";
+  const run = async (mode, forcedPlayer = null) => {
+    const comparingPlayer = mode === "compare-player";
+    const comparingCaptains = mode === "compare" || comparingPlayer;
     if (comparingCaptains && !isCaptain) return;
     const lineupCount = comparingCaptains ? 1 : parseLineupCount(settings.count);
     if (lineupCount === null) {
@@ -568,7 +576,7 @@ export default function useDfsBuilder(projMeta) {
       comparisonAbort.current?.abort();
       comparisonAbort.current = new AbortController();
       setComparing(true);
-      setComparison(null);
+      setComparisonStartedAt(Date.now());
       setComparisonError("");
     } else {
       buildAbort.current?.abort();
@@ -582,7 +590,7 @@ export default function useDfsBuilder(projMeta) {
     const cap = isDfs
       ? Math.min(Number(settings.maxSalary), Number(config.salary_cap))
       : null;
-    const request = {
+    let request = {
       ...strategy,
       site: context.site,
       slate_id: context.slateId || null,
@@ -597,7 +605,15 @@ export default function useDfsBuilder(projMeta) {
         context.season === meta?.default_season &&
         context.week === meta?.default_week,
       block_bye_weeks: true,
+      ...(context.site === "draftkings_showdown" && settings.showdownRules ? { showdown_rules: settings.showdownRules } : {}),
     };
+    if (comparingCaptains && currentBuild?.settings?.build_snapshot) {
+      // Use only supported request keys from the immutable original build.
+      const saved = currentBuild.settings;
+      request = { ...request, ...Object.fromEntries(Object.keys(request).filter(key => Object.hasOwn(saved, key)).map(key => [key, saved[key]])),
+        comparison_snapshot: saved.build_snapshot };
+      if (!Object.hasOwn(saved, "showdown_rules")) delete request.showdown_rules;
+    }
     try {
       if (
         isDfs &&
@@ -611,28 +627,37 @@ export default function useDfsBuilder(projMeta) {
         );
       const data = await jsonRequest("/api/lineup/optimize", {
         method: "POST",
-        body: JSON.stringify(comparingCaptains ? captainComparisonRequest(request) : request),
+        body: JSON.stringify(comparingCaptains ? { ...captainComparisonRequest(request),
+          ...(comparingPlayer ? { include_captain_comparison: false, comparison_player_id: forcedPlayer?.playerId, comparison_player_slot: forcedPlayer?.slot } : {}) } : request),
         signal: comparingCaptains ? comparisonAbort.current.signal : buildAbort.current.signal,
       });
       if (comparingCaptains) {
         if (comparisonSeq !== comparisonGeneration.current) return;
         if (!data.ok) throw new Error(data.error || CC.failure);
-        if (!data.build_snapshot?.id || data.captain_comparison?.snapshot_id !== data.build_snapshot.id)
+        const report = comparingPlayer ? data.player_comparison : data.captain_comparison;
+        if (!data.build_snapshot?.id || report?.snapshot_id !== data.build_snapshot.id ||
+            (request.comparison_snapshot && data.comparison_source_snapshot_id !== request.comparison_snapshot.id))
           throw new Error(CC.mismatch);
-        setComparison({ ...data.captain_comparison, captured_at: data.build_snapshot.captured_at });
+        const result = { ...report, captured_at: data.build_snapshot.captured_at, source_snapshot_id: data.comparison_source_snapshot_id || data.build_snapshot.id };
+        if (comparingPlayer) setPlayerComparison(result); else setComparison(result);
         return;
       }
       if (seq !== generation.current || jobSeq !== buildGeneration.current) return;
       setPortfolioSelection(data.portfolio_selection || null);
       if (!data.ok)
         throw new Error(data.error || "No lineup satisfies these settings.");
-      const built = data.lineups || [
+      const builtRaw = data.lineups || [
         {
           lineup: data.lineup,
           total_salary: data.total_salary,
           total_points: data.total_points,
+          score_metadata: data.score_metadata || showdownScoreMetadata(data),
+          construction_audit: data.construction_audit || data.showdown_review?.lineups?.[0]?.findings,
+          showdown_rules: data.showdown_rules,
         },
       ];
+      const built = isCaptain ? builtRaw.map((entry, index) => ({ ...entry, score_metadata: entry.score_metadata || showdownScoreMetadata(entry),
+        construction_audit: entry.construction_audit || data.showdown_review?.lineups?.[index]?.findings || [] })) : builtRaw;
       revision.current++;
       setLineups(built);
       setSelected(0);
@@ -648,6 +673,7 @@ export default function useDfsBuilder(projMeta) {
           ]),
         ),
         build_snapshot: data.build_snapshot || null,
+        ...(data.showdown_rules ? { resolved_showdown_rules: data.showdown_rules } : {}),
         game_schedule: vegasGames.map(game => ({ game_id: String(game.game_id || ""), home: String(game.home || ""), away: String(game.away || ""), kickoff_et: game.kickoff_et || null })),
         snapshot_at: data.build_snapshot?.captured_at || new Date().toISOString(),
         ...(data.portfolio_selection ? { portfolio_selection: data.portfolio_selection } : {}),
@@ -918,6 +944,12 @@ export default function useDfsBuilder(projMeta) {
     comparing,
     comparison,
     comparisonError,
+    playerComparison, comparisonStartedAt,
+    cancelComparison: () => {
+      comparisonGeneration.current++; comparisonAbort.current?.abort(); comparisonAbort.current = null;
+      setComparing(false); setComparisonError(SC.cancelled);
+    },
+    comparePlayer: (playerId, slot) => run("compare-player", { playerId, slot }),
     compareCaptains: () => run("compare"),
     error,
     setError,

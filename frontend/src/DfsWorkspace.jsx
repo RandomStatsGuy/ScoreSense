@@ -8,6 +8,9 @@ import DfsGlobalExposure from "./DfsGlobalExposure.jsx";
 import DfsClassicStack from "./DfsClassicStack.jsx";
 import DfsBuildPlans from "./DfsBuildPlans.jsx";
 import DfsLateSwap from "./DfsLateSwap.jsx";
+import DfsShowdownReview, { DfsBuildStatusTag, DfsShowdownFindings, DfsShowdownPlayerDetails, DfsShowdownRules, DfsShowdownScore } from "./DfsShowdownReview.jsx";
+import { assertShowdownAvailable, groupedShowdownFindings, missingPairingTeams, showdownAudit, showdownScore, showdownWarningPairs } from "./dfsShowdownReview.js";
+import { DFS_SHOWDOWN_COPY as SC } from "./dfsToolPresentation.js";
 import DfsLocalDraft from "./DfsLocalDraft.jsx";
 import { DfsBuildStatus, DfsCapabilityReview, DfsInputUpdate, DfsJourney } from "./DfsWorkflow.jsx";
 import { workspaceCapabilities, countUniqueLineups } from "./dfsWorkspaceState.js";
@@ -245,6 +248,8 @@ export default function DfsWorkspace({ b }) {
   const [entryPage, setEntryPage] = useState(0);
   const [exposurePage, setExposurePage] = useState(0);
   const [lineupPage, setLineupPage] = useState(0);
+  const [onlyReview, setOnlyReview] = useState(false);
+  const [latestStatusRead, setLatestStatusRead] = useState(null);
   const [exportState, setExportState] = useState(null);
   const exportSession = useRef(null);
   const exportReview = useRef(0);
@@ -262,7 +267,7 @@ export default function DfsWorkspace({ b }) {
         [document.body, saved.button].includes(document.activeElement)) saved.button.focus({ preventScroll: true });
   }, [backupWorking]);
   useEffect(() => {
-    const invalidate = () => { exportReview.current++; exportSession.current = null; setExportState(null); };
+    const invalidate = () => { exportReview.current++; exportSession.current = null; setExportState(null); setLatestStatusRead(null); };
     window.addEventListener("scoresense-auth-changed", invalidate);
     return () => { window.removeEventListener("scoresense-auth-changed", invalidate); exportReview.current++; exportSession.current = null; };
   }, []);
@@ -274,6 +279,32 @@ export default function DfsWorkspace({ b }) {
     Object.values(assignments).filter(index => index !== "" && index != null).map(index => entryLineups[Number(index)]).filter(Boolean));
   const selectedEntries = template?.entries.filter(e => e.contestId === selectedContest) || [];
   const lineup = b.lineups[b.selected]?.lineup || [];
+  const showdownReview = useMemo(() => groupedShowdownFindings(b.lineups), [b.lineups]);
+  const shownLineups = b.lineups.map((entry, index) => ({ entry, index })).filter(row => !onlyReview || showdownReview.affected.includes(row.index));
+  const builtObjective = b.currentBuild?.settings?.objective || b.settings.objective;
+  const pairingMissing = b.context.site === "draftkings_showdown" ? missingPairingTeams(b.pool, b.settings.showdownRules) : [];
+  const warningPairs = useMemo(() => showdownWarningPairs(b.lineups), [b.lineups]);
+  const latestStatusPool = latestStatusRead || b.poolUpdate?.data?.players || b.pool;
+  useEffect(() => { setLatestStatusRead(null); }, [b.context.site, b.context.slateId, b.context.season, b.context.week, b.currentBuild, b.poolUpdate]);
+  const checkCurrentShowdown = rows => { if (b.context.site === "draftkings_showdown") assertShowdownAvailable(rows, latestStatusPool); };
+  const freshShowdownStatus = async rows => {
+    if (b.context.site !== "draftkings_showdown") return;
+    checkCurrentShowdown(rows);
+    const original = b.currentBuild?.context || b.context;
+    const params = new URLSearchParams({ site: original.site, season: original.season, week: original.week,
+      slate_id: original.slateId || "", apply_injury_adjustments: "false" });
+    let current;
+    const review = exportReview.current;
+    try { current = await jsonRequest(`/api/lineup/${original.slateId ? "salaries/load" : "pool"}?${params}`); }
+    catch { throw new Error(SC.availabilityFailed); }
+    if (review !== exportReview.current) throw new Error(GC.staleExport);
+    if (!Array.isArray(current.players)) throw new Error(SC.availabilityFailed);
+    // A current-status observation is separate from frozen projections and build inputs.
+    setLatestStatusRead(current.players.map(player => ({ player_id: player.player_id, "Injury Status": player["Injury Status"],
+      injury_status: player.injury_status, availability_updated_at: player.availability_updated_at, injury_status_at: player.injury_status_at,
+      diagnostics: player.diagnostics })));
+    assertShowdownAvailable(rows, current.players);
+  };
   const ids = new Set(lineup.map((p) => p.player_id));
   const eligible = b.pool.filter((p) => (!b.isDfs || p.salary != null) && (b.isCaptain || p.Position !== "K"));
   const coverage = dfsPoolCoverage(eligible);
@@ -339,9 +370,10 @@ export default function DfsWorkspace({ b }) {
   const exportCheck = useMemo(() => {
     try {
       validateGlobalBuildForExport(b.currentBuild, b.lineups);
+      checkCurrentShowdown(b.lineups);
       return buildSiteLineupCsv(b.context.site, b.lineups, b.currentBuild?.salaryCatalog || b.pool);
     } catch (error) { return { ok: false, reason: error.message }; }
-  }, [b.context.site, b.lineups, b.currentBuild, b.pool]);
+  }, [b.context.site, b.lineups, b.currentBuild, b.pool, b.poolUpdate, latestStatusRead]);
   const exposure = useMemo(() => {
     const map = new Map();
     b.lineups.forEach((e) =>
@@ -354,7 +386,7 @@ export default function DfsWorkspace({ b }) {
     );
     return [...map.values()].sort((a, z) => z.count - a.count);
   }, [b.lineups]);
-  useEffect(() => { setExposurePage(0); setLineupPage(0); }, [b.lineups]);
+  useEffect(() => { setExposurePage(0); setLineupPage(0); setOnlyReview(false); }, [b.lineups]);
   const uploadTemplate = async (file) => {
     const review = exportReview.current;
     const serial = ++templateImportSerial.current;
@@ -402,6 +434,9 @@ export default function DfsWorkspace({ b }) {
     setExportingEntries(true);
     b.setError("");
     try {
+      const selectedForExport = Object.values(assignments).filter(index => index !== "" && index != null).map(index => entryLineups[Number(index)]).filter(Boolean);
+      await freshShowdownStatus(selectedForExport);
+      if (review !== exportReview.current) throw new Error(GC.staleExport);
       if (!exportSession.current) {
         const converted = usePortfolio ? buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits, b.portfolioRules)
           : buildEntryCsv(template, b.lineups, assignments, b.currentBuild?.salaryCatalog || b.pool, { buildSource: b.currentBuild });
@@ -412,7 +447,8 @@ export default function DfsWorkspace({ b }) {
           synchronize: () => synchronizeEntries(result, review) });
       }
       const session = exportSession.current;
-      const download = result => {
+      const download = async result => {
+        await freshShowdownStatus(selectedForExport);
         if (session !== exportSession.current || review !== exportReview.current) throw new Error(GC.staleExport);
         prelockEvidence();
         downloadEntryArtifact(result);
@@ -429,7 +465,7 @@ export default function DfsWorkspace({ b }) {
       const completed = await session.download(download);
       if (review === exportReview.current) setExportState(completed);
     } catch (e) {
-      b.setError(e.message);
+      if (review === exportReview.current) b.setError(e.message);
     } finally {
       setExportingEntries(false);
     }
@@ -437,6 +473,7 @@ export default function DfsWorkspace({ b }) {
   let portfolioExportError = "";
   if (template) {
     try {
+      checkCurrentShowdown(Object.values(assignments).filter(index => index !== "" && index != null).map(index => entryLineups[Number(index)]).filter(Boolean));
       prelockEvidence();
       if (usePortfolio) buildPortfolioEntryCsv(template, b.portfolio, assignments, b.portfolioLimits, b.portfolioRules);
       else {
@@ -579,8 +616,9 @@ export default function DfsWorkspace({ b }) {
                     value={b.settings.objective}
                     options={filterObjectives(b.isDfs).map((o) => ({
                       ...o,
-                      shortLabel: o.label,
-                      detail: o.hint,
+                      label: b.isCaptain ? SC.objectives[o.id] || o.label : o.label,
+                      shortLabel: b.isCaptain ? SC.objectives[o.id] || o.label : o.label,
+                      detail: b.isCaptain ? SC.scoreHelp[o.id] || o.hint : o.hint,
                     }))}
                     onChange={(v) => b.changeSetting("objective", v)}
                   />
@@ -595,12 +633,15 @@ export default function DfsWorkspace({ b }) {
                 <p id="dfw-count-help" className="dfw-note">{C.countHelp}</p>
                 <p className="dfw-note">{F.buildSummary(b.locked.length, b.excluded.length, b.isDfs ? b.settings.maxSalary : null)}</p>
               </div>
+              {b.context.site === "draftkings_showdown" && b.settings.showdownRules?.receiver_captain_qb !== "require" && <p className="dfw-note">{b.settings.showdownRules ? SC.exception(b.settings.showdownRules.receiver_captain_qb) : SC.legacyPolicy}</p>}
+              {!!pairingMissing.length && <p className="dfw-note" role="status">{SC.pairingMissing(pairingMissing)}</p>}
               {buildBlock && <p className={b.error ? "dfw-error" : "dfw-note"} id="dfw-build-block" role={b.error ? "alert" : "status"}>{buildBlock}</p>}
             </div>
             <DfsBuildStatus b={b} onCancel={() => { b.cancelBuild(); requestAnimationFrame(() => buildButtonRef.current?.focus()); }} />
             <details className="dfw-flow-disclosure" ref={advancedRef} data-testid="dfs-advanced">
               <summary><span className="dfw-summary"><strong>{F.advanced}</strong><small>{F.advancedHint}</small></span></summary>
               <div className="dfw-detail-body">
+                <DfsShowdownRules b={b} />
                 <div className="dfw-settings-grid">          {b.isCaptain && (
             <HubFilterMenu
               label={C.captain}
@@ -950,7 +991,7 @@ export default function DfsWorkspace({ b }) {
             <div className="dfw-panel-head">
               <h2 id="dfw-lineups-title">
                 {b.lineups.length
-                  ? `${b.lineups.length} ${C.count.toLowerCase()}`
+                  ? SC.builtCount(b.lineups.length)
                   : C.lineupsTitle}
               </h2>
             </div>
@@ -962,10 +1003,14 @@ export default function DfsWorkspace({ b }) {
                 <div><dt>{F.built}</dt><dd>{b.lineups.length} / {b.currentBuild?.settings.lineup_count ?? b.lineups.length}</dd></div>
                 <div><dt>{F.unique}</dt><dd>{countUniqueLineups(b.lineups)}</dd></div>
               </dl>
-              <div className="dfw-lineups-body">
+              {b.context.site === "draftkings_showdown" && showdownReview.affected.length > 0 && <div className="dfw-showdown-audit" data-testid="dfs-showdown-audit">
+                <button type="button" aria-pressed={onlyReview} onClick={() => { setOnlyReview(value => !value); setLineupPage(0); }}>{onlyReview ? SC.all : SC.reviewCount(showdownReview.affected.length)}</button>
+                <details><summary>{SC.review}</summary><div className="dfw-detail-body">{showdownReview.groups.map(group => <div key={group.code}><strong>{SC.warnings[group.code] || group.code.replaceAll("_", " ")}</strong><small>{SC.warningCount(group.indexes.length)}</small></div>)}</div></details>
+              </div>}
+              <div className={`dfw-lineups-body${b.isCaptain && b.lineups.length === 1 ? " is-showdown-single" : ""}`}>
               <div className="dfw-portfolio">
-                {b.lineups.slice(lineupPage * 10, lineupPage * 10 + 10).map((entry, localIndex) => {
-                  const i = lineupPage * 10 + localIndex;
+                {shownLineups.slice(lineupPage * 10, lineupPage * 10 + 10).map(({ entry, index: i }) => {
+                  const scored = b.isCaptain ? showdownScore(entry, builtObjective) : null;
                   return (
                   <button
                     key={i}
@@ -982,25 +1027,24 @@ export default function DfsWorkspace({ b }) {
                       </small>
                     </span>
                     <span>
-                      {num(
-                        entry.lineup.reduce(
+                      {scored ? (scored.objective_score == null ? "—" : Number(scored.objective_score).toFixed(2)) : num(entry.lineup.reduce(
                           (s, p) => s + Number(p.proj || 0),
                           0,
-                        ),
-                      )}{" "}
-                      pts
+                        ))}{" "}
+                      <small>{scored ? scored.objective_label : "pts"}</small>
                     </span>
                   </button>
                 ); })}
-                {b.lineups.length > 10 && <div className="dfw-pagination" aria-label={GC.lineupPages}>
-                  <small>{lineupPage + 1} / {Math.ceil(b.lineups.length / 10)}</small>
+                {shownLineups.length > 10 && <div className="dfw-pagination" aria-label={GC.lineupPages}>
+                  <small>{lineupPage + 1} / {Math.ceil(shownLineups.length / 10)}</small>
                   <button disabled={lineupPage === 0} onClick={() => setLineupPage(p => p - 1)}>{C.previous}</button>
-                  <button disabled={(lineupPage + 1) * 10 >= b.lineups.length} onClick={() => setLineupPage(p => p + 1)}>{C.next}</button>
+                  <button disabled={(lineupPage + 1) * 10 >= shownLineups.length} onClick={() => setLineupPage(p => p + 1)}>{C.next}</button>
                 </div>}
               </div>
                 <details className="dfw-lineup dfw-flow-disclosure" ref={selectedLineupRef}>
                   <summary><span className="dfw-summary"><strong>{C.selected}</strong><small>{`${b.selected + 1} / ${b.lineups.length}`}</small></span></summary>
                   <div className="dfw-detail-body">
+          {b.isCaptain && <DfsShowdownScore entry={b.lineups[b.selected]} objective={builtObjective} details />}
           {lineup.map((p, i) => (
             <div
               key={p.slot}
@@ -1011,15 +1055,19 @@ export default function DfsWorkspace({ b }) {
               <small>{p.slot}</small>
               <div>
                 <strong>{p.player}</strong>
+                {b.isCaptain && <DfsBuildStatusTag player={p} />}
                 <small>
                   {p.team} · {p.position}
                 </small>
+                {b.isCaptain && <DfsShowdownPlayerDetails player={p} buildAt={b.currentBuild?.settings.snapshot_at}
+                  latest={latestStatusPool.find(player => player.player_id === p.player_id)} latestPending={!latestStatusRead && Boolean(b.poolUpdate)} />}
               </div>
               <span>
                 {b.isDfs ? formatSalary(p.salary) : `${num(p.proj)} pts`}
               </span>
             </div>
           ))}
+          {b.context.site === "draftkings_showdown" && <DfsShowdownFindings findings={showdownAudit(b.lineups[b.selected])} />}
           {b.isDfs && !!lineup.length && (
             <>
               <div className="dfw-numbers">
@@ -1051,6 +1099,7 @@ export default function DfsWorkspace({ b }) {
               </>
             )}
           </section>
+          <DfsShowdownReview b={b} />
           {!!b.lineups.length && <details className="dfw-panel dfw-flow-disclosure">
             <summary><span className="dfw-summary"><strong>{F.appearances}</strong></span></summary>
             <div className="dfw-detail-body">
@@ -1063,6 +1112,7 @@ export default function DfsWorkspace({ b }) {
                         <th className="num">{C.total}</th>
                         <th className="num">{GC.share}</th>
                         <th className="num">{C.captainCount}</th>
+                        {b.isCaptain && <th className="num">{SC.flex}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -1073,12 +1123,14 @@ export default function DfsWorkspace({ b }) {
                           <td className="num">
                             {num((p.count / b.lineups.length) * 100)}%
                           </td>
-                          <td className="num">{p.captains}</td>
+                          <td className="num">{b.isCaptain ? SC.appearances(p.captains, p.captains / b.lineups.length) : p.captains}</td>
+                          {b.isCaptain && <td className="num">{SC.appearances(p.count - p.captains, (p.count - p.captains) / b.lineups.length)}</td>}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+                {b.isCaptain && warningPairs.length > 0 && <details><summary>{SC.warningPairs}</summary><div className="dfw-detail-body">{warningPairs.map(pair => <p key={pair.player_ids.join("|")} className="dfw-note">{pair.player_ids.map(id => exposure.find(player => player.player_id === id)?.player || id).join(" + ")} · {SC.appearances(pair.count, pair.count / pair.denominator)}</p>)}</div></details>}
                 {exposure.length > 10 && <div className="dfw-pagination" aria-label={GC.actualPages}>
                   <small>{exposurePage + 1} / {Math.ceil(exposure.length / 10)}</small>
                   <button disabled={exposurePage === 0} onClick={() => setExposurePage(p => p - 1)}>{C.previous}</button>
@@ -1213,16 +1265,25 @@ export default function DfsWorkspace({ b }) {
             <div className="dfw-actions">
               <button
                 disabled={!exportCheck.ok}
-                onClick={() =>
-                  downloadCsv(exportCheck.filename, exportCheck.lines)
-                }
+                onClick={async () => {
+                  const review = exportReview.current;
+                  try {
+                    if (b.context.site === "draftkings_showdown") {
+                      if ((await jsonRequest("/api/lineup/export-access")).allowed !== true) throw new Error(SC.downloadAccess);
+                      await freshShowdownStatus(b.lineups);
+                      if (review !== exportReview.current) throw new Error(GC.staleExport);
+                      validatePrelockExport(b.currentBuild, b.lineups);
+                    }
+                    downloadCsv(exportCheck.filename, exportCheck.lines);
+                  } catch (error) { if (review === exportReview.current) b.setError(error.message); }
+                }}
               >
                 {C.download}
               </button>
               <button
                 disabled={!b.lineups.length}
                 onClick={() => {
-                  const d = buildLineupDetailCsv(b.lineups, { isDfs: b.isDfs });
+                  const d = buildLineupDetailCsv(b.lineups, { isDfs: b.isDfs, objective: builtObjective, isCaptain: b.isCaptain });
                   if (d.ok) downloadCsv(d.filename, d.lines);
                 }}
               >
