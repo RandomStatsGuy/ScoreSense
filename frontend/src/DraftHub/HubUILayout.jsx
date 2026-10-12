@@ -266,6 +266,7 @@ export function HubFilterMenu({ label, value, options, onChange, className = "",
   const pick = (id) => {
     onChange(id);
     setOpen(false);
+    triggerRef.current?.focus();
   };
 
   return (

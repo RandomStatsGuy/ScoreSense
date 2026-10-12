@@ -1,0 +1,1001 @@
+{
+  "schema": "scoresense_dfs_rebuild_tracking_v1",
+  "spec_version": "0.2.0",
+  "source_sha256": "a0cd7f50eed4f3a45d0158f587c2d00c1003c1b5425845a9bcfe9aa693fca96c",
+  "inventory_commit": "45694c9355cbd6559da79ef688c4a62e5b94283d",
+  "as_of": "2026-10-11",
+  "status_note": "PR1 is a scoped foundation, not the complete specification; statuses are inventory/work tracking, not executable optimizer configuration or completion certification.",
+  "rules": [
+    {
+      "id": "GOV-01",
+      "title": "Version every rule and every build",
+      "status": "partial",
+      "phase": "1–7",
+      "acceptance_tests": [
+        "T05",
+        "T35"
+      ],
+      "remaining_work": "Build snapshots retain settings, input pool and effective seed; versioned rule/model/field/solver manifests remain incomplete."
+    },
+    {
+      "id": "DATA-01",
+      "title": "Classic main slate only",
+      "status": "partial",
+      "phase": "2,5",
+      "acceptance_tests": [
+        "T01",
+        "T02"
+      ],
+      "remaining_work": "Classic/Captain format adapters and salary membership checks exist; exact game/scoring certification is incomplete."
+    },
+    {
+      "id": "DATA-02",
+      "title": "Freeze source, identity and availability",
+      "status": "partial",
+      "phase": "1,4",
+      "acceptance_tests": [
+        "T04",
+        "T05",
+        "T06"
+      ],
+      "remaining_work": "Frozen build/catalog inputs and freshness labels exist; source known-at times, game IDs and all availability scenarios are incomplete."
+    },
+    {
+      "id": "PACE-01",
+      "title": "Combined-play screen: inherited 75/25 blend",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T17"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "PACE-02",
+      "title": "Let sample size govern venue adjustment",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T17",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "PACE-03",
+      "title": "Separate volume, tempo, dropbacks and scoring",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T03",
+        "T17",
+        "T18"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "PACE-04",
+      "title": "Define a coherent count system",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T18"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "MARKET-01",
+      "title": "Timestamp movement without inventing causes",
+      "status": "partial",
+      "phase": "4",
+      "acceptance_tests": [
+        "T05",
+        "T17",
+        "T19"
+      ],
+      "remaining_work": "Vegas current/first-observed movement exists; opener/early-week feed provenance and feature ablation remain."
+    },
+    {
+      "id": "OWN-01",
+      "title": "Ownership is a field forecast, not player ability",
+      "status": "partial",
+      "phase": "6",
+      "acceptance_tests": [
+        "T04",
+        "T21",
+        "T23"
+      ],
+      "remaining_work": "Ownership imports exist; exact contest/provider/scenario forecast contract and calibration remain."
+    },
+    {
+      "id": "OWN-02",
+      "title": "Do not multiply marginal ownership into stack ownership",
+      "status": "planned_gated",
+      "phase": "6",
+      "acceptance_tests": [
+        "T21",
+        "T22"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "ROLE-01",
+      "title": "Project the role before the matchup",
+      "status": "planned_gated",
+      "phase": "4,5",
+      "acceptance_tests": [
+        "T03",
+        "T18",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "ROLE-02",
+      "title": "Value opportunities by location and scoring",
+      "status": "planned_gated",
+      "phase": "4,5",
+      "acceptance_tests": [
+        "T02",
+        "T18",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "ROLE-03",
+      "title": "Pool small samples and honor structural changes",
+      "status": "planned_gated",
+      "phase": "4,5",
+      "acceptance_tests": [
+        "T05",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "ROLE-04",
+      "title": "Redistribute opportunity, not just vacated totals",
+      "status": "planned_gated",
+      "phase": "4,5",
+      "acceptance_tests": [
+        "T05",
+        "T18",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "MATCH-01",
+      "title": "Match receiver role to defensive tendencies",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T19",
+        "T20"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "MATCH-02",
+      "title": "Do not invent shadow coverage or automatic pressure beneficiaries",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T04",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "STACK-01",
+      "title": "A second attachment must improve the build",
+      "status": "planned_gated",
+      "phase": "2,4",
+      "acceptance_tests": [
+        "T07",
+        "T20"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "STACK-02",
+      "title": "Bring-backs and stack size are optional choices",
+      "status": "planned_gated",
+      "phase": "2,4",
+      "acceptance_tests": [
+        "T07",
+        "T20"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "STACK-03",
+      "title": "Compare complete alternatives, not isolated players",
+      "status": "planned_gated",
+      "phase": "2,4",
+      "acceptance_tests": [
+        "T20",
+        "T36"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "SIM-01",
+      "title": "Generate coherent joint game outcomes",
+      "status": "planned_gated",
+      "phase": "5",
+      "acceptance_tests": [
+        "T18",
+        "T19",
+        "T20"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "SIM-02",
+      "title": "Do not add individual ceilings or assume normal tails",
+      "status": "planned_gated",
+      "phase": "5",
+      "acceptance_tests": [
+        "T04",
+        "T19",
+        "T20"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "FIELD-01",
+      "title": "Simulate legal, correlated opponent lineups",
+      "status": "planned_gated",
+      "phase": "6",
+      "acceptance_tests": [
+        "T21",
+        "T22",
+        "T23"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "PORT-01",
+      "title": "Declare objective and price ties correctly",
+      "status": "planned_gated",
+      "phase": "7",
+      "acceptance_tests": [
+        "T22",
+        "T23",
+        "T36"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "PORT-02",
+      "title": "Audit shared assumptions, not just shared names",
+      "status": "partial",
+      "phase": "2,3,7",
+      "acceptance_tests": [
+        "T11",
+        "T13",
+        "T36"
+      ],
+      "remaining_work": "PR1 adds bounded pair/FLEX summaries; core/role-assumption audit and scenario concentration remain."
+    },
+    {
+      "id": "PORT-03",
+      "title": "Three-to-four-game focus is a configuration, not a law",
+      "status": "partial",
+      "phase": "2,4",
+      "acceptance_tests": [
+        "T14",
+        "T20"
+      ],
+      "remaining_work": "Weighted QB-game schedules exist; full-slate challenger review and comparison remain."
+    },
+    {
+      "id": "VALID-01",
+      "title": "Test forward and remove layers one at a time",
+      "status": "planned_gated",
+      "phase": "4–7",
+      "acceptance_tests": [
+        "T05",
+        "T19",
+        "T20"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "VALID-02",
+      "title": "Audit decisions before judging results",
+      "status": "planned_gated",
+      "phase": "4–7",
+      "acceptance_tests": [
+        "T30",
+        "T35"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "OPS-01",
+      "title": "Reuse artifact-first architecture; gate readiness",
+      "status": "partial",
+      "phase": "1–7",
+      "acceptance_tests": [
+        "T23",
+        "T32",
+        "T35"
+      ],
+      "remaining_work": "Artifact-first pool, shared CPU offload and existing solver are retained; independent readiness/model layers remain."
+    },
+    {
+      "id": "OPS-02",
+      "title": "Check availability and rights before promising a feed",
+      "status": "policy",
+      "phase": "4–6",
+      "acceptance_tests": [
+        "T03",
+        "T04"
+      ],
+      "remaining_work": "No new paid feeds are acquired; provider-specific licensing and usable coverage are unresolved."
+    },
+    {
+      "id": "OPS-03",
+      "title": "Separate live-slate execution from model development",
+      "status": "policy",
+      "phase": "all",
+      "acceptance_tests": [
+        "T28",
+        "T32",
+        "T35"
+      ],
+      "remaining_work": "This change is isolated, draft and read-only toward real entries; no deployed pilot/readback is claimed."
+    },
+    {
+      "id": "OPS-04",
+      "title": "Separate entry reservation from final lineup selection",
+      "status": "policy",
+      "phase": "3,8",
+      "acceptance_tests": [
+        "T25",
+        "T30"
+      ],
+      "remaining_work": "Reservation is user-operated; no reservation, payment or entry submission capability is added."
+    },
+    {
+      "id": "OPS-05",
+      "title": "Validate actual entries, not only an exported or saved lineup file",
+      "status": "partial",
+      "phase": "1,3,8",
+      "acceptance_tests": [
+        "T25",
+        "T26",
+        "T27",
+        "T30",
+        "T31"
+      ],
+      "remaining_work": "Entry metadata, one-to-one assignment and catalog validation exist; final status/current-lock proofs and readback remain."
+    },
+    {
+      "id": "OPS-06",
+      "title": "Use a time-boxed workflow patch before an imminent slate",
+      "status": "partial",
+      "phase": "1",
+      "acceptance_tests": [
+        "T25",
+        "T28",
+        "T32",
+        "T33"
+      ],
+      "remaining_work": "Compatible collection, immutable provenance and whole-portfolio audit exist; this rebuild is broader than the old workflow patch."
+    },
+    {
+      "id": "PORT-04",
+      "title": "Count all locks across the final portfolio and gate incomplete exports",
+      "status": "partial",
+      "phase": "1,2",
+      "acceptance_tests": [
+        "T09",
+        "T10",
+        "T12",
+        "T25"
+      ],
+      "remaining_work": "All appearances, canonical duplicates and export-only optional limits exist; native bounds enter PR1 global mode."
+    },
+    {
+      "id": "OPS-07",
+      "title": "Make an assembled portfolio recoverable without changing its history",
+      "status": "partial",
+      "phase": "1",
+      "acceptance_tests": [
+        "T29",
+        "T30",
+        "T32"
+      ],
+      "remaining_work": "Bounded atomic version-1 backup/restore and scoped IndexedDB draft recovery exist; compact content references remain a stage-1 gap."
+    },
+    {
+      "id": "GOV-02",
+      "title": "Define optimality and prohibit false certainty",
+      "status": "partial",
+      "phase": "1,7",
+      "acceptance_tests": [
+        "T23",
+        "T24",
+        "T36"
+      ],
+      "remaining_work": "Projection-sum limitations are documented; PR1 adds selection status; validated forecast/EV claims stay unavailable."
+    },
+    {
+      "id": "GOV-03",
+      "title": "Separate design requirements from historical decisions",
+      "status": "policy",
+      "phase": "all",
+      "acceptance_tests": [
+        "T05",
+        "T30",
+        "T31",
+        "T35"
+      ],
+      "remaining_work": "Historical inputs are preserved; no live lineup change, deployment, data purchase or hindsight tuning is authorized."
+    },
+    {
+      "id": "DATA-03",
+      "title": "Use exact, account-scoped slate and player identities",
+      "status": "partial",
+      "phase": "1,4",
+      "acceptance_tests": [
+        "T01",
+        "T06",
+        "T25",
+        "T29"
+      ],
+      "remaining_work": "Account-scoped salary records and guarded name/team/position joins exist; persistent provider identity/effective-version contract remains."
+    },
+    {
+      "id": "DATA-04",
+      "title": "Preserve source windows and count denominators",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T03",
+        "T05"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "DATA-05",
+      "title": "Keep projection semantics and overrides explicit",
+      "status": "partial",
+      "phase": "1,4",
+      "acceptance_tests": [
+        "T04",
+        "T05",
+        "T35"
+      ],
+      "remaining_work": "P10/P50/P90 and imported estimates stay distinct; override reasons and complete additive-feature provenance remain."
+    },
+    {
+      "id": "DATA-06",
+      "title": "Gate data use by actual rights and coverage",
+      "status": "policy",
+      "phase": "4–6",
+      "acceptance_tests": [
+        "T03",
+        "T04",
+        "T29"
+      ],
+      "remaining_work": "Only synthetic/public fixtures are permitted here; paid source rights/latency review is not complete."
+    },
+    {
+      "id": "DATA-07",
+      "title": "Freeze one decision-time evaluation snapshot",
+      "status": "partial",
+      "phase": "3,4",
+      "acceptance_tests": [
+        "T05",
+        "T32",
+        "T35"
+      ],
+      "remaining_work": "Original batch inputs stay frozen; one selected decision-time evaluation version and previewed diffs remain."
+    },
+    {
+      "id": "PACE-05",
+      "title": "Rank quarterback-side opportunity and challenge omissions",
+      "status": "planned_gated",
+      "phase": "4",
+      "acceptance_tests": [
+        "T17",
+        "T20"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "ROLE-05",
+      "title": "Research all complementary positions",
+      "status": "planned_gated",
+      "phase": "4,5",
+      "acceptance_tests": [
+        "T02",
+        "T04",
+        "T18",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "STACK-04",
+      "title": "Block QB versus opposing DST by default",
+      "status": "partial",
+      "phase": "1 initial / 2 complete",
+      "acceptance_tests": [
+        "T01",
+        "T08"
+      ],
+      "remaining_work": "PR1 adds opt-in global-mode QB/opposing-DST guard; exact game identity and full offense/DST audit remain."
+    },
+    {
+      "id": "STACK-05",
+      "title": "Make group and bring-back semantics exact",
+      "status": "planned",
+      "phase": "2",
+      "acceptance_tests": [
+        "T07",
+        "T14",
+        "T35"
+      ],
+      "remaining_work": "Existing QB stack minimum/boolean bring-back is retained; exact/forbidden/receiving-RB semantics and atomic plans remain."
+    },
+    {
+      "id": "SIM-03",
+      "title": "Derive specialist outcomes from shared events",
+      "status": "planned_gated",
+      "phase": "5",
+      "acceptance_tests": [
+        "T02",
+        "T18",
+        "T19"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "FIELD-02",
+      "title": "Use the actual contest and correct field size",
+      "status": "planned_gated",
+      "phase": "6",
+      "acceptance_tests": [
+        "T21",
+        "T22",
+        "T23"
+      ],
+      "remaining_work": "The specified statistical/data component is not integrated or forward-validated in the current DFS workflow."
+    },
+    {
+      "id": "PORT-05",
+      "title": "Native global minimum, target and maximum exposure",
+      "status": "partial",
+      "phase": "1 initial / 2 complete",
+      "acceptance_tests": [
+        "T10",
+        "T12",
+        "T34",
+        "T35"
+      ],
+      "remaining_work": "PR1 adds native separate hard min/max and soft targets, counts all locks, and declares rounding in opt-in global mode."
+    },
+    {
+      "id": "PORT-06",
+      "title": "Expose and constrain pairs, cores and shared assumptions",
+      "status": "partial",
+      "phase": "1 initial / 2 complete",
+      "acceptance_tests": [
+        "T11",
+        "T15",
+        "T36"
+      ],
+      "remaining_work": "PR1 introduces selector group bounds and RB-pair counts; polished pair/core editing and shared-assumption audit remain."
+    },
+    {
+      "id": "PORT-07",
+      "title": "Allow full salary without requiring full spend",
+      "status": "partial",
+      "phase": "2,3",
+      "acceptance_tests": [
+        "T16",
+        "T20"
+      ],
+      "remaining_work": "Full platform maximum and optional minimum salary exist; measured constraint-cost comparisons remain."
+    },
+    {
+      "id": "PORT-08",
+      "title": "Audit FLEX structure rather than ban it blindly",
+      "status": "partial",
+      "phase": "2,3",
+      "acceptance_tests": [
+        "T13",
+        "T20"
+      ],
+      "remaining_work": "PR1 displays FLEX structure and tests synthetic 114/150 concentration without a ban; requested structure bounds and alternative-completion comparisons remain."
+    },
+    {
+      "id": "PORT-09",
+      "title": "Separate candidate generation from portfolio selection",
+      "status": "partial",
+      "phase": "1 initial / 2 complete",
+      "acceptance_tests": [
+        "T12",
+        "T15",
+        "T20",
+        "T24"
+      ],
+      "remaining_work": "PR1 separates bounded candidate generation and global selection; broader candidate diversity/re-search remains."
+    },
+    {
+      "id": "PORT-10",
+      "title": "No silent relaxations or unintended lineup substitution",
+      "status": "partial",
+      "phase": "1 initial / 2,3 complete",
+      "acceptance_tests": [
+        "T10",
+        "T12",
+        "T14",
+        "T25",
+        "T30"
+      ],
+      "remaining_work": "PR1 reports conflicts/shortfalls without filling duplicates; replacement approval/version diff remains."
+    },
+    {
+      "id": "OPS-08",
+      "title": "Separate valid CSV generation from nonessential ledger sync",
+      "status": "partial",
+      "phase": "1",
+      "acceptance_tests": [
+        "T25",
+        "T26",
+        "T27",
+        "T28",
+        "T29"
+      ],
+      "remaining_work": "PR1 separates pure CSV conversion from authorized optional sync and adds explicit local recovery with pending sync."
+    },
+    {
+      "id": "OPS-09",
+      "title": "Keep entry lifecycle and export versions truthful",
+      "status": "partial",
+      "phase": "1,3,8",
+      "acceptance_tests": [
+        "T25",
+        "T27",
+        "T30",
+        "T35"
+      ],
+      "remaining_work": "Results entry keys/build links exist; PR1 adds export manifest. Platform uploaded/accepted state still requires user readback."
+    },
+    {
+      "id": "OPS-10",
+      "title": "Treat late swap as exact locked-slot optimization",
+      "status": "planned_gated",
+      "phase": "8",
+      "acceptance_tests": [
+        "T31",
+        "T32"
+      ],
+      "remaining_work": "Late swap remains unavailable; exact accepted slots/current locks are not established by pre-lock generation."
+    },
+    {
+      "id": "VALID-03",
+      "title": "Turn observed incidents into reproducible regression evidence",
+      "status": "partial",
+      "phase": "0,2,3",
+      "acceptance_tests": [
+        "T08",
+        "T11",
+        "T13",
+        "T25",
+        "T30"
+      ],
+      "remaining_work": "Synthetic structural regressions can cover incident counts. Original rescue/incident files were not supplied, so real incident reproduction is unverified."
+    },
+    {
+      "id": "UX-01",
+      "title": "Preserve the approved DFS visual system",
+      "status": "partial",
+      "phase": "all",
+      "acceptance_tests": [
+        "T33",
+        "T34"
+      ],
+      "remaining_work": "Approved compact production workspace/pagination is retained; PR1 task/visual checks cover scoped controls, not every future workflow."
+    },
+    {
+      "id": "UX-02",
+      "title": "Make the normal 150-lineup path one coherent workflow",
+      "status": "partial",
+      "phase": "1 initial / 3 complete",
+      "acceptance_tests": [
+        "T14",
+        "T25",
+        "T34"
+      ],
+      "remaining_work": "PR1 exposes one native global build; full recommendation/audit/replacement workflow remains."
+    },
+    {
+      "id": "UX-03",
+      "title": "Make exposures and stack controls understandable",
+      "status": "partial",
+      "phase": "1 initial / 2,3 complete",
+      "acceptance_tests": [
+        "T07",
+        "T10",
+        "T34",
+        "T35"
+      ],
+      "remaining_work": "PR1 distinguishes hard minimum/maximum and soft target beside counts; exact stack UX remains."
+    },
+    {
+      "id": "UX-04",
+      "title": "Show decision evidence and uncertainty, not invented precision",
+      "status": "partial",
+      "phase": "3,4,6",
+      "acceptance_tests": [
+        "T04",
+        "T19",
+        "T23",
+        "T34"
+      ],
+      "remaining_work": "Forecast coverage/freshness labels exist; sourced game/core evidence and capability-specific uncertainty remain."
+    },
+    {
+      "id": "UX-05",
+      "title": "Preserve work through errors, refreshes and replacements",
+      "status": "partial",
+      "phase": "1 initial / 3 complete",
+      "acceptance_tests": [
+        "T28",
+        "T29",
+        "T30",
+        "T32",
+        "T34"
+      ],
+      "remaining_work": "PR1 adds durable draft/pending-sync recovery; cancellation, scoped retries and previewed replacement/data versions remain."
+    },
+    {
+      "id": "UX-06",
+      "title": "Accessibility, responsiveness and responsiveness-to-input",
+      "status": "partial",
+      "phase": "all",
+      "acceptance_tests": [
+        "T33",
+        "T34"
+      ],
+      "remaining_work": "Shared tokens/targets and pagination retained; responsive/theme/keyboard audits must pass each phase."
+    },
+    {
+      "id": "UX-07",
+      "title": "Require real task and visual acceptance",
+      "status": "partial",
+      "phase": "all",
+      "acceptance_tests": [
+        "T33",
+        "T34"
+      ],
+      "remaining_work": "PR1 synthetic production-fixture tasks and screenshots cover exposure/export/recovery; full role-to-replacement workflow cannot pass before later stages."
+    }
+  ],
+  "acceptance_tests": [
+    {
+      "id": "T01",
+      "status": "partial",
+      "remaining_work": "Salary/slate/identity guards exist; complete sport/game/scoring contract remains.",
+      "evidence": "tests/test_dfs_salaries.py; tests/test_dfs_slate_snapshots.py; tests/test_dfs_validation.py"
+    },
+    {
+      "id": "T02",
+      "status": "partial",
+      "remaining_work": "Roster/salary adapter tested; exact scoring/bonuses and coherent specialists remain.",
+      "evidence": "tests/test_lineup_optimizer.py; tests/test_dfs_validation.py"
+    },
+    {
+      "id": "T03",
+      "status": "planned",
+      "remaining_work": "No verified PFF-like route ledger/denominator parser is integrated.",
+      "evidence": "Phase 4"
+    },
+    {
+      "id": "T04",
+      "status": "partial",
+      "remaining_work": "Missing forecasts/financials stay unknown; full ownership/status/lock capability contract remains.",
+      "evidence": "dfsPoolCoverage.test.js; dfsResults.test.js; test_dfs_player_estimates.py"
+    },
+    {
+      "id": "T05",
+      "status": "partial",
+      "remaining_work": "Immutable snapshots exist; full known-at as-of joins/source windows remain.",
+      "evidence": "tests/test_dfs_snapshots.py; tests/test_dfs_slate_snapshots.py"
+    },
+    {
+      "id": "T06",
+      "status": "partial",
+      "remaining_work": "Guarded identities and string export IDs tested; persistent cross-provider mapping remains.",
+      "evidence": "dfsExport.test.js; tests/test_dfs_salaries.py"
+    },
+    {
+      "id": "T07",
+      "status": "partial",
+      "remaining_work": "Existing stack minimum/bring-back tested; exact/forbidden/receiving-RB semantics remain.",
+      "evidence": "tests/test_lineup_optimizer.py; phase 2"
+    },
+    {
+      "id": "T08",
+      "status": "partial",
+      "remaining_work": "PR1 global-mode strategy guard; original 11-conflict file was not provided.",
+      "evidence": "PR1 synthetic regression; phase 2 exact-game audit"
+    },
+    {
+      "id": "T09",
+      "status": "partial",
+      "remaining_work": "Classic permutations deduplicate; future locked-slot preservation remains gated.",
+      "evidence": "dfsPortfolio.test.js; tests/test_dfs_validation.py"
+    },
+    {
+      "id": "T10",
+      "status": "partial",
+      "remaining_work": "PR1 global count arithmetic/hard bounds/soft targets and lock conflicts.",
+      "evidence": "tests/test_dfs_portfolio_selection.py (new)"
+    },
+    {
+      "id": "T11",
+      "status": "partial",
+      "remaining_work": "PR1 group constraints, RB-pair display and synthetic 89/150 fixture; pair-cap editor and full selection integration remain.",
+      "evidence": "dfsGlobalExposure.test.js; phase 2/3"
+    },
+    {
+      "id": "T12",
+      "status": "partial",
+      "remaining_work": "PR1 reports selector count/status/violations without duplicate fill.",
+      "evidence": "tests/test_dfs_portfolio_selection.py (new)"
+    },
+    {
+      "id": "T13",
+      "status": "partial",
+      "remaining_work": "PR1 displays FLEX distribution with synthetic 114/150 fixture and no automatic ban; requested position bounds remain.",
+      "evidence": "dfsGlobalExposure.test.js; phase 2/3"
+    },
+    {
+      "id": "T14",
+      "status": "planned",
+      "remaining_work": "Atomic named-plan preview/application/manifest remains.",
+      "evidence": "Phase 2"
+    },
+    {
+      "id": "T15",
+      "status": "partial",
+      "remaining_work": "PR1 deterministic candidate selector; wider-budget/order sensitivity remains.",
+      "evidence": "tests/test_dfs_portfolio_selection.py (new)"
+    },
+    {
+      "id": "T16",
+      "status": "partial",
+      "remaining_work": "Optional minimum and full cap exist; broader full-lineup cost comparison remains.",
+      "evidence": "tests/test_lineup_optimizer.py"
+    },
+    {
+      "id": "T17",
+      "status": "planned",
+      "remaining_work": "Inherited pace baseline and source/sample display not implemented as specified.",
+      "evidence": "Phase 4"
+    },
+    {
+      "id": "T18",
+      "status": "planned_gated",
+      "remaining_work": "No coherent game/opportunity conservation simulator integrated.",
+      "evidence": "Phase 5"
+    },
+    {
+      "id": "T19",
+      "status": "planned_gated",
+      "remaining_work": "No forward validation of this proposed joint/opportunity/field model.",
+      "evidence": "Phases 4–7"
+    },
+    {
+      "id": "T20",
+      "status": "planned_gated",
+      "remaining_work": "Generation/evaluation draw separation not applicable to current projection-sum baseline.",
+      "evidence": "Phases 5/7"
+    },
+    {
+      "id": "T21",
+      "status": "planned_gated",
+      "remaining_work": "No validated contest-conditioned legal opponent-field model.",
+      "evidence": "Phase 6"
+    },
+    {
+      "id": "T22",
+      "status": "partial",
+      "remaining_work": "Descriptive contest tie helper exists; joint own/opponent multiplicities, currency/noncash adapter remain.",
+      "evidence": "dfsContest.test.js; phase 6"
+    },
+    {
+      "id": "T23",
+      "status": "partial",
+      "remaining_work": "No unsupported EV claim added; explicit multi-capability mode selection remains.",
+      "evidence": "DFS_GPP_FOUNDATION.md; phases 3/6"
+    },
+    {
+      "id": "T24",
+      "status": "partial",
+      "remaining_work": "PR1 reports candidate-selector status; full solver limits/scaling UI remains.",
+      "evidence": "tests/test_dfs_portfolio_selection.py (new)"
+    },
+    {
+      "id": "T25",
+      "status": "partial",
+      "remaining_work": "Existing assignment tests; PR1 pure deterministic 150-entry serializer/recovery coverage.",
+      "evidence": "dfsPortfolio.test.js; dfsEntryRecovery.test.js (new); dfs_portfolio_browser.mjs"
+    },
+    {
+      "id": "T26",
+      "status": "partial",
+      "remaining_work": "PR1 robust headers/preamble/ragged/quoted metadata conversion.",
+      "evidence": "dfsEntryRecovery.test.js (new)"
+    },
+    {
+      "id": "T27",
+      "status": "partial",
+      "remaining_work": "Targeted wrong-template correction exists.",
+      "evidence": "dfsEntryRecovery.test.js (new); dfsEntryExport.js"
+    },
+    {
+      "id": "T28",
+      "status": "partial",
+      "remaining_work": "PR1 authorized recovery on optional sync failure, idempotent retry, fresh authorization and account-change races tested; original incident inputs remain unavailable.",
+      "evidence": "dfsEntryExportSession.test.js; dfs_portfolio_browser.mjs; dfs_rebuild_browser.mjs"
+    },
+    {
+      "id": "T29",
+      "status": "partial",
+      "remaining_work": "Existing bounded atomic version-1 restore and PR1 local draft recovery; compact content references remain.",
+      "evidence": "dfsPortfolioBackup.test.js; dfsLocalDraft.test.js; dfs_rebuild_browser.mjs"
+    },
+    {
+      "id": "T30",
+      "status": "partial",
+      "remaining_work": "Frozen ordering/metadata retained; real platform readback/incident file unavailable.",
+      "evidence": "dfsPortfolioBackup.test.js; dfsEntryRecovery.test.js (new)"
+    },
+    {
+      "id": "T31",
+      "status": "planned_gated",
+      "remaining_work": "Late swap disabled; pre-lock tests cannot prove exact started-slot immutability.",
+      "evidence": "Phase 8; explicit gate test in dfsEntryRecovery.test.js"
+    },
+    {
+      "id": "T32",
+      "status": "partial",
+      "remaining_work": "Refresh preserves build, hidden polling exists; cancel/versioned update diff remains.",
+      "evidence": "tests/test_dfs_freshness.py; tests/test_dfs_refresh_ticker.py; phase 3"
+    },
+    {
+      "id": "T33",
+      "status": "partial",
+      "remaining_work": "PR1 four-width/two-theme task, keyboard/focus, layout and scoped screenshot checks; broader destinations/full accessibility evaluation not exercised.",
+      "evidence": "dfs_rebuild_browser.mjs; dfs_portfolio_browser.mjs; layout_audit.mjs"
+    },
+    {
+      "id": "T34",
+      "status": "partial",
+      "remaining_work": "PR1 exposure/generate/recover/export subset; role/pair/replacement journey remains.",
+      "evidence": "PR1 production fixture; phases 2–4"
+    },
+    {
+      "id": "T35",
+      "status": "partial",
+      "remaining_work": "Build settings/pool/seed snapshot exists; full rule/model/field/solver hashes and intents remain.",
+      "evidence": "tests/test_dfs_snapshots.py; tests/test_api_lineup.py"
+    },
+    {
+      "id": "T36",
+      "status": "planned_gated",
+      "remaining_work": "No validated contest-aware objective/risk/top-finish selector exists.",
+      "evidence": "Phases 6/7"
+    }
+  ]
+}

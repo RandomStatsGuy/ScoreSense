@@ -1,0 +1,458 @@
+{
+  "schema": "scoresense_dfs_ui_review_v1",
+  "data": "synthetic production-component fixture",
+  "widths": [
+    390,
+    768,
+    1280,
+    1440
+  ],
+  "themes": [
+    "dark",
+    "light"
+  ],
+  "cases": [
+    {
+      "width": 390,
+      "theme": "dark",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ],
+      "taskPassed": true,
+      "controlBoundsPassed": true,
+      "pageOverflow": false
+    }
+  ],
+  "authorization403Blocked": true,
+  "accountChangeDuringSaveBlocked": true,
+  "realPlatformAcceptanceVerified": false,
+  "assignmentControlBoundsPassedAt": [
+    390,
+    1280
+  ],
+  "assignmentFullContextAccessible": true,
+  "outputCsvMatchesAuditHash": true,
+  "localRecoveryBytesEqualSyncedBytes": true
+}

@@ -288,6 +288,10 @@ class LineupOptimizeRequest(BaseModel):
     slate_id: Optional[str] = Field(default=None, max_length=100)
     salary_snapshot_id: Optional[str] = Field(default=None, pattern="^[0-9a-f]{64}$")
     projection_overrides: dict[str, dict[str, float]] = Field(default_factory=dict, max_length=500)
+    portfolio_mode: str = Field(default="legacy", pattern="^(legacy|global)$")
+    player_exposure_limits: dict[str, dict[str, Any]] = Field(default_factory=dict, max_length=500)
+    group_exposure_limits: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    block_qb_opposing_dst: bool = True
 
 
 def _collect_route_paths(routes) -> set[str]:
@@ -2201,14 +2205,30 @@ def lineup_optimize(
             detail="objective must be median, floor, ceiling, or value",
         )
     site = (request.site or "seasonal").lower()
+    if request.portfolio_mode == "global" and not 1 <= request.lineup_count <= MAX_LINEUP_COUNT:
+        raise HTTPException(status_code=400, detail="Global portfolio count must be a whole number from 1 through 150.")
     if any(not math.isfinite(v) or not 0 <= v <= 1 for v in request.captain_exposure_limits.values()):
         raise HTTPException(status_code=400, detail="Captain exposure limits must be between 0 and 1.")
     try:
+        from src.products.dfs_portfolio_selection import exposure_counts
+        for limits in request.player_exposure_limits.values():
+            exposure_counts(limits, request.lineup_count)
+        for group in request.group_exposure_limits:
+            members = group.get("player_ids")
+            if (not isinstance(members, list) or not 2 <= len(members) <= 9
+                    or any(not isinstance(pid, str) or not pid.strip() for pid in members)
+                    or len(set(members)) != len(members)
+                    or not isinstance(group.get("id"), str) or not group["id"].strip()
+                    or set(group) - {"id", "player_ids", "min", "target", "max"}):
+                raise ValueError("Pair/core controls need an ID and 2 to 9 distinct player ID strings.")
+            exposure_counts({key: group[key] for key in ("min", "target", "max") if key in group}, request.lineup_count)
         weighted_stack_teams = [team for game in request.stack_game_weights for team in game.teams if team]
         keep_player_ids = list(request.locked_player_ids or []) + list(
             request.stack_qb_ids or []
         )
         keep_player_ids += list(request.captain_exposure_limits) + list(request.projection_overrides)
+        keep_player_ids += list(request.player_exposure_limits)
+        keep_player_ids += [pid for group in request.group_exposure_limits for pid in group.get("player_ids", [])]
         if request.locked_captain_id:
             keep_player_ids.append(request.locked_captain_id)
         pool, meta = build_lineup_pool(
@@ -2265,7 +2285,7 @@ def lineup_optimize(
             ),
             lineup_count=max(1, min(request.lineup_count, MAX_LINEUP_COUNT)),
             max_overlap=request.max_overlap,
-            max_exposure=(
+            max_exposure=request.max_exposure if request.portfolio_mode == "global" else (
                 min(1.0, max(0.0, float(request.max_exposure)))
                 if request.max_exposure is not None
                 else None
@@ -2279,6 +2299,10 @@ def lineup_optimize(
             captain_exposure_limits=request.captain_exposure_limits,
             locked_captain_id=request.locked_captain_id,
             include_captain_comparison=request.include_captain_comparison,
+            portfolio_mode=request.portfolio_mode,
+            player_exposure_limits=request.player_exposure_limits,
+            group_exposure_limits=request.group_exposure_limits,
+            block_qb_opposing_dst=request.block_qb_opposing_dst,
             snapshot_context={
                 "requested_season": request.season, "requested_week": request.week,
                 "client_slate_id": request.slate_id, "pool_meta": meta,

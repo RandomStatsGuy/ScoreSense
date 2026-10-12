@@ -2,6 +2,7 @@ import { buildSiteLineupCsv } from "./dfsExport.js";
 import { buildEntryCsv } from "./dfsEntryExport.js";
 import { moneyCents } from "./dfsCsv.js";
 import { DFS_PORTFOLIO_COPY as C } from "./dfsToolPresentation.js";
+import { validateGlobalBuildForExport } from "./dfsGlobalExportValidation.js";
 
 export const PORTFOLIO_TARGET = 150;
 
@@ -90,6 +91,10 @@ export function auditPortfolio(batches, limits = {}) {
     if (!Number.isSafeInteger(max) || max < 0) errors.push(C.invalidLimit);
     else if (count > max) errors.push(C.limitExceeded(players.get(id)?.player || id, count, max));
   }
+  batches.forEach(batch => {
+    try { validateGlobalBuildForExport(batch); }
+    catch (error) { errors.push(`${batch.label}: ${error.message}`); }
+  });
   return {
     total: lineups.length, unique: seen.size, duplicates,
     shortfall: Math.max(0, PORTFOLIO_TARGET - seen.size), batchCount: batches.length, errors,
@@ -106,17 +111,21 @@ export function buildPortfolioEntryCsv(template, batches, assignments, limits = 
   if (template.site !== "draftkings") throw new Error(C.classicOnly);
   if (audit.duplicates.length) throw new Error(C.duplicateBlock);
   if (audit.errors.length) throw new Error(audit.errors.join(" "));
+  const globalBuilds = [];
   batches.forEach(batch => {
     if (batch.context.site !== "draftkings" || identity(batch) !== identity(batches[0])) throw new Error(C.incompatible);
     const check = buildSiteLineupCsv("draftkings", batch.lineups, batch.salaryCatalog);
     if (!check.ok) throw new Error(check.reason);
+    const global = validateGlobalBuildForExport(batch);
+    if (global) globalBuilds.push({ batchId: batch.id, ...global });
   });
   const selected = Object.values(assignments).filter(v => v !== "" && v != null);
   if (selected.length !== audit.total) throw new Error(C.countMismatch(selected.length, audit.total));
   const indices = selected.map(Number);
   if (indices.some(i => !Number.isInteger(i) || i < 0 || i >= audit.total) || new Set(indices).size !== audit.total)
     throw new Error(C.assignmentRepeat);
-  return buildEntryCsv(template, portfolioLineups(batches).map(p => p.entry), assignments, batches[0].salaryCatalog);
+  const result = buildEntryCsv(template, portfolioLineups(batches).map(p => p.entry), assignments, batches[0].salaryCatalog);
+  return globalBuilds.length ? { ...result, manifest: { ...result.manifest, globalBuilds } } : result;
 }
 
 export function portfolioBuildPayload(batch) {

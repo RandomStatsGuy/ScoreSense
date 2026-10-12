@@ -1,5 +1,6 @@
 """Account-scoped DFS entry ledger, build-time snapshots, and contest breakdowns."""
 from contextlib import contextmanager
+from hashlib import sha256
 import json
 import sqlite3
 from src.config import DATA_DIR
@@ -15,6 +16,7 @@ def connect():
         db.execute("CREATE TABLE IF NOT EXISTS builds (owner TEXT, id TEXT, payload TEXT, PRIMARY KEY(owner,id))")
         db.execute("CREATE TABLE IF NOT EXISTS contests (owner TEXT, site TEXT, contest TEXT, payload TEXT, PRIMARY KEY(owner,site,contest))")
         db.execute("CREATE TABLE IF NOT EXISTS salary_snapshots (owner TEXT, id TEXT, payload TEXT, PRIMARY KEY(owner,id))")
+        db.execute("CREATE TABLE IF NOT EXISTS build_retries (owner TEXT, retry_key TEXT, build_id TEXT, content_hash TEXT, PRIMARY KEY(owner,retry_key))")
         yield db
 
 
@@ -24,6 +26,17 @@ def read_results(owner):
         referenced = {entry.get("build_id") for entry in entries}
         builds = [json.loads(row[1]) for i, row in enumerate(db.execute("SELECT id,payload FROM builds WHERE owner=? ORDER BY rowid DESC", (owner,))) if i < 100 or row[0] in referenced]
     return {"entries": entries, "builds": builds}
+
+
+def read_builds(owner, build_ids):
+    """Resolve only requested IDs inside this account, independent of list paging."""
+    found = {}
+    with connect() as db:
+        for build_id in set(build_ids):
+            row = db.execute("SELECT payload FROM builds WHERE owner=? AND id=?", (owner, build_id)).fetchone()
+            if row:
+                found[build_id] = json.loads(row[0])
+    return found
 
 
 def import_entries(owner, entries, *, compact=False):
@@ -38,9 +51,28 @@ def import_entries(owner, entries, *, compact=False):
     return {"imported": len(entries)} if compact else read_results(owner)
 
 
-def save_build(owner, build):
+def save_build(owner, build, *, idempotency_key=None):
+    """A retry key identifies immutable input within the authenticated account.
+
+    Keep its original ID and saved_at after an ambiguous/lost response. The key
+    is never a lookup across accounts, and changed inputs need a new version.
+    """
     with connect() as db:
+        if idempotency_key:
+            content = {k: v for k, v in build.items() if k not in {"id", "saved_at"}}
+            content_hash = sha256(json.dumps(content, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+            # Serialize the lookup and both writes so concurrent retries cannot
+            # save duplicate builds or publish a key before its build exists.
+            db.execute("BEGIN IMMEDIATE")
+            old = db.execute("SELECT build_id,content_hash FROM build_retries WHERE owner=? AND retry_key=?",
+                             (owner, idempotency_key)).fetchone()
+            if old:
+                if old[1] != content_hash:
+                    raise ValueError("This build retry key already identifies different inputs. Save a new export version.")
+                return json.loads(db.execute("SELECT payload FROM builds WHERE owner=? AND id=?", (owner, old[0])).fetchone()[0])
         db.execute("INSERT INTO builds VALUES (?,?,?)", (owner, build["id"], json.dumps(build, allow_nan=False)))
+        if idempotency_key:
+            db.execute("INSERT INTO build_retries VALUES (?,?,?,?)", (owner, idempotency_key, build["id"], content_hash))
     return build
 
 

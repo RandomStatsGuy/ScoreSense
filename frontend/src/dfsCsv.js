@@ -3,7 +3,7 @@ import { csvQuote } from "./table/csv.js";
 /** RFC 4180 cells, including quoted commas, escaped quotes and newlines. IDs stay strings. */
 export function parseDfsCsv(
   text,
-  { maxChars = 5_000_000, maxRows = Infinity } = {},
+  { maxChars = 5_000_000, maxRows = Infinity, preserveEmptyRows = false } = {},
 ) {
   const source = String(text).replace(/^\uFEFF/, "");
   if (source.length > maxChars)
@@ -57,7 +57,7 @@ export function parseDfsCsv(
     if (rows.length > maxRows)
       throw new Error(`Import up to ${maxRows - 1} entries at a time.`);
   }
-  return rows.filter((r) => r.some((c) => c.trim()));
+  return preserveEmptyRows ? rows : rows.filter((r) => r.some((c) => c.trim()));
 }
 
 export function csvLines(rows) {
