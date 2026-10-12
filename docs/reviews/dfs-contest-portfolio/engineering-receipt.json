@@ -1,0 +1,106 @@
+{
+  "schema_version": "dfs_contest_portfolio_engineering_receipt_v1",
+  "evidence_scope": "synthetic",
+  "input_sha256": "474793c9f7fd067ee9eb775d705a43c0895fdcec21f93d534c8561a62664409a",
+  "request_bytes": 763401,
+  "environment": {
+    "python": "3.11.13",
+    "platform": "Windows-10-10.0.26200-SP0"
+  },
+  "case": {
+    "candidate_count": 600,
+    "requested_count": 150,
+    "draw_count": 32,
+    "assumptions": 2,
+    "contest_entries": 100000,
+    "pool_players": 750,
+    "cash_rounding": "exact_fraction",
+    "projection_values": "explicit synthetic candidate ranking"
+  },
+  "checks": {
+    "strict_bounded_request_checked": true,
+    "complete_requested_set": true,
+    "unique_selected_candidates": true,
+    "no_hard_constraint_violations": true,
+    "no_forecast_or_untouched_claim": true,
+    "joint_payout_check_passed": true
+  },
+  "timing": {
+    "strict_request_parse_seconds": 0.1037359000001743,
+    "single_cpu_helper_seconds": 14.6653869999991,
+    "timed_repeats": 1,
+    "percentile_estimate": null
+  },
+  "limitations": [
+    "One local synthetic measurement is not a latency percentile or hosted performance promise.",
+    "The candidate, game and field distributions are synthetic and provide no calibration or return evidence.",
+    "The measurement includes CPU-helper preparation and selection; fixture construction is excluded.",
+    "No account, external provider, database, accepted entry or platform settlement was accessed."
+  ],
+  "actual_result": {
+    "semantics": "conditional_supplied_scenario_portfolio_selection_not_forecast_ev",
+    "requested_count": 150,
+    "candidate_count": 600,
+    "selected_count": 150,
+    "unique_count": 150,
+    "complete": true,
+    "capabilities": {
+      "conditional_portfolio_selection": true,
+      "exact_joint_cash_ties": true,
+      "common_selection_draws": true,
+      "separate_final_evaluation_draws": true,
+      "ownership_calibrated": false,
+      "joint_outcomes_calibrated": false,
+      "expected_payout": false,
+      "forward_forecast": false,
+      "platform_settlement_verified": false,
+      "untouched_evaluation_verified": false
+    },
+    "solver": {
+      "status": "feasible_time_limit",
+      "method": "exact_joint_single_swap_improvement",
+      "proven_optimal": false,
+      "candidate_pool_only": true,
+      "bound": null,
+      "gap": null,
+      "numerical_scaling": "exact rational cash and objective arithmetic; native feasibility uses binary MILP tolerance and independent incidence recount",
+      "baseline_proven_exact": false,
+      "baseline_proof_scope": "native floating MILP tolerance; exact projection and target optimum unverified",
+      "baseline_bound_scope": "native minimized projection or target objective only; no bound on conditional cash, risk or coverage",
+      "target_optimum_proven_exact": false,
+      "target_search_scope": "exact lexicographic preference among feasible sets examined; pool target optimum requires exhaustive completion or exact zero miss",
+      "target_stage_status": "not_applicable",
+      "time_limit_seconds": 8.0,
+      "trial_limit": 2048,
+      "evaluated_feasible_sets": 185,
+      "evaluated_trials": 242,
+      "exhaustive_combinations": "12779168511110343121743686684712978601166067528647159599210122229587477945945942798968735988572227507979644437906069421788093063476741931161574096",
+      "baseline_status": "optimal",
+      "native_target_stage_status": "not_applicable",
+      "baseline_bound": -29988.825,
+      "baseline_gap": 0.0,
+      "baseline_bound_units": "minimized negative projection objective (or target deviation if target stage unfinished)",
+      "conflicts": [],
+      "freeze_seconds": 0.31199999999989814,
+      "stop_reason": "time_limit",
+      "reused_trial_count": 57,
+      "search_seconds": 7.4539999999997235,
+      "native_seconds": 0.5939999999991414,
+      "target_deviation_count": "0",
+      "target_deviation_fraction": {
+        "unit": "appearances",
+        "numerator": "0",
+        "denominator": "1"
+      },
+      "baseline_target_deviation_count": "0",
+      "baseline_target_deviation_fraction": {
+        "unit": "appearances",
+        "numerator": "0",
+        "denominator": "1"
+      },
+      "evaluation_seconds": 5.656000000000859
+    },
+    "manifest": "21fbf09efbd311bc487d50c140c8302536f3bc4cd3f3314c9b3e1f63aed8c24a"
+  },
+  "raw_receipt_scope": "Full computed synthetic result remains in local outputs; reproduce with scripts/dev/verify_dfs_contest_portfolio.py."
+}

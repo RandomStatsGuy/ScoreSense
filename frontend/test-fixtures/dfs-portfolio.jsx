@@ -9,6 +9,7 @@ import { publishDataRevision } from "../src/useDataRevision.js";
 import evidenceFixture from "./dfs-evidence-data.json";
 import sharedFixture from "./dfs-shared-data.json";
 import contestFixture from "./dfs-contest-data.json";
+import contestPortfolioFixture from "./dfs-contest-portfolio-data.json";
 import "../src/styles.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/product-hierarchy.css";
@@ -45,6 +46,8 @@ window.__portfolioFixture = { builds: [], imports: [], requests: [], failSave: f
   sharedAccessStatus: 200,
   contestPreviewRequests: [], contestEvaluateRequests: [], failContestPreview: false, failContestEvaluate: false,
   delayContestEvaluate: false, ignoreContestEvaluateAbort: false, contestEvaluateAborts: 0, mismatchContestEvaluate: false,
+  contestSelectRequests: [], failContestSelect: false, delayContestSelect: false, ignoreContestSelectAbort: false,
+  contestSelectAborts: 0, mismatchContestSelect: false,
   publishDataRevision };
 const fixturePool = state => players.map((player, index) => ({ ...player,
   ...((workflow || evidenceMode) && state.poolVersion && index === 0 ? {
@@ -78,6 +81,26 @@ window.fetch = async (url, options = {}) => {
   };
   if (path.includes("/formats")) return respond({ formats: DEFAULT_FORMATS });
   if (path.includes("/slates?")) return respond({ slates: [{ slate_id: "classic-fixture", name: "Classic fixture slate" }] });
+  if (sharedMode && path.endsWith("/contest-research/select")) {
+    state.contestSelectRequests.push(body);
+    if (state.sharedAccessStatus !== 200) return respond({ detail: "Synthetic research account access denied." }, state.sharedAccessStatus);
+    await delay("delayContestSelect", "ignoreContestSelectAbort", "contestSelectAborts");
+    if (state.failContestSelect) return respond({ detail: "Synthetic set comparison failure. Last proposal retained." }, 503);
+    const settings = body.count === 2 ? contestPortfolioFixture.failure_settings : contestPortfolioFixture.settings;
+    const expected = contestPortfolioFixture.engine_inputs.lineups;
+    if (!matchesSharedInputs(body) || canonical(body.contest_field) !== canonical(contestPortfolioFixture.contest_file.contest_field) ||
+        canonical(body.payout_contract) !== canonical(contestPortfolioFixture.contest_file.payout_contract) ||
+        body.bank_id !== sharedFixture.summary.content_id || body.contest_research_id !== contestFixture.summary.content_id ||
+        !contestPortfolioFixture.evaluations[body.objective] || body.lineups?.length !== expected.length ||
+        body.lineups.some((row, i) => row.lineup_id !== expected[i].lineup_id || canonical([...row.player_ids].sort()) !== canonical([...expected[i].player_ids].sort())) ||
+        Object.keys(settings).some(key => key === "projection_scores" ?
+          canonical(Object.fromEntries(Object.entries(body.projection_scores || {}).map(([id, value]) => [id, Number(value)]))) !== canonical(settings.projection_scores) :
+          canonical(body[key]) !== canonical(settings[key])))
+      return respond({ detail: "Request differs from the exact actual-engine synthetic set comparison." }, 400);
+    const result = body.count === 2 ? contestPortfolioFixture.failures.count2 : contestPortfolioFixture.evaluations[body.objective];
+    return respond({ ...result, input_snapshot_id: body.input_snapshot_id,
+      selection_request_id: state.mismatchContestSelect ? "selection:wrong-synthetic-input" : body.selection_request_id });
+  }
   if (sharedMode && path.includes("/contest-research/")) {
     const evaluation = path.endsWith("/evaluate");
     (evaluation ? state.contestEvaluateRequests : state.contestPreviewRequests).push(body);

@@ -1,0 +1,273 @@
+{
+  "synthetic": true,
+  "productionComponents": true,
+  "actualEngineResponses": true,
+  "liveAccountOrPlatformVerified": false,
+  "guards": [
+    "failed request retains proposal",
+    "mismatched response retains proposal",
+    "actual infeasible search returns no partial proposal",
+    "all three goals match actual engine output",
+    "elapsed status is visible",
+    "cancel discards late response",
+    "changed settings stale and discard late response",
+    "denied account returns no new proposal",
+    "account change clears result and download"
+  ],
+  "cases": [
+    {
+      "width": 320,
+      "theme": "dark",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "defaultClosed": true,
+      "exactPersonalDownload": true,
+      "historyUnchanged": true,
+      "realWorker": true,
+      "states": [
+        {
+          "state": "build",
+          "overflow": false,
+          "rule_count": 13,
+          "failed_rules": []
+        },
+        {
+          "state": "proposal",
+          "overflow": false,
+          "rule_count": 14,
+          "failed_rules": []
+        }
+      ]
+    }
+  ],
+  "supplements": [
+    {
+      "width": 390,
+      "theme": "dark",
+      "state": "details",
+      "overflow": false,
+      "rule_count": 16,
+      "failed_rules": []
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "state": "details",
+      "overflow": false,
+      "rule_count": 16,
+      "failed_rules": []
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "state": "details",
+      "overflow": false,
+      "rule_count": 16,
+      "failed_rules": []
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "state": "details",
+      "overflow": false,
+      "rule_count": 16,
+      "failed_rules": []
+    }
+  ]
+}
