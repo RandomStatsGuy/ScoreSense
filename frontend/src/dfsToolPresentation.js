@@ -2,11 +2,91 @@
 
 import { displayNflTeam } from "./nflTeamAbbrev.js";
 
+export const DFS_WORKFLOW_COPY = {
+  journey: "Build, review & download", stages: ["Build", "Review", "Entries"], portfolio: "Portfolio",
+  requested: "Requested", generated: "Generated", selected: "Selected", unique: "Unique", assigned: "Assigned",
+  generate: n => `Generate ${n} lineups`, review: "Review portfolio", entries: "Review entries", firstBatch: "Reviewed build",
+  noPool: "Choose a slate or import its salary CSV before building.", countBlocked: "Enter a whole lineup count from 1 to 150.",
+  buildBusy: "Build request in progress", elapsed: seconds => `${seconds}s elapsed`, cancelBuild: "Cancel build",
+  cancelHelp: "Cancel stops waiting and discards this response. The server may finish its bounded work. Your previous result stays available.",
+  jobs: { complete: "Build complete", partial: "Partial result · review count and constraints", failed: "Build failed · previous result retained", cancelled: "Build cancelled · previous result retained" },
+  buildRetained: n => `${n} previous lineups remain available.`, buildError: "Build needs attention",
+  solver: "Last returned selection", solverStatus: "Returned solver status", candidates: "Candidates", bound: "Bound", gap: "Gap", runtime: "Runtime (seconds)",
+  prelockReplacement: "Review replacement history before checking pre-lock export.",
+  unknown: "Unavailable", projectionScope: "Projection-guided selection within the returned candidate pool. No contest-return estimate or all-lineup optimality claim.",
+  capabilities: "Data & capabilities", capabilityLabels: { identity: "Player & salary catalog", forecasts: "Player forecasts", roles: "Role recommendations", joint: "Joint game outcomes", field: "Opponent field", returns: "Contest-return estimates", entries: "Entry-update file", lateSwap: "Late swap", acceptance: "Platform acceptance" },
+  capabilityStates: { available: "Available", partial: "Partial coverage", missing: "Inputs required", unavailable: "Unavailable", blocked: "Needs correction", review: "Review required", ready: "Ready to create", unconfirmed: "Unconfirmed" },
+  capabilityHelp: "Player forecast sums support construction. Player ranges are not a lineup range. Missing research capabilities stay unavailable; a created file requires your upload and platform confirmation.",
+  updateReady: "New player inputs are ready to compare. Your controls and reviewed lineups are unchanged.", salaryReady: "Salary file parsed. Review the catalog and control reset before using it.",
+  updateTitle: "Review player input update", updateVersion: (a, b) => `Input version ${a} → ${b}`,
+  updateCount: n => `${n} affected player${n === 1 ? "" : "s"}`, updateScope: "Apply updates the working player pool for a future build. Reviewed lineups and their original forecasts stay frozen. Imported player overrides remain in force for a live refresh.",
+  catalogReset: "This salary import changes the working catalog. Apply also clears locks, skips, imported estimates, stack selections and build-plan controls. Your reviewed portfolio stays frozen.",
+  affected: "Affected player", changedInputs: "Changed inputs", before: "Before", after: "After", applyUpdate: "Use reviewed inputs", keepInputs: "Keep current inputs", undoUpdate: "Undo input update",
+  previousChanges: "Previous input changes", nextChanges: "Next input changes",
+  updateKinds: { added: "Added", removed: "Removed", changed: "Changed" }, metadataChanged: "The salary snapshot identity also changed.",
+  updated: "Working inputs updated. Reviewed lineups retain their original inputs; build again to evaluate the update.", updateKept: "Current inputs kept. The reviewed portfolio is unchanged.", updateUndone: "Previous working inputs restored as a new version. Reviewed lineups are unchanged.",
+  appliedUpdate: "Input change record", undoneUpdate: "Update undone", staleUpdate: "The pool changed after this preview. Check for an update and review it again.", staleUndo: "Work changed after this version. Review a fresh replacement or restore its backup before changing it.",
+  invalidPool: "The player update has an invalid catalog. Retry the update.", repeatedPoolIdentity: "The player update contains missing or repeated identities. Keep the current inputs and retry.",
+  replaced: "Reviewed portfolio replacement applied. Import a fresh entry template before downloading.", replacementUndone: "Previous portfolio version restored. Import a fresh entry template before downloading.",
+  exportTitle: "Entry-update review", exportScope: "Updates only the entries you assign. Unrelated template rows stay intact. Upload the downloaded file to DraftKings; acceptance remains unconfirmed.",
+  downloadReviewed: "Download reviewed entry-update CSV",
+  backupWorking: "Preparing portfolio backup…",
+  templateMissing: "Import your reserved-entry template to choose the contest and assign lineups.", prelockMissing: "Check the slate and player start times, then confirm the pre-lock review below.",
+  metrics: { "Projected Points": "Projected points", "Low (P10)": "Player P10", "High (P90)": "Player P90", salary: "Salary", dfs_id: "Platform ID", Player: "Name", Position: "Position", Team: "Team", Opponent: "Opponent", projection_source: "Forecast source", "Injury Status": "Status", on_bye: "Bye" },
+};
+
+export const DFS_GUARDRAIL_COPY = {
+  groups: "Pair & core controls", groupHelp: "Choose 2–9 players. An appearance counts only when every member is in the same lineup, across any slots. Bounds apply to the next global build; existing lineups stay as built.",
+  groupLabel: "Combination label (optional)", memberSearch: "Find a combination member", members: "Combination members",
+  selectedMembers: n => `${n} of 9 members selected`, addGroup: "Add combination", remove: "Remove", removeGroup: label => `Remove combination: ${label}`,
+  memberError: "Choose 2 to 9 players before adding this combination.", duplicateGroup: "This combination already has controls. Edit its existing bounds.",
+  noGroups: "No combination bounds set. Pair concentration remains visible in the structure audit.",
+  groupBound: (kind, label) => `${({ min: "Minimum", target: "Target", max: "Maximum" })[kind]} combination: ${label}`,
+  stackHelp: "Rules apply to each selected quarterback. Existing locked players count. Same-team attachments include WR/TE and only the receiving RBs you select below. Opposing players include RB/WR/TE; defense never counts.",
+  attachments: "Same-team attachments", bringBack: "Opposing players", stackCount: "Player count",
+  modes: [{ id: "minimum", label: "At least" }, { id: "maximum", label: "At most" }, { id: "exact", label: "Exactly" }, { id: "optional", label: "Optional" }, { id: "forbidden", label: "Forbidden" }],
+  semantics: (rule, section) => {
+    const subject = section === "attachments" ? "qualifying same-team attachments" : "opposing offensive players";
+    return rule.mode === "optional" ? `${subject}: neither required nor banned.` : rule.mode === "forbidden" ? `No ${subject} allowed.` : `${({ minimum: "At least", maximum: "At most", exact: "Exactly" })[rule.mode]} ${rule.count} ${subject}.`;
+  },
+  receivingRbs: "Qualifying receiving RBs", rbHelp: "Your explicit eligibility choice, not a modeled receiving-role recommendation. Other RBs do not count as same-team attachments. This does not lock selected RBs.",
+  rbSearch: "Find a receiving RB", noRbs: "No eligible running backs match this search.", rbSelected: n => `${n} receiving RB${n === 1 ? "" : "s"} selected`,
+  actualStacks: "Actual stack structure", unknown: "Unknown", actualCounts: (label, counts) => `${label}: ${Object.entries(counts).map(([size, n]) => `${size} players in ${n} lineups`).join(" · ")}`,
+  plans: "Named build plans", planHelp: "Download your next-build controls as a plan, or import one for this exact slate. Preview first; Apply replaces locks, skips, schedule and strategy controls together. It does not rebuild or replace your existing lineups.",
+  planName: "Plan name", downloadPlan: "Download build plan", importPlan: "Import build plan", applyPlan: "Apply reviewed plan", cancelPlan: "Keep current controls",
+  preview: "Plan preview", planChanges: "Controls that will change", unchanged: "All controls already match this plan.",
+  approved: label => `Applied plan: ${label}`, changed: "Controls differ from the applied plan. Reapply its preview or release the plan before building.",
+  release: "Use edited controls", releaseHelp: "Releases the plan match requirement. Your current controls remain and are saved with the next build.",
+  planReady: "Applied controls match the plan. The same match is checked again before Build.", planReadError: "This plan could not be read. Your controls have not changed.",
+  planContext: (n, locked, excluded, groups) => `${n} lineups · ${locked} locks · ${excluded} skips · ${groups} combinations`,
+  legacyRequired: "This plan requires at least one same-team WR/TE. Choosing an attachment count replaces that requirement.",
+  fields: { portfolio_mode: "Builder mode", lineup_count: "Lineup count", objective: "Score preference", salary_cap: "Salary cap", min_salary: "Minimum spend", max_per_team: "Team maximum", max_overlap: "Maximum shared players", max_exposure: "Shared exposure maximum", randomness: "Search variation", locked_player_ids: "Locks", excluded_player_ids: "Skips", qb_stack_count: "Legacy attachments", require_qb_stack: "Legacy required attachment", stack_bring_back: "Legacy bring-back", stack_teams: "Quarterback teams", stack_qb_ids: "Quarterbacks", stack_game_weights: "Game allocation schedule", classic_stack_rules: "Exact stack rules", player_exposure_limits: "Player exposure controls", group_exposure_limits: "Combination controls", block_qb_opposing_dst: "QB/defense safeguard" },
+};
+
+export function buildPlanValue(field, value, pool = []) {
+  const name = id => pool.find(p => p.player_id === id)?.Player || id;
+  if (value === null) return "None";
+  if (typeof value === "boolean") return value ? "On" : "Off";
+  if (["locked_player_ids", "excluded_player_ids", "stack_qb_ids"].includes(field)) return value.length ? value.map(name).join(", ") : "None";
+  if (field === "stack_game_weights") return value.length ? value.map(g => `${g.teams.join(" / ")}: ${g.weight}`).join("; ") : "No weighted schedule";
+  if (field === "classic_stack_rules") return `${DFS_GUARDRAIL_COPY.semantics(value.attachments, "attachments")} ${DFS_GUARDRAIL_COPY.semantics(value.bring_back, "bring_back")} Receiving RBs: ${value.attachments.receiving_rb_ids.map(name).join(", ") || "none"}.`;
+  if (field === "player_exposure_limits") return Object.entries(value).map(([id, rule]) => `${name(id)}: ${buildPlanBounds(rule)}`).join("; ") || "None";
+  if (field === "group_exposure_limits") return value.map(g => `${g.player_ids.map(name).join(" + ")}: ${buildPlanBounds(g)}`).join("; ") || "None";
+  if (field === "max_exposure" || field === "randomness") return `${Number(value) * 100}%`;
+  if (field === "salary_cap" || field === "min_salary") return `$${Number(value).toLocaleString()}`;
+  return Array.isArray(value) ? value.join(", ") || "None" : String(value);
+}
+function buildPlanBounds(rule) {
+  return ["min", "target", "max"].filter(k => rule[k] != null).map(k => `${({ min: "minimum", target: "target", max: "maximum" })[k]} ${typeof rule[k] === "object" ? `${rule[k].count} appearances` : `${Number(rule[k]) * 100}%`}`).join(", ") || "No bounds";
+}
+
 export const DFS_GLOBAL_COPY = {
   title: "Global portfolio controls", enabled: "Select the portfolio together", legacy: "Off: keep the existing batch builder. On: select unique Classic lineups together under the controls below.",
   help: "These controls apply to your next build. Minimum and Maximum are hard bounds. Target is a preference: selection first minimizes target misses, then maximizes your chosen score. Forecasts stay unchanged.",
   search: "Find an exposure player", unit: "Exposure units", percent: "Percent", count: "Appearances", minimum: "Minimum", target: "Target", maximum: "Maximum", actual: "Actual",
-  rounding: "Percent minimums round up; maximums round down. Counts use the requested lineup total. Fractional targets remain preferences.",
+  rounding: "Percent minimums round up; maximums round down. Counts use the requested lineup total. Switching units preserves target appearances; editing Target sets a new preference.",
+  overlap: "Maximum shared players",
+  nativeMigration: "Your existing stack minimum and opposing-player requirement were transferred to the exact Classic controls. Forecasts are unchanged.",
   ruleCount: (n, total) => `${n} of ${total}`, actualCount: (n, total) => `${n} of ${total} generated`,
   clear: "Clear global controls", noPlayers: "No players match this search.", lock: "Locked everywhere", skip: "Skipped",
   block: "Avoid QB against opposing defense", blockHelp: "Classic strategy safeguard. Turn off only when you intend this pairing; the choice is saved with the build.",
@@ -24,6 +104,7 @@ export const DFS_GLOBAL_COPY = {
   authorization: "Sign in again before downloading. Account access must be checked even for local recovery.",
   localTitle: "Local draft", localHelp: "Saved on this browser for this account. Restore reviews original inputs and clears entry assignments; import a fresh entries template.",
   localSaved: "Local draft saved", localSaving: "Saving local draft…", localError: "Local draft could not save. Download a backup before leaving.", localAvailable: "A local draft is available to recover.", localRestore: "Restore local draft", localDiscard: "Delete local draft", localEmpty: "No local draft saved yet.",
+  localRestoreChanged: "The account or draft changed while restoring. Review the current account’s draft and restore again.",
   contest: "Entries to update", allContests: "Choose a contest", selectedContest: (name, count) => `${name} · ${count} reservations`,
   prelock: "I checked the slate and start time; none of the assigned players have locked.",
   prelockHelp: "Platform lock state is unverified. Known scheduled starts block this pre-lock export; check your entries on DraftKings before continuing.",
@@ -39,6 +120,7 @@ export const DFS_PORTFOLIO_COPY = {
   backupInvalid: "This portfolio backup is malformed or contains unsupported data. The current portfolio has not changed.",
   backupVersion: "This file is not a supported version of a Classic portfolio backup. The current portfolio has not changed.",
   backupSize: "Portfolio backups must be 20 MiB or smaller. The current portfolio has not changed.",
+  backupExpanded: "This backup exceeds the expanded recovery limit. The current portfolio has not changed.",
   replaceTitle: "Replace Classic portfolio?", replace: "Replace portfolio", cancelRestore: "Keep current portfolio",
   replaceMessage: (current, audit) => `Replace ${current} current batches with ${audit.batchCount} backup batches (${audit.total} lineups, ${audit.duplicates.length} duplicates, ${audit.errors.length} appearance-limit warnings)? This clears the current Edit Entries template and assignments. No batches will be merged.`,
   restored: "Portfolio restored with its original inputs and limits. Review the audit and import a fresh Edit Entries template before exporting.",
@@ -84,8 +166,8 @@ export const DFS_WORKSPACE_COPY = {
   liveRefreshed: "Live player pool checked. Built lineups keep their original inputs; rebuild to use the latest pool. Imported estimates stay in place.",
   liveRefreshFailed: "The live player pool could not refresh. Showing the previous inputs; the next check is in five minutes.",
   captainRotationHelp: "Lineups may use the same six players with a different Captain. Repeated lineups are excluded; exposure limits still apply.",
-  dataUpdate: "New projections are available. Updating the live player pool clears the current unsaved build; saved builds and imported estimates keep their original values.",
-  updatePool: "Update player pool",
+  dataUpdate: "New projections are available. Compare the player input update before using it; reviewed lineups keep their original values.",
+  updatePool: "Check player update",
   uploadedUpdate: "New projections are available. Your uploaded player pool keeps its original estimates; choose a live slate to use the update.",
   eyebrow: "Tournament workspace", title: "Your lineups, built together.", support: "Choose your pool. Control your exposure. Review the whole set.",
   build: "Build lineups", results: "Results", settings: "Build settings", contest: "Contest", contestNote: "Projection-based construction. Contest-return estimates are not available.",

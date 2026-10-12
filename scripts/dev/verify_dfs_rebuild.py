@@ -35,6 +35,8 @@ def synthetic_pool():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--count", type=int, default=150)
+    parser.add_argument("--native-stacks", action="store_true",
+                        help="Exercise exact attachment rules, declared receiving RBs and a hard pair maximum.")
     parser.add_argument("--output", type=Path, default=Path("outputs/dfs-rebuild-fixture"))
     args = parser.parse_args()
     if not 1 <= args.count <= 150:
@@ -54,6 +56,12 @@ def main():
         "player_exposure_limits": {"QB0": {"min": ".2" if args.count >= 3 else "0", "target": ".4", "max": "1"}},
         "block_qb_opposing_dst": True,
         "snapshot_context": {"fixture": "synthetic_only", "season": 2026, "week": 1, "client_slate_id": "synthetic-classic"}}
+    if args.native_stacks:
+        request.update(classic_stack_rules={"version": 1,
+            "attachments": {"mode": "exact", "count": 1, "receiving_rb_ids": ["RB0"]},
+            "bring_back": {"mode": "optional", "count": 0}},
+            group_exposure_limits=[{"id": "synthetic-rb-pair", "player_ids": ["RB0", "RB1"],
+                "min": ".1" if args.count >= 10 else "0", "target": ".2", "max": ".3" if args.count >= 10 else "1"}])
     started = time.monotonic()
     result = optimize_from_pool_dataframe(frame, **request)
     if not result.get("ok") or not result.get("complete") or not result.get("validation", {}).get("ok"):

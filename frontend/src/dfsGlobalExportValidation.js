@@ -1,51 +1,37 @@
 import { normalizeDfsTeam } from "./dfsToolPresentation.js";
+import { auditClassicStackRules, normalizeClassicStackRules } from "./dfsClassicStackRules.js";
+import { exposureBoundCount } from "./dfsExposureBounds.js";
+import { assertBuildPlanApplied } from "./dfsBuildPlans.js";
+export { exposureBoundCount } from "./dfsExposureBounds.js";
 
 const fail = reason => { throw new Error(`Global portfolio export blocked: ${reason}`); };
 const object = value => value && typeof value === "object" && !Array.isArray(value);
 const canonical = value => JSON.stringify(value, (_key, item) => object(item)
   ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
 const fields = ["portfolio_mode", "lineup_count", "max_exposure", "player_exposure_limits", "group_exposure_limits",
-  "max_overlap", "locked_player_ids", "excluded_player_ids", "block_qb_opposing_dst", "salary_cap", "min_salary", "max_per_team"];
-const normalizedParameter = (key, value) => value ?? ({ max_exposure: 1, player_exposure_limits: {},
-  group_exposure_limits: [], locked_player_ids: [], excluded_player_ids: [],
-  block_qb_opposing_dst: true, min_salary: 0, max_per_team: 0 }[key]);
-
-// Exact fraction/count arithmetic independent of the selector's reported audit.
-function amount(value, count, kind) {
-  if (object(value)) {
-    const softDecimal = kind === "target" && typeof value.count === "string" &&
-      /^(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.count);
-    const number = softDecimal ? Number(value.count) : value.count;
-    if (Object.keys(value).length !== 1 || !Object.hasOwn(value, "count") || typeof number !== "number" ||
-        !Number.isFinite(number) || number < 0 || number > count ||
-        (kind !== "target" && !Number.isSafeInteger(number))) fail("invalid exposure count bound.");
-    return number;
-  }
-  if (!["number", "string"].includes(typeof value)) fail("invalid exposure fraction bound.");
-  const match = /^(\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(String(value).trim());
-  if (!match || (!match[1] && !match[2]) || (match[1] + (match[2] || "")).length > 30) fail("invalid exposure fraction bound.");
-  const exponent = Number(match[3] || 0), scale = (match[2] || "").length - exponent;
-  if (Math.abs(scale) > 30) fail("invalid exposure fraction precision.");
-  let numerator = BigInt((match[1] || "0") + (match[2] || "")), denominator = 1n;
-  if (scale >= 0) denominator = 10n ** BigInt(scale); else numerator *= 10n ** BigInt(-scale);
-  if (numerator > denominator) fail("exposure fractions must be between zero and one.");
-  const scaled = numerator * BigInt(count);
-  return kind === "min" ? Number((scaled + denominator - 1n) / denominator)
-    : kind === "max" ? Number(scaled / denominator) : Number(scaled) / Number(denominator);
-}
+  "max_overlap", "locked_player_ids", "excluded_player_ids", "block_qb_opposing_dst", "salary_cap", "min_salary", "max_per_team", "classic_stack_rules", "stack_teams", "stack_qb_ids"];
+const normalizedParameter = (key, value) => {
+  const result = value ?? ({ max_exposure: 1, player_exposure_limits: {}, group_exposure_limits: [], locked_player_ids: [], excluded_player_ids: [],
+    block_qb_opposing_dst: true, min_salary: 0, max_per_team: 0, stack_teams: [], stack_qb_ids: [], classic_stack_rules: null }[key]);
+  if (["stack_teams", "stack_qb_ids"].includes(key) && Array.isArray(result)) return result.map(item => key === "stack_teams" ? normalizeDfsTeam(item) : item).sort();
+  if (key === "classic_stack_rules") return normalizeClassicStackRules(result);
+  return result;
+};
+const amount = exposureBoundCount;
 
 /** Audit one original global build; unrelated collected batches keep their own N. */
 export function validateGlobalBuildForExport(snapshot, actualLineups = snapshot?.lineups) {
   const settings = snapshot?.settings || {}, original = settings.build_snapshot?.content?.parameters;
   const content = settings.build_snapshot?.content;
   if (settings.portfolio_mode !== "global" && original?.portfolio_mode !== "global" &&
-      content?.engine?.version !== "global_candidate_milp_v1" && settings.portfolio_selection == null) return null;
+      !["global_candidate_milp_v1", "global_candidate_milp_v2"].includes(content?.engine?.version) && settings.portfolio_selection == null) return null;
   if (settings.portfolio_mode !== "global") fail("original global mode was removed from the saved snapshot settings.");
   if (original != null && !object(original)) fail("original input snapshot parameters are malformed.");
   if (original) for (const key of fields) {
     if (Object.hasOwn(original, key) && canonical(normalizedParameter(key, settings[key])) !== canonical(normalizedParameter(key, original[key])))
       fail(`${key} no longer matches the original input snapshot.`);
   }
+  if (settings.plan_manifest != null) assertBuildPlanApplied(settings.plan_manifest, settings);
   const count = settings.lineup_count;
   if (!Number.isSafeInteger(count) || count < 1 || count > 150 || actualLineups?.length !== count)
     fail("actual lineup count does not match the original requested count.");
@@ -62,6 +48,10 @@ export function validateGlobalBuildForExport(snapshot, actualLineups = snapshot?
     return values;
   };
   const locked = checkIds(settings.locked_player_ids || [], "Locks"), excluded = checkIds(settings.excluded_player_ids || [], "Skipped players");
+  const scopedQbs = checkIds(settings.stack_qb_ids ?? [], "Selected QB scope"), scopedTeams = settings.stack_teams ?? [];
+  if (scopedQbs.some(id => String(catalog.get(id).Position ?? catalog.get(id).position).toUpperCase() !== "QB")) fail("selected QB scope contains a non-quarterback.");
+  if (!Array.isArray(scopedTeams) || scopedTeams.some(team => typeof team !== "string" || !normalizeDfsTeam(team)) ||
+      new Set(scopedTeams.map(normalizeDfsTeam)).size !== scopedTeams.length) fail("invalid selected QB team scope.");
   const overlap = settings.max_overlap;
   if (overlap != null && (!Number.isSafeInteger(overlap) || overlap < 0 || overlap > 9)) fail("invalid overlap bound.");
   const salaryCap = settings.salary_cap ?? 50000, minimumSalary = settings.min_salary ?? 0,
@@ -76,9 +66,15 @@ export function validateGlobalBuildForExport(snapshot, actualLineups = snapshot?
   const eligiblePlayers = content?.eligible_players ?? [];
   if (!Array.isArray(eligiblePlayers) || eligiblePlayers.some(player => !object(player))) fail("original opponent provenance is malformed.");
   const originalPlayers = new Map(eligiblePlayers.map(p => [p.player_id, p]));
+  const classicRules = normalizeClassicStackRules(settings.classic_stack_rules, snapshot.salaryCatalog), stackAudit = [];
+  if (classicRules && (settings.require_qb_stack || settings.qb_stack_count || settings.stack_bring_back || settings.stack_game_weights?.length))
+    fail("native stack rules cannot be mixed with legacy stack controls or a weighted schedule.");
   actualLineups.forEach((entry, index) => {
     if (!Array.isArray(entry?.lineup) || entry.lineup.length !== 9) fail(`lineup ${index + 1} has invalid roster rows.`);
     const ids = checkIds(entry.lineup.map(p => p.player_id), "Lineup"), key = JSON.stringify([...ids].sort()), members = new Set(ids);
+    const actualQb = entry.lineup.find(player => player.slot === "QB");
+    if ((scopedQbs.length && !scopedQbs.includes(actualQb?.player_id)) || (!scopedQbs.length && scopedTeams.length && !scopedTeams.map(normalizeDfsTeam).includes(normalizeDfsTeam(actualQb?.team))))
+      fail(`lineup ${index + 1} quarterback does not match the original selected QB scope.`);
     if (seen.has(key)) fail("duplicate canonical scoring lineups remain in the original global build.");
     seen.add(key);
     if (locked.some(id => !members.has(id))) fail(`lineup ${index + 1} is missing a global lock.`);
@@ -101,6 +97,7 @@ export function validateGlobalBuildForExport(snapshot, actualLineups = snapshot?
     if (maximumPerTeam && [...teams.values()].some(value => value > maximumPerTeam))
       fail(`lineup ${index + 1} exceeds the original maximum ${maximumPerTeam} players per team.`);
     sets.push(members);
+    if (classicRules) stackAudit.push(auditClassicStackRules(classicRules, entry, snapshot.salaryCatalog, eligiblePlayers));
     if (settings.block_qb_opposing_dst !== false) {
       const qb = entry.lineup.find(p => p.slot === "QB"), dst = entry.lineup.find(p => p.slot === "DST");
       const opponent = row => {
@@ -137,5 +134,6 @@ export function validateGlobalBuildForExport(snapshot, actualLineups = snapshot?
   return { version: 1, mode: "global", requestedCount: count, actualCount: actualLineups.length,
     uniqueCount: seen.size, bounds, lockCount: locked.length, excludedCount: excluded.length,
     salaryCap, minimumSalary, maximumPerTeam,
+    ...(classicRules ? { classic_stack_rules: classicRules, stack_audit: stackAudit } : {}),
     qbOpposingDstPolicy: settings.block_qb_opposing_dst !== false ? "checked" : "explicit_override" };
 }

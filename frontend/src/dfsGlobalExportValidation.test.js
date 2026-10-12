@@ -4,6 +4,8 @@ import { buildEntryCsv, readEntryTemplate } from "./dfsEntryExport.js";
 import { auditPortfolio, buildPortfolioEntryCsv, createPortfolioBatch } from "./dfsPortfolio.js";
 import { csvLines } from "./dfsCsv.js";
 import { readPortfolioBackup, writePortfolioBackup } from "./dfsPortfolioBackup.js";
+import { DEFAULT_CLASSIC_STACK_RULES } from "./dfsClassicStackRules.js";
+import { createBuildPlan, previewBuildPlan } from "./dfsBuildPlans.js";
 
 const slots = ["QB", "RB1", "RB2", "WR1", "WR2", "WR3", "TE", "FLEX", "DST"];
 const positions = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "WR", "DST"];
@@ -52,7 +54,7 @@ test("T10/T29 forged global bounds cannot bypass current-build export independen
 
 test("T29 restored global batches are checked on their original N without reinterpreting combined batches", () => {
   const original = source(), batch = createPortfolioBatch(original, "Original", "original");
-  const packageValue = JSON.parse(writePortfolioBackup([batch], {}));
+  const packageValue = JSON.parse(writePortfolioBackup([batch], {}, undefined, { version: 1 }));
   packageValue.batches[0].settings.player_exposure_limits.p5.min = { count: 2 };
   packageValue.batches[0].settings.player_exposure_limits.p5.max = { count: 2 };
   const restored = readPortfolioBackup(JSON.stringify(packageValue));
@@ -121,4 +123,100 @@ test("T29 global export recomputes original custom salary and team hard limits",
   const reviewed = source(); reviewed.settings.salary_cap = 36000;
   reviewed.settings.min_salary = 36000; reviewed.settings.max_per_team = 8;
   assert.equal(exportCurrent(reviewed).changed, 2);
+});
+
+test("T07 export independently distinguishes native minimum, exact, maximum and receiving-RB declarations", () => {
+  const s = source(); s.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+  s.settings.classic_stack_rules.attachments = { mode: "minimum", count: 1, receiving_rb_ids: [] };
+  assert.equal(exportCurrent(s).manifest.globalBuild.stack_audit[0].attachments.actual_count, 5);
+  s.settings.classic_stack_rules.attachments.mode = "exact";
+  assert.throws(() => exportCurrent(s), /attachments.*exact 1.*actual 5/i);
+  s.settings.classic_stack_rules.attachments = { mode: "exact", count: 6, receiving_rb_ids: ["p1"] };
+  s.settings.locked_player_ids.push("p1");
+  assert.equal(exportCurrent(s).manifest.globalBuild.stack_audit[0].attachments.actual_count, 6);
+  s.settings.classic_stack_rules.attachments.receiving_rb_ids = [];
+  assert.throws(() => exportCurrent(s), /attachments.*actual 5/i);
+  s.settings.classic_stack_rules.attachments = { mode: "maximum", count: 4, receiving_rb_ids: [] };
+  assert.throws(() => exportCurrent(s), /attachments.*maximum 4/i);
+  s.settings.classic_stack_rules.attachments = { mode: "forbidden", count: 0, receiving_rb_ids: [] };
+  assert.throws(() => exportCurrent(s), /attachments.*forbidden/i);
+});
+
+test("T07 bring-back audits count existing locked offense, exclude DST and preserve optional semantics", () => {
+  const s = source(); s.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+  assert.equal(exportCurrent(s).changed, 2);
+  s.settings.classic_stack_rules.bring_back = { mode: "minimum", count: 1 };
+  assert.throws(() => exportCurrent(s), /bring-back.*minimum 1.*actual 0/i);
+  s.salaryCatalog[2].Team = "KC"; s.lineups.forEach(entry => { entry.lineup[2].team = "KC"; });
+  s.settings.locked_player_ids.push("p2");
+  s.settings.classic_stack_rules.bring_back.mode = "exact";
+  assert.deepEqual(exportCurrent(s).manifest.globalBuild.stack_audit[0].bring_back.player_ids, ["p2"]);
+  s.settings.classic_stack_rules.bring_back = { mode: "optional", count: 0 };
+  assert.equal(exportCurrent(s).changed, 2);
+  s.settings.classic_stack_rules.bring_back = { mode: "forbidden", count: 0 };
+  assert.throws(() => exportCurrent(s), /bring-back.*forbidden/i);
+  const dstOnly = source(); dstOnly.settings.block_qb_opposing_dst = false;
+  dstOnly.salaryCatalog[8].Team = "KC"; dstOnly.lineups.forEach(entry => { entry.lineup[8].team = "KC"; });
+  dstOnly.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+  dstOnly.settings.classic_stack_rules.bring_back = { mode: "forbidden", count: 0 };
+  assert.equal(exportCurrent(dstOnly).manifest.globalBuild.stack_audit[0].bring_back.actual_count, 0);
+});
+
+test("T07/T35 unknown native relationship, mixed legacy settings and changed original rules block export", () => {
+  const unknown = source(); unknown.settings.block_qb_opposing_dst = false;
+  unknown.salaryCatalog.forEach(player => { delete player.Opponent; });
+  unknown.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+  assert.equal(exportCurrent(unknown).manifest.globalBuild.stack_audit[0].bring_back.relationship_known, false);
+  unknown.settings.classic_stack_rules.bring_back = { mode: "maximum", count: 1 };
+  assert.throws(() => exportCurrent(unknown), /unknown/i);
+  const mixed = source(); mixed.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+  mixed.settings.qb_stack_count = 1;
+  assert.throws(() => exportCurrent(mixed), /legacy/i);
+  mixed.settings.qb_stack_count = 0;
+  mixed.settings.build_snapshot = { content: { parameters: { classic_stack_rules: structuredClone(DEFAULT_CLASSIC_STACK_RULES) } } };
+  mixed.settings.classic_stack_rules.attachments = { mode: "exact", count: 5, receiving_rb_ids: [] };
+  assert.throws(() => exportCurrent(mixed), /original input/i);
+  const stripped = source(); delete stripped.settings.portfolio_mode;
+  stripped.settings.build_snapshot = { content: { engine: { version: "global_candidate_milp_v2" } } };
+  assert.throws(() => exportCurrent(stripped), /global mode/i);
+  const contradictory = source(); contradictory.settings.block_qb_opposing_dst = false;
+  contradictory.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+  contradictory.salaryCatalog[0].Opponent = "BUF";
+  assert.equal(exportCurrent(contradictory).manifest.globalBuild.stack_audit[0].bring_back.relationship_known, false);
+  contradictory.settings.classic_stack_rules.bring_back = { mode: "maximum", count: 7 };
+  assert.throws(() => exportCurrent(contradictory), /unknown/i);
+});
+
+test("T14/T35 independent export audits selected QB scope, original restrictions and applied plan inputs", () => {
+  const scoped = source(); scoped.salaryCatalog[10].Position = "QB";
+  scoped.settings.stack_qb_ids = ["p10"];
+  assert.throws(() => exportCurrent(scoped), /quarterback|QB.*scope|selected QB/i);
+  scoped.settings.stack_qb_ids = []; scoped.settings.stack_teams = ["KC"];
+  assert.throws(() => exportCurrent(scoped), /quarterback|QB.*scope|selected QB/i);
+  scoped.settings.stack_qb_ids = ["p0"];
+  assert.equal(exportCurrent(scoped).changed, 2); // Named QB restriction takes precedence, matching the existing API.
+  scoped.settings.build_snapshot = { content: { parameters: { stack_qb_ids: ["p10"] } } };
+  assert.throws(() => exportCurrent(scoped), /original input/i);
+  const planned = source(), validation = { catalog: planned.salaryCatalog, context: planned.context, salarySnapshot: null, games: [] };
+  const plan = createBuildPlan({ id: "original-plan", label: "Display only" }, planned.settings, validation);
+  planned.settings.plan_manifest = previewBuildPlan(plan, planned.settings, validation).manifest;
+  assert.equal(exportCurrent(planned).changed, 2);
+  planned.settings.excluded_player_ids = [];
+  assert.throws(() => exportCurrent(planned), /excluded_player_ids/i);
+});
+
+test("T07 independent native audit treats sentinel team/opponent values as unknown relationships", () => {
+  for (const unknown of ["NAN", "NONE", "NULL", "BYE"]) {
+    const s = source(); s.settings.block_qb_opposing_dst = false;
+    s.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+    s.salaryCatalog[0].Opponent = unknown;
+    assert.equal(exportCurrent(s).manifest.globalBuild.stack_audit[0].bring_back.relationship_known, false);
+    s.settings.classic_stack_rules.bring_back = { mode: "maximum", count: 7 };
+    assert.throws(() => exportCurrent(s), /unknown/i);
+  }
+  const bye = source(); bye.settings.block_qb_opposing_dst = false;
+  bye.settings.classic_stack_rules = structuredClone(DEFAULT_CLASSIC_STACK_RULES);
+  bye.salaryCatalog[0].Team = "BYE"; bye.lineups.forEach(entry => { entry.lineup[0].team = "BYE"; });
+  bye.settings.classic_stack_rules.attachments = { mode: "maximum", count: 7, receiving_rb_ids: [] };
+  assert.throws(() => exportCurrent(bye), /unknown/i);
 });

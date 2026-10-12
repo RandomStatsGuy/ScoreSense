@@ -14,8 +14,9 @@ let compiled;
 export async function attachDfsFixture(context) {
   if (!compiled) compiled = (async () => {
     await mkdir(directory, { recursive: true });
-    await build({ entryPoints: [path.join(root, "frontend/test-fixtures/dfs-portfolio.jsx")],
-      bundle: true, format: "esm", outdir: directory, entryNames: "app", publicPath: "/__dfs-fixture",
+    await build({ entryPoints: { app: path.join(root, "frontend/test-fixtures/dfs-portfolio.jsx"),
+        "dfsPortfolioBackup.worker": path.join(root, "frontend/src/dfsPortfolioBackup.worker.js") },
+      bundle: true, format: "esm", outdir: directory, entryNames: "[name]", publicPath: "/__dfs-fixture",
       external: ["/art/*"],
       loader: { ".png": "file", ".jpg": "file", ".jpeg": "file", ".webp": "file", ".svg": "file", ".woff2": "file" },
       define: { "process.env.NODE_ENV": '"development"' }, logLevel: "silent" });

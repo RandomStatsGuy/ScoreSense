@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { attachDfsFixture } from "./dfs_fixture_runtime.mjs";
+import { verifyGuardrails } from "./dfs_guardrails_tasks.mjs";
 import { readPortfolioBackup } from "../../frontend/src/dfsPortfolioBackup.js";
 import { measureScript, minTargetForWidth, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX,
   COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS } from "./layout_audit.mjs";
@@ -26,6 +27,10 @@ async function backup(page, name) {
   return readPortfolioBackup(await readFile(filepath, "utf8"));
 }
 try {
+  if (process.argv.includes("--guardrails-only")) {
+    await verifyGuardrails(browser, root);
+    process.exitCode = 0;
+  } else {
   for (const width of [390, 768, 1280, 1440]) for (const theme of ["dark", "light"]) {
     const context = await browser.newContext({ viewport: { width, height: 960 }, acceptDownloads: true, reducedMotion: "reduce" });
     await context.addInitScript(value => localStorage.setItem("scoresense-color-theme", value), theme);
@@ -76,7 +81,8 @@ try {
     const request = await page.evaluate(() => window.__portfolioFixture.requests.at(-1));
     assert.equal(request.portfolio_mode, "global");
     assert.equal(request.block_qb_opposing_dst, true);
-    assert.deepEqual(request.player_exposure_limits.p1, { min: "0", target: "0.4", max: "1" });
+    assert.deepEqual(request.player_exposure_limits.p1, { min: "0", target: { count: 60 }, max: "1" },
+      "Changing display units retains the exact 60-appearance target");
     assert.deepEqual(request.projection_overrides, {}, "Exposure edits must not rewrite forecasts");
     assert.match(await global.locator(".dfw-exposure-identity").first().innerText(), /Actual: 150 of 150 generated/);
     await global.getByText("Pairs & FLEX structure", { exact: true }).click();
@@ -104,7 +110,7 @@ try {
     await page.reload();
     await page.getByText("A local draft is available to recover.", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Restore local draft", exact: true }).click();
-    await page.getByText("150 / 150 unique · 150 collected", { exact: false }).waitFor();
+    await page.getByText("150 / 150 requested unique · 150 collected", { exact: false }).waitFor();
     assert.equal(await page.evaluate(() => window.__portfolioFixture.requests.length), 0);
     const recovered = await backup(page, `local-draft-${theme}-${width}`);
     assert.equal(recovered.batches[0].lineups.length, 150);
@@ -170,6 +176,7 @@ try {
   assert.equal(staleDownloads.length, 0, "An account change prevents stale CSV download");
   console.log("PASS account change during save: no later batch save, ledger write or stale CSV download");
   await staleContext.close();
+  }
 } finally {
   await writeFile(path.join(output, "report.json"), JSON.stringify({ report, viewportFailures }, null, 2));
   await browser.close();

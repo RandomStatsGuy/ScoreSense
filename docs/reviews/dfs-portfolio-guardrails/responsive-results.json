@@ -1,0 +1,445 @@
+{
+  "schema": "scoresense_dfs_ui_review_v1",
+  "data": "synthetic production-component fixture",
+  "widths": [
+    390,
+    768,
+    1280,
+    1440
+  ],
+  "themes": [
+    "dark",
+    "light"
+  ],
+  "cases": [
+    {
+      "width": 390,
+      "theme": "dark",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "taskPassed": true,
+      "layoutPassed": true,
+      "rules": [
+        {
+          "rule": "bars",
+          "passed": true
+        },
+        {
+          "rule": "collisions",
+          "passed": true
+        },
+        {
+          "rule": "tables",
+          "passed": true
+        },
+        {
+          "rule": "grids",
+          "passed": true
+        },
+        {
+          "rule": "targets",
+          "passed": true
+        },
+        {
+          "rule": "primaries",
+          "passed": true
+        },
+        {
+          "rule": "type",
+          "passed": true
+        },
+        {
+          "rule": "gutters",
+          "passed": true
+        },
+        {
+          "rule": "selects",
+          "passed": true
+        },
+        {
+          "rule": "overflow",
+          "passed": true
+        },
+        {
+          "rule": "menus",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "extra_checks": {
+    "stale_preview_controls": "pass",
+    "stale_preview_context": "pass",
+    "null_native_plan_build_and_first_edit": "pass",
+    "plan_unit_switch_preserves_match": "pass",
+    "applied_plan_manifest_backup_reload": "pass",
+    "native_export_audit_and_actual_csv_sha256": "pass",
+    "captain_comparison_invalid_unused_count": "pass",
+    "cross_format_legacy_stack_controls": "pass",
+    "same_slate_plan_shrinks_group_page": "pass",
+    "legacy_required_zero_rejected_before_preview": "pass",
+    "keyboard_enter_apply_cancel_focus": "pass"
+  }
+}

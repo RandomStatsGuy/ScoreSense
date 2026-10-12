@@ -34,11 +34,6 @@ export default function LineupOptimizer({ projMeta }) {
       </nav>
       {view === "build" ? (
         <>
-          {builder.error && (
-            <div className="dfw-error" role="alert">
-              {builder.error}
-            </div>
-          )}
           {builder.dataUpdateAvailable && (
             <div className="dfw-notice" role="status">
               {builder.context.source === "live" ? C.dataUpdate : C.uploadedUpdate}

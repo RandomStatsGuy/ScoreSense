@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { HubFilterMenu } from "./DraftHub/HubUILayout.jsx";
-import { exposureCount, auditGlobalStructure } from "./dfsGlobalExposure.js";
+import { ruleExposureCount, auditGlobalStructure } from "./dfsGlobalExposure.js";
 import { DFS_GLOBAL_COPY as C, DFS_WORKSPACE_COPY as W } from "./dfsToolPresentation.js";
+import DfsGroupExposure from "./DfsGroupExposure.jsx";
+import { auditClassicStackRules } from "./dfsClassicStackRules.js";
+import { DFS_GUARDRAIL_COPY as R } from "./dfsToolPresentation.js";
 
 export default function DfsGlobalExposure({ b }) {
   const [query, setQuery] = useState(""), [page, setPage] = useState(0);
@@ -13,10 +16,25 @@ export default function DfsGlobalExposure({ b }) {
     return counts;
   }, [b.lineups]);
   const structure = useMemo(() => auditGlobalStructure(b.lineups), [b.lineups]);
+  const stackStructure = useMemo(() => {
+    const snapshot = b.currentBuild;
+    if (!snapshot?.settings.classic_stack_rules) return null;
+    const result = { attachments: {}, bring_back: {} };
+    try {
+      snapshot.lineups.forEach(entry => {
+        const audit = auditClassicStackRules(snapshot.settings.classic_stack_rules, entry, snapshot.salaryCatalog, snapshot.settings.build_snapshot?.content?.eligible_players || []);
+        for (const section of ["attachments", "bring_back"]) {
+          const key = audit[section].relationship_known ? audit[section].actual_count : R.unknown;
+          result[section][key] = (result[section][key] || 0) + 1;
+        }
+      });
+      return result;
+    } catch (e) { return { error: e.message }; }
+  }, [b.currentBuild]);
   const unit = b.globalUnit || "percent";
   const label = kind => ({ min: C.minimum, target: C.target, max: C.maximum })[kind];
   const hint = (rule, kind) => {
-    try { const value = exposureCount(rule[kind], count, kind, rule.unit); return value === null ? "—" : C.ruleCount(value, count); }
+    try { const value = ruleExposureCount(rule, count, kind); return value === null ? "—" : C.ruleCount(value, count); }
     catch (error) { return error.message; }
   };
   return <section className="dfw-global" aria-labelledby="dfw-global-title">
@@ -54,14 +72,17 @@ export default function DfsGlobalExposure({ b }) {
         <button disabled={(page + 1) * 6 >= rows.length} onClick={() => setPage(p => p + 1)}>{W.next}</button></div>
       <label className="dfw-check"><input type="checkbox" checked={b.settings.blockQbDst !== false} disabled={b.building}
         onChange={e => b.changeSetting("blockQbDst", e.target.checked)} />{C.block}</label><p className="dfw-note">{C.blockHelp}</p>
+      <DfsGroupExposure b={b} />
     </>}
     {b.portfolioSelection && <div className="dfw-global-verdict" role="status"><strong>{C.summary(b.portfolioSelection)}</strong><p className="dfw-note">{C.candidateNote}</p>
       {(b.portfolioSelection.targets || []).map(target => <p className="dfw-note" key={`${target.scope}:${target.id}`}>
-        {C.targetMiss(b.pool.find(p => p.player_id === target.id)?.Player || target.id, target.actual_count, target.target_count)}
+        {C.targetMiss(b.pool.find(p => p.player_id === target.id)?.Player || b.globalGroups?.find(g => g.id === target.id)?.label || target.id, target.actual_count, target.target_count)}
       </p>)}
       {(b.portfolioSelection.conflicts || []).map((message, i) => <p className="dfw-error" key={i}>{message}</p>)}</div>}
     {!!b.lineups.length && <details><summary>{C.structure}</summary>
       <p className="dfw-note">{C.flex(structure.flex, structure.total)}</p><p className="dfw-note">{C.pairNote}</p>
+      {stackStructure && <><h4>{R.actualStacks}</h4>{stackStructure.error ? <p className="dfw-error">{stackStructure.error}</p> :
+        <><p className="dfw-note">{R.actualCounts(R.attachments, stackStructure.attachments)}</p><p className="dfw-note">{R.actualCounts(R.bringBack, stackStructure.bring_back)}</p></>}</>}
       <h4>{C.rbPairs}</h4><table className="dfw-table dfw-structure-table"><thead><tr><th>{C.pair}</th><th className="num">{C.appearances}</th></tr></thead>
         <tbody>{structure.pairs.filter(p => p.rb).slice(0, 10).map(pair => <tr key={pair.key}><td>{pair.names.join(" + ")}</td><td className="num">{C.ruleCount(pair.count, structure.total)}</td></tr>)}</tbody></table>
     </details>}
