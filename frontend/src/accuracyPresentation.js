@@ -30,6 +30,8 @@ export const ACCURACY_COPY = {
 };
 
 export function typicalMissLine({ position, miss } = {}) {
+  if ((typeof miss !== "number" && typeof miss !== "string")
+    || (typeof miss === "string" && miss.trim() === "")) return "";
   const pts = Number(miss);
   if (!Number.isFinite(pts)) return "";
   const pos = String(position || "QB").trim().toUpperCase() || "QB";

@@ -10,3 +10,12 @@ test("accuracy copy names the miss, not a trust slogan", () => {
   assert.equal(typicalMissLine({ position: "qb", miss: 4.9 }), "QB typical miss · 4.9 pts");
   assert.equal(typicalMissLine({ miss: null }), "");
 });
+
+test("typical miss hides unavailable values but preserves a measured zero", () => {
+  for (const miss of [null, undefined, "", "  ", NaN, Infinity, -Infinity, "unavailable", false, true, [], {}]) {
+    assert.equal(typicalMissLine({ position: "wr", miss }), "");
+  }
+  assert.equal(typicalMissLine(), "");
+  assert.equal(typicalMissLine({ position: "wr", miss: 0 }), "WR typical miss · 0.0 pts");
+  assert.equal(typicalMissLine({ position: "rb", miss: "3.2" }), "RB typical miss · 3.2 pts");
+});
