@@ -727,8 +727,10 @@ def search_players(
     return out
 
 
-def injured_players(force_refresh: bool = False) -> pd.DataFrame:
-    df = players_dataframe(force_refresh=force_refresh)
+def injured_players(force_refresh: bool = False, *, allow_refresh: bool = True) -> pd.DataFrame:
+    df = players_dataframe(force_refresh=force_refresh) if allow_refresh else players_dataframe(allow_refresh=False)
+    if df.empty:
+        return df
     df = df[df["injury_status"].isin(INJURY_STATUSES)].copy()
     df = df[df["team"].astype(bool)]
     return df.sort_values(["team", "position", "full_name"]).reset_index(drop=True)

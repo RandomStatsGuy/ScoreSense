@@ -2589,6 +2589,7 @@ def hub_league_delete_cancel(league_id: str, _user=Depends(require_hub_user)) ->
 def hub_league_rosters(
     response: Response,
     league_id: str,
+    background_tasks: BackgroundTasks = None,
     refresh: bool = Query(False, description="Bypass cached league rosters payload"),
     trade_view: bool = Query(False, description="Current roster totals with cached valuations only"),
     _user=Depends(require_hub_user),
@@ -2599,46 +2600,36 @@ def hub_league_rosters(
     sub = _sub(_user)
     ctx = _ctx_for_league(sub, league_id)
     source_version = hub_storage.roster_source_version(league_id)
-    from src.draft_hub.insights_cache import FAIR_VALUE_ALGO
+    from src.draft_hub.insights_cache import FAIR_VALUE_ALGO, read_fair_values, read_fair_values_built_at
 
-    cache_key = f"{league_id}:{source_version}:{FAIR_VALUE_ALGO}:enriched:{trade_view}"
+    league = storage.get_league(league_id) or {}
+    season_int = int(league.get("season") or 0)
+    fair_map = read_fair_values(league_id, season_int) if season_int else None
+    fair_built_at = read_fair_values_built_at(league_id, season_int) if fair_map else None
+
+    def recover_estimates(payload):
+        if (fair_map or trade_view or not league_capabilities(league.get("rules") or {})["uses_salaries"]
+                or not any(block.get("roster") for block in payload.get("teams") or [])):
+            return {"status": "idle"}
+        from app.fair_value_recovery import queue_fair_value_recovery
+        return queue_fair_value_recovery(background_tasks, league_id, season_int, source_version)
+
+    cache_key = f"{league_id}:{source_version}:{FAIR_VALUE_ALGO}:enriched:{trade_view}:{fair_built_at or 'missing'}"
     if not refresh:
         cached = _LEAGUE_ROSTERS_CACHE.get(cache_key)
         if cached and (time.time() - cached[0]) < _LEAGUE_ROSTERS_CACHE_TTL:
             response.headers["X-Roster-Cache"] = "hit"
-            return cached[1]
+            return {**cached[1], "hub_context": ctx, "estimate_recovery": recover_estimates(cached[1])}
 
     with HubTimer("league-rosters", response) as timer:
-        with timer.phase("reattach"):
-            ws_id = str(ctx.get("workspace_id") or "")
-            league = storage.get_league(league_id) or {}
-            league_ws = str(league.get("workspace_id") or "")
-            if league_ws and storage.list_orphan_roster_slots(league_ws):
-                from src.draft_hub.league_sleeper_sync import reattach_league_roster_slots
-
-                reattach_league_roster_slots(league_id)
-            elif ws_id and storage.list_orphan_roster_slots(ws_id):
-                from src.draft_hub.league_sleeper_sync import reattach_league_roster_slots
-
-                reattach_league_roster_slots(league_id)
         with timer.phase("overview"):
             try:
                 overview = storage.league_roster_overview(league_id)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
         with timer.phase("enrich"):
-            from src.draft_hub.insights_cache import build_and_store_fair_values, read_fair_values, read_fair_values_built_at
-
-            league_meta = overview.get("league") or {}
-            season_int = int(league_meta.get("season") or 0)
-            fair_map = read_fair_values(league_id, season_int) if season_int else None
-            if not fair_map and season_int and not trade_view:
-                with timer.phase("fair-warm"):
-                    fair_map = build_and_store_fair_values(league_id, overview, season_int)
             overview = enrich_league_roster_overview(overview, fair_map=fair_map or {}, current_roster=trade_view)
-            overview["estimate_context"]["built_at"] = (
-                read_fair_values_built_at(league_id, season_int) if fair_map and season_int else None
-            )
+            overview["estimate_context"]["built_at"] = fair_built_at
 
     payload = {
         **overview,
@@ -2648,7 +2639,7 @@ def hub_league_rosters(
     }
     _LEAGUE_ROSTERS_CACHE[cache_key] = (time.time(), payload)
     response.headers["X-Roster-Cache"] = "miss"
-    return payload
+    return {**payload, "estimate_recovery": recover_estimates(payload)}
 
 
 @router.get("/league/{league_id}/trade-outlook")
@@ -3261,6 +3252,7 @@ def _insights_landing_bundle(league_id: str, *, refresh: bool, award_titles):
 def hub_league_insights(
     response: Response,
     league_id: str,
+    background_tasks: BackgroundTasks = None,
     team_id: Optional[str] = None,
     refresh: bool = Query(False, description="Bypass cached Sleeper scoring history"),
     scoring_season: Optional[str] = Query(None, description="Sleeper season year e.g. 2024"),
@@ -3296,10 +3288,20 @@ def hub_league_insights(
             scoring_season=scoring_season,
             source_version=source_version,
         )
+        if _insights_section(wanted_sections, "trades") and not ownership_only:
+            from src.draft_hub.insights_cache import read_fair_values_built_at, _fair_fingerprint
+            league = storage.get_league(league_id) or {}
+            cache_key += f":fair:{_fair_fingerprint()}:{read_fair_values_built_at(league_id, int(league.get('season') or 0))}"
         cache_key += f":{sub}:{team_id or ctx.get('team_id') or ''}:{cap_efficiency_season or ''}"
         cached = _INSIGHTS_RESPONSE_CACHE.get(cache_key)
         if cached and (time.time() - cached[0]) < cache_ttl:
-            return cached[1]
+            payload = cached[1]
+            if (payload.get("trade") or {}).get("recovery"):
+                from app.fair_value_recovery import queue_fair_value_recovery
+                payload = {**payload, "trade": {**payload["trade"], "recovery": queue_fair_value_recovery(
+                    background_tasks, league_id, int(league.get("season") or 0), source_version,
+                )}}
+            return payload
     with HubTimer("league-insights", response) as timer:
         # Cap-only Spend tab: serve SQLite materialization without reloading every roster.
         if (
@@ -3505,8 +3507,14 @@ def hub_league_insights(
                         season=season_int,
                         draft_completed=draft_completed,
                         analytics=analytics,
-                        fair_map=fair_map,
+                        fair_map=fair_map or {},
                     )
+                    if (not fair_map and league_capabilities(league.get("rules") or {})["uses_salaries"]
+                            and any(block.get("roster") for block in overview.get("teams") or [])):
+                        from app.fair_value_recovery import queue_fair_value_recovery
+                        trade["recovery"] = queue_fair_value_recovery(
+                            background_tasks, league_id, season_int, source_version,
+                        )
                     if not fair_map and not trade.get("suggestions"):
                         trade["hint"] = (
                             trade.get("hint")
@@ -3862,12 +3870,14 @@ def hub_league_insights_scoring(
 def hub_league_insights_trades(
     response: Response,
     league_id: str,
+    background_tasks: BackgroundTasks = None,
     team_id: Optional[str] = None,
     refresh: bool = Query(False),
     _user=Depends(require_hub_user),
 ) -> dict:
     return hub_league_insights(
         response=response,
+        background_tasks=background_tasks,
         league_id=league_id,
         team_id=team_id,
         refresh=refresh,
@@ -6815,15 +6825,17 @@ def hub_league_sleeper_sync_mode(
 
 
 @router.post("/league/{league_id}/sleeper/sync")
-def hub_league_sleeper_sync(league_id: str, _user=Depends(require_hub_user)) -> dict:
+def hub_league_sleeper_sync(league_id: str, background_tasks: BackgroundTasks = None, _user=Depends(require_hub_user)) -> dict:
     from src.draft_hub.sleeper_sync_mode import SCORING_ONLY_MESSAGE, SleeperSyncPaused
+
+    from app.scoring_cache_refresh import queue_scoring_cache_refresh
 
     sub = _sub(_user)
     try:
         result = sync_league_sleeper(league_id, sub)
     except SleeperSyncPaused:
         # Rosters stay as they are. Scoring is read-only Sleeper data, so keep it fresh.
-        _refresh_scoring_cache_for_league(league_id)
+        scoring_refresh = queue_scoring_cache_refresh(background_tasks, league_id)
         return {
             "league_id": league_id,
             "sleeper_sync_paused": True,
@@ -6831,14 +6843,15 @@ def hub_league_sleeper_sync(league_id: str, _user=Depends(require_hub_user)) -> 
             "trade_count": 0,
             "message": SCORING_ONLY_MESSAGE,
             "hub_context": _ctx(sub),
+            "scoring_refresh": scoring_refresh,
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    _refresh_scoring_cache_for_league(league_id)
+    scoring_refresh = queue_scoring_cache_refresh(background_tasks, league_id)
     _clear_league_rosters_cache(league_id)
-    return {**result, "hub_context": _ctx(sub)}
+    return {**result, "hub_context": _ctx(sub), "scoring_refresh": scoring_refresh}
 
 
 @router.post("/sleeper/sync")

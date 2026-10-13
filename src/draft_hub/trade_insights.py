@@ -484,7 +484,8 @@ def build_trade_insights(
 
     partners.sort(key=lambda x: -x["fit_score"])
 
-    for p in partners[:5]:
+    # Missing estimates are unknown; do not substitute contract prices for a forecast.
+    for p in (partners[:5] if fair_map else []):
         tid = p["team_id"]
         pb = _balance_flags(
             team_by_id.get(tid) or {},

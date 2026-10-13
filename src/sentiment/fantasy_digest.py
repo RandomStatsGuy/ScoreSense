@@ -289,6 +289,7 @@ def fantasy_digest_for_player(
     week: int | None = None,
     prefer_llm: bool = True,
     return_meta: bool = False,
+    cache_fallback: bool = True,
 ) -> str | dict[str, Any]:
     chapter_notes = str(sentiment.get("chapter_notes") or "")
     top_sentence = str(sentiment.get("top_sentence") or sentiment.get("snippet") or "")
@@ -347,7 +348,8 @@ def fantasy_digest_for_player(
             weeks_with_mentions=int(weeks_with_mentions) if weeks_with_mentions is not None else None,
         )
 
-    _cache_set(scope, cache_key, digest)
+    if cache_fallback or source == "llm":
+        _cache_set(scope, cache_key, digest)
     if return_meta:
         return {
             "fantasy_media_digest": digest,

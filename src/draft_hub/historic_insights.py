@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from functools import cache, partial
 from typing import Any
 
 from src.draft_hub import storage
@@ -24,11 +25,11 @@ ANALYTICS_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"]
 DEFAULT_SALARY_CAP = 200.0
 
 
-def _row_team_name(league_id: str, row: dict[str, Any]) -> str:
+def _row_team_name(league_id: str, row: dict[str, Any], *, resolve=None) -> str:
     owner = str(row.get("owner_label") or "").strip()
     season = row.get("season_year")
     if league_id and owner and season is not None:
-        mapped = storage.resolve_hub_team_name(league_id, int(season), owner)
+        mapped = (resolve or storage.resolve_hub_team_name)(league_id, int(season), owner)
         if mapped:
             return mapped
     return str(row.get("hub_team_name") or owner or "Unknown")
@@ -134,6 +135,7 @@ def build_contract_analytics(
             cut_rows=cut_rows,
         )
 
+    resolve_cap = cache(storage.resolve_salary_cap_for_season)
     owner_season_rows: dict[str, dict[int, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for yr in seasons:
         for row in _active_contract_rows(league_id, yr, view=view):
@@ -148,7 +150,7 @@ def build_contract_analytics(
     for owner_name, season_map in sorted(owner_season_rows.items()):
         season_snaps: list[dict[str, Any]] = []
         for yr, rows in season_map.items():
-            yr_cap = storage.resolve_salary_cap_for_season(league_id, int(yr), salary_cap)
+            yr_cap = resolve_cap(league_id, int(yr), salary_cap)
             season_snaps.append(_positional_spend_for_rows(rows, salary_cap=yr_cap))
         if not season_snaps:
             continue
@@ -228,18 +230,19 @@ def _analytics_snapshot(
     league_id: str | None = None,
     cut_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    resolve_team_name = partial(_row_team_name, league_id, resolve=cache(storage.resolve_hub_team_name))
     teams_out: list[dict[str, Any]] = []
     all_spend: dict[str, list[float]] = {p: [] for p in ANALYTICS_POSITIONS}
     all_counts: dict[str, list[int]] = {p: [] for p in ANALYTICS_POSITIONS}
     by_team: dict[str, list[dict[str, Any]]] = defaultdict(list)
     dead_by_team: dict[str, float] = defaultdict(float)
     for row in cut_rows or []:
-        team = _row_team_name(league_id, row) if league_id else (
+        team = resolve_team_name(row) if league_id else (
             row.get("hub_team_name") or row.get("owner_label") or "Unknown"
         )
         dead_by_team[team] += float(row.get("cap_hit") or row.get("base_salary") or 0)
     for row in rows:
-        team = _row_team_name(league_id, row) if league_id else (
+        team = resolve_team_name(row) if league_id else (
             row.get("hub_team_name") or row.get("owner_label") or "Unknown"
         )
         by_team[team].append(row)
@@ -626,8 +629,9 @@ def _team_award_fields(
     row: dict[str, Any],
     *,
     year_specific: bool,
+    resolve_team_name=None,
 ) -> dict[str, Any]:
-    team = _row_team_name(league_id, row) if league_id else (
+    team = (resolve_team_name or partial(_row_team_name, league_id))(row) if league_id else (
         row.get("hub_team_name") or row.get("owner_label")
     )
     return {
@@ -666,6 +670,9 @@ def build_contract_awards(
     if not rows:
         return []
 
+    # Bound to this build: repeated player rows reuse lookups without hiding later map/cap edits.
+    resolve_team_name = partial(_row_team_name, league_id, resolve=cache(storage.resolve_hub_team_name))
+    resolve_cap = cache(storage.resolve_salary_cap_for_season)
     owner_map = team_owner_map_for_league(league_id, season_year=season_year)
 
     def ae(award_id: str, **kwargs):
@@ -682,7 +689,7 @@ def build_contract_awards(
             title=award_title("highest_paid"),
             headline=f"{fmt_sal_short(top_cap)} league-high cap hit",
             player_name=top.get("player_name"),
-            team_name=_row_team_name(league_id, top),
+            team_name=resolve_team_name(top),
             owner_label=top.get("owner_label"),
             position=_row_position(top),
             amount=top_cap,
@@ -709,7 +716,7 @@ def build_contract_awards(
                 title=award_title("most_overpaid"),
                 headline=f"+{fmt_sal_short(premium)} over {row.get('position')} market",
                 player_name=row.get("player_name"),
-                **_team_award_fields(league_id, row, year_specific=year_specific),
+                **_team_award_fields(league_id, row, year_specific=year_specific, resolve_team_name=resolve_team_name),
                 position=_row_position(row),
                 amount=cap,
                 detail=f"Paid {fmt_sal_short(cap)} · avg was {fmt_sal_short(pos_avg[_row_position(row)])}",
@@ -732,7 +739,7 @@ def build_contract_awards(
                 title=award_title("worst_contract"),
                 headline=f"{ratio:.1f}× positional average",
                 player_name=row.get("player_name"),
-                **_team_award_fields(league_id, row, year_specific=year_specific),
+                **_team_award_fields(league_id, row, year_specific=year_specific, resolve_team_name=resolve_team_name),
                 position=_row_position(row),
                 amount=float(row.get("cap_hit") or 0),
                 detail="Worst cap hit vs positional average in this view",
@@ -758,7 +765,7 @@ def build_contract_awards(
                 title=award_title("best_bargain"),
                 headline=f"{fmt_sal_short(discount)} below market",
                 player_name=row.get("player_name"),
-                **_team_award_fields(league_id, row, year_specific=year_specific),
+                **_team_award_fields(league_id, row, year_specific=year_specific, resolve_team_name=resolve_team_name),
                 position=_row_position(row),
                 amount=float(row.get("cap_hit") or 0),
                 detail=f"Paid {fmt_sal_short(float(row.get('cap_hit') or 0))} · market {fmt_sal_short(pos_avg[_row_position(row)])}",
@@ -780,7 +787,7 @@ def build_contract_awards(
                 title=award_title("waiver_king"),
                 headline=f"{len(entries)} season{'s' if len(entries) != 1 else ''} at $1",
                 player_name=sample.get("player_name"),
-                **_team_award_fields(league_id, sample, year_specific=year_specific),
+                **_team_award_fields(league_id, sample, year_specific=year_specific, resolve_team_name=resolve_team_name),
                 position=_row_position(sample),
                 amount=1.0,
                 detail="Most waiver-rental seasons in this view",
@@ -795,7 +802,7 @@ def build_contract_awards(
     for row in rows:
         yr = int(row.get("season_year") or 0)
         row_cap = (
-            storage.resolve_salary_cap_for_season(league_id, yr, salary_cap)
+            resolve_cap(league_id, yr, salary_cap)
             if league_id and yr
             else salary_cap
         )
@@ -812,7 +819,7 @@ def build_contract_awards(
                 title=award_title("cap_hog"),
                 headline=f"{hog_pct}% of that season's cap",
                 player_name=hog_row.get("player_name"),
-                **_team_award_fields(league_id, hog_row, year_specific=year_specific),
+                **_team_award_fields(league_id, hog_row, year_specific=year_specific, resolve_team_name=resolve_team_name),
                 position=_row_position(hog_row),
                 amount=hog_cap_hit,
                 detail=f"{fmt_sal_short(hog_cap_hit)} · largest single-player cap share",
@@ -824,7 +831,7 @@ def build_contract_awards(
     if season_year is not None:
         by_team: dict[str, float] = defaultdict(float)
         for row in rows:
-            team = _row_team_name(league_id, row)
+            team = resolve_team_name(row)
             by_team[team] += float(row.get("cap_hit") or 0)
         if by_team:
             team_name, committed = max(by_team.items(), key=lambda kv: kv[1])
@@ -832,7 +839,7 @@ def build_contract_awards(
                 (
                     r.get("owner_label")
                     for r in rows
-                    if _row_team_name(league_id, r) == team_name
+                    if resolve_team_name(r) == team_name
                 ),
                 None,
             )
@@ -861,7 +868,7 @@ def build_contract_awards(
                 title=award_title("dead_cap_disaster"),
                 headline=f"{fmt_sal_short(dead_amt)} dead cap",
                 player_name=dead.get("player_name"),
-                **_team_award_fields(league_id, dead, year_specific=year_specific),
+                **_team_award_fields(league_id, dead, year_specific=year_specific, resolve_team_name=resolve_team_name),
                 position=_row_position(dead),
                 amount=dead_amt,
                 detail="Largest dead-cap charge in this view",
