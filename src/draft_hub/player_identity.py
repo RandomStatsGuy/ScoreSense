@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import re
 import threading
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +21,7 @@ POSITIONS = frozenset({"QB", "RB", "WR", "TE", "K", "DEF"})
 _GSIS = re.compile(r"^00-\d{7}$")
 _LOCK = threading.RLock()
 _INDEX: dict[tuple, dict[str, dict[str, Any] | None]] = {}
+_READ_INDEX: ContextVar = ContextVar("player_identity_read_index", default=None)
 
 
 class PlayerIdentityError(ValueError):
@@ -31,12 +34,12 @@ def _text(value: Any) -> str:
     return str(value).strip()
 
 
-def _stamp(path: Path) -> tuple[str, int, int]:
+def _stamp(path: Path) -> tuple[str, int, int, int]:
     try:
         stat = path.stat()
-        return str(path), stat.st_mtime_ns, stat.st_size
+        return str(path), stat.st_mtime_ns, stat.st_size, stat.st_ctime_ns
     except OSError:
-        return str(path), 0, 0
+        return str(path), 0, 0, 0
 
 
 def _identity(pid: str, name: str, team: str, position: str, *, sid="", gsis="") -> dict[str, Any] | None:
@@ -83,6 +86,9 @@ def _put(index: dict[str, dict[str, Any] | None], identity: dict[str, Any]) -> N
 
 
 def _cached_index(season: int | None) -> dict[str, dict[str, Any] | None]:
+    scoped = _READ_INDEX.get()
+    if scoped is not None and scoped[0] == season:
+        return scoped[1]
     from src.integrations.sleeper import PLAYERS_CACHE
 
     pool_path = DRAFT_POOL_DIR / f"pool_{int(season)}.parquet" if season is not None else None
@@ -152,6 +158,20 @@ def _cached_index(season: int | None) -> dict[str, dict[str, Any] | None]:
         _INDEX.clear()
         _INDEX[stamp] = index
         return index
+
+
+@contextmanager
+def identity_read_scope(season: int):
+    """One catalog snapshot for a batch read; the next request rechecks disk revisions.
+
+    Competitive acquisition/edit entry points keep using fresh catalog checks.
+    This scope is limited to assembling a native league's live-week response.
+    """
+    token = _READ_INDEX.set((season, _cached_index(season)))
+    try:
+        yield
+    finally:
+        _READ_INDEX.reset(token)
 
 
 def cached_player_identity(player_id: str, *, season: int | None = None,

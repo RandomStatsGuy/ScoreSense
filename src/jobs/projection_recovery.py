@@ -4,6 +4,7 @@ from __future__ import annotations
 from src.ops.job_diagnostics import observe_job, annotate_job, call_phase
 
 import logging
+import time
 from datetime import datetime, timezone
 
 from src.config import CACHE_DIR
@@ -24,6 +25,7 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                     key = target_key(kind, season, week)
                     health[key] = {**health.get(key, {}), "status": "running", "started_at": started_at}
             _save(health)
+            weekly_publication = None
             for kind in kinds:
                 try:
                     if kind == "draft":
@@ -61,16 +63,46 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                         from src.projections.ros_cache import load_ros_prediction
                         from src.projections.weekly_cache import load_weekly_prediction
                         loader = load_ros_prediction if kind == "ros" else load_weekly_prediction
+                        if kind == "weekly":
+                            from src.jobs import dfs_inputs
+                            from src.integrations.sleeper import forecast_player_revisions
+                            from src.projections.refresh_policy import timestamp
+                            dfs_inputs.prepare_sources(season)
+                            weekly_revision = dfs_inputs.input_revision(season, week)
+                            weekly_availability = forecast_player_revisions()[1]
+                            weekly_started = time.time()
+                            weekly_frames = []
                         for position in ("qb", "rb", "wr"):
                             try:
                                 for injury in (True, False):
                                     frame = call_phase(f"{kind}_{position}_inj{int(injury)}", loader,
                                                        position, season, week, apply_injury_adjustments=injury)
-                                    if frame.empty:
-                                        raise ValueError("Empty projection output")
+                                    if frame.empty or frame.attrs.get("projection_stale"):
+                                        raise ValueError("Projection output is empty or stale")
+                                    if kind == "weekly":
+                                        weekly_frames.append(frame)
                             except Exception:
                                 errors.append(f"{kind}:{position}")
                                 logging.getLogger(__name__).exception("Projection recovery failed: %s/%s", kind, position)
+                        if kind == "weekly" and len(weekly_frames) == 6:
+                            def stable_weekly_inputs():
+                                return (dfs_inputs.input_revision(season, week) == weekly_revision
+                                        and forecast_player_revisions()[1] == weekly_availability)
+                            if not stable_weekly_inputs():
+                                raise RuntimeError("Weekly inputs changed during recovery")
+                            built = [timestamp(frame.attrs.get("built_at")) for frame in weekly_frames]
+                            if all(stamp is not None and stamp.timestamp() >= weekly_started for stamp in built):
+                                outputs = dfs_inputs.output_revisions(season, week)
+                                if outputs is not None:
+                                    from src.jobs.dfs_refresh import _warm_supporting_data
+                                    call_phase("weekly_support", _warm_supporting_data, season, week)
+                                    if (not stable_weekly_inputs()
+                                            or dfs_inputs.output_revisions(season, week) != outputs):
+                                        raise RuntimeError("Weekly publication changed during recovery")
+                                    weekly_publication = {"forecast_reuse": {
+                                        "version": dfs_inputs.VERSION, "revision": weekly_revision,
+                                        "outputs": outputs, "computed_epoch": weekly_started,
+                                    }, "player_availability": weekly_availability}
                 except Exception:
                     errors.append(kind)
                     logging.getLogger(__name__).exception("Projection recovery failed: %s", kind)
@@ -79,6 +111,11 @@ def rebuild_projection_context(season: int, week: int, kinds: tuple[str, ...]) -
                     item = health[target_key(kind, season, week)]
                     failed = any(error == kind or error.startswith(kind + ":") for error in errors)
                     item.update(status="error" if failed else "ok", completed_at=datetime.now(timezone.utc).isoformat())
+                    if kind == "weekly":
+                        item.pop("forecast_reuse", None)
+                        item.pop("player_availability", None)
+                        if not failed and weekly_publication is not None:
+                            item.update(weekly_publication)
                     if not failed:
                         item["last_success_at"] = item["completed_at"]
             _save(health)
