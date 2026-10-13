@@ -4248,9 +4248,10 @@ def list_league_rosters_by_team(league_id: str) -> dict[str, list[dict[str, Any]
     if not league:
         return {}
     workspace_id = roster_workspace_for_league(league)
-    teams = list_league_teams(league_id)
-    out = {str(t["id"]): [] for t in teams}
     with get_conn() as conn:
+        # This grouping needs IDs only, not per-team owner/history enrichment.
+        team_ids = conn.execute("SELECT id FROM team WHERE league_id = ? ORDER BY joined_at", (league_id,)).fetchall()
+        out = {str(team["id"]): [] for team in team_ids}
         rows = conn.execute(
             "SELECT * FROM roster_slot WHERE workspace_id = ? AND team_id IS NOT NULL AND team_id != ''",
             (workspace_id,),

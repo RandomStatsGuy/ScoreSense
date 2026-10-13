@@ -364,3 +364,28 @@ def test_dfs_reuses_hourly_publication_without_repeating_six_heads(prediction_en
     assert result["status"] == "ok" and result["forecasts_reused"]
     prediction_env.assert_not_called()
     assert result["forecast_updated_at"] == "2026-10-06T01:00:00+00:00"
+
+
+def test_dfs_reuses_a_completed_weekly_repair_without_model_heads(prediction_env, tmp_path, monkeypatch):
+    import time
+    from src.jobs import projection_recovery as repair, season_refresh
+    from src.integrations import sleeper
+    monkeypatch.setattr(repair, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(season_refresh, "STATUS_PATH", tmp_path / "season-status.json")
+    monkeypatch.setattr(dfs_refresh, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(dfs_refresh, "STATUS_PATH", tmp_path / "dfs-status.json")
+    monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **kw: {"status": "ok"})
+    monkeypatch.setattr(sleeper, "get_nfl_state", lambda **kw: {"season": 2026, "week": 4, "season_type": "regular"})
+    started = time.time()
+    assert repair.rebuild_projection_context(2026, 4, ("weekly",))["status"] == "ok"
+    assert prediction_env.call_count == 6
+    publication = season_refresh.read_status()["weekly:2026:4"]
+    receipt = publication["forecast_reuse"]
+    assert receipt["computed_epoch"] >= started
+    assert publication["player_availability"] == "availability"
+    prediction_env.reset_mock()
+    result = dfs_refresh.run_dfs_refresh()
+    assert result["status"] == "ok", result
+    assert result["forecasts_reused"] is True
+    prediction_env.assert_not_called()
+    assert result["forecast_reuse"] == receipt
