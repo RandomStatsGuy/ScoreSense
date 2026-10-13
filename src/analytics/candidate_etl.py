@@ -18,7 +18,7 @@ from src.etl.nflverse_etl import (
     load_weekly_player_stats,
     load_play_by_play,
 )
-from src.core.features import add_rolling_averages, safe_div
+from src.core.features import add_rolling_averages, safe_div, usage_trend_slope as _trend_slope
 from src.analytics.ngs_candidate_etl import load_ngs_receiving_weekly, merge_ngs_onto_spine
 
 
@@ -185,17 +185,6 @@ def _schedule_implied_totals(schedules: pd.DataFrame) -> pd.DataFrame:
         ],
         ignore_index=True,
     )
-
-
-def _trend_slope(values) -> float:
-    """OLS on equally spaced observations without a platform-dependent solver."""
-    count = len(values)
-    if count < 2:
-        return 0.0
-    numerator = 0.0
-    for index, value in enumerate(values):
-        numerator += (2 * index - (count - 1)) * float(value)
-    return numerator / (count * (count * count - 1) / 6)
 
 
 def _usage_volatility_and_trend(df: pd.DataFrame, col: str) -> pd.DataFrame:
