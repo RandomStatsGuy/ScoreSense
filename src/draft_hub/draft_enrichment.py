@@ -205,7 +205,7 @@ def _sleeper_row_for_hint(
     return None
 
 
-def _sleeper_lookup_tables() -> tuple[
+def _sleeper_lookup_tables(*, allow_refresh: bool = True) -> tuple[
     pd.DataFrame,
     dict[str, pd.Series],
     dict[str, pd.Series],
@@ -226,7 +226,7 @@ def _sleeper_lookup_tables() -> tuple[
                 cached["by_name"],
             )
 
-    df = players_dataframe()
+    df = players_dataframe() if allow_refresh else players_dataframe(allow_refresh=False)
     by_gsis: dict[str, pd.Series] = {}
     by_sleeper_id: dict[str, pd.Series] = {}
     by_name_team: dict[tuple[str, str], pd.Series] = {}
@@ -250,17 +250,18 @@ def _sleeper_lookup_tables() -> tuple[
         "by_sleeper_id": by_sleeper_id,
         "by_name_team": by_name_team,
         "by_name": by_name,
-    }
+    } if not df.empty else None
     return df, by_gsis, by_sleeper_id, by_name_team, by_name
 
 
 def _media_for_players(
     players: list[dict[str, Any]] | None,
+    *, allow_refresh: bool = True,
 ) -> dict[str, dict[str, Any]]:
     if not players:
         return {}
 
-    df, by_gsis, by_sleeper_id, by_name_team, by_name = _sleeper_lookup_tables()
+    df, by_gsis, by_sleeper_id, by_name_team, by_name = _sleeper_lookup_tables() if allow_refresh else _sleeper_lookup_tables(allow_refresh=False)
 
     out: dict[str, dict[str, str | None]] = {}
     for hint in players:
@@ -315,9 +316,9 @@ def _media_for_players(
     return out
 
 
-def build_player_media_batch(players: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def build_player_media_batch(players: list[dict[str, Any]], *, allow_refresh: bool = True) -> dict[str, dict[str, Any]]:
     """Public batch headshot/team logo lookup for hub UI."""
-    return _media_for_players(players)
+    return _media_for_players(players) if allow_refresh else _media_for_players(players, allow_refresh=False)
 
 
 def _attach_digests(

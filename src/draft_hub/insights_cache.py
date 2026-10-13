@@ -6,6 +6,7 @@ from typing import Any
 
 from src.draft_hub import storage
 from src.draft_hub.draft_pool_cache import pool_fingerprint
+from src.ops.job_diagnostics import observe_job
 
 # Bump when fair-value math changes so stored snapshots invalidate.
 FAIR_VALUE_ALGO = "v4-vorp-specialists"
@@ -151,3 +152,27 @@ def insights_status(league_id: str, sleeper_league_id: str | None) -> dict[str, 
         "source_version": version,
         "scoring_synced_at": scoring_synced_at,
     }
+
+
+@observe_job("league_fair_values")
+def prepare_league_fair_values(league_id: str, season: int) -> dict:
+    """Worker-only valuation recovery; shared refresh lock prevents duplicate inference."""
+    from src.config import CACHE_DIR
+    from src.jobs.refresh_lock import RefreshBusy, refresh_lock
+    league = storage.get_league(league_id)
+    if not league or int(league.get("season") or 0) != season:
+        return {"status": "unavailable"}
+    from src.draft_hub.league_capabilities import uses_salaries
+    if not uses_salaries(league.get("rules") or {}):
+        return {"status": "unavailable"}
+    if read_fair_values(league_id, season):
+        return {"status": "current"}
+    try:
+        with refresh_lock(CACHE_DIR / "last_refresh.lock"):
+            overview = storage.league_roster_overview(league_id)
+            if not any(block.get("roster") for block in overview.get("teams") or []):
+                return {"status": "current"}
+            values = build_and_store_fair_values(league_id, overview, season)
+    except RefreshBusy:
+        return {"status": "busy"}
+    return {"status": "ok" if values else "unavailable"}

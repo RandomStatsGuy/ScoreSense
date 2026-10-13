@@ -115,6 +115,7 @@ def _row_to_fantasy_player(
     week: int | None = None,
     scope: str = "weekly",
     prefer_llm: bool = False,
+    cache_fallback: bool = True,
     mention_trend: float | None = None,
     weeks_with_mentions: int | None = None,
 ) -> dict:
@@ -176,6 +177,7 @@ def _row_to_fantasy_player(
         week=week,
         prefer_llm=prefer_llm,
         return_meta=True,
+        cache_fallback=cache_fallback,
     )
     payload["fantasy_media_digest"] = digest_result["fantasy_media_digest"]
     payload["fantasy_media_digest_source"] = digest_result.get(
@@ -388,6 +390,7 @@ def build_fantasy_weekly_response(
     *,
     include_historical: bool = False,
     media_mode: str | None = None,
+    allow_generate: bool = True,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
@@ -399,6 +402,7 @@ def build_fantasy_weekly_response(
         f"weekly:{position}:{season}:{week}:hist={int(bool(include_historical))}:"
         f"mode={mode or 'default'}"
     )
+    cache_key += f":generate{int(allow_generate)}"
     cached = _FANTASY_RESPONSE_CACHE.get(cache_key)
     if cached is not None and cached[0] == fp:
         return cached[1]
@@ -536,7 +540,8 @@ def build_fantasy_weekly_response(
                 season=season,
                 week=week,
                 scope="weekly",
-                prefer_llm=_prefer_llm_for_fantasy(row, rank),
+                prefer_llm=allow_generate and _prefer_llm_for_fantasy(row, rank),
+                cache_fallback=allow_generate,
             )
         )
 
@@ -651,13 +656,14 @@ def build_fantasy_season_response(
     season: int,
     week: int,
     sentiment_path: Path | None = None,
+    *, allow_generate: bool = True,
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise ValueError("position must be qb, rb, or wr")
 
     fp = _fantasy_fingerprint()
-    cache_key = f"season:{position}:{season}:{week}"
+    cache_key = f"season:{position}:{season}:{week}:generate{int(allow_generate)}"
     cached = _FANTASY_RESPONSE_CACHE.get(cache_key)
     if cached is not None and cached[0] == fp:
         return cached[1]
@@ -708,7 +714,8 @@ def build_fantasy_season_response(
                 season=season,
                 week=end_week,
                 scope="season",
-                prefer_llm=_prefer_llm_for_fantasy(row, rank),
+                prefer_llm=allow_generate and _prefer_llm_for_fantasy(row, rank),
+                cache_fallback=allow_generate,
                 mention_trend=float(row.get("_mention_trend") or 0),
                 weeks_with_mentions=int(row.get("_weeks_with_mentions") or 0),
             )

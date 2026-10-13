@@ -375,8 +375,8 @@ def ensure_team_lineup(
     ws = storage.roster_workspace_for_league(league)
     roster = roster if roster is not None else _active_roster(ws, team_id)
     if identity_snapshot is None and game_started is None:
-        from src.draft_hub.native_stats import cached_week_snapshot
-        identity_snapshot = cached_week_snapshot(season, week) or {}
+        from src.draft_hub.native_stats import cached_week_snapshot, LINEUP_IDENTITY_FIELDS
+        identity_snapshot = cached_week_snapshot(season, week, LINEUP_IDENTITY_FIELDS) or {}
     cards = {card["player_id"]: (card if game_started is not None else
              trusted_lineup_row(card, season, week, snapshot=identity_snapshot) or card)
              for card in _cards_from_roster(roster)}
@@ -1344,8 +1344,8 @@ def build_hub_live_week(
         resolved_week = min(resolved_week, max_week)
     matchups = storage.list_week_matchups(league_id, season_n, resolved_week)
     participating = week_scoring_team_ids(rules, list(teams.values()), matchups, resolved_week)
-    from src.draft_hub.native_stats import cached_week_snapshot
-    identity_snapshot = cached_week_snapshot(season_n, resolved_week) or {}
+    from src.draft_hub.native_stats import cached_week_snapshot, LINEUP_IDENTITY_FIELDS
+    identity_snapshot = cached_week_snapshot(season_n, resolved_week, LINEUP_IDENTITY_FIELDS) or {}
     for tid in participating:
         ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules, identity_snapshot=identity_snapshot)
     initialized = {str(row["team_id"]) for row in storage.list_week_lineup_snapshots(league_id, season_n, resolved_week)}

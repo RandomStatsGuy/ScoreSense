@@ -574,6 +574,7 @@ async def players_context_refresh_status(job_id: str, _user=Depends(require_patr
 @app.get("/api/player/{player_id}/card")
 def player_card_get(
     player_id: str,
+    background_tasks: BackgroundTasks,
     season: Optional[int] = None,
     week: Optional[int] = None,
     scope: str = Query("weekly", description="weekly or season narrative scope"),
@@ -589,17 +590,23 @@ def player_card_get(
     from src.projections.player_card import build_player_card
 
     try:
-        return jsonable_encoder(
-            build_player_card(
-                player_id,
-                season=season,
-                week=week,
-                scope=scope,
-                position=position.lower() if position else None,
-                apply_injury_adjustments=apply_injury_adjustments,
-                include_historical=include_historical,
-            )
+        payload = build_player_card(
+            player_id,
+            season=season,
+            week=week,
+            scope=scope,
+            position=position.lower() if position else None,
+            apply_injury_adjustments=apply_injury_adjustments,
+            include_historical=include_historical,
         )
+        from app.projection_recovery import queue_projection_recovery
+        meta = payload.get("meta") or {}
+        payload["recovery"] = queue_projection_recovery(
+            background_tasks, meta.get("season"), meta.get("week"), meta.pop("rebuild_kinds", []),
+        )
+        return jsonable_encoder(payload)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail="Player data is not ready yet.") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

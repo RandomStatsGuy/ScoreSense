@@ -95,7 +95,8 @@ def test_build_player_card_honors_injury_flag(monkeypatch):
 
     calls = []
 
-    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True):
+    def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
+        assert allow_compute is False and allow_stale is True
         calls.append((position, season, week, apply_injury_adjustments))
         return pd.DataFrame(
             [
@@ -119,7 +120,7 @@ def test_build_player_card_honors_injury_flag(monkeypatch):
     )
     monkeypatch.setattr(pc, "_resolve_context", lambda s, w: (2026, 2))
     monkeypatch.setattr(pc, "_guess_position", lambda _pid: "qb")
-    monkeypatch.setattr(pc, "build_player_media_batch", lambda _rows: {})
+    monkeypatch.setattr(pc, "build_player_media_batch", lambda _rows, **kwargs: {})
     monkeypatch.setattr(pc, "_narrative_for_player", lambda *a, **k: (None, {"context_fallback": False}))
     monkeypatch.setattr(pc, "_injury_for_player", lambda _pid: None)
 
@@ -142,7 +143,8 @@ def test_narrative_for_player_weekly_no_silent_historical(monkeypatch):
 
     calls = []
 
-    def fake_weekly(pos, season, week, include_historical=False):
+    def fake_weekly(pos, season, week, include_historical=False, allow_generate=True):
+        assert allow_generate is False
         calls.append((pos, season, week, include_historical))
         return {
             "season": season,
@@ -176,7 +178,8 @@ def test_narrative_for_player_weekly_no_silent_historical(monkeypatch):
 def test_narrative_for_player_weekly_include_historical(monkeypatch):
     import src.projections.player_card as pc
 
-    def fake_weekly(pos, season, week, include_historical=False):
+    def fake_weekly(pos, season, week, include_historical=False, allow_generate=True):
+        assert allow_generate is False
         assert include_historical is True
         return {
             "season": 2025,
