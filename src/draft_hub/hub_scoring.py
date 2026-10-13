@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 from collections import Counter
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
@@ -65,7 +66,10 @@ def _league_rules(league: dict[str, Any]) -> LeagueRules:
 
 
 def _active_roster(workspace_id: str, team_id: str) -> list[dict[str, Any]]:
-    rows = storage.list_roster(workspace_id, team_id)
+    return _active_roster_rows(storage.list_roster(workspace_id, team_id))
+
+
+def _active_roster_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         row
         for row in rows
@@ -108,16 +112,18 @@ def ensure_season_schedule(
     season: int | None = None,
     rules: LeagueRules | None = None,
     force: bool = False,
+    league: dict[str, Any] | None = None,
+    teams: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Persist round-robin games while preserving recorded and started weeks."""
     from src.draft_hub.native_schedule import round_robin_pairs, ensure_playoff_matchups
-    league = storage.get_league(league_id)
-    if not league:
+    league = league if league is not None else storage.get_league(league_id)
+    if not league or str(league.get("id")) != str(league_id):
         raise LineupError("League not found")
     season_n = int(season or league.get("season") or 2026)
     if not isinstance(rules, LeagueRules):
         rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
-    teams = storage.list_league_teams(league_id)
+    teams = teams if teams is not None else storage.list_league_teams(league_id)
     weeks = schedule_week_count(rules)
     existing = storage.list_season_matchups(league_id, season_n)
     by_week: dict[int, list[dict[str, Any]]] = {}
@@ -151,7 +157,7 @@ def ensure_season_schedule(
                 continue
         storage.replace_week_matchups(league_id, season_n, week, payload)
         created += 1
-    bracket = ensure_playoff_matchups(league_id, season_n, rules, build_hub_standings(league_id, season_n))
+    bracket = ensure_playoff_matchups(league_id, season_n, rules, build_hub_standings(league_id, season_n, league=league, teams=teams))
     return {
         "league_id": league_id,
         "season": season_n,
@@ -357,21 +363,24 @@ def ensure_team_lineup(
     week: int,
     *,
     rules: LeagueRules | None = None,
+    league: dict[str, Any] | None = None,
     roster: list[dict[str, Any]] | None = None,
     game_started: Callable[[str], bool] | None = None,
     identity_snapshot: dict[str, Any] | None = None,
     fill_missing: bool = False,
+    lineups_closed: bool | None = None,
 ) -> list[dict[str, Any]]:
     """Carry saved choices forward and preserve this week's started ownership."""
-    league = storage.get_league(league_id)
-    if not league:
+    league = league if league is not None else storage.get_league(league_id)
+    if not league or str(league.get("id")) != str(league_id):
         raise LineupError("League not found")
     if not isinstance(rules, LeagueRules):
         rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     existing = storage.list_team_lineup(league_id, team_id, season, week)
-    initialized = storage.has_team_lineup_snapshot(league_id, team_id, season, week)
-    if _week_lineups_closed(league_id, season, week):
+    closed = lineups_closed if lineups_closed is not None else _week_lineups_closed(league_id, season, week)
+    if closed:
         return existing
+    initialized = storage.has_team_lineup_snapshot(league_id, team_id, season, week)
     ws = storage.roster_workspace_for_league(league)
     roster = roster if roster is not None else _active_roster(ws, team_id)
     if identity_snapshot is None and game_started is None:
@@ -453,9 +462,14 @@ def ensure_team_lineup(
         if pid not in used:
             next_rows.append(_entry_from_card({**card, "slot": "BN", "lineup_role": "bench"},
                                                locked=status(card) is True))
-    if not initialized or next_rows != [_entry_from_card(row) for row in storage.list_team_lineup(league_id, team_id, season, week)]:
+    current_rows = storage.list_team_lineup(league_id, team_id, season, week) if initialized else []
+    if not initialized or next_rows != [_entry_from_card(row) for row in current_rows]:
+        # Batched reads reuse the gate while inspecting teams, but a write must
+        # recheck a finalization or rollover that happened during assembly.
+        if lineups_closed is not None and _week_lineups_closed(league_id, season, week):
+            return storage.list_team_lineup(league_id, team_id, season, week)
         return storage.replace_team_lineup(league_id, team_id, season, week, next_rows)
-    return storage.list_team_lineup(league_id, team_id, season, week)
+    return current_rows
 
 
 def apply_saved_lineup(
@@ -1178,11 +1192,12 @@ def apply_week_scores(
 
 
 @profile_scoring("native.standings")
-def build_hub_standings(league_id: str, season: int) -> list[dict[str, Any]]:
+def build_hub_standings(league_id: str, season: int, *, league: dict[str, Any] | None = None,
+                        teams: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     from src.draft_hub.native_schedule import finalized_season_team_scores, saved_matchup_is_regular
 
-    teams = {str(t["id"]): t for t in storage.list_league_teams(league_id)}
-    league = storage.get_league(league_id)
+    teams = {str(t["id"]): t for t in (teams if teams is not None else storage.list_league_teams(league_id))}
+    league = league if league is not None else storage.get_league(league_id)
     regular_weeks = schedule_week_count(_league_rules(league)) if league else 14
     records = {
         tid: {"wins": 0, "losses": 0, "ties": 0, "points_for": 0.0, "points_against": 0.0}
@@ -1336,8 +1351,9 @@ def build_hub_live_week(
     if not isinstance(rules, LeagueRules):
         rules = LeagueRules.model_validate(rules) if rules else _league_rules(league)
     slots = starting_slots_from_rules(rules)
-    schedule = ensure_season_schedule(league_id, season=season_n, rules=rules)
-    teams = {str(t["id"]): t for t in storage.list_league_teams(league_id)}
+    team_rows = storage.list_league_teams(league_id)
+    schedule = ensure_season_schedule(league_id, season=season_n, rules=rules, league=league, teams=team_rows)
+    teams = {str(t["id"]): t for t in team_rows}
     from src.draft_hub.native_schedule import playoff_week_bounds
     _, max_week = playoff_week_bounds(rules, len(teams))
     if week is None:
@@ -1345,9 +1361,15 @@ def build_hub_live_week(
     matchups = storage.list_week_matchups(league_id, season_n, resolved_week)
     participating = week_scoring_team_ids(rules, list(teams.values()), matchups, resolved_week)
     from src.draft_hub.native_stats import cached_week_snapshot, LINEUP_IDENTITY_FIELDS
-    identity_snapshot = cached_week_snapshot(season_n, resolved_week, LINEUP_IDENTITY_FIELDS) or {}
-    for tid in participating:
-        ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules, identity_snapshot=identity_snapshot)
+    lineups_closed = _week_lineups_closed(league_id, season_n, resolved_week)
+    identity_snapshot = (cached_week_snapshot(season_n, resolved_week, LINEUP_IDENTITY_FIELDS) or {}) if not lineups_closed else {}
+    from src.draft_hub.player_identity import identity_read_scope
+    roster_by_team = storage.list_league_rosters_by_team(league_id) if not lineups_closed else {}
+    with (identity_read_scope(season_n) if not lineups_closed else nullcontext()):
+        for tid in participating:
+            ensure_team_lineup(league_id, tid, season_n, resolved_week, rules=rules, league=league,
+                               roster=_active_roster_rows(roster_by_team.get(tid, [])),
+                               identity_snapshot=identity_snapshot, lineups_closed=lineups_closed)
     initialized = {str(row["team_id"]) for row in storage.list_week_lineup_snapshots(league_id, season_n, resolved_week)}
     missing_lineup_teams = sorted(participating - initialized)
 
@@ -1516,7 +1538,7 @@ def build_hub_live_week(
         "viewer_matchup_id": viewer_matchup_id,
         "matchups": matchup_payloads,
         "starting_slots": list(slots),
-        "standings": build_hub_standings(league_id, season_n),
+        "standings": build_hub_standings(league_id, season_n, league=league, teams=team_rows),
         "synced_at": scoring_run.get("scored_at") if scoring_run else (live_snapshot or {}).get("synced_at"),
         "live": provisional and (live_snapshot or {}).get("status") == "live",
         "week_complete": bool(scoring_run),

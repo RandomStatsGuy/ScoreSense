@@ -5,6 +5,7 @@ import json
 import pstats
 import time
 from datetime import datetime, timezone
+from unittest.mock import Mock
 
 from src.draft_hub import hub_scoring, native_stats, storage
 from src.draft_hub.presets import load_preset
@@ -41,6 +42,11 @@ def test_native_league_read_profile(hub_db, tmp_path, monkeypatch):
                            "position": "WR", "slot": f"WR{i+1}" if i < 2 else "BN",
                            "lineup_role": "starter" if i < 2 else "bench", "locked": False})
         storage.replace_team_lineup(league["id"], team["id"], 2026, 5, lineup)
+    from src.draft_hub import player_identity
+    team_reads = Mock(wraps=storage.list_league_teams)
+    identity_stats = Mock(wraps=player_identity._stamp)
+    monkeypatch.setattr(storage, "list_league_teams", team_reads)
+    monkeypatch.setattr(player_identity, "_stamp", identity_stats)
     profile = cProfile.Profile()
     elapsed = []
     for _ in range(3):
@@ -48,6 +54,8 @@ def test_native_league_read_profile(hub_db, tmp_path, monkeypatch):
         payload = profile.runcall(hub_scoring.build_hub_live_week, league["id"], week=5, viewer_team_id=teams[0]["id"])
         elapsed.append(round((time.perf_counter() - started) * 1000, 1))
         assert len(payload["matchups"]) == 6
+    assert team_reads.call_count == 3  # Once per response, rather than per consumer.
+    assert identity_stats.call_count == 6  # Two source revisions per response, not per player.
     output = io.StringIO()
     pstats.Stats(profile, stream=output).sort_stats("cumulative").print_stats(12)
     print(f"\nNative 12-team / 192-player reads, profile enabled (ms): {elapsed}\n{output.getvalue()}")

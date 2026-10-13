@@ -35,6 +35,8 @@ from src.draft_hub.schemas import LeagueRules, ScoringRules
 
 @pytest.fixture(autouse=True)
 def before_week_one(monkeypatch, trusted_native_roster_rows):
+    # _client installs an override; restore the original mapping after each test.
+    monkeypatch.setattr(app, "dependency_overrides", app.dependency_overrides.copy())
     monkeypatch.setattr("src.draft_hub.native_specialist_stats.load_defense_stat_index", lambda *_: {})
     monkeypatch.setattr("src.draft_hub.native_stats.cached_week_snapshot", lambda *_: None)
     # Lineup fixtures must not depend on the wall clock passing Week 1.
