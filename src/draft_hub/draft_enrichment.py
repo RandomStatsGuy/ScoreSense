@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Mapping
 
 import pandas as pd
 
@@ -153,12 +153,12 @@ def _sleeper_row_for_hint(
     player_id: str,
     player_name: str | None,
     team: str | None,
-    by_gsis: dict[str, pd.Series],
-    by_name_team: dict[tuple[str, str], pd.Series],
-    by_sleeper_id: dict[str, pd.Series],
-    by_name: dict[str, list[pd.Series]] | None = None,
+    by_gsis: dict[str, Mapping[str, Any]],
+    by_name_team: dict[tuple[str, str], Mapping[str, Any]],
+    by_sleeper_id: dict[str, Mapping[str, Any]],
+    by_name: dict[str, list[Mapping[str, Any]]] | None = None,
     sleeper_id: str | None = None,
-) -> pd.Series | None:
+) -> Mapping[str, Any] | None:
     pid = str(player_id or "").strip()
     if _GSIS_RE.match(pid) and pid in by_gsis:
         return by_gsis[pid]
@@ -207,10 +207,10 @@ def _sleeper_row_for_hint(
 
 def _sleeper_lookup_tables(*, allow_refresh: bool = True) -> tuple[
     pd.DataFrame,
-    dict[str, pd.Series],
-    dict[str, pd.Series],
-    dict[tuple[str, str], pd.Series],
-    dict[str, list[pd.Series]],
+    dict[str, Mapping[str, Any]],
+    dict[str, Mapping[str, Any]],
+    dict[tuple[str, str], Mapping[str, Any]],
+    dict[str, list[Mapping[str, Any]]],
 ]:
     global _SLEEPER_LOOKUP
     if _SLEEPER_LOOKUP is not None:
@@ -227,11 +227,15 @@ def _sleeper_lookup_tables(*, allow_refresh: bool = True) -> tuple[
             )
 
     df = players_dataframe() if allow_refresh else players_dataframe(allow_refresh=False)
-    by_gsis: dict[str, pd.Series] = {}
-    by_sleeper_id: dict[str, pd.Series] = {}
-    by_name_team: dict[tuple[str, str], pd.Series] = {}
-    by_name: dict[str, list[pd.Series]] = {}
-    for _, row in df.iterrows():
+    by_gsis: dict[str, Mapping[str, Any]] = {}
+    by_sleeper_id: dict[str, Mapping[str, Any]] = {}
+    by_name_team: dict[tuple[str, str], Mapping[str, Any]] = {}
+    by_name: dict[str, list[Mapping[str, Any]]] = {}
+    # A Series per catalog row dominates the first media/card read. Plain
+    # records preserve every media field and the existing duplicate precedence.
+    columns = list(df.columns)
+    for values in df.to_numpy(dtype=object, copy=False):
+        row = dict(zip(columns, values))
         sid = _clean_ext_id(row.get("sleeper_id")) or ""
         if sid:
             by_sleeper_id[sid] = row

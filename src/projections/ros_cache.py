@@ -16,8 +16,14 @@ import pandas as pd
 from src.core.artifact_revision import artifact_revision, file_content_revision
 
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, ROS_PREDICTIONS_DIR
-from src.projections.ros_projections import predict_rest_of_season
 from src.projections.artifact_snapshot import read_cached_frame, read_cached_metadata
+
+
+def predict_rest_of_season(*args, **kwargs):
+    """Import the model engine only when a background build needs inference."""
+    from src.projections.ros_projections import predict_rest_of_season as predict
+    return predict(*args, **kwargs)
+
 
 _ROS_CACHE: dict[str, tuple[tuple, pd.DataFrame]] = {}
 _ROS_COMPUTE_LOCK = threading.Lock()

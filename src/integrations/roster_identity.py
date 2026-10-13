@@ -135,7 +135,12 @@ def _index_sleeper(
     by_name: dict[str, list[dict[str, Any]]] = {}
     if sleeper_df is None or sleeper_df.empty:
         return {}, {}
-    for row in sleeper_df.to_dict(orient="records"):
+    # Identity matching uses five fields, not the full provider profile. Avoid
+    # materializing unused biography/news columns for every player on cold reads.
+    columns = [key for key in ("gsis_id", "full_name", "team", "position", "status")
+               if key in sleeper_df.columns]
+    for values in sleeper_df[columns].to_numpy(dtype=object, copy=False):
+        row = dict(zip(columns, values))
         gsis = cell_text(row.get("gsis_id"))
         if gsis:
             by_gsis[gsis] = row
