@@ -218,6 +218,27 @@ See [activation steps](DEPLOY_CLOUDFLARE_TUNNEL.md#activating-projection-model-c
 
 ## Detailed results
 
+### DFS input timing and zero-score research — October 13, 2026
+
+Completed-game profiles now advance declared usage trends and volatility with
+the same pregame-average window used during training. This repairs a serving
+parity defect; it does not change a trained head or establish an accuracy gain.
+The shared input revision invalidates affected forecast caches after activation.
+
+The follow-up captures consistent 2018–2025 public REG-game inputs and evaluates
+the timing change with identical earlier-season fitted heads on both sides.
+An independent WR/TE zero-score classifier uses strictly prior observed usage,
+train-only preprocessing and historical-rate baselines. Its probabilities remain
+research-only: the observed-stat cohort omits unrecorded appearances and inactive
+weeks, and no-history performance is worse. Neither experiment establishes
+unconditional DFS probabilities, platform-scored mean accuracy or contest returns.
+2025 remains explored historical evidence.
+
+[Results, source receipts and reproducible commands](reviews/dfs-model-accuracy/README.md)
+record the measured benefits, failures and remaining gaps.
+
+### Baseline backtest artifacts
+
 Full JSON metrics: `artifacts/backtest/backtest_summary.json`
 
 Charts:

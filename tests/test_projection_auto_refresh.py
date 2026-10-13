@@ -118,6 +118,8 @@ def test_daily_ros_builds_all_positions_and_both_variants(monkeypatch):
 def test_season_ticker_waits_after_completion_and_stops_cleanly(monkeypatch):
     from app import season_refresh_ticker as ticker
     monkeypatch.setattr(ticker,"PROJECTION_AUTO_REFRESH_ENABLED",True)
+    monkeypatch.setattr(ticker,"season_refresh_needed",lambda: True)
+    monkeypatch.setattr(ticker,"cpu_jobs_busy",lambda: False)
     sleeps,starts = [],[]
     async def sleep(seconds): sleeps.append(seconds)
     async def submit(job):

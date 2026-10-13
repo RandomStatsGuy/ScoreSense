@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "rows": 25236,
+  "rule_eligible_rows": 1505,
+  "changed_medians": 1505,
+  "repaired_p10_rows": 389,
+  "p90_changes": 0,
+  "unchanged_actionable_rows": 10416,
+  "checks": [
+    "Exact eligibility rule and no-history exclusion",
+    "Only eligible medians changed and became zero",
+    "Original P90 values identical",
+    "Only eligible P10 values repaired and quantiles ordered",
+    "Fixed reference actionable and predeclared low-usage cohort counts",
+    "Manual independent MAE/WIS agree with every fold/cohort"
+  ],
+  "model_fits_performed": false
+}

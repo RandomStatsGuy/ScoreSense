@@ -5,7 +5,7 @@ import hashlib
 from src.config import CACHE_DIR, ROOKIE_ROLE_OVERRIDES_PATH
 from src.core.artifact_revision import file_content_revision
 
-PROJECTION_INPUT_POLICY = "completed_profiles_current_roles_exact_week_consensus_v2"
+PROJECTION_INPUT_POLICY = "completed_profiles_derived_usage_exact_week_consensus_v3"
 
 
 def projection_input_revisions() -> list[str]:

@@ -53,6 +53,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | Doc | Use when |
 |-----|----------|
 | [EVALUATION.md](./EVALUATION.md) | Backtest and season-long metrics (canonical numbers) |
+| [DFS model accuracy repair and research](./reviews/dfs-model-accuracy/README.md) | Consistent historical sources, serving-derived usage parity, measured impact and zero-score model limitations |
 | [MODEL_FEATURES.md](./MODEL_FEATURES.md) | Production training columns |
 | [FEATURE_SCREENING.md](./FEATURE_SCREENING.md) | Candidate promotion gate |
 | [PROJECTION_PREGAME_REBUILD.md](./PROJECTION_PREGAME_REBUILD.md) | Rebuilt inputs, qualified recent-form P50 models and cross-service coverage |

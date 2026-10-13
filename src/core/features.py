@@ -26,6 +26,58 @@ STAT_AVG_RENAMES = {
 }
 
 
+def usage_trend_slope(values) -> float:
+    """OLS on equally spaced observations without a runtime-dependent solver."""
+    count = len(values)
+    if count < 2:
+        return 0.0
+    numerator = 0.0
+    for index, value in enumerate(values):
+        numerator += (2 * index - (count - 1)) * float(value)
+    return numerator / (count * (count * count - 1) / 6)
+
+
+def _advance_usage_derivatives(out: pd.DataFrame) -> None:
+    """Advance declared ETL trends/volatility to the next observed game.
+
+    Training takes four *pregame expanding averages*, shifted once again. At a
+    completed game, the next game's window includes that game's pregame average.
+    Reconstruct those averages from observations: stored opener averages may
+    already have compatibility zero imputation, which is not observed usage.
+    """
+    derivatives = {}
+    for column in out:
+        for suffix in ("_trend", "_volatility"):
+            base = column.removesuffix(suffix)
+            if column.endswith(suffix) and base.endswith("_avg"):
+                derivatives.setdefault(base, {})[suffix] = column
+    raw_sources = {
+        STAT_AVG_RENAMES.get(column.removesuffix("_lead"), f"{column.removesuffix('_lead')}_avg"): column
+        for column in out if column.endswith("_lead")
+    }
+    for base, columns in derivatives.items():
+        raw = raw_sources.get(base)
+        if raw is None:
+            # Do not present the last game's pregame derivative as a fresh
+            # input when an older file lacks its reconstruction source.
+            for column in columns.values():
+                out[column] = np.nan
+            continue
+        values = pd.to_numeric(out[raw], errors="coerce")
+        pregame = values.groupby(out["player_id"]).transform(
+            lambda s: s.shift(1).expanding(min_periods=1).mean()
+        )
+        grouped = pregame.groupby(out["player_id"])
+        if "_volatility" in columns:
+            out[columns["_volatility"]] = grouped.transform(
+                lambda s: s.rolling(4, min_periods=2).std()
+            )
+        if "_trend" in columns:
+            out[columns["_trend"]] = grouped.transform(
+                lambda s: s.rolling(4, min_periods=2).apply(usage_trend_slope, raw=True)
+            )
+
+
 def completed_game_profiles(history: pd.DataFrame) -> pd.DataFrame:
     """Advance pre-game averages through the last completed game.
 
@@ -44,6 +96,7 @@ def completed_game_profiles(history: pd.DataFrame) -> pd.DataFrame:
                 out[f"{share}_lead"] = safe_div(out[raw], total)
         if "wopr_lead" not in out and {"target_share_lead", "air_yards_share_lead"}.issubset(out):
             out["wopr_lead"] = 1.5 * out["target_share_lead"] + 0.7 * out["air_yards_share_lead"]
+    _advance_usage_derivatives(out)
     for raw in [c for c in out.columns if c.endswith("_lead")]:
         stat = raw.removesuffix("_lead")
         avg = STAT_AVG_RENAMES.get(stat, f"{stat}_avg")
