@@ -1,0 +1,440 @@
+{
+  "schema_version": "dfs_accuracy_source_capture_v1",
+  "status": "complete",
+  "started_at_utc": "2026-10-13T19:39:08.766378+00:00",
+  "seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "cohort": "Observed player-stat rows in completed REG games, including played zeros/negative scores; inactive weeks not reconstructed.",
+  "publication_cutoff": "Retrospective source capture; no historical pregame availability cutoff established.",
+  "scoring": "nflverse PPR; not complete DraftKings/FanDuel scoring or contest-return validation.",
+  "legacy_fallback_used": false,
+  "sources": [
+    {
+      "path": "raw/games.csv",
+      "url": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+      "resolved_url": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+      "fetched_at_utc": "2026-10-13T19:37:20.111068+00:00",
+      "bytes": 2184490,
+      "sha256": "f915d667635153d11a51964707bf4cba39d9a97070b7502b26295bb31c1a933e",
+      "etag": "W/\"53d5cc6ea8bc49f579bf31c00edf0e9664252ef348cbcab089d4e241a5edfbb0\"",
+      "last_modified": null
+    },
+    {
+      "path": "raw/db_playerids.csv",
+      "url": "https://raw.githubusercontent.com/dynastyprocess/data/master/files/db_playerids.csv",
+      "resolved_url": "https://raw.githubusercontent.com/dynastyprocess/data/master/files/db_playerids.csv",
+      "fetched_at_utc": "2026-10-13T19:37:21.439112+00:00",
+      "bytes": 2639486,
+      "sha256": "9bc031b09ccb2fc72e173856dcc80fc7e5e19f3e0fedef47850ee8aee2585b2d",
+      "etag": "W/\"14c933eafa0d75804a2bcb737925c9665574fdc988dd4e5332df6bfd2c984411\"",
+      "last_modified": null
+    },
+    {
+      "path": "raw/stats_player_week_2018.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2018.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/3bd1ddc3-17af-4e48-969a-252e89b0179f?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A16%3A36Z&rscd=attachment%3B+filename%3Dstats_player_week_2018.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A15%3A47Z&ske=2026-10-13T20%3A16%3A36Z&sks=b&skv=2018-11-09&sig=Xb8aFYW%2BsAve58FXOrDPIn0WRq1Zqhq1CFyzPSfYzws%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0MCwibmJmIjoxNzkxOTIwMjQwLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.VigH5AaTpM8DbwQKaC_Zz5KbyLyWoydjKKXhcqvYotc&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2018.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:21.205625+00:00",
+      "bytes": 800576,
+      "sha256": "d40914a95fdb97245567d8d816e474547b0d28d5152259813ba1542f13a8f0f4",
+      "etag": "\"0x8DEF95A35BDACCA\"",
+      "last_modified": "Thu, 13 Aug 2026 16:44:57 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2018.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2018.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/22e91ad6-330b-4bcc-bb95-e5fb9be8d24b?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A18%3A31Z&rscd=attachment%3B+filename%3Dplay_by_play_2018.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A17%3A46Z&ske=2026-10-13T20%3A18%3A31Z&sks=b&skv=2018-11-09&sig=a%2B0BNsxoJLKaVQujOoxfWPvXOUNEsmm09xnzGI0F40M%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA0MCwibmJmIjoxNzkxOTIwMjQwLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.iCzKbVVhOjMBmbgNtYCfCGjEvn2ok8h8AOPsVSNd-kA&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2018.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:24.738168+00:00",
+      "bytes": 19072097,
+      "sha256": "2e6f2dce7c7ebd46e985cabe0c17eb72b39a77f98cb4478409294f50b5820150",
+      "etag": "\"0x8DD87B1BD0510CA\"",
+      "last_modified": "Wed, 30 Apr 2025 06:39:20 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2018.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2018.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/c1f6f723-7b42-4dc7-8c70-808f1d147405?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A17%3A49Z&rscd=attachment%3B+filename%3Dsnap_counts_2018.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A17%3A41Z&ske=2026-10-13T20%3A17%3A49Z&sks=b&skv=2018-11-09&sig=a1hi0xQq8m1pMQdMq3YA6bwbeNHn8v1KDgym1hzErwc%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0MSwibmJmIjoxNzkxOTIwMjQxLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.kCE4lfTbM_-rF-mv6cw0zmbuddFlRdisi32-bKCf4jU&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2018.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:21.469409+00:00",
+      "bytes": 211973,
+      "sha256": "db5ab19bb95e290ce38cd73c40795b15ecf9b01cbc90b6f339f8010c51c1d506",
+      "etag": "\"0x8DE04A4B5B363FC\"",
+      "last_modified": "Mon, 06 Oct 2025 06:51:00 GMT"
+    },
+    {
+      "path": "raw/stats_player_week_2019.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2019.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/0caa3c0d-4b03-4299-8da6-38cc1f785ffc?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A18%3A22Z&rscd=attachment%3B+filename%3Dstats_player_week_2019.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A17%3A44Z&ske=2026-10-13T20%3A18%3A22Z&sks=b&skv=2018-11-09&sig=Qg70d09qFYKqb2HJI0pyB6JMSG59c2TfOsMWwdbgKcg%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0MiwibmJmIjoxNzkxOTIwMjQyLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.qNItVHtm2xCq6IpNqmkE-RWSZ5iJDPU_gR9p5TQme6Y&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2019.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:22.785094+00:00",
+      "bytes": 799261,
+      "sha256": "1a80298e2aca5a830e0dcfeb834c220bc79918211dc42e2f1e46acc39cd437c9",
+      "etag": "\"0x8DEF95A4DF74D3A\"",
+      "last_modified": "Thu, 13 Aug 2026 16:45:38 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2019.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2019.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/96fa068d-db36-4dee-aec1-a9854464351b?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A18%3A23Z&rscd=attachment%3B+filename%3Dplay_by_play_2019.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A17%3A49Z&ske=2026-10-13T20%3A18%3A23Z&sks=b&skv=2018-11-09&sig=Lt0ULtPAKtMyvRsRnEcgRv5PMM8lZ6%2BRfT2MB1L33V0%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA0MiwibmJmIjoxNzkxOTIwMjQyLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.hUuBsna3AXq9xRE7mvllUSlZVxF6PGqHVEDrPiBHH40&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2019.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:24.369067+00:00",
+      "bytes": 19119729,
+      "sha256": "60c3067017db2d28a78f66a79b657268be8578d9a5288e6a827efdcd7fe42540",
+      "etag": "\"0x8DDD05E7C69836C\"",
+      "last_modified": "Thu, 31 Jul 2025 18:17:18 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2019.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2019.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/ef74b4a8-ad0c-4430-8770-f810cd44d5b6?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A16%3A40Z&rscd=attachment%3B+filename%3Dsnap_counts_2019.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A16%3A16Z&ske=2026-10-13T20%3A16%3A40Z&sks=b&skv=2018-11-09&sig=nEHH3bD4%2B8PvCkysneGfobF86ixwicJ2VZdi6lfxI5I%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0MiwibmJmIjoxNzkxOTIwMjQyLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.qNItVHtm2xCq6IpNqmkE-RWSZ5iJDPU_gR9p5TQme6Y&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2019.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:23.189924+00:00",
+      "bytes": 213089,
+      "sha256": "ef9068cc9eebaf01fa78c783a29cc1658a32b35fd7226e98146aa178e13aedc2",
+      "etag": "\"0x8DE04A4B7B35BB1\"",
+      "last_modified": "Mon, 06 Oct 2025 06:51:03 GMT"
+    },
+    {
+      "path": "raw/stats_player_week_2020.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2020.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/b1d9c745-fc09-4792-a6fe-95d5eda5ee6e?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A16%3A17Z&rscd=attachment%3B+filename%3Dstats_player_week_2020.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A15%3A34Z&ske=2026-10-13T20%3A16%3A17Z&sks=b&skv=2018-11-09&sig=F9NJU3ejOGgIdwFDS9LErCjxcAhy422WKUPnpN5IOa4%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0MywibmJmIjoxNzkxOTIwMjQzLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.dr2IyUYFFnoLk12rliopnvh5XNtn5LIIcFevhExhA3w&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2020.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:24.455499+00:00",
+      "bytes": 813828,
+      "sha256": "e788d88318a6e99b8005c1c9814423d05bb91f757d5d977d3280f2eb83927b23",
+      "etag": "\"0x8DF034497506D19\"",
+      "last_modified": "Wed, 26 Aug 2026 07:35:24 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2020.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2020.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/3c46f87d-7359-4321-9bf7-b3337c2918d5?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A18%3A59Z&rscd=attachment%3B+filename%3Dplay_by_play_2020.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A18%3A44Z&ske=2026-10-13T20%3A18%3A59Z&sks=b&skv=2018-11-09&sig=05Wqe1ycCA7yqE7eHj7%2FPYyySDf%2B90llfF4oJqKhTdM%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA0NCwibmJmIjoxNzkxOTIwMjQ0LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.qfqpk_mxRFo0uzNBynf02bijFUliMLLf25VwbFzhpaQ&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2020.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:25.649449+00:00",
+      "bytes": 19286459,
+      "sha256": "8889f5d8782b5c5dce3c3644acdc0322b228a7e9cb13fa36cbac250e260e9f60",
+      "etag": "\"0x8DF034447C8FB65\"",
+      "last_modified": "Wed, 26 Aug 2026 07:33:10 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2020.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2020.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/31707d28-6de6-4c96-9ee1-8d48a33e6ae0?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A20%3A06Z&rscd=attachment%3B+filename%3Dsnap_counts_2020.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A20%3A02Z&ske=2026-10-13T20%3A20%3A06Z&sks=b&skv=2018-11-09&sig=LzM%2FF1O6jryQh96PJTLms%2FKcIIcyQmSBLvWfxmHihYI%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0NSwibmJmIjoxNzkxOTIwMjQ1LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.7GSdP_VkPCTcqj41jbq69QiPrfCKZaD7wN1KE16LuUA&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2020.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:26.036658+00:00",
+      "bytes": 233598,
+      "sha256": "0dee77ab7595cbef05ce6239f04e7a97c56955e5a9b376dcccf58324f4dd8abc",
+      "etag": "\"0x8DF1A3A679B9AE1\"",
+      "last_modified": "Thu, 24 Sep 2026 12:50:25 GMT"
+    },
+    {
+      "path": "raw/stats_player_week_2021.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2021.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/9599f549-5a21-4286-8da0-82e250ae556e?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A18%3A48Z&rscd=attachment%3B+filename%3Dstats_player_week_2021.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A18%3A34Z&ske=2026-10-13T20%3A18%3A48Z&sks=b&skv=2018-11-09&sig=BrKcv2XtlpXPp3pRdmjMBr%2BYG7N6Y0dxcyPm%2B%2BTZWGo%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0NSwibmJmIjoxNzkxOTIwMjQ1LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.7GSdP_VkPCTcqj41jbq69QiPrfCKZaD7wN1KE16LuUA&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2021.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:26.865762+00:00",
+      "bytes": 854980,
+      "sha256": "2c6894499e96dcf20b060969c607a0ff4e2018f369efad6e97d88abbe77b7277",
+      "etag": "\"0x8DEF95AA27E05F6\"",
+      "last_modified": "Thu, 13 Aug 2026 16:48:00 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2021.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2021.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/6ce3043b-4996-4f55-9181-10deb84a4e90?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A15%3A58Z&rscd=attachment%3B+filename%3Dplay_by_play_2021.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A15%3A22Z&ske=2026-10-13T20%3A15%3A58Z&sks=b&skv=2018-11-09&sig=qezOTPxcI8CaY1yesBjKYpmJAYojbFUIgiD%2Fof%2F%2BLX4%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA0NSwibmJmIjoxNzkxOTIwMjQ1LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.3dLJ1FJVIVm-xvcaUqzPYoBPvThLTSfnQseWaCJ_67M&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2021.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:27.486329+00:00",
+      "bytes": 20249925,
+      "sha256": "333ad34378e5339d5172717cc83378e908daf02c8699416ab3e17c2ec10f78d8",
+      "etag": "\"0x8DE4EB7ADE84D25\"",
+      "last_modified": "Thu, 08 Jan 2026 13:13:13 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2021.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2021.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/3874508f-8528-4ed0-a0fa-ca43389d7973?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A21%3A28Z&rscd=attachment%3B+filename%3Dsnap_counts_2021.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A21%3A28Z&ske=2026-10-13T20%3A21%3A28Z&sks=b&skv=2018-11-09&sig=zaLMgOrJZvDTX%2FjggO45xxTtoKhXAK53TN6B2vl7GrI%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0NiwibmJmIjoxNzkxOTIwMjQ2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.CxHq80BARHdb5pNk-KE0RLGayXx0gm4Y9Ilo-vlRL_c&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2021.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:27.331184+00:00",
+      "bytes": 240680,
+      "sha256": "1f6ab4c26a7d394c857652234dd39acd4088ffd92cfcf3f91ce03f4dc9fcaa2a",
+      "etag": "\"0x8DE04A4BBD5A0DA\"",
+      "last_modified": "Mon, 06 Oct 2025 06:51:10 GMT"
+    },
+    {
+      "path": "raw/stats_player_week_2022.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2022.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/8745bfd6-bdc5-4d0c-8be3-207af4e8f5f2?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A15%3A58Z&rscd=attachment%3B+filename%3Dstats_player_week_2022.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A15%3A36Z&ske=2026-10-13T20%3A15%3A58Z&sks=b&skv=2018-11-09&sig=6M8MknxGMYkEZC%2BT9nGqG4FgoInTT8MjXgMytB2fXLQ%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0NywibmJmIjoxNzkxOTIwMjQ3LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.Zvm9BWafdrvb_Y7W57W95Nz__IQfqdiWtVdWF8OgUjE&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2022.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:27.713891+00:00",
+      "bytes": 847572,
+      "sha256": "64c1684938b029d68e33d7852cbee918266c8ac7f30b4c097c0a8912b4384e52",
+      "etag": "\"0x8DEF95AAA51F419\"",
+      "last_modified": "Thu, 13 Aug 2026 16:48:13 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2022.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2022.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/fe6ee845-8328-4491-b5e9-29a057f505b0?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A18%3A47Z&rscd=attachment%3B+filename%3Dplay_by_play_2022.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A18%3A32Z&ske=2026-10-13T20%3A18%3A47Z&sks=b&skv=2018-11-09&sig=n9bgXIKGXATzKPTiiEOt3qeZJDwS1LE26W0F8BiLeh0%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA0OCwibmJmIjoxNzkxOTIwMjQ4LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.U2ucdw9hK7m0uCImhr7xA9v02fyp96dj8Oc1opxet5Y&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2022.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:29.906915+00:00",
+      "bytes": 20426548,
+      "sha256": "931121d8897779d7944e2a293e92ed8799c8e5cceef84096ac42339003fedc09",
+      "etag": "\"0x8DE6A2108A8E56F\"",
+      "last_modified": "Thu, 12 Feb 2026 10:25:24 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2022.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2022.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/abc4a022-3f26-4c37-b3df-376b6880e2af?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A21%3A46Z&rscd=attachment%3B+filename%3Dsnap_counts_2022.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A21%3A15Z&ske=2026-10-13T20%3A21%3A46Z&sks=b&skv=2018-11-09&sig=CDlO7OhTkzEmxIPERz01NdWzqBRqP6XJV0DM3w66%2B58%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0OCwibmJmIjoxNzkxOTIwMjQ4LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.sJJwgE4OkDVIRQNire4gUgO98VGGFRIRKtPCvHteFbs&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2022.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:29.289179+00:00",
+      "bytes": 237678,
+      "sha256": "3cfde83eb6d859e3477aba4238fa2fb8e0592a5fc5ab8b26128fce085d4b7fea",
+      "etag": "\"0x8DE04A4BDCB4418\"",
+      "last_modified": "Mon, 06 Oct 2025 06:51:13 GMT"
+    },
+    {
+      "path": "raw/stats_player_week_2023.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2023.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/552d19b0-5101-4bac-8488-124a605127da?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A16%3A05Z&rscd=attachment%3B+filename%3Dstats_player_week_2023.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A15%3A40Z&ske=2026-10-13T20%3A16%3A05Z&sks=b&skv=2018-11-09&sig=aEhyaCr8h%2FBMUAHVDnYDR7I2spHHXP23i%2F7EroROYUQ%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU0OCwibmJmIjoxNzkxOTIwMjQ4LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.sJJwgE4OkDVIRQNire4gUgO98VGGFRIRKtPCvHteFbs&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2023.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:29.214760+00:00",
+      "bytes": 846050,
+      "sha256": "ac776fbd7c9fefdb4069b72304f4c5fa05ae417acd49f6e4e27be14b9d7a4bbc",
+      "etag": "\"0x8DEF95AB824F351\"",
+      "last_modified": "Thu, 13 Aug 2026 16:48:36 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2023.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2023.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/7a9ab076-9ba3-48ea-af66-840317d275bf?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A20%3A05Z&rscd=attachment%3B+filename%3Dplay_by_play_2023.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A19%3A10Z&ske=2026-10-13T20%3A20%3A05Z&sks=b&skv=2018-11-09&sig=4bmFpL71lIedDLs0TafSghf%2Fh77CJ4BjlQTgrJPxAkQ%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA0OCwibmJmIjoxNzkxOTIwMjQ4LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.U2ucdw9hK7m0uCImhr7xA9v02fyp96dj8Oc1opxet5Y&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2023.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:30.346297+00:00",
+      "bytes": 20534088,
+      "sha256": "bd3484731408def6b0ec93225bba2bd7b2c65769ca707a2b9444d891abdc6776",
+      "etag": "\"0x8DE6A20F5B300DA\"",
+      "last_modified": "Thu, 12 Feb 2026 10:24:52 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2023.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2023.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/058594d5-53a2-41e3-bc1a-24743ec2dc90?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A20%3A32Z&rscd=attachment%3B+filename%3Dsnap_counts_2023.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A19%3A48Z&ske=2026-10-13T20%3A20%3A32Z&sks=b&skv=2018-11-09&sig=HWxpzCWom5XjARAza%2BYZbBjp5mj9dSX941K6zdkKaOs%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU1MCwibmJmIjoxNzkxOTIwMjUwLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.zCQW_AW3SbyHQ0M_b2-SAFxg_OxAvvtmkKtETG191es&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2023.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:30.888683+00:00",
+      "bytes": 237882,
+      "sha256": "97873cab365dfb39286bc1de3ac772fa4b51f09cce52ae5f8317e006cc007f62",
+      "etag": "\"0x8DE04A4BFE49AD9\"",
+      "last_modified": "Mon, 06 Oct 2025 06:51:17 GMT"
+    },
+    {
+      "path": "raw/stats_player_week_2024.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2024.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/51c27754-1841-48f4-91ec-65e7a19bd1a9?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A17%3A23Z&rscd=attachment%3B+filename%3Dstats_player_week_2024.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A16%3A26Z&ske=2026-10-13T20%3A17%3A23Z&sks=b&skv=2018-11-09&sig=ZExN8njcXalOBOV4erulBMMjig%2Fxuzy1Z1jS%2FYwv5Fg%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU1MCwibmJmIjoxNzkxOTIwMjUwLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.zCQW_AW3SbyHQ0M_b2-SAFxg_OxAvvtmkKtETG191es&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2024.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:31.034309+00:00",
+      "bytes": 849243,
+      "sha256": "847569d194ca3d96b5efcf91e6eac5e18780fc47568a713fd545a82d29d155c1",
+      "etag": "\"0x8DEF95ACC8BEA89\"",
+      "last_modified": "Thu, 13 Aug 2026 16:49:10 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2024.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2024.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/85b3fc71-96f4-4d0b-a282-c10ceea97ff9?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A32%3A25Z&rscd=attachment%3B+filename%3Dplay_by_play_2024.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A31%3A32Z&ske=2026-10-13T20%3A32%3A25Z&sks=b&skv=2018-11-09&sig=ZN3dtCbz31n8zF5pxvHgZI065PWYKIOXt1Vuz%2BvoV0Q%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA1MSwibmJmIjoxNzkxOTIwMjUxLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.-oFIoztG6ieSvifN48aQC7G7jzRlwUx0FQWUMCGBF24&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2024.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:32.507883+00:00",
+      "bytes": 20597560,
+      "sha256": "3fd2896bc0b911b615142d2f1fabae54a4bbba5ab7b73b28187b118ef8af6a3b",
+      "etag": "\"0x8DEF9361906E8D3\"",
+      "last_modified": "Thu, 13 Aug 2026 12:26:27 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2024.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2024.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/18b08ded-7a50-436c-a6b7-9a034b412b27?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A16%3A59Z&rscd=attachment%3B+filename%3Dsnap_counts_2024.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A16%3A04Z&ske=2026-10-13T20%3A16%3A59Z&sks=b&skv=2018-11-09&sig=Z2ZkiX8hT7hzBQOI%2BeQDleQQhe%2FSvAougrxKZC2cEn8%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU1MSwibmJmIjoxNzkxOTIwMjUxLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.tOt1xdbnkqkHMSP20Z5t4Umjmc7WrMePom42LYXAQ4I&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2024.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:31.966487+00:00",
+      "bytes": 240862,
+      "sha256": "9ec66a0c755939b329d4eba3f90e716bb874b5a6544f325ba220f003991ff99f",
+      "etag": "\"0x8DE04A4C1E4B994\"",
+      "last_modified": "Mon, 06 Oct 2025 06:51:20 GMT"
+    },
+    {
+      "path": "raw/stats_player_week_2025.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2025.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/22596422-3c90-46f1-ab0c-e8cfbb307fa7?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A22%3A35Z&rscd=attachment%3B+filename%3Dstats_player_week_2025.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A22%3A09Z&ske=2026-10-13T20%3A22%3A35Z&sks=b&skv=2018-11-09&sig=POw%2FCltgUdAkWk1WrnvqzAFgVsJQQIGPIx5%2F%2FcO7XHk%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU1MiwibmJmIjoxNzkxOTIwMjUyLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.QMMLj80Beqr4ru3Ibomzx-8dmi6FGtW3bUfBJCvD3WM&response-content-disposition=attachment%3B%20filename%3Dstats_player_week_2025.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:32.628367+00:00",
+      "bytes": 855077,
+      "sha256": "2a461becaa9adb3c93a3074a3a31f1e960162a50163371a2d34e28393b5fff10",
+      "etag": "\"0x8DEF95B1AC7F79C\"",
+      "last_modified": "Thu, 13 Aug 2026 16:51:21 GMT"
+    },
+    {
+      "path": "raw/play_by_play_2025.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_2025.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/abd9f726-3fea-4435-a136-9709618d5c8c?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A16%3A40Z&rscd=attachment%3B+filename%3Dplay_by_play_2025.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A15%3A42Z&ske=2026-10-13T20%3A16%3A40Z&sks=b&skv=2018-11-09&sig=XP2snuivMb2RCV6AtIQcYjJvQaQWqxGK1ylQaHFkR2Q%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMjA1MiwibmJmIjoxNzkxOTIwMjUyLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.p55vGIZRMkZ9Dcy1ZGQlw4Ndwy1b3ywqZeDgHlIGTAI&response-content-disposition=attachment%3B%20filename%3Dplay_by_play_2025.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:33.780950+00:00",
+      "bytes": 20337029,
+      "sha256": "c6ecedd6d678cc37ed316b23ef84ee1ec6abb69c514bb11868a7ebd5a367df29",
+      "etag": "\"0x8DEF9360E0B88D5\"",
+      "last_modified": "Thu, 13 Aug 2026 12:26:09 GMT"
+    },
+    {
+      "path": "raw/snap_counts_2025.parquet",
+      "url": "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2025.parquet",
+      "resolved_url": "https://release-assets.githubusercontent.com/github-production-release-asset/452908115/12c99d0f-2515-4ca5-811b-2e58204213ab?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-13T20%3A25%3A36Z&rscd=attachment%3B+filename%3Dsnap_counts_2025.parquet&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-13T19%3A25%3A35Z&ske=2026-10-13T20%3A25%3A36Z&sks=b&skv=2018-11-09&sig=JP7vMK1XYov8RlGAwNgEZDsBfDwDa%2BHW4XpD0hyKG00%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MTkyMDU1MywibmJmIjoxNzkxOTIwMjUzLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.au_F-aCG8AqpcXFX_Tz46QWtg4r-JcEnVIfLRi8wGfI&response-content-disposition=attachment%3B%20filename%3Dsnap_counts_2025.parquet&response-content-type=application%2Foctet-stream",
+      "fetched_at_utc": "2026-10-13T19:37:33.440082+00:00",
+      "bytes": 242046,
+      "sha256": "47220218fecda7af7ee5b0272a8ecce7c1bfb1f4e1f0a2c8c90047571728ce20",
+      "etag": "\"0x8DF1A3A6B0A6132\"",
+      "last_modified": "Thu, 24 Sep 2026 12:50:31 GMT"
+    }
+  ],
+  "exclusions": [
+    "NGS receiving screening columns: not used by the serving feature contract; omitted after existing candidate builder.",
+    "Non-skill-model position families and anonymous team-stat rows are excluded before key validation.",
+    "Private/BDB tracking absent; PBP proxy target quality retained with its explicit raw scale.",
+    "Historical injury reports unavailable in this source capture; compatibility injury features are zero and audited, not observed healthy status.",
+    "No provider consensus, DFS salaries, contest entries, current roster/injury overlays or live databases."
+  ],
+  "snap_mapping": {
+    "raw_reg_rows": 196131,
+    "all_mapped_reg_rows": 160877,
+    "observed_skill_matched_rows": 46492,
+    "unmatched_pfr_rows": 35254,
+    "ambiguous_pfr_ids": 3,
+    "mapping_source": "https://raw.githubusercontent.com/dynastyprocess/data/master/files/db_playerids.csv",
+    "unmatched_policy": "Missing observations remain missing; no zero role invented."
+  },
+  "datasets": {
+    "qb": {
+      "path": "processed\\qb_mlready.parquet",
+      "sha256": "6bca7ee3599f276459626fbe069759f0409fd57963f794ac439e2a455a2f3265",
+      "rows": 5092,
+      "by_season": {
+        "2018": 602,
+        "2019": 589,
+        "2020": 622,
+        "2021": 655,
+        "2022": 633,
+        "2023": 663,
+        "2024": 664,
+        "2025": 664
+      },
+      "positions": {
+        "QB": 5092
+      },
+      "zero_scores": 81,
+      "negative_scores": 276,
+      "input_quality": {
+        "rows": 5092,
+        "expected_features": 24,
+        "missing_columns": [],
+        "null_counts": {
+          "rz_carries_avg": 171,
+          "explosive_plays_avg": 171,
+          "team_pass_rate_avg": 171,
+          "implied_team_total_avg": 171,
+          "total_line_avg": 171,
+          "offense_pct_avg": 171
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "candidate_sha256": "87c0723f47e582781c6beded8abc3516b16ba668b7a5ab9f4231869f1ab5b63b"
+    },
+    "rb": {
+      "path": "processed\\rb_mlready.parquet",
+      "sha256": "4478af66e92bf01e5f6ff3f7c4a1038c152b2ecc002e0ed9efa428e026269f49",
+      "rows": 12875,
+      "by_season": {
+        "2018": 1556,
+        "2019": 1564,
+        "2020": 1599,
+        "2021": 1642,
+        "2022": 1691,
+        "2023": 1570,
+        "2024": 1607,
+        "2025": 1646
+      },
+      "positions": {
+        "RB": 12003,
+        "FB": 872
+      },
+      "zero_scores": 1730,
+      "negative_scores": 150,
+      "input_quality": {
+        "rows": 12875,
+        "expected_features": 24,
+        "missing_columns": [],
+        "null_counts": {
+          "team_pass_rate_avg": 419,
+          "opponent_pass_rate_allowed_avg": 419,
+          "rz_targets_avg": 419,
+          "carry_share_avg_trend": 1868,
+          "implied_team_total_avg": 419,
+          "offense_pct_avg": 437,
+          "offense_snaps_avg": 437,
+          "rz_carries_avg": 419
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "candidate_sha256": "bffb3038c7508778ffc8c8b4be07735d996cb1410e1351fabe9c3d9f245addf8"
+    },
+    "wr": {
+      "path": "processed\\wr_mlready.parquet",
+      "sha256": "06f844802fe1ebd3ac080c6f51c296ab00c1a566d58a68996ce1aac95b35f1ec",
+      "rows": 28598,
+      "by_season": {
+        "2018": 3362,
+        "2019": 3377,
+        "2020": 3449,
+        "2021": 3690,
+        "2022": 3594,
+        "2023": 3664,
+        "2024": 3664,
+        "2025": 3798
+      },
+      "positions": {
+        "WR": 19085,
+        "TE": 9513
+      },
+      "zero_scores": 5671,
+      "negative_scores": 103,
+      "input_quality": {
+        "rows": 28598,
+        "expected_features": 23,
+        "missing_columns": [
+          "separation_at_throw_avg",
+          "defender_closing_speed_avg"
+        ],
+        "null_counts": {
+          "target_quality_avg": 920,
+          "explosive_plays_avg": 920,
+          "target_share_avg_volatility": 2589,
+          "implied_team_total_avg": 920,
+          "offense_pct_avg": 960,
+          "routes_avg": 920,
+          "rz_targets_avg": 920
+        },
+        "all_zero_columns": [
+          "injury_opportunity_boost_hist_avg"
+        ],
+        "complete": false
+      },
+      "candidate_sha256": "1f12160601065782e46b9d6f418f141c25578588f78170b62e976e84347c599b"
+    }
+  },
+  "source_code_sha256": {
+    "scripts/analysis/prepare_dfs_accuracy_data.py": "6eb3710e323acde9f92bb37dabe8a979c4aa50d6093d442af33b612b1029bc97",
+    "src/etl/nflverse_etl.py": "f5e8a5c2060ef3cbca6961a1c89ed1aaac387344f3a8c92ea576a8fbf2de2434",
+    "src/analytics/candidate_etl.py": "268d5dd6b76ef9a0b8c0b47026f6f7237a4c08fdf71bbcd5261a3809efbd2bd9",
+    "src/analytics/historical_injury.py": "44d340865ae4f59beb3a3a8c4dcd6961b6c153e28b55ab7ee4d4d822aadf3c65",
+    "bdb_companion/target_quality.py": "9831cb52ad5247cab3c9fb2f3548cb595f92f84f52f039069b5f0987f5b4d23c"
+  },
+  "completed_at_utc": "2026-10-13T19:39:30.872653+00:00",
+  "post_build_validation": {
+    "raw_source_hashes_match": true,
+    "processed_hashes_match": true,
+    "regular_games": 2127,
+    "regular_game_ids_all_covered_in_pbp": true,
+    "observed_skill_rows_match_completed_opponents": true,
+    "test_result": "9 passed in 2.89s",
+    "script_sha256": "5b1433e1ec5fb0ee97408aa85e52d1b8f5d872a5b4768e4946e1ad2d486f188f",
+    "test_sha256": "6d36b03f4d285adcd3f2d64fb06c029b5ac1a1c8e39e430c2a40f9953c0f9951"
+  },
+  "target_quality_timing": "Use target_quality_raw through the versioned pregame policy. Legacy globally normalized target-quality scores are compatibility columns, not pregame-safe features."
+}

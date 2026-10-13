@@ -73,12 +73,15 @@ def test_dfs_roster_mode_bypasses_depth_cut_and_requests_missing_profiles(monkey
     def overlay(data, *a, **kwargs):
         seen.append(kwargs)
         return data, {"applied": True}
+    roster_source = pd.DataFrame({"gsis_id": ["synthetic-roster-player"]})
+    monkeypatch.setattr("src.projections.roster_coverage.projection_roster_players", lambda season: roster_source)
     monkeypatch.setattr("src.integrations.sleeper.apply_sleeper_roster_overlay", overlay)
     monkeypatch.setattr("src.integrations.roster_identity.apply_roster_identity_overlay", lambda data,*a,**k: (data,{}))
     monkeypatch.setattr("src.core.depth_chart.filter_depth_chart_starters", lambda *a,**k: (_ for _ in ()).throw(AssertionError("depth cut")))
     out, _ = build_inference_roster(frame, "qb", 2026, 1, depth_mode=depth_mode)
     assert len(out) == 1
     assert seen[0]["add_missing"] is True
+    pd.testing.assert_frame_equal(seen[0]["sleeper_df"], roster_source)
 
 
 def test_scoring_rejects_missing_fields_and_duplicate_games():
