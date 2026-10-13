@@ -110,7 +110,7 @@ def enrich_league_roster_overview(
                     "by_position_spend": {k: round(v, 2) for k, v in sorted(by_pos_spend.items())},
                     "by_position_count": by_pos_count,
                     "fp_per_dollar": team_fp_per_dollar,
-                    "fair_value_total": round(fair_total, 2),
+                    "fair_value_total": round(fair_total, 2) if fair_sal_pairs else None,
                 },
             }
         )

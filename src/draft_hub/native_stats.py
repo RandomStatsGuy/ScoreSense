@@ -35,6 +35,7 @@ _LOCK = threading.RLock()
 SOURCE = "sleeper_raw_stats+espn_status"
 SCHEDULE_COVERAGE_VERSION = 1
 GAME_STATE_FIELDS = ("game_states", "complete", "schedule_complete", "schedule_coverage_version")
+LINEUP_IDENTITY_FIELDS = ("identities", "records", "schedule_coverage_version")
 NFL_TEAMS = frozenset("ARI ATL BAL BUF CAR CHI CIN CLE DAL DEN DET GB HOU IND JAX KC LA LAC LV MIA MIN NE NO NYG NYJ PHI PIT SEA SF TB TEN WAS".split())
 
 
@@ -300,6 +301,18 @@ def _read_snapshot(path: str, mtime_ns: int, size: int, ctime_ns: int) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def _snapshot_fields(data: dict, fields: tuple[str, ...] | None) -> dict:
+    if fields is None:
+        return data
+    selected = {key: data[key] for key in fields if key in data}
+    if fields == LINEUP_IDENTITY_FIELDS:
+        selected["records"] = [
+            {key: row[key] for key in ("name", "team", "position", "sleeper_player_id") if key in row}
+            for row in data.get("records") or []
+        ]
+    return selected
+
+
 def cached_week_snapshot(season: int, week: int, fields: tuple[str, ...] | None = None) -> dict[str, Any] | None:
     """Revision-keyed read; worker replacements invalidate API memory immediately."""
     started = time.perf_counter()
@@ -318,13 +331,13 @@ def cached_week_snapshot(season: int, week: int, fields: tuple[str, ...] | None 
             if data.get("season") != key[0] or data.get("week") != key[1]:
                 mode = "invalid"
                 return None
-            return _validated_cached_snapshot({key: data[key] for key in fields if key in data} if fields else data)
+            return _validated_cached_snapshot(_snapshot_fields(data, fields))
         except (OSError, ValueError):
             hit = _MEMORY.get(key)
             if hit:
                 mode = "retained"
                 data = hit[1]
-                return _validated_cached_snapshot({key: data[key] for key in fields if key in data} if fields else data)
+                return _validated_cached_snapshot(_snapshot_fields(data, fields))
             return None
         finally:
             record(f"native.snapshot.{mode}", time.perf_counter() - started)

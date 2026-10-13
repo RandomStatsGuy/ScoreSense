@@ -8,8 +8,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from src.config import PROCESSED_DATA_DIR
-from src.core.projection_context import resolve_projection_context
+from src.projections.projection_meta import resolve_cached_context
 from src.draft_hub.draft_enrichment import build_player_media_batch
 from src.integrations.sleeper import injured_players, players_dataframe
 from src.projections.ros_cache import load_ros_prediction
@@ -62,9 +61,7 @@ def _row_dict(row: pd.Series) -> dict[str, Any]:
 
 
 def _resolve_context(season: int | None, week: int | None) -> tuple[int, int]:
-    path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
-    df = pd.read_parquet(path, columns=["season", "week"])
-    return resolve_projection_context(df, season, week)
+    return resolve_cached_context("qb", season, week)
 
 
 def _find_projection_row(preds: pd.DataFrame, player_id: str) -> dict[str, Any] | None:
@@ -93,7 +90,7 @@ def _pos_from_sleeper_row(row) -> str | None:
 
 
 def _guess_position(player_id: str) -> str | None:
-    df = players_dataframe()
+    df = players_dataframe(allow_refresh=False)
     pid = str(player_id)
     for col in ("gsis_id", "player_id", "sleeper_id"):
         if col not in df.columns:
@@ -108,7 +105,7 @@ def _guess_position(player_id: str) -> str | None:
 
 def _injury_for_player(player_id: str) -> dict[str, Any] | None:
     pid = str(player_id)
-    df = injured_players()
+    df = injured_players(allow_refresh=False)
     if df.empty:
         return None
     for col in ("player_id", "sleeper_id", "gsis_id"):
@@ -149,10 +146,10 @@ def _narrative_for_player(
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     pos = position.lower()
     if scope == "season":
-        payload = build_fantasy_season_response(pos, season, week)
+        payload = build_fantasy_season_response(pos, season, week, allow_generate=False)
     else:
         payload = build_fantasy_weekly_response(
-            pos, season, week, include_historical=include_historical
+            pos, season, week, include_historical=include_historical, allow_generate=False
         )
     meta = _narrative_meta_from_payload(payload)
     for row in payload.get("players") or []:
@@ -179,7 +176,7 @@ def build_player_card(
     scope_norm = "season" if str(scope).lower() == "season" else "weekly"
     apply_injury = bool(apply_injury_adjustments)
 
-    media_batch = build_player_media_batch([{"player_id": pid}])
+    media_batch = build_player_media_batch([{"player_id": pid}], allow_refresh=False)
     media = media_batch.get(pid) or {}
 
     resolved_pos = (position or _guess_position(pid) or "wr").lower()
@@ -189,6 +186,8 @@ def build_player_card(
     weekly_projection: dict[str, Any] | None = None
     season_projection: dict[str, Any] | None = None
 
+    weekly_frame = pd.DataFrame()
+    ros = pd.DataFrame()
     positions_to_try = [resolved_pos] + [p for p in POSITIONS if p != resolved_pos]
     for pos in positions_to_try:
         try:
@@ -197,9 +196,14 @@ def build_player_card(
                 season=resolved_season,
                 week=resolved_week,
                 apply_injury_adjustments=apply_injury,
+                allow_compute=False,
+                allow_stale=True,
             )
+            if pos == resolved_pos:
+                weekly_frame = preds
             row = _find_projection_row(preds, pid)
             if row:
+                weekly_frame = preds
                 weekly_projection = row
                 resolved_pos = pos
                 break
@@ -212,6 +216,8 @@ def build_player_card(
             season=resolved_season,
             week=resolved_week,
             apply_injury_adjustments=apply_injury,
+            allow_compute=False,
+            allow_stale=True,
         )
         season_projection = _find_projection_row(ros, pid)
     except FileNotFoundError:
@@ -232,6 +238,9 @@ def build_player_card(
         if weekly_projection
         else season_projection.get("Player") if season_projection else None
     ) or (narrative or {}).get("player") or media.get("name")
+
+    rebuild_kinds = [kind for kind, frame in (("weekly", weekly_frame), ("ros", ros))
+                     if frame.empty or frame.attrs.get("projection_stale")]
 
     return _sanitize({
         "player_id": pid,
@@ -255,5 +264,8 @@ def build_player_card(
             "scope": scope_norm,
             "apply_injury_adjustments": apply_injury,
             "include_historical": bool(include_historical),
+            "projection_built_at": {"weekly": weekly_frame.attrs.get("built_at"), "ros": ros.attrs.get("built_at")},
+            "projection_stale": {"weekly": bool(weekly_frame.attrs.get("projection_stale")), "ros": bool(ros.attrs.get("projection_stale"))},
+            "rebuild_kinds": rebuild_kinds,
         },
     })

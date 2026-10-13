@@ -25,8 +25,8 @@ def lineup_player_identity(row: dict[str, Any], season: int, week: int,
     if known and pid not in known["aliases"]:
         return None
     if snapshot is None:
-        from src.draft_hub.native_stats import cached_week_snapshot
-        snapshot = cached_week_snapshot(season, week)
+        from src.draft_hub.native_stats import cached_week_snapshot, LINEUP_IDENTITY_FIELDS
+        snapshot = cached_week_snapshot(season, week, LINEUP_IDENTITY_FIELDS)
     snapshot = snapshot or {}
     aliases = [pid, *(known.get("aliases") or ())] if known else [pid]
     events = snapshot.get("identities") or {}
