@@ -138,7 +138,8 @@ test("Vibes done-state keeps one Review or Save lineup primary", () => {
 
 test("My team keeps the approved summary above a flat roster", () => {
   assert.match(LIVING_SURFACES["hub.roster"].doNot, /full-width compact identity\/cap summary above the roster/);
-  assert.match(LIVING_SURFACES["hub.roster"].doNot, /no desktop sidebar or stadium banner/);
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /no desktop sidebar/);
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /saved team banner and crop fill the summary/);
 });
 
 test("file lookup returns the surfaces that own a page", () => {
