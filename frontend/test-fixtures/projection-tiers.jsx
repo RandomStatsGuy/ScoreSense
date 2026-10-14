@@ -75,10 +75,10 @@ window.fetch=async(input,options={})=>{
  if(path.startsWith('/api/predict')||path.startsWith('/api/draft/')||path.startsWith('/api/ros/')) {
   if(state==='loading')return new Promise((resolve,reject)=>options.signal?.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError'))));
   if(state==='error')return Response.json({detail:'Fixture projections unavailable'},{status:503});
-  return json({projections:rows,meta:{season:2026,week:6,projection_week:6,weeks_remaining:state==='complete'?0:10,season_complete:state==='complete',season_quantile_method:'mc_schedule_v1',built_at:new Date().toISOString(),projection_movement:{available:true}}});
+  return json({projections:rows,meta:{season:2026,week:6,projection_week:6,weeks_remaining:state==='complete'?0:10,season_complete:state==='complete',season_quantile_method:'mc_schedule_v1',built_at:new Date().toISOString(),projection_movement:{available:state!=='noMovement'}}});
  }
  if(path==='/api/players/media')return json({media:Object.fromEntries(rows.map(row=>[row.player_id,{headshot_url:avatar(row.Player)}]))});
- if(path==='/api/players/context')return json({players:[],available:true,meta:{updated_at:new Date().toISOString(),stale:false}});
+ if(path==='/api/players/context')return json({players:[],available:true,meta:{updated_at:new Date(Date.now()-(state==='stale'?7200000:0)).toISOString(),stale:state==='stale'}});
  if(path.includes('/explanation'))return json({note:'Projection signals are derived from ScoreSense weekly artifacts and processed usage features. Narrative context is separate overlay and does not enter the projection model.',
   projection_signals:[{id:'usage',label:'Recent usage',detail:'Recent target share is elevated.',direction:'up',strength:'high'},
    {id:'uncertainty',label:'Elevated uncertainty',detail:'A wider range of outcomes.',direction:'down',strength:'high'}],

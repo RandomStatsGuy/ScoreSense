@@ -1,0 +1,484 @@
+[
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "ready",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "large",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "missing",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "empty",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "loading",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "error",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "bye",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "bye-card",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "stale",
+    "introHeight": 87,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "noMovement",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "ready",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "large",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "missing",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "empty",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "loading",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "error",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "bye",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "bye-card",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "stale",
+    "introHeight": 87,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1024,
+    "state": "noMovement",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "missing",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "empty",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "loading",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "error",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "bye",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "bye-card",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "stale",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "noMovement",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "missing",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "empty",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "loading",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "error",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "bye",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "bye-card",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "stale",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "noMovement",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  }
+]
