@@ -17,7 +17,7 @@ export function ProjectionBoardSignals({
       aria-label="Board signals"
     >
       {signals.map((signal) => {
-        const clickable = Boolean(onActivate || (signal.playerId && card));
+        const clickable = Boolean((onActivate && (signal.playerId || signal.id === "attention")) || (signal.playerId && card));
         const Tag = clickable ? "button" : "div";
         const name = swipe ? compactSignalName(signal.name) : signal.name;
         return (
@@ -95,8 +95,10 @@ export function ProjectionBoardDisclosure({
   return (
     <details className={`proj-disclosure${tone ? ` proj-disclosure--${tone}` : ""}`}>
       <summary className="proj-disclosure-summary-row">
-        <span className="proj-disclosure-title">{title}</span>
-        <span className="proj-disclosure-copy">{summary}</span>
+        <span className="proj-disclosure-summary-content">
+          <span className="proj-disclosure-title">{title}</span>
+          <span className="proj-disclosure-copy">{summary}</span>
+        </span>
       </summary>
       <div className="proj-disclosure-body">{children}</div>
     </details>

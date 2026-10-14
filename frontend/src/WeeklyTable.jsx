@@ -1,173 +1,19 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import Chip, { injuryChipTone } from "./Chip";
-import { fmtNum, formatRelativeTime, isPlayerUnavailable, unavailableLabel } from "./format";
-import {
-  SortHeader,
-  ExportCsvButton,
-  TableEmptyState,
-  useTableSort,
-  useRankMap,
-  rowRankKey,
-  csvQuote,
-  downloadCsv,
-} from "./table";
-import QuantileBar from "./QuantileBarShared";
-import SentimentBadge from "./SentimentBadge";
-const ProjectionExplanationPanel = lazy(() => import("./ProjectionExplanationPanel"));
-const PlayerContextPanel = lazy(() => import("./PlayerContextPanel"));
-import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
-import { isDetailAvailable } from "./playerContextDisplay";
-import { TableSkeleton } from "./TableSkeleton";
+import React, {useEffect, useMemo, useState} from "react";
+import Chip, {injuryChipTone} from "./Chip";
+import {fmtNum, formatRelativeTime, isPlayerUnavailable, unavailableLabel} from "./format";
+import {ExportCsvButton, useTableSort, useRankMap, rowRankKey, csvQuote, downloadCsv} from "./table";
 import useMobileLayout from "./useMobileLayout";
 import usePlayersContext from "./usePlayersContext";
-import MobileDataList, { MobileStat } from "./MobileDataList";
-import MobilePlayerCard from "./MobilePlayerCard";
-import WindowedList from "./WindowedList";
-import PlayerCell, { usePlayerMedia } from "./PlayerCell";
-import {
-  filterWeeklyBoardRows,
-  weeklyResultLabel,
-} from "./weeklyBoardFilter";
-import { usePlayerCardOptional } from "./PlayerCardContext";
-import {
-  MOVEMENT_FILTERS,
-  formatP50Move,
-  formatRankMove,
-  hasMovement,
-  isLeftSlate,
-  movementEmptyMessage,
-  movementSortScore,
-  rowMovementTone,
-} from "./projectionMovement";
-import {
-  formatOpportunityAdjustmentPct,
-  pickOpportunityAdjustment,
-} from "./opportunityAdjustment";
-import {
-  BOARD_COPY,
-  positionShort,
-  staleRefreshLabel,
-  weeklyContextNeedsRefresh,
-  weeklyBoardPreview,
-  weeklyPeerStats,
-  weeklyRowClickIntent,
-  weeklyWhyNow,
-} from "./projectionsPresentation";
-import { usePageWindowedRows } from "./DraftHub/useWindowedRows";
+import {usePlayerMedia} from "./PlayerCell";
+import {filterWeeklyBoardRows, weeklyResultLabel} from "./weeklyBoardFilter";
+import {usePlayerCardOptional} from "./PlayerCardContext";
+import {MOVEMENT_FILTERS, isLeftSlate, movementEmptyMessage, movementSortScore} from "./projectionMovement";
+import {pickOpportunityAdjustment} from "./opportunityAdjustment";
+import {BOARD_COPY, positionShort, staleRefreshLabel, weeklyContextNeedsRefresh, weeklyBoardPreview, weeklyPeerStats, projectionNumber, projectionRankMovement} from "./projectionsPresentation";
+import ProjectionTierBoard from "./ProjectionTierBoard";
+import {projectionValue} from "./projectionTiers";
+const SORT_KEYS = {Player:"Player", Team:"Team", Opponent:"Opponent", Narrative:"Narrative", P50:"Projected Points", P10:"Low (P10)", P90:"High (P90)", Opportunity:"_opportunity_adjustment", RankDelta:"rank_delta", P50Delta:"p50_delta", Move:"_movement_score"};
 
-const SORT_KEYS = {
-  Player: "Player",
-  Team: "Team",
-  Opponent: "Opponent",
-  Narrative: "Narrative",
-  P50: "Projected Points",
-  P10: "Low (P10)",
-  P90: "High (P90)",
-  Opportunity: "_opportunity_adjustment",
-  RankDelta: "rank_delta",
-  P50Delta: "p50_delta",
-  Move: "_movement_score",
-};
-
-function RankMoveInline({ row, position }) {
-  const leftSlate = isLeftSlate(row);
-  const rankLabel = formatRankMove({
-    previousRank: row.previous_rank,
-    currentRank: row.current_rank,
-    rankDelta: row.rank_delta,
-    position: row.Position || position,
-    slateStatus: row.slate_status,
-  });
-  if (!rankLabel) return null;
-  const tone = leftSlate ? "down" : movementToneFromDelta(row.rank_delta);
-  return (
-    <span
-      className={`proj-move proj-move--${tone}${row.movement_material || leftSlate ? " proj-move--material" : ""}`}
-      title={leftSlate ? `Left slate · ${rankLabel}` : `Rank ${rankLabel} vs prior refresh`}
-    >
-      <span className="proj-move-rank">{rankLabel}</span>
-    </span>
-  );
-}
-
-function P50MoveInline({ row }) {
-  const p50Label = formatP50Move(row.p50_delta);
-  if (!p50Label) return null;
-  const tone = movementToneFromDelta(row.p50_delta);
-  return (
-    <span
-      className={`proj-move-p50-inline proj-move--${tone}`}
-      title={`Projection ${p50Label} vs prior refresh`}
-    >
-      {p50Label}
-    </span>
-  );
-}
-
-function MovementInline({ row, position, compact = false }) {
-  if (!hasMovement(row)) return null;
-  const leftSlate = isLeftSlate(row);
-  const tone = rowMovementTone(row);
-  const rankLabel = formatRankMove({
-    previousRank: row.previous_rank,
-    currentRank: row.current_rank,
-    rankDelta: row.rank_delta,
-    position: row.Position || position,
-    slateStatus: row.slate_status,
-  });
-  const p50Label = leftSlate ? null : formatP50Move(row.p50_delta);
-  if (!rankLabel && !p50Label && !leftSlate) return null;
-  const title = [
-    leftSlate ? "Left slate" : null,
-    rankLabel ? `Rank ${rankLabel}` : null,
-    p50Label ? `Projection ${p50Label} vs prior refresh` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <span
-      className={`proj-move proj-move--${tone}${compact ? " proj-move--compact" : ""}${
-        row.movement_material || leftSlate ? " proj-move--material" : ""
-      }`}
-      title={title}
-    >
-      {leftSlate ? <span className="proj-move-left">Left slate</span> : null}
-      {rankLabel ? <span className="proj-move-rank">{rankLabel}</span> : null}
-      {p50Label ? (
-        <span className="proj-move-p50">
-          {compact ? p50Label : `Proj ${p50Label}`}
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-function movementToneFromDelta(delta) {
-  const n = Number(delta);
-  if (!Number.isFinite(n) || n === 0) return "neutral";
-  return n > 0 ? "up" : "down";
-}
-
-/** DvP tone from "Opp Def Rank" (1 = toughest defense). Bottom third = favorable. */
-function matchupTone(rank, teamCount) {
-  const r = Number(rank);
-  if (!Number.isFinite(r) || !teamCount) return null;
-  if (r <= Math.floor(teamCount / 3)) return "bad";
-  if (r > Math.ceil((teamCount * 2) / 3)) return "good";
-  return null;
-}
-
-function matchupTitle(rank, teamCount, position) {
-  const r = Number(rank);
-  if (!Number.isFinite(r) || !teamCount) return undefined;
-  const vs = position === "rb" ? "the run" : "the pass";
-  const tone = matchupTone(r, teamCount);
-  const label =
-    tone === "good" ? "favorable matchup" : tone === "bad" ? "tough matchup" : "average matchup";
-  return `Opponent defense ranks ${r} of ${teamCount} vs ${vs} (1 = toughest) — ${label}`;
-}
-
-/** Abbreviated injury designation shown inline next to the player name. */
 function injuryAbbrev(status) {
   const s = String(status || "").toLowerCase();
   if (s.includes("questionable")) return { short: "Q", label: "Questionable" };
@@ -197,195 +43,6 @@ export function InjuryStatusTag({ status, verbose = false }) {
     </Chip>
   );
 }
-
-function WhyToggleButton({ playerName, expanded, onToggle }) {
-  return (
-    <button
-      type="button"
-      className={`btn-ghost btn-sm why-toggle${expanded ? " why-toggle--open" : ""}`}
-      onClick={(event) => {
-        event.stopPropagation();
-        onToggle?.();
-      }}
-      aria-expanded={expanded}
-      aria-label={`Why this projection for ${playerName || "player"}`}
-      title={BOARD_COPY.why}
-    >
-      {BOARD_COPY.why}
-    </button>
-  );
-}
-
-const WeeklyTableRow = React.memo(function WeeklyTableRow({
-  row,
-  rowIndex,
-  rank,
-  showOpponent,
-  unavailableColSpan,
-  scaleMax,
-  playerMedia,
-  position,
-  season,
-  week,
-  dvpTeamCount,
-  compareSelecting,
-  selected,
-  selectDisabled,
-  onToggleSelect,
-  whyNow,
-  applyInjuryAdjustments,
-  showMovement = false,
-  peerStats = {},
-  onOpenPlayer,
-}) {
-  const status = row["Injury Status"] || "";
-  const leftSlate = isLeftSlate(row);
-  const unavailable = !leftSlate && isPlayerUnavailable(status);
-  const p50 = Number(row["Projected Points"]) || 0;
-  const p10 = Number(row["Low (P10)"]) || 0;
-  const p90 = Number(row["High (P90)"]) || 0;
-  const tag = unavailableLabel(status);
-  const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
-  const canSelect = compareSelecting && Boolean(row.player_id) && !unavailable && !leftSlate
-    && (!selectDisabled || selected);
-
-  const openPlayer = () => {
-    if (!row.player_id || !onOpenPlayer) return;
-    onOpenPlayer({
-      playerId: row.player_id,
-      name: row.Player,
-      team: row.Team,
-      position,
-      season,
-      week,
-      applyInjuryAdjustments,
-      scope: "weekly",
-      rank,
-      peers: peerStats,
-      preview: weeklyBoardPreview(row, peerStats, { rank, position, whyNow }),
-    });
-  };
-
-  const handleRowClick = () => {
-    if (weeklyRowClickIntent({ compareSelecting, fromName: false }) === "select" && canSelect) {
-      onToggleSelect?.(row);
-      return;
-    }
-    openPlayer();
-  };
-
-  return (
-    <>
-    <tr
-      className={[
-        "proj-board-row",
-        canSelect ? "proj-board-row--selecting" : "",
-        unavailable ? "row-unavailable" : "",
-        leftSlate ? "row-left-slate" : "",
-        selected ? "row-compare-selected is-selected" : "",
-      ]
-        .filter(Boolean)
-        .join(" ") || undefined}
-      onClick={handleRowClick}
-      aria-selected={compareSelecting ? selected : undefined}
-    >
-      <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
-        <span className="col-rank-stack">
-          <span className="col-rank-value">{rank ?? "—"}</span>
-          {showMovement ? (
-            <span className="col-rank-move">
-              <RankMoveInline row={row} position={position} />
-            </span>
-          ) : null}
-        </span>
-      </td>
-      <td className="col-player">
-        <span className="col-player-inner">
-          <PlayerCell
-            name={row.Player}
-            team={row.Team}
-            playerId={row.player_id}
-            media={playerMedia}
-            size="sm"
-            showTeam={false}
-            clickable={Boolean(row.player_id && onOpenPlayer)}
-            position={positionShort(position)}
-            season={season}
-            week={week}
-            applyInjuryAdjustments={applyInjuryAdjustments}
-            onPlayerClick={openPlayer}
-          />
-          <InjuryStatusTag status={unavailable ? "" : status} />
-          {leftSlate ? (
-            <Chip tone="caution" className="proj-left-slate-chip" title="Removed from this week's projection slate">
-              Left slate
-            </Chip>
-          ) : null}
-        </span>
-        <span className="col-player-mobile-meta">
-          {[row.Team, positionShort(position)].filter(Boolean).join(" · ") || "—"}
-          {showOpponent && row.Opponent ? ` · ${row.Opponent}` : ""}
-        </span>
-      </td>
-      {showOpponent && (
-        <td
-          className={`col-opp${row.Opponent === "BYE" ? " muted" : ""}${tone ? ` matchup-${tone}` : ""}`}
-          title={matchupTitle(row["Opp Def Rank"], dvpTeamCount, position)}
-        >
-          {row.Opponent || "—"}
-          {tone ? (
-            <span className={`matchup-indicator matchup-indicator-${tone}`} aria-hidden="true">
-              {tone === "good" ? "▲" : "▼"}
-            </span>
-          ) : null}
-          {tone ? (
-            <span className="sr-only">
-              {tone === "good" ? "favorable matchup" : "tough matchup"}
-            </span>
-          ) : null}
-        </td>
-      )}
-      <td className="proj-why-now">{whyNow || "—"}</td>
-      {unavailable || leftSlate ? (
-        <td colSpan={unavailableColSpan} className="out-tag-cell">
-          {leftSlate ? (
-            <>
-              <span className="out-tag">Left slate</span>
-              <span className="out-tag-note">No longer on this week&apos;s projections</span>
-            </>
-          ) : (
-            <>
-              <span className="out-tag">{tag}</span>
-              <span className="out-tag-note">Projections suppressed — Sleeper {status}</span>
-            </>
-          )}
-        </td>
-      ) : (
-        <>
-          <td className="num num-quantile">{fmtNum(row["Low (P10)"], 1)}</td>
-          <td className="num num-proj num-p50">
-            <span className="col-proj-stack">
-              <span className="col-proj-value">{fmtNum(row["Projected Points"], 1)}</span>
-              {showMovement ? <P50MoveInline row={row} /> : null}
-            </span>
-          </td>
-          <td className="num num-quantile">{fmtNum(row["High (P90)"], 1)}</td>
-          <td className="range-cell">
-            <QuantileBar
-              p10={p10}
-              p50={p50}
-              p90={p90}
-              scaleMax={scaleMax}
-              rowIndex={rowIndex}
-              showVolatility
-            />
-          </td>
-        </>
-      )}
-    </tr>
-    </>
-  );
-});
 
 function exportCsv(rows) {
   const header = [
@@ -471,8 +128,6 @@ export default function WeeklyTable({
   contextReloadToken = 0,
 }) {
   const [sort, toggleSort] = useTableSort({ column: "P50", dir: "desc" });
-  const [whyPlayerId, setWhyPlayerId] = useState(null);
-  const [contextPlayerId, setContextPlayerId] = useState(null);
   const [compareSelecting, setCompareSelecting] = useState(false);
   const mobileLayout = useMobileLayout();
   const playerCard = usePlayerCardOptional();
@@ -491,21 +146,7 @@ export default function WeeklyTable({
   const showFilters =
     showMovementFilters == null ? showMovement : Boolean(showMovementFilters);
 
-  const toggleWhy = (playerId) => {
-    const id = playerId ? String(playerId) : "";
-    if (!id) return;
-    setWhyPlayerId((prev) => (prev === id ? null : id));
-  };
-
-  const toggleContext = (playerId) => {
-    const id = playerId ? String(playerId) : "";
-    if (!id) return;
-    setContextPlayerId((prev) => (prev === id ? null : id));
-  };
-
   useEffect(() => {
-    setWhyPlayerId(null);
-    setContextPlayerId(null);
     setCompareSelecting(false);
   }, [position, season, week, applyInjuryAdjustments]);
 
@@ -522,16 +163,7 @@ export default function WeeklyTable({
     [rows]
   );
 
-  const hasSentiment = useMemo(
-    () => showSentiment && (rows || []).some((row) => row.sentiment?.mention_count > 0),
-    [rows, showSentiment]
-  );
-
   const peerStats = useMemo(() => weeklyPeerStats(rows, { position }), [rows, position]);
-
-  // Rank, Player, Opp?, Why now, P10, P50, P90, Range
-  const emptyColSpan = 7 + (showOpponent ? 1 : 0);
-  const unavailableColSpan = 4;
 
   const filtered = useMemo(
     () => filterWeeklyBoardRows(rows, {
@@ -564,23 +196,6 @@ export default function WeeklyTable({
     playersContext.meta?.updated_at,
     playersContext.unavailable,
   ]);
-
-  const scaleMax = useMemo(() => {
-    const slate = rows || [];
-    if (!slate.length) return 1;
-    const maxP90 = Math.max(...slate.map((r) => Number(r["High (P90)"]) || 0));
-    return maxP90 > 0 ? maxP90 : 1;
-  }, [rows]);
-
-  // Number of ranked defenses in the slate (max observed rank) for DvP bucketing.
-  const dvpTeamCount = useMemo(() => {
-    let max = 0;
-    for (const r of rows || []) {
-      const rank = Number(r["Opp Def Rank"]);
-      if (Number.isFinite(rank) && rank > max) max = rank;
-    }
-    return max;
-  }, [rows]);
 
   const sorted = useMemo(() => {
     const key = SORT_KEYS[sort.column] || sort.column;
@@ -633,15 +248,6 @@ export default function WeeklyTable({
 
   // Position rank over the full slate (stable regardless of sort/filter).
   const rankMap = useRankMap(rows, rankMetric);
-  const windowed = !mobileLayout && !loading && sorted.length > 40;
-  const { rootRef, range } = usePageWindowedRows(sorted.length, {
-    enabled: windowed,
-    rowHeight: 56,
-  });
-  const visibleRows = windowed ? sorted.slice(range.start, range.end) : sorted;
-  const topPad = windowed ? range.start * 56 : 0;
-  const bottomPad = windowed ? Math.max(0, sorted.length - range.end) * 56 : 0;
-
   const hasFilters = Boolean(
     (search || "").trim() ||
       teamsFilter?.length ||
@@ -690,7 +296,7 @@ export default function WeeklyTable({
           ))}
         </div>
       ) : null}
-      <div className={`table-toolbar${mobileLayout ? " table-toolbar--weekly-mobile" : ""}`}>
+      {!mobileLayout&&<div className="table-toolbar">
         <div className="table-toolbar-meta">
           {mobileLayout ? null : <span className="table-meta">{resultLabel}</span>}
           {metaLine}
@@ -732,13 +338,7 @@ export default function WeeklyTable({
               </span>
             )
           ) : null}
-          {!mobileLayout ? (
-            <span className="table-meta range-scale-legend range-scale-legend--toolbar" aria-hidden="true">
-              <span>Floor</span>
-              <span>Projection</span>
-              <span>Ceiling</span>
-            </span>
-          ) : null}
+
         </div>
         <div className="table-toolbar-actions">
           {!mobileLayout ? (
@@ -755,7 +355,7 @@ export default function WeeklyTable({
             </button>
           ) : null}
         </div>
-      </div>
+      </div>}
       {compareEnabled && compareSelecting ? (
         <p className="compare-mode-hint" role="status">
           {BOARD_COPY.compareHint}
@@ -815,379 +415,39 @@ export default function WeeklyTable({
           </div>
         </div>
       ) : null}
-      {mobileLayout ? (
-        <MobileDataList
-          loading={loading && sorted.length === 0}
-          emptyMessage={!loading && sorted.length === 0 ? emptyMessage : null}
-          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
-        >
-          <WindowedList
-            items={sorted}
-            renderItem={(row, rowIndex) => {
-            const status = row["Injury Status"] || "";
-            const leftSlate = isLeftSlate(row);
-            const unavailable = !leftSlate && isPlayerUnavailable(status);
-            const p50 = Number(row["Projected Points"]) || 0;
-            const p10 = Number(row["Low (P10)"]) || 0;
-            const p90 = Number(row["High (P90)"]) || 0;
-            const tag = unavailableLabel(status);
-            const tone = matchupTone(row["Opp Def Rank"], dvpTeamCount);
-            const pid = row.player_id ? String(row.player_id) : "";
-            const selected = pid ? selectedSet.has(pid) : false;
-            const canSelect = compareSelecting && Boolean(pid) && !unavailable && !leftSlate
-              && (!selectDisabled || selected);
-            const playerCtx = pid ? playersContext.byId.get(pid) : null;
-            const canContext = Boolean(pid) && !leftSlate && isDetailAvailable(playerCtx);
-            const metaNode = (
-              <>
-                {row.Team || "—"}
-                {showOpponent && row.Opponent ? (
-                  <>
-                    {" · "}
-                    <span className={tone ? `matchup-${tone}` : undefined}>
-                      {row.Opponent}
-                      {tone ? (
-                        <span
-                          className={`matchup-indicator matchup-indicator-${tone}`}
-                          aria-hidden="true"
-                        >
-                          {tone === "good" ? "▲" : "▼"}
-                        </span>
-                      ) : null}
-                      {tone ? (
-                        <span className="sr-only">
-                          {tone === "good" ? "favorable matchup" : "tough matchup"}
-                        </span>
-                      ) : null}
-                    </span>
-                  </>
-                ) : null}
-              </>
-            );
-
-            return (
-              <MobilePlayerCard
-                key={rowRankKey(row)}
-                name={row.Player}
-                rank={rankMap.get(rowRankKey(row)) ?? null}
-                selected={selected}
-                selecting={compareSelecting}
-                onSelect={canSelect ? () => onToggleCompare?.(row) : undefined}
-                titleNode={(
-                  <PlayerCell
-                    name={row.Player}
-                    team={row.Team}
-                    playerId={row.player_id}
-                    media={playerMedia}
-                    size="sm"
-                    showTeam={false}
-                    clickable={false}
-                  />
-                )}
-                badge={
-                  leftSlate ? (
-                    <Chip tone="caution" className="proj-left-slate-chip" title="Removed from this week's projection slate">
-                      Left slate
-                    </Chip>
-                  ) : unavailable ? null : (
-                    <InjuryStatusTag status={status} />
-                  )
-                }
-                meta={metaNode}
-                heroValue={leftSlate ? "—" : unavailable ? tag : fmtNum(row["Projected Points"], 1)}
-                heroLabel={leftSlate || unavailable ? "" : "Proj"}
-                hideHeroSubWhenOpen
-                reserveHeroSub={!compareSelecting}
-                heroSub={compareSelecting ? null : leftSlate ? (
-                  <span className="mobile-player-card-move-slot">
-                    {showMovement || showFilters ? (
-                      <span className="mobile-player-card-move">
-                        <MovementInline row={row} position={position} compact />
-                      </span>
-                    ) : (
-                      <span className="muted">Left this week&apos;s slate</span>
-                    )}
-                  </span>
-                ) : unavailable ? (
-                  <span className="mobile-player-card-move-slot" aria-hidden="true" />
-                ) : (
-                  <>
-                    <span className="sr-only">Floor to ceiling </span>
-                    {fmtNum(p10, 1)}–{fmtNum(p90, 1)}
-                    <span className="mobile-player-card-move-slot">
-                      {showMovement && hasMovement(row) ? (
-                        <span className="mobile-player-card-move">
-                          <MovementInline row={row} position={position} compact />
-                        </span>
-                      ) : null}
-                    </span>
-                  </>
-                )}
-                heroMuted={unavailable || leftSlate}
-                unavailable={unavailable || leftSlate}
-                aside={
-                  compareSelecting && playerCard ? (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      onClick={() => {
-                        const rank = rankMap.get(rowRankKey(row)) ?? null;
-                        playerCard.openPlayerCard({
-                          playerId: pid,
-                          name: row.Player,
-                          team: row.Team,
-                          position,
-                          season,
-                          week,
-                          applyInjuryAdjustments,
-                          scope: "weekly",
-                          rank,
-                          peers: peerStats,
-                          preview: weeklyBoardPreview(row, peerStats, {
-                            rank,
-                            position,
-                          }),
-                        });
-                      }}
-                    >
-                      {BOARD_COPY.details}
-                    </button>
-                  ) : null
-                }
-                actions={
-                  pid ? (
-                    <div className="mobile-player-card-action-row">
-                      {playerCard && !compareSelecting ? (
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm"
-                          onClick={() => {
-                            const rank = rankMap.get(rowRankKey(row)) ?? null;
-                            playerCard.openPlayerCard({
-                              playerId: pid,
-                              name: row.Player,
-                              team: row.Team,
-                              position,
-                              season,
-                              week,
-                              applyInjuryAdjustments,
-                              scope: "weekly",
-                              rank,
-                              peers: peerStats,
-                              preview: weeklyBoardPreview(row, peerStats, {
-                                rank,
-                                position,
-                              }),
-                            });
-                          }}
-                        >
-                          {BOARD_COPY.details}
-                        </button>
-                      ) : null}
-                      <WhyToggleButton
-                        playerName={row.Player}
-                        expanded={whyPlayerId === pid}
-                        onToggle={() => toggleWhy(pid)}
-                      />
-                      {canContext ? (
-                        <button
-                          type="button"
-                          className={`btn-ghost btn-sm ctx-toggle${contextPlayerId === pid ? " ctx-toggle--open" : ""}`}
-                          onClick={() => toggleContext(pid)}
-                          aria-expanded={contextPlayerId === pid}
-                          aria-label={`Cached week context for ${row.Player || "player"}`}
-                          title="Cached week context"
-                        >
-                          Ctx
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null
-                }
-                expanded={(
-                  <>
-                    {unavailable ? (
-                      <p className="chart-note out-tag-note">Projections suppressed — Sleeper {status}</p>
-                    ) : (
-                      <>
-                        <div className="range-cell">
-                          <QuantileBar
-                            p10={p10}
-                            p50={p50}
-                            p90={p90}
-                            scaleMax={scaleMax}
-                            rowIndex={rowIndex}
-                            showVolatility
-                          />
-                        </div>
-                        <div className="mobile-stat-grid">
-                          <MobileStat label="Floor" value={fmtNum(row["Low (P10)"], 1)} />
-                          <MobileStat label="Ceiling" value={fmtNum(row["High (P90)"], 1)} />
-                        </div>
-                      </>
-                    )}
-                    {hasSentiment ? (
-                      <div className="mobile-player-card-sentiment">
-                        <SentimentBadge sentiment={row.sentiment} compact />
-                      </div>
-                    ) : null}
-                    {pid && whyPlayerId === pid ? (
-                      <Suspense fallback={<HubLoadingSkeleton rows={2} />}>
-                      <ProjectionExplanationPanel
-                        playerId={pid}
-                        season={season}
-                        week={week}
-                        position={position}
-                        applyInjuryAdjustments={applyInjuryAdjustments}
-                        active
-                        className="projection-explanation--mobile"
-                      />
-                      </Suspense>
-                    ) : null}
-                    {canContext && contextPlayerId === pid ? (
-                      <Suspense fallback={<HubLoadingSkeleton rows={2} />}>
-                      <PlayerContextPanel
-                        playerId={pid}
-                        season={season}
-                        week={week}
-                        active
-                        mediaMode={mediaMode}
-                        onMediaModeChange={onMediaModeChange}
-                        className="player-context-panel--mobile"
-                      />
-                      </Suspense>
-                    ) : null}
-                  </>
-                )}
-              />
-            );
-          }}
-          />
-        </MobileDataList>
-      ) : (
-      <div
-        ref={rootRef}
-        className={`table-wrap table-sticky table-has-rank hub-page-board${compareSelecting ? " table-is-comparing" : ""}${showMovement ? " table-has-movement" : ""}`}
-      >
-        <table>
-          <thead>
-            <tr>
-              <th
-                className="num col-rank"
-                title={
-                  showMovement
-                    ? "Position rank by projected points. Movement shows prior → current (▲ rose)."
-                    : "Position rank by projected points"
-                }
-              >
-                #
-              </th>
-              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              {showOpponent && (
-                <SortHeader
-                  label="Opp"
-                  sortKey="Opponent"
-                  sort={sort}
-                  onSort={toggleSort}
-                  tip="Scheduled opponent this week (BYE if no game)"
-                  className="col-opp"
-                />
-              )}
-              <th className="proj-why-now" title="Short range and role read for this week">
-                Why now
-              </th>
-              <SortHeader
-                label="P10"
-                sortKey="P10"
-                sort={sort}
-                onSort={toggleSort}
-                tip="Floor — 10th percentile outcome"
-                className="col-floor-ceiling"
-              />
-              <SortHeader
-                label="P50"
-                sortKey="P50"
-                sort={sort}
-                onSort={toggleSort}
-                tip="Expected fantasy points this week (median projection)"
-                className="col-proj"
-              />
-              <SortHeader
-                label="P90"
-                sortKey="P90"
-                sort={sort}
-                onSort={toggleSort}
-                tip="Ceiling — 90th percentile outcome"
-                className="col-floor-ceiling"
-              />
-              <th
-                className="col-range"
-                title="Floor / Projection / Ceiling (P10 · P50 · P90). White tick = projected score."
-              >
-                Range
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && sorted.length === 0 ? (
-              <TableSkeleton rows={14} cols={emptyColSpan} />
-            ) : (
-              <>
-            {sorted.length === 0 && emptyMessage && (
-              <TableEmptyState
-                colSpan={emptyColSpan}
-                message={emptyMessage}
-                actionLabel="Clear filters"
-                onAction={hasFilters ? onClearFilters : undefined}
-              />
-            )}
-            {topPad > 0 && (
-              <tr aria-hidden="true">
-                <td colSpan={emptyColSpan} style={{ height: topPad, padding: 0, border: 0 }} />
-              </tr>
-            )}
-            {visibleRows.map((row, rowIndex) => {
-              const pid = row.player_id ? String(row.player_id) : "";
-              return (
-              <WeeklyTableRow
-                key={rowRankKey(row)}
-                row={row}
-                rowIndex={range.start + rowIndex}
-                rank={rankMap.get(rowRankKey(row)) ?? null}
-                showOpponent={showOpponent}
-                unavailableColSpan={unavailableColSpan}
-                scaleMax={scaleMax}
-                playerMedia={playerMedia}
-                position={position}
-                season={season}
-                week={week}
-                dvpTeamCount={dvpTeamCount}
-                compareSelecting={compareSelecting}
-                selected={pid ? selectedSet.has(pid) : false}
-                selectDisabled={selectDisabled}
-                onToggleSelect={onToggleCompare}
-                whyNow={weeklyWhyNow(row, peerStats, {
-                  rank: rankMap.get(rowRankKey(row)) ?? null,
-                  position,
-                })}
-                applyInjuryAdjustments={applyInjuryAdjustments}
-                showMovement={showMovement}
-                peerStats={peerStats}
-                onOpenPlayer={onOpenPlayer || (playerCard ? playerCard.openPlayerCard : undefined)}
-              />
-              );
-            })}
-            {bottomPad > 0 && (
-              <tr aria-hidden="true">
-                <td colSpan={emptyColSpan} style={{ height: bottomPad, padding: 0, border: 0 }} />
-              </tr>
-            )}
-              </>
-            )}
-          </tbody>
-        </table>
-      </div>
-      )}
+      <ProjectionTierBoard rows={sorted} media={playerMedia} loading={loading}
+        tierBasis={BOARD_COPY.weeklyTierBasis} sort={sort} onSort={toggleSort}
+        toolbarAction={mobileLayout&&compareEnabled?<button type="button"
+          className={`proj-board-filter compare-mode-toggle${compareSelecting?" is-active":""}`}
+          aria-pressed={compareSelecting} onClick={()=>setCompareSelecting(value=>!value)}>
+          {compareSelecting?BOARD_COPY.compareDone:BOARD_COPY.compare}</button>:null}
+        emptyMessage={emptyMessage} onClearFilters={hasFilters ? onClearFilters : undefined}
+        selecting={compareSelecting} selectedIds={selectedSet} maxSelected={maxCompare} onSelect={onToggleCompare}
+        getTierValue={row => row["Projected Points"]}
+        getStatus={row => isLeftSlate(row) ? "left" : isPlayerUnavailable(row["Injury Status"]) ? "inactive" : null}
+        columns={[
+          ...(showOpponent ? [{key:"opponent",label:BOARD_COPY.matchup,sortKey:"Opponent",text:true}] : []),
+          {key:"floor",label:BOARD_COPY.floor,sortKey:"P10",forecast:true},
+          {key:"ceiling",label:BOARD_COPY.ceiling,sortKey:"P90",forecast:true},
+          {key:"points",label:BOARD_COPY.projected,sortKey:"P50",forecast:true},
+        ]}
+        getView={row => {
+          const status=row["Injury Status"]||"";
+          const blocked=isLeftSlate(row)?BOARD_COPY.leftTier:isPlayerUnavailable(status)?unavailableLabel(status):null;
+          const low=projectionValue(row["Low (P10)"]), high=projectionValue(row["High (P90)"]);
+          return {rank:rankMap.get(rowRankKey(row)), movement:projectionRankMovement(row,showMovement),
+            meta:[row.Team,positionShort(position),row.Opponent].filter(Boolean).join(" · "),
+            badge:blocked?null:<InjuryStatusTag status={status}/>, blocked,
+            values:{opponent:row.Opponent?`vs ${row.Opponent}`:null, floor:low, ceiling:high, points:row["Projected Points"]},
+            sub:!blocked && low!=null && high!=null?`${projectionNumber(low)}–${projectionNumber(high)}`:null};
+        }}
+        onOpen={row => {
+          const open=onOpenPlayer||playerCard?.openPlayerCard;
+          if(!row.player_id||!open)return;
+          const rank=rankMap.get(rowRankKey(row))??null;
+          open({playerId:row.player_id,name:row.Player,team:row.Team,position,season,week,applyInjuryAdjustments,
+            scope:"weekly",rank,peers:peerStats,preview:weeklyBoardPreview(row,peerStats,{rank,position})});
+        }}/>
     </>
   );
 }

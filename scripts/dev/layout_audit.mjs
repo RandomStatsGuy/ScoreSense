@@ -562,6 +562,16 @@ export function measureScript() {
       if (named.length) return named;
       return [...row.children].filter((child) => getComputedStyle(child).display !== "none");
     };
+    // Spanning section headers are not cells in a numeric column.
+    const columnCell = (row, index) => {
+      let offset = 0;
+      for (const cell of rowCells(row)) {
+        const span = Math.max(1, Number(cell.colSpan || cell.getAttribute?.("aria-colspan") || 1));
+        if (offset === index && span === 1) return cell;
+        offset += span;
+      }
+      return undefined;
+    };
     const htmlTables = [...document.querySelectorAll("table")].map((table) => ({
       el: table,
       rows: [...table.rows],
@@ -619,7 +629,7 @@ export function measureScript() {
       const colCount = Math.max(...rows.map((row) => rowCells(row).length));
       const expectAligns = [];
       for (let c = 0; c < colCount; c += 1) {
-        const cells = rows.map((row) => rowCells(row)[c]).filter(Boolean);
+        const cells = rows.map((row) => columnCell(row, c)).filter(Boolean);
         if (!cells.length) continue;
         const header = firstLine(cells[0]?.innerText || "");
         const bodyTexts = cells.slice(1).map((cell) => firstLine((cell.querySelector(".player-cell-name") || cell).innerText));
