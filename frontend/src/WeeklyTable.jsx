@@ -1,3 +1,4 @@
+import {isByeWeek} from "./weeklyAvailability";
 import React, {useEffect, useMemo, useState} from "react";
 import Chip, {injuryChipTone} from "./Chip";
 import {fmtNum, formatRelativeTime, isPlayerUnavailable, unavailableLabel} from "./format";
@@ -9,9 +10,9 @@ import {filterWeeklyBoardRows, weeklyResultLabel} from "./weeklyBoardFilter";
 import {usePlayerCardOptional} from "./PlayerCardContext";
 import {MOVEMENT_FILTERS, isLeftSlate, movementEmptyMessage, movementSortScore} from "./projectionMovement";
 import {pickOpportunityAdjustment} from "./opportunityAdjustment";
-import {BOARD_COPY, positionShort, staleRefreshLabel, weeklyContextNeedsRefresh, weeklyBoardPreview, weeklyPeerStats, projectionNumber, projectionRankMovement} from "./projectionsPresentation";
+import {BOARD_COPY, isBoardAvailable, positionShort, staleRefreshLabel, weeklyContextNeedsRefresh, weeklyBoardPreview, weeklyPeerStats, projectionNumber, projectionRankMovement} from "./projectionsPresentation";
 import ProjectionTierBoard from "./ProjectionTierBoard";
-import {projectionValue} from "./projectionTiers";
+import {projectionPosition, projectionValue} from "./projectionTiers";
 const SORT_KEYS = {Player:"Player", Team:"Team", Opponent:"Opponent", Narrative:"Narrative", P50:"Projected Points", P10:"Low (P10)", P90:"High (P90)", Opportunity:"_opportunity_adjustment", RankDelta:"rank_delta", P50Delta:"p50_delta", Move:"_movement_score"};
 
 function injuryAbbrev(status) {
@@ -61,19 +62,20 @@ function exportCsv(rows) {
     header.join(","),
     ...rows.map((row) => {
       const status = row["Injury Status"] || "";
+      const bye = isByeWeek(row);
       const unavailable = isPlayerUnavailable(status);
       const boost = pickOpportunityAdjustment(row);
       return [
         csvQuote(row.Player),
         row.Team || "",
-        unavailable ? "OUT" : fmtNum(row["Projected Points"], 2, ""),
-        unavailable ? "OUT" : fmtNum(row["Low (P10)"], 2, ""),
-        unavailable ? "OUT" : fmtNum(row["High (P90)"], 2, ""),
+        bye ? "BYE" : unavailable ? "OUT" : fmtNum(row["Projected Points"], 2, ""),
+        bye ? "BYE" : unavailable ? "OUT" : fmtNum(row["Low (P10)"], 2, ""),
+        bye ? "BYE" : unavailable ? "OUT" : fmtNum(row["High (P90)"], 2, ""),
         Number.isFinite(Number(row.p50_delta)) ? Number(row.p50_delta).toFixed(2) : "",
         Number.isFinite(Number(row.rank_delta)) ? String(row.rank_delta) : "",
         Number.isFinite(Number(row.previous_rank)) ? String(row.previous_rank) : "",
-        !unavailable && boost != null && boost !== 0 ? (boost * 100).toFixed(1) : "",
-        unavailable ? unavailableLabel(status) : status,
+        !bye && !unavailable && boost != null && boost !== 0 ? (boost * 100).toFixed(1) : "",
+        bye ? BOARD_COPY.byeWeek : unavailable ? unavailableLabel(status) : status,
       ].join(",");
     }),
   ];
@@ -82,7 +84,7 @@ function exportCsv(rows) {
 
 // Number(null) === 0; coerce missing projections to NaN so they stay unranked.
 const rankMetric = (row) =>
-  isPlayerUnavailable(row["Injury Status"]) ? NaN : Number(row["Projected Points"] ?? NaN);
+  !isBoardAvailable(row) ? NaN : Number(row["Projected Points"] ?? NaN);
 
 export default function WeeklyTable({
   rows,
@@ -415,7 +417,7 @@ export default function WeeklyTable({
           </div>
         </div>
       ) : null}
-      <ProjectionTierBoard rows={sorted} media={playerMedia} loading={loading}
+      <ProjectionTierBoard position={position} rows={sorted} media={playerMedia} loading={loading}
         tierBasis={BOARD_COPY.weeklyTierBasis} sort={sort} onSort={toggleSort}
         toolbarAction={mobileLayout&&compareEnabled?<button type="button"
           className={`proj-board-filter compare-mode-toggle${compareSelecting?" is-active":""}`}
@@ -424,7 +426,7 @@ export default function WeeklyTable({
         emptyMessage={emptyMessage} onClearFilters={hasFilters ? onClearFilters : undefined}
         selecting={compareSelecting} selectedIds={selectedSet} maxSelected={maxCompare} onSelect={onToggleCompare}
         getTierValue={row => row["Projected Points"]}
-        getStatus={row => isLeftSlate(row) ? "left" : isPlayerUnavailable(row["Injury Status"]) ? "inactive" : null}
+        getStatus={row => isLeftSlate(row) ? "left" : isByeWeek(row) ? "bye" : isPlayerUnavailable(row["Injury Status"]) ? "inactive" : null}
         columns={[
           ...(showOpponent ? [{key:"opponent",label:BOARD_COPY.matchup,sortKey:"Opponent",text:true}] : []),
           {key:"floor",label:BOARD_COPY.floor,sortKey:"P10",forecast:true},
@@ -433,12 +435,12 @@ export default function WeeklyTable({
         ]}
         getView={row => {
           const status=row["Injury Status"]||"";
-          const blocked=isLeftSlate(row)?BOARD_COPY.leftTier:isPlayerUnavailable(status)?unavailableLabel(status):null;
+          const blocked=isByeWeek(row)?BOARD_COPY.byeWeek:isLeftSlate(row)?BOARD_COPY.leftTier:isPlayerUnavailable(status)?unavailableLabel(status):null;
           const low=projectionValue(row["Low (P10)"]), high=projectionValue(row["High (P90)"]);
-          return {rank:rankMap.get(rowRankKey(row)), movement:projectionRankMovement(row,showMovement),
-            meta:[row.Team,positionShort(position),row.Opponent].filter(Boolean).join(" · "),
+          return {rank:rankMap.get(rowRankKey(row)), movement:isByeWeek(row)?"":projectionRankMovement(row,showMovement),
+            meta:[row.Team,projectionPosition(row,position)||positionShort(position),row.Opponent].filter(Boolean).join(" · "),
             badge:blocked?null:<InjuryStatusTag status={status}/>, blocked,
-            values:{opponent:row.Opponent?`vs ${row.Opponent}`:null, floor:low, ceiling:high, points:row["Projected Points"]},
+            values:{opponent:isByeWeek(row)?BOARD_COPY.byeWeek:row.Opponent?`vs ${row.Opponent}`:null, floor:low, ceiling:high, points:row["Projected Points"]},
             sub:!blocked && low!=null && high!=null?`${projectionNumber(low)}–${projectionNumber(high)}`:null};
         }}
         onOpen={row => {

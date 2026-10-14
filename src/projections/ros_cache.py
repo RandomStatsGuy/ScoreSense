@@ -40,8 +40,12 @@ def _with_roster_identity(
 ) -> pd.DataFrame:
     from src.integrations.roster_identity import apply_roster_identity_with_attrs
 
+    # Legacy ROS artifacts omitted the weekly row's WR/TE identity. Give the
+    # existing serve-time identity overlay a column to fill without rebuilding
+    # predictions or guessing WR from the combined model/board key.
+    identity_frame = df if {"Position", "position"}.intersection(df.columns) else df.assign(Position=None)
     return apply_roster_identity_with_attrs(
-        df, position, season=season, week=week, cache_key=cache_key, allow_refresh=allow_refresh
+        identity_frame, position, season=season, week=week, cache_key=cache_key, allow_refresh=allow_refresh
     )
 
 

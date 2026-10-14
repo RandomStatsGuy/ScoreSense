@@ -129,3 +129,26 @@ def test_scale_ros_ir_horizon_credits_more_than_questionable():
     assert ir.loc[0, "ros_proj"] > q.loc[0, "ros_proj"]
     # IR horizon 6 → sum(1, 5/6, ..., 1/6) = 21/6 = 3.5 effective weeks
     assert ir.loc[0, "ros_proj"] == pytest.approx(10.0 * 10 + 2.0 * 3.5)
+
+
+@pytest.mark.parametrize("identity_column", ["Position", "position"])
+def test_ros_aggregation_preserves_actual_wr_te_identity_without_changing_points(monkeypatch, tmp_path, identity_column):
+    from src.projections import ros_projections as ros
+
+    history = pd.DataFrame({"player_id": ["wr1", "te1"], "season": [2026, 2026],
+                            "week": [5, 5], "Fpts": [10.0, 12.0]})
+    history.to_parquet(tmp_path / "wr_mlready.parquet", index=False)
+    weekly = pd.DataFrame({"Player": ["Receiver", "Tight end"], "Team": ["ATL", "ATL"],
+                           "player_id": ["wr1", "te1"], identity_column: ["WR", "TE"],
+                           "Projected Points": [20.0, 14.0], "Low (P10)": [12.0, 7.0],
+                           "High (P90)": [28.0, 21.0]})
+    monkeypatch.setattr(ros, "_load_or_predict_weekly", lambda *a, **kw: weekly.copy())
+    monkeypatch.setattr(ros, "_rolling_weekly_p50", lambda *a, **kw: pd.DataFrame())
+    result = ros.predict_rest_of_season("wr", season=2026, week=6,
+                                      apply_injury_adjustments=False, data_dir=tmp_path)
+    assert result["Position"].tolist() == ["WR", "TE"]
+    weekly = weekly.drop(columns=[identity_column])
+    legacy = ros.predict_rest_of_season("wr", season=2026, week=6,
+                                      apply_injury_adjustments=False, data_dir=tmp_path)
+    assert legacy["Position"].isna().all()
+    pd.testing.assert_frame_equal(result.drop(columns="Position"), legacy.drop(columns="Position"))

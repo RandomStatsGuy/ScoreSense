@@ -1,16 +1,10 @@
 import "./styles/player-details.css";
 import React, { useEffect, useState } from "react";
-import Chip, { sentimentChipTone } from "./Chip";
 import { apiFetch } from "./auth";
 import { connectionErrorMessage, parseApiError } from "./format";
 import { isAbortError } from "./fetchAbort";
-import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
-import {
-  formatHistoricalWeekLabel,
-  isHistoricalAvailable,
-  pickHistoricalWeek,
-  setIncludeHistoricalParam,
-} from "./mediaContext";
+import {HubLoadingSkeleton} from "./DraftHub/HubUILayout";
+import {PLAYER_CARD_COPY as COPY} from "./projectionsPresentation";
 import { typicalMissLine } from "./accuracyPresentation";
 
 function directionGlyph(direction) {
@@ -43,8 +37,7 @@ function SignalRow({ signal }) {
 
 /**
  * Structured "Why this projection?" panel — GET /api/player/{id}/explanation (SCORE-5).
- * Model signals and narrative/sentiment overlay are visually separated.
- * SCORE-28: historical narrative requires explicit opt-in.
+ * Render only useful projection signals and the position-specific typical miss.
  */
 export default function ProjectionExplanationPanel({
   playerId,
@@ -58,12 +51,7 @@ export default function ProjectionExplanationPanel({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [includeHistorical, setIncludeHistorical] = useState(false);
   const [typicalMiss, setTypicalMiss] = useState("");
-
-  useEffect(() => {
-    setIncludeHistorical(false);
-  }, [playerId, season, week]);
 
   useEffect(() => {
     const pos = String(position || "").trim().toLowerCase();
@@ -110,7 +98,6 @@ export default function ProjectionExplanationPanel({
     if (week != null) params.set("week", String(week));
     if (position) params.set("position", String(position));
     params.set("apply_injury_adjustments", applyInjuryAdjustments ? "true" : "false");
-    setIncludeHistoricalParam(params, includeHistorical);
     const q = params.toString() ? `?${params.toString()}` : "";
 
     (async () => {
@@ -133,137 +120,18 @@ export default function ProjectionExplanationPanel({
     })();
 
     return () => controller.abort();
-  }, [active, playerId, season, week, position, applyInjuryAdjustments, includeHistorical]);
+  }, [active, playerId, season, week, position, applyInjuryAdjustments]);
 
   if (!active || !playerId) return null;
 
-  const signals = data?.projection_signals || [];
-  const narrative = data?.narrative_context;
-  const movement = data?.movement;
-  const narrativeAvailable = Boolean(narrative?.available);
-  const media = narrative?.media_context;
-  const historical = pickHistoricalWeek(media);
-  const historicalLabel = formatHistoricalWeekLabel(historical);
-  const showHistoricalOptIn =
-    !narrativeAvailable && isHistoricalAvailable(media) && !includeHistorical;
-
-  return (
-    <section
-      className={`projection-explanation ${className}`.trim()}
-      aria-label="Why this projection"
-    >
-      <header className="projection-explanation-head">
-        <h3 className="projection-explanation-title">Why this projection?</h3>
-        {data?.note ? (
-          <p className="projection-explanation-note muted">{data.note}</p>
-        ) : null}
-        {typicalMiss ? (
-          <p className="projection-explanation-note muted">{typicalMiss}</p>
-        ) : null}
-      </header>
-
-      {loading && !data ? (
-        <p className="chart-note" role="status">
-          Loading explanation…
-        </p>
-      ) : null}
-
-      {error ? <div className="error">{error}</div> : null}
-
-      {data ? (
-        <>
-          <div className="projection-explanation-block projection-explanation-block--signals">
-            <h4 className="projection-explanation-block-title">Projection signals</h4>
-            <p className="projection-explanation-block-sub muted">
-              From ScoreSense weekly artifacts and usage features
-            </p>
-            {signals.length ? (
-              <ul className="projection-explanation-signal-list">
-                {signals.map((signal) => (
-                  <SignalRow key={signal.id || signal.label} signal={signal} />
-                ))}
-              </ul>
-            ) : (
-              <p className="state-empty-text projection-explanation-empty">
-                No standout model-context signals for this slate.
-              </p>
-            )}
-          </div>
-
-          <div className="projection-explanation-block projection-explanation-block--narrative">
-            <div className="projection-explanation-narrative-head">
-              <h4 className="projection-explanation-block-title">
-                {narrative?.label || "Narrative context"}
-              </h4>
-              <Chip tone="neutral" className="projection-explanation-overlay-chip">
-                Context overlay · not a model input
-              </Chip>
-            </div>
-            {narrative?.disclaimer ? (
-              <p className="projection-explanation-disclaimer muted">{narrative.disclaimer}</p>
-            ) : (
-              <p className="projection-explanation-disclaimer muted">
-                Sentiment and fantasy media digests are contextual overlays — they are not
-                ScoreSense projection drivers.
-              </p>
-            )}
-            {narrativeAvailable ? (
-              <div className="projection-explanation-narrative-body">
-                {narrative.context_fallback || isHistoricalAvailable(media) ? (
-                  <p className="sentiment-fallback-banner" role="status">
-                    Older commentary
-                    {historicalLabel || (narrative.season != null && narrative.week != null)
-                      ? ` from ${historicalLabel || `${narrative.season} Week ${narrative.week}`}`
-                      : ""}
-                    {" — not current-week coverage."}
-                  </p>
-                ) : null}
-                {narrative.sentiment_label ? (
-                  <Chip
-                    tone={sentimentChipTone(narrative.sentiment_label)}
-                    className="projection-explanation-sentiment-chip"
-                  >
-                    {narrative.sentiment_label_text
-                      || narrative.sentiment_label
-                      || "Neutral"}
-                    {Number.isFinite(Number(narrative.mention_count))
-                      ? ` · ${narrative.mention_count}m`
-                      : ""}
-                  </Chip>
-                ) : null}
-                <p className="projection-explanation-digest">
-                  {narrative.digest
-                    || narrative.sentiment_summary
-                    || narrative.snippet
-                    || "Narrative available but no digest text."}
-                </p>
-              </div>
-            ) : showHistoricalOptIn ? (
-              <HistoricalMediaOptIn
-                requestedWeek={week}
-                media={media}
-                loading={loading}
-                onViewOlder={() => setIncludeHistorical(true)}
-              />
-            ) : (
-              <p className="state-empty-text projection-explanation-empty">
-                No narrative context for this player yet.
-              </p>
-            )}
-          </div>
-
-          {movement?.available ? (
-            <div className="projection-explanation-block projection-explanation-block--movement">
-              <h4 className="projection-explanation-block-title">Projection movement</h4>
-              <p className="projection-explanation-digest">
-                {movement.delta_p50 != null
-                  ? `Median moved ${Number(movement.delta_p50) > 0 ? "+" : ""}${Number(movement.delta_p50).toFixed(1)} vs prior.`
-                  : movement.note || "Movement available."}
-              </p>
-            </div>
-          ) : null}
-        </>
-      ) : null}
-    </section>
-  );
+  const signals = (Array.isArray(data?.projection_signals)?data.projection_signals:[]).filter(signal=>signal?.label);
+  if(!loading&&!error&&!signals.length&&!typicalMiss)return null;
+  return <section className={`projection-explanation ${className}`.trim()} aria-label={COPY.details}>
+    {typicalMiss ? <p className="projection-explanation-note muted">{typicalMiss}</p> : null}
+    {loading&&!data ? <HubLoadingSkeleton rows={2}/> : null}
+    {error ? <p className="error" role="alert">{error}</p> : null}
+    {signals.length ? <ul className="projection-explanation-signal-list">
+      {signals.map(signal=><SignalRow key={signal.id||signal.label} signal={signal}/>)}
+    </ul> : null}
+  </section>;
 }

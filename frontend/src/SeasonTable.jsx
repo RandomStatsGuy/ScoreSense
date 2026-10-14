@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import ProjectionTierBoard from "./ProjectionTierBoard";
 import {usePlayerCardOptional} from "./PlayerCardContext";
 import {BOARD_COPY, projectionNumber, positionShort} from "./projectionsPresentation";
-import {projectionValue, remainingGameProjection} from "./projectionTiers";
+import {projectionPosition, projectionValue, remainingGameProjection} from "./projectionTiers";
 import {
   fmtNum,
   rosGamesPlayed,
@@ -163,7 +163,7 @@ export default function SeasonTable({
         <span className="table-meta">{sorted.length} players</span>
         {metaLine}
       </div>
-      <ProjectionTierBoard rows={sorted} media={playerMedia} loading={loading}
+      <ProjectionTierBoard position={position} rows={sorted} media={playerMedia} loading={loading}
         tierBasis={recordedView?BOARD_COPY.finalTierBasis:BOARD_COPY.rosTierBasis}
         sort={sort} onSort={toggleSort} emptyMessage="No players match your filters."
         onClearFilters={hasFilters?onClearFilters:undefined}
@@ -180,7 +180,7 @@ export default function SeasonTable({
         ]}
         getView={row => {
           const ppg=knownPPG(row);
-          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,positionShort(position)].filter(Boolean).join(" · "),
+          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,projectionPosition(row,position)||positionShort(position)].filter(Boolean).join(" · "),
             values:{recorded:rosRegPts(row),games:rosGamesPlayed(row),ppg,remaining:row["Games Remaining"],ros:rosP50(row)},
             sub:recordedView?(ppg==null?null:`${projectionNumber(ppg)} PPG`):`${projectionNumber(remainingGameProjection(row,rosP50(row)))} /gm`};
         }}
