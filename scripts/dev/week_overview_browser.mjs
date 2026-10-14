@@ -58,7 +58,7 @@ try {
   const slot=page.locator('.hub-wcc-position-button').filter({hasText:'FLEX'}).first();await slot.click();
   await page.getByRole('radio',{name:'DeVonta Smith',exact:true}).click();
   assert.deepEqual(await page.evaluate(()=>window.fixtureWrites),[]);
-  await page.getByRole('button',{name:/Confirm|Save|Start DeVonta/}).click();
+  await page.locator('.lineup-picker').getByRole('button',{name:/Confirm|Save|Start DeVonta/}).click();
   await page.waitForFunction(()=>window.fixtureWrites.length===1);
   assert.equal((await page.evaluate(()=>window.fixtureWrites))[0].body.bench_player_id,'smith');
   await page.locator('.lineup-picker-backdrop').waitFor({state:'hidden'});

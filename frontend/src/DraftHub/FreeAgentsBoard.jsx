@@ -112,6 +112,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
       {needPositions.length > 0 && <button className="btn-ghost btn-sm" aria-pressed={needsOnly} onClick={() => setNeedsOnly(v => !v)}>{COPY.needs(needPositions)}</button>}
       <button className="btn-ghost btn-sm" disabled={!boardDirty} onClick={resetBoard}>{COPY.reset}</button></div>}
     <div className="fa-list-label"><p aria-live="polite">{COPY.count(count)}</p><p>{COPY.seasonOutlook} · {pricing}</p></div>
+    <details className="fa-range-guide"><summary>{COPY.rangeGuideTitle}</summary><p className="fa-muted">{COPY.rangeGuide}</p></details>
     {error && !draft && <p className="fa-info" role="status">{error}</p>}
     <div className="fa-pool" ref={scrollerRef} aria-busy={loading}>
       {loading && count === 0 ? <div role="status" aria-label={COPY.loading}>{[0, 1, 2, 3, 4].map(n => <div className="fa-skeleton" key={n} />)}</div> : null}

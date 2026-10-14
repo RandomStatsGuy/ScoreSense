@@ -878,7 +878,7 @@ export const REFRESH_COPY = {
   slates: "Updating DFS slates...",
   notes: "Updating player notes and injury context...",
   background: "You can keep browsing. Pages update when the refresh finishes.",
-  completed: "New projections are ready. Existing DFS builds keep their original inputs.",
+  completed: "New projections are ready.",
   warnings: "Projections updated; some supporting data could not refresh.",
   notesTimeout: "The notes update is taking longer than expected. Check again shortly.",
   failed: "Refresh stopped before finishing. Try again.",

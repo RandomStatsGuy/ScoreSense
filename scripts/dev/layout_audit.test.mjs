@@ -3,6 +3,7 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import {
   auditFailed,
+  auditFilterMenuOptions,
   columnAlign,
   isAutoFillGridTemplate,
   isBlockDisplay,
@@ -325,4 +326,36 @@ test("compact board intro budget catches excess chrome and allows wrapped laptop
     });
     assert.equal(results.find(r=>r.rule==='board-intro').ok,ok);
   }
+});
+
+
+test("menu probes skip unpainted disclosure content and still detect a covered visible option", async () => {
+  async function probe({closed = false, inSummary = false, covered = false} = {}) {
+    let expanded = false, clicks = 0;
+    const rect = {left:0,top:100,right:100,bottom:140,width:100,height:40};
+    const option = {textContent:"Choice",getBoundingClientRect:()=>rect,contains:el=>el===option};
+    const panel = {getBoundingClientRect:()=>rect,querySelectorAll:()=>[option]};
+    const root = {querySelector:()=>expanded?panel:null};
+    const trigger = {disabled:false,textContent:"Filter",getBoundingClientRect:()=>rect,
+      getAttribute:name=>name==="aria-expanded"?String(expanded):null,
+      closest:()=>root,click:()=>{clicks++;expanded=!expanded;}};
+    if (closed) trigger.parentElement = {tagName:"DETAILS",open:false,children:[{tagName:"SUMMARY",contains:()=>inSummary}]};
+    const globals = {
+      document:{querySelectorAll:selector=>selector===".hub-filter-menu-trigger"?[trigger]:[],elementFromPoint:()=>covered?{tagName:"DIV",getAttribute:()=>null}:option},
+      window:{scrollY:0,innerHeight:900,scrollTo:()=>{}},
+      getComputedStyle:()=>({visibility:"visible"}),setTimeout:fn=>fn()
+    };
+    const result = await auditFilterMenuOptions({evaluate:fn=>runInNewContext(`(${fn.toString()})()`,globals)});
+    return {clicks,result};
+  }
+  const hidden = await probe({closed:true,covered:true});
+  assert.equal(hidden.clicks,0);
+  assert.equal(hidden.result[0].ok,true);
+  const visible = await probe({covered:true});
+  assert.equal(visible.clicks,2);
+  assert.equal(visible.result[0].ok,false);
+  assert.match(visible.result[0].detail,/covered by DIV/);
+  const summary = await probe({closed:true,inSummary:true});
+  assert.equal(summary.clicks,2);
+  assert.equal(summary.result[0].ok,true);
 });

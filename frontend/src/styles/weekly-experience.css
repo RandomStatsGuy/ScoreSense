@@ -13,7 +13,7 @@
 .hub-week-room > .gc-room-toolbar > .gc-room-segments { display:flex; width:100%; padding:var(--space-1); gap:var(--space-1); border-radius:var(--radius-pill); background:var(--bg-subtle); }
 .hub-week-room > .gc-room-toolbar > .gc-room-segments button { flex:1; border-radius:var(--radius-pill); min-height:var(--control-h-md); }
 .hub-week-lineup { min-width:0; }
-.hub-wcc-board--compact { --lineup-action-width:3.25rem; --lineup-points-width:2.75rem; display:grid; grid-template-columns:minmax(0,1fr) 19rem; align-items:start; gap:var(--space-4); }
+.hub-wcc-board--compact { --lineup-action-width:3.25rem; --lineup-points-width:2.75rem; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:var(--space-4); }
 .hub-wcc-board--compact .hub-wcc-board-stage { min-width:0; padding:var(--space-4); border:0; border-radius:var(--radius-lg); background:var(--bg-elevated); }
 .hub-wcc-board--compact .hub-week-starters-heading { display:grid; grid-template-columns:minmax(0,1fr) auto var(--lineup-action-width); align-items:center; gap:var(--space-2); padding-bottom:var(--space-3); border-bottom:1px solid var(--border); }
 .hub-week-starters-heading h3 { margin:0; font-size:var(--text-lg); }
@@ -38,7 +38,7 @@
 .hub-week-freshness { grid-column:1 / -1; }
 .hub-week-freshness .btn-link, .hub-week-lineup-footer .btn-link { display:inline-flex; align-items:center; justify-content:center; min-height:var(--control-h-md); padding:var(--space-2); color:var(--text-secondary); font-size:var(--text-xs); }
 .hub-week-lineup-footer p { margin:0; }
-@media(max-width:1000px) { .hub-wcc-board--compact { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:768px) { .hub-wcc-board--compact { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:768px) {
   .hub-week-room .gc-room-page-title { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
   .hub-week-room .gc-room-heading { flex-direction:row; flex-wrap:wrap; justify-content:space-between; gap:var(--space-2); }

@@ -43,7 +43,7 @@ function RoomLocker({ player: p, media = {}, chosen, top, index, columns, id, st
       onClick={(e) => { if (held.current && e.detail !== 0) { held.current = false; return; } onOpen(p.player_id, e.currentTarget); }}>
       <span className="team-room-player-score">
         <strong>{state === "pregame" ? p.slot || p.position : roomNumber(p.points)}</strong>
-        <small>{state === "pregame" ? COPY.roomStates.pregame : COPY.roomRecorded}</small>
+        {state !== "pregame" && <small>{COPY.roomRecorded}</small>}
         {top && <small className="team-room-award">Top scorer</small>}
       </span>
       <span className="team-room-cubicle">
@@ -132,7 +132,7 @@ export default function TeamRoomView({ data, onWeek, onTeam, onContract, onNickn
     </header>
     {sharing && <div className="team-room-share"><p>{COPY.shareDescription}</p>{shareUrl ? <><label>Room link<input readOnly value={shareUrl} onFocus={(e) => e.target.select()} /></label><button className="btn-ghost" disabled={busy} onClick={() => onShare(false)}>Turn off sharing</button></> : <button className="btn-primary" disabled={busy} onClick={() => onShare(true)}>Create share link</button>}</div>}
     <div className="team-room-toolbar">
-      <HubFilterMenu label="Week" value={String(data.week)} options={Array.from({ length: data.max_week || 18 }, (_, i) => ({ id: String(i + 1), label: `Week ${i + 1}` }))} onChange={(v) => onWeek(Number(v))} />
+      <HubFilterMenu label="Week" value={String(data.week)} options={Array.from({ length: data.max_week || 18 }, (_, i) => ({ id: String(i + 1), label: String(i + 1) }))} onChange={(v) => onWeek(Number(v))} />
       <div role="group" aria-label="Room roster"><button aria-pressed={section === "starters"} onClick={() => switchSection("starters")}>Starters <span>{lineup.starters.length}</span></button><button aria-pressed={section === "bench"} onClick={() => switchSection("bench")}>Bench <span>{lineup.bench.length}</span></button></div>
       <span className="team-room-freshness">{formatSyncedAgo(data.synced_at)}</span>
       {matchupHref && <a className="team-room-matchup-link" href={matchupHref}>{COPY.openGameCenter} <span aria-hidden="true">→</span></a>}
@@ -145,7 +145,7 @@ export default function TeamRoomView({ data, onWeek, onTeam, onContract, onNickn
       {players.map((p, i) => <RoomLocker key={`${p.player_id}-${i}`} player={p} media={data.media?.[p.player_id]} index={i} columns={players.length} id={id} chosen={selected === p.player_id} top={winner != null && p.points === winner && winner > 0} state={data.state} onOpen={open}
         canDrop={section === "starters" && canPreviewRoomSwap(data, p, lineup.bench.find((b) => b.player_id === dragging), i)} onDrop={() => applyPreview(dragging, i)} />)}
       {active && <section ref={detailRef} className="team-room-drawer" id={`${id}-detail`} aria-label={`${active.name} locker details`}>
-        <header className="team-room-drawer-head"><div>{active.nickname && <span className="team-room-detail-kicker">{COPY.roomYourNickname}</span>}<h2>{active.nickname ? `“${active.nickname}”` : active.name}</h2><p>{[active.nickname && active.name, active.position, active.team, active.slot].filter(Boolean).join(" · ")}</p></div><button className="btn-ghost" onClick={close} aria-label="Close locker">×</button></header>
+        <header className="team-room-drawer-head"><div>{active.nickname && <span className="team-room-detail-kicker">{COPY.roomYourNickname}</span>}<h2>{active.nickname ? `“${active.nickname}”` : active.name}</h2><p>{[active.nickname && active.name, active.position, active.team, active.slot !== active.position && active.slot].filter(Boolean).join(" · ")}</p></div><button className="btn-ghost" onClick={close} aria-label="Close locker">×</button></header>
         <div className="team-room-detail-grid"><div><span className="team-room-detail-label">{COPY.roomPregameProjection}</span><div className="team-room-detail-score"><strong>{roomNumber(active.projection)}</strong><small>pts</small></div>
           <p>{active.projection == null ? active.projection_status === "not_saved" ? COPY.projectionNotSaved : COPY.projectionMissing : `${COPY.roomRecorded}: ${roomNumber(active.points)} · ${COPY.roomStates[data.state]}`}</p>
           {roomDelta(active, data.state) != null && <p className={roomDelta(active, data.state) >= 0 ? "positive" : ""}>{roomDelta(active, data.state) > 0 ? "+" : ""}{roomNumber(roomDelta(active, data.state))} vs projection</p>}

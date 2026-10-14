@@ -1178,7 +1178,7 @@ async function auditOpenMenus(page) {
 
 // Open each filter menu with its trigger low in the viewport (where phone menus
 // collide with the bottom nav) and confirm every listed option receives the tap.
-async function auditFilterMenuOptions(page) {
+export async function auditFilterMenuOptions(page) {
   const failures = await page.evaluate(async () => {
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const menus = [
@@ -1187,6 +1187,13 @@ async function auditFilterMenuOptions(page) {
       [".team-filter-btn", ".team-filter", ".team-filter-menu"],
     ];
     const visible = (el) => {
+      // Closed details can retain rectangles. Only their summary is painted.
+      for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+        if (parent.tagName === "DETAILS" && !parent.open) {
+          const summary = [...parent.children].find(child => child.tagName === "SUMMARY");
+          if (!summary?.contains(el)) return false;
+        }
+      }
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
     };

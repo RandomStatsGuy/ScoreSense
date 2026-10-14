@@ -55,9 +55,10 @@
 .week-overview-standings li>strong { float:right; padding-left:var(--space-2); font-variant-numeric:tabular-nums; }
 .week-overview-freshness { display:flex; justify-content:center; align-items:center; gap:var(--space-2); flex-wrap:wrap; margin-top:var(--space-4); color:var(--text-muted); font-size:var(--text-xs); }
 .week-overview-freshness button { min-height:44px; }
-@media(max-width:1000px) { .week-overview-grid { grid-template-columns:minmax(0,1fr) 260px; gap:var(--space-4); } }
+@media(max-width:1000px) { .week-overview-grid { grid-template-columns:minmax(0,1fr); gap:var(--space-4); } .week-overview-aside { grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); } }
 @media(max-width:768px) {
  .week-overview-grid { grid-template-columns:minmax(0,1fr); }
+ .week-overview-aside { grid-template-columns:minmax(0,1fr); }
  .week-overview-heading { margin-bottom:var(--space-4); }
  .week-overview-heading h1 { font-size:var(--text-xl); }
  .week-overview-feature { padding:var(--space-4); }

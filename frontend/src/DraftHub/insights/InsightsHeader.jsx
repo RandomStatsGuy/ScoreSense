@@ -28,7 +28,7 @@ export default function InsightsHeader({ tabs, active, onTab, landing, years, pe
   }, []);
   const choose = (next) => { onPeriod(next); if (details.current) { details.current.open = false; details.current.querySelector("summary")?.focus(); } };
   const selected = periodYears(choices, period);
-  const range = selected.length ? `${selected[0]}–${selected.at(-1)} · ${selected.length} ${selected.length === 1 ? "season" : "seasons"}` : "No saved seasons";
+  const range = selected.length === 1 ? `${selected[0]} season` : selected.length ? `${selected[0]}–${selected.at(-1)} · ${selected.length} seasons` : "No saved seasons";
   return <header className="hub-insights-header">
     <div className="hub-insights-title">
       <span className="hub-experience-eyebrow">{INSIGHTS_COPY.overview.eyebrow}</span>

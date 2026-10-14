@@ -56,11 +56,11 @@ export function DfsInputUpdate({ b }) {
   const diff = update?.diff || history;
   return <section className="dfw-input-update dfw-panel" aria-labelledby="dfs-input-update-title" ref={updateRef} tabIndex={-1} data-testid="dfs-pool-update-preview">
     <div className="dfw-panel-head"><h2 id="dfs-input-update-title">{update ? C.updateTitle : C.appliedUpdate}</h2><span>{C.updateVersion(diff.fromVersion, diff.toVersion)}{history?.undoneAt && !update ? ` · ${C.undoneUpdate}` : ""}</span></div>
-    <p className="dfw-note">{C.updateScope}</p>
+    <p className="dfw-note">{C.updateSummary}</p>
     {(update?.resetStrategy || history?.resetStrategy) && <p className="dfw-note">{C.catalogReset}</p>}
-    {diff.metadataChanged && <p className="dfw-note">{C.metadataChanged}</p>}
-    <p role="status">{C.updateCount(diff.changes.length)}</p>
-    <details open={Boolean(update)}><summary>{C.changedInputs}</summary>
+    <details key={update ? 'pending' : 'history'}><summary>{C.changedInputs} · <span>{C.updateCount(diff.changes.length)}</span></summary>
+      <p className="dfw-note">{C.updateScope}</p>
+      {diff.metadataChanged && <p className="dfw-note">{C.metadataChanged}</p>}
       <div className="dfw-update-list">{diff.changes.slice(page * 8, page * 8 + 8).map(change => <article key={change.id}>
         <strong>{change.name}</strong><small>{C.updateKinds[change.kind]}</small>
         <dl>{change.fields.map(field => <div key={field}><dt>{C.metrics[field] || field}</dt><dd><span aria-label={C.before}>{display(change.before?.[field])}</span><span aria-hidden="true"> → </span><span aria-label={C.after}>{display(change.after?.[field])}</span></dd></div>)}</dl>

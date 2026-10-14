@@ -1,6 +1,7 @@
 // Production components with deterministic fixture data. No request reaches a real league.
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import RulesWizard from "../src/DraftHub/RulesWizard";
 import TeamSalarySheets from "../src/DraftHub/TeamSalarySheets";
 import LeagueOffice from "../src/DraftHub/LeagueOffice";
@@ -54,6 +55,13 @@ window.fetch = async (input, options = {}) => {
     return Response.json({ original: row, row, season_year:2026, source_kind:"fixture", historic_snapshot_revision:1 });
   }
   if (url.includes("team-salary-sheets")) return Response.json(sheets);
+  if (url.includes("/rosters")) return Response.json({ league:{id:"fixture"}, season:2026, teams:[
+    {team:{id:"mine",owner_name:"Maya Chen",name:"Fourth & Long"},roster:[]},
+    {team:{id:"other",owner_name:"Alexandria Montgomery-Sutherland",name:"The Exceptionally Long Sunday Scaries"},roster:Array.from({length:14},(_,i)=>({
+      player_id:"office-"+i,player_name:"Example player "+(i+1),position:"WR",team:"BUF",salary:1,contract_years:2,roster_status:"active",contract:{years_remaining:2,contract_type:"rookie"}
+    }))},
+    {team:{id:"third",owner_name:"Jordan Lee",name:"Sunday Roster"},roster:[]}
+  ] });
   if (url.endsWith("/members")) return Response.json({ teams: [{ id:"mine",name:"Fourth & Long",owner_name:"Maya Chen" }] });
   if (url.includes("contract-history?")) return Response.json({ rows:sheets.team_sheets.flatMap((s) => s.rows) });
   if (url.includes("delete-request")) return Response.json({ request:null });
@@ -61,7 +69,8 @@ window.fetch = async (input, options = {}) => {
 };
 const readonly = state === "readonly";
 const content = page === "salary" ? <TeamSalarySheets leagueId="fixture" isCommissioner={!readonly} />
+  : page === "contracts" ? <LeagueOffice leagueId="fixture" hubContext={context} workspace={workspace} officeTab="current" />
   : page === "access" ? <LeagueOffice leagueId="fixture" hubContext={context} workspace={workspace} officeTab="access" />
   : page === "insights" ? <InsightsOverview landing={state === "loading" || state === "error" ? null : landing} loading={state === "loading"} error={state === "error" ? "Unavailable" : ""} ownerMap={{}} onOpenTab={(tab) => { window.fixtureDestination = tab; }} />
   : <RulesWizard workspace={workspace} hubContext={context} readOnlyRules={readonly} />;
-createRoot(document.getElementById("root")).render(<div className="app"><main id="main-content"><div className="draft-hub">{content}</div></main></div>);
+createRoot(document.getElementById("root")).render(<BrowserRouter><div className="app"><main id="main-content"><div className="draft-hub">{content}</div></main></div></BrowserRouter>);
