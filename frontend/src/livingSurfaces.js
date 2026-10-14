@@ -419,7 +419,7 @@ export const LIVING_SURFACES = Object.freeze({
       "frontend/src/PlayerContextPanel.jsx",
       "frontend/src/ProjectionExplanationPanel.jsx",
     ],
-    doNot: "Desktop inspector is a right drawer. Hero-first: one P50, floor/ceiling inline, one read strip. Do not restore the 2×2 insight grid. Do not invent a second player card. This-week notes are locker or practice plus an optional projection delta. Do not show YouTube show copy as current week. Inline the position's typical miss. Empty note is No usable note this week.",
+    doNot: "Approved C direction: in-season tabs are This week, Season so far, Rest of season, with a weekly game log. Season so far leads with recorded fantasy points and PPG; rest of season excludes recorded points. Preseason forecasts lead only in the offseason. Compare recorded points with a saved preseason pace through the same games played; never invent a missing baseline. Injury designation is a small tag beside the name opening details; no standalone availability section. Desktop uses the approved centered popup; phones use the bottom sheet. Trap focus, isolate the background, and restore focus on dismissal. Keep one headline number, inline forecast ranges when available, and a prominent player image. Do not restore the 2×2 insight grid or invent a second player card. This-week notes are locker or practice plus an optional projection delta. Do not show YouTube show copy as current week. Inline the position's typical miss. Empty note is No usable note this week.",
   }),
   "account.model": S({
     label: "Model accuracy",

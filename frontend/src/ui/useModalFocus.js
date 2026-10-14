@@ -17,7 +17,7 @@ export default function useModalFocus(open, ref, onClose, initialRef) {
       .map((el) => [el, el.inert]);
     background.forEach(([el]) => { el.inert = true; });
     const focusables = () => Array.from(ref.current?.querySelectorAll(
-      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
+      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]',
     ) || []).filter((el) => el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length);
     const focusFirst = () => (initialRef?.current || focusables()[0] || ref.current)?.focus();
     focusFirst();

@@ -297,6 +297,20 @@ export default function PlayerContextPanel({
     );
   }
 
+  if (variant === "notes") {
+    return <section className="player-profile-notes" aria-label={CONTEXT_COPY.title}>
+      {loading && !data ? <p role="status">{CONTEXT_COPY.loading}</p> : null}
+      {error ? <p className="error">{error}</p> : null}
+      {data && lockerNote ? <div className="player-context-this-week">
+        {thisWeek.headline ? <p>{thisWeek.headline}</p> : null}
+        {thisWeek.detail ? <p>{thisWeek.detail}</p> : null}
+        {thisWeek.projection_line ? <p className="chart-note">{thisWeek.projection_line}</p> : null}
+        {thisWeek.source ? <p className="chart-note">{thisWeek.source}</p> : null}
+      </div> : null}
+      {data ? renderMediaNotes() : !loading && !error ? <p>{CONTEXT_COPY.mediaEmpty}</p> : null}
+    </section>;
+  }
+
   return (
     <section
       className={`player-context-panel ${hero ? "player-context-panel--hero" : ""} ${className}`.trim()}

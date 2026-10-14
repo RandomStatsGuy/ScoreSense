@@ -13,6 +13,7 @@ from src.draft_hub.draft_enrichment import build_player_media_batch
 from src.integrations.sleeper import injured_players, players_dataframe
 from src.projections.ros_cache import load_ros_prediction
 from src.projections.weekly_cache import load_weekly_prediction
+from src.projections.player_card_history import recorded_player_history, saved_preseason_forecast
 from src.sentiment.fantasy_readout import (
     build_fantasy_season_response,
     build_fantasy_weekly_response,
@@ -117,6 +118,8 @@ def _injury_for_player(player_id: str) -> dict[str, Any] | None:
             return {
                 "injury_status": _json_safe(row.get("injury_status")),
                 "injury_body_part": _json_safe(row.get("injury_body_part")),
+                "injury_notes": _json_safe(row.get("injury_notes")),
+                "practice_participation": _json_safe(row.get("practice_participation")),
                 "team": _json_safe(row.get("team")),
                 "position": _json_safe(row.get("position")),
                 "full_name": _json_safe(row.get("full_name")),
@@ -185,6 +188,7 @@ def build_player_card(
 
     weekly_projection: dict[str, Any] | None = None
     season_projection: dict[str, Any] | None = None
+    weekly_meta: dict[str, Any] = {}
 
     weekly_frame = pd.DataFrame()
     ros = pd.DataFrame()
@@ -205,6 +209,7 @@ def build_player_card(
             if row:
                 weekly_frame = preds
                 weekly_projection = row
+                weekly_meta = dict(preds.attrs)
                 resolved_pos = pos
                 break
         except FileNotFoundError:
@@ -232,12 +237,22 @@ def build_player_card(
         include_historical=include_historical,
     )
     injury = _injury_for_player(pid)
+    preseason = resolved_week <= 1
+    history = recorded_player_history(pid, resolved_pos, resolved_season, resolved_week, preseason=preseason)
+    preseason_forecast = saved_preseason_forecast(pid, resolved_season)
+    ros_row = season_projection or {}
+    rest_of_season = {
+        "p10": _json_safe(ros_row.get("ROS P10")),
+        "p50": _json_safe(ros_row.get("ROS P50")),
+        "p90": _json_safe(ros_row.get("ROS P90")),
+        "games_remaining": _json_safe(ros_row.get("Games Remaining", ros_row.get("Weeks Remaining"))),
+    }
 
     name = (
         weekly_projection.get("Player")
         if weekly_projection
         else season_projection.get("Player") if season_projection else None
-    ) or (narrative or {}).get("player") or media.get("name")
+    ) or (narrative or {}).get("player") or media.get("name") or (preseason_forecast.get("preseason_projection") or {}).get("player_name")
 
     rebuild_kinds = [kind for kind, frame in (("weekly", weekly_frame), ("ros", ros))
                      if frame.empty or frame.attrs.get("projection_stale")]
@@ -251,10 +266,14 @@ def build_player_card(
             or (season_projection or {}).get("Team")
             or (narrative or {}).get("team")
             or media.get("team")
+            or (preseason_forecast.get("preseason_projection") or {}).get("team")
         ),
         "media": media,
         "weekly_projection": weekly_projection,
         "season_projection": season_projection,
+        "rest_of_season_projection": rest_of_season,
+        **history,
+        **preseason_forecast,
         "narrative": narrative,
         "narrative_meta": narrative_meta,
         "injury": injury,
@@ -267,5 +286,7 @@ def build_player_card(
             "projection_built_at": {"weekly": weekly_frame.attrs.get("built_at"), "ros": ros.attrs.get("built_at")},
             "projection_stale": {"weekly": bool(weekly_frame.attrs.get("projection_stale")), "ros": bool(ros.attrs.get("projection_stale"))},
             "rebuild_kinds": rebuild_kinds,
+            "preseason_mode": preseason,
+            "built_at": weekly_meta.get("built_at"),
         },
     })
