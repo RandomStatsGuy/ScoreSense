@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tier banners</title>
+  <!-- Keep direct asset links: mobile_mock.py stamps each file independently. -->
+  <link rel="stylesheet" href="mockup-shared.css?v=59aafa499be5">
+  <link rel="stylesheet" href="mobile-foundation.css?v=e47422348af2">
+  <link rel="stylesheet" href="tier-banner-options.css?v=db9017dac0c6">
+</head>
+<body class="banner-preview">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <!-- Preview options/scenario controls belong here, outside app chrome. -->
+<div class="concept-banner"><strong>Tier banners · design options</strong><nav class="concept-nav" aria-label="Design options"><a href="tier-banner-options.html">Compare</a><a class="" href="tier-banner-a.html">A</a><a class="" href="tier-banner-b.html">B</a><a class="is-on" href="tier-banner-c.html">C</a></nav></div><div class="preview-actions"><span class="meta">Example player data</span><button id="preview-theme">Light preview</button></div>
+  <div class="mock-viewport">
+<header class="mock-header"><div class="mock-brand"><div><div class="mock-brand-name">ScoreSense</div><span class="mock-brand-sub">4th Down Labs</span></div><nav class="mock-topnav" aria-label="Product areas"><span class="active">Projections</span><span>Fantasy</span><span>Tools</span></nav></div><span class="mock-account">Preview</span></header><nav class="mock-subnav" aria-label="Projections views"><span class="mock-tab active">Weekly</span><span class="mock-tab">Season</span></nav><header class="phone-header"><span class="destination">Weekly</span><span class="meta">Week 6 · PPR</span></header>
+<main id="main-content" tabindex="-1"><div class="preview-context"><div><h1>Weekly projections</h1><p>Week 6 · PPR</p></div><div class="position-picks" role="radiogroup" aria-label="Position"><button type="button" role="radio" aria-checked="false" data-position="qb">QB</button><button type="button" role="radio" aria-checked="false" data-position="rb">RB</button><button type="button" role="radio" aria-checked="true" data-position="wr">WR</button><button type="button" role="radio" aria-checked="false" data-position="te">TE</button></div></div><section class="preview-board option-c"><div class="board-column-head"><span>Player</span><span>Projected</span></div><section class="tier-section"><header class="tier-banner"><h2 class="tier-letter" aria-label="B tier">B</h2><span class="tier-range" data-band="b"></span><span class="tier-rule" aria-hidden="true"></span><span class="tier-count">3 players</span></header><div data-players="b"></div></section><section class="tier-section"><header class="tier-banner"><h2 class="tier-letter" aria-label="C tier">C</h2><span class="tier-range" data-band="c"></span><span class="tier-rule" aria-hidden="true"></span><span class="tier-count">1 player</span></header><div data-players="c"></div></section></section></main>
+    <p class="footnote">Static design preview · example projections · banner style pending selection</p>
+  </div>
+  <nav class="phone-nav" aria-label="Product areas">
+    <a href="#" aria-current="page" data-preview="Projections"><span aria-hidden="true">▤</span>Projections</a>
+    <a href="#" data-preview="Fantasy · destination picker"><span aria-hidden="true">◈</span>Fantasy</a>
+    <a href="#" data-preview="Tools"><span aria-hidden="true">▦</span>Tools</a>
+    <a href="#" data-preview="Account · More"><span aria-hidden="true">•••</span>More</a>
+  </nav>
+  <div class="preview-toast" id="preview-toast" role="status" hidden></div>
+  <script src="mobile-mock.js?v=ede2a46540ef"></script>
+<script src="tier-banner-options.js?v=a91da96658a5"></script></body>
+</html>

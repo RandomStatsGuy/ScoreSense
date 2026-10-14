@@ -3,11 +3,7 @@ import { HubFilterMenu } from "../DraftHub/HubUILayout";
 import TeamFilter from "../TeamFilter";
 import { SEASON_MODES } from "../appNavigation";
 
-export const PROJECTION_POSITIONS = [
-  { id: "qb", label: "QB" },
-  { id: "rb", label: "RB" },
-  { id: "wr", label: "WR/TE" },
-];
+import ProjectionPositionControl from "./ProjectionPositionControl";
 
 export function ProjectionsFilterControls({
   layout = "bar",
@@ -51,18 +47,8 @@ export function ProjectionsFilterControls({
     <>
       <div className={isSheet ? "mobile-filter-group" : "projections-filter-pos"}>
         {isSheet ? <span className="mobile-filter-label">Position</span> : null}
-        <div className={`header-segment ${isSheet ? "mobile-filter-segment" : "projections-filter-pos-segment"}`} role="group" aria-label="Position">
-          {PROJECTION_POSITIONS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={`tab header-segment-tab ${position === p.id ? "active" : ""}`}
-              onClick={() => onPositionChange(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        <ProjectionPositionControl position={position} onChange={onPositionChange}
+          className={`header-segment ${isSheet ? "mobile-filter-segment" : "projections-filter-pos-segment"}`} />
       </div>
 
       {isSheet && isWeeklyProjections && movementFilters.length ? (

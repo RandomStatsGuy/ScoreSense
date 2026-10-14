@@ -18,10 +18,15 @@ const server=createServer((req,res)=>{
  res.setHeader('Content-Type',url.pathname.endsWith('.js')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'text/html');res.end(url.pathname==='/fixture.js'?js:url.pathname==='/fixture.css'?css:html);
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const base=`http://127.0.0.1:${server.address().port}`,out='outputs/projection-tiers-review';await fs.mkdir(out,{recursive:true});
+const base=`http://127.0.0.1:${server.address().port}`,out='outputs/separate-receivers-review';await fs.mkdir(out,{recursive:true});
 let browser=await chromium.launch({headless:true});const requestedView=process.argv.find(a=>a.startsWith('--view='))?.slice(7);
 const requestedStates=process.argv.find(a=>a.startsWith('--states='))?.slice(9).split(',');
-const reports=process.argv.includes('--append')?JSON.parse(await fs.readFile(`${out}/audit.json`,'utf8')).filter(r=>r.view!==requestedView||(requestedStates&&!requestedStates.includes(r.state)&&!(requestedStates.includes('ready')&&['recorded','card-details'].includes(r.state))&&!(requestedStates.includes('bye')&&r.state==='bye-card'))):[];
+const replacedStates=requestedStates?new Set([...requestedStates,
+  ...(requestedStates.includes('ready')?['recorded','card-details']:[]),
+  ...(requestedStates.includes('bye')?['bye-card']:[]),
+  ...(requestedStates.includes('mixed')?['tight-ends','te-direct']:[])]):null;
+const reports=process.argv.includes('--append')?JSON.parse(await fs.readFile(`${out}/audit.json`,'utf8')).filter(r=>
+  (requestedView&&r.view!==requestedView)||(replacedStates&&!replacedStates.has(r.state))):[];
 try {
  const views=requestedView?[requestedView]:process.argv.includes('--smoke')?['weekly']:['weekly','preseason','live'];
  const states=requestedStates|| (process.argv.includes('--smoke')?['ready']:['ready','large','missing','empty','loading','error','long','industry','mixed']);
@@ -41,7 +46,7 @@ try {
    assert.ok(bounds.every(b=>b.scroll<=b.width+1&&b.right<=b.viewport),'All primary figures fit inside their cells and the viewport');
   }
   if(['industry','mixed','seasonTotals'].includes(state)){
-   assert.equal(await page.locator('.projection-tier-player').count(),await page.evaluate(()=>window.fixtureRows.length));
+   assert.equal(await page.locator('.projection-tier-player').count(),state==='mixed'?5:await page.evaluate(()=>window.fixtureRows.length));
    const tiers=await page.evaluate(()=>{
     let current=null;const result={};
     document.querySelectorAll('[data-tier],.projection-tier-player').forEach(e=>{
@@ -50,7 +55,67 @@ try {
     });return result;
    });
    if(state==='industry'){assert.equal(tiers.p0,'S');assert.equal(tiers.p1,'S');assert.equal(tiers.p3,'F');assert.equal(tiers.p4,'unknown');}
-   if(state==='mixed'){assert.equal(tiers.p0,'S');assert.equal(tiers.p1,'S');assert.equal(tiers.p2,'A');assert.equal(tiers.p4,'F');assert.equal(tiers.p5,'F');assert.equal(tiers.p6,'unknown');assert.equal(tiers.p7,'unknown');}
+   if(state==='mixed'){
+    assert.equal(tiers.p0,'S');assert.equal(tiers.p2,'A');assert.equal(tiers.p4,'F');assert.equal(tiers.p6,'unknown');assert.equal(tiers.p7,'unknown');
+    assert.equal(tiers.p1,undefined);assert.equal(tiers.p5,undefined);
+    const poolPath=view==='weekly'?'/api/predict/wr':view==='preseason'?'/api/draft/wr':'/api/ros/wr';
+    const poolRequestsBefore=await page.evaluate(path=>window.fixtureRequests.filter(p=>p===path).length,poolPath);
+    const positionControl=page.getByRole('radiogroup',{name:'Position'}).first();
+    assert.equal(await positionControl.getByRole('radio',{name:'WR',exact:true}).getAttribute('aria-checked'),'true');
+    assert.equal(await positionControl.getByRole('radio').count(),4);
+    await positionControl.getByRole('radio',{name:'TE',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('.projection-tier-player').length===4);
+    assert.equal(await page.locator('[data-player-id=p0]').count(),0);
+    assert.equal(await page.locator('[data-player-id=p2]').count(),0);
+    assert.equal(await page.locator('[data-player-id=p4]').count(),0);
+    assert.match(await page.locator('[data-tier=S]').innerText(),view==='preseason'?/TE 240\+/:/TE 14\+/);
+    assert.doesNotMatch(await page.locator('.proj-signals').innerText(),/WR leader|WR same points|Unknown position/);
+    assert.equal((await page.locator('[data-player-id=p6] .projection-tier-rank').innerText()).trim(),'—');
+    assert.match(await page.locator('[data-player-id=p1] .projection-tier-rank').innerText(),/1/);
+    if(view==='weekly'){assert.match(await page.locator('.proj-signals').innerText(),/\+0.6 pts/);assert.equal(await page.locator('[data-player-id=p3] .projection-tier-rank small').innerText(),'+0.2 pts');}
+    assert.match(await page.locator('[data-tier=F]').innerText(),/1 player/);
+    assert.equal(await page.locator('[data-player-id=p6]').count(),1);
+    assert.match(await page.locator('[data-tier=unknown]').innerText(),/Untiered/);
+    if(width===1280){
+      const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Export CSV',exact:true}).click();
+      const dl=await pending,csv=await fs.readFile(await dl.path(),'utf8');
+      assert.equal(csv.trim().split(/\r?\n/).length,5);assert.match(csv,/TE leader/);assert.doesNotMatch(csv,/WR leader/);
+    }
+    await page.getByRole('button',{name:'Open TE leader details',exact:true}).click();
+    await page.locator('.player-profile-log').waitFor();
+    assert.match(await page.locator('.player-profile-identity').innerText(),/TE/);
+    await page.keyboard.press('Escape');
+    const splitAudit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+    reports.push({view,width,state:'tight-ends',errors,failures:splitAudit.filter(r=>!r.ok)});
+    await page.screenshot({path:`${out}/${view}-tight-ends-${width}.png`,fullPage:true});
+    await positionControl.getByRole('radio',{name:'TE',exact:true}).press('ArrowLeft');
+    await page.waitForFunction(()=>document.querySelectorAll('.projection-tier-player').length===5);
+    assert.equal(await positionControl.getByRole('radio',{name:'WR',exact:true}).getAttribute('aria-checked'),'true');
+    assert.equal(await positionControl.getByRole('radio',{name:'WR',exact:true}).evaluate(e=>document.activeElement===e),true);
+    // Enter TE through the phone filter sheet as well as the sticky control.
+    if(width<769){
+      await page.getByRole('button',{name:'Filters',exact:true}).click();
+      const sheet=page.getByRole('dialog',{name:'Filters',exact:true});
+      await sheet.getByRole('radio',{name:'TE',exact:true}).click();
+      await sheet.getByRole('button',{name:'Apply',exact:true}).click();
+      await page.waitForFunction(()=>document.querySelectorAll('.projection-tier-player').length===4);
+      await positionControl.getByRole('radio',{name:'WR',exact:true}).click();
+    }
+    const apiRequests=await page.evaluate(()=>window.fixtureRequests);
+    assert.ok(apiRequests.some(path=>path.startsWith(poolPath)));
+    assert.equal(apiRequests.filter(path=>path===poolPath).length,poolRequestsBefore,'WR/TE switch reuses the already-loaded artifact family');
+    assert.ok(apiRequests.every(path=>!/^\/api\/(?:predict|draft|ros|meta\/(?:projections|draft)|fantasy-narrative)\/te(?:\/|$)/.test(path)));
+    await page.goto(`${base}/projections/${view==='weekly'?'weekly':`season/${view==='preseason'?'preseason':'live'}`}?state=mixed&pos=te&theme=${width===1280?'dark':'light'}`,{waitUntil:'networkidle'});
+    await page.waitForFunction(()=>document.querySelectorAll('.projection-tier-player').length===4);
+    assert.equal(await page.getByRole('radiogroup',{name:'Position'}).first().getByRole('radio',{name:'TE',exact:true}).getAttribute('aria-checked'),'true');
+    assert.equal(await page.locator('[data-player-id=p0]').count(),0);
+    assert.equal(await page.locator('[data-player-id=p6]').count(),1);
+    assert.match(await page.locator('.proj-signals').innerText(),/TE leader/);
+    assert.doesNotMatch(await page.locator('.proj-signals').innerText(),/Unknown position|WR leader/);
+    const directAudit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+    reports.push({view,width,state:'te-direct',errors,failures:directAudit.filter(r=>!r.ok)});
+    await page.screenshot({path:`${out}/${view}-te-direct-${width}.png`,fullPage:true});
+   }
    if(state==='seasonTotals'){assert.equal(tiers.p0,'F');assert.equal(tiers.p1,'S');assert.match(await page.locator('[data-tier=S]').innerText(),/RB 340\+/);}
   }
   if(state==='bye'){

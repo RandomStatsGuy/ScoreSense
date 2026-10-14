@@ -76,7 +76,9 @@ import MobileSubnav from "./layout/MobileSubnav";
 import MobileDestinationSheet from "./layout/MobileDestinationSheet";
 import MobileFilterSheet from "./layout/MobileFilterSheet";
 import WeeklyStickyBar from "./layout/WeeklyStickyBar";
-import ProjectionsFilterBar, { PROJECTION_POSITIONS } from "./layout/ProjectionsFilterBar";
+import ProjectionsFilterBar from "./layout/ProjectionsFilterBar";
+import ProjectionPositionControl from "./layout/ProjectionPositionControl";
+import {filterProjectionPosition,projectionModelPosition,hasProjectionPosition} from "./projectionPositions";
 import MobileMenuSheet from "./layout/MobileMenuSheet";
 import {
   MOBILE_CHROME_COPY,
@@ -114,8 +116,6 @@ import { PRODUCT_NAME, STUDIO_NAME } from "./brand";
 import { PlayerCardProvider } from "./PlayerCardContext";
 
 const AccuracyChart = lazy(() => import("./AccuracyChart"));
-
-const POSITIONS = PROJECTION_POSITIONS;
 
 export default function App() {
   const {
@@ -166,11 +166,11 @@ export default function App() {
   const [movementFilter, setMovementFilter] = useState(
     () => filtersFromUrl.movementFilter || "all",
   );
-  const [projections, setProjections] = useState([]);
-  const [leftSlateRows, setLeftSlateRows] = useState([]);
-  const [rosProjections, setRosProjections] = useState([]);
+  const [weeklyPool, setProjections] = useState([]);
+  const [leftSlatePool, setLeftSlateRows] = useState([]);
+  const [rosPool, setRosProjections] = useState([]);
   const [rosMeta, setRosMeta] = useState(null);
-  const [draftProjections, setDraftProjections] = useState([]);
+  const [draftPool, setDraftProjections] = useState([]);
   const [draftResponseMeta, setDraftResponseMeta] = useState(null);
   const [meta, setMeta] = useState(null);
   const [refreshStatus, setRefreshStatus] = useState(null);
@@ -216,16 +216,23 @@ export default function App() {
   const [allInjuries, setAllInjuries] = useState([]);
   const [subtitleDisplay, setSubtitleDisplay] = useState(SECTION_SUBTITLES.projections.weekly);
   const [subtitleFading, setSubtitleFading] = useState(false);
-  const [sentimentPlayers, setSentimentPlayers] = useState([]);
+  const [sentimentPool, setSentimentPlayers] = useState([]);
   const [sentimentMeta, setSentimentMeta] = useState(null);
   const [sentimentLoading, setSentimentLoading] = useState(false);
   const [sentimentError, setSentimentError] = useState("");
   /** SCORE-28/34: media mode opt-in must match current slate or resets. */
   const [weeklyMediaModeOptIn, setWeeklyMediaModeOptIn] = useState(null);
-  const [seasonSentimentPlayers, setSeasonSentimentPlayers] = useState([]);
+  const [seasonSentimentPool, setSeasonSentimentPlayers] = useState([]);
   const [seasonSentimentMeta, setSeasonSentimentMeta] = useState(null);
   const [seasonSentimentLoading, setSeasonSentimentLoading] = useState(false);
   const [seasonSentimentError, setSeasonSentimentError] = useState("");
+  const modelPosition=projectionModelPosition(position);
+  const projections=useMemo(()=>filterProjectionPosition(weeklyPool,position),[weeklyPool,position]);
+  const leftSlateRows=useMemo(()=>filterProjectionPosition(leftSlatePool,position),[leftSlatePool,position]);
+  const rosProjections=useMemo(()=>filterProjectionPosition(rosPool,position),[rosPool,position]);
+  const draftProjections=useMemo(()=>filterProjectionPosition(draftPool,position),[draftPool,position]);
+  const sentimentPlayers=useMemo(()=>filterProjectionPosition(sentimentPool,position),[sentimentPool,position]);
+  const seasonSentimentPlayers=useMemo(()=>filterProjectionPosition(seasonSentimentPool,position),[seasonSentimentPool,position]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileDestOpen, setMobileDestOpen] = useState(false);
@@ -253,7 +260,7 @@ export default function App() {
     setDraftLoading(true);
     setError("");
     try {
-      const res = await apiFetch(`/api/draft/${position}?season=${draftSeason}`, { signal });
+      const res = await apiFetch(`/api/draft/${modelPosition}?season=${draftSeason}`, { signal });
       if (!res.ok) throw new Error(await parseApiError(res, "Failed to load draft projections"));
       const data = await res.json();
       if (signal?.aborted) return;
@@ -267,7 +274,7 @@ export default function App() {
     } finally {
       setDraftLoading(false);
     }
-  }, [position, draftSeason]);
+  }, [modelPosition, draftSeason]);
 
   const fetchProjections = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? season;
@@ -280,7 +287,7 @@ export default function App() {
     setError("");
     try {
       const res = await apiFetch(
-        `/api/predict/${position}?season=${targetSeason}&week=${targetWeek}&apply_injury_adjustments=${live}`,
+        `/api/predict/${modelPosition}?season=${targetSeason}&week=${targetWeek}&apply_injury_adjustments=${live}`,
         { signal },
       );
       if (!res.ok) throw new Error(await parseApiError(res, "Failed to load projections"));
@@ -292,7 +299,7 @@ export default function App() {
       // SCORE-48: left-slate movers live on /changes only — soft-fail so base table still loads.
       try {
         const changesRes = await apiFetch(
-          `/api/predict/${position}/changes?season=${targetSeason}&week=${targetWeek}&apply_injury_adjustments=${live}&material_only=true`,
+          `/api/predict/${modelPosition}/changes?season=${targetSeason}&week=${targetWeek}&apply_injury_adjustments=${live}&material_only=true`,
           { signal },
         );
         if (signal?.aborted) return;
@@ -330,7 +337,7 @@ export default function App() {
     } finally {
       setProjectionsLoading(false);
     }
-  }, [position, season, week]);
+  }, [modelPosition, season, week]);
 
   const fetchSentiment = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? season;
@@ -348,7 +355,7 @@ export default function App() {
       });
       applyMediaQueryParams(params, { mediaMode, includeHistorical });
       const res = await apiFetch(
-        `/api/fantasy-narrative/${position}/weekly?${params.toString()}`,
+        `/api/fantasy-narrative/${modelPosition}/weekly?${params.toString()}`,
         { signal },
       );
       if (!res.ok) throw new Error(await parseApiError(res, "Failed to load fantasy weekly narrative"));
@@ -373,7 +380,7 @@ export default function App() {
     } finally {
       setSentimentLoading(false);
     }
-  }, [position, season, week, weeklyMediaMode]);
+  }, [modelPosition, season, week, weeklyMediaMode]);
   const fetchSeasonSentiment = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? rosSeason ?? season;
     const targetWeek = override?.week ?? rosFromWeek ?? week;
@@ -382,7 +389,7 @@ export default function App() {
     setSeasonSentimentError("");
     try {
       const res = await apiFetch(
-        `/api/fantasy-narrative/${position}/season?season=${targetSeason}&week=${targetWeek}`,
+        `/api/fantasy-narrative/${modelPosition}/season?season=${targetSeason}&week=${targetWeek}`,
         { signal },
       );
       if (!res.ok) throw new Error(await parseApiError(res, "Failed to load fantasy season narrative"));
@@ -407,7 +414,7 @@ export default function App() {
     } finally {
       setSeasonSentimentLoading(false);
     }
-  }, [position, rosSeason, rosFromWeek, season, week]);
+  }, [modelPosition, rosSeason, rosFromWeek, season, week]);
 
   const fetchRos = useCallback(async (signal) => {
     if (rosSeason == null || rosFromWeek == null) return;
@@ -422,7 +429,7 @@ export default function App() {
         rosFromWeek === meta.default_week &&
         meta.default_week <= 18;
       const res = await apiFetch(
-        `/api/ros/${position}?season=${rosSeason}&week=${rosFromWeek}&apply_injury_adjustments=${liveRos}`,
+        `/api/ros/${modelPosition}?season=${rosSeason}&week=${rosFromWeek}&apply_injury_adjustments=${liveRos}`,
         { signal },
       );
       if (!res.ok) throw new Error(await parseApiError(res, "Failed to load season projections"));
@@ -440,7 +447,7 @@ export default function App() {
         setRosLoading(false);
       }
     }
-  }, [position, rosSeason, rosFromWeek]);
+  }, [modelPosition, rosSeason, rosFromWeek]);
 
   const fetchAccuracy = useCallback(async () => {
     setAccuracyLoading(true);
@@ -449,7 +456,7 @@ export default function App() {
     setUpsideReport(null);
     setSeasonLongReport(null);
     try {
-      const reports = await loadAccuracyReports(position, apiFetch);
+      const reports = await loadAccuracyReports(modelPosition, apiFetch);
       setAccuracyReport(reports.accuracy);
       setUpsideReport(reports.upside);
       setSeasonLongReport(reports.seasonLong);
@@ -461,7 +468,7 @@ export default function App() {
     } finally {
       setAccuracyLoading(false);
     }
-  }, [position]);
+  }, [modelPosition]);
 
   const syncAccuracyRebuildStatus = useCallback(async () => {
     try {
@@ -617,7 +624,7 @@ export default function App() {
   }, [selectedTeams, projections]);
 
   const sidebarInjuries = useMemo(() => {
-    const posMap = { qb: new Set(["QB"]), rb: new Set(["RB", "FB"]), wr: new Set(["WR", "TE"]) };
+    const posMap = { qb: new Set(["QB"]), rb: new Set(["RB", "FB"]), wr: new Set(["WR"]), te: new Set(["TE"]) };
     const allowedPos = posMap[position] || null;
     const teamSet = contextualTeams.length ? new Set(contextualTeams.map((t) => t.toUpperCase())) : null;
     const q = (searchQuery || "").trim().toLowerCase();
@@ -681,7 +688,7 @@ export default function App() {
   );
 
   const weeklySignals = useMemo(
-    () => weeklyBoardSignals(tableRows, { attentionItems: weeklyAttention, position }),
+    () => weeklyBoardSignals(tableRows.filter(row=>hasProjectionPosition(row,position)), { attentionItems: weeklyAttention, position }),
     [tableRows, weeklyAttention, position],
   );
   const weeklyMovementFilters = useMemo(
@@ -720,7 +727,7 @@ export default function App() {
 
   const seasonSignalRows = isSeasonPreseason ? draftProjections : rosTableRows;
   const seasonSignals = useMemo(
-    () => seasonBoardSignals(seasonSignalRows, isSeasonPreseason
+    () => seasonBoardSignals(seasonSignalRows.filter(row=>hasProjectionPosition(row,position)), isSeasonPreseason
       ? {
         method: draftResponseMeta?.season_quantile_method,
         featureSeason: draftResponseMeta?.feature_season,
@@ -733,13 +740,13 @@ export default function App() {
   );
 
   const inspectorPeers = useMemo(() => {
-    if (isWeeklyProjections) return weeklyPeerStats(tableRows, { position });
+    if (isWeeklyProjections) return weeklyPeerStats(tableRows.filter(row=>hasProjectionPosition(row,position)), { position });
     if (isSeasonPreseason) {
-      return seasonPeerStats(draftProjections, {
+      return seasonPeerStats(draftProjections.filter(row=>hasProjectionPosition(row,position)), {
         method: draftResponseMeta?.season_quantile_method,
       });
     }
-    return seasonPeerStats(rosTableRows);
+    return seasonPeerStats(rosTableRows.filter(row=>hasProjectionPosition(row,position)));
   }, [
     isWeeklyProjections,
     isSeasonPreseason,
@@ -763,6 +770,7 @@ export default function App() {
         : (row) => Number((seasonComplete ? rosPPG(row) : rosSeasonP50(row)) ?? NaN);
     const ranked = [];
     for (const row of source || []) {
+      if(!hasProjectionPosition(row,position))continue;
       const value = Number(metric(row));
       if (Number.isFinite(value) && row.player_id) ranked.push([String(row.player_id), value]);
     }
@@ -828,13 +836,13 @@ export default function App() {
   useEffect(() => {
     if (view !== "projections") return undefined;
     const controller = new AbortController();
-    fetchProjMeta(position, controller.signal);
-    fetchDraftMeta(position, controller.signal);
+    fetchProjMeta(modelPosition, controller.signal);
+    fetchDraftMeta(modelPosition, controller.signal);
     setSelectedTeams([]);
     setSearchQuery("");
     seasonModeUserPicked.current = false;
     return () => controller.abort();
-  }, [view, position, fetchProjMeta, fetchDraftMeta]);
+  }, [view, modelPosition, fetchProjMeta, fetchDraftMeta]);
 
   useEffect(() => {
     if (filtersFromUrl.position && filtersFromUrl.position !== position) {
@@ -1173,21 +1181,21 @@ export default function App() {
     const controller = new AbortController();
     fetchDraft(controller.signal);
     return () => controller.abort();
-  }, [isSeasonPreseason, fetchDraft, draftSeason, position, dataRevision]);
+  }, [isSeasonPreseason, fetchDraft, draftSeason, modelPosition, dataRevision]);
 
   useEffect(() => {
     if (!isWeeklyProjections || season == null || week == null) return undefined;
     const controller = new AbortController();
     fetchProjections(controller.signal);
     return () => controller.abort();
-  }, [isWeeklyProjections, fetchProjections, season, week, position, dataRevision]);
+  }, [isWeeklyProjections, fetchProjections, season, week, modelPosition, dataRevision]);
 
   useEffect(() => {
     if (!isWeeklyProjections || season == null || week == null) return undefined;
     const controller = new AbortController();
     fetchSentiment(controller.signal);
     return () => controller.abort();
-  }, [isWeeklyProjections, fetchSentiment, season, week, position, weeklyMediaMode]);
+  }, [isWeeklyProjections, fetchSentiment, season, week, modelPosition, weeklyMediaMode]);
 
   useEffect(() => {
     if (!isProjectionsDataView) return undefined;
@@ -1200,14 +1208,14 @@ export default function App() {
     const controller = new AbortController();
     fetchRos(controller.signal);
     return () => controller.abort();
-  }, [isSeasonLive, fetchRos, rosSeason, rosFromWeek, position, dataRevision]);
+  }, [isSeasonLive, fetchRos, rosSeason, rosFromWeek, modelPosition, dataRevision]);
 
   useEffect(() => {
     if (!isSeasonLive || rosSeason == null || rosFromWeek == null) return undefined;
     const controller = new AbortController();
     fetchSeasonSentiment(controller.signal);
     return () => controller.abort();
-  }, [isSeasonLive, fetchSeasonSentiment, rosSeason, rosFromWeek, position, dataRevision]);
+  }, [isSeasonLive, fetchSeasonSentiment, rosSeason, rosFromWeek, modelPosition, dataRevision]);
 
   useEffect(() => {
     if (view === "model") {
@@ -1652,18 +1660,8 @@ export default function App() {
         ) : null}
         {view === "projections" && mobileLayout && projectionsTab !== "weekly" && (
           <div className="projections-mobile-pos-row">
-            <div className="projections-mobile-pos-chips" role="group" aria-label="Position">
-              {POSITIONS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`tab header-segment-tab ${position === p.id ? "active" : ""}`}
-                  onClick={() => handlePositionChange(p.id)}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            <ProjectionPositionControl position={position} onChange={handlePositionChange}
+              className="projections-mobile-pos-chips" />
           </div>
         )}
 
