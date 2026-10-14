@@ -39,6 +39,16 @@ try {
   await page.goto(`${base}/projections/${view==='weekly'?'weekly':`season/${view==='preseason'?'preseason':'live'}`}?state=${state}&theme=${width===1280?'dark':'light'}`,{waitUntil:'networkidle'});
   if(['ready','large','missing','long','complete','industry','mixed','seasonTotals','bye','stale','noMovement'].includes(state))await page.locator('.projection-tier-player').first().waitFor({timeout:10000}).catch(async e=>{console.error((await page.locator('body').innerText()).slice(0,2000));throw e;});
   if(state==='loading')await page.locator('.hub-loading-skeleton').first().waitFor();
+  const bandLabels=await page.locator('.projection-tier-band').allTextContents();
+  for(const label of bandLabels)assert.doesNotMatch(label,/[<>]/,'Production banners use plain point ranges');
+  const rangeDetails=await page.locator('.projection-tier-band>span').evaluateAll(es=>es.map(e=>({
+    title:e.title,label:e.querySelector('.sr-only')?.textContent,weight:getComputedStyle(e).fontWeight,
+  })));
+  for(const detail of rangeDetails){
+    assert.match(detail.title,/points/,'Exact boundaries remain available');
+    assert.equal(detail.label,detail.title);
+    assert.ok(Number(detail.weight)>=600,'Range numbers retain readable emphasis');
+  }
   const audit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
   let introHeight=null;
   if(view==='weekly'&&width>768){

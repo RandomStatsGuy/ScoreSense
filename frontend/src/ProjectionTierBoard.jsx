@@ -25,7 +25,9 @@ export default function ProjectionTierBoard({rows=[], getTierValue, getStatus, g
     return <div className="projection-tier-heading" data-tier={group.id}>
       <span className="projection-tier-mark" aria-hidden="true">{copy.mark}</span>
       <h3>{copy.title}</h3><span className="projection-tier-band">
-        {copy.bands?copy.bands.map(band=><span key={band}>{band}</span>):copy.band}
+        {copy.bands?copy.bands.map((band,index)=><span key={band} title={copy.bandTitles[index]}>
+          <span aria-hidden="true">{band}</span><span className="sr-only">{copy.bandTitles[index]}</span>
+        </span>):copy.band}
       </span>
       <span className="projection-tier-count">{BOARD_COPY.playerCount(group.rows.length)}</span>
     </div>;
