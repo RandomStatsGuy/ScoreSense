@@ -100,6 +100,36 @@
   margin-top: var(--space-2);
 }
 
+/* Pack board metrics around their content; player names own the remaining space. */
+.proj-board-surface .table-wrap > table {
+  table-layout: auto;
+}
+
+.proj-board-surface :is(th, td).col-player {
+  width: auto;
+}
+
+.proj-board-surface :is(th, td):is(.col-floor-ceiling, .num-quantile, .col-proj, .num-proj, .col-per-game) {
+  width: 1%;
+  min-width: 0;
+  max-width: none;
+  padding-inline: var(--space-1);
+  white-space: nowrap;
+}
+
+.proj-board-surface :is(th, td):is(.proj-read, .proj-why-now) {
+  width: var(--col-why-now-width);
+  white-space: normal;
+}
+
+.proj-board-surface .table-has-rank:not(.table-has-movement) {
+  --rank-col-width: 1.375rem;
+}
+
+.proj-board-surface :is(th, td).col-rank {
+  padding-inline: var(--space-1);
+}
+
 .proj-board-head {
   display: flex;
   align-items: center;
@@ -233,12 +263,6 @@
   color: var(--text-secondary);
   font-size: 0.78rem;
   line-height: 1.35;
-}
-
-.proj-board-surface .col-floor-ceiling,
-.proj-board-surface .num-quantile {
-  width: var(--col-quantile-width);
-  min-width: var(--col-quantile-width);
 }
 
 .proj-board-surface .num-p50 {

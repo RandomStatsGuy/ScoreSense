@@ -97,7 +97,7 @@ def test_build_player_card_honors_injury_flag(monkeypatch):
 
     def fake_load(position, season=None, week=None, apply_injury_adjustments=True, allow_compute=True, allow_stale=False):
         assert allow_compute is False and allow_stale is True
-        calls.append((position, season, week, apply_injury_adjustments))
+        calls.append((position, season, week, apply_injury_adjustments, allow_compute))
         return pd.DataFrame(
             [
                 {
@@ -123,6 +123,8 @@ def test_build_player_card_honors_injury_flag(monkeypatch):
     monkeypatch.setattr(pc, "build_player_media_batch", lambda _rows, **kwargs: {})
     monkeypatch.setattr(pc, "_narrative_for_player", lambda *a, **k: (None, {"context_fallback": False}))
     monkeypatch.setattr(pc, "_injury_for_player", lambda _pid: None)
+    monkeypatch.setattr(pc, "recorded_player_history", lambda *a, **k: {"season_to_date": None, "game_log": []})
+    monkeypatch.setattr(pc, "saved_preseason_forecast", lambda *a, **k: {"preseason_projection": None, "preseason_baseline": None})
 
     card = pc.build_player_card(
         "00-0033873",
@@ -134,7 +136,27 @@ def test_build_player_card_honors_injury_flag(monkeypatch):
     assert card["weekly_projection"]["Projected Points"] == 23.1
     assert card["meta"]["apply_injury_adjustments"] is False
     assert calls
-    assert all(flag is False for _pos, _season, _week, flag in calls)
+    assert all(flag is False and compute is False for _pos, _season, _week, flag, compute in calls)
+
+
+def test_build_player_card_keeps_recorded_and_remaining_points_separate(monkeypatch):
+    import pandas as pd
+    import src.projections.player_card as pc
+
+    monkeypatch.setattr(pc, "_resolve_context", lambda s, w: (2026, 8))
+    monkeypatch.setattr(pc, "build_player_media_batch", lambda rows, **kwargs: {})
+    monkeypatch.setattr(pc, "load_weekly_prediction", lambda *a, **k: pd.DataFrame([{"player_id": "qb1", "Player": "Test QB", "Projected Points": 23.5}]))
+    monkeypatch.setattr(pc, "load_ros_prediction", lambda *a, **k: pd.DataFrame([{"player_id": "qb1", "Season P50": 400, "ROS P50": 250, "ROS P10": 200, "ROS P90": 310, "Games Remaining": 10}]))
+    monkeypatch.setattr(pc, "recorded_player_history", lambda *a, **k: {"season_to_date": {"points": 150, "ppg": 21.43, "games_played": 7, "complete": True}, "game_log": [{"week": 7, "points": 20}]} )
+    monkeypatch.setattr(pc, "saved_preseason_forecast", lambda *a, **k: {"preseason_projection": None, "preseason_baseline": None})
+    monkeypatch.setattr(pc, "_narrative_for_player", lambda *a, **k: (None, {}))
+    monkeypatch.setattr(pc, "_injury_for_player", lambda pid: None)
+    card = pc.build_player_card("qb1", season=2026, week=8, position="qb")
+    assert card["season_to_date"]["points"] == 150
+    assert card["rest_of_season_projection"]["p50"] == 250
+    assert card["rest_of_season_projection"]["games_remaining"] == 10
+    assert card["season_projection"]["Season P50"] == 400
+    assert card["meta"]["preseason_mode"] is False
 
 
 def test_narrative_for_player_weekly_no_silent_historical(monkeypatch):
