@@ -40,6 +40,8 @@ import {
   weekRailNote,
 } from "./weekBoard";
 
+import "../styles/weekly-experience.css";
+
 const EMPTY_ARRAY = [];
 
 export default function WeeklyCommandCenter({
@@ -52,6 +54,7 @@ export default function WeeklyCommandCenter({
   revisionToken = 0,
   requestedWeek,
   embedded = false,
+  showWeekStepper,
   onLineupChanged,
   onSummary,
   scorePlayers = [],
@@ -598,7 +601,7 @@ export default function WeeklyCommandCenter({
         )}
         {syncMessage && <p className="chart-note hub-wcc-sync-msg">{syncMessage}</p>}
 
-        <WeekLineupBoard {...boardProps} includeBench={embedded} showWeekStepper={!embedded} />
+        <WeekLineupBoard {...boardProps} includeBench={embedded} showWeekStepper={showWeekStepper ?? !embedded} />
         {embedded && !loading && data && <footer className="hub-week-lineup-footer">
           {sleeperLeagueId ? <a className="btn-link" href={sleeperLineupUrl(sleeperLeagueId)} target="_blank" rel="noreferrer">{WEEK_BOARD_COPY.manageSleeper} ↗</a>
             : !canEdit ? <p>{LINEUP_PICKER_COPY.readonly}</p> : null}

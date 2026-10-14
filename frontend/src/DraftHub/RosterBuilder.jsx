@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import useFantasyReady from "../useFantasyReady";
 import { parseApiError } from "../format";
@@ -36,6 +36,7 @@ import {
 import ContractHistoryLink from "./ContractHistoryLink";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import TeamRoom from "./TeamRoom";
+const MyTeamLineup = lazy(() => import("./WeeklyCommandCenter"));
 import MatchupBannerArt from "./MatchupBannerArt";
 import { SeasonNumbers, SeasonGameLog } from "./SeasonScore";
 import TeamIdentityStudio from "./TeamIdentityStudio";
@@ -363,6 +364,8 @@ export default function RosterBuilder({
   onEditInOffice,
   onOpenContractHistory,
   onNavigate,
+  initialLineup = false,
+  lineupWeek,
   focusFilter = null,
   onFocusConsumed,
 }) {
@@ -400,9 +403,9 @@ export default function RosterBuilder({
     load();
     return () => { ctrl.abort(); clearTimeout(timer); };
   }, [hubContext?.league_id, hubContext?.team_id, roster]);
-  const [roomTab, setRoomTab] = useState("room");
+  const [roomTab, setRoomTab] = useState(initialLineup ? "lineup" : "room");
   const manageTabRef = useRef(null);
-  useEffect(() => { setRoomTab("room"); setSelectedSlotKey(null); setSearch(""); setSearchOpen(false); setPosFilter("ALL"); }, [hubContext?.league_id, hubContext?.team_id]);
+  useEffect(() => { setRoomTab(initialLineup ? "lineup" : "room"); setSelectedSlotKey(null); setSearch(""); setSearchOpen(false); setPosFilter("ALL"); }, [hubContext?.league_id, hubContext?.team_id, initialLineup]);
   const restoreFocusRef = useRef(null);
 
   const [typeOverrides, setTypeOverrides] = useState({});
@@ -1004,12 +1007,15 @@ export default function RosterBuilder({
   if (!isLeague || !hubContext?.team_id) return rosterPage;
   return <>
     <div className="my-team-tabs" role="group" aria-label="My team view">
+      <button type="button" aria-pressed={roomTab === "lineup"} onClick={() => setRoomTab("lineup")}>{MY_TEAM_COPY.lineup}</button>
       <button type="button" aria-pressed={roomTab === "room"} onClick={() => setRoomTab("room")}>{MY_TEAM_COPY.room}</button>
       <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{usesSalaries ? MY_TEAM_COPY.manage : MY_TEAM_COPY.playerDetails}</button>
     </div>
     {roomTab === "room" ? <TeamRoom key={`${hubContext.league_id}:${hubContext.team_id}`} cacheScope={cacheScope} leagueId={hubContext.league_id} teamId={hubContext.team_id}
       onContract={usesSalaries ? (pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); } : null}
       onAppearance={() => { setRoomTab("manage"); setLookOpen(true); }}
-      onLineup={() => onNavigate?.("week")} /> : rosterPage}
+      onLineup={() => setRoomTab("lineup")} /> : roomTab === "lineup" ? <Suspense fallback={<HubLoadingSkeleton rows={4}/>}><MyTeamLineup
+       {...{cacheScope,hubContext,onNavigate}} requestedWeek={lineupWeek} embedded showWeekStepper
+       onLineupChanged={onChanged} onNavigateSetup={() => onNavigate?.("office-access")} /></Suspense> : rosterPage}
   </>;
 }

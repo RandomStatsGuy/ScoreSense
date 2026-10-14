@@ -85,12 +85,13 @@ test("delete league and excel download resolve to living surfaces", () => {
   assert.match(excel.doNot, /Download Excel is ghost/);
 });
 
-test("rules save and this-week empty slots stay on the living surface", () => {
+test("rules save and lineup ownership stay on the living surfaces", () => {
   assert.match(LIVING_SURFACES["hub.rules"].doNot, /Save writes the league on the form/);
   assert.match(LIVING_SURFACES["hub.rules"].doNot, /Allow vet deal extensions/);
-  assert.match(LIVING_SURFACES["hub.week"].doNot, /opens the eligible bench picker before starting a player/);
-  assert.match(LIVING_SURFACES["hub.week"].doNot, /Sit\/Start pills/);
-  assert.match(LIVING_SURFACES["hub.week"].doNot, /Never liturgy/);
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /opens the eligible bench picker before starting a player/);
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /Sit\/Start pills/);
+  assert.match(LIVING_SURFACES["hub.roster"].doNot, /Never liturgy/);
+  assert.match(LIVING_SURFACES["hub.week"].doNot, /No swaps or lineup writes here/);
 });
 
 test("contracts pane owns the pending-write copy module", () => {

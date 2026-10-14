@@ -1,0 +1,176 @@
+[
+  {
+    "width": 1280,
+    "state": "ready",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "live",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "final",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "missing",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "score-error",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "loading",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "no-roster",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "noart",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "long",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "ready",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "live",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "final",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "missing",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "score-error",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "loading",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "no-roster",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "noart",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "long",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "ready",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "live",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "final",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "missing",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "score-error",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "loading",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "no-roster",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "noart",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 320,
+    "state": "long",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "state": "my-team-saved",
+    "failures": [],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "state": "my-team-saved",
+    "failures": [],
+    "errors": []
+  }
+]

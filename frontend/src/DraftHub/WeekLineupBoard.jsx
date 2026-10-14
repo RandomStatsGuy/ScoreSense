@@ -395,6 +395,10 @@ export default function WeekLineupBoard({
   if (compact && loading) return <HubLoadingSkeleton label="Loading lineup" rows={4} />;
   return (
     <section className={`hub-wcc-board${compact ? " hub-wcc-board--compact" : ""}`} aria-label={boardTitle(weekLabel)}>
+      {compact && showWeekStepper && <header className="hub-wcc-board-head">
+        <h3>{boardTitle(weekLabel)}</h3>
+        <WeekStepper {...{weekValue, weekPlaceholder, onWeekChange}} />
+      </header>}
       {includeChrome && !compact ? (
         <>
           <header className="hub-wcc-board-head">
