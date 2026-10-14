@@ -59,14 +59,17 @@ export function ProjectionBoardHeader({
   filters = [],
   activeFilter,
   onFilterChange,
+  actions,
+  compact = false,
 }) {
   return (
-    <div className="proj-board-head">
+    <div className={`proj-board-head${compact ? " proj-board-head--compact" : ""}`}>
       <div className="proj-board-head-copy">
         {kicker ? <p className="proj-board-kicker">{kicker}</p> : null}
         <h2 className="proj-board-title">{title}</h2>
         {support ? <p className="proj-board-support">{support}</p> : null}
       </div>
+      <div className="proj-board-head-controls">
       {filters.length ? (
         <div className="proj-board-filters" role="group" aria-label="Board filters">
           {filters.map((filter) => (
@@ -82,6 +85,8 @@ export function ProjectionBoardHeader({
           ))}
         </div>
       ) : null}
+      {actions}
+      </div>
     </div>
   );
 }

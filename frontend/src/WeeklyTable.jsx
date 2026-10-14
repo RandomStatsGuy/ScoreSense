@@ -7,12 +7,13 @@ import {ExportCsvButton, useTableSort, useRankMap, rowRankKey, csvQuote, downloa
 import useMobileLayout from "./useMobileLayout";
 import usePlayersContext from "./usePlayersContext";
 import {usePlayerMedia} from "./PlayerCell";
-import {filterWeeklyBoardRows, weeklyResultLabel} from "./weeklyBoardFilter";
+import {filterWeeklyBoardRows} from "./weeklyBoardFilter";
 import {usePlayerCardOptional} from "./PlayerCardContext";
 import {MOVEMENT_FILTERS, isLeftSlate, movementEmptyMessage, movementSortScore} from "./projectionMovement";
 import {pickOpportunityAdjustment} from "./opportunityAdjustment";
 import {BOARD_COPY, isBoardAvailable, staleRefreshLabel, weeklyContextNeedsRefresh, weeklyBoardPreview, weeklyPeerStats, projectionNumber, projectionRankMovement} from "./projectionsPresentation";
 import ProjectionTierBoard from "./ProjectionTierBoard";
+import {ProjectionBoardHeader} from "./ProjectionBoardChrome";
 import {projectionPosition, projectionValue} from "./projectionTiers";
 const SORT_KEYS = {Player:"Player", Team:"Team", Opponent:"Opponent", Narrative:"Narrative", P50:"Projected Points", P10:"Low (P10)", P90:"High (P90)", Opportunity:"_opportunity_adjustment", RankDelta:"rank_delta", P50Delta:"p50_delta", Move:"_movement_score"};
 
@@ -93,6 +94,8 @@ export default function WeeklyTable({
   teamsFilter,
   searchSlot,
   metaLine,
+  boardKicker,
+  boardFilters = [],
   showSentiment = false,
   loading = false,
   position,
@@ -271,7 +274,8 @@ export default function WeeklyTable({
           : "No players match your search or team filters."
         : "No projections available for this week.";
 
-  const resultLabel = weeklyResultLabel(sorted.length, selectedCount);
+  const hasBoardNotice = Boolean(metaLine || (showFilters && !showMovement)
+    || (!playersContext.unavailable && playersContext.meta?.updated_at) || contextNeedsRefresh);
 
   return (
     <>
@@ -299,16 +303,30 @@ export default function WeeklyTable({
           ))}
         </div>
       ) : null}
-      {!mobileLayout&&<div className="table-toolbar">
+      {!mobileLayout ? <div className="weekly-board-intro" data-compact-board-intro>
+        <ProjectionBoardHeader compact kicker={boardKicker} title={BOARD_COPY.weeklyBoard}
+          filters={boardFilters} activeFilter={movementFilter} onFilterChange={onMovementFilterChange}
+          actions={<div className="table-toolbar-actions">
+          {!mobileLayout ? (
+            <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
+          ) : null}
+          {compareEnabled ? (
+            <button
+              type="button"
+              className={`proj-board-filter compare-mode-toggle${compareSelecting ? " is-active" : ""}`}
+              aria-pressed={compareSelecting}
+              onClick={() => setCompareSelecting((on) => !on)}
+            >
+              {compareSelecting ? BOARD_COPY.compareDone : BOARD_COPY.compare}
+            </button>
+          ) : null}
+        </div>} />
+      {hasBoardNotice ? <div className="table-toolbar">
         <div className="table-toolbar-meta">
-          {mobileLayout ? null : <span className="table-meta">{resultLabel}</span>}
           {metaLine}
-          {showFilters ? (
+          {showFilters && !showMovement ? (
             <span className="table-meta table-meta-movement" role="status">
-              {showMovement
-                ? "What changed vs prior refresh"
-                : movementEmptyMessage(movementEmptyReason, movementNote) ||
-                  "Movement unavailable for this slate"}
+              {movementEmptyMessage(movementEmptyReason, movementNote) || BOARD_COPY.movementUnavailable}
             </span>
           ) : null}
           {!mobileLayout && !playersContext.unavailable && playersContext.meta?.updated_at ? (
@@ -343,22 +361,9 @@ export default function WeeklyTable({
           ) : null}
 
         </div>
-        <div className="table-toolbar-actions">
-          {!mobileLayout ? (
-            <ExportCsvButton onExport={() => exportCsv(sorted)} disabled={!sorted.length} />
-          ) : null}
-          {compareEnabled ? (
-            <button
-              type="button"
-              className={`proj-board-filter compare-mode-toggle${compareSelecting ? " is-active" : ""}`}
-              aria-pressed={compareSelecting}
-              onClick={() => setCompareSelecting((on) => !on)}
-            >
-              {compareSelecting ? BOARD_COPY.compareDone : BOARD_COPY.compare}
-            </button>
-          ) : null}
-        </div>
-      </div>}
+
+      </div> : null}
+      </div> : null}
       {compareEnabled && compareSelecting ? (
         <p className="compare-mode-hint" role="status">
           {BOARD_COPY.compareHint}

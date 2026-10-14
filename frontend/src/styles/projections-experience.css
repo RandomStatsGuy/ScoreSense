@@ -672,3 +672,11 @@
 
 .projections-season-live { display:flex; flex-direction:column; gap:var(--space-4); min-width:0; }
 .projections-season-live>div { min-width:0; width:100%; }
+
+/* Compact board header variant: title/context, filters and actions share a row. */
+.proj-board-head-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:var(--space-2) var(--space-3); min-width:0; }
+.proj-board-head--compact { flex-wrap:wrap; gap:var(--space-2) var(--space-4); margin-bottom:var(--space-2); }
+.proj-board-head--compact .proj-board-head-copy { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--space-2) var(--space-3); }
+.proj-board-head--compact .proj-board-title { order:-1; margin:0; }
+.proj-board-head--compact .proj-board-head-controls { margin-left:auto; }
+.weekly-board-intro .table-toolbar { margin:0; }
