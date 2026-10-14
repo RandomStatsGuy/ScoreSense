@@ -336,11 +336,19 @@ test("projection figures preserve missing values, zero, negative and large total
 
 test("Tier headings describe the correct position and total/per-game boundaries",async()=>{
   const {projectionTierCopy}=await import("./projectionsPresentation.js");
-  assert.deepEqual(projectionTierCopy('S',['WR','TE']).bands,['WR 19+','TE 14+']);
-  assert.deepEqual(projectionTierCopy('S',['RB'],'season').bands,['RB 340+']);
-  assert.deepEqual(projectionTierCopy('A',['TE']).bands,['TE 11–<14']);
-  assert.equal(projectionTierCopy('F',['WR']).band,'6 or fewer');
-  assert.equal(projectionTierCopy('F',['WR'],'season').band,'100 or fewer');
+  assert.deepEqual(projectionTierCopy('S',['WR','TE']).bands,['WR 19+ pts','TE 14+ pts']);
+  assert.deepEqual(projectionTierCopy('S',['RB'],'season').bands,['RB 340+ pts']);
+  assert.deepEqual(projectionTierCopy('A',['TE']).bands,['TE 11–14 pts']);
+  assert.deepEqual(projectionTierCopy('A',['TE']).bandTitles,['TE: at least 11 and below 14 points']);
+  assert.deepEqual(projectionTierCopy('D',['TE']).bands,['TE 6–7.5 pts']);
+  assert.deepEqual(projectionTierCopy('D',['TE']).bandTitles,['TE: above 6 and below 7.5 points']);
+  assert.deepEqual(projectionTierCopy('S',['RB'],'season').bandTitles,['RB: 340 points or more']);
+  assert.equal(projectionTierCopy('F',['WR']).band,'6 pts or fewer');
+  assert.equal(projectionTierCopy('F',['WR'],'season').band,'100 pts or fewer');
+  for(const horizon of ['weekly','season'])for(const id of ['S','A','B','C','D','F']){
+    const copy=projectionTierCopy(id,['QB','RB','WR','TE'],horizon);
+    for(const label of copy.bands||[copy.band])assert.doesNotMatch(label,/[<>]/);
+  }
   assert.equal(projectionTierCopy('unknown').title,'Untiered');
 });
 

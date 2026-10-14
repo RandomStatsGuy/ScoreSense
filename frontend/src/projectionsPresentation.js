@@ -915,13 +915,18 @@ export function projectionNumber(value, digits = 1) {
 export function projectionTierCopy(id, positions=[], horizon='weekly') {
   const profiles=PROJECTION_TIER_PROFILES[horizon];
   if (['S','A','B','C','D','F'].includes(id)) {
-    if(id==='F')return {mark:id,title:BOARD_COPY.tierTitle(id),band:`${profiles?.QB.F} or fewer`};
-    const bands=['QB','RB','WR','TE'].filter(position=>positions.includes(position)&&profiles?.[position]).map(position=>{
+    if(id==='F')return {mark:id,title:BOARD_COPY.tierTitle(id),band:`${profiles?.QB.F} pts or fewer`};
+    const ranges=['QB','RB','WR','TE'].filter(position=>positions.includes(position)&&profiles?.[position]).map(position=>{
       const p=profiles[position], upper={A:p.S,B:p.A,C:p.B,D:p.C}[id];
-      const range=id==='S'?`${p.S}+`:id==='D'?`>${p.F}–<${upper}`:`${p[id]}–<${upper}`;
-      return `${position} ${range}`;
+      const lower=id==='D'?p.F:p[id];
+      return {
+        label:`${position} ${id==='S'?`${p.S}+`:`${lower}–${upper}`} pts`,
+        // Keep the slim banner readable; disclose the exact, unchanged cutoffs in words.
+        description:id==='S'?`${position}: ${p.S} points or more`
+          :`${position}: ${id==='D'?'above':'at least'} ${lower} and below ${upper} points`,
+      };
     });
-    return {mark:id,title:BOARD_COPY.tierTitle(id),bands};
+    return {mark:id,title:BOARD_COPY.tierTitle(id),bands:ranges.map(r=>r.label),bandTitles:ranges.map(r=>r.description)};
   }
   if (id === "bye") return {mark:"—",title:BOARD_COPY.byeTier,band:BOARD_COPY.byeTierNote};
   if (id === "inactive") return {mark:"—", title:BOARD_COPY.inactiveTier, band:BOARD_COPY.inactiveTierNote};

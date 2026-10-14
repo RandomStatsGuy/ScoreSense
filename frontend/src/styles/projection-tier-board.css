@@ -36,7 +36,8 @@
 .projection-tier-mark { display:grid; place-items:center; flex:none; width:32px; height:32px; border:1px solid var(--border-strong); border-radius:50%; color:var(--accent-muted); font-size:var(--text-sm); font-weight:600; }
 .projection-tier-heading h3 { margin:0; font-size:var(--text-sm); font-weight:600; white-space:nowrap; }
 .projection-tier-band { display:flex; flex-wrap:wrap; column-gap:var(--space-2); min-width:0; line-height:1.25; color:var(--text-muted); font-size:var(--text-xs); }
-.projection-tier-band>span { white-space:nowrap; }
+.projection-tier-band>span { white-space:nowrap; color:var(--text-secondary); font-weight:var(--font-weight-medium); }
+.projection-tier-band>span[title] { cursor:pointer; }
 .projection-tier-count { margin-left:auto; color:var(--text-muted); font-size:var(--text-xs); white-space:nowrap; }
 .projection-tier-table .projection-tier-spacer>td { border:0; padding:0; }
 .projection-tier-empty { padding:var(--space-5); color:var(--text-secondary); text-align:center; }

@@ -1,0 +1,407 @@
+[
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "large",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "large",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "ready",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "mixed",
+    "introHeight": 60,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "ready",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "card-details",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "mixed",
+    "introHeight": null,
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "tight-ends",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "te-direct",
+    "errors": [],
+    "failures": []
+  }
+]
