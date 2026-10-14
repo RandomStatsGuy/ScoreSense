@@ -35,6 +35,7 @@ test('Actual WR/TE identity takes priority and ambiguous/unsupported positions s
   assert.equal(projectionPosition({position:'wr'},'wr'),'WR');
   assert.equal(projectionPosition({Position:'WR/TE',position:'te'},'wr'),'TE');
   assert.equal(projectionPosition({},'wr'),null);
+  assert.equal(projectionPosition({},'te'),null);
   assert.equal(projectionPosition({Position:'K'},'rb'),null);
   assert.equal(projectionPosition({},'qb'),'QB');
   assert.equal(projectionPosition({},'rb'),'RB');

@@ -17,7 +17,7 @@ import {AppearanceProvider} from '../src/AppearanceProvider';
 const params=new URLSearchParams(location.search), state=params.get('state')||'ready';
 window.scoreSenseTheme.set(params.get('theme')||'dark');
 const preseason=location.pathname.includes('/preseason')||params.get('view')==='preseason';
-const boardPosition=['mixed','bye'].includes(state)?'wr':'rb';
+const boardPosition=params.get('pos')||(['mixed','bye'].includes(state)?'wr':'rb');
 const scores=[30,26,23.5,18,17.9,12,11.5,9,8.5,6.1,6,5.9,5,4,3,2,1,.5,.1,0,-.2,null];
 const names=['Bijan Robinson','Jahmyr Gibbs','Saquon Barkley',"De’Von Achane",'Jonathan Taylor','James Cook','Christian McCaffrey','Breece Hall','Derrick Henry','Josh Jacobs','Kyren Williams','Isiah Pacheco'];
 let rows=scores.map((p,i)=>({player_id:`p${i}`,Player:names[i]||`Player ${i+1}`,Team:['ATL','DET','PHI','MIA','IND','BUF','SF','NYJ','BAL','GB','LAR','KC'][i%12],Position:'RB',Opponent:'BUF',
@@ -39,7 +39,7 @@ if(state==='industry')rows=rows.slice(0,5).map((row,i)=>{
 });
 if(state==='mixed')rows=rows.slice(0,8).map((row,i)=>{
  const points=[19.9,15.3,15.3,11,0,-1,25,null][i],actual=['WR','TE','WR','TE','WR','TE',null,'WR'][i];
- return {...row,Position:actual,Player:['WR leader','TE leader','WR same points','TE depth','Zero WR','Negative TE','Unknown position','Missing forecast'][i],
+ return {...row,Position:actual,p50_delta:[.4,.6,-.3,.2,0,0,null,null][i],Player:['WR leader','TE leader','WR same points','TE depth','Zero WR','Negative TE','Unknown position','Missing forecast'][i],
   'Projected Points':points,'Low (P10)':points==null?null:points-3,'High (P90)':points==null?null:points+5,
   'Per-Game Proj':points,'Season Proj':points==null?null:points*17,'Season Floor':points==null?null:(points-3)*17,'Season P90':points==null?null:(points+5)*17,
   'Season P50':points==null?null:points*17,'ROS P50':points==null?null:points*10};
@@ -57,6 +57,7 @@ const json=data=>Response.json(data);
 window.fetch=async(input,options={})=>{
  const url=new URL(String(input),location.origin),path=url.pathname;
  window.fixtureRequests.push(path);
+ if (/^\/api\/(?:predict|draft|ros|meta\/(?:projections|draft)|fantasy-narrative)\/te(?:\/|$)/.test(path)) return Response.json({detail:'TE uses the shared WR artifact'},{status:400});
  if(options.method&&!['GET','HEAD'].includes(options.method))window.fixtureWrites.push({path,method:options.method});
  if(path.includes('/card')) {
   const id=path.split('/').at(-2), row=rows.find(r=>r.player_id===id)||rows[0];

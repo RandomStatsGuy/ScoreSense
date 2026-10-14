@@ -13,8 +13,8 @@ import {
   sortInjuriesBySeverity,
 } from "./injuryExperience";
 
-const POSITION_LABELS = { qb: "QB", rb: "RB", wr: "WR/TE" };
-const POSITION_PLURAL = { qb: "QBs", rb: "RBs", wr: "WR/TE" };
+const POSITION_LABELS = { qb: "QB", rb: "RB", wr: "WR", te: "TE" };
+const POSITION_PLURAL = { qb: "QBs", rb: "RBs", wr: "WRs", te: "TEs" };
 
 const RETURN_HEURISTIC_TITLE =
   "Heuristic from injury type and designation — not an official team report";

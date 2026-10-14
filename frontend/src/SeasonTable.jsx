@@ -1,7 +1,8 @@
+import {hasProjectionPosition} from "./projectionPositions";
 import React, { useMemo, useState } from "react";
 import ProjectionTierBoard from "./ProjectionTierBoard";
 import {usePlayerCardOptional} from "./PlayerCardContext";
-import {BOARD_COPY, projectionNumber, positionShort} from "./projectionsPresentation";
+import {BOARD_COPY, projectionNumber} from "./projectionsPresentation";
 import {projectionPosition, projectionValue, remainingGameProjection} from "./projectionTiers";
 import {
   fmtNum,
@@ -112,7 +113,7 @@ export default function SeasonTable({
   const playerCard = usePlayerCardOptional();
 
   // Position rank uses the full slate for the selected recorded or remaining view.
-  const rankMap = useRankMap(rows, recordedView ? rankByRecorded : rankByRos);
+  const rankMap = useRankMap(rows.filter(row=>hasProjectionPosition(row,position)), recordedView ? rankByRecorded : rankByRos);
 
   const filtered = useMemo(() => {
     let list = rows || [];
@@ -180,7 +181,7 @@ export default function SeasonTable({
         ]}
         getView={row => {
           const ppg=knownPPG(row);
-          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,projectionPosition(row,position)||positionShort(position)].filter(Boolean).join(" · "),
+          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,projectionPosition(row,position)||"—"].filter(Boolean).join(" · "),
             values:{recorded:rosRegPts(row),games:rosGamesPlayed(row),ppg,remaining:row["Games Remaining"],ros:rosP50(row)},
             sub:recordedView?(ppg==null?null:`${projectionNumber(ppg)} PPG`):`${projectionNumber(remainingGameProjection(row,rosP50(row)))} /gm`};
         }}

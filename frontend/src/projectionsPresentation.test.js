@@ -343,3 +343,14 @@ test("Tier headings describe the correct position and total/per-game boundaries"
   assert.equal(projectionTierCopy('F',['WR'],'season').band,'100 or fewer');
   assert.equal(projectionTierCopy('unknown').title,'Untiered');
 });
+
+test("Separate WR/TE movement uses actual point changes, never the combined pool's ranks",async()=>{
+  const {projectionRankMovement}=await import("./projectionsPresentation.js");
+  assert.equal(projectionRankMovement({previous_rank:20,current_rank:10,rank_delta:10,p50_delta:.6},true,'te'),'+0.6 pts');
+  assert.equal(projectionRankMovement({previous_rank:20,current_rank:10,rank_delta:10,p50_delta:-.3},true,'wr'),'−0.3 pts');
+  assert.equal(projectionRankMovement({previous_rank:20,rank_delta:10},true,'te'),'');
+  const rows=[{Player:'Points rose',player_id:'a','Projected Points':15,'Low (P10)':10,p50_delta:.6,rank_delta:1},
+    {Player:'Pool rank rose',player_id:'b','Projected Points':14,'Low (P10)':9,p50_delta:-.3,rank_delta:10}];
+  const riser=weeklyBoardSignals(rows,{position:'te'}).find(s=>s.id==='riser');
+  assert.equal(riser.playerId,'a');assert.equal(riser.value,'+0.6 pts');
+});

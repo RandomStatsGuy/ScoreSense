@@ -10,16 +10,23 @@ import { formatOpportunityAdjustmentPct } from "./opportunityAdjustment.js";
 import { isLeftSlate } from "./projectionMovement.js";
 import { isScheduleAwareMethod, resolveSeasonBand, upsideSkew } from "./seasonQuantiles.js";
 
+export const PROJECTION_POSITIONS = [
+  {id:"qb",label:"QB"}, {id:"rb",label:"RB"},
+  {id:"wr",label:"WR"}, {id:"te",label:"TE"},
+];
+
 export const POSITION_SHORT = {
   qb: "QB",
   rb: "RB",
-  wr: "WR/TE",
+  wr: "WR",
+  te: "TE",
 };
 
 export const STARTER_CUTOFF = {
   qb: 12,
   rb: 24,
   wr: 36,
+  te: 12,
 };
 
 export const SEASON_BOARD_FILTERS = [
@@ -165,7 +172,6 @@ export function positionShort(position) {
   const key = String(position || "").trim().toLowerCase();
   if (POSITION_SHORT[key]) return POSITION_SHORT[key];
   const upper = key.toUpperCase();
-  if (upper === "WR" || upper === "TE") return "WR/TE";
   return upper || "";
 }
 
@@ -444,6 +450,7 @@ function playerName(row) {
 }
 
 export function weeklyBoardSignals(rows, { attentionItems = [], position } = {}) {
+  const receiverView=["wr","te"].includes(position);
   const available = (rows || []).filter(isBoardAvailable);
   const peers = weeklyPeerStats(available, { position });
   const ranks = rankByScore(available, (row) => weeklyQuantiles(row).p50);
@@ -466,7 +473,7 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
     return best;
   }, null);
   const riser = available.reduce((best, row) => {
-    const delta = Number(row.rank_delta);
+    const delta = projectionValue(receiverView?row.p50_delta:row.rank_delta);
     if (!Number.isFinite(delta) || delta <= 0) return best;
     if (!best || delta > best.value) return { row, value: delta };
     return best;
@@ -507,7 +514,7 @@ export function weeklyBoardSignals(rows, { attentionItems = [], position } = {})
       kicker: "Biggest riser",
       name: riser ? playerName(riser.row) : "—",
       value: riser
-        ? `▲${riser.value}${pos && riser.row.previous_rank != null && riser.row.current_rank != null
+        ? receiverView ? `+${riser.value.toFixed(1)} pts` : `▲${riser.value}${pos && riser.row.previous_rank != null && riser.row.current_rank != null
           ? ` · ${pos}${riser.row.previous_rank} → ${pos}${riser.row.current_rank}`
           : ""}`
         : "No material riser",
@@ -921,9 +928,13 @@ export function projectionTierCopy(id, positions=[], horizon='weekly') {
   return {mark:"?", title:BOARD_COPY.unknownTier, band:BOARD_COPY.unknownTierNote};
 }
 
-export function projectionRankMovement(row, available) {
+export function projectionRankMovement(row, available, position) {
   if (!available) return "";
   if (row.previous_rank == null && projectionValue(row.current_rank) != null) return "New";
+  if(["wr","te"].includes(position)){
+    const points=projectionValue(row.p50_delta);
+    return points==null||Math.abs(points)<0.05?"":`${points>0?"+":"−"}${Math.abs(points).toFixed(1)} pts`;
+  }
   const delta = projectionValue(row.rank_delta);
   return delta == null || delta === 0 ? "" : `${delta > 0 ? "↑" : "↓"}${Math.abs(delta)}`;
 }

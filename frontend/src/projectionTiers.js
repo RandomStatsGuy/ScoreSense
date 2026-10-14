@@ -31,7 +31,7 @@ const canonicalPosition = value => {
   return Object.hasOwn(PROJECTION_TIER_PROFILES.weekly,key)?key:null;
 };
 
-/** Real WR/TE identity wins over the combined board's `wr` route/model key. */
+/** Real WR/TE identity wins over the shared prediction pool's `wr` model key. */
 export function projectionPosition(row, boardPosition) {
   const values=[row?.Position,row?.position].filter(value=>value!=null&&String(value).trim());
   for(const value of values) {
@@ -41,7 +41,7 @@ export function projectionPosition(row, boardPosition) {
   // An explicitly unsupported/malformed position must not inherit a misleading tier.
   if(values.length)return null;
   const fallback=canonicalPosition(boardPosition);
-  return fallback==='WR'?null:fallback;
+  return fallback==='WR'||fallback==='TE'?null:fallback;
 }
 
 export function projectionTier(value, position, horizon='weekly') {

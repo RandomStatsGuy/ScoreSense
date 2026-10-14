@@ -391,7 +391,7 @@ export function parseFilterParams(searchParams) {
   const movementFilter = parseMoversFilter(searchParams.get("movers"));
 
   return {
-    position: pos && ["qb", "rb", "wr"].includes(pos) ? pos : null,
+    position: pos && ["qb", "rb", "wr", "te"].includes(pos) ? pos : null,
     season: season != null && season !== "" ? Number(season) : null,
     week: week != null && week !== "" ? Number(week) : null,
     selectedTeams: teamsRaw ? teamsRaw.split(",").filter(Boolean) : null,
