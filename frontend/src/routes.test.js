@@ -61,15 +61,15 @@ test("Vibes routes round-trip including the long slug", () => {
   assert.equal(buildAppPath({ view: "hub", hubSubView: "vibes" }), "/hub/vibes");
 });
 
-test("Game center aliases resolve to the combined weekly experience", () => {
-  assert.equal(parseAppPath("/hub/game").hubSubView, "week");
-  assert.equal(parseAppPath("/hub/game-center").hubSubView, "week");
+test("Game center aliases preserve the detailed matchup destination", () => {
+  assert.equal(parseAppPath("/hub/game").hubSubView, "game");
+  assert.equal(parseAppPath("/hub/game-center").hubSubView, "game");
   assert.equal(
     buildAppPath({ view: "hub", hubSubView: "game" }),
-    "/hub/week",
+    "/hub/game",
   );
   const legacy = parseAppPath("/hub/live");
-  assert.equal(legacy.hubSubView, "week");
+  assert.equal(legacy.hubSubView, "game");
   assert.equal(legacy.insightTab, null);
 });
 
@@ -159,7 +159,7 @@ test("strategy and free-agent hub tabs round-trip, with legacy players alias", (
 
 test("my-team and game-center aliases resolve, unknown hub paths go Home", () => {
   assert.equal(parseAppPath("/hub/my-team").hubSubView, "roster");
-  assert.equal(parseAppPath("/hub/game-center").hubSubView, "week");
+  assert.equal(parseAppPath("/hub/game-center").hubSubView, "game");
   assert.equal(parseAppPath("/hub/not-a-real-tab").hubSubView, "home");
   assert.equal(buildAppPath({ view: "hub", hubSubView: "unknown" }), "/hub/home");
 });
@@ -171,4 +171,13 @@ test("corrections keep the selected league week", () => {
   const params = buildFilterSearchParams({...updates,preserveParams:new URLSearchParams("week=8&pos=qb&season=2026")});
   assert.equal(stripProjectionParams(params, {preserveWeek:true}).toString(), "week=3");
   assert.equal(stripProjectionParams(params).has("week"), false);
+});
+
+
+test("My team lineup link preserves the requested week through navigation", () => {
+  const updates = hubSubViewFilterUpdates("roster", {lineup:true, week:6});
+  const params = buildFilterSearchParams({...updates});
+  assert.equal(params.get("lineup"), "1");
+  assert.equal(params.get("week"), "6");
+  assert.equal(buildFilterSearchParams({lineup:"",preserveParams:params}).has("lineup"), false);
 });

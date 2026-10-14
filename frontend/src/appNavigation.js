@@ -46,7 +46,7 @@ export const SECTION_SUBTITLES = {
     rules: "What new contracts will cost",
     value: "Pick who you take first",
     available: "Who you can still add",
-    week: "Set your lineup and follow your matchup",
+    week: "Your matchup and the league this week",
     vibes: "One start/sit read per player today",
     game: "Your matchup, live",
     roster: "Your contracts and leftover cap",

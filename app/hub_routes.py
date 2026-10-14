@@ -3987,6 +3987,7 @@ def hub_league_live_scoring(
     week: Optional[int] = Query(None, description="NFL week override"),
     refresh: bool = Query(False, description="Request updated scoring; native leagues return the saved snapshot while refresh runs"),
     home_view: bool = Query(False, description="Use Home Wednesday matchup window"),
+    overview: bool = Query(False, description="Include recorded public roster activity"),
     _user=Depends(require_hub_user),
 ) -> dict:
     """Current-week Sleeper matchup scores with starter-level points."""
@@ -4045,6 +4046,13 @@ def hub_league_live_scoring(
                 )
     from src.draft_hub.game_center import game_center_payload
     scoring = game_center_payload(scoring, league_id)
+    if overview is True:
+        from src.draft_hub.recent_activity import recent_week_activity
+
+        scoring["recent_activity"] = (
+            recent_week_activity(league_id, scoring["season"], scoring["week"])
+            if scoring.get("season") and scoring.get("week") else []
+        )
     return {
         **scoring,
         **({"home_display_mode": home_window["home_display_mode"]} if home_window else {}),

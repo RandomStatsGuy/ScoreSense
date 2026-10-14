@@ -27,6 +27,7 @@ import {
 import { WEEK_BOARD_COPY } from "./weekBoard";
 import LeagueScoringControl from "./LeagueScoringControl";
 import GameCenterMatchup from "./GameCenterMatchup";
+import WeekLeagueOverview from "./WeekLeagueOverview";
 import "../styles/game-center-room.css";
 
 
@@ -38,6 +39,7 @@ export default function GameCenter({
   requestedTeam,
   reloadToken,
   weekly = false,
+  overview = false,
   renderLineup,
 }) {
   const { identities } = useTeamIdentities();
@@ -70,6 +72,7 @@ export default function GameCenter({
         const params = new URLSearchParams();
         if (week != null) params.set("week", String(week));
         if (refresh) params.set("refresh", "1");
+        if (overview) params.set("overview", "1");
         const q = params.toString();
         const res = await apiFetch(
           `/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring${q ? `?${q}` : ""}`,
@@ -85,7 +88,7 @@ export default function GameCenter({
         if (isCurrent()) setLoading(false);
       }
     },
-    [leagueId, week, scope],
+    [leagueId, week, scope, overview],
   );
 
   useEffect(() => {
@@ -145,7 +148,7 @@ export default function GameCenter({
         .filter(Boolean),
     [rows],
   );
-  const media = usePlayerMedia(duelIds);
+  const media = usePlayerMedia(overview ? [] : duelIds);
 
   const standingsView = useMemo(
     () =>
@@ -209,6 +212,9 @@ export default function GameCenter({
     if (!onNavigate || !banner) return;
     onNavigate(banner.action);
   };
+
+  if (overview) return <WeekLeagueOverview {...{data,hubContext,identities,matchup,viewer,opponent,standingsView,banner,loading,error,placeholder,onNavigate}}
+    onRefresh={() => load(undefined, {refresh:true})} onWeek={stepWeek} />;
 
   return (
     <HubPage frameless={weekly} className={`hub-game-room${weekly ? " hub-week-room" : ""}`}>

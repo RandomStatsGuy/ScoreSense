@@ -876,6 +876,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
       {(subView === "week" || subView === "game") && (
         <WeeklyExperience
+          detail={subView === "game"}
           cacheScope={cacheScope}
           requestedWeek={searchParams.get("matchupWeek") || searchParams.get("week")}
           requestedTeam={searchParams.get("matchupTeam")}
@@ -920,6 +921,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onEditInOffice={goToRosterManagement}
           onOpenContractHistory={onOpenContractHistory}
           onNavigate={goHubView}
+          initialLineup={searchParams.get("lineup") === "1"}
+          lineupWeek={searchParams.get("week")}
           focusFilter={rosterFocus}
           onFocusConsumed={() => setRosterFocus(null)}
         />

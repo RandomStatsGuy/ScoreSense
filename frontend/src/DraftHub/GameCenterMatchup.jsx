@@ -10,7 +10,6 @@ import {
   GAME_CENTER_COPY as COPY,
   duelSlotFilled,
   duelRows,
-  formatMatchupScore,
   formatSyncedAgo,
   gameCenterLead,
   gameCenterPlayerScore,
@@ -177,7 +176,7 @@ export default function GameCenterMatchup({
         <TeamName team={viewer} identity={mine} />
         <div className="gc-room-score" aria-live="polite" aria-atomic="true">
           <strong>
-            {pregame ? (forecast.mine == null ? "—" : forecast.mine.toFixed(1)) : formatMatchupScore(viewer.points, { placeholder }).score}
+            {scores.home.value}
           </strong>
           <div>
             <span className={stateLabel === "Live" ? "gc-room-live" : ""}>
@@ -186,7 +185,7 @@ export default function GameCenterMatchup({
             {!pregame && <small>{gameCenterLead(viewer, opponent, placeholder)}</small>}
           </div>
           <strong>
-            {pregame ? (forecast.theirs == null ? "—" : forecast.theirs.toFixed(1)) : formatMatchupScore(opponent.points, { placeholder }).score}
+            {scores.away.value}
           </strong>
         </div>
         <TeamName team={opponent} identity={theirs} away />
@@ -227,7 +226,7 @@ export default function GameCenterMatchup({
           ))}
         </div>
         {onNavigate && !weekly && (
-          <button className="btn-link" onClick={() => onNavigate("week")}>
+          <button className="btn-link" onClick={() => onNavigate("roster", {lineup:true, week:data.week})}>
             {COPY.reviewLineup}
           </button>
         )}
