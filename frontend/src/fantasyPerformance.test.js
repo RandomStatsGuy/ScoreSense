@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {configureFantasyDiagnostics, beginFantasyVisit, markFantasyReady, measureFantasyReady, startFantasyDiagnostics, currentFantasyVisit, startHubRequest, startFantasyAction, hubRequestKind, fantasyDestination} from "./fantasyPerformance.js";
 
 test("diagnostics are disabled by default and redact URLs and identifiers", () => {
-  assert.equal(fantasyDestination("/hub/game?token=secret"), "week");
+  assert.equal(fantasyDestination("/hub/game?token=secret"), "game");
   assert.equal(hubRequestKind("/api/hub/league/private-id/teams/private-team/season-scores?email=secret"), "season-scores");
   assert.equal(hubRequestKind("/api/hub/secret-player-id"), "other");
   assert.equal(hubRequestKind("/api/hub/value-overlay?league_id=secret"), "value-overlay");

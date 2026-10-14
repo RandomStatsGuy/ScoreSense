@@ -11,8 +11,8 @@ export const HUB_SLUG_TO_ID = {
   week: "week",
   vibes: "vibes",
   "vibe-rankings": "vibes",
-  game: "week",
-  "game-center": "week",
+  game: "game",
+  "game-center": "game",
   roster: "roster",
   "my-team": "roster",
   rosters: "rosters",
@@ -33,7 +33,7 @@ export const HUB_ID_TO_SLUG = {
   available: "free-agents",
   week: "week",
   vibes: "vibes",
-  game: "week",
+  game: "game",
   roster: "roster",
   rosters: "rosters",
   room: "draft",
@@ -180,14 +180,14 @@ export function parseAppPath(pathname) {
     }
     const slug = parts[1] || "home";
     if (slug === "live") {
-      // Legacy live-scoring URL → the combined weekly experience.
+      // Legacy live-scoring URL opens the detailed matchup.
       return {
         view: "hub",
         projectionsTab: null,
         projectionsMobilePanel: null,
         seasonMode: null,
         toolsTab: null,
-        hubSubView: "week",
+        hubSubView: "game",
         insightTab: null,
         officeTab: null,
       };
@@ -420,12 +420,17 @@ export function buildFilterSearchParams({
   search,
   player,
   needPos,
+  lineup,
   compareIds,
   compareView,
   movementFilter,
   preserveParams,
 }) {
   const params = new URLSearchParams(preserveParams || undefined);
+  if (lineup !== undefined) {
+    if (lineup) params.set("lineup", String(lineup));
+    else params.delete("lineup");
+  }
   if (position) params.set("pos", position);
   else params.delete("pos");
 
@@ -502,6 +507,7 @@ export function buildFilterSearchParams({
 export function hubSubViewFilterUpdates(subView, extra) {
   const updates = {};
   if (extra && typeof extra === "object") {
+    if (subView === "roster" && extra.lineup != null) updates.lineup = extra.lineup ? "1" : "";
     if (Number.isInteger(Number(extra.week)) && Number(extra.week) >= 1 && Number(extra.week) <= 18) updates.week = Number(extra.week);
     if (extra.pos) updates.needPos = String(extra.pos).toUpperCase();
     const playerId = extra.player ?? extra.player_id ?? extra.playerId;

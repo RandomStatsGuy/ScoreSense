@@ -1,18 +1,12 @@
 import React from "react";
 import GameCenter from "./GameCenter";
-import WeeklyCommandCenter from "./WeeklyCommandCenter";
-import "../styles/weekly-experience.css";
+import {HubPage} from "./HubUILayout";
+import {WEEK_OVERVIEW_COPY as C} from "./weekOverviewPresentation";
 
-/** One league week owns the matchup, lineup editor and league results. */
-export default function WeeklyExperience({ cacheScope, hubContext, requestedWeek, requestedTeam, reloadToken, revisionToken, onNavigate, onSynced, onNavigateSetup }) {
-  if (hubContext?.mode !== "league" || !hubContext?.league_id) {
-    return <WeeklyCommandCenter {...{cacheScope, hubContext, reloadToken, revisionToken, onNavigate, onSynced, onNavigateSetup}} />;
-  }
-  const ownTeam = !requestedTeam || String(requestedTeam) === String(hubContext.team_id);
-  return <GameCenter key={`${hubContext.league_id}:${requestedTeam || hubContext.team_id}`} leagueId={hubContext.league_id} hubContext={hubContext}
-    requestedWeek={requestedWeek} requestedTeam={requestedTeam} reloadToken={reloadToken} onNavigate={onNavigate} weekly
-    renderLineup={ownTeam ? ({week, onChanged, onSummary, scorePlayers, gameCenterData}) => <WeeklyCommandCenter
-      key={`${hubContext.league_id}:${hubContext.team_id}:${week || "auto"}`}
-      {...{cacheScope, hubContext, reloadToken, revisionToken, onNavigate, onSynced, onNavigateSetup}}
-      requestedWeek={week} scorePlayers={scorePlayers} gameCenterData={gameCenterData} embedded onLineupChanged={onChanged} onSummary={onSummary} /> : null} />;
+/** This Week is the league overview; saved-lineup editing belongs to My team. */
+export default function WeeklyExperience({hubContext,requestedWeek,requestedTeam,reloadToken,onNavigate,detail=false}) {
+ if(hubContext?.mode!=="league"||!hubContext?.league_id)return <HubPage><h1>{C.title}</h1><p>{C.noLeague}</p><button className="btn-ghost" onClick={()=>onNavigate?.("roster")}>{C.review}</button></HubPage>;
+ return <GameCenter key={`${hubContext.league_id}:${detail?requestedTeam||hubContext.team_id:"overview"}`}
+  leagueId={hubContext.league_id} hubContext={hubContext} requestedWeek={requestedWeek}
+  requestedTeam={detail?requestedTeam:hubContext.team_id} reloadToken={reloadToken} onNavigate={onNavigate} overview={!detail}/>;
 }
