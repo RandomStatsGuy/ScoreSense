@@ -1,7 +1,7 @@
 import {gameCenterMatchupScores, gameCenterTeamParts, playerGameState} from './gameCenterPresentation.js';
 
 export const WEEK_OVERVIEW_COPY = {
- title:'This Week', yourMatchup:'Your matchup', across:'Across the league', around:'Around the league',
+ title:'This Week', yourMatchup:'Your matchup', across:'League scoreboard', around:'Matchup stories',
  activity:'Recent activity', standings:'Standings', details:'Matchup details', game:'Open Game center',
  review:'Review My team', refresh:'Refresh', refreshError:'Could not refresh. Showing the last update.',
  loading:'Loading your league', noMatchup:'No matchup is scheduled for your team this week.',

@@ -63,6 +63,7 @@ function Preview() {
       padding: '16px 24px',
       borderBottom: '1px solid var(--border)',
       display: 'flex',
+      flexWrap: 'wrap',
       gap: 32,
       alignItems: 'center'
     }}><strong style={{

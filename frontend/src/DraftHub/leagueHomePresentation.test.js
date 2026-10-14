@@ -159,7 +159,8 @@ test("pre-draft home hides an unscored matchup deck", () => {
     }),
     { show: true, historical: true },
   );
-  assert.equal(HOME_PAGE_COPY.lastSeason, "Last season");
+  assert.equal(HOME_PAGE_COPY.lastSeason(2025), "2025 season matchup");
+  assert.equal(HOME_PAGE_COPY.lastSeason(null), "Saved season matchup");
 });
 
 test("home deck helpers format empty scores and keep the viewer in standings", () => {

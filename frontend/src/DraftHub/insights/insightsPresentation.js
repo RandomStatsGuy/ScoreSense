@@ -458,6 +458,8 @@ export const INSIGHTS_COPY = {
     mostChampionships: "Most championships", bestRecord: "Best record", mostPoints: "Most points",
     recordBook: "Record book",
     recordBookSupport: "Regular-season records · total fantasy points",
+    recordTies: "Equal win rates can tie. List order follows saved league history.",
+    tiedHighlight: (label) => `${label} · tied`,
     rankBy: "Rank managers by", recordSort: "Record", pointsSort: "Points",
     winRate: "Win rate", pointsLeader: "Points leader",
     records: "All-time records",

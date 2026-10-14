@@ -1,0 +1,77 @@
+{
+  "baseline": "9e3fb24598683d38b66a8499bad1dc831de527fe",
+  "environment": "Isolated production components and full-App notice fixture; local fixture artwork; external/API network blocked.",
+  "interaction_checks": [
+    "Jersey click, pointer hold, keyboard motion, reduced motion",
+    "Native/Sleeper/read-only/locked/missing room preview scenarios",
+    "Trade available-player labels, empty impact, selected impact and active Review step",
+    "Vibes Higher and Undo; unrated/neutral/adjusted presentation",
+    "DFS change disclosure, pagination, keep/apply/undo and unchanged reviewed portfolio backups",
+    "Full-App projection refresh notice appears only on Projections",
+    "Native lineup picker changes nothing before explicit confirmation; confirmed changes and Sleeper ownership checks pass."
+  ],
+  "limits": [
+    "Existing local app had no usable league/API context; screenshots use isolated sample data.",
+    "External portraits and uploaded production banners were not fetched.",
+    "Broader legacy DFS scripts have stale collapsed-control assumptions and an unrelated Captain-comparison timeout; focused input-freeze checks pass.",
+    "npm test directory shorthand is incompatible with the installed Node 24; all frontend test files plus layout-audit tests were run explicitly."
+  ],
+  "frontend_tests": 1245,
+  "python_static_product_tests": 54,
+  "production_build": "passed",
+  "responsive_verification": {
+    "renders": 84,
+    "scenario_count": 21,
+    "widths": [
+      1280,
+      820,
+      390,
+      320
+    ],
+    "all_passed": true,
+    "scenarios": [
+      "access",
+      "agents",
+      "agents-empty",
+      "dfs",
+      "home",
+      "home-empty",
+      "insights",
+      "insights-empty",
+      "lineup",
+      "office",
+      "office-pick",
+      "room",
+      "room-live",
+      "rosters",
+      "rules",
+      "trades",
+      "update",
+      "vibes",
+      "week",
+      "week-live",
+      "week-long"
+    ]
+  },
+  "route_verification": {
+    "audit_runs": 24,
+    "widths": [
+      1280,
+      390
+    ],
+    "all_passed": true,
+    "routes": [
+      "/hub/free-agents",
+      "/hub/home",
+      "/hub/insights/overview",
+      "/hub/roster",
+      "/hub/roster-management/access",
+      "/hub/roster-management/contracts",
+      "/hub/rules",
+      "/hub/trades",
+      "/hub/vibes",
+      "/hub/week",
+      "/tools/dfs"
+    ]
+  }
+}

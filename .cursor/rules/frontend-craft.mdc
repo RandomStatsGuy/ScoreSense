@@ -6,6 +6,14 @@ alwaysApply: false
 
 # Frontend craft — measurable rules
 
+## Practical polish
+
+- Group identity, numbers, and actions with small scale gaps; use larger gaps between jobs. Keep jersey artwork, locker rooms, and custom team backgrounds, with readable text surfaces.
+- Give names and help room to wrap. Keep counts such as “14 players” together on a separate metadata line. Use content-driven height; reserve only the space needed to align repeated actions.
+- Size short-label actions to their content. Consolidate repeated headings, status labels, and empty explanations into one useful message and next action.
+- Scope notices to the route and task. Disclose routine detail; keep actionable errors and consequences beside the control, including permissions, costs, scoring, freshness, frozen inputs, and preview versus saved state.
+- Use plain team/manager/season terminology, labeled controls, explicit projection scope, and actual source dates. Missing data stays missing.
+
 These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until the audit passes on every surface that shares the primitive you touched.
 
 ## Spacing
@@ -18,7 +26,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 ## Alignment
 - Standalone settings and entry forms use `StandaloneFormContent`: center a column capped by `--form-content-max` inside the card; align titles, headings, labels, editable text, help, and actions to its left edge. Phone columns fill the available inset. Session forms retain their narrower session column; legal prose stays left-aligned at reading width.
 - Standalone return navigation and Account legal links share a centered footer. Consent checkboxes sit beside the first line of their text, including when it wraps; generic grid-label styles must not stack the checkbox above its copy. SMS disclosures use one compact group with token gaps and zero paragraph margins.
-- Every horizontal group (bar, row, toolbar, button pair) is `align-items: center` and all its controls share one height token (`--control-h-sm` 32 / `--control-h-md` 40 / `--control-h-lg` 44). No mixed heights in one row.
+- Bars, toolbars, and button pairs center their controls and share one height token (`--control-h-sm` 32 / `--control-h-md` 40 / `--control-h-lg` 44). Identity/detail rows may top-align or baseline-align to keep wrapped text coherent.
 - Segmented controls and tabs center their labels. Fixed-width segments center; content-width segments use equal horizontal padding.
 - Tables: numeric columns (`$`, points, ranks, counts, deltas) right-align the cell AND the header. Text columns left-align both. Never center a column unless it is a single glyph (Pos, injury mark). The action column right-aligns.
 - Table column widths: first text column takes the remainder; numeric columns are `min-content` + padding. No column may be wider than 1.5× its widest cell unless it is the remainder column. The approved Rosters comparison table is an exception: balanced proportional columns keep salary, estimate, and difference readable together rather than creating an oversized player column. The same pack and align rules apply to `table`, `[role=table]`, `[role=grid]`, and CSS-grid row groups.
@@ -28,7 +36,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 ## Grids and wrapping
 - Card grids use `repeat(auto-fill, minmax(<token>, 1fr))`, never a fixed column count. An orphan row is acceptable only if it's the last row of an auto-fill grid. Layout grids (hero beside a rail) may have unequal heights — the audit only checks auto-fill / auto-fit card grids.
 - Cards in one auto-fill grid share one height: pin the action to the bottom (`margin-top: auto`), clamp titles to 2 lines with ellipsis, reserve the action slot even when empty.
-- Text that wraps differently per card (badge, meta line) gets a fixed line count or a fixed height. Never let a badge push a sibling's timestamp onto two lines.
+- Give metadata a consistent area and keep number/unit pairs together. Let long identities increase content height; do not clip them or add fixed-height blank space solely to align unrelated text.
 
 ## Controls
 - Cursor verification follows `docs/PRODUCT.md`: reuse the shared pointer styles in `frontend/src/styles.css`, mark custom clickable targets with `data-interactive="true"` only while enabled, and run the UI audit's `cursors` check for controls, nested labels/icons, tooltips, and charts; preserve text-entry, disabled, and drag cursors.

@@ -15,6 +15,7 @@ import {
   vsModelNote,
   vsSplitRows,
   vibeNextActions,
+  vibeRatingStatus,
 } from "./vibeRankingsPresentation.js";
 
 test("vibe copy names the goal and never says Draft Hub or Submit", () => {
@@ -126,7 +127,7 @@ test("empty and done heroes keep consequence copy and drop the fake chip", () =>
   assert.equal(live.chip, "");
   const done = heroCopy({ done: true });
   assert.match(done.heading, /ratings are saved/i);
-  assert.match(done.support, /Save lineup/);
+  assert.match(done.support, /My team → Lineup/);
   assert.equal(done.chip, "");
   const demo = heroCopy({ demo: true });
   assert.equal(demo.chip, VIBE_COPY.chipDemo);
@@ -145,4 +146,13 @@ test("week roster flattens starters and bench; demo slate has a startable week",
   assert.ok(DEMO_VIBE_SLATE.some((row) => row.position === "K" && row.p50 > 0));
   assert.ok(DEMO_VIBE_SLATE.some((row) => row.position === "DEF" && row.p50 > 0));
   assert.ok(espnHeadshotUrl(3918298).includes("3918298"));
+});
+
+test('personal rating labels distinguish missing, neutral and adjusted values', () => {
+  const ratings = { neutral:50, higher:64, lower:36, invalid:null };
+  assert.equal(vibeRatingStatus(ratings,'missing'), 'Unrated');
+  assert.equal(vibeRatingStatus(ratings,'invalid'), 'Unrated');
+  assert.equal(vibeRatingStatus(ratings,'neutral'), 'Neutral');
+  assert.equal(vibeRatingStatus(ratings,'higher'), 'Adjusted');
+  assert.equal(vibeRatingStatus(ratings,'lower'), 'Adjusted');
 });

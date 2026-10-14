@@ -135,7 +135,7 @@ export function stepBlockedReason(stepId, { hasPartner, hasPackage }) {
 export const TRADE_DISCOVERY_COPY = {
  title:'Trade partners',search:'Manager, team or player',searchLabel:'Search managers, teams or players',
  ranks:'Projected position ranks',position:'Pos',starters:'Starters',bench:'Bench',cap:'Available Cap',
- impact:'Your trade impact',basis:'PPR projections',season:'This season',remaining:'Remaining games',
+ impact:'Your trade impact',choosePlayers:'Select players to preview projected impact.',availableSend:'Your available players',availableGet:'Partner’s available players',basis:'PPR projections',season:'This season',remaining:'Remaining games',
  contract:'Contract life',contractMethod:'Same-pace estimate',lineup:'Lineup & depth',efficiency:'Points / $',
  missing:'—',noMatches:'No matching teams',review:'Review trade',close:'Close trade review',
  note:'Add a note',afterAccept:'Moves after everyone accepts.',back:'Change partner',advanced:'Advanced moves',

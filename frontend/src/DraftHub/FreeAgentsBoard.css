@@ -101,3 +101,7 @@
   .fa-player.is-locked .fa-player-bottom > button { width: 100%; }
   .fa-range-copy { flex-wrap: wrap; }
 }
+
+.fa-range-guide { margin:0 0 var(--space-3); font-size:var(--text-xs); color:var(--text-secondary); }
+.fa-range-guide summary { min-height:var(--control-h-lg); display:list-item; align-content:center; cursor:pointer; }
+.fa-range-guide p { margin:var(--space-2) 0; max-width:65ch; line-height:1.5; }

@@ -9,7 +9,7 @@ import { HubExperienceHero, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import { getWeeklySnapshot, setWeeklySnapshot, weeklySnapshotKey, invalidateWeeklySnapshot } from "./hubDataCache";
 import { canEditHubLineup } from "./weekBoard";
 import { dayStorageKey, formatPts, playersLeftToday, readAura, storageKey, todayRatedCount, vibeLineupStarters, vibeScore, vibeStarts } from "./vibeAura";
-import { VIBE_COPY, deckPlayers, emptySlotCta, emptySlotName, rateHint, todayReadRows, vibeNextActions, vibeRankingRows } from "./vibeRankingsPresentation";
+import { VIBE_COPY, deckPlayers, emptySlotCta, emptySlotName, rateHint, todayReadRows, vibeNextActions, vibeRankingRows, vibeRatingStatus } from "./vibeRankingsPresentation";
 import VibeSwipeDeck from "./VibeSwipeDeck";
 import useVibeRatings from "./useVibeRatings";
 
@@ -20,7 +20,7 @@ function useMediaQuery(query) {
 }
 
 function RankingBoard({ players, auraById, votes }) {
-  return <table className="hub-vibes-table"><thead><tr><th scope="col" className="num hub-vibes-rank" aria-label={VIBE_COPY.rank}>#</th><th scope="col">{VIBE_COPY.player}</th><th scope="col" className="num">{VIBE_COPY.scoreColumn}<small>{VIBE_COPY.scoreUnit}</small></th><th scope="col" className="num">{VIBE_COPY.adjustedColumn}<small>{VIBE_COPY.points}</small></th></tr></thead><tbody>{vibeRankingRows(players, auraById).map((row, i) => <tr key={row.id}><td className="num hub-vibes-rank">{i + 1}</td><td><strong>{row.name}</strong><small>{[row.position, row.team, votes[row.id] === "start" ? VIBE_COPY.start : votes[row.id] === "sit" ? VIBE_COPY.sit : null].filter(Boolean).join(" · ")}</small></td><td className="num">{row.aura}</td><td className="num"><strong>{formatPts(row.adjusted)}</strong><small>{VIBE_COPY.modelShort} {formatPts(row.model)}</small></td></tr>)}</tbody></table>;
+  return <table className="hub-vibes-table"><thead><tr><th scope="col" className="num hub-vibes-rank" aria-label={VIBE_COPY.rank}>#</th><th scope="col">{VIBE_COPY.player}</th><th scope="col" className="num">{VIBE_COPY.scoreColumn}<small>{VIBE_COPY.scoreUnit}</small></th><th scope="col" className="num">{VIBE_COPY.adjustedColumn}<small>{VIBE_COPY.points}</small></th></tr></thead><tbody>{vibeRankingRows(players, auraById).map((row, i) => <tr key={row.id}><td className="num hub-vibes-rank">{i + 1}</td><td><strong>{row.name}</strong><small>{[row.position, row.team, votes[row.id] === "start" ? VIBE_COPY.start : votes[row.id] === "sit" ? VIBE_COPY.sit : null].filter(Boolean).join(" · ")}</small></td><td className="num">{row.aura}<small>{vibeRatingStatus(auraById, row.id)}</small></td><td className="num"><strong>{formatPts(row.adjusted)}</strong><small>{VIBE_COPY.modelShort} {formatPts(row.model)}</small></td></tr>)}</tbody></table>;
 }
 
 export default function VibeRankings({ cacheScope, hubContext, onNavigate, reloadToken }) {

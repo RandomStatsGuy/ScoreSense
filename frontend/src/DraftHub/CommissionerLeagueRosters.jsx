@@ -1,12 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
 import MobilePlayerCard from "../MobilePlayerCard";
 import { HubFilterMenu } from "./HubUILayout";
-import LeagueSleeperConnect from "./LeagueSleeperConnect";
 import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
 import { leagueUsesContracts } from "./leagueCapabilities";
 
@@ -1377,14 +1376,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
         <p className="chart-note" role="status">{playerLinkNotice}</p>
       )}
 
-      {overview && (
-        <LeagueSleeperConnect
-          leagueId={leagueId}
-          hubContext={hubContext}
-          overview={overview}
-          onConnected={refresh}
-        />
-      )}
+      {overview && <Link className="btn-link hub-office-access-link" to="/hub/roster-management/access">{OFFICE_CONTRACTS_COPY.accessImports}</Link>}
 
       {initialLoad ? (
         <LeagueRostersSkeleton />
@@ -1392,15 +1384,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
         <>
       {teams.length > 0 && (
         <div className="hub-league-rosters-toolbar">
-          <label className="hub-league-search">
-            <span className="hub-field-label">{OFFICE_CONTRACTS_COPY.searchPlayers}</span>
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Name, position, NFL team…"
-            />
-          </label>
+
           {mobileLayout ? (
             <HubFilterMenu
               label={OFFICE_CONTRACTS_COPY.teamPicker}
@@ -1415,7 +1399,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                   };
                 }),
               ]}
-              onChange={setTeamFilter}
+              onChange={(id) => { setTeamFilter(id); setSearch(""); }}
             />
           ) : (
             <>
@@ -1434,17 +1418,17 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                       key={block.team.id}
                       type="button"
                       className={`hub-league-jump-pill${teamFilter === block.team.id ? " active" : ""}`}
-                      onClick={() => setTeamFilter((id) => (id === block.team.id ? "" : block.team.id))}
+                      aria-pressed={teamFilter === block.team.id}
+                      onClick={() => { setTeamFilter((id) => (id === block.team.id ? "" : block.team.id)); setSearch(""); }}
                       title={showsMoney
                         ? `${hubTeamLabel(block.team)} · ${fmtSal(s.committed)} committed`
                         : `${hubTeamLabel(block.team)} · ${s.playerCount} player${s.playerCount === 1 ? "" : "s"}`}
                     >
-                      {ownerLabel}
+                      <span className="hub-league-jump-name">{ownerLabel}</span>
+                      {parts.owner && parts.team && <span className="hub-league-jump-team">{parts.team}</span>}
                       <span className="hub-league-jump-meta">
-                        {parts.owner && parts.team ? `${parts.team} · ` : ""}
-                        {showsMoney
-                          ? fmtSal(s.committed)
-                          : `${s.playerCount} player${s.playerCount === 1 ? "" : "s"}`}
+                        <span>{s.playerCount} {s.playerCount === 1 ? "player" : "players"}</span>
+                        {showsMoney && <span>{fmtSal(s.committed)} {OFFICE_CONTRACTS_COPY.committedShort}</span>}
                       </span>
                     </button>
                   );
@@ -1454,13 +1438,22 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
                 <button
                   type="button"
                   className="btn-ghost btn-sm hub-league-show-all"
-                  onClick={() => setTeamFilter("")}
+                  onClick={() => { setTeamFilter(""); setSearch(""); }}
                 >
                   {OFFICE_CONTRACTS_COPY.showAll}
                 </button>
               )}
             </>
           )}
+          {teamFilter && <label className="hub-league-search">
+            <span className="hub-field-label">{OFFICE_CONTRACTS_COPY.searchPlayers}</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name, position, NFL team…"
+            />
+          </label>}
         </div>
       )}
 

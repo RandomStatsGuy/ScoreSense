@@ -391,7 +391,7 @@ export default function RulesWizard({
                   </fieldset>
                   </details>
                 ))}
-                <p className="chart-note">{SCORING_COPY.effect}</p>
+                {readOnlyRules && <p className="chart-note">{SCORING_COPY.effect}</p>}
                 <p className="chart-note">{SCORING_COPY.supported}</p>
               </>
             )}
@@ -810,7 +810,7 @@ export default function RulesWizard({
 
           {!readOnlyRules && activeCategory !== "managers" && (
             <div className="hub-rules-sticky-save">
-              <div><strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong><p className="hub-rules-summary-note">{formatCopy.saveFootnote}</p></div>
+              <div><strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong><p className="hub-rules-summary-note">{activeCategory === "scoring" ? SCORING_COPY.effect : formatCopy.saveFootnote}</p></div>
               <button type="button" className="btn-ghost" disabled={!dirty || saving} onClick={() => applyServerState(workspace, hubContext)}>{RULES_COPY.discard}</button>
               <button type="button" className="btn-primary" disabled={saveDisabled} onClick={save}>
                 {saving ? RULES_COPY.saving : RULES_COPY.save}

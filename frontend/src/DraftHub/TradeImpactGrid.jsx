@@ -4,7 +4,8 @@ function Meter({value,label,caption,scale}){
  const tone=pointTone(value);
  return <div className={`ss-trade-metric ss-trade-meter ${tone}`}><h3>{label}</h3><strong>{pointDelta(value)} <small>pts</small></strong><div className="ss-trade-meter-track" role="img" aria-label={`${label}: ${value==null?'unavailable':pointDelta(value)+' projected points'}`}><span className="ss-trade-meter-fill" style={{'--fill':`${Math.min(Math.abs(value||0)/scale,1)*50}%`}}/></div><p>{caption}</p></div>;
 }
-export default function TradeImpactGrid({impact,salaryLeague}) {
+export default function TradeImpactGrid({impact,salaryLeague,hasPackage=true}) {
+ if(!hasPackage)return <section className="ss-trade-impact" aria-label={C.impact}><header><h2>{C.impact}</h2></header><p className="table-meta">{C.choosePlayers}</p></section>;
  const v=impact;
  return <section className="ss-trade-impact" aria-label={C.impact} aria-live="polite"><header><h2>{C.impact}</h2><span>{C.basis}</span></header><div className="ss-trade-impact-grid">
   <Meter value={v.season} label={C.season} caption={C.remaining} scale={320}/>

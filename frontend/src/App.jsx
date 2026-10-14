@@ -1670,7 +1670,7 @@ export default function App() {
           </p>
         )}
 
-        {refreshStatus && refreshProgressLabel(refreshStatus) && (dataRevision > 0 || ["running", "error"].includes(refreshStatus.status)) && (
+        {view === "projections" && refreshStatus && refreshProgressLabel(refreshStatus) && (dataRevision > 0 || ["running", "error"].includes(refreshStatus.status)) && (
           <div className="projection-refresh-status">
             <p className="chart-note" role="status" aria-live="polite">
               {REFRESH_COPY.label} {refreshProgressLabel(refreshStatus)}

@@ -25,11 +25,14 @@ export const VIBE_COPY = Object.freeze({
   retry: "Retry",
   openTeam: "Open My team",
   howItWorks: "How Vibes works",
-  explanation: "Higher or Lower changes your personal Vibes score. Adjusted projections use that score; This Week keeps the original model projection. Rating a player does not change your lineup.",
+  explanation: "Higher or Lower raises or lowers your current Vibes score, starting at a neutral 50. At 50, adjusted points match the model; above or below 50, they scale up or down. Unrated means no personal rating yet. Rating a player does not change your saved lineup.",
+  unrated: "Unrated",
+  neutral: "Neutral",
+  adjusted: "Adjusted",
   rateNamed: (name, vibe) => `Rate ${name} ${vibe === "start" ? "higher" : "lower"}`,
   saveStatuses: Object.freeze({ device: "Ratings saved on this device.", saving: "Saving ratings…", saved: "Ratings saved.", error: "Saved on this device. Could not sync ratings." }),
   heading: "How do you feel about your players this week?",
-  support: "Rate each player higher or lower once a day to adjust your Vibes score. Ratings do not save your lineup.",
+  support: "Rate higher or lower than each player’s current Vibes score once a day. 50 is neutral; ratings do not save your lineup.",
   chip: "Your read",
   chipDemo: "Demo slate",
   sit: "Lower",
@@ -41,14 +44,14 @@ export const VIBE_COPY = Object.freeze({
   clearAura: "Clear Vibes ratings",
   deckProgress: (index, total) => `${Math.min(index + 1, total)} of ${total}`,
   deckDoneHeading: "Your ratings are saved.",
-  deckDoneSupport: "Review your adjusted projections below. Use Save lineup to apply the suggested lineup when available.",
+  deckDoneSupport: "Review your adjusted projections below. Set your saved lineup in My team → Lineup.",
   emptyHeading: "Add players to start rating.",
   emptySupport: "Add players to your team or sync your league to see your roster here.",
   loading: "Loading this week's roster…",
-  error: "Could not load the week. Try again from This Week.",
+  error: "Could not load the week. Try again from My team → Lineup.",
   keyboardHint: "← lower · → higher · Backspace undo",
-  swipeHint: "Swipe left to rate lower or right to rate higher. Open player details for updates.",
-  desktopHint: "Rate higher or lower. Open player details for updates.",
+  swipeHint: "Swipe left to lower or right to raise your current score. 50 is neutral. Open player details for updates.",
+  desktopHint: "Higher or Lower changes your current score. 50 is neutral. Open player details for updates.",
   profileAbout: "About",
   profileLatest: "Latest",
   profileEmptyNews: "No player updates available for this week.",
@@ -384,6 +387,11 @@ export function vibeNextActions({ canReview = false, canEdit = false } = {}) {
 }
 
 /** Stable roster ranking: aura, adjusted points, then identity. */
+export function vibeRatingStatus(auraById, id) {
+  if (!Object.prototype.hasOwnProperty.call(auraById || {}, id) || auraById[id] == null || !Number.isFinite(Number(auraById[id]))) return VIBE_COPY.unrated;
+  return readAura(auraById, id) === 50 ? VIBE_COPY.neutral : VIBE_COPY.adjusted;
+}
+
 export function vibeRankingRows(players, auraById) {
   return (players || []).map((player) => ({
     id: String(player.player_id), name: player.player_name, position: player.position, team: player.team,
