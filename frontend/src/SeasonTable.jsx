@@ -1,4 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import ProjectionTierBoard from "./ProjectionTierBoard";
+import {usePlayerCardOptional} from "./PlayerCardContext";
+import {BOARD_COPY, projectionNumber, positionShort} from "./projectionsPresentation";
+import {projectionValue, remainingGameProjection} from "./projectionTiers";
 import {
   fmtNum,
   rosGamesPlayed,
@@ -10,9 +14,7 @@ import {
   rosSeasonP90,
 } from "./format";
 import {
-  SortHeader,
   ExportCsvButton,
-  TableEmptyState,
   useTableSort,
   useRankMap,
   rowRankKey,
@@ -20,12 +22,7 @@ import {
   downloadCsv,
 } from "./table";
 import useMobileLayout from "./useMobileLayout";
-import MobileDataList, { MobileStat } from "./MobileDataList";
-import MobilePlayerCard from "./MobilePlayerCard";
-import PlayerCell, { usePlayerMedia } from "./PlayerCell";
-import SentimentBadge from "./SentimentBadge";
-import Chip from "./Chip";
-import { TableSkeleton } from "./TableSkeleton";
+import { usePlayerMedia } from "./PlayerCell";
 
 function exportCsv(rows, seasonComplete) {
   const baseHeader = ["Player", "Team", "Reg pts", "G", "PPG"];
@@ -70,7 +67,7 @@ function sortValue(row, key) {
     case "PPG":
       return Number(rosPPG(row)) || 0;
     case "Left":
-      return Number(row["Weeks Remaining"]) || 0;
+      return Number(row["Games Remaining"]) || 0;
     case "NextP50":
       return Number(rosNextWeekP50(row)) || 0;
     case "RosP50":
@@ -87,8 +84,12 @@ function sortValue(row, key) {
 }
 
 // Number(null) === 0; coerce missing metrics to NaN so useRankMap leaves them unranked.
-const rankByPPG = (row) => Number(rosPPG(row) ?? NaN);
-const rankBySeasonP50 = (row) => Number(rosSeasonP50(row) ?? NaN);
+const knownPPG = row => {
+  const points=projectionValue(rosRegPts(row)), games=projectionValue(rosGamesPlayed(row));
+  return points!=null&&games!=null&&games>0?points/games:null;
+};
+const rankByRecorded = row => projectionValue(rosRegPts(row)) ?? NaN;
+const rankByRos = row => projectionValue(rosP50(row)) ?? NaN;
 
 export default function SeasonTable({
   rows,
@@ -104,12 +105,14 @@ export default function SeasonTable({
   week,
   onClearFilters,
 }) {
-  const [sort, toggleSort] = useTableSort({ column: seasonComplete ? "PPG" : "SeasonP50", dir: "desc" });
+  const [seasonView,setSeasonView] = useState("ros");
+  const recordedView = Boolean(seasonComplete) || seasonView === "recorded";
+  const [sort, toggleSort] = useTableSort({column:seasonComplete?"RegPts":"RosP50",dir:"desc"});
   const mobileLayout = useMobileLayout();
+  const playerCard = usePlayerCardOptional();
 
-  // Position rank over the full slate: PPG once the season is final,
-  // projected season total (P50) while it is live.
-  const rankMap = useRankMap(rows, seasonComplete ? rankByPPG : rankBySeasonP50);
+  // Position rank uses the full slate for the selected recorded or remaining view.
+  const rankMap = useRankMap(rows, recordedView ? rankByRecorded : rankByRos);
 
   const filtered = useMemo(() => {
     let list = rows || [];
@@ -142,17 +145,15 @@ export default function SeasonTable({
   );
   const playerMedia = usePlayerMedia(playerIds);
 
-  const showNarrative = useMemo(
-    () => showSentiment && (rows || []).some((row) => Number(row.sentiment?.mention_count) > 0),
-    [rows, showSentiment],
-  );
-
-  const colCount = (seasonComplete ? 6 : 11) + (showNarrative ? 1 : 0);
   const hasFilters = Boolean((search || "").trim());
 
   return (
     <>
       <div className="table-controls">
+        {!seasonComplete&&<div className="projection-season-tabs" role="group" aria-label={BOARD_COPY.seasonView}>
+          {[['ros',BOARD_COPY.rosProjection],['recorded',BOARD_COPY.seasonSoFar]].map(([id,label])=><button key={id} type="button"
+            aria-pressed={seasonView===id} onClick={()=>{setSeasonView(id);toggleSort(id==="ros"?"RosP50":"RegPts",{forceDir:"desc"});}}>{label}</button>)}
+        </div>}
         {searchSlot}
         {!mobileLayout && (
           <ExportCsvButton onExport={() => exportCsv(sorted, seasonComplete)} disabled={!sorted.length} />
@@ -162,217 +163,32 @@ export default function SeasonTable({
         <span className="table-meta">{sorted.length} players</span>
         {metaLine}
       </div>
-      {mobileLayout ? (
-        <MobileDataList
-          loading={loading && sorted.length === 0}
-          emptyMessage={!loading && sorted.length === 0 ? "No players match your filters." : null}
-          onEmptyAction={hasFilters && sorted.length === 0 ? onClearFilters : undefined}
-        >
-          {sorted.map((row) => {
-            const heroValue = seasonComplete
-              ? fmtNum(rosPPG(row))
-              : fmtNum(rosSeasonP50(row));
-            const heroLabel = seasonComplete ? "PPG" : "season";
-            const games = Number(rosGamesPlayed(row)) || 0;
-            const heroSub = !seasonComplete && games > 0 ? `${fmtNum(rosPPG(row))} ppg` : null;
-            const meta = [row.Team || "—", `${fmtNum(rosRegPts(row))} reg pts`].join(" · ");
-
-            return (
-              <MobilePlayerCard
-                key={rowRankKey(row)}
-                name={row.Player}
-                rank={rankMap.get(rowRankKey(row)) ?? null}
-                titleNode={(
-                  <PlayerCell
-                    name={row.Player}
-                    team={row.Team}
-                    playerId={row.player_id}
-                    media={playerMedia}
-                    size="sm"
-                    showTeam={false}
-                    clickable={Boolean(row.player_id)}
-                    narrativeScope="season"
-                    position={position}
-                    season={season}
-                    week={week ?? projectionWeek}
-                  />
-                )}
-                meta={meta}
-                heroValue={heroValue}
-                heroLabel={heroLabel}
-                heroSub={heroSub}
-                expanded={(
-                  <div className="mobile-stat-grid">
-                    <MobileStat label="Reg pts" value={fmtNum(rosRegPts(row))} />
-                    <MobileStat label="Games" value={rosGamesPlayed(row) ?? "—"} />
-                    <MobileStat label="PPG" value={fmtNum(rosPPG(row))} />
-                    {!seasonComplete && (
-                      <>
-                        <MobileStat label="Weeks left" value={row["Weeks Remaining"] ?? "—"} />
-                        <MobileStat label={`Wk ${projectionWeek ?? "?"} P50`} value={fmtNum(rosNextWeekP50(row))} />
-                        <MobileStat label="ROS P50" value={fmtNum(rosP50(row))} />
-                        <MobileStat label="Season P50" value={fmtNum(rosSeasonP50(row))} />
-                        <MobileStat label="Season P90" value={fmtNum(rosSeasonP90(row))} />
-                      </>
-                    )}
-                  </div>
-                )}
-              />
-            );
-          })}
-        </MobileDataList>
-      ) : (
-      <div className="table-wrap table-sticky table-has-rank">
-        <table>
-          <thead>
-            <tr>
-              <th
-                className="num col-rank"
-                title={seasonComplete ? "Position rank by points per game" : "Position rank by projected season total"}
-              >
-                #
-              </th>
-              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              <SortHeader label="Team" sortKey="Team" sort={sort} onSort={toggleSort} className="col-team" />
-              <SortHeader
-                label="Reg pts"
-                sortKey="RegPts"
-                sort={sort}
-                onSort={toggleSort}
-                tip="Regular-season fantasy points scored (weeks 1–18)"
-                className="num"
-              />
-              <SortHeader
-                label="G"
-                sortKey="G"
-                sort={sort}
-                onSort={toggleSort}
-                tip="Regular-season games played"
-                className="num"
-              />
-              <SortHeader
-                label="PPG"
-                sortKey="PPG"
-                sort={sort}
-                onSort={toggleSort}
-                tip="Reg pts ÷ games — normalizes for missed games"
-                className="num"
-              />
-              {!seasonComplete && (
-                <>
-                  <SortHeader
-                    label="Left"
-                    sortKey="Left"
-                    sort={sort}
-                    onSort={toggleSort}
-                    tip="Regular-season weeks remaining"
-                    className="num"
-                  />
-                  <SortHeader
-                    label={`Wk ${projectionWeek ?? "?"} P50`}
-                    sortKey="NextP50"
-                    sort={sort}
-                    onSort={toggleSort}
-                    tip="P50 projection for the upcoming week"
-                    className="num"
-                  />
-                  <SortHeader
-                    label="ROS P50"
-                    sortKey="RosP50"
-                    sort={sort}
-                    onSort={toggleSort}
-                    tip="Next-week P50 × weeks remaining"
-                    className="num"
-                  />
-                  <SortHeader
-                    label="Season P50"
-                    sortKey="SeasonP50"
-                    sort={sort}
-                    onSort={toggleSort}
-                    tip="Reg pts + ROS P50"
-                    className="num"
-                  />
-                  <SortHeader
-                    label="Season P90"
-                    sortKey="SeasonP90"
-                    sort={sort}
-                    onSort={toggleSort}
-                    tip="Reg pts + ROS P90 ceiling"
-                    className="num"
-                  />
-                </>
-              )}
-              {showNarrative && (
-                <SortHeader
-                  label="Fantasy"
-                  sortKey="Narrative"
-                  sort={sort}
-                  onSort={toggleSort}
-                  tip="Season-to-date fantasy analyst narrative"
-                  className="col-narrative"
-                />
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {loading && sorted.length === 0 && (
-              <TableSkeleton rows={14} cols={colCount} />
-            )}
-            {!loading && sorted.length === 0 && (
-              <TableEmptyState
-                colSpan={colCount}
-                message="No players match your filters."
-                actionLabel="Clear filters"
-                onAction={hasFilters ? onClearFilters : undefined}
-              />
-            )}
-            {sorted.map((row) => {
-              const rank = rankMap.get(rowRankKey(row)) ?? null;
-              return (
-              <tr key={rowRankKey(row)}>
-                <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
-                  {rank ?? "—"}
-                </td>
-                <td className="col-player">
-                  <PlayerCell
-                    name={row.Player}
-                    team={row.Team}
-                    playerId={row.player_id}
-                    media={playerMedia}
-                    size="sm"
-                    showTeam={false}
-                    clickable={Boolean(row.player_id)}
-                    narrativeScope="season"
-                    position={position}
-                    season={season}
-                    week={week ?? projectionWeek}
-                  />
-                </td>
-                <td className="col-team">{row.Team ? <Chip tone="team">{row.Team}</Chip> : "—"}</td>
-                <td className="num">{fmtNum(rosRegPts(row))}</td>
-                <td className="num muted">{rosGamesPlayed(row) ?? "—"}</td>
-                <td className={`num${seasonComplete ? " num-proj" : ""}`}>{fmtNum(rosPPG(row))}</td>
-                {!seasonComplete && (
-                  <>
-                    <td className="num muted">{row["Weeks Remaining"] ?? "—"}</td>
-                    <td className="num">{fmtNum(rosNextWeekP50(row))}</td>
-                    <td className="num">{fmtNum(rosP50(row))}</td>
-                    <td className="num num-proj">{fmtNum(rosSeasonP50(row))}</td>
-                    <td className="num num-secondary">{fmtNum(rosSeasonP90(row))}</td>
-                  </>
-                )}
-                {showNarrative && (
-                  <td className="col-narrative">
-                    <SentimentBadge sentiment={row.sentiment} compact table />
-                  </td>
-                )}
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      )}
+      <ProjectionTierBoard rows={sorted} media={playerMedia} loading={loading}
+        tierBasis={recordedView?BOARD_COPY.finalTierBasis:BOARD_COPY.rosTierBasis}
+        sort={sort} onSort={toggleSort} emptyMessage="No players match your filters."
+        onClearFilters={hasFilters?onClearFilters:undefined}
+        getTierValue={row => recordedView?knownPPG(row):remainingGameProjection(row,rosP50(row))}
+        columns={recordedView?[
+          {key:"games",label:BOARD_COPY.games,sortKey:"G",digits:0},
+          {key:"ppg",label:BOARD_COPY.ppg,sortKey:"PPG"},
+          {key:"recorded",label:BOARD_COPY.recordedPoints,sortKey:"RegPts"},
+        ]:[
+          {key:"recorded",label:BOARD_COPY.recordedPoints,sortKey:"RegPts"},
+          {key:"ppg",label:BOARD_COPY.ppg,sortKey:"PPG"},
+          {key:"remaining",label:BOARD_COPY.gamesLeft,sortKey:"Left",digits:0},
+          {key:"ros",label:BOARD_COPY.rosProjection,sortKey:"RosP50"},
+        ]}
+        getView={row => {
+          const ppg=knownPPG(row);
+          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,positionShort(position)].filter(Boolean).join(" · "),
+            values:{recorded:rosRegPts(row),games:rosGamesPlayed(row),ppg,remaining:row["Games Remaining"],ros:rosP50(row)},
+            sub:recordedView?(ppg==null?null:`${projectionNumber(ppg)} PPG`):`${projectionNumber(remainingGameProjection(row,rosP50(row)))} /gm`};
+        }}
+        onOpen={row => {
+          if(!row.player_id||!playerCard)return;
+          playerCard.openPlayerCard({playerId:row.player_id,name:row.Player,team:row.Team,position,season,
+            week:week??projectionWeek,scope:"season",seasonMode:"live",rank:rankMap.get(rowRankKey(row))??null});
+        }}/>
     </>
   );
 }

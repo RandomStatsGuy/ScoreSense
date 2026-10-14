@@ -1,0 +1,485 @@
+[
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 1280,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 390,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "weekly",
+    "width": 320,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 1280,
+    "state": "complete",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 390,
+    "state": "complete",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "recorded",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "live",
+    "width": 320,
+    "state": "complete",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 1280,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 390,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "ready",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "large",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "missing",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "empty",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "loading",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "error",
+    "errors": [],
+    "failures": []
+  },
+  {
+    "view": "preseason",
+    "width": 320,
+    "state": "long",
+    "errors": [],
+    "failures": []
+  }
+]

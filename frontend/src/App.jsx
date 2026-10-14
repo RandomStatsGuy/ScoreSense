@@ -1749,19 +1749,15 @@ export default function App() {
                 }}
                 onActivate={(signal) => {
                   if (signal.id === "attention") handleMovementFilterChange("attention");
+                  else if (signal.row?.Player) {
+                    handleMovementFilterChange("all");
+                    setSearchQuery(current => current === signal.row.Player ? "" : signal.row.Player);
+                  }
                 }}
               />
             ) : null}
             <section className={`panel wide panel-projections proj-board-surface projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
               {mobileLayout ? (
-                <ProjectionBoardDisclosure
-                  title={BOARD_COPY.weeklySlate}
-                  summary={
-                    weeklySignals[0]?.value
-                      ? `${weeklySignals[0].kicker} · ${weeklySignals[0].value}`
-                      : weeklyBoardResultLabel
-                  }
-                >
                   <ProjectionBoardSignals
                     swipe
                     signals={weeklySignals}
@@ -1774,9 +1770,12 @@ export default function App() {
                     }}
                     onActivate={(signal) => {
                       if (signal.id === "attention") handleMovementFilterChange("attention");
+                  else if (signal.row?.Player) {
+                    handleMovementFilterChange("all");
+                    setSearchQuery(current => current === signal.row.Player ? "" : signal.row.Player);
+                  }
                     }}
                   />
-                </ProjectionBoardDisclosure>
               ) : null}
               <ProjectionBoardHeader
                 kicker={weeklyBoardKicker({ week })}
@@ -1944,6 +1943,8 @@ export default function App() {
           <div className="projections-board">
           <ProjectionBoardSignals
             signals={seasonSignals}
+            swipe={mobileLayout}
+            onActivate={signal => { if (signal.row?.Player) setSearchQuery(current => current === signal.row.Player ? "" : signal.row.Player); }}
             playerParams={{
               position,
               season: isSeasonPreseason ? draftSeason : (rosSeason ?? season),
@@ -2016,10 +2017,7 @@ export default function App() {
                 ) : null}
               </>
             ) : seasonLoading ? (
-              <div className="season-refresh-banner" role="status" aria-live="polite">
-                <span className="season-transition-spinner season-transition-spinner-sm" aria-hidden="true" />
-                Loading {rosSeason ?? projMeta?.default_season} season data…
-              </div>
+              <HubLoadingSkeleton label={`Loading ${rosSeason ?? projMeta?.default_season} season data`} rows={7}/>
             ) : seasonTransition ? (
               <SeasonTransitionState
                 season={rosMeta?.season ?? rosSeason ?? projMeta?.default_season}
@@ -2037,7 +2035,7 @@ export default function App() {
                     showShortLabels
                   />
                 )}
-                <div className="grid projections-grid projections-grid--season-live">
+                <div className="projections-season-live">
                   <div
                     className={`projections-mobile-panel${!seasonMobilePanel || seasonMobilePanel === "projections" ? " is-mobile-active" : ""}`}
                   >

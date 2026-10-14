@@ -1,16 +1,11 @@
 import React, { useMemo, useState } from "react";
-import QuantileBar from "./QuantileBarShared";
-import SeasonRangeCell from "./SeasonRangeCell";
-import { TableSkeleton } from "./TableSkeleton";
+import ProjectionTierBoard from "./ProjectionTierBoard";
+import {projectionValue} from "./projectionTiers";
 import useMobileLayout from "./useMobileLayout";
-import MobileDataList, { MobileStat } from "./MobileDataList";
-import MobilePlayerCard from "./MobilePlayerCard";
-import PlayerCell, { usePlayerMedia } from "./PlayerCell";
+import { usePlayerMedia } from "./PlayerCell";
 import { fmtNum } from "./format";
 import {
-  SortHeader,
   ExportCsvButton,
-  TableEmptyState,
   useTableSort,
   useRankMap,
   rowRankKey,
@@ -25,12 +20,12 @@ import {
 } from "./seasonQuantiles";
 import { usePlayerCardOptional } from "./PlayerCardContext";
 import {
+  BOARD_COPY, projectionNumber,
   matchesSeasonBoardFilter,
   positionShort,
   seasonBoardFilters,
   seasonBoardPreview,
   seasonPeerStats,
-  seasonRead,
 } from "./projectionsPresentation";
 import { ProjectionBoardHeader } from "./ProjectionBoardChrome";
 
@@ -216,219 +211,25 @@ export default function DraftTable({
         <span className="table-meta">{sorted.length} players</span>
         {metaLine}
       </div>
-      {mobileLayout ? (
-        <MobileDataList
-          loading={loading && sorted.length === 0}
-          emptyMessage={
-            !loading && sorted.length === 0
-              ? hasFilters
-                ? "No players match your search."
-                : "No draft projections available."
-              : null
-          }
-          onEmptyAction={hasFilters && sorted.length === 0 ? handleClearFilters : undefined}
-        >
-          {sorted.map((row, rowIndex) => {
-            const band = resolveSeasonBand(row, { method });
-            const seasonP50 = band.p50 ?? (Number(row["Season Proj"]) || 0);
-            const rookieBadge = row["Rookie Est."] ? (
-              <span
-                className="rookie-est-badge"
-                title={row["Rookie Role"] ? `Rookie estimate · ${row["Rookie Role"]}` : "Rookie role-adjusted estimate"}
-              >
-                est.
-              </span>
-            ) : null;
-
-            return (
-              <MobilePlayerCard
-                key={rowRankKey(row)}
-                name={row.Player}
-                rank={rankMap.get(rowRankKey(row)) ?? null}
-                titleNode={(
-                  <PlayerCell
-                    name={row.Player}
-                    team={row.Team}
-                    playerId={row.player_id}
-                    media={playerMedia}
-                    size="sm"
-                    showTeam={false}
-                    clickable={Boolean(row.player_id)}
-                    narrativeScope="season"
-                    position={position}
-                    season={season}
-                    onPlayerClick={() => openPlayer(row)}
-                  />
-                )}
-                meta={row.Team || "—"}
-                heroValue={fmtNum(row["Season Proj"], 0)}
-                heroLabel="season"
-                heroSub={`${fmtNum(row["Per-Game Proj"], 1)} /gm`}
-                badge={rookieBadge}
-                expanded={(
-                  <>
-                    <div className="range-cell">
-                      <QuantileBar
-                        p10={band.p10 ?? 0}
-                        p50={seasonP50}
-                        p90={band.p90 ?? 0}
-                        scaleMax={seasonScaleMax}
-                        rowIndex={rowIndex}
-                        title={seasonTip}
-                        subtitle={`${formatSeasonPts(band.p10, 0)} – ${formatSeasonPts(band.p90, 0)} season pts`}
-                      />
-                    </div>
-                    <div className="mobile-stat-grid">
-                      <MobileStat label="Per-game" value={fmtNum(row["Per-Game Proj"], 1)} />
-                      <MobileStat
-                        label="Floor"
-                        value={formatSeasonPts(band.p10 ?? row["Season Floor"], 0)}
-                        title={seasonTip}
-                      />
-                      <MobileStat
-                        label="Ceiling"
-                        value={formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
-                        title={seasonTip}
-                      />
-                    </div>
-                  </>
-                )}
-              />
-            );
-          })}
-        </MobileDataList>
-      ) : (
-      <div className="table-wrap table-sticky table-has-rank">
-        <table>
-          <thead>
-            <tr>
-              <th className="num col-rank" title="Position rank by projected season total">#</th>
-              <SortHeader label="Player" sortKey="Player" sort={sort} onSort={toggleSort} className="col-player" />
-              <SortHeader
-                label="P10"
-                sortKey="Floor"
-                sort={sort}
-                onSort={toggleSort}
-                className="col-floor-ceiling"
-                tip={scheduleAware ? "Season P10 (schedule-aware)" : "Season floor (preliminary)"}
-              />
-              <SortHeader
-                label="P50"
-                sortKey="Proj"
-                sort={sort}
-                onSort={toggleSort}
-                className="col-proj"
-                tip={seasonTip}
-              />
-              <SortHeader
-                label="P90"
-                sortKey="Ceiling"
-                sort={sort}
-                onSort={toggleSort}
-                className="col-floor-ceiling"
-                tip={scheduleAware ? "Season P90 (schedule-aware)" : "Season ceiling (preliminary)"}
-              />
-              <SortHeader
-                label="Per game"
-                sortKey="PerGame"
-                sort={sort}
-                onSort={toggleSort}
-                className="col-per-game"
-                tip="Season projection divided by expected games"
-              />
-              <th className="col-range" title={seasonTip}>Season range</th>
-              <th className="proj-read" title="Short range and role read">Read</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && sorted.length === 0 ? (
-              <TableSkeleton rows={14} cols={8} />
-            ) : (
-              <>
-            {sorted.length === 0 && (
-              <TableEmptyState
-                colSpan={8}
-                message={hasFilters ? "No players match your search." : "No draft projections available."}
-                actionLabel="Clear filters"
-                onAction={hasFilters ? handleClearFilters : undefined}
-              />
-            )}
-            {sorted.map((row, rowIndex) => {
-              const band = resolveSeasonBand(row, { method });
-              const seasonP50 = band.p50 ?? (Number(row["Season Proj"]) || 0);
-              const rank = rankMap.get(rowRankKey(row)) ?? null;
-              return (
-                <tr
-                  key={rowRankKey(row)}
-                  className="proj-board-row"
-                  onClick={() => openPlayer(row)}
-                >
-                  <td className={`num col-rank${rank != null && rank <= 3 ? " col-rank-top" : ""}`}>
-                    {rank ?? "—"}
-                  </td>
-                  <td className="col-player">
-                    <PlayerCell
-                      name={row.Player}
-                      team={row.Team}
-                      playerId={row.player_id}
-                      media={playerMedia}
-                      size="sm"
-                      showTeam={false}
-                      clickable={Boolean(row.player_id)}
-                      narrativeScope="season"
-                      position={positionShort(position)}
-                      season={season}
-                      onPlayerClick={() => openPlayer(row)}
-                    />
-                    {row["Rookie Est."] ? (
-                      <span
-                        className="rookie-est-badge"
-                        title={row["Rookie Role"] ? `Rookie estimate · ${row["Rookie Role"]}` : "Rookie role-adjusted estimate"}
-                      >
-                        est.
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="num num-quantile col-floor-ceiling">
-                    {formatSeasonPts(band.p10 ?? row["Season Floor"], 0)}
-                  </td>
-                  <td className="num num-proj num-p50">
-                    <SeasonRangeCell
-                      row={row}
-                      method={method}
-                      scaleMax={seasonScaleMax}
-                      rowIndex={rowIndex}
-                      digits={0}
-                      showBar={false}
-                    />
-                  </td>
-                  <td className="num num-quantile col-floor-ceiling">
-                    {formatSeasonPts(band.p90 ?? row["Season Ceiling"], 0)}
-                  </td>
-                  <td className="num col-per-game">{fmtNum(row["Per-Game Proj"], 1)}</td>
-                  <td className="range-cell">
-                    <QuantileBar
-                      p10={band.p10 ?? 0}
-                      p50={seasonP50}
-                      p90={band.p90 ?? 0}
-                      scaleMax={seasonScaleMax}
-                      rowIndex={rowIndex}
-                      title={seasonTip}
-                      subtitle={`${formatSeasonPts(band.p10, 0)} – ${formatSeasonPts(band.p90, 0)} season pts`}
-                    />
-                  </td>
-                  <td className="proj-read">
-                    {seasonRead(row, peerStats, { rank, position, method })}
-                  </td>
-                </tr>
-              );
-            })}
-              </>
-            )}
-          </tbody>
-        </table>
-      </div>
-      )}
+      <ProjectionTierBoard rows={sorted} media={playerMedia} loading={loading}
+        tierBasis={BOARD_COPY.seasonTierBasis} sort={sort} onSort={toggleSort} numberDigits={0}
+        emptyMessage={hasFilters ? "No players match your search." : "No draft projections available."}
+        onClearFilters={hasFilters ? handleClearFilters : undefined} onOpen={openPlayer}
+        getTierValue={row => row["Per-Game Proj"]}
+        columns={[
+          {key:"perGame",label:BOARD_COPY.perGame,sortKey:"PerGame",digits:1},
+          {key:"floor",label:BOARD_COPY.floor,sortKey:"Floor"},
+          {key:"ceiling",label:BOARD_COPY.ceiling,sortKey:"Ceiling"},
+          {key:"points",label:BOARD_COPY.seasonProjection,sortKey:"Proj"},
+        ]}
+        getView={row => {
+          const band=resolveSeasonBand(row,{method});
+          const perGame=projectionValue(row["Per-Game Proj"]);
+          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,positionShort(position)].filter(Boolean).join(" · "),
+            badge:row["Rookie Est."]?<span className="rookie-est-badge" title={row["Rookie Role"]||"Rookie estimate"}>est.</span>:null,
+            values:{perGame,floor:band.p10,ceiling:band.p90,points:band.p50??row["Season Proj"]},
+            sub:perGame==null?null:`${projectionNumber(perGame)} /gm`};
+        }}/>
     </>
   );
 }

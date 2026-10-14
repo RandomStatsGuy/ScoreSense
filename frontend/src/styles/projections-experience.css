@@ -58,9 +58,8 @@
   font-size: 0.95rem;
   font-weight: 700;
   line-height: var(--line-tight);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .proj-signals--swipe .proj-signal-name {
@@ -653,3 +652,23 @@
     transition: none;
   }
 }
+
+
+/* Approved B keeps the board title compact and makes signals quiet, readable facts. */
+.proj-board-title { font-size:1.5rem; letter-spacing:-.03em; }
+.proj-signal-kicker { letter-spacing:0; text-transform:none; font-weight:400; }
+.proj-signal-name { font-size:var(--text-sm); font-weight:600; }
+.proj-signal-value { font-size:var(--text-xs); }
+.proj-disclosure-summary-row { display:list-item; }
+@media(max-width:768px) {
+  .proj-signals--swipe { margin-bottom:var(--space-3); padding-bottom:var(--space-1); }
+  .proj-signals--swipe .proj-signal { flex-basis:205px; min-width:205px; padding:var(--space-3) var(--space-4); }
+  .proj-board-surface { padding-inline:var(--space-3); }
+}
+
+.proj-disclosure-summary-row { position:relative; }
+.proj-disclosure-summary-content { display:inline-flex; align-items:center; flex-wrap:wrap; gap:var(--space-2) var(--space-3); max-width:calc(100% - var(--space-5)); }
+.proj-disclosure-summary-row::after { position:absolute; top:50%; right:var(--space-3); margin-top:calc(-1 * var(--space-1)); }
+
+.projections-season-live { display:flex; flex-direction:column; gap:var(--space-4); min-width:0; }
+.projections-season-live>div { min-width:0; width:100%; }
