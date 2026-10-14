@@ -1,3 +1,4 @@
+import {hasProjectionPosition} from "./projectionPositions";
 import React, { useMemo, useState } from "react";
 import ProjectionTierBoard from "./ProjectionTierBoard";
 import {projectionPosition, projectionValue} from "./projectionTiers";
@@ -22,7 +23,6 @@ import { usePlayerCardOptional } from "./PlayerCardContext";
 import {
   BOARD_COPY, projectionNumber,
   matchesSeasonBoardFilter,
-  positionShort,
   seasonBoardFilters,
   seasonBoardPreview,
   seasonPeerStats,
@@ -93,7 +93,7 @@ export default function DraftTable({
   const [boardFilter, setBoardFilter] = useState("all");
   const mobileLayout = useMobileLayout();
   const playerCard = usePlayerCardOptional();
-  const rankMap = useRankMap(rows, rankBySeasonProj);
+  const rankMap = useRankMap(rows.filter(row=>hasProjectionPosition(row,position)), rankBySeasonProj);
   const hasFilters = Boolean((search || "").trim() || boardFilter !== "all");
   const method = seasonQuantileMethod
     || rows?.find((r) => r.season_quantile_method)?.season_quantile_method
@@ -225,7 +225,7 @@ export default function DraftTable({
         getView={row => {
           const band=resolveSeasonBand(row,{method});
           const perGame=projectionValue(row["Per-Game Proj"]);
-          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,projectionPosition(row,position)||positionShort(position)].filter(Boolean).join(" · "),
+          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,projectionPosition(row,position)||"—"].filter(Boolean).join(" · "),
             badge:row["Rookie Est."]?<span className="rookie-est-badge" title={row["Rookie Role"]||"Rookie estimate"}>est.</span>:null,
             values:{perGame,floor:band.p10,ceiling:band.p90,points:band.p50??row["Season Proj"]},
             sub:perGame==null?null:`${projectionNumber(perGame)} /gm`};

@@ -1,3 +1,4 @@
+import {hasProjectionPosition} from "./projectionPositions";
 import {isByeWeek} from "./weeklyAvailability";
 import React, {useEffect, useMemo, useState} from "react";
 import Chip, {injuryChipTone} from "./Chip";
@@ -10,7 +11,7 @@ import {filterWeeklyBoardRows, weeklyResultLabel} from "./weeklyBoardFilter";
 import {usePlayerCardOptional} from "./PlayerCardContext";
 import {MOVEMENT_FILTERS, isLeftSlate, movementEmptyMessage, movementSortScore} from "./projectionMovement";
 import {pickOpportunityAdjustment} from "./opportunityAdjustment";
-import {BOARD_COPY, isBoardAvailable, positionShort, staleRefreshLabel, weeklyContextNeedsRefresh, weeklyBoardPreview, weeklyPeerStats, projectionNumber, projectionRankMovement} from "./projectionsPresentation";
+import {BOARD_COPY, isBoardAvailable, staleRefreshLabel, weeklyContextNeedsRefresh, weeklyBoardPreview, weeklyPeerStats, projectionNumber, projectionRankMovement} from "./projectionsPresentation";
 import ProjectionTierBoard from "./ProjectionTierBoard";
 import {projectionPosition, projectionValue} from "./projectionTiers";
 const SORT_KEYS = {Player:"Player", Team:"Team", Opponent:"Opponent", Narrative:"Narrative", P50:"Projected Points", P10:"Low (P10)", P90:"High (P90)", Opportunity:"_opportunity_adjustment", RankDelta:"rank_delta", P50Delta:"p50_delta", Move:"_movement_score"};
@@ -165,7 +166,7 @@ export default function WeeklyTable({
     [rows]
   );
 
-  const peerStats = useMemo(() => weeklyPeerStats(rows, { position }), [rows, position]);
+  const peerStats = useMemo(() => weeklyPeerStats(rows.filter(row=>hasProjectionPosition(row,position)), { position }), [rows, position]);
 
   const filtered = useMemo(
     () => filterWeeklyBoardRows(rows, {
@@ -249,7 +250,7 @@ export default function WeeklyTable({
   const playerMedia = usePlayerMedia(playerIds);
 
   // Position rank over the full slate (stable regardless of sort/filter).
-  const rankMap = useRankMap(rows, rankMetric);
+  const rankMap = useRankMap(rows.filter(row=>hasProjectionPosition(row,position)), rankMetric);
   const hasFilters = Boolean(
     (search || "").trim() ||
       teamsFilter?.length ||
@@ -437,8 +438,8 @@ export default function WeeklyTable({
           const status=row["Injury Status"]||"";
           const blocked=isByeWeek(row)?BOARD_COPY.byeWeek:isLeftSlate(row)?BOARD_COPY.leftTier:isPlayerUnavailable(status)?unavailableLabel(status):null;
           const low=projectionValue(row["Low (P10)"]), high=projectionValue(row["High (P90)"]);
-          return {rank:rankMap.get(rowRankKey(row)), movement:isByeWeek(row)?"":projectionRankMovement(row,showMovement),
-            meta:[row.Team,projectionPosition(row,position)||positionShort(position),row.Opponent].filter(Boolean).join(" · "),
+          return {rank:rankMap.get(rowRankKey(row)), movement:isByeWeek(row)||!hasProjectionPosition(row,position)?"":projectionRankMovement(row,showMovement,position),
+            meta:[row.Team,projectionPosition(row,position)||"—",row.Opponent].filter(Boolean).join(" · "),
             badge:blocked?null:<InjuryStatusTag status={status}/>, blocked,
             values:{opponent:isByeWeek(row)?BOARD_COPY.byeWeek:row.Opponent?`vs ${row.Opponent}`:null, floor:low, ceiling:high, points:row["Projected Points"]},
             sub:!blocked && low!=null && high!=null?`${projectionNumber(low)}–${projectionNumber(high)}`:null};

@@ -10,8 +10,8 @@ test('Only explicit schedule evidence establishes bye weeks',()=>{
 });
 
 test('High conditional bye forecasts cannot lead a weekly tier or signal',()=>{
-  const bye={player_id:'bye',Player:'On bye',Position:'WR',Opponent:'BYE','Projected Points':40,'Low (P10)':30,'High (P90)':50,rank_delta:20};
-  const active={player_id:'active',Player:'Playing',Position:'WR',Opponent:'BUF','Projected Points':19.9,'Low (P10)':12,'High (P90)':27,rank_delta:1};
+  const bye={player_id:'bye',Player:'On bye',Position:'WR',Opponent:'BYE','Projected Points':40,'Low (P10)':30,'High (P90)':50,rank_delta:20,p50_delta:20};
+  const active={player_id:'active',Player:'Playing',Position:'WR',Opponent:'BUF','Projected Points':19.9,'Low (P10)':12,'High (P90)':27,rank_delta:1,p50_delta:1};
   assert.equal(isBoardAvailable(bye),false);
   assert.equal(isBoardAvailable(active),true);
   assert.equal(weeklyQuantiles(bye).p50,null);

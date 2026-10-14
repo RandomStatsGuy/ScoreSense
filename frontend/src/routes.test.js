@@ -181,3 +181,11 @@ test("My team lineup link preserves the requested week through navigation", () =
   assert.equal(params.get("week"), "6");
   assert.equal(buildFilterSearchParams({lineup:"",preserveParams:params}).has("lineup"), false);
 });
+
+test("TE projection links round-trip independently of the shared WR model key",()=>{
+  for(const position of ['qb','rb','wr','te']){
+    const params=buildFilterSearchParams({position,season:2026,week:6,draftSeason:2026,rosFromWeek:6});
+    assert.equal(parseFilterParams(params).position,position);
+  }
+  assert.equal(parseFilterParams(new URLSearchParams('pos=flex')).position,null);
+});

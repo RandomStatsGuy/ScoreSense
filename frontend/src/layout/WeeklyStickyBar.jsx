@@ -1,6 +1,6 @@
 import React from "react";
 import { BOARD_COPY } from "../projectionsPresentation";
-import { PROJECTION_POSITIONS } from "./ProjectionsFilterBar";
+import ProjectionPositionControl from "./ProjectionPositionControl";
 import { MOBILE_CHROME_COPY } from "./mobileChromePresentation";
 
 function FilterIcon() {
@@ -30,18 +30,8 @@ export default function WeeklyStickyBar({
   return (
     <div className="weekly-sticky-bar" role="region" aria-label="Weekly board controls">
       <div className="weekly-sticky-bar-row">
-        <div className="header-segment weekly-sticky-pos" role="group" aria-label="Position">
-          {PROJECTION_POSITIONS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`tab header-segment-tab ${position === item.id ? "active" : ""}`}
-              onClick={() => onPositionChange?.(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <ProjectionPositionControl position={position} onChange={onPositionChange}
+          className="header-segment weekly-sticky-pos" />
         <button
           type="button"
           className={`weekly-sticky-filter${filterActive ? " is-active" : ""}`}
