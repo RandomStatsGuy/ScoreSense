@@ -3,6 +3,7 @@
  * Keep JSX structural; user-facing strings live here.
  */
 
+import { projectionValue } from "./projectionTiers.js";
 import { formatRelativeTime, isPlayerUnavailable } from "./format.js";
 import { formatOpportunityAdjustmentPct } from "./opportunityAdjustment.js";
 import { isLeftSlate } from "./projectionMovement.js";
@@ -27,11 +28,23 @@ export const SEASON_BOARD_FILTERS = [
 ];
 
 export const BOARD_COPY = {
-  weeklyBoard: "The board",
+  rank: "#", player: "Player", projected: "Projected", perGame: "Per game",
+  seasonProjection: "Season projection", recordedPoints: "Points so far", ppg: "PPG", games: "Games",
+  rosProjection: "Rest of season", seasonSoFar: "Season so far", seasonView: "Season view", gamesLeft: "Games left", matchup: "Matchup", loadingBoard: "Loading player projections",
+  emptyBoard: "No player projections are available.", rankedPlayers: "Ranked player projections",
+  tierSort: "Sort within each tier", weeklyTierBasis: "Tiers by projected weekly PPR points",
+  seasonTierBasis: "Tiers by projected PPR points per game", rosTierBasis: "Tiers by projected PPR per remaining game",
+  finalTierBasis: "Tiers by recorded PPR points per game", tierTitle: (letter) => `${letter} tier`,
+  playerCount: (count) => `${count} player${count === 1 ? "" : "s"}`,
+  openPlayer: (name) => `Open ${name} player details`, selectPlayer: (name) => `Select ${name} for comparison`,
+  inactiveTier: "Not active", leftTier: "Left slate", unknownTier: "Untiered",
+  inactiveTierNote: "Weekly forecasts suppressed", unknownTierNote: "Missing tier data",
+
+  weeklyBoard: "Weekly projections",
   weeklySlate: "This week's slate",
-  weeklySupport: "Rank the week, then open a player. Sit the wrong name and you leave the P50 on the bench.",
-  seasonBoard: "The season board",
-  seasonSupport: "Season P50 with floor and ceiling. Draft the wrong tier and your keeper price is set for three years.",
+  weeklySupport: "",
+  seasonBoard: "Season projections",
+  seasonSupport: "",
   searchBoard: "Search the board",
   searchInspector: "Find a player",
   whyNow: "Why now",
@@ -567,7 +580,7 @@ export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, s
   return [
     {
       id: "top",
-      kicker: "Top P50",
+      kicker: scope === "live" ? "Season projection" : "Top P50",
       name: top ? playerName(top.row) : "—",
       value: top
         ? `${Math.round(top.band.p50)}${Number.isFinite(Number(perGame)) ? ` · ${Number(perGame).toFixed(1)} /gm` : ""}`
@@ -579,7 +592,7 @@ export function seasonBoardSignals(rows, { method, featureSeason, draftSeason, s
     },
     {
       id: "ceiling",
-      kicker: "Top ceiling",
+      kicker: scope === "live" ? "Season ceiling" : "Top ceiling",
       name: ceiling ? playerName(ceiling.row) : "—",
       value: ceiling
         ? `${Math.round(ceiling.band.p90)}${ceiling.band.spread != null ? ` · ${Math.round(ceiling.band.spread)}-pt spread` : ""}`
@@ -880,4 +893,25 @@ export function forecastRefreshMessage(health) {
   return health.refresh_state === "failed"
     ? "Automatic projection update failed. Showing the last successful forecast."
     : "Projection updates are delayed. Showing the last successful forecast.";
+}
+
+
+export function projectionNumber(value, digits = 1) {
+  const number = projectionValue(value);
+  return number == null ? "—" : number.toFixed(digits);
+}
+
+export function projectionTierCopy(id) {
+  const bands = {S:"24+", A:"18–<24", B:"12–<18", C:"9–<12", D:">6–<9", F:"6 or fewer"};
+  if (bands[id]) return {mark:id, title:BOARD_COPY.tierTitle(id), band:bands[id]};
+  if (id === "inactive") return {mark:"—", title:BOARD_COPY.inactiveTier, band:BOARD_COPY.inactiveTierNote};
+  if (id === "left") return {mark:"—", title:BOARD_COPY.leftTier, band:""};
+  return {mark:"?", title:BOARD_COPY.unknownTier, band:BOARD_COPY.unknownTierNote};
+}
+
+export function projectionRankMovement(row, available) {
+  if (!available) return "";
+  if (row.previous_rank == null && projectionValue(row.current_rank) != null) return "New";
+  const delta = projectionValue(row.rank_delta);
+  return delta == null || delta === 0 ? "" : `${delta > 0 ? "↑" : "↓"}${Math.abs(delta)}`;
 }

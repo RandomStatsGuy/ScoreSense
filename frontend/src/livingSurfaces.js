@@ -394,10 +394,13 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/WeeklyTable.jsx",
     copy: "frontend/src/projectionsPresentation.js",
     also: [
+      "frontend/src/ProjectionTierBoard.jsx",
+      "frontend/src/projectionTiers.js",
+      "frontend/src/styles/projection-tier-board.css",
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Rank stays one line; movement is one muted line under it. Desktop virtualizes on page scroll — no nested table scroller. Do not add a header Refresh on Weekly — the stale or missing-notes chip is the refresh. The notes chip queues background player-context refresh, repairing stale or missing weekly artifacts with existing models before notes; do not start the weekly ETL pipeline or retrain models. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. Phone weekly: swipeable signals, no body movement chips, sticky position+filter+count, windowed list, stale or missing-notes chip is refresh with relative time when one exists. Filter sheet owns search/what-changed with Apply/Reset. No per-card Floor–Ceiling label. Injury context hides while loading and timestamps when ready. The phone board never scrolls sideways: panels stretch to the board width. Phone card hero stacks P50 + Proj on one line with floor–ceiling and movement under it — never three across. While picking players to compare, phone rows show P50 only and drop the expand chevron.",
+    doNot: "Approved October 13 B uses complete S/A/B/C/D/F tiers with no per-tier player cap. F includes every finite projection at or below 6. Missing tier data stays visible and unknown. Preserve all filtered rows, stable ranks, page-scroll windowing including tier-header heights, and the improved player inspector. Numbers never truncate at either edge; the player column owns remaining desktop width. Projections are a board. Do not wrap them in HubExperienceLayout. Weekly compare is a mode — no always-on checkboxes. Weekly rows match QB/WR/TE: no opportunity/role/commentary chips on the board. One compact injury chip only. Rank stays one line; movement is one muted line under it. Desktop virtualizes on page scroll — no nested table scroller. Do not add a header Refresh on Weekly — the stale or missing-notes chip is the refresh. The notes chip queues background player-context refresh, repairing stale or missing weekly artifacts with existing models before notes; do not start the weekly ETL pipeline or retrain models. Phone rows are dense ranking rows; Compare is one toolbar control, never a per-card checkbox. Null prior rank is New, not 0. Phone weekly: swipeable signals, no body movement chips, sticky position+filter+count, windowed list, stale or missing-notes chip is refresh with relative time when one exists. Filter sheet owns search/what-changed with Apply/Reset. No per-card Floor–Ceiling label. Injury context hides while loading and timestamps when ready. The phone board never scrolls sideways: panels stretch to the board width. Phone card hero stacks P50 + Proj on one line with floor–ceiling and movement under it — never three across. While picking players to compare, phone rows show P50 only and drop the expand chevron.",
   }),
   "projections.season": S({
     label: "Season",
@@ -406,10 +409,14 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftTable.jsx",
     copy: "frontend/src/projectionsPresentation.js",
     also: [
+      "frontend/src/ProjectionTierBoard.jsx",
+      "frontend/src/projectionTiers.js",
+      "frontend/src/styles/projection-tier-board.css",
+      "frontend/src/SeasonTable.jsx",
       "frontend/src/ProjectionBoardChrome.jsx",
       "frontend/src/styles/projections-experience.css",
     ],
-    doNot: "Season is a board, not a Fantasy decision page. Phone rows match weekly density: rank, face, name, P50. Do not invent tall season cards. Season names its own miss — do not reuse the Best ball ADP line.",
+    doNot: "Approved October 13 B uses complete S/A/B/C/D/F tiers with no per-tier player cap. F includes every finite projection at or below 6. Missing tier data stays visible and unknown. Preserve all filtered rows, stable ranks, page-scroll windowing including tier-header heights, and the improved player inspector. Numbers never truncate at either edge; the player column owns remaining desktop width. Season is a board, not a Fantasy decision page. Phone rows match weekly density: rank, face, name, P50. Do not invent tall season cards. Season names its own miss — do not reuse the Best ball ADP line.",
   }),
   "projections.inspector": S({
     label: "Player inspector",

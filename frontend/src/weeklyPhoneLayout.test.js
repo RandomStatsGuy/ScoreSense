@@ -25,10 +25,11 @@ test("phone card hero puts the sub line under the value instead of beside it", (
   assert.doesNotMatch(rule(css, ".mobile-player-card-hero"), /flex-direction:\s*row/);
 });
 
-test("compare picking hides the weekly phone range and the expand chevron", () => {
+test("compare picking keeps names opening details and hides the secondary phone range", () => {
   const weekly = read("WeeklyTable.jsx");
-  assert.match(weekly, /heroSub=\{compareSelecting \? null :/);
-  assert.match(weekly, /reserveHeroSub=\{!compareSelecting\}/);
+  assert.match(weekly, /selecting=\{compareSelecting\}/);
+  const board = read("ProjectionTierBoard.jsx");
+  assert.match(board, /mobile&&!selecting&&view.sub/);
   const card = read("MobilePlayerCard.jsx");
   assert.match(card, /hasExpand && !tapSelects \?/);
 });

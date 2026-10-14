@@ -321,3 +321,15 @@ test("archived forecasts ignore automatic failures for their old target", async 
   assert.equal(displayedForecastHealth({kind:"weekly",meta:{season:2026,week:3,projection_refresh:archived},
     automatic:{health:{"weekly:2026:3":{needs_attention:true,refresh_state:"failed"}}}}),archived);
 });
+
+test("projection figures preserve missing values, zero, negative and large totals", async () => {
+  const {projectionNumber, projectionRankMovement} = await import("./projectionsPresentation.js");
+  for (const missing of [null, undefined, "", false, NaN, Infinity]) assert.equal(projectionNumber(missing), "—");
+  assert.equal(projectionNumber(0), "0.0");
+  assert.equal(projectionNumber(-0.2), "-0.2");
+  assert.equal(projectionNumber(99999.9), "99999.9");
+  assert.equal(projectionRankMovement({rank_delta:12}, true), "↑12");
+  assert.equal(projectionRankMovement({rank_delta:-14}, true), "↓14");
+  assert.equal(projectionRankMovement({current_rank:1,previous_rank:null}, true), "New");
+  assert.equal(projectionRankMovement({rank_delta:12}, false), "");
+});
