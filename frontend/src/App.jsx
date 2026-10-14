@@ -24,7 +24,6 @@ import SentimentPanel from "./SentimentPanel";
 import WeeklyTable from "./WeeklyTable";
 import {
   ProjectionBoardDisclosure,
-  ProjectionBoardHeader,
   ProjectionBoardSignals,
 } from "./ProjectionBoardChrome";
 import {
@@ -1775,24 +1774,14 @@ export default function App() {
                     }}
                   />
               ) : null}
-              <ProjectionBoardHeader
-                kicker={weeklyBoardKicker({ week })}
-                title={BOARD_COPY.weeklyBoard}
-                support={BOARD_COPY.weeklySupport}
-                filters={
-                  mobileLayout
-                    ? []
-                    : (meta?.projection_movement != null ? weeklyMovementFilters : [])
-                }
-                activeFilter={movementFilter}
-                onFilterChange={handleMovementFilterChange}
-              />
               {!isLiveContext && projMeta && !meta?.preseason_mode && (
                 <div className="info-callout info-callout-compact" role="status">
                   Showing base projections for this week (live opportunity adjustments apply to Wk {projMeta.default_week} only).
                 </div>
               )}
               <WeeklyTable
+                boardKicker={weeklyBoardKicker({ week })}
+                boardFilters={meta?.projection_movement != null ? weeklyMovementFilters : []}
                 rows={tableRows}
                 search={searchQuery}
                 teamsFilter={selectedTeams}

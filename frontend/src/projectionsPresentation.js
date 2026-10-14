@@ -51,6 +51,7 @@ export const BOARD_COPY = {
   weeklyBoard: "Weekly projections",
   weeklySlate: "This week's slate",
   weeklySupport: "",
+  movementUnavailable: "Movement unavailable for this slate",
   seasonBoard: "Season projections",
   seasonSupport: "",
   searchBoard: "Search the board",

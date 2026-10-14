@@ -18,7 +18,7 @@ const server=createServer((req,res)=>{
  res.setHeader('Content-Type',url.pathname.endsWith('.js')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'text/html');res.end(url.pathname==='/fixture.js'?js:url.pathname==='/fixture.css'?css:html);
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const base=`http://127.0.0.1:${server.address().port}`,out='outputs/separate-receivers-review';await fs.mkdir(out,{recursive:true});
+const base=`http://127.0.0.1:${server.address().port}`,out=process.argv.find(a=>a.startsWith('--out='))?.slice(6)||'outputs/separate-receivers-review';await fs.mkdir(out,{recursive:true});
 let browser=await chromium.launch({headless:true});const requestedView=process.argv.find(a=>a.startsWith('--view='))?.slice(7);
 const requestedStates=process.argv.find(a=>a.startsWith('--states='))?.slice(9).split(',');
 const replacedStates=requestedStates?new Set([...requestedStates,
@@ -29,19 +29,30 @@ const reports=process.argv.includes('--append')?JSON.parse(await fs.readFile(`${
   (requestedView&&r.view!==requestedView)||(replacedStates&&!replacedStates.has(r.state))):[];
 try {
  const views=requestedView?[requestedView]:process.argv.includes('--smoke')?['weekly']:['weekly','preseason','live'];
+ const widths=process.argv.find(a=>a.startsWith('--widths='))?.slice(9).split(',').map(Number)||[1280,390,320];
  const states=requestedStates|| (process.argv.includes('--smoke')?['ready']:['ready','large','missing','empty','loading','error','long','industry','mixed']);
- for(const view of views)for(const width of [1280,390,320])for(const state of (view==='weekly'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'bye']:view==='live'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'complete']:view==='preseason'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'seasonTotals']:states)) {
+ for(const view of views)for(const width of widths)for(const state of (view==='weekly'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'bye']:view==='live'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'complete']:view==='preseason'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'seasonTotals']:states)) {
   if(width===1280&&state==='ready'){await browser.close();browser=await chromium.launch({headless:true});}
   const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'});const errors=[];
   page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message)});
   await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
   await page.goto(`${base}/projections/${view==='weekly'?'weekly':`season/${view==='preseason'?'preseason':'live'}`}?state=${state}&theme=${width===1280?'dark':'light'}`,{waitUntil:'networkidle'});
-  if(['ready','large','missing','long','complete','industry','mixed','seasonTotals','bye'].includes(state))await page.locator('.projection-tier-player').first().waitFor({timeout:10000}).catch(async e=>{console.error((await page.locator('body').innerText()).slice(0,2000));throw e;});
+  if(['ready','large','missing','long','complete','industry','mixed','seasonTotals','bye','stale','noMovement'].includes(state))await page.locator('.projection-tier-player').first().waitFor({timeout:10000}).catch(async e=>{console.error((await page.locator('body').innerText()).slice(0,2000));throw e;});
   if(state==='loading')await page.locator('.hub-loading-skeleton').first().waitFor();
   const audit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
-  const report={view,width,state,errors,failures:audit.filter(r=>!r.ok)};reports.push(report);await fs.writeFile(`${out}/audit.json`,JSON.stringify(reports,null,2));console.log(JSON.stringify(report));
+  let introHeight=null;
+  if(view==='weekly'&&width>768){
+    const intro=page.locator('[data-compact-board-intro]');
+    introHeight=await intro.evaluate(e=>e.getBoundingClientRect().height);
+    assert.doesNotMatch(await intro.innerText(),/What changed vs prior refresh|\d+ players/);
+    assert.equal(await intro.getByRole('button',{name:'Export CSV',exact:true}).count(),1);
+    assert.equal(await intro.getByRole('button',{name:'Compare',exact:true}).count(),1);
+    if(state==='stale')assert.match(await intro.innerText(),/Stale.*2h ago/);
+    if(state==='noMovement')assert.match(await intro.innerText(),/Movement unavailable/);
+  }
+  const report={view,width,state,introHeight,errors,failures:audit.filter(r=>!r.ok)};reports.push(report);await fs.writeFile(`${out}/audit.json`,JSON.stringify(reports,null,2));console.log(JSON.stringify(report));
   await page.screenshot({path:`${out}/${view}-${state}-${width}.png`,fullPage:state!=='long'});
-  if(['ready','large','missing','long','industry','mixed','seasonTotals','bye'].includes(state)){
+  if(['ready','large','missing','long','industry','mixed','seasonTotals','bye','stale','noMovement'].includes(state)){
    const bounds=await page.locator('.projection-tier-primary').evaluateAll(es=>es.map(e=>({width:e.clientWidth,scroll:e.scrollWidth,right:e.getBoundingClientRect().right,viewport:innerWidth})));
    assert.ok(bounds.every(b=>b.scroll<=b.width+1&&b.right<=b.viewport),'All primary figures fit inside their cells and the viewport');
   }
@@ -150,6 +161,8 @@ try {
    assert.match(await page.locator('[data-player-id=p0] .projection-tier-primary').innerText(),/138.0/);
   }
   if(state==='ready'){
+   await page.screenshot({path:`${out}/${view}-viewport-${width}.png`});
+
    const rendered=await page.locator('.projection-tier-player[data-player-id]').evaluateAll(es=>es.map(e=>e.dataset.playerId));
    assert.equal(new Set(rendered).size,await page.evaluate(()=>window.fixtureRows.length));
    const numberBounds=await page.locator('.projection-tier-primary').evaluateAll(es=>es.map(e=>({width:e.clientWidth,scroll:e.scrollWidth,right:e.getBoundingClientRect().right,viewport:innerWidth})));
@@ -209,6 +222,14 @@ try {
     reports.push({view,width,state:'recorded',errors,failures:actualAudit.filter(r=>!r.ok)});
     await page.screenshot({path:`${out}/live-recorded-${width}.png`,fullPage:true});
     await page.getByRole('button',{name:'Rest of season',exact:true}).click();
+   }
+   if(view==='weekly'&&width>768){
+    const intro=page.locator('[data-compact-board-intro]');
+    await intro.getByRole('button',{name:'Attention',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('.projection-tier-player').length===0);
+    assert.equal(await intro.getByRole('button',{name:'Export CSV',exact:true}).isDisabled(),true);
+    await intro.getByRole('button',{name:/^All /}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('.projection-tier-player').length===window.fixtureRows.length);
    }
   }
   if(state==='long'){

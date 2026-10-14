@@ -312,3 +312,17 @@ test("cursor audit preserves drag, disabled, hidden, and text-entry exceptions",
     cursorTarget("text", { editable: true }),
   ]).ok, true);
 });
+
+test("compact board intro budget catches excess chrome and allows wrapped laptop controls",()=>{
+  for(const [width,height,ok] of [[1280,96,true],[1280,97,false],[1024,140,true],[1024,161,false]]){
+    const intro={getClientRects:()=>[{}],getBoundingClientRect:()=>({height})};
+    const results=runInNewContext(`(${measureScript().toString()})(args)`,{
+      document:{documentElement:{scrollWidth:width},body:{scrollWidth:width},styleSheets:[],querySelector:()=>null,
+        querySelectorAll:selector=>selector==='[data-compact-board-intro]'?[intro]:[]},
+      innerWidth:width,window:{innerWidth:width,innerHeight:900},
+      getComputedStyle:()=>({fontSize:"16px",getPropertyValue:()=>"12px"}),
+      args:{minTarget:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR},
+    });
+    assert.equal(results.find(r=>r.rule==='board-intro').ok,ok);
+  }
+});

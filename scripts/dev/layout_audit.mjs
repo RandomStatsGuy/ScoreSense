@@ -253,6 +253,13 @@ export function measureScript() {
       return value.endsWith("px") ? number : Number.NaN;
     };
     const results = [];
+    // Opted-in board headers must leave the list room, including when notices appear.
+    document.querySelectorAll('[data-compact-board-intro]').forEach(intro=>{
+      if(!intro.getClientRects().length)return;
+      const height=intro.getBoundingClientRect().height,limit=innerWidth>=1200?96:160;
+      results.push({rule:"board-intro",ok:height<=limit,selector:"[data-compact-board-intro]",
+        detail:`${Math.round(height)}px header; ${limit}px maximum including notices`});
+    });
     const cursorTargets = [...document.querySelectorAll(
       'button, a[href], summary, select, input[type="button"], input[type="submit"], input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], input[type="color"], label[for], [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="switch"], [role="radio"], [role="checkbox"], [role="combobox"], [data-interactive="true"], [title]:not([title=""]), .hover-tip-trigger, .quantile-bar-interactive, .sortable-header, .recharts-surface'
     )].filter(el => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden"
