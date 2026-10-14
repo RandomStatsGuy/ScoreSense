@@ -16,6 +16,24 @@ textarea {
   font: inherit;
 }
 
+/* Shared interaction cue. Keep text entry, disabled states, and drag handles
+   on their native or component-specific cursors. */
+:is(button, a[href], summary, select,
+    input[type="button"], input[type="submit"], input[type="reset"],
+    input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], input[type="color"],
+    label[for], label:has(input[type="checkbox"]:enabled, input[type="radio"]:enabled),
+    [role="button"], [role="link"], [role="tab"], [role="menuitem"],
+    [role="menuitemcheckbox"], [role="menuitemradio"], [role="checkbox"],
+    [role="radio"], [role="switch"], [role="option"], [role="combobox"],
+    [data-interactive="true"], .recharts-surface, .hub-insights-scoring-table tbody tr,
+    [title]:not([title=""]):not(input, textarea, [contenteditable="true"])):not(
+    :disabled, [aria-disabled="true"], :disabled *, [aria-disabled="true"] *,
+    [draggable="true"], [draggable="true"] *, textarea, [contenteditable],
+    input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]),
+    label:has(input:disabled)) {
+  cursor: pointer;
+}
+
 /* Keyboard focus baseline — visible ring on any interactive element that
    doesn't define its own :focus-visible treatment. */
 :where(button, a, select, input, textarea, summary, [role="button"], [tabindex="0"]):focus-visible {
@@ -1408,7 +1426,7 @@ input[type="search"].search-input {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  cursor: help;
+  cursor: pointer;
 }
 
 .sentiment-source-chip {
@@ -1439,7 +1457,7 @@ input[type="search"].search-input {
   flex-direction: column;
   align-items: flex-start;
   gap: 0.1rem;
-  cursor: help;
+  cursor: pointer;
 }
 
 .sentiment-badge-compact {
@@ -1725,7 +1743,7 @@ input[type="search"].search-input {
   gap: 0.15rem;
   min-width: 0;
   height: 100%;
-  cursor: help;
+  cursor: pointer;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 
@@ -2667,7 +2685,7 @@ input[type="search"].search-input {
 }
 
 .quantile-bar-interactive {
-  cursor: help;
+  cursor: pointer;
 }
 
 .quantile-tooltip {
@@ -3633,7 +3651,7 @@ h1 {
 }
 
 .hover-tip-trigger {
-  cursor: help;
+  cursor: pointer;
 }
 
 .hover-tip-trigger.is-touch-open,
@@ -3733,7 +3751,7 @@ th.hover-tip-trigger.sortable-header {
 }
 
 th.hover-tip-trigger.col-tip {
-  cursor: help;
+  cursor: pointer;
 }
 
 .sortable-header.hover-tip-trigger:hover {
@@ -3774,7 +3792,7 @@ th.hover-tip-trigger.col-tip {
 .metric-group-tip {
   font-size: var(--text-xs);
   color: #64748b;
-  cursor: help;
+  cursor: pointer;
   text-transform: none;
   letter-spacing: normal;
   font-weight: 400;
@@ -3847,7 +3865,7 @@ td.num-proj .col-proj-value {
 }
 
 th.col-tip {
-  cursor: help;
+  cursor: pointer;
   text-decoration: underline dotted #475569;
   text-underline-offset: 3px;
 }
@@ -4782,7 +4800,7 @@ td.col-rank.col-rank-top {
   padding: 0.06rem 0.38rem;
   font-size: var(--text-xs);
   flex-shrink: 0;
-  cursor: help;
+  cursor: pointer;
 }
 
 /* Empty state with a recovery action (shared across data tables). */
@@ -7247,7 +7265,7 @@ td.col-rank.col-rank-top {
 .hub-page-meta-tip {
   display: inline;
   border-bottom: 1px dotted rgba(148, 163, 184, 0.55);
-  cursor: help;
+  cursor: pointer;
 }
 
 @media (min-width: 960px) {

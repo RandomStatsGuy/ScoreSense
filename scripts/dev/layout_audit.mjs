@@ -253,6 +253,24 @@ export function measureScript() {
       return value.endsWith("px") ? number : Number.NaN;
     };
     const results = [];
+    const cursorTargets = [...document.querySelectorAll(
+      'button, a[href], summary, select, input[type="button"], input[type="submit"], input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], input[type="color"], label[for], [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="switch"], [role="radio"], [role="checkbox"], [role="combobox"], [data-interactive="true"], [title]:not([title=""]), .hover-tip-trigger, .quantile-bar-interactive, .sortable-header, .recharts-surface'
+    )].filter(el => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden"
+      && !el.closest(':disabled, [aria-disabled="true"], [inert]')
+      && !el.matches('input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), textarea, [contenteditable], label:has(input:disabled)'));
+    const cursorFailures = [];
+    for (const target of cursorTargets) {
+      const cursor = getComputedStyle(target).cursor;
+      if (!["pointer", "grab", "grabbing"].includes(cursor)) cursorFailures.push(target);
+      if (cursor !== "pointer") continue;
+      for (const child of target.querySelectorAll("*")) {
+        if (!child.getClientRects().length || child.closest('input, textarea, [contenteditable], :disabled, [aria-disabled="true"], [draggable="true"]')) continue;
+        if (["auto", "default", "help"].includes(getComputedStyle(child).cursor)) cursorFailures.push(child);
+      }
+    }
+    const cursorMisses = [...new Set(cursorFailures)];
+    results.push({rule:"cursors", ok:cursorMisses.length === 0, selector:"interactive targets",
+      detail:cursorMisses.length ? cursorMisses.slice(0, 6).map(el => `${el.tagName.toLowerCase()}.${elementClassName(el)}: ${getComputedStyle(el).cursor}`).join("; ") : `${cursorTargets.length} targets use pointer or drag cursors`});
     document.querySelectorAll(".hub-week-forecast-opponent, .hub-week-forecast-totals strong").forEach(el => {
       const cs = getComputedStyle(el);
       const clipped = el.scrollWidth > el.clientWidth + 1 || (cs.overflowY === "hidden" && el.scrollHeight > el.clientHeight + 1);

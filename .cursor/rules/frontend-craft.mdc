@@ -31,6 +31,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Text that wraps differently per card (badge, meta line) gets a fixed line count or a fixed height. Never let a badge push a sibling's timestamp onto two lines.
 
 ## Controls
+- Cursor verification follows `docs/PRODUCT.md`: reuse the shared pointer styles in `frontend/src/styles.css`, mark custom clickable targets with `data-interactive="true"` only while enabled, and run the UI audit's `cursors` check for controls, nested labels/icons, tooltips, and charts; preserve text-entry, disabled, and drag cursors.
 - Standalone field pairs use `StandaloneFormRow` and `--form-field-min` to share available width and stack on phone. Text fields and dropdowns share the form control height; use explicit text input types so fields receive shared styling.
 - Interactive targets are ≥ 32 tall at 1280 and ≥ 44 at 390. Do not apply the phone 44 floor on desktop. Lock/Skip/Add/History in a row share one style tier (all buttons or all links, not mixed).
 - One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text. Do not demote whichever `.btn-primary` is second in the DOM to satisfy the audit — each extra primary is a judgment call on an approved list. Approved: Cap Undo cut and Undo extension are ghost (leftover / open the room stays primary); Home chat Send is ghost (the deck action stays); Trades Continue or Propose is the only primary (Accept and Load into builder are ghost).

@@ -2094,7 +2094,7 @@
 .hub-stadium-cap-dead {
   text-decoration: underline dotted;
   text-underline-offset: 0.15em;
-  cursor: help;
+  cursor: pointer;
 }
 
 .hub-roster-table th,
