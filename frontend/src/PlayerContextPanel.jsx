@@ -8,6 +8,7 @@ import HistoricalMediaOptIn from "./HistoricalMediaOptIn";
 import PreseasonMediaModeToggle from "./PreseasonMediaModeToggle";
 import ProjectionTrustLabel from "./ProjectionTrustLabel";
 import {
+  playerCardNote,
   canLabelIncludedInProjection,
   formatInjuryAgeHours,
   formatOppPoints,
@@ -298,16 +299,19 @@ export default function PlayerContextPanel({
   }
 
   if (variant === "notes") {
+    const note=playerCardNote(thisWeek);
+    const hasNote=Boolean(note.headline||note.detail);
+    const hasMedia=Boolean(String(mediaBody||'').trim())&&(isCurrentMedia(media)||showHistoricalContent);
     return <section className="player-profile-notes" aria-label={CONTEXT_COPY.title}>
       {loading && !data ? <p role="status">{CONTEXT_COPY.loading}</p> : null}
       {error ? <p className="error">{error}</p> : null}
-      {data && lockerNote ? <div className="player-context-this-week">
-        {thisWeek.headline ? <p>{thisWeek.headline}</p> : null}
-        {thisWeek.detail ? <p>{thisWeek.detail}</p> : null}
-        {thisWeek.projection_line ? <p className="chart-note">{thisWeek.projection_line}</p> : null}
-        {thisWeek.source ? <p className="chart-note">{thisWeek.source}</p> : null}
+      {data && hasNote ? <div className="player-context-this-week">
+        {note.headline ? <p>{note.headline}</p> : null}
+        {note.detail ? <p>{note.detail}</p> : null}
+        {note.source ? <p className="chart-note">{note.source}</p> : null}
       </div> : null}
-      {data ? renderMediaNotes() : !loading && !error ? <p>{CONTEXT_COPY.mediaEmpty}</p> : null}
+      {data && hasMedia ? <div className="player-context-block"><ProjectionTrustLabel kind="commentary"/>{renderMediaBody(media)}</div> : null}
+      {!loading&&!error&&!hasNote&&!hasMedia ? <p>{CONTEXT_COPY.notesEmpty}</p> : null}
     </section>;
   }
 

@@ -331,11 +331,10 @@
 .projection-explanation {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--theme-translucent, rgba(15, 23, 42, 0.72));
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .projection-explanation-head {

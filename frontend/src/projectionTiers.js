@@ -8,26 +8,60 @@ export function projectionValue(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-export function projectionTier(value) {
-  const points = projectionValue(value);
-  if (points == null) return 'unknown';
-  if (points >= 24) return 'S';
-  if (points >= 18) return 'A';
-  if (points >= 12) return 'B';
-  if (points >= 9) return 'C';
-  if (points > 6) return 'D';
-  return 'F'; // Includes exactly six, zero, and every negative projection.
+// Reviewed 2026-10-14 against FantasyPros consensus and ESPN's 2026 guide.
+// These are fixed design benchmarks, never fitted to the current ScoreSense slate.
+// Provenance, scoring assumptions, and annual normalization: docs/PROJECTION_TIERS.md.
+export const PROJECTION_TIER_PROFILES = Object.freeze({
+  weekly: Object.freeze({
+    QB: Object.freeze({S:21, A:18, B:15, C:12, F:6}),
+    RB: Object.freeze({S:20, A:16, B:12, C:9, F:6}),
+    WR: Object.freeze({S:19, A:15, B:12, C:9, F:6}),
+    TE: Object.freeze({S:14, A:11, B:9, C:7.5, F:6}),
+  }),
+  season: Object.freeze({
+    QB: Object.freeze({S:350, A:300, B:250, C:200, F:100}),
+    RB: Object.freeze({S:340, A:270, B:205, C:150, F:100}),
+    WR: Object.freeze({S:320, A:255, B:205, C:150, F:100}),
+    TE: Object.freeze({S:240, A:190, B:150, C:125, F:100}),
+  }),
+});
+
+const canonicalPosition = value => {
+  const key=String(value ?? '').trim().toUpperCase();
+  return Object.hasOwn(PROJECTION_TIER_PROFILES.weekly,key)?key:null;
+};
+
+/** Real WR/TE identity wins over the combined board's `wr` route/model key. */
+export function projectionPosition(row, boardPosition) {
+  const values=[row?.Position,row?.position].filter(value=>value!=null&&String(value).trim());
+  for(const value of values) {
+    const position=canonicalPosition(value);
+    if(position)return position;
+  }
+  // An explicitly unsupported/malformed position must not inherit a misleading tier.
+  if(values.length)return null;
+  const fallback=canonicalPosition(boardPosition);
+  return fallback==='WR'?null:fallback;
 }
 
-/** Preserve every input occurrence, its original row, and its sort within a tier. */
-export function groupProjectionRows(rows, getValue, getStatus = () => null) {
-  const groups = new Map([...PROJECTION_TIERS, 'inactive', 'left', 'unknown'].map(id => [id, []]));
-  for (const row of rows || []) {
-    const status = getStatus(row);
-    const id = status === 'inactive' || status === 'left' ? status : projectionTier(getValue(row));
+export function projectionTier(value, position, horizon='weekly') {
+  const points=projectionValue(value);
+  const profile=PROJECTION_TIER_PROFILES[horizon]?.[canonicalPosition(position)];
+  if(points==null||!profile)return 'unknown';
+  for(const tier of ['S','A','B','C'])if(points>=profile[tier])return tier;
+  return points>profile.F?'D':'F'; // F has no lower bound, including zero/negative values.
+}
+
+/** Preserve every occurrence, its original row, and its sort within a tier. */
+export function groupProjectionRows(rows, getValue, getStatus=()=>null,
+  getPosition=row=>projectionPosition(row), horizon='weekly') {
+  const groups=new Map([...PROJECTION_TIERS,'bye','inactive','left','unknown'].map(id=>[id,[]]));
+  for(const row of rows||[]) {
+    const status=getStatus(row);
+    const id=status==='bye'||status==='inactive'||status==='left'?status:projectionTier(getValue(row),getPosition(row),horizon);
     groups.get(id).push(row);
   }
-  return [...groups].filter(([, items]) => items.length).map(([id, items]) => ({id, rows:items}));
+  return [...groups].filter(([,items])=>items.length).map(([id,items])=>({id,rows:items}));
 }
 
 /** Fixed, measured row heights + explicit header offsets keep the F-tier tail reachable. */

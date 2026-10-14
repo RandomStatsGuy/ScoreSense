@@ -146,3 +146,16 @@ export function indexPlayersContext(payload) {
   }
   return map;
 }
+
+
+/** Player notes contain reporting, not generic healthy-slate deltas or empty-state copy. */
+export function playerCardNote(note) {
+  const content = value => {
+    const text = String(value ?? '').trim();
+    if (!text || /^No (?:usable note|narrative context|current player notes)/i.test(text)
+      || /^Week is [+-]?[\d.]+ (?:above|below) the healthy slate\.?$/i.test(text)) return '';
+    return text;
+  };
+  const headline=content(note?.headline), detail=content(note?.detail);
+  return {headline,detail,source:headline||detail?String(note?.source??'').trim():''};
+}

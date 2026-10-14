@@ -1,5 +1,7 @@
 # Tiered projections board review
 
+> Historical October 13 implementation review. [October 14 position-aware tiers](../position-aware-tiers/README.md) supersede these original universal cutoffs; current benchmarks live in [PROJECTION_TIERS.md](../../PROJECTION_TIERS.md).
+
 Implements the approved B direction for Weekly, Preseason, and Live season. The improved player inspector is reused unchanged.
 
 ## Inclusion contract

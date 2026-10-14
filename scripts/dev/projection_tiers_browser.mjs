@@ -20,24 +20,65 @@ const server=createServer((req,res)=>{
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const base=`http://127.0.0.1:${server.address().port}`,out='outputs/projection-tiers-review';await fs.mkdir(out,{recursive:true});
 let browser=await chromium.launch({headless:true});const requestedView=process.argv.find(a=>a.startsWith('--view='))?.slice(7);
-const reports=process.argv.includes('--append')?JSON.parse(await fs.readFile(`${out}/audit.json`,'utf8')).filter(r=>r.view!==requestedView):[];
+const requestedStates=process.argv.find(a=>a.startsWith('--states='))?.slice(9).split(',');
+const reports=process.argv.includes('--append')?JSON.parse(await fs.readFile(`${out}/audit.json`,'utf8')).filter(r=>r.view!==requestedView||(requestedStates&&!requestedStates.includes(r.state)&&!(requestedStates.includes('ready')&&['recorded','card-details'].includes(r.state))&&!(requestedStates.includes('bye')&&r.state==='bye-card'))):[];
 try {
  const views=requestedView?[requestedView]:process.argv.includes('--smoke')?['weekly']:['weekly','preseason','live'];
- const states=process.argv.includes('--smoke')?['ready']:['ready','large','missing','empty','loading','error','long'];
- for(const view of views)for(const width of [1280,390,320])for(const state of (view==='live'&&!process.argv.includes('--smoke')?[...states,'complete']:states)) {
+ const states=requestedStates|| (process.argv.includes('--smoke')?['ready']:['ready','large','missing','empty','loading','error','long','industry','mixed']);
+ for(const view of views)for(const width of [1280,390,320])for(const state of (view==='weekly'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'bye']:view==='live'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'complete']:view==='preseason'&&!requestedStates&&!process.argv.includes('--smoke')?[...states,'seasonTotals']:states)) {
   if(width===1280&&state==='ready'){await browser.close();browser=await chromium.launch({headless:true});}
   const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'});const errors=[];
   page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message)});
   await page.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
   await page.goto(`${base}/projections/${view==='weekly'?'weekly':`season/${view==='preseason'?'preseason':'live'}`}?state=${state}&theme=${width===1280?'dark':'light'}`,{waitUntil:'networkidle'});
-  if(['ready','large','missing','long','complete'].includes(state))await page.locator('.projection-tier-player').first().waitFor({timeout:10000}).catch(async e=>{console.error((await page.locator('body').innerText()).slice(0,2000));throw e;});
+  if(['ready','large','missing','long','complete','industry','mixed','seasonTotals','bye'].includes(state))await page.locator('.projection-tier-player').first().waitFor({timeout:10000}).catch(async e=>{console.error((await page.locator('body').innerText()).slice(0,2000));throw e;});
   if(state==='loading')await page.locator('.hub-loading-skeleton').first().waitFor();
   const audit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
   const report={view,width,state,errors,failures:audit.filter(r=>!r.ok)};reports.push(report);await fs.writeFile(`${out}/audit.json`,JSON.stringify(reports,null,2));console.log(JSON.stringify(report));
   await page.screenshot({path:`${out}/${view}-${state}-${width}.png`,fullPage:state!=='long'});
-  if(['ready','large','missing','long'].includes(state)){
+  if(['ready','large','missing','long','industry','mixed','seasonTotals','bye'].includes(state)){
    const bounds=await page.locator('.projection-tier-primary').evaluateAll(es=>es.map(e=>({width:e.clientWidth,scroll:e.scrollWidth,right:e.getBoundingClientRect().right,viewport:innerWidth})));
    assert.ok(bounds.every(b=>b.scroll<=b.width+1&&b.right<=b.viewport),'All primary figures fit inside their cells and the viewport');
+  }
+  if(['industry','mixed','seasonTotals'].includes(state)){
+   assert.equal(await page.locator('.projection-tier-player').count(),await page.evaluate(()=>window.fixtureRows.length));
+   const tiers=await page.evaluate(()=>{
+    let current=null;const result={};
+    document.querySelectorAll('[data-tier],.projection-tier-player').forEach(e=>{
+     if(e.dataset.tier)current=e.dataset.tier;
+     else result[e.dataset.playerId]=current;
+    });return result;
+   });
+   if(state==='industry'){assert.equal(tiers.p0,'S');assert.equal(tiers.p1,'S');assert.equal(tiers.p3,'F');assert.equal(tiers.p4,'unknown');}
+   if(state==='mixed'){assert.equal(tiers.p0,'S');assert.equal(tiers.p1,'S');assert.equal(tiers.p2,'A');assert.equal(tiers.p4,'F');assert.equal(tiers.p5,'F');assert.equal(tiers.p6,'unknown');assert.equal(tiers.p7,'unknown');}
+   if(state==='seasonTotals'){assert.equal(tiers.p0,'F');assert.equal(tiers.p1,'S');assert.match(await page.locator('[data-tier=S]').innerText(),/RB 340\+/);}
+  }
+  if(state==='bye'){
+   assert.equal(await page.locator('.projection-tier-player').count(),3);
+   assert.match(await page.locator('[data-tier=bye]').innerText(),/On bye/);
+   for(const id of ['p0','p1'])assert.match(await page.locator(`[data-player-id=${id}] .projection-tier-primary`).innerText(),/Bye week/);
+   assert.equal((await page.locator('[data-player-id=p0] .projection-tier-rank').innerText()).trim(),'—');
+   assert.match(await page.locator('.proj-signals').innerText(),/Active receiver/);
+   assert.doesNotMatch(await page.locator('.proj-signals').innerText(),/Amon-Ra|Jefferson/);
+   await page.getByRole('button',{name:'Compare',exact:true}).click();
+   assert.equal(await page.locator('[data-player-id=p0] .projection-tier-primary').isDisabled(),true);
+   await page.getByRole('button',{name:'Open Amon-Ra St. Brown details',exact:true}).click();
+   await page.locator('.player-profile-log').waitFor();
+   assert.equal(await page.locator('.player-profile-number').innerText(),'Bye');
+   assert.equal(await page.locator('.player-profile-range').count(),0);
+   assert.equal(await page.locator('.player-inspector-add').count(),0);
+   assert.equal(await page.getByText('Projection details',{exact:true}).count(),0);
+   await page.getByText('Player notes',{exact:true}).click();
+   await page.getByText('No current player notes.',{exact:true}).waitFor();
+   assert.doesNotMatch(await page.locator('.player-inspector').innerText(),/healthy slate|Older notes|No usable note/);
+   const byeAudit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+   reports.push({view,width,state:'bye-card',errors,failures:byeAudit.filter(r=>!r.ok)});
+   await page.screenshot({path:`${out}/weekly-bye-card-${width}.png`});
+   await page.getByRole('tab',{name:'Rest of season',exact:true}).click();
+   assert.match(await page.locator('.player-profile-number').innerText(),/180.0/);
+   await page.keyboard.press('Escape');
+   await page.getByRole('button',{name:'Done',exact:true}).click();
+   if(width===1280){const pending=page.waitForEvent('download');await page.getByRole('button',{name:'Export CSV',exact:true}).click();const dl=await pending;const csv=await fs.readFile(await dl.path(),'utf8');assert.equal((csv.match(/BYE/g)||[]).length,6);}
   }
   if(state==='complete'){
    assert.equal(await page.getByRole('button',{name:'Rest of season',exact:true}).count(),0);
@@ -54,7 +95,23 @@ try {
    assert.ok(card.x>=0&&card.x+card.width<=width+1,'Player card stays inside the viewport');
    if(width>768){const overlay=await page.locator('.player-card-overlay--center').boundingBox();assert.ok(Math.abs(card.x+card.width/2-overlay.x-overlay.width/2)<2,'Desktop player card stays centered in its overlay');}
    else {const edge=await page.locator('.app-mobile-sheet-overlay').evaluate(e=>e.getBoundingClientRect().bottom-parseFloat(getComputedStyle(e).paddingBottom));assert.ok(Math.abs(card.y+card.height-edge)<2,'Mobile player card stays at the bottom sheet inset');}
-   if(view!=='preseason'){await page.getByRole('tab',{name:'Season so far',exact:true}).click();await page.getByRole('tab',{name:'Rest of season',exact:true}).click();}
+   await page.getByText('Player notes',{exact:true}).click();
+   await page.getByText('Full practice on Friday.',{exact:true}).waitFor();
+   assert.doesNotMatch(await page.locator('.player-inspector').innerText(),/healthy slate|Older notes|No usable note/);
+   await page.getByText('Player notes',{exact:true}).click();
+   if(view!=='preseason'){
+    await page.getByText('Projection details',{exact:true}).click();
+    await page.getByText('Recent usage',{exact:true}).waitFor();
+    await page.getByText('Elevated uncertainty',{exact:true}).waitFor();
+    await page.waitForFunction(()=>document.querySelector('.projection-explanation')?.innerText.includes('typical miss'));
+    assert.doesNotMatch(await page.locator('.player-inspector').innerText(),/forecast assumes|weekly artifacts|processed usage features|Narrative context|Context overlay|Why this projection/);
+    await page.locator('.projection-explanation').scrollIntoViewIfNeeded();
+    const detailAudit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+    reports.push({view,width,state:'card-details',errors,failures:detailAudit.filter(r=>!r.ok)});
+    await page.screenshot({path:`${out}/${view}-details-${width}.png`});
+    await page.getByText('Projection details',{exact:true}).click();
+   }
+   if(view!=='preseason'){await page.getByRole('tab' ,{name:'Season so far',exact:true}).click();await page.getByRole('tab',{name:'Rest of season',exact:true}).click();}
    await page.screenshot({path:`${out}/${view}-card-${width}.png`});
    await page.keyboard.press('Escape');
    if(view==='weekly') {

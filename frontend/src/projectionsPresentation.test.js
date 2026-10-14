@@ -333,3 +333,13 @@ test("projection figures preserve missing values, zero, negative and large total
   assert.equal(projectionRankMovement({current_rank:1,previous_rank:null}, true), "New");
   assert.equal(projectionRankMovement({rank_delta:12}, false), "");
 });
+
+test("Tier headings describe the correct position and total/per-game boundaries",async()=>{
+  const {projectionTierCopy}=await import("./projectionsPresentation.js");
+  assert.deepEqual(projectionTierCopy('S',['WR','TE']).bands,['WR 19+','TE 14+']);
+  assert.deepEqual(projectionTierCopy('S',['RB'],'season').bands,['RB 340+']);
+  assert.deepEqual(projectionTierCopy('A',['TE']).bands,['TE 11–<14']);
+  assert.equal(projectionTierCopy('F',['WR']).band,'6 or fewer');
+  assert.equal(projectionTierCopy('F',['WR'],'season').band,'100 or fewer');
+  assert.equal(projectionTierCopy('unknown').title,'Untiered');
+});

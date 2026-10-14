@@ -174,3 +174,12 @@ test("compact list opportunity has points/included without drivers", () => {
   );
   assert.equal(compact.media_context.summary, undefined);
 });
+
+test("Player card notes retain reporting and omit generic deltas and empty older copy",async()=>{
+  const {playerCardNote}=await import('./playerContextDisplay.js');
+  assert.deepEqual(playerCardNote({projection_line:'Week is 0.2 above the healthy slate.'}),{headline:'',detail:'',source:''});
+  assert.deepEqual(playerCardNote({headline:'No usable note this week.',source:'Cached note'}),{headline:'',detail:'',source:''});
+  assert.deepEqual(playerCardNote({headline:'Week is 0.2 above the healthy slate.'}),{headline:'',detail:'',source:''});
+  assert.deepEqual(playerCardNote({headline:'Full practice',detail:'Logged a full practice Friday.',source:'Practice report',projection_line:'Week is 0.2 above the healthy slate.'}),
+    {headline:'Full practice',detail:'Logged a full practice Friday.',source:'Practice report'});
+});

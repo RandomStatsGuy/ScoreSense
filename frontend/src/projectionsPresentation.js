@@ -3,7 +3,8 @@
  * Keep JSX structural; user-facing strings live here.
  */
 
-import { projectionValue } from "./projectionTiers.js";
+import { isByeWeek } from "./weeklyAvailability.js";
+import { projectionValue, PROJECTION_TIER_PROFILES } from "./projectionTiers.js";
 import { formatRelativeTime, isPlayerUnavailable } from "./format.js";
 import { formatOpportunityAdjustmentPct } from "./opportunityAdjustment.js";
 import { isLeftSlate } from "./projectionMovement.js";
@@ -32,13 +33,13 @@ export const BOARD_COPY = {
   seasonProjection: "Season projection", recordedPoints: "Points so far", ppg: "PPG", games: "Games",
   rosProjection: "Rest of season", seasonSoFar: "Season so far", seasonView: "Season view", gamesLeft: "Games left", matchup: "Matchup", loadingBoard: "Loading player projections",
   emptyBoard: "No player projections are available.", rankedPlayers: "Ranked player projections",
-  tierSort: "Sort within each tier", weeklyTierBasis: "Tiers by projected weekly PPR points",
-  seasonTierBasis: "Tiers by projected PPR points per game", rosTierBasis: "Tiers by projected PPR per remaining game",
-  finalTierBasis: "Tiers by recorded PPR points per game", tierTitle: (letter) => `${letter} tier`,
+  tierSort: "Sort within each tier", weeklyTierBasis: "Position tiers · weekly PPR forecast",
+  seasonTierBasis: "Position tiers · full-season PPR forecast", rosTierBasis: "Position tiers · PPR per remaining game",
+  finalTierBasis: "Position tiers · recorded PPR per game", tierTitle: (letter) => `${letter} tier`,
   playerCount: (count) => `${count} player${count === 1 ? "" : "s"}`,
   openPlayer: (name) => `Open ${name} player details`, selectPlayer: (name) => `Select ${name} for comparison`,
-  inactiveTier: "Not active", leftTier: "Left slate", unknownTier: "Untiered",
-  inactiveTierNote: "Weekly forecasts suppressed", unknownTierNote: "Missing tier data",
+  byeTier: "On bye", byeWeek: "Bye week", byeTierNote: "No game this week", inactiveTier: "Not active", leftTier: "Left slate", unknownTier: "Untiered",
+  inactiveTierNote: "Weekly forecasts suppressed", unknownTierNote: "Missing points or position",
 
   weeklyBoard: "Weekly projections",
   weeklySlate: "This week's slate",
@@ -94,7 +95,7 @@ export const PLAYER_CARD_COPY = {
   scoring: "Scoring: PPR", allGames: "All games", fewerGames: "Recent games",
   notes: "Player notes", older: "Older commentary", commentary: "Commentary only", emptyNote: "No usable note this week.",
   details: "Projection details", comparison: "Preseason comparison", missingBaseline: "No saved preseason comparison",
-  assumesActive: "The forecast assumes he plays.", injuryDetails: "Open injury details",
+  bye: "Bye", byeNote: "No game this week", injuryDetails: "Open injury details",
   injuryAdjustment: "Injury adjustment", close: "Close player details", compare: "Compare player",
   removeCompare: "Remove from compare", updated: "Updated", through: "Through week",
   baselineExplanation: "Saved preseason points are prorated through the same number of games played. This is a pace comparison, not a comparison with the full-year total.",
@@ -129,7 +130,7 @@ export const CONTEXT_COPY = {
   empty: "No locker note this week.",
   projection: "Week vs healthy",
   media: "Older notes",
-  mediaEmpty: "No usable note this week.",
+  mediaEmpty: "No usable note this week.", notesEmpty: "No current player notes.",
   loading: "Loading this week's note…",
   cold: "No locker note yet. The week number is unchanged.",
   missing: "No cached note for this player.",
@@ -174,10 +175,10 @@ export function starterCutoff(position) {
 }
 
 export function weeklyQuantiles(row) {
-  if (!row) return { p10: null, p50: null, p90: null, spread: null };
-  const p10 = Number(row["Low (P10)"]);
-  const p50 = Number(row["Projected Points"]);
-  const p90 = Number(row["High (P90)"]);
+  if (!row || isByeWeek(row)) return { p10: null, p50: null, p90: null, spread: null };
+  const p10 = projectionValue(row["Low (P10)"]);
+  const p50 = projectionValue(row["Projected Points"]);
+  const p90 = projectionValue(row["High (P90)"]);
   const ok = [p10, p50, p90].every(Number.isFinite);
   return {
     p10: Number.isFinite(p10) ? p10 : null,
@@ -204,7 +205,7 @@ export function percentile(values, pct) {
 
 export function isBoardAvailable(row) {
   if (!row) return false;
-  if (isLeftSlate(row)) return false;
+  if (isLeftSlate(row) || isByeWeek(row)) return false;
   return !isPlayerUnavailable(row["Injury Status"]);
 }
 
@@ -241,6 +242,7 @@ function clauseJoin(parts) {
 export function weeklyWhyNow(row, peers = {}, { rank, position } = {}) {
   if (!isBoardAvailable(row)) {
     if (isLeftSlate(row)) return "Left this week's slate";
+    if (isByeWeek(row)) return BOARD_COPY.byeWeek;
     const status = String(row?.["Injury Status"] || "").trim();
     return status ? `Projection suppressed — ${status}` : "Projection suppressed";
   }
@@ -295,6 +297,7 @@ export function weeklyBoardPreview(row, peers, { rank, position, whyNow } = {}) 
     rank: rank ?? null,
     whyNow: whyNow || weeklyWhyNow(row, peers, { rank, position }),
     method: "weekly",
+    bye: isByeWeek(row),
   };
 }
 
@@ -901,9 +904,18 @@ export function projectionNumber(value, digits = 1) {
   return number == null ? "—" : number.toFixed(digits);
 }
 
-export function projectionTierCopy(id) {
-  const bands = {S:"24+", A:"18–<24", B:"12–<18", C:"9–<12", D:">6–<9", F:"6 or fewer"};
-  if (bands[id]) return {mark:id, title:BOARD_COPY.tierTitle(id), band:bands[id]};
+export function projectionTierCopy(id, positions=[], horizon='weekly') {
+  const profiles=PROJECTION_TIER_PROFILES[horizon];
+  if (['S','A','B','C','D','F'].includes(id)) {
+    if(id==='F')return {mark:id,title:BOARD_COPY.tierTitle(id),band:`${profiles?.QB.F} or fewer`};
+    const bands=['QB','RB','WR','TE'].filter(position=>positions.includes(position)&&profiles?.[position]).map(position=>{
+      const p=profiles[position], upper={A:p.S,B:p.A,C:p.B,D:p.C}[id];
+      const range=id==='S'?`${p.S}+`:id==='D'?`>${p.F}–<${upper}`:`${p[id]}–<${upper}`;
+      return `${position} ${range}`;
+    });
+    return {mark:id,title:BOARD_COPY.tierTitle(id),bands};
+  }
+  if (id === "bye") return {mark:"—",title:BOARD_COPY.byeTier,band:BOARD_COPY.byeTierNote};
   if (id === "inactive") return {mark:"—", title:BOARD_COPY.inactiveTier, band:BOARD_COPY.inactiveTierNote};
   if (id === "left") return {mark:"—", title:BOARD_COPY.leftTier, band:""};
   return {mark:"?", title:BOARD_COPY.unknownTier, band:BOARD_COPY.unknownTierNote};

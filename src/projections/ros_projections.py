@@ -307,6 +307,7 @@ def predict_rest_of_season(
             "Player": out["Player"],
             "Team": out["Team"] if "Team" in out.columns else None,
             "player_id": out["player_id"] if "player_id" in out.columns else None,
+            "Position": out.get("Position", out.get("position")),
             "Season": season,
             "From Week": target_week,
             "Games Played": out["games_played"],

@@ -4,15 +4,16 @@ import useMobileLayout from './useMobileLayout';
 import {usePageWindowedRows} from './DraftHub/useWindowedRows';
 import {HubLoadingSkeleton} from './DraftHub/HubUILayout';
 import {BOARD_COPY, projectionNumber, projectionTierCopy} from './projectionsPresentation';
-import {groupProjectionRows, projectionTierLayout, projectionTierWindow} from './projectionTiers';
+import {groupProjectionRows, projectionTierLayout, projectionTierWindow, projectionPosition} from './projectionTiers';
 import './styles/projection-tier-board.css';
 
 /** The same complete tier list drives the desktop table and compact phone rows. */
 export default function ProjectionTierBoard({rows=[], getTierValue, getStatus, getView, columns,
-  tierBasis, sort, onSort, toolbarAction, onOpen, onSelect, selecting=false, selectedIds=new Set(), maxSelected=4,
+  tierBasis, position, tierHorizon="weekly", sort, onSort, toolbarAction, onOpen, onSelect, selecting=false, selectedIds=new Set(), maxSelected=4,
   media, loading=false, emptyMessage, onClearFilters, numberDigits=1}) {
   const mobile=useMobileLayout();
-  const groups=useMemo(()=>groupProjectionRows(rows,getTierValue,getStatus),[rows,getTierValue,getStatus]);
+  const groups=useMemo(()=>groupProjectionRows(rows,getTierValue,getStatus,
+    row=>projectionPosition(row,position),tierHorizon),[rows,getTierValue,getStatus,position,tierHorizon]);
   const layout=useMemo(()=>projectionTierLayout(groups,mobile?88:80),[groups,mobile]);
   // Reuse the page-scroll hook in pixels, then binary-search variable header/row offsets.
   const windowed=rows.length>40;
@@ -20,10 +21,12 @@ export default function ProjectionTierBoard({rows=[], getTierValue, getStatus, g
   const window=windowed?projectionTierWindow(layout,range.start,range.end):{entries:layout.entries,top:0,bottom:0};
   const count=columns.length+2;
   const head=group=>{
-    const copy=projectionTierCopy(group.id);
+    const copy=projectionTierCopy(group.id,group.rows.map(row=>projectionPosition(row,position)),tierHorizon);
     return <div className="projection-tier-heading" data-tier={group.id}>
       <span className="projection-tier-mark" aria-hidden="true">{copy.mark}</span>
-      <h3>{copy.title}</h3><span className="projection-tier-band">{copy.band}</span>
+      <h3>{copy.title}</h3><span className="projection-tier-band">
+        {copy.bands?copy.bands.map(band=><span key={band}>{band}</span>):copy.band}
+      </span>
       <span className="projection-tier-count">{BOARD_COPY.playerCount(group.rows.length)}</span>
     </div>;
   };
