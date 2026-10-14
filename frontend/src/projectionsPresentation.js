@@ -68,6 +68,47 @@ export const BOARD_COPY = {
   ceiling: "Ceiling",
 };
 
+export const PLAYER_CARD_COPY = {
+  tabs: [{ id: "week", label: "This week" }, { id: "season", label: "Season so far" }, { id: "ros", label: "Rest of season" }],
+  preseason: "Preseason projection", week: "Week", projection: "projection",
+  recorded: "Recorded scoring", ros: "Rest-of-season projection",
+  points: "fantasy points", ppr: "PPR points", ppg: "points per game",
+  timeframe: "Player timeframe", scheduledGames: "scheduled games",
+  gameLog: "Game log", noGames: "No recorded games available yet.",
+  noProjection: "Projection unavailable", gamesPlayed: "games played", gamesRemaining: "games remaining",
+  weekColumn: "Wk", opponent: "Opp", pass: "Pass yd", rush: "Rush yd", rec: "Rec", receiving: "Rec yd", touchdowns: "TD", pts: "Pts",
+  logCaption: "Recorded regular-season PPR performance. Yardage and total touchdowns are shown separately.",
+  scoring: "Scoring: PPR", allGames: "All games", fewerGames: "Recent games",
+  notes: "Player notes", older: "Older commentary", commentary: "Commentary only", emptyNote: "No usable note this week.",
+  details: "Projection details", comparison: "Preseason comparison", missingBaseline: "No saved preseason comparison",
+  assumesActive: "The forecast assumes he plays.", injuryDetails: "Open injury details",
+  injuryAdjustment: "Injury adjustment", close: "Close player details", compare: "Compare player",
+  removeCompare: "Remove from compare", updated: "Updated", through: "Through week",
+  baselineExplanation: "Saved preseason points are prorated through the same number of games played. This is a pace comparison, not a comparison with the full-year total.",
+  remainingExplanation: "The rest-of-season forecast covers remaining games only. Recorded points are shown on Season so far.",
+  regularSeason: "Regular season", incomplete: "Some recorded scores are unavailable; the total and PPG are not shown.",
+};
+
+export function playerCardNumber(value, digits = 1) {
+  return Number.isFinite(value) ? value.toFixed(digits) : "—";
+}
+
+export function playerCardPace(summary, baseline) {
+  if (![summary?.points, summary?.games_played, baseline?.points, baseline?.games].every(Number.isFinite)
+      || summary.games_played <= 0 || baseline.games <= 0 || summary.complete !== true) return null;
+  const difference = summary.points - baseline.points / baseline.games * summary.games_played;
+  const rounded = Math.round(difference * 10) / 10;
+  return { difference: rounded, tone: rounded > 0 ? "positive" : rounded < 0 ? "negative" : "neutral",
+    label: rounded === 0 ? "On preseason pace" : `${rounded > 0 ? "↑" : "↓"} ${Math.abs(rounded).toFixed(1)} ${rounded > 0 ? "ahead of" : "behind"} preseason pace` };
+}
+
+export function playerCardInjuryCode(status) {
+  const text = String(status || "").trim();
+  const key = text.toLowerCase();
+  if (!key || ["healthy", "active", "none"].includes(key)) return null;
+  return ({ questionable: "Q", doubtful: "D", out: "O", probable: "P", injured_reserve: "IR", ir: "IR", pup: "PUP", suspended: "SUS" })[key] || text;
+}
+
 /** Inspector this-week note — locker / practice, not a show recap. */
 export const CONTEXT_COPY = {
   title: "This week",

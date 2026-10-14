@@ -1067,7 +1067,7 @@ export default function WeeklyTable({
       ) : (
       <div
         ref={rootRef}
-        className={`table-wrap table-sticky table-has-rank hub-page-board${compareSelecting ? " table-is-comparing" : ""}${showFilters ? " table-has-movement" : ""}`}
+        className={`table-wrap table-sticky table-has-rank hub-page-board${compareSelecting ? " table-is-comparing" : ""}${showMovement ? " table-has-movement" : ""}`}
       >
         <table>
           <thead>

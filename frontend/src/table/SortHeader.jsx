@@ -13,7 +13,9 @@ export function SortHeader({ label, sortKey, sort, onSort, tip, className = "" }
       onClick={() => onSort(sortKey)}
       aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
     >
-      {label} <span className="sort-indicator" aria-hidden="true">{arrow}</span>
+      <span className="sortable-header-label">
+        {label}<span className="sort-indicator" aria-hidden="true">{arrow}</span>
+      </span>
     </HoverTip>
   );
 }

@@ -9813,7 +9813,7 @@ td.col-rank.col-rank-top {
 
   .projections-mobile-pos-chips .header-segment-tab {
     flex: 1 0 auto;
-    min-height: 2.25rem;
+    min-height: var(--touch-target);
   }
 
   .projections-mobile-scoring-chip {
@@ -11077,7 +11077,7 @@ td.col-rank.col-rank-top {
 
 .btn-ghost:hover:not(:disabled),
 .btn-export-csv:hover:not(:disabled) {
-  border-color: #4b607f;
+  border-color: var(--border-strong);
   background: var(--surface-raised);
   color: var(--text-primary);
   box-shadow: none;
@@ -11088,7 +11088,7 @@ td.col-rank.col-rank-top {
 .season-mode-tab.active,
 .hub-segment-nav-btn.active,
 .filter-chip--active {
-  border-color: #35517a;
+  border-color: var(--accent-muted);
   background: var(--theme-raised, #1a3151);
   color: var(--theme-blue, #dbe7ff);
   box-shadow: none;
@@ -11151,9 +11151,9 @@ option {
   select,
   textarea
 ):focus {
-  border-color: #5d82bb;
+  border-color: var(--accent-muted);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(115, 165, 255, 0.12);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 ::placeholder {
