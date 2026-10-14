@@ -160,7 +160,9 @@ export function isVisibleNativeSelect(box) {
   return width > 0 && height > 0 && display !== "none" && visibility !== "hidden";
 }
 
-export function columnAlign(texts) {
+export function columnAlign(texts, kind) {
+  if (kind === "text") return "left";
+  if (kind === "number") return "right";
   const cells = texts.map((t) => String(t || "").split("\n")[0].trim()).filter((t) => t && t !== "—");
   if (!cells.length) return "left";
   if (cells.every((t) => SINGLE_GLYPH_RE.test(t))) return "center";
@@ -638,6 +640,8 @@ export function measureScript() {
         const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;
         let expect = "left";
         if ((cells[0]?.classList.contains("rosters-num") || cells[0]?.classList.contains("num"))) expect = "right";
+        // Declared text (e.g. opponent "BUF") is not a centered position glyph.
+        else if (cells[0]?.getAttribute("data-column-type") === "text") expect = "left";
         else if (cells[0]?.classList.contains("rosters-chevron")) expect = "center";
         else if (glyph) expect = "center";
         else if (action || (bodyTexts.length && numeric / bodyTexts.length >= 0.8)) expect = "right";

@@ -271,3 +271,10 @@ test("livingSurfaceRoutes skips overlays and dedupes", () => {
     ["/hub/roster", "/hub/roster-management/contracts"],
   );
 });
+
+test("declared text opponents and missing numeric stats retain their column semantics",()=>{
+  assert.equal(columnAlign(["BUF","BUF"],"text"),"left");
+  assert.equal(columnAlign(["—","—"],"number"),"right");
+  assert.equal(columnAlign(["Q","D"]),"center");
+  assert.equal(columnAlign(["12.0","9.5"]),"right");
+});

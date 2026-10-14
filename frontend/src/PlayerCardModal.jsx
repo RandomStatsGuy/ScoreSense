@@ -8,6 +8,7 @@ import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
 import PlayerContextPanel from "./PlayerContextPanel";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "./format";
 import PlayerCardFrame from "./PlayerCardFrame";
+import {isByeWeek} from "./weeklyAvailability";
 import Chip, { injuryChipTone } from "./Chip";
 import { BOARD_COPY, PLAYER_CARD_COPY as COPY, filterInspectorCandidates, playerCardInjuryCode,
   playerCardNumber as number, playerCardPace, positionShort, weeklyQuantiles } from "./projectionsPresentation";
@@ -37,11 +38,11 @@ function PlayerGameLog({ data, position }) {
     <div className="player-profile-section-head"><h2>{COPY.gameLog}</h2><span>{data?.game_log_season ?? data?.meta?.season} · {COPY.regularSeason}</span></div>
     {rows.length ? <>
       <table className="player-profile-table"><caption className="sr-only">{COPY.logCaption}</caption><thead><tr>
-        <th scope="col">{COPY.weekColumn}</th><th scope="col">{COPY.opponent}</th>
-        {columns.map(([label, key]) => <th scope="col" key={key}>{label}</th>)}<th scope="col">{COPY.touchdowns}</th><th scope="col">{COPY.pts}</th>
+        <th scope="col" className="num">{COPY.weekColumn}</th><th scope="col" data-column-type="text">{COPY.opponent}</th>
+        {columns.map(([label, key]) => <th scope="col" className="num" key={key}>{label}</th>)}<th scope="col" className="num">{COPY.touchdowns}</th><th scope="col" className="num">{COPY.pts}</th>
       </tr></thead><tbody>{visible.map(row => <tr key={row.week}>
-        <td>{row.week}</td><td>{row.opponent ? `${row.is_home === false ? "@ " : ""}${row.opponent}` : "—"}</td>
-        {columns.map(([, key]) => <td key={key}>{number(row[key], 0)}</td>)}<td>{number(row.touchdowns, 0)}</td><td>{number(row.points)}</td>
+        <td className="num">{row.week}</td><td data-column-type="text">{row.opponent ? `${row.is_home === false ? "@ " : ""}${row.opponent}` : "—"}</td>
+        {columns.map(([, key]) => <td className="num" key={key}>{number(row[key], 0)}</td>)}<td className="num">{number(row.touchdowns, 0)}</td><td className="num">{number(row.points)}</td>
       </tr>)}</tbody></table>
       {rows.length > 5 ? <button className="btn-ghost player-profile-more" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}>{expanded ? COPY.fewerGames : `${COPY.allGames} (${rows.length})`}</button> : null}
     </> : <p className="player-profile-empty">{COPY.noGames}</p>}
@@ -59,14 +60,15 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
   const summary = data?.season_to_date;
   const pace = playerCardPace(summary, data?.preseason_baseline);
   const code = playerCardInjuryCode(data?.injury?.injury_status);
-  const weekly = weeklyQuantiles({ "Low (P10)": data?.weekly_projection?.["Low (P10)"], "Projected Points": data?.weekly_projection?.["Projected Points"], "High (P90)": data?.weekly_projection?.["High (P90)"] });
+  const weekly = weeklyQuantiles(data?.weekly_projection);
   const preview = request?.scope !== "season" ? request?.preview : null;
+  const bye = isByeWeek(data?.weekly_projection) || (!data && preview?.bye === true);
   const weekBand = !data && preview ? preview : weekly;
   const band = timeframe === "ros" ? data?.rest_of_season_projection : timeframe === "preseason" ? data?.preseason_projection : weekBand;
   const season = data?.meta?.season ?? request?.season;
   const week = data?.meta?.week ?? request?.week;
   const selected = preseason ? "preseason" : timeframe;
-  const label = selected === "season" ? `${season} · ${COPY.recorded}` : selected === "ros" ? COPY.ros : selected === "preseason" ? `${season} ${COPY.preseason.toLowerCase()}` : `${COPY.week} ${week ?? "—"} ${COPY.projection}`;
+  const label = selected === "season" ? `${season} · ${COPY.recorded}` : selected === "ros" ? COPY.ros : selected === "preseason" ? `${season} ${COPY.preseason.toLowerCase()}` : `${COPY.week} ${week ?? "—"}${bye ? "" : ` ${COPY.projection}`}`;
   const tabs = COPY.tabs;
   const changeTab = (index, focus = false) => {
     const tab = tabs[(index + tabs.length) % tabs.length];
@@ -100,10 +102,10 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
         {pace ? <p className={`player-profile-pace player-profile-pace--${pace.tone}`}>{pace.label}</p> : summary?.complete ? <p className="player-profile-unit">{COPY.missingBaseline}</p> : null}
         {summary?.games_played && !summary.complete ? <p className="player-profile-unit">{COPY.incomplete}</p> : null}
       </> : <>
-        <p className="player-profile-number">{number(band?.p50, selected === "preseason" ? 0 : 1)}</p>
-        <p className="player-profile-unit">{Number.isFinite(band?.p50) ? COPY.ppr : COPY.noProjection}
+        <p className="player-profile-number">{selected==="week"&&bye?COPY.bye:number(band?.p50, selected === "preseason" ? 0 : 1)}</p>
+        <p className="player-profile-unit">{selected==="week"&&bye?COPY.byeNote:Number.isFinite(band?.p50) ? COPY.ppr : COPY.noProjection}
           {selected === "ros" && Number.isFinite(band?.games_remaining) ? ` · ${band.games_remaining} ${COPY.gamesRemaining}` : ""}
-          {selected === "week" && formatRelativeTime(data?.meta?.built_at) ? ` · ${formatRelativeTime(data.meta.built_at)}` : ""}</p>
+          {selected === "week" && !bye && formatRelativeTime(data?.meta?.built_at) ? ` · ${formatRelativeTime(data.meta.built_at)}` : ""}</p>
         <ForecastRange band={band} />
       </>}
     </section>}
@@ -113,11 +115,11 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
       <summary><span>{COPY.notes}</span><span className="player-profile-plus" aria-hidden="true" /></summary>
       {notesOpen && playerId ? <PlayerContextPanel playerId={playerId} season={season} week={week} active variant="notes" /> : null}
     </details> : null}
-    {data ? <details className="player-profile-disclosure" open={detailsOpen} onToggle={event => setDetailsOpen(event.currentTarget.open)}>
+    {data && selected!=="preseason" && !(selected==="week"&&bye) ? <details className="player-profile-disclosure" open={detailsOpen} onToggle={event => setDetailsOpen(event.currentTarget.open)}>
       <summary><span>{selected === "season" ? COPY.comparison : COPY.details}</span><span className="player-profile-plus" aria-hidden="true" /></summary>
       {detailsOpen ? <div className="player-profile-detail-body">
         {selected === "season" ? pace ? <><p>{COPY.baselineExplanation}</p><p>{number(data.preseason_baseline.points)} {COPY.points} · {data.preseason_baseline.games} {COPY.scheduledGames}</p></> : <p>{COPY.missingBaseline}</p>
-          : selected === "ros" ? <p>{COPY.remainingExplanation}</p> : <p>{COPY.assumesActive}</p>}
+          : selected === "ros" ? <p>{COPY.remainingExplanation}</p> : null}
         {selected === "week" && playerId && data?.weekly_projection ? <ProjectionExplanationPanel playerId={playerId} season={season} week={week}
           position={position} applyInjuryAdjustments={request?.applyInjuryAdjustments ?? true} active className="projection-explanation--card" /> : null}
       </div> : null}
@@ -243,7 +245,8 @@ export default function PlayerCardModal({
 
   const selectedSet = (compareIds || []).map(String);
   const selected = selectedSet.includes(String(request.playerId));
-  const canAdd = Boolean(onToggleCompare) && (!selected ? selectedSet.length < maxCompare : true);
+  const bye = isByeWeek(data?.weekly_projection) || request?.preview?.bye === true;
+  const canAdd = Boolean(onToggleCompare) && (selected || (!bye && selectedSet.length < maxCompare));
 
   const body = (
     <div className="player-inspector player-inspector--profile">

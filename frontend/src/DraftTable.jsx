@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import ProjectionTierBoard from "./ProjectionTierBoard";
-import {projectionValue} from "./projectionTiers";
+import {projectionPosition, projectionValue} from "./projectionTiers";
 import useMobileLayout from "./useMobileLayout";
 import { usePlayerMedia } from "./PlayerCell";
 import { fmtNum } from "./format";
@@ -211,11 +211,11 @@ export default function DraftTable({
         <span className="table-meta">{sorted.length} players</span>
         {metaLine}
       </div>
-      <ProjectionTierBoard rows={sorted} media={playerMedia} loading={loading}
-        tierBasis={BOARD_COPY.seasonTierBasis} sort={sort} onSort={toggleSort} numberDigits={0}
+      <ProjectionTierBoard position={position} rows={sorted} media={playerMedia} loading={loading}
+        tierHorizon="season" tierBasis={BOARD_COPY.seasonTierBasis} sort={sort} onSort={toggleSort} numberDigits={0}
         emptyMessage={hasFilters ? "No players match your search." : "No draft projections available."}
         onClearFilters={hasFilters ? handleClearFilters : undefined} onOpen={openPlayer}
-        getTierValue={row => row["Per-Game Proj"]}
+        getTierValue={row => resolveSeasonBand(row,{method}).p50 ?? row["Season Proj"]}
         columns={[
           {key:"perGame",label:BOARD_COPY.perGame,sortKey:"PerGame",digits:1},
           {key:"floor",label:BOARD_COPY.floor,sortKey:"Floor"},
@@ -225,7 +225,7 @@ export default function DraftTable({
         getView={row => {
           const band=resolveSeasonBand(row,{method});
           const perGame=projectionValue(row["Per-Game Proj"]);
-          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,positionShort(position)].filter(Boolean).join(" · "),
+          return {rank:rankMap.get(rowRankKey(row)),meta:[row.Team,projectionPosition(row,position)||positionShort(position)].filter(Boolean).join(" · "),
             badge:row["Rookie Est."]?<span className="rookie-est-badge" title={row["Rookie Role"]||"Rookie estimate"}>est.</span>:null,
             values:{perGame,floor:band.p10,ceiling:band.p90,points:band.p50??row["Season Proj"]},
             sub:perGame==null?null:`${projectionNumber(perGame)} /gm`};
