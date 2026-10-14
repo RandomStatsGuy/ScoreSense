@@ -62,6 +62,10 @@ Code identifiers (`hub`, `office`, `value`, `DraftHub`) may stay. User-facing la
 
 ---
 
+## Interaction cursors
+
+Clickable controls and targets that reveal information on hover use the hand pointer. Shared cursor styles cover native controls and semantic roles; custom targets use `data-interactive="true"` only while interactive. Nested labels and icons inherit the target's cursor. Text entry, disabled controls, and drag handles retain their appropriate cursors. Verify this with the UI audit's `cursors` check before shipping frontend changes.
+
 ## Experience priorities
 
 In this order:

@@ -1004,6 +1004,7 @@ export default function LeagueContractHistory({ leagueId, hubContext, seasonFilt
                   <tr
                     key={r.id}
                     className={rowIssues.length ? "hub-contract-row--issue" : ""}
+                    data-interactive="true"
                     onClick={() => setSelectedPlayer(r.player_name)}
                   >
                     <td>{r.player_name}</td>

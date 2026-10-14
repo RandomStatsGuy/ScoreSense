@@ -134,6 +134,7 @@ function ValueSheetPlayerRow({
   return (
     <tr
       data-player-id={row.player_id || undefined}
+      data-interactive={onSelectPlayer ? "true" : undefined}
       className={`${row.overpay ? "hub-overpay" : ""}${row.on_sleeper ? " hub-sleeper-row" : ""}${isSelected ? " hub-row-selected" : ""}`}
       onClick={onSelectPlayer ? handleRowClick : undefined}
       onDoubleClick={onRowDoubleClick ? handleRowDoubleClick : undefined}
