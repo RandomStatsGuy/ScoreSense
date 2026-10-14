@@ -3,15 +3,19 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import RosterBuilder from "../src/DraftHub/RosterBuilder";
 import TeamRoom from "../src/DraftHub/TeamRoom";
+import { capabilitiesFromRules } from "../src/DraftHub/leagueCapabilities";
 import { TeamIdentityProvider } from "../src/DraftHub/TeamIdentityContext";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";
 import "../src/styles.css";
+import "../src/styles/color-theme.css";
 import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
 import "../src/styles/fantasy-header.css";
 const params = new URLSearchParams(location.search);
+window.scoreSenseTheme?.set(params.get("color") || "dark");
+document.documentElement.dataset.theme = params.get("color") || "dark";
 const state = params.get("state") || "live";
 const rows = [
   ["Jalen Hurts", "QB", "PHI", 1, 24.6, 23, 9],
@@ -25,6 +29,7 @@ const rows = [
   ["Parker Washington", "WR", "JAX", 11, 6.4, 8, 6],
   ["Travis Kelce", "TE", "KC", 87, 3, 8, 3],
   ["Dylan Sampson", "RB", "CLE", 22, 5, 8, 5],
+  ["Josh Downs", "WR", "IND", 1, 0, 11.6, 4],
 ];
 const roster = rows.map((r) => ({
   player_id: r[0],
@@ -46,7 +51,15 @@ const players = rows.map((r) => ({
   projection: r[5],
   nickname: r[0] === "Malik Nabers" ? "The Neighborhood" : "",
   sleeper_nickname: "",
+  can_manage: true,
+  lineup_locked: state === "final",
+  kickoff_available: true,
 }));
+players[7].slot = "FLEX";
+for (const p of players) p.preview_slots = players.slice(0, 9).flatMap((starter, index) =>
+  !p.lineup_locked && (starter.slot === p.position || starter.slot === "FLEX" && ["RB", "WR", "TE"].includes(p.position)) ? [index] : []);
+if (params.has("missing")) { players[0].projection = null; players[11].projection = null; }
+if (params.has("locked")) { players[11].lineup_locked = true; players[11].preview_slots = []; }
 const media = Object.fromEntries(
   rows.map((r) => [r[0], { jersey_number: r[3] }]),
 );
@@ -58,6 +71,7 @@ const data = {
   current_week: 6,
   max_week: 18,
   state,
+  lineup_host: params.get("host") === "sleeper" ? "sleeper" : "scoresense",
   can_edit: !params.has("readonly"),
   starters: players.slice(0, 9),
   bench: players.slice(9),
@@ -116,6 +130,7 @@ const context = {
   league_id: "fixture",
   team_name: "Immaculate Concepcion",
   draft_completed: true,
+  capabilities: capabilitiesFromRules({ draft_type: params.get("format") === "pick" ? "snake" : "auction" }),
 };
 createRoot(document.getElementById("root")).render(
   <div className="app">
@@ -141,7 +156,7 @@ createRoot(document.getElementById("root")).render(
             valueRows={[]}
             workspace={{
               season: 2026,
-              rules: { salary_cap: 200, contracts: { max_years: 3 } },
+              rules: { salary_cap: 200, draft_type: params.get("format") === "pick" ? "snake" : "auction", contracts: { max_years: 3 } },
             }}
             hubContext={context}
             capSheet={{ summary: { dead_cap: 9 } }}
