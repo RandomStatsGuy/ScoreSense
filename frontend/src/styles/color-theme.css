@@ -226,3 +226,4 @@
 
 :root[data-theme="light"] :is(.btn.primary, .btn-primary) { background: var(--accent); color: #fff; }
 :root[data-theme="light"] :is(.btn.primary, .btn-primary):hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #000); }
+:root[data-theme="light"] :is(.btn-ghost, .btn-export-csv, .hub-filter-menu-trigger) { background: var(--bg-elevated); color: var(--text-secondary); }
