@@ -295,7 +295,7 @@ export default function LeagueHome({
           </section> : null}
           {scoringError ? <HubAlert variant="warn">{scoringError}</HubAlert> : null}
           {deckMode.show && leagueId && matchup && matchViewer && matchOpponent && (!deckMode.historical || Number(matchViewer.points) > 0 || Number(matchOpponent.points) > 0) ? <section className="hub-home-card hub-home-matchup" aria-label={HOME_DECK_COPY.matchupTitle}>
-            <div className="hub-home-card-heading"><h2>{deckMode.historical ? HOME_PAGE_COPY.lastSeason : HOME_DECK_COPY.matchupTitle}</h2><p className="chart-note">{matchupNote}</p></div>
+            <div className="hub-home-card-heading"><h2>{deckMode.historical ? HOME_PAGE_COPY.lastSeason(placeholder ? null : scoring?.season) : HOME_DECK_COPY.matchupTitle}</h2><p className="chart-note">{matchupNote}</p></div>
             <div className="hub-home-scoreboard">{[matchViewer, matchOpponent].map((team, index) => {
               const parts = gameCenterTeamParts(team);
               const record = standingsView.standings.find(row => (team.hub_team_id && String(row.hub_team_id) === String(team.hub_team_id)) || String(row.roster_id) === String(team.roster_id));

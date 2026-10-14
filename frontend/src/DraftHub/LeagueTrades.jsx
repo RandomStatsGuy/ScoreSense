@@ -883,7 +883,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         return (
           <div key={idx} className="hub-trade-party-col panel">
             <div className="hub-trade-party-head">
-              <strong className="hub-trade-party-name">{activeParties.length > 2 ? teamName(party.team_id) : isYours?'You send':'You get'}</strong>{activeParties.length <= 2 && <span className="table-meta">{teamName(party.team_id)}</span>}
+              <strong className="hub-trade-party-name">{activeParties.length > 2 ? teamName(party.team_id) : isYours?DISCOVERY.availableSend:DISCOVERY.availableGet}</strong>{activeParties.length <= 2 && <span className="table-meta">{teamName(party.team_id)}</span>}
             </div>
 
             <ul className="hub-trade-player-list">
@@ -1142,17 +1142,17 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
        {builderStep==='partner'?<>
         {teams.filter(t=>t.id!==myTeamId).length?<TradeDiscovery outlook={outlook} teams={teams} myTeamId={myTeamId} rosterByTeam={rosterByTeam} statsByTeam={statsByTeam} salaryCap={capLimit} salaryLeague={salaryLeague} ranks={positionRanks} positions={rankPositions} search={partnerSearch} onSearch={setPartnerSearch} onChoose={id=>{setSourceReviewId(null);setParties([emptyParty(myTeamId),emptyParty(id)]);setDeadCapAssignments([]);setSearch('');setBuilderStep('players');}}/>:<div className="hub-insights-empty-state"><p>{formatCopy.noPartners}</p><button type="button" className="btn-primary" onClick={()=>onNavigate?.('office-members')}>{formatCopy.inviteManagers}</button></div>}
        </>:<>
-        <nav className="ss-trade-progress" aria-label="Trade progress"><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>Partner</button><span aria-hidden="true">→</span><span aria-current="step">Players</span><span aria-hidden="true">→</span><span>Review</span></nav>
+        <nav className="ss-trade-progress" aria-label="Trade progress"><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>Partner</button><span aria-hidden="true">→</span><span aria-current={builderStep === "players" ? "step" : undefined}>Players</span><span aria-hidden="true">→</span><span aria-current={builderStep === "review" ? "step" : undefined}>Review</span></nav>
         <div className="ss-trade-chosen"><strong>{partnerNames.join(' · ')}</strong><button type="button" className="btn-ghost ss-trade-action" onClick={()=>goBuilderStep('partner')}>{DISCOVERY.back}</button></div>
         <div className="hub-trade-filters hub-filter-bar"><input type="search" className="search-input hub-filter-search" placeholder="Find a player" value={search} onChange={e=>setSearch(e.target.value)} aria-label="Filter both rosters"/><HubFilterScroll>{HUB_POSITION_FILTERS.map(p=><HubFilterChip key={p} active={posFilter===p} onClick={()=>setPosFilter(p)}>{p==='ALL'?'All':p}</HubFilterChip>)}</HubFilterScroll></div>
-        <TradeImpactGrid impact={pointImpact} salaryLeague={salaryLeague}/>
+        <TradeImpactGrid impact={pointImpact} salaryLeague={salaryLeague} hasPackage={hasPackage}/>
         {renderPartyPlayerColumns()}
         <details className="ss-trade-advanced"><summary>Multi-team trade</summary><div className="ss-trade-cut-options">{teams.filter(t=>t.id!==myTeamId).map(team=><button type="button" className="btn-ghost ss-trade-action" key={team.id} aria-pressed={partnerTeamIds.includes(team.id)} onClick={()=>togglePartner(team.id)}>{partnerTeamIds.includes(team.id)?'Remove':'Add'} {teamName(team.id)}</button>)}</div></details>
         {!reviewOpen&&renderStepActions({showVerdict:hasPackage,primary:<button type="button" ref={reviewTrigger} className="btn-primary hub-trade-primary" disabled={!hasPackage||!hasPartner} onClick={()=>goBuilderStep('review')}>{DISCOVERY.review} →</button>})}
        </>}
       </div>}
       {createPortal(<dialog className="ss-trade-review" ref={reviewDialog} aria-labelledby="trade-review-title" onCancel={event=>{event.preventDefault();setBuilderStep('players');}}><header><h2 id="trade-review-title" tabIndex={-1}>{DISCOVERY.review}</h2><button type="button" className="btn-ghost ss-trade-action" aria-label={DISCOVERY.close} onClick={()=>setBuilderStep('players')}>×</button></header><div className="ss-trade-review-body">
-       {renderPackageSummary()}<TradeImpactGrid impact={pointImpact} salaryLeague={salaryLeague}/>{renderCapReview()}
+       {renderPackageSummary()}<TradeImpactGrid impact={pointImpact} salaryLeague={salaryLeague} hasPackage={hasPackage}/>{renderCapReview()}
        {error&&<HubAlert variant="warn">{error}</HubAlert>}
        <TradeVerdict status={validationStatus} errors={validationErrors} message={validationMessage}/>
        <details className="ss-trade-advanced"><summary>{DISCOVERY.note}</summary><textarea aria-label={formatCopy.proposeNoteLabel} value={proposeNote} onChange={e=>setProposeNote(e.target.value)} className="hub-trade-note" rows={3}/></details>

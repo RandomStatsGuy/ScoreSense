@@ -1,6 +1,7 @@
 import { gameCenterPlayerScore, GAME_CENTER_COPY } from "./gameCenterPresentation";
 import NflTeamMark from "./NflTeamMark";
 import React, { useEffect, useState } from "react";
+import useMobileLayout from "../useMobileLayout";
 import { HubFilterMenu, HubSection, HubLoadingSkeleton } from "./HubUILayout";
 import { fmtNum, formatRelativeTime } from "../format";
 import { formatP50Move } from "../projectionMovement";
@@ -322,6 +323,7 @@ export default function WeekLineupBoard({
   scorePlayers = [],
   gameCenterData,
 }) {
+  const mobileLayout = useMobileLayout();
   const wideById = indexByPlayerId(wideRanges);
   const moveById = indexByPlayerId(projectionChanges);
   const swapBenchIds = swapBenchIdSet(decisions);
@@ -366,7 +368,7 @@ export default function WeekLineupBoard({
 
   const Bench = compact ? HubSection : "div";
   const benchBlock = !emptyRoster && bench.length > 0 ? (
-    <Bench className="hub-wcc-bench" {...(compact ? {disclosure:true, title:WEEK_BOARD_COPY.benchTitle, hint:WEEK_BOARD_COPY.benchCount(bench.length), icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 12h14M5 18h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>} : {})}>
+    <Bench className="hub-wcc-bench" {...(compact ? {disclosure:true, defaultOpen:!mobileLayout, title:WEEK_BOARD_COPY.benchTitle, hint:WEEK_BOARD_COPY.benchCount(bench.length), icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 12h14M5 18h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>} : {})}>
       {!compact && <h4>{WEEK_BOARD_COPY.benchTitle}</h4>}
       <div className="hub-wcc-slate hub-wcc-bench-slate">
         {bench.filter((player) => player?.player_id).map((player) => (

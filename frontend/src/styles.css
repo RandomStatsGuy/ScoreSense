@@ -6653,14 +6653,14 @@ td.col-rank.col-rank-top {
 .hub-league-rosters-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  margin: 0.25rem 0 0.5rem;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
   padding: 0;
   border: none;
   border-radius: 0;
   background: transparent;
 }
-.hub-league-search { display: flex; flex-direction: column; gap: 0.3rem; max-width: 22rem; }
+.hub-league-search { display: flex; flex-direction: column; gap: var(--space-2); max-width: 28rem; width:100%; }
 .hub-league-search input {
   width: 100%;
   padding: 0.55rem 0.75rem;
@@ -6675,22 +6675,22 @@ td.col-rank.col-rank-top {
 }
 .hub-league-team-jump {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%,14rem), 1fr));
+  gap: var(--space-2);
   align-items: stretch;
 }
 .hub-league-jump-pill {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.08rem;
+  gap: var(--space-1);
   min-width: 0;
-  padding: 0.42rem 0.75rem;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: var(--bg-elevated);
   color: var(--text-primary);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
@@ -6710,7 +6710,20 @@ td.col-rank.col-rank-top {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   font-weight: 400;
+  display:flex;
+  flex-wrap:wrap;
+  gap:var(--space-2);
+  margin-top:auto;
 }
+.hub-league-jump-name, .hub-league-jump-team { overflow-wrap:anywhere; text-align:left; }
+.hub-league-jump-team { font-size:var(--text-xs); color:inherit; opacity:.85; }
+.hub-league-jump-meta > span { white-space:nowrap; }
+.hub-office-access-link { display:inline-flex; align-self:flex-start; min-height:var(--control-h-lg); align-items:center; }
+.hub-form-row.hub-league-sleeper-row { display:grid; grid-template-columns:minmax(0,32rem) max-content; align-items:end; gap:var(--space-3); }
+.hub-league-sleeper-row > label { min-width:0; }
+.hub-league-sleeper-row input { width:100%; min-width:0; font-size:var(--text-base); min-height:var(--control-h-lg); }
+.hub-form-row.hub-league-sleeper-row > button { width:fit-content; min-height:var(--control-h-lg); }
+@media(max-width:768px) { .hub-form-row.hub-league-sleeper-row { grid-template-columns:minmax(0,1fr); } }
 .hub-league-jump-pill.active .hub-league-jump-meta {
   color: rgba(255, 255, 255, 0.78);
 }

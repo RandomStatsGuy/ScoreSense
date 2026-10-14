@@ -45,11 +45,11 @@ test("pick draft rules copy omits salary and contract language", () => {
   assert.doesNotMatch(`${copy.support} ${copy.saveFootnote}`, /salary|contract/i);
 });
 
-test("scoring instructions use the consolidated weekly destination", () => {
-  for (const key of ["nativeHelp", "sleeperHelp", "effect"]) {
-    assert.match(SCORING_COPY[key], /This Week/);
-    assert.doesNotMatch(SCORING_COPY[key], /Game center/);
-  }
+test("scoring instructions distinguish lineup selection from recorded score recalculation", () => {
+  assert.match(SCORING_COPY.nativeHelp, /My team → Lineup/);
+  assert.match(SCORING_COPY.sleeperHelp, /My team → Lineup/);
+  assert.match(SCORING_COPY.effect, /Game center/);
+  assert.match(SCORING_COPY.effect, /existing results unchanged/);
 });
 
 test("validateLeagueSettings catches conflicting contract and roster limits", () => {

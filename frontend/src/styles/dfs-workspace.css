@@ -687,6 +687,7 @@
 .dfw-build-setup { container-type: inline-size; display: grid; gap: var(--space-2); }
 .dfw-build-controls { display: grid; grid-template-columns: minmax(6rem, 0.4fr) minmax(0, 1fr) max-content; align-items: end; gap: var(--space-3); }
 .dfw-build-controls .hub-filter-menu { width: 100%; min-width: 0; }
+.dfw-build-controls .hub-filter-menu-trigger { min-height:var(--control-h-lg); }
 .dfw-build-controls input { height: var(--control-h-lg); min-height: var(--control-h-lg); font-size: var(--text-md); }
 .dfw-build-controls > button { height: var(--control-h-lg); min-height: var(--control-h-lg); padding-inline: var(--space-5); font-weight: var(--font-weight-semibold); }
 .dfw-build-notes { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }

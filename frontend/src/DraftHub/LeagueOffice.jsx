@@ -4,7 +4,7 @@ import { LEAGUE_TEAM_SIZES } from "./leagueCreateJoin";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
-import { HubAlert, HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky } from "./HubUILayout";
+import { HubAlert, HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky, HubSection } from "./HubUILayout";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
 import TeamSalarySheets from "./TeamSalarySheets";
 import WeekCorrections from "./WeekCorrections";
@@ -576,7 +576,7 @@ export default function LeagueOffice({
   return (
     <div className="hub-league-office">
       <HubExperienceHero
-        eyebrow="Roster management"
+        eyebrow={mobileLayout ? "Roster management" : null}
         heading={mobileLayout ? null : intro.title}
         support={intro.purpose}
         compact={mobileLayout}
@@ -605,9 +605,9 @@ export default function LeagueOffice({
       </HubPageSticky>
 
       {activeTab === "current" && isCommissioner && (
+        <>
         <HubPage>
           <header className="hub-section-head">
-            <h3 className="hub-section-title">Current contracts</h3>
             <p className="hub-section-hint">
               {liveContractStage(hubContext?.season, {
                 draftCompleted: Boolean(hubContext?.draft_completed),
@@ -632,19 +632,21 @@ export default function LeagueOffice({
             onChanged={handleChanged}
             reloadNonce={dataEpoch}
           />
-          <AwardTitlesEditor
-            catalog={awardCatalogFromRules(workspace?.rules)}
-            currentRules={workspace?.rules || hubContext?.rules}
-            leagueId={leagueId}
-            onSaved={onWorkspaceSaved}
-          />
         </HubPage>
+          <HubSection disclosure title={OFFICE_CONTRACTS_COPY.awardNames} className="hub-office-award-disclosure">
+            <AwardTitlesEditor
+              catalog={awardCatalogFromRules(workspace?.rules)}
+              currentRules={workspace?.rules || hubContext?.rules}
+              leagueId={leagueId}
+              onSaved={onWorkspaceSaved}
+            />
+          </HubSection>
+        </>
       )}
 
       {activeTab === "rosters" && isCommissioner && (
         <HubPage>
           <header className="hub-section-head">
-            <h3 className="hub-section-title">Roster moves</h3>
             <p className="hub-section-hint">
               {OFFICE_CONTRACTS_COPY.rosterMovesSupport}
             </p>

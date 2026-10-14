@@ -107,7 +107,7 @@ export const HOME_PAGE_COPY = {
   undoCut: "Undo a cut",
   emptySeatsCost: "Empty seats draft as bots.",
   notScheduled: "Not scheduled",
-  lastSeason: "Last season",
+  lastSeason: (season) => season ? `${season} season matchup` : "Saved season matchup",
   draftLeftover: "Leftover for draft",
   seatsFilled: "Seats filled",
   draftNight: "Draft night",

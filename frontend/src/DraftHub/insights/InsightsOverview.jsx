@@ -26,12 +26,11 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
           <span className="hub-insights-trophy-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 3h8v7a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4M16 5h4v3a4 4 0 0 1-4 4M12 14v5M8 21h8M10 19h4" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
           <div><p className="hub-insights-plaque-kicker">{copy.mostChampionships}</p><h2>{plaque.owner}</h2>{plaque.team && <p className="hub-insights-plaque-team">{plaque.team}</p>}<p>{plaque.lastSeason && `Latest title · ${plaque.lastSeason}`}{plaque.runnerUp && ` · Defeated ${plaque.runnerUp}`}</p></div>
           <div className="hub-insights-plaque-count"><strong>{plaque.titles}</strong><span>{plaque.titles === 1 ? "title" : "titles"}</span></div>
-        </section> : <p className="chart-note hub-insights-titles-empty">{copy.titlesEmpty}</p>}
-        <section className="hub-insights-championship-timeline">
+        </section> : !years.length && <p className="chart-note hub-insights-titles-empty">{copy.titlesNone}</p>}
+        {years.length > 0 && <section className="hub-insights-championship-timeline">
           <div className="hub-insights-talk-head"><h3>{copy.titlesYears}</h3></div>
           <div className="hub-insights-years">{years.map((r) => <article key={r.season} className={`hub-insights-year${r.dynasty ? " is-dynasty" : ""}`}><time dateTime={String(r.season)}>{r.season}</time><div className="hub-insights-year-winner"><strong>{r.owner}</strong>{r.team && <span>{r.team}</span>}</div></article>)}</div>
-          {!years.length && <p className="chart-note">{copy.titlesNone}</p>}
-        </section>
+        </section>}
       </div>
       <section className="hub-insights-overview-panel hub-insights-record-book" aria-label="Record book">
         <div className="hub-insights-talk-head hub-insights-talk-head--row"><div><h2>{copy.recordBook}</h2><p className="hub-insights-record-description">{copy.recordBookSupport}</p></div></div>
@@ -40,7 +39,7 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
             { row: pointsHighlight, label: copy.mostPoints, value: pointsHighlight ? formatPoints(pointsHighlight.total_points) : "" }].filter(item => item.row).map(({ row, label, value, record }) => {
             const owner = teamDisplayName(row, ownerMap, false);
             return <article className="hub-insights-record-highlight" key={label} aria-label={label}>
-              <h3>{label}</h3><strong>{value}</strong><span>{owner}</span>
+              <h3>{(record ? landing.record_leaders.filter(r => Number(r.win_pct) === Number(row.win_pct)) : landing.scoring_leaders.filter(r => Number(r.total_points) === Number(row.total_points))).length > 1 ? copy.tiedHighlight(label) : label}</h3><strong>{value}</strong><span>{owner}</span>
               {row.team_name !== owner && <small>{row.team_name}</small>}
               {record && <small>{formatRecordLine(row)}</small>}
             </article>;
@@ -53,6 +52,7 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
           setSort(next);
           event.currentTarget.querySelectorAll("button")[next === "record" ? 0 : 1].focus();
         }}><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "record"} tabIndex={sort === "record" ? 0 : -1} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "points"} tabIndex={sort === "points" ? 0 : -1} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost btn-sm hub-insights-open-scoring" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
+        {sort === "record" && records.length > 1 && <p className="chart-note">{copy.recordTies}</p>}
         <ol className="hub-insights-record-list">{records.map((row, index) => {
           const owner = teamDisplayName(row, ownerMap, false);
           const gap = pointsLeader - Number(row.total_points || 0);

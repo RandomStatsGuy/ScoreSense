@@ -69,7 +69,7 @@ export const GAME_CENTER_COPY = {
   notStarted: "Not started",
   standingsTitle: "Standings",
   standingsUnranked: "Standings update after Week 1 is complete.",
-  standingsLastSeason: "Last season",
+  standingsLastSeason: "Saved standings",
   standingsToDate: "Season to date.",
   emptyLineupHeading: "Your lineup is empty.",
   emptyLineupSupport: "Review your starters in My team.",
