@@ -278,3 +278,37 @@ test("declared text opponents and missing numeric stats retain their column sema
   assert.equal(columnAlign(["Q","D"]),"center");
   assert.equal(columnAlign(["12.0","9.5"]),"right");
 });
+
+function cursorAudit(targets) {
+  const result = runInNewContext(`(${measureScript().toString()})(args)`, {
+    document: {
+      documentElement: { scrollWidth: 1280 }, body: { scrollWidth: 1280 }, styleSheets: [],
+      querySelector: () => null,
+      querySelectorAll: selector => selector.startsWith('button, a[href], summary') ? targets : [],
+    },
+    innerWidth: 1280, window: { innerWidth: 1280, innerHeight: 900 },
+    getComputedStyle: el => ({ cursor: el.cursor || "auto", visibility: "visible", fontSize: "16px", getPropertyValue: () => "12px" }),
+    args: { minTarget: 32, numericRe: NUMERIC_RE.source, barControlSelector: BAR_CONTROL_SELECTOR },
+  });
+  return result.find(item => item.rule === "cursors");
+}
+
+function cursorTarget(cursor, { hidden = false, disabled = false, editable = false, children = [] } = {}) {
+  return { cursor, tagName: "BUTTON", getAttribute: () => "test-control",
+    getClientRects: () => hidden ? [] : [{}], closest: () => disabled ? {} : null,
+    matches: () => editable, querySelectorAll: () => children };
+}
+
+test("cursor audit catches a native button regression and a nested icon override", () => {
+  assert.equal(cursorAudit([cursorTarget("default")]).ok, false);
+  assert.equal(cursorAudit([cursorTarget("pointer", { children: [cursorTarget("auto")] })]).ok, false);
+  assert.equal(cursorAudit([cursorTarget("pointer")]).ok, true);
+});
+
+test("cursor audit preserves drag, disabled, hidden, and text-entry exceptions", () => {
+  assert.equal(cursorAudit([
+    cursorTarget("grab"), cursorTarget("grabbing"),
+    cursorTarget("not-allowed", { disabled: true }), cursorTarget("auto", { hidden: true }),
+    cursorTarget("text", { editable: true }),
+  ]).ok, true);
+});
