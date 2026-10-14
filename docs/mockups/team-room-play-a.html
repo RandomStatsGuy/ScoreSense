@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My team · A · Full room</title>
+  <!-- Keep direct asset links: mobile_mock.py stamps each file independently. -->
+  <link rel="stylesheet" href="mockup-shared.css?v=59aafa499be5">
+  <link rel="stylesheet" href="mobile-foundation.css?v=e47422348af2">
+  <link rel="stylesheet" href="team-room-play.css?v=41fc9626a8d7">
+</head>
+<body data-option="a">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <!-- Preview options/scenario controls belong here, outside app chrome. -->
+  <div class="concept-banner"><strong>My team · A · Full room</strong><nav class="concept-nav" aria-label="Design options"><a href="index.html">All mocks</a><a href="team-room-play.html">Compare</a><a href="team-room-play-a.html" aria-current="page">A · Full room</a><a href="team-room-play-b.html" >B · Spotlight</a></nav></div>
+  <div class="scenario-bar" role="group" aria-label="Preview lineup host"><span class="meta">Preview:</span><button data-host="sleeper" aria-pressed="true">Sleeper linked</button><button data-host="native" aria-pressed="false">ScoreSense native</button><span class="scenario-help">Illustrative Week 6 players and projections · nothing is saved</span></div>
+  <div class="mock-viewport">
+    <header class="mock-header">
+      <div class="mock-brand"><div><div class="mock-brand-name">ScoreSense</div><span class="mock-brand-sub">4th Down Labs</span></div><nav class="mock-topnav" aria-label="Product areas"><span>Projections</span><span class="active">Fantasy</span><span>Tools</span></nav></div>
+      <button class="text-action" data-preview="Account">Caleb K</button>
+    </header>
+    <nav class="mock-subnav" aria-label="Fantasy destinations"><button class="text-action mock-tab " data-preview="Home">Home</button><button class="text-action mock-tab " data-preview="Strategy">Strategy</button><button class="text-action mock-tab " data-preview="Draft">Draft</button><button class="text-action mock-tab " data-preview="This Week">This Week</button><button class="text-action mock-tab " data-preview="Vibes">Vibes</button><button class="text-action mock-tab " data-preview="Game center">Game center</button><button class="text-action mock-tab active" aria-current="page">My team</button><button class="text-action mock-tab " data-preview="Free agents">Free agents</button><button class="text-action mock-tab " data-preview="Rosters">Rosters</button><button class="text-action mock-tab " data-preview="Cap">Cap</button><button class="text-action mock-tab " data-preview="Trades">Trades</button><button class="text-action mock-tab " data-preview="League">League</button></nav>
+    <header class="phone-header" data-compact-header>
+      <button class="destination" data-preview="Fantasy · destination picker" aria-label="My team · choose Fantasy destination">
+        <span>My team</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="league-button phone-league" data-preview="Switch league · league actions" aria-label="Bottom to Top · switch league" title="Bottom to Top">
+        <span>Bottom to Top</span><span class="control-caret" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button class="more-control" data-preview="Account · More" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    </header>
+    <div class="mock-league-strip"><button class="league-button" data-preview="Switch league · league actions">Bottom to Top</button></div>
+    <!-- Replace sample body with the living page's real decisions/states. The two-column
+         mobile-layout helper is optional; board/room/table surfaces keep their structure. -->
+    <main id="main-content" tabindex="-1"></main>
+    <p class="footnote">Static design preview · sample league · not shipped</p>
+  </div>
+  <nav class="phone-nav" aria-label="Product areas">
+    <a href="#" data-preview="Projections"><span aria-hidden="true">▤</span>Projections</a>
+    <a href="#" aria-current="page" data-preview="Fantasy · destination picker"><span aria-hidden="true">◈</span>Fantasy</a>
+    <a href="#" data-preview="Tools"><span aria-hidden="true">▦</span>Tools</a>
+    <a href="#" data-preview="Account · More"><span aria-hidden="true">•••</span>More</a>
+  </nav>
+  <div class="preview-toast" id="preview-toast" role="status" hidden></div>
+  <script src="team-room-play.js?v=1bd587c3daca"></script>
+  <script src="mobile-mock.js?v=ede2a46540ef"></script>
+</body>
+</html>

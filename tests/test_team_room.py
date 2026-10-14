@@ -94,6 +94,41 @@ def test_sleeper_nicknames_are_optional_and_filtered(monkeypatch):
     assert team_room.sleeper_nicknames("test", "5") == {}
 
 
+@pytest.mark.parametrize("host", ["native", "sleeper"])
+def test_room_preview_metadata_uses_slot_rules_and_blocks_started_or_unknown_kickoff(hub_db, monkeypatch, host):
+    from src.draft_hub import hub_scoring, league_sleeper_sync, league_live_scoring, draft_enrichment
+    league, team = league_team()
+    rules = {**league["rules"], "roster": {**league["rules"].get("roster", {}), "flex": {"eligible": ["WR"], "starters": 1}}}
+    monkeypatch.setattr(storage, "get_league", lambda _: {**league, "rules": rules})
+    rows = [
+        {"player_id": "qb", "name": "Quarterback", "position": "QB", "team": "PHI", "proj": 20},
+        {"player_id": "wr", "name": "Starter", "position": "WR", "team": "NYG", "proj": 10},
+        {"player_id": "bench", "name": "Bench receiver", "position": "WR", "team": "IND", "proj": 12},
+        {"player_id": "rb", "name": "Bench runner", "position": "RB", "team": "NE", "proj": 11},
+        {"player_id": "started", "name": "Started receiver", "position": "WR", "team": "DEN", "proj": 9},
+        {"player_id": "unknown", "name": "Unknown kickoff", "position": "WR", "team": "UNK", "proj": 8},
+    ]
+    scoring = {"available": True, "season": 2026, "week": 6, "current_week": 6, "starting_slots": ["QB", "FLEX"],
+        "matchups": [{"teams": [{"hub_team_id": team["id"], "is_viewer": True, "points": 0, "starters": rows[:2], "bench_players": rows[2:]}]}]}
+    monkeypatch.setattr(storage, "list_roster", lambda *a: rows)
+    monkeypatch.setattr(league_sleeper_sync, "resolve_sleeper_league_id", lambda _: "123" if host == "sleeper" else "")
+    monkeypatch.setattr(league_live_scoring, "get_sleeper_live_week", lambda *a, **k: scoring)
+    monkeypatch.setattr(hub_scoring, "build_hub_live_week", lambda *a, **k: scoring)
+    monkeypatch.setattr(hub_scoring, "nfl_week_slate_complete", lambda *a: False)
+    monkeypatch.setattr(hub_scoring, "nfl_game_started", lambda team, *a: None if team == "UNK" else team == "DEN")
+    monkeypatch.setattr(team_room, "sleeper_nicknames", lambda *a: {})
+    monkeypatch.setattr(draft_enrichment, "build_player_media_batch", lambda _: {})
+    room = team_room.build_room(team)
+    bench = {p["player_id"]: p for p in room["bench"]}
+    assert room["lineup_host"] == ("sleeper" if host == "sleeper" else "scoresense")
+    assert bench["bench"]["preview_slots"] == [1]
+    assert bench["rb"]["preview_slots"] == []  # This league's FLEX accepts WR only.
+    assert bench["started"]["lineup_locked"] is True and bench["started"]["preview_slots"] == []
+    assert bench["unknown"]["kickoff_available"] is False and bench["unknown"]["preview_slots"] == []
+    assert "rules" not in room and "sleeper_league_id" not in room
+    assert all(p["can_manage"] for p in room["starters"] + room["bench"])
+
+
 def test_room_snapshot_batch_uses_one_connection_and_preserves_kickoff(hub_db, monkeypatch):
     from contextlib import contextmanager
     original = storage.get_conn

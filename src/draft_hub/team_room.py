@@ -139,12 +139,14 @@ def sleeper_nicknames(league_id: str, roster_id: str) -> dict:
 def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
     from src.draft_hub.league_live_scoring import get_sleeper_live_week
     from src.draft_hub.league_sleeper_sync import resolve_sleeper_league_id
-    from src.draft_hub.hub_scoring import build_hub_live_week, nfl_week_slate_complete, nfl_game_started
+    from src.draft_hub.hub_scoring import build_hub_live_week, nfl_week_slate_complete, nfl_game_started, slot_accepts_position
+    from src.draft_hub.schemas import LeagueRules
     league_id = str(team["league_id"])
     league = storage.get_league(league_id) or {}
     teams = storage.list_league_teams(league_id)
     sleeper_id = resolve_sleeper_league_id(league_id) or ""
     rules = league.get("rules") or {}
+    room_rules = LeagueRules.model_validate(rules)
     if sleeper_id:
         scoring = get_sleeper_live_week(str(sleeper_id), hub_teams=teams, week=week,
             viewer_roster_id=str(team.get("sleeper_roster_id") or ""),
@@ -189,7 +191,14 @@ def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
     # The existing live-scoring estimates may refresh during a game. Freeze the
     # room's baseline before kickoff; older games without a capture show no delta.
     room_players = [p for p in (mine.get("starters") or []) + (mine.get("bench_players") or []) if p.get("player_id")]
-    started_by_player = {p["player_id"]: state in ("final", "unknown") or nfl_game_started(p.get("team"), int(season), current_week) for p in room_players}
+    game_status = {}
+
+    def kickoff_status(nfl_team):
+        if nfl_team not in game_status:
+            game_status[nfl_team] = nfl_game_started(nfl_team, int(season), current_week)
+        return game_status[nfl_team]
+
+    started_by_player = {p["player_id"]: state in ("final", "unknown") or kickoff_status(p.get("team")) for p in room_players}
     snapshots = projection_snapshots(league_id, season, current_week, [
         (p["player_id"], p.get("proj"), started_by_player[p["player_id"]]) for p in room_players
     ])
@@ -203,11 +212,14 @@ def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
         r = by_id.get(str(p.get("player_id"))) or by_sleeper.get(str(p.get("sleeper_player_id"))) or p
         pid = str(r.get("player_id") or p.get("player_id") or "")
         sid = str(p.get("sleeper_player_id") or r.get("sleeper_player_id") or "")
+        status = kickoff_status(p.get("team") or r.get("team"))
         return {"player_id": pid, "name": p.get("name") or r.get("player_name") or "Empty slot",
                 "team": p.get("team") or r.get("team"), "position": p.get("position") or r.get("position"),
                 "slot": slot, "points": None if placeholder or state == "pregame" else p.get("points"),
                 "projection": p.get("proj"), "projection_status": p.get("projection_status", "unavailable"), "nickname": overrides.get(pid, imported.get(sid, "")),
                 "can_manage": pid in by_id,
+                "kickoff_available": status is not None,
+                "lineup_locked": state in ("final", "unknown") or status is not False or bool(p.get("locked")),
                 "nickname_override": pid in overrides, "sleeper_nickname": imported.get(sid, "")}
     slots = scoring.get("starting_slots") or []
     starters = [player(p, slots[i] if i < len(slots) else p.get("position")) for i,p in enumerate(mine.get("starters") or [])]
@@ -219,12 +231,18 @@ def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
         bench = [player(p) for p in mine.get("bench_players", [])]
     else:
         bench = [player({**r, **bench_scores.get(str(r["player_id"]), {})}) for r in active if str(r["player_id"]) not in starter_ids]
+    # Only presentation metadata: reuse league eligibility without exposing private rules.
+    for p in starters + bench:
+        p["preview_slots"] = [i for i, starter in enumerate(starters)
+            if not p["lineup_locked"] and not starter["lineup_locked"]
+            and slot_accepts_position(starter.get("slot") or "", p.get("position") or "", room_rules)]
     from src.draft_hub.draft_enrichment import build_player_media_batch
     media = build_player_media_batch([{"player_id": p["player_id"], "player_name": p["name"],
         "team": p["team"], "position": p["position"]} for p in starters + bench if p["player_id"]])
     return {"team": {"id": team["id"], "name": team.get("name"), "owner_name": team.get("owner_name")},
             "photo_media_id": (team.get("identity") or {}).get("photo_media_id"),
             "theme": prefs.get("atmosphere", "none"), "state": state, "week": current_week,
+            "lineup_host": "sleeper" if sleeper_id else "scoresense",
             "season": season, "current_week": scoring.get("current_week", current_week),
             "max_week": min(18, scoring.get("max_week", 18)), "synced_at": scoring.get("synced_at"),
             "available": bool(scoring.get("available")), "placeholder": placeholder,

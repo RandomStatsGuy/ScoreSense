@@ -412,6 +412,11 @@ My team labels remaining cap **Available Cap** after the draft and **Leftover fo
 
 Manage roster is a separate local tab preserving contracts, cap, cuts, extensions, and appearance editing. Room opening and visiting another team never change saved league focus. Members may visit other rooms. Only the owner may edit nicknames or opt into a public, revocable `/team-room/:token` link. The public payload contains the room presentation only, not salary, contracts, owner account IDs, or league rules. Visitors see the owner's theme. Sleeper nicknames are used when provider metadata exposes them; local overrides can be reset. Historical projection differences require a pregame capture; never backfill them with an in-game projection. An unknown score remains a dash, not zero, and live state is not inferred from a zero score.
 
+### Approved My team room refinement — October 13, 2026
+
+The selected A concept in `docs/mockups/team-room-play-a.html` keeps the curved starter wall, aligns individual projections beneath jerseys, adds a clearly labeled projected lineup total, and opens a full-width player card with a prominent nickname and bench comparisons. Owner-only swaps are temporary projection previews; actual lineup changes remain in This Week or Sleeper. Eligibility follows the league's existing slot rules, started/unknown-kickoff players stay locked, and missing forecasts never become zero. Reset previews on team/week or saved-lineup changes. Keep jersey swing as an undisclosed hold gesture (Shift + Left/Right for keyboard users), respecting reduced motion; never advertise motion with a room toggle, hint, or Swing button. Use existing jersey artwork and brief CSS transforms without adding assets, animation libraries, sensors, requests, or polling.
+
+
 ## Approved DFS guided flow — October 12, 2026
 
 The user selected [option A](mockups/dfs-flow-a.html): **Build → Review → Download**. Keep the compact title and slate context strip. Build leads with lineup count, a plain-language scoring goal and one Build action beside those inputs. Choose players, Advanced rules, Compare & research and Save & restore start closed. Keep locks, skips, player/group limits, stacking, salary rules, named plans, evidence and recovery available inside these sections. Empty builds do not display zero-count audit summaries.
