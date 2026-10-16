@@ -55,10 +55,10 @@
 .hub-trade-advanced-actions > .btn-ghost { min-height: var(--control-h-sm); }
 .hub-trade-phone-views, .hub-trade-phone-impact { display: none; }
 .hub-trade-desk-bar { position: sticky; bottom: var(--space-4); z-index: var(--z-sticky); display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: var(--space-5); padding: var(--space-3) var(--space-4); background: var(--bg-subtle); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-panel); }
-.hub-trade-package-mini { display: flex; gap: var(--space-5); align-items: center; min-width: 0; }
+.hub-trade-package-mini { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-4); align-items: center; min-width: 0; }
 .hub-trade-package-mini > div { min-width: 0; }
-.hub-trade-package-mini span { display: block; color: var(--text-muted); font-size: var(--text-xs); margin-bottom: var(--space-1); }
-.hub-trade-package-mini strong { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hub-trade-mini-label { display: flex; justify-content: flex-start; gap: var(--space-2); color: var(--text-muted); font-size: var(--text-xs); margin-bottom: var(--space-1); }
+
 .hub-trade-desk-bar .hub-trade-verdict-slot { margin: 0; min-width: 0; max-width: 320px; }
 .hub-trade-desk-bar .hub-alert { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); }
 .hub-trade-bar-hint { color: var(--text-secondary); font-size: var(--text-xs); }
@@ -129,3 +129,72 @@
 
 .hub-trade-full-impact { display: grid; gap: var(--space-4); }
 .hub-trade-projection-method summary { min-height: var(--control-h-lg); padding-block: var(--space-3); }
+
+
+/* Consequence, experiment and selection share the existing workspace. */
+.hub-trade-impact-band > .hub-trade-decision { display: grid; grid-column: 1 / -1; align-items: center; gap: var(--space-2) var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+.hub-trade-decision { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: var(--space-2) var(--space-4); min-width: 0; }
+.hub-trade-decision-copy { display: contents; }
+.hub-trade-headline { grid-column: 1; grid-row: 1; margin: 0; font-size: var(--text-lg); font-weight: var(--font-weight-medium); line-height: 1.4; text-wrap: pretty; overflow-wrap: anywhere; }
+.hub-trade-headline.is-attention { color: var(--tone-caution); }
+.hub-trade-headline.is-up { color: var(--tone-positive); }
+.hub-trade-comparison { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--text-xs); color: var(--text-secondary); }
+.hub-trade-comparison .is-up { color: var(--tone-positive); }
+.hub-trade-comparison .is-down { color: var(--tone-caution); }
+.hub-trade-version-tools { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: var(--space-1); flex: none; }
+.hub-trade-version-switch { display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1); background: var(--bg-subtle); border-radius: var(--radius-pill); }
+.hub-trade-version-switch > button { min-width: var(--control-h-sm); min-height: var(--control-h-sm); padding: var(--space-1) var(--space-3); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--text-secondary); font-size: var(--text-xs); font-weight: var(--font-weight-medium); transition: background 160ms var(--ease-standard), color 160ms var(--ease-standard); }
+.hub-trade-version-switch > button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent-muted); }
+.hub-trade-version-keep { min-width: var(--control-h-sm); min-height: var(--control-h-sm); padding: var(--space-1); font-size: var(--text-lg); color: var(--text-muted); }
+.hub-trade-version-start { grid-column: 2; grid-row: 1; display: inline-flex; align-items: center; gap: var(--space-2); flex: none; min-height: var(--control-h-sm); padding: var(--space-1) var(--space-3); font-size: var(--text-xs); }
+.hub-trade-version-start-short { display: none; }
+.hub-trade-chip-track { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.hub-trade-move-chip { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; min-height: var(--control-h-sm); padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--text-primary); font-size: var(--text-xs); animation: trade-chip-enter 160ms var(--ease-standard); }
+.hub-trade-move-chip > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-trade-move-chip > span:last-child { color: var(--text-secondary); flex: none; font-size: var(--text-lg); }
+.hub-trade-move-chip:hover { background: var(--bg-hover); }
+.hub-trade-move-chip.is-cut { background: var(--tone-negative-soft); }
+.hub-trade-more-moves { flex: none; min-width: var(--control-h-sm); min-height: var(--control-h-sm); font-size: var(--text-xs); }
+.hub-trade-empty-chip { display: flex; align-items: center; min-height: var(--control-h-sm); color: var(--text-muted); }
+.hub-trade-bar-status { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); min-width: 0; max-width: 320px; }
+.hub-trade-net-cap { display: inline-flex; gap: var(--space-1); font-size: var(--text-xs); color: var(--text-secondary); }
+.hub-trade-net-cap strong { color: var(--text-primary); font-weight: var(--font-weight-medium); font-variant-numeric: tabular-nums; }
+.hub-trade-bar-status > button { min-height: var(--control-h-sm); font-size: var(--text-xs); }
+.hub-trade-view-count { margin-left: var(--space-1); font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.hub-trade-package-editor { display: grid; gap: var(--space-3); }
+.hub-trade-edit-move { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-block: var(--space-3); border-bottom: 1px solid var(--border); }
+.hub-trade-edit-move > div { min-width: 0; overflow-wrap: anywhere; }
+.hub-trade-edit-move p { margin: var(--space-1) 0 0; color: var(--text-secondary); font-size: var(--text-xs); }
+.hub-trade-edit-move button { min-width: var(--control-h-lg); min-height: var(--control-h-lg); flex: none; }
+@keyframes trade-chip-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width:768px) {
+  .hub-trade-impact-band > .hub-trade-decision { align-items: flex-start; gap: var(--space-2); }
+  .hub-trade-headline { font-size: var(--text-md); }
+  .hub-trade-version-start { min-height: var(--control-h-lg); padding-inline: var(--space-2); }
+  .hub-trade-version-start-label { display: none; }
+  .hub-trade-version-start-short { display: inline; }
+  .hub-trade-version-switch > button, .hub-trade-version-keep { min-width: var(--control-h-lg); min-height: var(--control-h-lg); }
+  .hub-trade-version-switch > button { padding-inline: var(--space-2); }
+  .hub-trade-move-chip, .hub-trade-more-moves, .hub-trade-empty-chip, .hub-trade-bar-status > button { min-height: var(--control-h-lg); }
+  .hub-trade-move-chip { flex: 1; }
+  .hub-trade-more-moves { min-width: var(--control-h-lg); }
+  .hub-trade-bar-status { max-width: none; }
+  .hub-trade-net-cap-prefix { display: none; }
+  .hub-trade-desk-bar:has(.hub-trade-net-cap) .hub-trade-bar-status { row-gap: var(--space-1); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .hub-trade-move-chip { animation: none; }
+  .hub-trade-version-switch > button { transition: none; }
+}
+
+.hub-trade-headline-compact { display: none; }
+.hub-trade-verdict-compact { min-width: 0; }
+.hub-trade-verdict-compact .hub-alert { margin: 0; padding: var(--space-2); }
+.hub-trade-net-cap-suffix { display: none; }
+@media (max-width:768px) {
+  .hub-trade-net-cap-suffix, .hub-trade-headline-compact { display: inline; }
+  .hub-trade-headline-full { display: none; }
+  .hub-trade-decision:has(.hub-trade-version-tools) .hub-trade-headline { grid-column: 1 / -1; }
+  .hub-trade-version-tools { grid-row: 2; }
+  .hub-trade-decision:has(.hub-trade-version-tools) .hub-trade-comparison { grid-column: 1; grid-row: 2; }
+}
