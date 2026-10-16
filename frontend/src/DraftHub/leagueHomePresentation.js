@@ -1,4 +1,4 @@
-import { interpretStandings, scoresArePlaceholder } from "./gameCenterPresentation.js";
+import { gameCenterMatchupScores, gameCenterTeamParts, interpretStandings, scoresArePlaceholder } from "./gameCenterPresentation.js";
 
 const ACTION_LABELS = {
   roster_hole: "Open draft room",
@@ -178,7 +178,7 @@ export const HOME_DECK_COPY = {
   matchupTitle: "Your matchup",
   standingsTitle: "Standings",
   standingsNote: "Season to date",
-  openGame: "Open This Week",
+  openGame: "Open Game center",
   linkSleeper: "Link Sleeper to fill scores.",
   opponentTbd: "Opponent TBD",
   lockerKicker: "Chat",
@@ -189,9 +189,29 @@ export const HOME_DECK_COPY = {
   leagueActivity: "League activity",
   versus: "vs",
   you: "You",
-  record: "Season record",
-  projectedPoints: "Projected pts",
+  record: "Record",
+  projectedPoints: "Projected Week pts",
   weekPoints: "Week pts",
+  openWeek: "This Week",
+  gameCenter: "Game center",
+  standingsAll: "All standings",
+  standingsLess: "Show fewer",
+  pointsFor: "Pts for",
+  manager: "Manager",
+  needsAttention: "Needs attention",
+  projectionSource: "PPR projections",
+  beforeKickoff: "Scores appear after kickoff.",
+  provisional: "Provisional scores",
+  final: "Final scores",
+  loadingMatchup: "Loading your matchup",
+  noMatchup: "Your matchup appears here when the week's schedule is available.",
+  projectedStatus: "Projected",
+  finalStatus: "Final",
+  liveStatus: "Live",
+  pendingStatus: "Score pending",
+  scorePending: "Score pending",
+  tied: "Tied",
+  leads: (owner, margin) => `${owner} leads by ${margin}`,
 };
 
 export function homeDeckStandingRows(standings, viewerTeamId, limit = 5) {
@@ -258,4 +278,31 @@ export function homeScoreMode(scoring) {
 export function homeScoresArePlaceholder(scoring, context) {
   if (scoring?.home_display_mode === "projected" && scoring?.source === "hub" && scoring?.reason === "hub_unscored") return false;
   return scoresArePlaceholder(scoring, context);
+}
+
+
+/** Keep both totals on one metric, honoring Home's server-selected week/mode. */
+export function homeMatchupDisplay(scoring, viewer, opponent, placeholder = false) {
+  const paired = gameCenterMatchupScores(viewer, opponent, scoring || {}, placeholder);
+  const explicit = ["projected", "scores"].includes(scoring?.home_display_mode);
+  const projected = explicit ? homeScoreMode(scoring) === "projected" : paired.home.pregame && paired.away.pregame;
+  const home = explicit ? formatHomeScore(viewer, placeholder, homeScoreMode(scoring)) : paired.home.value;
+  const away = explicit ? formatHomeScore(opponent, placeholder, homeScoreMode(scoring)) : paired.away.value;
+  const final = !placeholder && !projected && (scoring?.week_complete === true || scoring?.scoring_control?.final === true
+    || (scoring?.week != null && scoring?.current_week != null && Number(scoring.week) < Number(scoring.current_week)));
+  const live = !placeholder && !projected && !final && (scoring?.live === true || scoring?.has_live_games === true || scoring?.scoring_control?.live === true);
+  const margin = home === "—" || away === "—" ? null : Number(home) - Number(away);
+  const leader = gameCenterTeamParts(margin > 0 ? viewer : opponent);
+  return {
+    home, away, projected, live,
+    status: projected ? HOME_DECK_COPY.projectedStatus : final ? HOME_DECK_COPY.finalStatus : live ? HOME_DECK_COPY.liveStatus : HOME_DECK_COPY.pendingStatus,
+    unit: projected ? HOME_DECK_COPY.projectedPoints : HOME_DECK_COPY.weekPoints,
+    note: projected ? HOME_DECK_COPY.projectionSource : margin == null ? HOME_DECK_COPY.scorePending : margin === 0 ? HOME_DECK_COPY.tied : HOME_DECK_COPY.leads(leader.owner || leader.team, Math.abs(margin).toFixed(1)),
+    support: projected ? HOME_DECK_COPY.beforeKickoff : final ? HOME_DECK_COPY.final : HOME_DECK_COPY.provisional,
+  };
+}
+
+export function homeStandingPoints(row) {
+  const value = row?.points_for;
+  return value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(1);
 }

@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   actionLabel,
   formatHomeScore,
+  homeMatchupDisplay,
+  homeStandingPoints,
   HOME_DECK_COPY,
   HOME_PAGE_COPY,
   homeDeckMode,
@@ -21,8 +23,8 @@ import {
 
 const validViews = new Set(["planner", "roster", "room", "week", "value"]);
 
-test("home matchup action names the consolidated weekly destination", () => {
-  assert.equal(HOME_DECK_COPY.openGame, "Open This Week");
+test("home matchup action names the detailed matchup destination", () => {
+  assert.equal(HOME_DECK_COPY.openGame, "Open Game center");
 });
 
 test("league home promotes the highest-priority actionable item over the phase CTA", () => {
@@ -224,4 +226,43 @@ test("native pregame projections remain visible before actual points exist", asy
  assert.equal(homeScoresArePlaceholder(data, {draft_completed:true}),false);
  assert.equal(homeMatchupNote(data,{}),"Week 4 · Projected");
  assert.equal(formatHomeScore({proj_total:40,starters:[{player_id:"p",proj:null}]},false,"projected"),"—");
+});
+
+
+test("clubhouse pairs forecasts before kickoff and preserves true live zero", () => {
+  const team = (points, proj, state) => ({ points, proj_total: proj, starters: [{ name: "Starter", player_id: "p", proj, game_state: state }] });
+  const before = homeMatchupDisplay({}, team(0, 112, "pregame"), team(0, 105, "pregame"));
+  assert.deepEqual([before.home, before.away, before.unit], ["112.0", "105.0", "Projected Week pts"]);
+  const live = homeMatchupDisplay({ live: true, scoring_control: { scored: true, final: false, live: true } }, team(0, 112, "live"), team(0, 105, "pregame"));
+  assert.deepEqual([live.home, live.away, live.status, live.unit], ["0.0", "0.0", "Live", "Week pts"]);
+});
+
+test("clubhouse honors server display mode even when inferred game state disagrees", () => {
+  const viewer = { points: 95, proj_total: 112.4, starters: [{ name: "Starter", player_id: "p", proj: 112.4, game_state: "final" }] };
+  const opponent = { points: 80, proj_total: 108.7 };
+  const next = homeMatchupDisplay({ home_display_mode: "projected", week_complete: true }, viewer, opponent);
+  assert.deepEqual([next.home, next.away, next.status], ["112.4", "108.7", "Projected"]);
+  const pending = homeMatchupDisplay({ home_display_mode: "scores" }, { points: 0, proj_total: 112 }, { points: 0, proj_total: 108 });
+  assert.deepEqual([pending.home, pending.away, pending.projected], ["0.0", "0.0", false]);
+});
+
+test("clubhouse keeps missing forecasts and standings points unknown", () => {
+  const viewer = { points: 0, proj_total: 100, starters: [{ name: "Starter", player_id: "p", proj: null, game_state: "pregame" }] };
+  for (const context of [{}, { home_display_mode: "projected" }]) {
+    assert.equal(homeMatchupDisplay(context, viewer, { proj_total: 110 }).home, "—");
+  }
+  assert.equal(homeStandingPoints({}), "—");
+  assert.equal(homeStandingPoints({ points_for: null }), "—");
+  assert.equal(homeStandingPoints({ points_for: 0 }), "0.0");
+  assert.equal(homeStandingPoints({ points_for: 653.2 }), "653.2");
+});
+
+test("clubhouse labels final only after confirmation", () => {
+  const teams = [{ points: 128.4 }, { points: 112.7 }];
+  const pending = homeMatchupDisplay({ home_display_mode: "scores", scoring_control: { scored: true, final: false } }, ...teams);
+  assert.equal(pending.status, "Score pending");
+  assert.equal(pending.support, "Provisional scores");
+  const final = homeMatchupDisplay({ week_complete: true, home_display_mode: "scores" }, ...teams);
+  assert.equal(final.status, "Final");
+  assert.equal(final.support, "Final scores");
 });

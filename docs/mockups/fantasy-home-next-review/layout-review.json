@@ -1,0 +1,366 @@
+{
+  "base": "dfa20d9b0880eb2f646a56e4f4b0854aa91def66",
+  "frontend_tests": 1333,
+  "product_checks": 62,
+  "production_build": "PASS",
+  "browser_reviews": [
+    {
+      "scope": "Home state fixture",
+      "state": "pregame",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "live",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "zero",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "final",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "pre",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "missing",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "empty",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "scoring-error",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "error",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "loading",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "pregame",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "live",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "zero",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "final",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "pre",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "missing",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "empty",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "scoring-error",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "error",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "loading",
+      "width": 390,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "pregame",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "live",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "zero",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "final",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "pre",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "missing",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "empty",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "scoring-error",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "error",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home state fixture",
+      "state": "loading",
+      "width": 320,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "season",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "league-menu",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "pre",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "no-money",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "empty",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "error",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "loading",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "missing-projection",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "attention",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "staff",
+      "width": 390,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "season",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "pre",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "no-money",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "empty",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "error",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "loading",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "missing-projection",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "attention",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "staff",
+      "width": 1280,
+      "result": "PASS",
+      "checks": 12
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "long-names",
+      "width": 320,
+      "result": "PASS",
+      "checks": 14
+    },
+    {
+      "scope": "Home with shared shell",
+      "state": "long-names-menu",
+      "width": 320,
+      "result": "PASS",
+      "checks": 14
+    }
+  ],
+  "scope": "Production Home and shared shell rendered with deterministic fixture APIs; no real league writes. Full Python suite and real-league/backend integration not run."
+}
