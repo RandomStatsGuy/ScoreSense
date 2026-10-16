@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import useFantasyReady from "../useFantasyReady";
 import { connectionErrorMessage, parseApiError } from "../format";
@@ -8,9 +8,15 @@ import { HubAlert, HubLoadingSkeleton, HubPage, HubSection } from "./HubUILayout
 import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
 import MatchupBannerArt from "./MatchupBannerArt";
+import { WeekLeagueGames, WeekLeagueUpdates, matchupHref } from "./WeekLeagueOverview";
+import { overviewAlert, WEEK_OVERVIEW_COPY } from "./weekOverviewPresentation";
+import { hubSubviewLabel } from "./hubSubnav.js";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import {
   findViewerMatchup,
+  gameCenterWeek,
+  shouldPollGameCenter,
+  gameCenterPollMs,
   formatStandingRank,
   formatStandingRecord,
   gameCenterTeamParts,
@@ -114,12 +120,15 @@ function formatDraftDate(schedule) {
  */
 export default function LeagueHome({
   hubContext,
+  requestedWeek,
   reloadToken = 0,
   onNavigate,
   onNavigateSetup,
   onLeagueSync,
 }) {
   const mobileLayout = useMobileLayout();
+  const [week, setWeek] = useState(() => gameCenterWeek(requestedWeek));
+  useEffect(() => setWeek(gameCenterWeek(requestedWeek)), [hubContext?.league_id, requestedWeek]);
   const { identities } = useTeamIdentities();
   const cacheKey = homeCacheKey(hubContext);
   const [data, setData] = useState(() => getHomeCache(cacheKey)?.data || null);
@@ -194,32 +203,67 @@ export default function LeagueHome({
     reloadToken,
   ]);
 
+  const scoringScope = `${cacheKey}:${week ?? "home"}`;
+  const scopeRef = useRef(scoringScope);
+  scopeRef.current = scoringScope;
+  const readVersion = useRef(0);
+  const [previousScope, setPreviousScope] = useState(scoringScope);
+  if (previousScope !== scoringScope) {
+    setPreviousScope(scoringScope);
+    setScoring(null);
+    setScoringLoading(true);
+    setScoringError("");
+  }
+  const loadScoring = useCallback(async (signal, {refresh = false} = {}) => {
+    if (!leagueId) return;
+    const version = ++readVersion.current;
+    const current = () => !signal?.aborted && scopeRef.current === scoringScope && version === readVersion.current;
+    setScoringError("");
+    setScoringLoading(true);
+    try {
+      const query = new URLSearchParams({overview:"1"});
+      if (week != null) query.set("week", String(week));
+      else if (hubContext?.draft_completed) query.set("home_view", "true");
+      if (refresh) query.set("refresh", "1");
+      const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring?${query}`, {signal});
+      if (!res.ok) throw new Error(await parseApiError(res));
+      const payload = await res.json();
+      if (current()) {
+        setScoring(payload);
+        setScoringError(payload.available === false ? HOME_PAGE_COPY.matchupUnavailable : "");
+      }
+    } catch (e) {
+      if (!isAbortError(e) && current()) setScoringError(connectionErrorMessage(e));
+    } finally {
+      if (current()) setScoringLoading(false);
+    }
+  }, [leagueId, week, scoringScope, hubContext?.draft_completed]);
   useEffect(() => {
     if (!leagueId) { setScoring(null); setScoringLoading(false); return undefined; }
     const ctrl = new AbortController();
     setScoringLoading(true);
-    setScoringError("");
-    const update = async () => {
-      try {
-        const query = hubContext?.draft_completed ? "?home_view=true" : "";
-        const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/live-scoring${query}`, { signal: ctrl.signal });
-        if (!res.ok) throw new Error(await parseApiError(res));
-        const payload = await res.json();
-        if (ctrl.signal.aborted) return;
-        setScoring(payload);
-        setScoringError(payload.available === false ? HOME_PAGE_COPY.matchupUnavailable : "");
-      } catch (e) {
-        if (!ctrl.signal.aborted) setScoringError(connectionErrorMessage(e));
-      } finally {
-        if (!ctrl.signal.aborted) setScoringLoading(false);
-      }
+    loadScoring(ctrl.signal, {refresh:Boolean(hubContext?.draft_completed && !hubContext?.sleeper_league_id)});
+    return () => ctrl.abort();
+  }, [loadScoring, reloadToken, hubContext?.draft_completed, hubContext?.sleeper_league_id]);
+  const pollScores = shouldPollGameCenter(scoring, hubContext);
+  const pollMs = gameCenterPollMs(scoring);
+  const refreshPending = ["pending", "running"].includes(scoring?.scoring_control?.refresh?.status);
+  useEffect(() => {
+    if (!pollScores && !refreshPending) return undefined;
+    const ctrl = new AbortController();
+    const refresh = () => {
+      if (!document.hidden) loadScoring(ctrl.signal, {refresh:!refreshPending && !hubContext?.sleeper_league_id});
     };
-    update();
-    const refresh = () => { if (!document.hidden) update(); };
-    const timer = window.setInterval(refresh, 60000);
+    const timer = window.setInterval(refresh, refreshPending ? 5000 : pollMs);
     document.addEventListener("visibilitychange", refresh);
     return () => { ctrl.abort(); window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
-  }, [leagueId, reloadToken, hubContext?.draft_completed]);
+  }, [loadScoring, pollScores, pollMs, refreshPending, hubContext?.sleeper_league_id]);
+  const stepWeek = delta => {
+    const next = gameCenterWeek(Number(scoring?.week) + delta);
+    if (next == null || next > (scoring?.max_week || 18)) return;
+    setWeek(next);
+    onNavigate?.("home", {week:next});
+  };
 
   const phase = data?.phase || {};
   const primaryCta = phase.primary_cta || null;
@@ -263,6 +307,7 @@ export default function LeagueHome({
   );
   const placeholder = homeScoresArePlaceholder(scoring, hubContext);
   const matchDisplay = homeMatchupDisplay(scoring, matchViewer, matchOpponent, placeholder);
+  const lineupAlert = overviewAlert(matchViewer);
   const showDeck = Boolean(data && deckMode.show && leagueId);
   const showMatchup = showDeck && matchup && matchViewer && matchOpponent
     && (!deckMode.historical || Number(matchViewer.points) > 0 || Number(matchOpponent.points) > 0);
@@ -280,6 +325,7 @@ export default function LeagueHome({
 
   return (
     <HubPage className={`hub-league-home hub-home-page hub-home--clubhouse${mobileLayout ? " hub-league-home--mobile" : ""}`}>
+      <h1 className="sr-only">{hubSubviewLabel("home", hubContext)}</h1>
       {error && <HubAlert variant="danger">{error}</HubAlert>}
       <header className="hub-home-phase-header">
         <nav className="hub-home-phases" aria-label="League season stage">
@@ -321,7 +367,7 @@ export default function LeagueHome({
             </div>
             <header className="hub-home-matchup-head">
               <div><p className="hub-experience-kicker">{[scoring?.season, scoring?.week != null ? `Week ${scoring.week}` : null].filter(Boolean).join(" · ")}</p><h2 id="home-matchup-title">{deckMode.historical ? HOME_PAGE_COPY.lastSeason(placeholder ? null : scoring?.season) : HOME_DECK_COPY.matchupTitle}</h2></div>
-              <span className={`hub-home-matchup-status${matchDisplay.live ? " is-live" : ""}`}>{matchDisplay.status}</span>
+              <div className="hub-home-matchup-controls"><div className="week-overview-stepper" role="group" aria-label="Week"><button type="button" className="btn-ghost" aria-label="Previous week" disabled={scoringLoading || !scoring?.week || scoring.week <= 1} onClick={() => stepWeek(-1)}>‹</button><strong>{scoring?.week ? `Week ${scoring.week}` : WEEK_OVERVIEW_COPY.title}</strong><button type="button" className="btn-ghost" aria-label="Next week" disabled={scoringLoading || !scoring?.week || scoring.week >= (scoring.max_week || 18)} onClick={() => stepWeek(1)}>›</button></div><span className={`hub-home-matchup-status${matchDisplay.live ? " is-live" : ""}`}>{matchDisplay.status}</span></div>
             </header>
             <div className="hub-home-matchup-scoreboard">
               {[matchViewer, matchOpponent].map((team, index) => {
@@ -339,17 +385,24 @@ export default function LeagueHome({
                 </React.Fragment>;
               })}
             </div>
-            <footer className="hub-home-matchup-footer"><p>{matchDisplay.note}<span>{matchDisplay.support}</span></p><div className="hub-home-matchup-actions">{onNavigate && <><button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("week")}>{HOME_DECK_COPY.openWeek} <span aria-hidden="true">↗</span></button><button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game", { matchupWeek: scoring?.week })}>{HOME_DECK_COPY.gameCenter} <span aria-hidden="true">↗</span></button></>}</div></footer>
+            <footer className="hub-home-matchup-footer"><p>{matchDisplay.note}<span>{matchDisplay.support}</span></p><div className="hub-home-matchup-actions">{onNavigate && <><button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("roster", {lineup:true, week:scoring?.week})}>{HOME_DECK_COPY.reviewLineup} <span aria-hidden="true">↗</span></button><a className="btn-ghost btn-sm" href={matchupHref(matchViewer, scoring?.week)}>{HOME_DECK_COPY.gameCenter} <span aria-hidden="true">↗</span></a></>}</div></footer>
           </section>
         ) : !showPriority && data && leagueId ? (
           <section className="hub-home-feature" aria-busy={scoringLoading}>
-            {scoringLoading ? <HubLoadingSkeleton label={HOME_DECK_COPY.loadingMatchup} rows={3} /> : <HubAlert variant={scoringError ? "warn" : "info"} action={onNavigate ? <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game", { matchupWeek: scoring?.week })}>{HOME_DECK_COPY.openGame}</button> : null}>{scoringError ? HOME_PAGE_COPY.matchupUnavailable : HOME_DECK_COPY.noMatchup}</HubAlert>}
+            {scoring?.week && <div className="week-overview-stepper" role="group" aria-label="Week"><button type="button" className="btn-ghost" aria-label="Previous week" disabled={scoringLoading || scoring.week <= 1} onClick={() => stepWeek(-1)}>‹</button><strong>Week {scoring.week}</strong><button type="button" className="btn-ghost" aria-label="Next week" disabled={scoringLoading || scoring.week >= (scoring.max_week || 18)} onClick={() => stepWeek(1)}>›</button></div>}
+            {scoringLoading ? <HubLoadingSkeleton label={HOME_DECK_COPY.loadingMatchup} rows={3} /> : <HubAlert variant={scoringError ? "warn" : "info"} action={scoringError ? <button type="button" className="btn-ghost btn-sm" onClick={() => loadScoring(undefined, {refresh:true})}>{HOME_PAGE_COPY.retryMatchup}</button> : onNavigate ? <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game", { week:scoring?.week })}>{HOME_DECK_COPY.openGame}</button> : null}>{scoringError ? HOME_PAGE_COPY.matchupUnavailable : HOME_DECK_COPY.noMatchup}</HubAlert>}
           </section>
         ) : null}
 
-        {leagueId && <HomeDisclosure className="hub-home-conversation" title={HOME_DECK_COPY.lockerTitle} note={HOME_DECK_COPY.lockerNote} icon="chat"><LeagueChat key={leagueId} leagueId={leagueId} hubContext={hubContext} home /></HomeDisclosure>}
-
-        {showDeck && standingRows.length > 0 && <HomeDisclosure className="hub-home-standings-card" title={HOME_DECK_COPY.standingsTitle} note={standingsView.note} icon="standings">
+        <div className="hub-home-week-main">
+          {showDeck && !deckMode.historical && scoring?.matchups?.length > 0 && <>
+            {lineupAlert && <HubAlert variant="warn" action={onNavigate ? <button type="button" className="btn-ghost" onClick={() => onNavigate("roster", {lineup:true,week:scoring.week})}>{HOME_DECK_COPY.reviewLineup}</button> : null}>{lineupAlert}</HubAlert>}
+            <WeekLeagueGames data={scoring} {...{hubContext,identities,placeholder}} />
+          </>}
+          {leagueId && <HomeDisclosure className="hub-home-conversation" title={HOME_DECK_COPY.lockerTitle} note={HOME_DECK_COPY.lockerNote} icon="chat"><LeagueChat key={leagueId} leagueId={leagueId} hubContext={hubContext} home /></HomeDisclosure>}
+        </div>
+        <aside className="hub-home-week-aside" aria-label={WEEK_OVERVIEW_COPY.around}>
+          {showDeck && standingRows.length > 0 && <HomeDisclosure className="hub-home-standings-card" title={HOME_DECK_COPY.standingsTitle} note={standingsView.note} icon="standings">
           <table className="hub-home-standings-table"><thead><tr><th scope="col">#</th><th scope="col">{HOME_DECK_COPY.manager}</th><th className="num" scope="col">{HOME_DECK_COPY.record}</th><th className="num" scope="col">{HOME_DECK_COPY.pointsFor}</th></tr></thead><tbody>
             {standingRows.map((row, index) => {
               const parts = gameCenterTeamParts(row);
@@ -362,6 +415,9 @@ export default function LeagueHome({
           </tbody></table>
           {standingsView.standings.length > 5 && <button type="button" className="btn-link hub-home-all-standings" aria-expanded={allStandings} onClick={() => setAllStandings(value => !value)}>{allStandings ? HOME_DECK_COPY.standingsLess : HOME_DECK_COPY.standingsAll} <span aria-hidden="true">{allStandings ? "−" : "+"}</span></button>}
         </HomeDisclosure>}
+          {showDeck && !deckMode.historical && scoring?.matchups?.length > 0 && <WeekLeagueUpdates data={scoring} placeholder={placeholder} />}
+        </aside>
+        {showDeck && scoring && <div className="hub-home-week-freshness week-overview-freshness"><span>{scoring.synced_at ? HOME_DECK_COPY.updated(scoring.synced_at) : HOME_DECK_COPY.updateUnavailable}</span><button type="button" className="btn-link" onClick={() => loadScoring(undefined, {refresh:true})}>{WEEK_OVERVIEW_COPY.refresh}</button></div>}
 
         {!loading && !error && supportingActions.length > 0 && <HomeDisclosure className="hub-home-attention" title={HOME_DECK_COPY.needsAttention} icon="attention"><ol className="hub-home-action-list">{supportingActions.map(action => <ActionRow key={action.id} action={action} onNavigate={onNavigate} />)}</ol></HomeDisclosure>}
       </div>

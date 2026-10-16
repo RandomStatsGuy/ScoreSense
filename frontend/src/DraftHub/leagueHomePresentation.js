@@ -1,3 +1,4 @@
+import { formatRelativeTime } from "../format.js";
 import { gameCenterMatchupScores, gameCenterTeamParts, interpretStandings, scoresArePlaceholder } from "./gameCenterPresentation.js";
 
 const ACTION_LABELS = {
@@ -113,6 +114,7 @@ export const HOME_PAGE_COPY = {
   draftNight: "Draft night",
   openDraft: "Open draft room",
   syncLeague: "Sync league",
+  retryMatchup: "Try again",
   matchupUnavailable: "Matchup unavailable. Try again shortly.",
   matchupLoading: "Loading your matchup",
   matchupEmpty: "Your matchup will appear when the schedule is ready.",
@@ -193,6 +195,9 @@ export const HOME_DECK_COPY = {
   projectedPoints: "Projected Week pts",
   weekPoints: "Week pts",
   openWeek: "This Week",
+  reviewLineup: "Review lineup",
+  updated: at => `League · ${formatRelativeTime(at)}`,
+  updateUnavailable: "League update time unavailable",
   gameCenter: "Game center",
   standingsAll: "All standings",
   standingsLess: "Show fewer",
@@ -288,13 +293,16 @@ export function homeMatchupDisplay(scoring, viewer, opponent, placeholder = fals
   const projected = explicit ? homeScoreMode(scoring) === "projected" : paired.home.pregame && paired.away.pregame;
   const home = explicit ? formatHomeScore(viewer, placeholder, homeScoreMode(scoring)) : paired.home.value;
   const away = explicit ? formatHomeScore(opponent, placeholder, homeScoreMode(scoring)) : paired.away.value;
-  const final = !placeholder && !projected && (scoring?.week_complete === true || scoring?.scoring_control?.final === true
-    || (scoring?.week != null && scoring?.current_week != null && Number(scoring.week) < Number(scoring.current_week)));
+  const native = scoring?.scoring_control?.host === "native";
+  const confirmed = native ? scoring?.scoring_control?.final === true
+    : scoring?.week_complete === true || scoring?.scoring_control?.final === true
+      || (scoring?.week != null && scoring?.current_week != null && Number(scoring.week) < Number(scoring.current_week));
+  const final = !placeholder && !projected && confirmed;
   const live = !placeholder && !projected && !final && (scoring?.live === true || scoring?.has_live_games === true || scoring?.scoring_control?.live === true);
   const margin = home === "—" || away === "—" ? null : Number(home) - Number(away);
   const leader = gameCenterTeamParts(margin > 0 ? viewer : opponent);
   return {
-    home, away, projected, live,
+    home, away, projected, live, final,
     status: projected ? HOME_DECK_COPY.projectedStatus : final ? HOME_DECK_COPY.finalStatus : live ? HOME_DECK_COPY.liveStatus : HOME_DECK_COPY.pendingStatus,
     unit: projected ? HOME_DECK_COPY.projectedPoints : HOME_DECK_COPY.weekPoints,
     note: projected ? HOME_DECK_COPY.projectionSource : margin == null ? HOME_DECK_COPY.scorePending : margin === 0 ? HOME_DECK_COPY.tied : HOME_DECK_COPY.leads(leader.owner || leader.team, Math.abs(margin).toFixed(1)),

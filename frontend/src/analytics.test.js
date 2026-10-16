@@ -80,7 +80,7 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/hub/strategy"), "Fantasy · Strategy");
   assert.equal(pageTitleForPath("/hub/free-agents"), "Fantasy · Free agents");
   assert.equal(pageTitleForPath("/hub/draft"), "Fantasy · Draft");
-  assert.equal(pageTitleForPath("/hub/week"), "Fantasy · This Week");
+  assert.equal(pageTitleForPath("/hub/week"), "Fantasy · Home");
   assert.equal(pageTitleForPath("/hub/vibes"), "Fantasy · Vibes");
   assert.equal(pageTitleForPath("/hub/game"), "Fantasy · Game center");
   assert.equal(pageTitleForPath("/hub/roster"), "Fantasy · My team");
@@ -236,4 +236,11 @@ test("trackPageView sends sanitized page_view and skips callback", () => {
   assert.equal(events[0][2].page_path, "/hub/draft?pos=wr");
   assert.equal(events[0][2].page_group, "fantasy");
   assert.equal(doc.title, "Fantasy · Draft · ScoreSense");
+});
+
+test("the single landing page title follows the selected league phase", () => {
+ for(const path of ['/hub/home','/hub/week']) {
+  assert.equal(pageTitleForPath(path,{mode:'league',draft_completed:true}),'Fantasy · This Week');
+  assert.equal(pageTitleForPath(path,{mode:'league',draft_completed:false}),'Fantasy · Home');
+ }
 });

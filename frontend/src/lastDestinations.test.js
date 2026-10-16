@@ -41,7 +41,7 @@ test("entering Fantasy lands on Home while the active Fantasy tab keeps its page
       current: { view: "hub", hubSubView: "week" },
       storage,
     }),
-    { hubSubView: "week", officeTab: null, insightTab: null },
+    { hubSubView: "home", officeTab: null, insightTab: null },
   );
 });
 

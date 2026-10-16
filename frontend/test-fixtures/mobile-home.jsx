@@ -11,6 +11,7 @@ import MobileShell from "../src/layout/MobileShell";
 import MobileMenuSheet from "../src/layout/MobileMenuSheet";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";
 import HubSubnav from "../src/DraftHub/HubSubnav.jsx";
+import {hubSubviewLabel} from "../src/DraftHub/hubSubnav.js";
 import useMobileLayout from "../src/useMobileLayout";
 import "../src/styles.css";
 import "../src/styles/fantasy.css";
@@ -50,7 +51,7 @@ function Preview(){
  return <LeagueChromeProvider><MobileShell className="app--compact-league" section="hub" onSectionChange={navigate} onMoreOpen={()=>setMore(true)} hrefForSection={id=>"#"+id}>
   <a className="app-skip-link" href="#main-content">Skip to content</a>
   <header className="app-header app-header--hub app-header--product app-header--compact-league"><div className="app-header-shell app-header-shell--hub">
-   <MobileHeader title="Home" hasMenu menuOpen={picker} onTitleClick={()=>setPicker(true)} compactLeague onMoreOpen={()=>setMore(true)} />
+   <MobileHeader title={hubSubviewLabel("home",context)} hasMenu menuOpen={picker} onTitleClick={()=>setPicker(true)} compactLeague onMoreOpen={()=>setMore(true)} />
    <DesktopPrimaryHeader productName="ScoreSense" studioName="4th Down Labs" sections={[{id:"projections",label:"Projections"},{id:"hub",label:"Fantasy"},{id:"tools",label:"Tools"}]} view="hub" pathForSection={id=>"#"+id} onNavigate={navigate} />
    <HubSubnav subView="home" hubContext={context} onNavigate={navigate} mobileLayout={mobile} pickerOnly={mobile} pickerOpen={picker} onPickerOpenChange={setPicker} />
   </div></header>

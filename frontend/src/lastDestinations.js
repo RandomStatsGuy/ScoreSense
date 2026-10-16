@@ -22,7 +22,7 @@ function storageOf(storage) {
 export function snapshotDestination(route) {
   const view = route?.view;
   if (view === "hub") {
-    const hubSubView = route.hubSubView || "home";
+    const hubSubView = route.hubSubView === "week" ? "home" : route.hubSubView || "home";
     return {
       hubSubView,
       officeTab: hubSubView === "office" ? (route.officeTab || "current") : null,

@@ -8,7 +8,8 @@ import DraftTable from "./DraftTable";
 // Explicit extension: hubSubnav.js and HubSubnav.jsx differ only by case, so a
 // case-insensitive filesystem (Windows, default macOS) resolves the bare
 // specifier to the data module, which has no default export.
-import HubSubnav, { HUB_SUBVIEWS } from "./DraftHub/HubSubnav.jsx";
+import HubSubnav from "./DraftHub/HubSubnav.jsx";
+import { hubSubviewLabel } from "./DraftHub/hubSubnav.js";
 import { LeagueChromeProvider } from "./DraftHub/leagueChromeContext";
 import { CommunicationProvider } from "./DraftHub/CommunicationContext";
 import CommunicationPanel, { NotificationBell } from "./DraftHub/CommunicationPanel";
@@ -1162,8 +1163,8 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
-    document.title = pageTitleForPath(location.pathname);
-  }, [location.pathname]);
+    document.title = pageTitleForPath(location.pathname, hubContext);
+  }, [location.pathname, hubContext]);
 
   useEffect(() => {
     if (headerSubtitle === subtitleDisplay) return undefined;
@@ -1304,15 +1305,15 @@ export default function App() {
   };
 
   const mobileDestination = useMemo(() => {
-    const hubTab = HUB_SUBVIEWS.find((item) => item.id === hubSubView);
+    const hubTitle = hubSubviewLabel(hubSubView, hubContext);
     return resolveMobileDestination({
       view,
       projectionsTab,
       toolsTab,
-      hubTitle: hubTab?.label,
+      hubTitle,
       hubNeedsSignIn,
     });
-  }, [view, projectionsTab, toolsTab, hubSubView, hubNeedsSignIn]);
+  }, [view, projectionsTab, toolsTab, hubSubView, hubNeedsSignIn, hubContext]);
 
   const weeklyMobileTabs = useMemo(
     () => [

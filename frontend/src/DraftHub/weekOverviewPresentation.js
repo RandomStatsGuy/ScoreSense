@@ -1,3 +1,4 @@
+import {homeMatchupDisplay} from './leagueHomePresentation.js';
 import {gameCenterMatchupScores, gameCenterTeamParts, playerGameState} from './gameCenterPresentation.js';
 
 export const WEEK_OVERVIEW_COPY = {
@@ -24,9 +25,10 @@ export function overviewRecord(team, standings=[]) {
 }
 export function overviewState(data={},matchup,placeholder=false) {
  const [a,b]=matchup?.teams||[];
- const scores=gameCenterMatchupScores(a,b,data,placeholder);
+ const scores=overviewScores(a,b,data,placeholder);
  if(scores.home.pregame&&scores.away.pregame)return 'pregame';
- if(data.week_complete||data.scoring_control?.final)return 'final';
+ if(data.home_display_mode) {const display=homeMatchupDisplay(data,a,b,placeholder);return display.final?'final':display.live?'live':'pending';}
+ if(data.scoring_control?.host==='native' ? data.scoring_control.final===true : data.week_complete||data.scoring_control?.final)return 'final';
  if(data.has_live_games||data.live)return 'live';
  return 'pending';
 }
@@ -49,7 +51,7 @@ export function overviewAlert(team) {
 }
 export function overviewStories(data={},placeholder=false) {
  const pairs=(data.matchups||[]).filter(m=>m.teams?.length===2).map(m=>{
-  const score=gameCenterMatchupScores(m.teams[0],m.teams[1],data,placeholder);
+  const score=overviewScores(m.teams[0],m.teams[1],data,placeholder);
   if([score.home.value,score.away.value].includes('—'))return null;
   return {m,score,gap:Math.abs(Number(score.home.value)-Number(score.away.value))};
  }).filter(Boolean);
@@ -75,4 +77,11 @@ export function activityCopy(item) {
  const verbs={add:'Added',waiver:'Added',drop:'Dropped',trade:'Traded for'};
  if(!verbs[item.event_type])return null;
  return {title:`${verbs[item.event_type]} ${item.player_name}`,owner,at:item.event_at};
+}
+
+/** The approaching-week mode applies to every pair, including factual stories. */
+export function overviewScores(a,b,data={},placeholder=false) {
+ if(!data.home_display_mode)return gameCenterMatchupScores(a,b,data,placeholder);
+ const display=homeMatchupDisplay(data,a,b,placeholder);
+ return {home:{value:display.home,pregame:display.projected,label:display.status},away:{value:display.away,pregame:display.projected,label:display.status}};
 }
