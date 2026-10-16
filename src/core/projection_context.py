@@ -227,11 +227,13 @@ def build_inference_roster(
     }
     full_roster = depth_mode in {"coverage", "dfs"}
     if full_roster or (meta["preseason_mode"] and meta["feature_season"] < season):
-        coverage_options = {}
-        if full_roster:
-            from src.projections.roster_coverage import projection_roster_players
+        from src.projections.roster_coverage import projection_roster_players
 
-            coverage_options = {"sleeper_df": projection_roster_players(season), "add_missing": True}
+        # Weekly Inactive/Out does not remove a player still on the NFL roster.
+        # Reconcile membership before the Sleeper overlay can discard their profile.
+        coverage_options = {"sleeper_df": projection_roster_players(season)}
+        if full_roster:
+            coverage_options["add_missing"] = True
         roster, overlay = apply_sleeper_roster_overlay(
             roster,
             position,
