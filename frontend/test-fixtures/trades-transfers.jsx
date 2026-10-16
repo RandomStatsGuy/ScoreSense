@@ -56,6 +56,7 @@ window.fetch=async(input,options={})=>{
  if(path.includes('/identities'))return Response.json({identities:Object.fromEntries(blocks.map((b,i)=>[b.team.id,{banner_preset:['midnight','stadium','sunset'][i%3],photo_preset:'shield'}]))});
  if(options.method==='POST'){
   const body=JSON.parse(options.body||'{}');window.fixtureWrites.push({path,body});
+  if(body.validate_only&&params.has('validateDelay'))await new Promise(resolve=>setTimeout(resolve,Number(params.get('validateDelay'))));
   return Response.json(body.validate_only?{ok:state!=='invalid',errors:state==='invalid'?['Your team is over the cap.']:[],salary_cap:200}:{proposal_id:'preview'});
  }
  if(path.includes('/trades?'))return Response.json({proposals:state==='sleeper'||state==='review'?[{id:'sleeper-proposal',status:state==='review'?'cap_review':'awaiting_sleeper',parties:[{team_id:'mine',sends:[{player_id:'0-0',to_team_id:'team1'}],drops:[]},{team_id:'team1',sends:[{player_id:'1-0',to_team_id:'mine'}],drops:[]}],acceptances:{mine:'accepted',team1:'accepted'}}]:[]});

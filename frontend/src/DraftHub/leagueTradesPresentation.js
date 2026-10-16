@@ -1,6 +1,26 @@
 /** User-facing copy for Fantasy → Trades. */
 
 export const TRADES_COPY = {
+  compareAction: "Compare",
+  compareVersions: "Compare versions",
+  tryVersion: "Try another version",
+  version: (id) => `Version ${id}`,
+  keepVersion: (id) => `Keep version ${id} and stop comparing`,
+  comparedWith: (id) => `Compared with ${id}`,
+  removeMove: (name) => `Remove ${name} from package`,
+  moreMoves: (n) => `+${n}`,
+  viewMoves: (n) => `View all ${n} moves`,
+  otherMoves: (n) => `${n} other ${n === 1 ? "move" : "moves"}`,
+  undoRemove: "Undo",
+  undoRemoveLabel: "Undo last package removal",
+  limitsPass: "Limits pass",
+  checkingShort: "Checking…",
+  netCap: "Cap change",
+  packageImpact: "Your package impact",
+  capShort: "cap",
+  noOtherVersion: "Same starter outlook",
+  sameCap: "Same cap room",
+  sameRoster: "Same roster size",
   loadingDetails: "Loading trade details",
   title: "Trades",
   eyebrow: "Trades",
@@ -206,4 +226,70 @@ export function tradeForecastStatus(outlook) {
  if (outlook.stale) return TRADE_DISCOVERY_COPY.forecastStale;
  if (outlook.missing_player_ids?.length) return TRADE_DISCOVERY_COPY.forecastMissing(outlook.missing_player_ids.length);
  return '';
+}
+
+
+const finiteValue = value => value != null && value !== "" && Number.isFinite(Number(value));
+const money = value => `$${Math.abs(Number(value)).toFixed(0)}`;
+
+/** A consequence from this package, never a fairness or acceptance prediction. */
+export function tradePackageHeadline({ parties = [], myTeamId, projected, weekPreview, rules, salaryLeague = true }) {
+  const mine = parties.find(p => p.team_id === myTeamId);
+  const incoming = parties.flatMap(p => (p.sends || []).filter(s => p.team_id !== myTeamId && s.to_team_id === myTeamId));
+  const ownMoves = (mine?.sends?.length || 0) + (mine?.drops?.length || 0) + incoming.length;
+  const deadMoves = parties.flatMap(p => p.dead_cap_transfers || []).length;
+  if (!ownMoves && !deadMoves) return null;
+  if (salaryLeague && finiteValue(projected?.unspent) && projected.unspent < 0) {
+    return { text: `Needs ${money(projected.unspent)} more cap room`, tone: "attention" };
+  }
+  const counts = projected?.by_position_count || {};
+  const before = projected?.base?.by_position_count || {};
+  const short = ["QB", "RB", "WR", "TE", "K", "DEF"].find(pos => {
+    const required = Number(rules?.roster?.[pos.toLowerCase()]?.starter) || 0;
+    return (counts[pos] || 0) < required && (counts[pos] || 0) < (before[pos] || 0);
+  });
+  if (short) return { text: `Leaves ${counts[short] || 0} ${short} for ${rules.roster[short.toLowerCase()].starter} starting ${Number(rules.roster[short.toLowerCase()].starter) === 1 ? "slot" : "slots"}`, tone: "attention" };
+  if (weekPreview?.available && weekPreview.bumped_starters?.length) {
+    const [first, ...rest] = weekPreview.bumped_starters;
+    return { text: rest.length ? `${first.player_name} + ${rest.length} enter your projected starters`
+      : `${first.player_name} enters your projected starters`,
+      compactText: rest.length ? `Adds ${rest.length + 1} projected starters` : `Adds a projected ${first.position ? first.position + " " : ""}starter`, tone: "neutral" };
+  }
+  if (salaryLeague && finiteValue(projected?.unspent) && finiteValue(projected?.base?.unspent)) {
+    const delta = projected.unspent - projected.base.unspent;
+    if (Math.abs(delta) >= 1) return { text: delta > 0 ? `Frees ${money(delta)} in cap room` : `Uses ${money(delta)} of cap room`, tone: delta > 0 ? "up" : "neutral" };
+  }
+  if (!ownMoves && deadMoves) return { text: "Changes cap responsibility; players stay put", tone: "neutral" };
+  if (weekPreview?.available && weekPreview.lost_starters?.length) {
+    const [first, ...rest] = weekPreview.lost_starters;
+    return { text: rest.length ? `Moves ${first.player_name} + ${rest.length} out of your starters`
+      : `Moves ${first.player_name} out of your starters`, tone: "neutral" };
+  }
+  if (incoming.length && weekPreview?.available) return { text: "Adds options behind your projected starters", tone: "neutral" };
+  if (mine?.drops?.length) return { text: `Opens ${mine.drops.length === 1 ? "a roster spot" : `${mine.drops.length} roster spots`}`, tone: "neutral" };
+  return { text: incoming.length ? "Changes your roster mix" : "Moves players out of your roster", tone: "neutral" };
+}
+
+export function tradeVersionComparison({ current, other, currentWeek, otherWeek, salaryLeague = true }) {
+  const rows = [];
+  if (currentWeek?.available && otherWeek?.available) {
+    const delta = Math.round((currentWeek.after_p50 - otherWeek.after_p50) * 10) / 10;
+    rows.push({ text: delta === 0 ? TRADES_COPY.noOtherVersion : `${delta > 0 ? "+" : ""}${delta.toFixed(1)} starter PPR`, tone: delta > 0 ? "up" : delta < 0 ? "down" : "neutral" });
+  }
+  if (salaryLeague && finiteValue(current?.unspent) && finiteValue(other?.unspent)) {
+    const delta = current.unspent - other.unspent;
+    rows.push({ text: delta === 0 ? TRADES_COPY.sameCap : `${money(delta)} ${delta > 0 ? "more" : "less"} cap room`, tone: delta > 0 ? "up" : delta < 0 ? "down" : "neutral" });
+  } else if (!salaryLeague && current && other) {
+    const count = value => Object.values(value.by_position_count || {}).reduce((sum, n) => sum + Number(n), 0);
+    const delta = count(current) - count(other);
+    rows.push({ text: delta === 0 ? TRADES_COPY.sameRoster : `${Math.abs(delta)} ${delta > 0 ? "more" : "fewer"} ${Math.abs(delta) === 1 ? "player" : "players"}`, tone: "neutral" });
+  }
+  return rows;
+}
+
+
+export function tradeCapChangeText(before, after) {
+  if (!finiteValue(before) || !finiteValue(after)) return null;
+  const delta = Number(after) - Number(before);
+  return Math.abs(delta) < 1 ? null : `${delta > 0 ? "+" : "−"}${money(delta)}`;
 }

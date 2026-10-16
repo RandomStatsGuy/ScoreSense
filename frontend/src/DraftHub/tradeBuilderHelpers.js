@@ -108,3 +108,30 @@ export function notifyPartnerNames(teams, partnerIds, myTeamId) {
     })
     .filter(Boolean);
 }
+
+
+/** Copy terms, routing and notes so experimenting never mutates the other version. */
+export function cloneTradeDraft(draft) {
+  return {
+    ...draft,
+    parties: (draft.parties || []).map(p => ({ ...p,
+      sends: (p.sends || []).map(s => ({ ...s })),
+      drops: [...(p.drops || [])],
+      dead_cap_transfers: (p.dead_cap_transfers || []).map(s => ({ ...s })),
+    })),
+    deadCapAssignments: (draft.deadCapAssignments || []).map(a => ({ ...a })),
+  };
+}
+
+/** Remove exactly one leg; cuts also release only their own dead-cap assignment. */
+export function removeTradePackageLeg(draft, leg) {
+  const next = cloneTradeDraft(draft);
+  next.parties = next.parties.map(p => {
+    if (p.team_id !== leg.from) return p;
+    if (leg.deadCap) return { ...p, dead_cap_transfers: p.dead_cap_transfers.filter(s => s.roster_slot_id !== leg.roster_slot_id) };
+    if (leg.drop) return { ...p, drops: p.drops.filter(id => id !== leg.player_id) };
+    return { ...p, sends: p.sends.filter(s => s.player_id !== leg.player_id || s.to_team_id !== leg.to) };
+  });
+  if (leg.drop) next.deadCapAssignments = next.deadCapAssignments.filter(a => a.from_team_id !== leg.from || a.player_id !== leg.player_id);
+  return next;
+}
