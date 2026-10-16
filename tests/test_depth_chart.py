@@ -1,6 +1,7 @@
 """Tests for preseason depth-chart filtering."""
 
 import pandas as pd
+import pytest
 
 from src.core.depth_chart import (
     filter_qb_depth_chart,
@@ -370,12 +371,59 @@ def test_nan_player_ids_are_not_established_vets():
     assert len(names & {"Ghost A", "Ghost B", "Ghost C"}) <= 1
 
 
-def test_build_inference_roster_applies_qb_depth_chart_preseason():
-    path = __import__("src.config", fromlist=["PROCESSED_DATA_DIR"]).PROCESSED_DATA_DIR / "qb_mlready.parquet"
-    if not path.exists():
-        return
-    df = pd.read_parquet(path)
-    roster, meta = build_inference_roster(df, "qb", season=2026, target_week=1)
+@pytest.fixture()
+def preseason_qb_inputs(monkeypatch):
+    """Freeze roster membership separately from weekly Sleeper availability."""
+    players = [
+        ("00-0034796", "Lamar Jackson", "BAL", 2, 8),
+        ("00-0035993", "Tyler Huntley", "BAL", 1, 6),
+        ("00-0040981", "Joe Fagnano", "BAL", 4, 0),
+        ("00-0000001", "Camp QB", "BAL", 3, 0),
+        ("00-0035710", "Daniel Jones", "IND", 1, 7),
+        ("00-0039163", "Anthony Richardson", "IND", 2, 3),
+    ]
+    sleeper = pd.DataFrame([
+        {"sleeper_id": str(i), "gsis_id": pid, "full_name": name,
+         "team": team, "position": "QB", "status": "Active",
+         "injury_status": "", "depth_chart_order": depth,
+         "years_exp": experience, "search_rank": i + 1}
+        for i, (pid, name, team, depth, experience) in enumerate(players)
+    ])
+    nflverse = pd.DataFrame([
+        {"player_id": pid, "player_name": name, "team": team,
+         "position": "QB", "status": "ACT"}
+        for pid, name, team, _depth, _experience in players
+    ])
+    history = pd.DataFrame([
+        {"player_id": pid, "player_display_name": name, "team": team,
+         "position": "QB", "season": 2025, "week": 18,
+         "pass_attmpt_avg": 30.0, "passing_yards_avg": 220.0}
+        for pid, name, team, _depth, experience in players if experience > 0
+    ])
+    monkeypatch.setattr("src.integrations.sleeper.players_dataframe",
+                        lambda *a, **kw: sleeper.copy())
+    monkeypatch.setattr("src.integrations.nflverse_roster.load_seasonal_roster",
+                        lambda *a, **kw: nflverse.copy())
+    return history, sleeper, nflverse
+
+
+@pytest.mark.parametrize("depth_mode", ["starter", "draft"])
+@pytest.mark.parametrize("sleeper_status,nfl_status,depth_order", [
+    ("Active", "ACT", 1),
+    ("Inactive", "ACT", 2),
+    ("Inactive", "RES", None),
+])
+def test_build_inference_roster_applies_qb_depth_chart_preseason(
+    preseason_qb_inputs, depth_mode, sleeper_status, nfl_status, depth_order,
+):
+    df, sleeper, nflverse = preseason_qb_inputs
+    lamar = sleeper["full_name"].eq("Lamar Jackson")
+    sleeper.loc[lamar, "status"] = sleeper_status
+    sleeper.loc[lamar, "injury_status"] = "Out" if sleeper_status == "Inactive" else ""
+    sleeper.loc[lamar, "depth_chart_order"] = depth_order
+    nflverse.loc[nflverse["player_name"].eq("Lamar Jackson"), "status"] = nfl_status
+    roster, meta = build_inference_roster(df, "qb", season=2026, target_week=1,
+                                          depth_mode=depth_mode)
     assert meta["preseason_mode"] is True
     depth = meta.get("depth_chart") or {}
     assert depth.get("applied") is True
@@ -385,6 +433,35 @@ def test_build_inference_roster_applies_qb_depth_chart_preseason():
     bal = roster[roster["team"] == "BAL"]
     assert not bal.empty
     assert "Lamar Jackson" in set(bal["player_display_name"])
+    assert "Tyler Huntley" in set(bal["player_display_name"])
+    # Weekly selection still prunes camp rookies; draft mode retains them.
+    rookies = {"Joe Fagnano", "Camp QB"}
+    assert set(bal["player_display_name"]) & rookies == (rookies if depth_mode == "draft" else set())
+    if sleeper_status == "Inactive":
+        assert bal.loc[bal["player_display_name"].eq("Lamar Jackson"),
+                       "_projection_injury_status"].item() == "Out"
+
+
+@pytest.mark.parametrize("depth_mode", ["starter", "draft"])
+@pytest.mark.parametrize("nfl_status", ["CUT", "RET", None, "unavailable"])
+def test_preseason_qb_excludes_cut_retired_or_unconfirmed_inactive(
+    preseason_qb_inputs, depth_mode, nfl_status,
+):
+    df, sleeper, nflverse = preseason_qb_inputs
+    sleeper.loc[sleeper["full_name"].eq("Lamar Jackson"), "status"] = (
+        "Active" if nfl_status in {"CUT", "RET"} else "Inactive"
+    )
+    lamar = nflverse["player_name"].eq("Lamar Jackson")
+    if nfl_status == "unavailable":
+        nflverse.drop(index=nflverse.index, inplace=True)
+    elif nfl_status is None:
+        nflverse.drop(index=nflverse.index[lamar], inplace=True)
+    else:
+        nflverse.loc[lamar, "status"] = nfl_status
+    roster, _ = build_inference_roster(df, "qb", season=2026, target_week=1,
+                                       depth_mode=depth_mode)
+    assert "Lamar Jackson" not in set(roster["player_display_name"])
+    assert "Daniel Jones" in set(roster["player_display_name"])
 
 
 def test_build_inference_roster_applies_rb_depth_chart_preseason():
