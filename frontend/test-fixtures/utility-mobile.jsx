@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
+import { AppearanceProvider } from "../src/AppearanceProvider";
 import { AuthContext } from "../src/AuthContext";
 import BugReportPage from "../src/BugReportPage";
 import AccountSettingsPage from "../src/AccountSettingsPage";
@@ -37,7 +38,7 @@ function Preview() {
   const [tab, setTab] = useState("overview");
   const pages = { report: <BugReportPage />, account: <AccountSettingsPage />, terms: <TermsPage />, privacy: <PrivacyPage />, sms: <SmsAlertsPage /> };
   return <AuthContext.Provider value={{ ready: true, authenticated: !params.has("guest"), user, refreshAuth: async () => {} }}>
-    {kind === "admin" ? <MobileShell><header className="app-header"><MobileHeader title="Admin" /></header><main><AdminPortal adminTab={tab} onAdminTabChange={setTab} /></main></MobileShell> : pages[kind]}
+    <AppearanceProvider>{kind === "admin" ? <MobileShell><header className="app-header"><MobileHeader title="Admin" /></header><main><AdminPortal adminTab={tab} onAdminTabChange={setTab} /></main></MobileShell> : pages[kind]}</AppearanceProvider>
   </AuthContext.Provider>;
 }
 createRoot(document.getElementById("root")).render(<MemoryRouter initialEntries={["/report?from=/hub/available"]}><Preview /></MemoryRouter>);

@@ -169,8 +169,8 @@
   margin: -3px -3px var(--space-4);
 }
 .gc-room-position-strip button {
-  flex: 1;
-  min-width: 65px;
+  flex: 1 0 auto;
+  min-width: var(--control-h-lg);
   padding: var(--space-2);
 }
 .gc-room-position-strip small {
@@ -506,7 +506,7 @@
   .gc-room-duel {
     grid-template-columns: minmax(0, 1fr) 32px 28px 32px minmax(0, 1fr);
     gap: var(--space-1);
-    padding: var(--space-3) var(--space-1);
+    padding: var(--space-3) var(--content-inline-min);
   }
   .gc-room-player-points b {
     font-size: var(--text-md);

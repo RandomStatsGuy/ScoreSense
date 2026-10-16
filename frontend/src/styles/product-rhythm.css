@@ -175,3 +175,14 @@ button.btn-link.hub-league-switcher-create,
 .hub-filter-menu--fluid .hub-filter-menu-kind, .hub-filter-menu--fluid .hub-filter-menu-caret { flex: none; }
 .hub-filter-menu--fluid .hub-filter-menu-panel { width: max-content; min-width: 100%; max-width: min(18rem, calc(100vw - var(--space-6))); }
 .hub-filter-menu--inline .hub-filter-menu-panel { position: static; width: 100%; max-width: 100%; }
+
+/* A highlighted row paints to the table edge; its content still needs an inset.
+   Apply to every state so selection/hover cannot move column contents. */
+:root table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
+.hub-table.hub-table--packed .num:first-child {
+  padding-inline-start: var(--content-edge-inset);
+}
+:root table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child,
+.hub-table.hub-table--packed .num:last-child {
+  padding-inline-end: var(--content-edge-inset);
+}

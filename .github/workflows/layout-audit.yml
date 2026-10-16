@@ -50,10 +50,10 @@ jobs:
         working-directory: frontend
         run: |
           mkdir -p ../artifacts
-          npm run audit:layout -- --all --width 1280 --json --gate type,selects,collisions,grids,cursors | tee ../artifacts/layout-audit-1280.json
+          npm run audit:layout -- --all --width 1280 --json --gate type,selects,collisions,grids,cursors,insets | tee ../artifacts/layout-audit-1280.json
       - name: Audit living-surface routes at 390
         working-directory: frontend
-        run: npm run audit:layout -- --all --width 390 --json --gate type,selects,collisions,grids,cursors | tee ../artifacts/layout-audit-390.json
+        run: npm run audit:layout -- --all --width 390 --json --gate type,selects,collisions,grids,cursors,insets | tee ../artifacts/layout-audit-390.json
       - name: Upload audit JSON
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,3 +1,4 @@
+import { auditHighlightInsets } from "./layout_audit.mjs";
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
@@ -30,6 +31,7 @@ try {
       else await page.locator(".hub-home-matchup-value").first().waitFor();
       await page.locator(".chat-loading").waitFor({ state: "hidden" });
       const layout = await page.evaluate(measureScript(), { minTarget: width < 769 ? 44 : 32, numericRe: NUMERIC_RE.source, barControlSelector: BAR_CONTROL_SELECTOR, tableDeadZonePx: TABLE_DEAD_ZONE_PX, columnPackRatio: COLUMN_PACK_RATIO, gutterSelectors: GUTTER_EDGE_SELECTORS });
+      layout.push(...await auditHighlightInsets(page));
       reports.push({ state, width, route: "/hub/home", layout });
       if (width !== 320 && ["pregame", "pre", "missing", "zero"].includes(state)) await page.screenshot({ path: `${out}/${state}-${width}.png`, fullPage: true });
 

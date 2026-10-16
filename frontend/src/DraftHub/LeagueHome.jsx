@@ -7,6 +7,7 @@ import useMobileLayout from "../useMobileLayout";
 import { HubAlert, HubLoadingSkeleton, HubPage, HubSection } from "./HubUILayout";
 import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
+import MatchupBannerArt from "./MatchupBannerArt";
 import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
 import {
   findViewerMatchup,
@@ -314,6 +315,10 @@ export default function LeagueHome({
         {scoringError && showMatchup && <HubAlert variant="warn">{scoringError}</HubAlert>}
         {showMatchup ? (
           <section className="hub-home-feature hub-home-matchup" aria-labelledby="home-matchup-title">
+            <div className="hub-home-matchup-art" aria-hidden="true">
+              <MatchupBannerArt identity={identityFor(identities, identityTeam(matchViewer))} side="home" />
+              <MatchupBannerArt identity={identityFor(identities, identityTeam(matchOpponent))} side="away" />
+            </div>
             <header className="hub-home-matchup-head">
               <div><p className="hub-experience-kicker">{[scoring?.season, scoring?.week != null ? `Week ${scoring.week}` : null].filter(Boolean).join(" · ")}</p><h2 id="home-matchup-title">{deckMode.historical ? HOME_PAGE_COPY.lastSeason(placeholder ? null : scoring?.season) : HOME_DECK_COPY.matchupTitle}</h2></div>
               <span className={`hub-home-matchup-status${matchDisplay.live ? " is-live" : ""}`}>{matchDisplay.status}</span>
@@ -325,8 +330,10 @@ export default function LeagueHome({
                 return <React.Fragment key={team.hub_team_id || team.roster_id || index}>
                   {index === 1 && <span className="hub-home-matchup-vs">{HOME_DECK_COPY.versus}</span>}
                   <div className={`hub-home-matchup-team${index === 0 ? " is-you" : ""}`}>
-                    <TeamIdentityMark team={identityTeam(team)} identity={identityFor(identities, identityTeam(team))} size="lg" />
-                    <div className="hub-home-matchup-person"><strong>{parts.owner || parts.team}{index === 0 && <small> · {HOME_DECK_COPY.you}</small>}</strong><span className="hub-home-matchup-nickname">{parts.owner && parts.team ? parts.team : ""}</span><span>{record}{record && standingsView.historical ? ` · ${standingsView.note}` : ""}</span></div>
+                    <div className="hub-home-matchup-identity">
+                      <TeamIdentityMark team={identityTeam(team)} identity={identityFor(identities, identityTeam(team))} size="lg" />
+                      <div className="hub-home-matchup-person"><strong>{parts.owner || parts.team}{index === 0 && <small> · {HOME_DECK_COPY.you}</small>}</strong><span className="hub-home-matchup-nickname">{parts.owner && parts.team ? parts.team : ""}</span><span>{record}{record && standingsView.historical ? ` · ${standingsView.note}` : ""}</span></div>
+                    </div>
                     <div className="hub-home-matchup-value"><strong>{index === 0 ? matchDisplay.home : matchDisplay.away}</strong><span>{matchDisplay.unit}</span></div>
                   </div>
                 </React.Fragment>;

@@ -3,6 +3,7 @@ import test from "node:test";
 import { runInNewContext } from "node:vm";
 import {
   auditFailed,
+  auditHighlightInsets,
   auditFilterMenuOptions,
   columnAlign,
   isAutoFillGridTemplate,
@@ -358,4 +359,34 @@ test("menu probes skip unpainted disclosure content and still detect a covered v
   const summary = await probe({closed:true,inSummary:true});
   assert.equal(summary.clicks,2);
   assert.equal(summary.result[0].ok,true);
+});
+
+function insetAudit({left=8,right=8,top=4,bottom=4,painted=true,hidden=false,text="Selected manager"}={}) {
+  const box={left:0,top:0,right:200,bottom:40,width:200,height:40};
+  const target={tagName:"BUTTON",textContent:text,parentElement:null,
+    getClientRects:()=>hidden?[]:[box],getBoundingClientRect:()=>box,
+    closest:()=>null,matches:()=>false,getAttribute:()=>"fixture-highlight"};
+  const node={parentElement:target,textContent:text};
+  const globals={document:{querySelectorAll:()=>[target],createTreeWalker:()=>{let read=false;return {nextNode:()=>read?null:(read=true,node)};},
+    createRange:()=>({setStart:()=>{},setEnd:()=>{},getClientRects:()=>[{left,right:200-right,top,bottom:40-bottom}]})},
+    getComputedStyle:()=>({backgroundColor:painted?"rgba(115, 165, 255, 0.13)":"rgba(0, 0, 0, 0)",backgroundImage:"none",visibility:"visible",display:"block",opacity:"1"})};
+  return auditHighlightInsets({evaluate:fn=>runInNewContext(`(${fn.toString()})()`,globals)});
+}
+
+test("highlight inset audit catches flush edges and asymmetric nested label spacing",async()=>{
+  for(const box of [{left:0},{right:0},{top:0},{bottom:0}])assert.equal((await insetAudit(box))[0].ok,false);
+  assert.equal((await insetAudit())[0].ok,true);
+  assert.equal((await insetAudit({left:12,right:12,top:12,bottom:12}))[0].ok,true);
+});
+
+test("highlight inset audit ignores hidden content, unpainted text links and icon glyphs",async()=>{
+  assert.equal((await insetAudit({left:0,hidden:true}))[0].ok,true);
+  assert.equal((await insetAudit({left:0,painted:false}))[0].ok,true);
+  assert.equal((await insetAudit({left:0,text:"→"}))[0].ok,true);
+});
+
+test("column packing preserves real padding without accepting oversized content tracks",()=>{
+ assert.equal(columnIsOverwide(28,8,false,1.5,12,8),false);
+ assert.equal(columnIsOverwide(60,8,false,1.5,12,8),true);
+ assert.equal(columnIsOverwide(58,38,false,1.5,8,12),false);
 });

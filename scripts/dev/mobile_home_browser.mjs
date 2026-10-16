@@ -1,3 +1,4 @@
+import { auditHighlightInsets } from "./layout_audit.mjs";
 import { attachHomeFixture } from "./fantasy_home_fixture.mjs";
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -12,6 +13,7 @@ const browser=await chromium.launch({headless:true});
 const reports=[];
 async function audit(page,width,state){
  const rows=await page.evaluate(measureScript(),{minTarget:width<=768?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+ rows.push(...await auditHighlightInsets(page));
  const failed=rows.filter(r=>!r.ok);
  reports.push({width,state,route:'/hub/home',rows});
  assert.deepEqual(failed,[],`${state}@${width}: ${JSON.stringify(failed)}`);
