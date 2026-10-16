@@ -1,3 +1,4 @@
+import { attachHomeFixture } from "./fantasy_home_fixture.mjs";
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -19,18 +20,16 @@ try {
  for(const width of [390,1280]){
   const page=await browser.newPage({viewport:{width,height:900}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await attachHomeFixture(page);
   await page.goto(`${base}/test-fixtures/mobile-home.html`);
   await page.getByText('112.4',{exact:true}).waitFor();
-  assert.equal(await page.locator('.hub-home-next').count(),0);
+  assert.equal(await page.locator('.hub-home-preparation').count(),0);
   assert.equal(await page.getByText('Leftover for draft',{exact:true}).count(),0);
   assert.equal(await page.getByText('Needs attention',{exact:true}).count(),0);
   await audit(page,width,'season');
   await page.screenshot({path:`${out}/home-${width}.png`,fullPage:true});
-  const chat=page.locator('.hub-home-chat > summary');
-  if(width===390){
-   assert.equal(await page.locator('.hub-home-chat').getAttribute('open'),null);
-   await chat.click();
-  }
+  const chat=page.locator('.hub-home-conversation > summary');
+  assert.notEqual(await page.locator('.hub-home-conversation').getAttribute('open'),null);
   await page.getByLabel('Chat message').waitFor();
   await chat.focus();await page.keyboard.press('Enter');
   assert.equal(await page.getByLabel('Chat message').isVisible(),false);
@@ -39,10 +38,9 @@ try {
   await chat.click();await chat.click();
   assert.equal(await page.getByLabel('Chat message').inputValue(),'Ready for the week');
   await page.getByRole('button',{name:'Send',exact:true}).click();
-  await page.waitForFunction(()=>window.__requests.some(r=>r.method==='POST'&&r.path.includes('/messages')));
-  await page.getByText('Standings',{exact:true}).click();
-  assert.equal(await page.locator('.hub-home-standing-list').isVisible(),true);
-  await page.getByRole('button',{name:/Game center|Open This Week/}).filter({visible:true}).last().click();
+  await page.waitForFunction(()=>window.__requests.some(r=>r.method==='POST'&&r.path.includes('/chat/thread/')));
+  assert.equal(await page.locator('.hub-home-standings-table').isVisible(),true);
+  await page.getByRole('button',{name:/^Game center/}).filter({visible:true}).last().click();
   assert.deepEqual(await page.evaluate(()=>window.__navigation),{view:'game',extra:{matchupWeek:4}});
   if(width===390){
    const header=await page.locator('.app-header-mobile-top--league').boundingBox();assert.ok(header.height<=72);
@@ -56,9 +54,9 @@ try {
    await page.locator('.hub-league-context-caret > summary').click();await page.keyboard.press('Escape');
    assert.equal(await page.locator('.hub-league-context-caret').getAttribute('open'),null);
    await page.getByRole('button',{name:'Home, choose destination',exact:true}).click();
-   await page.getByRole('button',{name:'This Week',exact:true}).filter({visible:true}).click();
+   await page.locator('button.app-mobile-sheet-item[aria-label="This Week"]').click();
    assert.equal((await page.evaluate(()=>window.__navigation)).view,'week');
-   await page.locator('.app-header-more').click();
+   await page.getByRole('button',{name:'More',exact:true}).click();
    await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');
    assert.equal(await page.locator('#root').getAttribute('inert'),null);
   } else {
@@ -69,15 +67,15 @@ try {
   for(const state of ['pre','no-money','empty','error','loading','missing-projection','attention','staff']){
    await page.goto(`${base}/test-fixtures/mobile-home.html?state=${state}`);
    await page.locator('.hub-home-page').waitFor();
-   if(state==='loading')await page.locator('.hub-home-card[aria-busy=true]').waitFor();
+   if(state==='loading')await page.locator('.hub-home-feature[aria-busy=true]').waitFor();
    else if(state==='error')await page.getByText('League unavailable',{exact:false}).first().waitFor();
    else if(['pre','no-money'].includes(state))await page.getByText('Fill 2 open seats.',{exact:true}).waitFor();
-   else if(state==='empty')await page.getByText('Your matchup will appear when the schedule is ready.',{exact:true}).waitFor();
+   else if(state==='empty')await page.getByText("Your matchup appears here when the week's schedule is available.",{exact:true}).waitFor();
    else await page.locator('.hub-home-matchup').waitFor();
    if(state==='pre')assert.equal(await page.getByText('Leftover for draft',{exact:true}).isVisible(),true);
    if(state==='no-money')assert.equal(await page.getByText('Leftover for draft',{exact:true}).count(),0);
    if(state==='attention'){
-    const order=await page.evaluate(()=>({chat:document.querySelector('.hub-home-chat').getBoundingClientRect().top,attention:document.querySelector('.hub-home-attention').getBoundingClientRect().top}));assert.ok(order.attention>order.chat);
+    const order=await page.evaluate(()=>({chat:document.querySelector('.hub-home-conversation').getBoundingClientRect().top,attention:document.querySelector('.hub-home-attention').getBoundingClientRect().top}));assert.ok(order.attention>order.chat);
    }
    await audit(page,width,state);
    await page.screenshot({path:`${out}/${state}-${width}.png`,fullPage:true});
@@ -86,6 +84,7 @@ try {
   console.log(`Home ${width}: PASS layout and interactions across nine states`);
  }
  const small=await browser.newPage({viewport:{width:320,height:844}});
+ await attachHomeFixture(small);
  await small.goto(`${base}/test-fixtures/mobile-home.html?long=1`);
  await small.getByText('112.4',{exact:true}).waitFor();
  await audit(small,320,'long-names');

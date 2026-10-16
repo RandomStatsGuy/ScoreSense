@@ -16,10 +16,9 @@ import {
   interpretStandings,
   matchupTeams,
 } from "./gameCenterPresentation";
-import "../styles/fantasy-mobile-home.css";
+import "../styles/fantasy-home.css";
 import {
   actionLabel,
-  formatHomeScore,
   HOME_DECK_COPY,
   HOME_PAGE_COPY,
   homeDeckMode,
@@ -27,13 +26,13 @@ import {
   homeHasPendingCuts,
   homeStandingHasGap,
   homeAlsoDueMessage,
-  homeMatchupNote,
   phaseTrackState,
   resolveLeagueHomeFocus,
   homeAttentionActions,
   homeShowsPriority,
-  homeScoreMode,
   homeScoresArePlaceholder,
+  homeMatchupDisplay,
+  homeStandingPoints,
 } from "./leagueHomePresentation";
 import { getHomeCache, homeCacheKey, setHomeCache } from "./hubDataCache";
 
@@ -126,10 +125,11 @@ export default function LeagueHome({
   const [loading, setLoading] = useState(() => !getHomeCache(cacheKey)?.data);
   const [error, setError] = useState("");
   const [scoring, setScoring] = useState(null);
+  const [scoringLoading, setScoringLoading] = useState(true);
+  const [allStandings, setAllStandings] = useState(false);
   useFantasyReady("home", "home-data", Boolean(data) && !loading);
   useFantasyReady("home", "matchup", Boolean(data && scoring) && !loading);
   const [scoringError, setScoringError] = useState("");
-  const [chatMounted, setChatMounted] = useState(!mobileLayout);
   const [slowLoad, setSlowLoad] = useState(false);
   const [prevCacheKey, setPrevCacheKey] = useState(cacheKey);
   if (cacheKey !== prevCacheKey) {
@@ -141,7 +141,8 @@ export default function LeagueHome({
     setScoring(null);
     setScoringError("");
     setSlowLoad(false);
-    setChatMounted(!mobileLayout);
+    setScoringLoading(true);
+    setAllStandings(false);
   }
   const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
@@ -193,8 +194,10 @@ export default function LeagueHome({
   ]);
 
   useEffect(() => {
-    if (!leagueId) { setScoring(null); return undefined; }
+    if (!leagueId) { setScoring(null); setScoringLoading(false); return undefined; }
     const ctrl = new AbortController();
+    setScoringLoading(true);
+    setScoringError("");
     const update = async () => {
       try {
         const query = hubContext?.draft_completed ? "?home_view=true" : "";
@@ -206,6 +209,8 @@ export default function LeagueHome({
         setScoringError(payload.available === false ? HOME_PAGE_COPY.matchupUnavailable : "");
       } catch (e) {
         if (!ctrl.signal.aborted) setScoringError(connectionErrorMessage(e));
+      } finally {
+        if (!ctrl.signal.aborted) setScoringLoading(false);
       }
     };
     update();
@@ -252,13 +257,20 @@ export default function LeagueHome({
     [scoring, phase.id, hubContext?.draft_completed, data?.hub_context?.draft_completed],
   );
   const standingRows = useMemo(
-    () => homeDeckStandingRows(standingsView.standings, hubContext?.team_id),
-    [standingsView.standings, hubContext?.team_id],
+    () => homeDeckStandingRows(standingsView.standings, hubContext?.team_id, allStandings ? standingsView.standings.length : 5),
+    [standingsView.standings, hubContext?.team_id, allStandings],
   );
   const placeholder = homeScoresArePlaceholder(scoring, hubContext);
-  const matchupNote = homeMatchupNote(scoring, matchOpponent);
-  const scoreMode = homeScoreMode(scoring);
-  const viewerStanding = standingsView.standings.find(row => String(row.hub_team_id || "") === String(hubContext?.team_id || ""));
+  const matchDisplay = homeMatchupDisplay(scoring, matchViewer, matchOpponent, placeholder);
+  const showDeck = Boolean(data && deckMode.show && leagueId);
+  const showMatchup = showDeck && matchup && matchViewer && matchOpponent
+    && (!deckMode.historical || Number(matchViewer.points) > 0 || Number(matchOpponent.points) > 0);
+  const teamRecord = (team) => {
+    const row = standingsView.standings.find(item =>
+      (team?.hub_team_id && String(item.hub_team_id) === String(team.hub_team_id))
+      || (team?.roster_id != null && String(item.roster_id) === String(team.roster_id)));
+    return row ? formatStandingRecord(row) : "";
+  };
   const identityTeam = (team) => ({
     id: team?.hub_team_id || team?.roster_id,
     name: team?.team_name,
@@ -266,7 +278,7 @@ export default function LeagueHome({
   });
 
   return (
-    <HubPage className={`hub-league-home hub-home-page${mobileLayout ? " hub-league-home--mobile" : ""}`}>
+    <HubPage className={`hub-league-home hub-home-page hub-home--clubhouse${mobileLayout ? " hub-league-home--mobile" : ""}`}>
       {error && <HubAlert variant="danger">{error}</HubAlert>}
       <header className="hub-home-phase-header">
         <nav className="hub-home-phases" aria-label="League season stage">
@@ -274,61 +286,84 @@ export default function LeagueHome({
         </nav>
         {!mobileLayout && goSetup ? <button type="button" className="btn-ghost btn-sm" onClick={goSetup}>{HOME_PAGE_COPY.settings}</button> : null}
       </header>
-      <div className="hub-home-layout">
-        <div className="hub-home-main">
-          {loading && !data ? <section className="hub-home-card" aria-busy="true">
+
+      <div className="hub-home-clubhouse">
+        {loading && !data ? (
+          <section className="hub-home-feature" aria-busy="true">
             <HubLoadingSkeleton label={HOME_PAGE_COPY.loadingKicker} rows={3} />
-            {slowLoad && onLeagueSync && leagueId ? <button className="btn-link" onClick={() => onLeagueSync(leagueId)}>{HOME_PAGE_COPY.syncLeague}</button> : null}
-          </section> : showPriority && data ? <section className="hub-home-card hub-home-next">
-            <p className="chart-note">{phase.label}</p><h2>{focus.title}</h2>
-            {focus.detail ? <p className="hub-home-muted">{focus.detail}</p> : null}
-            {focus.view && onNavigate ? <button type="button" className="btn-primary" onClick={() => onNavigate(focus.view)}>{focus.label} <span aria-hidden="true">→</span></button> : null}
-            {pendingCuts && onNavigate ? <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>{HOME_PAGE_COPY.undoCut}</button> : null}
-            {phase.id === "pre_draft" ? <dl className="hub-home-context">
-              {cap.uses_salaries !== false && cap.salary_cap != null ? <div><dt>{HOME_PAGE_COPY.draftLeftover}</dt><dd>{fmtCap(data?.pre_draft?.draft_budget_available ?? cap.remaining)}</dd></div> : null}
+            {slowLoad && <p className="chart-note">{HOME_PAGE_COPY.loadingFallback}</p>}
+            {slowLoad && leagueId && (onLeagueSync || onNavigate) && <button type="button" className="btn-link" onClick={() => onLeagueSync ? onLeagueSync(leagueId) : onNavigate("setup")}>{HOME_PAGE_COPY.syncLeague}</button>}
+          </section>
+        ) : data && showPriority ? (
+          <section className="hub-home-feature hub-home-preparation">
+            <p className="hub-experience-kicker">{phase.label}</p>
+            <h2>{focus.title}</h2>
+            <p>{focus.detail}</p>
+            <div className="hub-home-preparation-actions">
+              {focus.view && onNavigate && <button type="button" className="btn-primary" onClick={() => onNavigate(focus.view)}>{focus.label} <span aria-hidden="true">→</span></button>}
+              {pendingCuts && onNavigate && <button type="button" className="btn-link" onClick={() => onNavigate("roster")}>{HOME_PAGE_COPY.undoCut}</button>}
+            </div>
+            {phase.id === "pre_draft" && <dl className="hub-home-preparation-context">
+              {cap.uses_salaries !== false && cap.salary_cap != null && <div><dt>{HOME_PAGE_COPY.draftLeftover}</dt><dd>{fmtCap(data?.pre_draft?.draft_budget_available ?? cap.remaining)}</dd></div>}
               <div><dt>{HOME_PAGE_COPY.seatsFilled}</dt><dd>{data?.seating?.team_count != null && data?.seating?.open_seats != null ? data.seating.team_count - data.seating.open_seats : "—"} / {data?.seating?.team_count ?? "—"}</dd></div>
-            </dl> : null}
-          </section> : null}
-          {phase.id === "pre_draft" && data ? <section className="hub-home-card hub-home-draft-night">
-            <h2>{HOME_PAGE_COPY.draftNight}</h2><p className="chart-note">{draftDate || HOME_PAGE_COPY.notScheduled}</p>
-            {onNavigate ? <button type="button" className="btn-ghost" onClick={() => onNavigate("room")}>{HOME_PAGE_COPY.openDraft}</button> : null}
-          </section> : null}
-          {scoringError ? <HubAlert variant="warn">{scoringError}</HubAlert> : null}
-          {deckMode.show && leagueId && matchup && matchViewer && matchOpponent && (!deckMode.historical || Number(matchViewer.points) > 0 || Number(matchOpponent.points) > 0) ? <section className="hub-home-card hub-home-matchup" aria-label={HOME_DECK_COPY.matchupTitle}>
-            <div className="hub-home-card-heading"><h2>{deckMode.historical ? HOME_PAGE_COPY.lastSeason(placeholder ? null : scoring?.season) : HOME_DECK_COPY.matchupTitle}</h2><p className="chart-note">{matchupNote}</p></div>
-            <div className="hub-home-scoreboard">{[matchViewer, matchOpponent].map((team, index) => {
-              const parts = gameCenterTeamParts(team);
-              const record = standingsView.standings.find(row => (team.hub_team_id && String(row.hub_team_id) === String(team.hub_team_id)) || String(row.roster_id) === String(team.roster_id));
-              return <React.Fragment key={team.roster_id || index}>{index === 1 ? <span className="chart-note">{HOME_DECK_COPY.versus}</span> : null}<div className="hub-home-score-team">
-                <TeamIdentityMark team={identityTeam(team)} identity={identityFor(identities, identityTeam(team))} size="lg" />
-                <span className="hub-home-score-name">{parts.owner || parts.team || team.team_name}{team.is_viewer ? ` · ${HOME_DECK_COPY.you}` : ""}</span>
-                {record ? <span className="chart-note" aria-label={`${HOME_DECK_COPY.record}: ${formatStandingRecord(record)}`}>{formatStandingRecord(record)}</span> : null}
-                <strong className="hub-home-score">{formatHomeScore(team, placeholder, scoreMode)}</strong><span className="chart-note">{scoreMode === "projected" ? HOME_DECK_COPY.projectedPoints : HOME_DECK_COPY.weekPoints}</span>
-              </div></React.Fragment>;
-            })}</div>
-            {onNavigate ? <button type="button" className="btn-ghost hub-home-game-link" onClick={() => onNavigate("game", { matchupWeek: scoring?.week })}>{HOME_DECK_COPY.openGame} <span aria-hidden="true">→</span></button> : null}
-          </section> : null}
-          {phase.id === "in_season" && leagueId && !matchup && !scoringError ? <section className="hub-home-card">
-            {!scoring ? <HubLoadingSkeleton label={HOME_PAGE_COPY.matchupLoading} rows={3} /> : <><h2>{HOME_DECK_COPY.matchupTitle}</h2><p className="hub-home-muted">{HOME_PAGE_COPY.matchupEmpty}</p></>}
-          </section> : null}
-        </div>
-        {leagueId ? <aside className="hub-home-rail" aria-label={HOME_DECK_COPY.leagueActivity}>
-          <HubSection disclosure className="hub-home-chat" title={HOME_DECK_COPY.lockerTitle} hint={HOME_DECK_COPY.chatHint} icon={<HomeIcon kind="chat" />} defaultOpen={!mobileLayout} onToggle={event => { if (event.currentTarget.open) setChatMounted(true); }}>
-            {chatMounted ? <LeagueChat key={leagueId} leagueId={leagueId} hubContext={hubContext} home /> : null}
-          </HubSection>
-          {deckMode.show && standingRows.length ? <HubSection disclosure title={HOME_DECK_COPY.standingsTitle} hint={viewerStanding ? `${formatStandingRank(viewerStanding, { ranked: standingsView.ranked })} · ${formatStandingRecord(viewerStanding)}` : HOME_DECK_COPY.standingsNote} icon={<HomeIcon kind="standings" />}>
-            <ol className="hub-home-standing-list">{standingRows.map((row,index) => {
+              <div><dt>{HOME_PAGE_COPY.draftNight}</dt><dd>{draftDate || (onNavigate ? <button type="button" className="btn-link" onClick={() => onNavigate("room")}>{HOME_PAGE_COPY.notScheduled}</button> : HOME_PAGE_COPY.notScheduled)}</dd></div>
+            </dl>}
+          </section>
+        ) : null}
+
+        {scoringError && showMatchup && <HubAlert variant="warn">{scoringError}</HubAlert>}
+        {showMatchup ? (
+          <section className="hub-home-feature hub-home-matchup" aria-labelledby="home-matchup-title">
+            <header className="hub-home-matchup-head">
+              <div><p className="hub-experience-kicker">{[scoring?.season, scoring?.week != null ? `Week ${scoring.week}` : null].filter(Boolean).join(" · ")}</p><h2 id="home-matchup-title">{deckMode.historical ? HOME_PAGE_COPY.lastSeason(placeholder ? null : scoring?.season) : HOME_DECK_COPY.matchupTitle}</h2></div>
+              <span className={`hub-home-matchup-status${matchDisplay.live ? " is-live" : ""}`}>{matchDisplay.status}</span>
+            </header>
+            <div className="hub-home-matchup-scoreboard">
+              {[matchViewer, matchOpponent].map((team, index) => {
+                const parts = gameCenterTeamParts(team);
+                const record = teamRecord(team);
+                return <React.Fragment key={team.hub_team_id || team.roster_id || index}>
+                  {index === 1 && <span className="hub-home-matchup-vs">{HOME_DECK_COPY.versus}</span>}
+                  <div className={`hub-home-matchup-team${index === 0 ? " is-you" : ""}`}>
+                    <TeamIdentityMark team={identityTeam(team)} identity={identityFor(identities, identityTeam(team))} size="lg" />
+                    <div className="hub-home-matchup-person"><strong>{parts.owner || parts.team}{index === 0 && <small> · {HOME_DECK_COPY.you}</small>}</strong><span className="hub-home-matchup-nickname">{parts.owner && parts.team ? parts.team : ""}</span><span>{record}{record && standingsView.historical ? ` · ${standingsView.note}` : ""}</span></div>
+                    <div className="hub-home-matchup-value"><strong>{index === 0 ? matchDisplay.home : matchDisplay.away}</strong><span>{matchDisplay.unit}</span></div>
+                  </div>
+                </React.Fragment>;
+              })}
+            </div>
+            <footer className="hub-home-matchup-footer"><p>{matchDisplay.note}<span>{matchDisplay.support}</span></p><div className="hub-home-matchup-actions">{onNavigate && <><button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("week")}>{HOME_DECK_COPY.openWeek} <span aria-hidden="true">↗</span></button><button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game", { matchupWeek: scoring?.week })}>{HOME_DECK_COPY.gameCenter} <span aria-hidden="true">↗</span></button></>}</div></footer>
+          </section>
+        ) : !showPriority && data && leagueId ? (
+          <section className="hub-home-feature" aria-busy={scoringLoading}>
+            {scoringLoading ? <HubLoadingSkeleton label={HOME_DECK_COPY.loadingMatchup} rows={3} /> : <HubAlert variant={scoringError ? "warn" : "info"} action={onNavigate ? <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("game", { matchupWeek: scoring?.week })}>{HOME_DECK_COPY.openGame}</button> : null}>{scoringError ? HOME_PAGE_COPY.matchupUnavailable : HOME_DECK_COPY.noMatchup}</HubAlert>}
+          </section>
+        ) : null}
+
+        {leagueId && <HomeDisclosure className="hub-home-conversation" title={HOME_DECK_COPY.lockerTitle} note={HOME_DECK_COPY.lockerNote} icon="chat"><LeagueChat key={leagueId} leagueId={leagueId} hubContext={hubContext} home /></HomeDisclosure>}
+
+        {showDeck && standingRows.length > 0 && <HomeDisclosure className="hub-home-standings-card" title={HOME_DECK_COPY.standingsTitle} note={standingsView.note} icon="standings">
+          <table className="hub-home-standings-table"><thead><tr><th scope="col">#</th><th scope="col">{HOME_DECK_COPY.manager}</th><th className="num" scope="col">{HOME_DECK_COPY.record}</th><th className="num" scope="col">{HOME_DECK_COPY.pointsFor}</th></tr></thead><tbody>
+            {standingRows.map((row, index) => {
               const parts = gameCenterTeamParts(row);
-              return <React.Fragment key={row.roster_id}>{homeStandingHasGap(standingRows[index-1],row) ? <li aria-hidden="true">···</li> : null}<li><span>{formatStandingRank(row, { ranked: standingsView.ranked })} · {parts.owner || parts.team || row.team_name}</span><strong>{formatStandingRecord(row)}</strong></li></React.Fragment>;
-            })}</ol>
-          </HubSection> : null}
-        </aside> : null}
-        {supportingActions.length ? <HubSection disclosure className="hub-home-attention" title={HOME_PAGE_COPY.supportingTitle} icon={<HomeIcon kind="attention" />}>
-          <ol className="hub-home-action-list">{supportingActions.map(action => <ActionRow key={action.id} action={action} onNavigate={onNavigate} />)}</ol>
-        </HubSection> : null}
+              const mine = row.hub_team_id && String(row.hub_team_id) === String(hubContext?.team_id);
+              return <React.Fragment key={row.roster_id || row.hub_team_id || index}>
+                {homeStandingHasGap(standingRows[index - 1], row) && <tr className="hub-home-standings-gap"><td colSpan="4" aria-label="Other managers">···</td></tr>}
+                <tr className={mine ? "is-you" : ""}><td className="num">{formatStandingRank(row, { ranked: standingsView.ranked })}</td><td><strong>{parts.owner || parts.team}</strong>{mine && <small> · {HOME_DECK_COPY.you}</small>}</td><td className="num">{formatStandingRecord(row)}</td><td className="num">{homeStandingPoints(row)}</td></tr>
+              </React.Fragment>;
+            })}
+          </tbody></table>
+          {standingsView.standings.length > 5 && <button type="button" className="btn-link hub-home-all-standings" aria-expanded={allStandings} onClick={() => setAllStandings(value => !value)}>{allStandings ? HOME_DECK_COPY.standingsLess : HOME_DECK_COPY.standingsAll} <span aria-hidden="true">{allStandings ? "−" : "+"}</span></button>}
+        </HomeDisclosure>}
+
+        {!loading && !error && supportingActions.length > 0 && <HomeDisclosure className="hub-home-attention" title={HOME_DECK_COPY.needsAttention} icon="attention"><ol className="hub-home-action-list">{supportingActions.map(action => <ActionRow key={action.id} action={action} onNavigate={onNavigate} />)}</ol></HomeDisclosure>}
       </div>
     </HubPage>
   );
+}
+
+function HomeDisclosure({ className, title, note, icon, children }) {
+  return <HubSection disclosure className={`hub-home-section ${className}`} title={title} hint={note} icon={<HomeIcon kind={icon} />} defaultOpen>{children}</HubSection>;
 }
 
 function HomeIcon({ kind }) {

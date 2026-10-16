@@ -19,6 +19,7 @@ import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
 import "../src/styles/fantasy-header.css";
 import "../src/styles/color-theme.css";
+import "../src/styles/fantasy-chat.css";
 const params = new URLSearchParams(location.search);
 const state = params.get("state") || "season";
 const pre = state === "pre" || state === "no-money";
@@ -37,7 +38,7 @@ window.fetch=async (url,options={})=>{
   if(path.includes("live-scoring"))return Response.json({available:true,week:4,season:2026,home_display_mode:"projected",placeholder:pre,matchups:state === "empty" || pre ? []:[{matchup_id:"one",teams:[viewer,opponent]}],standings:pre?[]:standings,viewer_matchup_id:"one",viewer_roster_id:"mine",hub_context:{team_id:"mine",draft_completed:!pre}});
   if(path.includes("/freshness"))return Response.json({sleeper:{linked:true},projections:{available:true}});
   if(path.includes("/identities"))return Response.json({identities:{}});
-  if(path.includes("/messages"))return Response.json({messages:[{id:1,team_name:"Maya Chen",body:"Anyone looking for a running back?",created_at:"2026-09-30T14:00:00Z"}],message:{id:2,team_name:"Maya Chen",body:"Ready for the week"}});
+  if(path.includes("/chat/thread/") || path.includes("/messages"))return Response.json({messages:[{id:1,team_name:"Maya Chen",body:"Anyone looking for a running back?",created_at:"2026-09-30T14:00:00Z"}],message:{id:2,team_name:"Maya Chen",body:"Ready for the week"}});
   return Response.json({});
 };
 function Preview(){
