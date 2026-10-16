@@ -29,7 +29,7 @@ function Fixture() {
   const pick=status==="picking";
   return <main id="main-content" className="hub-page" style={{padding:"var(--space-4)"}}>
     <h1>Draft cursor fixture</h1>
-    <div>{["nominating","bidding","picking"].map(phase=><button key={phase} aria-pressed={status===phase} onClick={()=>setStatus(phase)}>{phase}</button>)}</div>
+    <div>{["nominating","bidding","picking"].map(phase=><button className="btn-ghost btn-sm" key={phase} aria-pressed={status===phase} onClick={()=>setStatus(phase)}>{phase}</button>)}</div>
     <label><input type="checkbox" checked={paused} onChange={e=>setPaused(e.target.checked)}/>Paused</label>
     <DraftLiveCommandBar session={{status,high_bid:20,high_bidder_team_id:"other"}} nominee={status==="bidding"?nominee:null}
       myTeamId="mine" myBudget={200} myMaxBid={190} suggestedBid={21} minBid={1} bidAmount={amount}
@@ -46,7 +46,7 @@ function Fixture() {
     <DraftSeat slot={1} name="Viewer" mine taken onClick={()=>setMessage("Fixture seat clicked")}/>
     <HoverTip content="Extra information"><span>Hover information</span></HoverTip>
     <QuantileBar p10={10} p50={20} p90={30} scaleMax={40}/>
-    <button disabled>Unavailable control</button><input aria-label="Text entry" title="Enter a name"/>
+    <button className="btn-ghost btn-sm" disabled>Unavailable control</button><input aria-label="Text entry" title="Enter a name"/>
     <output aria-live="polite">{message}</output>
   </main>;
 }

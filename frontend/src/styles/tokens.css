@@ -85,6 +85,9 @@
   --inset-chip: 0.4rem 0.7rem;
   --inset-tile: 0.72rem 0.9rem;
   --inset-section: 1.15rem 1.2rem;
+  --content-edge-inset: var(--space-3);
+  --content-inline-min: var(--space-2);
+  --content-block-min: var(--space-1);
   --inset-cell: 0.55rem 0.7rem;
   --gutter: var(--space-sm);
   --gutter-section: var(--space-md);

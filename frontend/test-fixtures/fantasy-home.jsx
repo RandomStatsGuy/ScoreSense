@@ -10,9 +10,14 @@ import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/fantasy-chat.css";
+import "../src/styles/appearance.css";
+import homeBanner from "../../docs/mockups/trade-banner-images/stadium.svg";
+import awayBanner from "../../docs/mockups/trade-banner-images/city.svg";
 
+const fixtureFetch = window.fetch.bind(window);
 const params = new URLSearchParams(location.search);
 const state = params.get("state") || "pregame";
+if(params.has("palette"))document.documentElement.dataset.experienceTheme=params.get("palette");
 const salary = params.get("format") !== "pick";
 const staff = params.get("role") !== "member";
 const pre = state === "pre";
@@ -28,6 +33,10 @@ const standings = [
   { roster_id: "5", hub_team_id: "fifth", owner_name: "Jamie P", team_name: "Fourth & Long", wins: 2, losses: 3, rank: 5, points_for: state === "missing" ? null : 575.6 },
   { roster_id: "6", hub_team_id: "sixth", owner_name: "Alex R", team_name: "End Zone", wins: 2, losses: 3, rank: 6, points_for: 570.2 },
 ];
+if(params.has('long')) {
+ standings[0].owner_name='Caleb Kensington-Sutherland';standings[0].team_name='The Sunday Service Fantasy Football Collective';
+ standings[1].owner_name='Jordan Davis-Washington';standings[1].team_name='Ragdollin With Mahomies All Season Long';
+}
 const gameState = state === "live" || state === "zero" ? "live" : state === "final" ? "final" : "pregame";
 const teams = standings.slice(0,2).map((row,i) => ({ ...row, is_viewer:i === 0, proj_total:state === "missing" && i === 0 ? null : [122.6,115.8][i], points:state === "zero" ? 0 : state === "live" ? [25.4,3][i] : state === "final" ? [128.4,112.7][i] : 0,
   starters:[{ name:i ? "Opponent starter" : "Your starter", player_id:`p${i}`, game_state:gameState, proj:state === "missing" && i === 0 ? null : [122.6,115.8][i] }] }));
@@ -40,6 +49,8 @@ let messages = [
 ];
 window.fixtureRequests = []; window.fixtureWrites = []; window.fixtureActions = [];
 window.fetch = async (input, options={}) => {
+  if(String(input).includes('/api/hub/media/'))return new Response(await(await fixtureFetch(String(input).includes('sample-home')?homeBanner:awayBanner)).text(),{headers:{'Content-Type':'image/svg+xml'}});
+  if(String(input).includes('/identities'))return Response.json({identities:params.get('art')==='none'?{}:{mine:{banner_media_id:'sample-home',banner_focus:{x:35,y:60,zoom:1.2}},other:{banner_media_id:'sample-away',banner_focus:{x:65,y:50,zoom:1}}}});
   const path=String(input); window.fixtureRequests.push(path);
   if(options.method && options.method !== "GET")window.fixtureWrites.push({path,method:options.method,body:options.body});
   if(path.includes('/api/hub/home')) {
@@ -67,7 +78,7 @@ window.fetch = async (input, options={}) => {
   return Response.json({identities:{},members:[],messages:[]});
 };
 function Preview() {
-  return <><div style={{padding:16,color:"var(--text-secondary)",fontSize:12}}>Home B · Sample data</div><a className="app-skip-link" href="#main-content">Skip to content</a><main id="main-content" className="app"><div className="draft-hub">
+  return <><div style={{padding:16,color:"var(--text-secondary)",fontSize:12}}>Home B / Matchup A · Sample data</div><a className="app-skip-link" href="#main-content">Skip to content</a><main id="main-content" className="app"><div className="draft-hub">
     <TeamIdentityProvider leagueId={context.league_id}><LeagueHome hubContext={context} onNavigate={(view,extra)=>window.fixtureActions.push({view,extra})} /></TeamIdentityProvider>
   </div></main></>;
 }
