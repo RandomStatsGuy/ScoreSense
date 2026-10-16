@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { expireChipLabel, stepBlockedReason, TRADES_COPY, tradesCopyForFormat, tradesFreeLabel } from "./leagueTradesPresentation.js";
 
-test("trades copy names the cap-bust cost and skips banned verbs", () => {
+test("trade desk names its cap metric and review action without banned verbs", () => {
   assert.match(TRADES_COPY.heading, /trade/i);
-  assert.match(TRADES_COPY.support, /cap impact/i);
+  assert.match(TRADES_COPY.yourCap, /cap room/i);
+  assert.match(TRADES_COPY.reviewTrade, /review trade/i);
   assert.doesNotMatch(TRADES_COPY.inviteManagers, /Submit|Draft Hub|permission/i);
   assert.doesNotMatch(TRADES_COPY.valid, /constraint/i);
   assert.doesNotMatch(TRADES_COPY.ideasEmptyHeading, /import salaries/i);

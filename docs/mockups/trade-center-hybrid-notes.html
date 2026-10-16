@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Trade Center · Hybrid review notes</title><link rel="stylesheet" href="mockup-shared.css?v=137de37f253c"><link rel="stylesheet" href="mobile-foundation.css?v=9e1d204e1cfe"><link rel="stylesheet" href="trade-center-hybrid.css?v=604446f6a8fa"></head>
+<body><main class="notes-page" id="main-content">
+<p class="eyebrow">ScoreSense · Design review · October 15, 2026</p><h1>Trade builder + trade intelligence.</h1>
+<p>One combined direction: keep the package central and bring the relevant analysis beside it. This is a review artifact; production files have not been changed. Every player figure is illustrative.</p>
+<nav aria-label="Preview states"><a class="btn btn-ghost" href="trade-center-hybrid.html?state=initial">Initial builder →</a><a class="btn btn-ghost" href="trade-center-hybrid.html?state=populated">Populated trade →</a><a class="btn btn-ghost" href="trade-center-hybrid.html?state=review">Final review →</a></nav>
+<p>Captured previews: <a href="trade-center-hybrid-review/initial-1280.png">initial desktop</a> / <a href="trade-center-hybrid-review/initial-390.png">phone</a> · <a href="trade-center-hybrid-review/populated-1280.png">populated desktop</a> / <a href="trade-center-hybrid-review/populated-390.png">phone</a> · <a href="trade-center-hybrid-review/review-1280.png">review desktop</a> / <a href="trade-center-hybrid-review/review-390.png">phone</a> · <a href="trade-center-hybrid-review/impact-390.png">phone impact</a></p>
+<h2>What to review</h2>
+<p><strong>Desktop:</strong> side-by-side rosters, shared search and position filters, immediate selection feedback, a live impact rail, and a persistent package summary with one next action. The sample Cook–Wilson trade moves your cap room from $15 to $9 and your starter projection from 137.0 to 139.5.</p>
+<p><strong>Phone:</strong> Send / Receive / Impact switch between views of the same package. Selection persists across views. The package and review action stay above the product navigation. Review becomes a readable vertical receipt; no wide tables or horizontal roster scrolling.</p>
+<p><strong>Navigation:</strong> Build constructs a deal. Discover compares managers. Ideas provides specific packages. Inbox owns responses and status. The partner picker is a shortcut into the same roster comparison. Advanced terms keeps multi-team moves, cuts, and existing dead-cap transfers accessible.</p>
+<p><strong>Review:</strong> name every destination, display cap and roster checks beside Propose, and explain acceptance and execution. In a linked league, player moves happen in Sleeper; agreed local terms wait for unanimous acceptance and synchronized destinations. Newly synced moves still receive their separate cap review.</p>
+<h2>Existing foundation and additional work</h2>
+<table><thead><tr><th>Capability</th><th>Implementation path after design approval</th></tr></thead><tbody>
+<tr><td>Builder, proposal checks, Inbox</td><td>Reuse <code>LeagueTrades.jsx</code>, <code>tradeBuilderHelpers.js</code>, and existing validation/proposal endpoints. This pass changes the grouping and presentation.</td></tr>
+<tr><td>Cap and positional counts</td><td>Reuse <code>tradeProjection.js</code>. Salary + existing dead cap = against cap. Current roster salary includes active expiring deals; it is different from draft-surviving committed salary.</td></tr>
+<tr><td>Current-week starter impact</td><td>Reuse <code>tradeWeekPreview.js</code> for the viewer’s private before/after estimate. Missing projections need stricter coverage handling: its current numeric fallback can turn missing inputs into zero.</td></tr>
+<tr><td>Ideas and partner needs</td><td>Reuse <code>src/draft_hub/trade_insights.py</code> and <code>tradeIdeaHelpers.js</code>. Needs refer to starter-thin positions; extra depth is not a need. No fairness percentage or acceptance probability.</td></tr>
+<tr><td>Rest-of-season improvement</td><td>Additional package-level aggregation and coverage checks are needed. Choose total roster vs optimized starter outlook, account for remaining weeks/byes, and name that basis. The mock shows unavailable instead of an invented estimate.</td></tr>
+<tr><td>Longer-term contract value</td><td>Salary, type, and years remaining already exist. A future-year package schedule must reuse the league’s extension/cap helpers and expiry rules before adding longer-term values or savings.</td></tr>
+<tr><td>Multi-team, cuts, dead-cap transfers</td><td>Preserve the current recipient, dead-cap provenance, validation, and atomic proposal flows. Their entrypoints are mocked here; their complete editors are not simulated.</td></tr>
+</tbody></table>
+<h2>Interactive scope</h2>
+<p>Try partner changes, player selection, search, filters, roster expansion, phone view switching, notes, review, and a simulated proposal/response. Scenarios cover salary vs non-salary, linked vs native, missing forecasts, offseason, over-cap, and no partners. Navigation outside Trades and advanced editor buttons identify their destination without changing any league.</p>
+<p>The handoff names <code>TradeDiscovery.jsx</code>, <code>TradeImpactGrid.jsx</code>, <code>tradeOutlook.js</code>, and <code>styles/league-trades.css</code>; those files are absent from this checkout. The current <code>LeagueTrades.jsx</code> and its helpers were used as the implementation reference.</p>
+<p><strong>Approval boundary:</strong> review and refine this hybrid before production implementation, as requested in the handoff.</p>
+<p><a href="trade-center-hybrid.html">Open the hybrid mockup →</a> · <a href="index.html">All mockups</a></p>
+</main></body></html>

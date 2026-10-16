@@ -21,14 +21,15 @@ export default function ChatLauncher({leagueId,hidden=false}) {
     const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(measure);};
     const sizes=new ResizeObserver(schedule);
     const measure=()=>{
-      if(innerWidth>768){setBottom(null);return;}
       const launcher=root.current?.getBoundingClientRect();
-      const bars=Array.from(document.querySelectorAll('.app-bottom-nav, .hub-rules-sticky-save, .hub-vibes-actions, .hub-office-pending-tray'));
+      const selector=innerWidth>768?'.hub-trade-desk-bar':'.app-bottom-nav, .hub-rules-sticky-save, .hub-vibes-actions, .hub-office-pending-tray, .hub-trade-desk-bar';
+      const bars=Array.from(document.querySelectorAll(selector));
       let top=innerHeight;
       for(const bar of bars){
         if(!observed.has(bar)){sizes.observe(bar);observed.add(bar);}
         const rect=bar.getBoundingClientRect(),position=getComputedStyle(bar).position;
-        if(['sticky','fixed'].includes(position)&&rect.height&&rect.top>=innerHeight/2&&rect.top<innerHeight&&rect.right>(launcher?.left||0))top=Math.min(top,rect.top);
+        const floor=bar.matches('.hub-trade-desk-bar')?0:innerHeight/2;
+        if(['sticky','fixed'].includes(position)&&rect.height&&rect.top>=floor&&rect.top<innerHeight&&rect.right>(launcher?.left||0))top=Math.min(top,rect.top);
       }
       for(const bar of observed)if(!bar.isConnected){sizes.unobserve(bar);observed.delete(bar);}
       setBottom(top<innerHeight?Math.ceil(innerHeight-top+16):null);
