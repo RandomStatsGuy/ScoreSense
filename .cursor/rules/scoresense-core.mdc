@@ -28,7 +28,7 @@ Use these labels. Keep internal ids if they already exist.
 | Fantasy | `hub` | Draft Hub, Hub, League (as the product area) |
 | Strategy | `value` | Value sheet |
 | Draft | `room` | Live auction (as the tab name) |
-| This Week | `week` | Weekly command center |
+| This Week (Home before draft) | `home` | Weekly command center |
 | Vibes | `vibes` | Vibe rankings, aura farm |
 | My team | `roster` | My roster |
 | Free agents | `available` | Available players |

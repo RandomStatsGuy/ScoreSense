@@ -20,7 +20,7 @@ test("both league types share three in-season destinations and retain permitted 
   for (const uses_salaries of [true, false]) {
     const context = {mode:"league", league_id:"L", draft_completed:true, is_commissioner:false,
       capabilities:{uses_salaries, uses_contracts:uses_salaries}};
-    assert.deepEqual(primaryHubSubviews(context).map(item => item.id), ["week", "roster", "available"]);
+    assert.deepEqual(primaryHubSubviews(context).map(item => item.id), ["home", "roster", "available"]);
     const secondary = secondaryHubSubviews(context).map(item => item.id);
     assert.equal(secondary.includes("planner"), uses_salaries);
     assert.equal(secondary.includes("office"), false);
@@ -49,7 +49,7 @@ test("no-money leagues hide Cap and drop financial hints", () => {
 });
 
 
-test("draft-only destinations follow the selected league phase and Home leads League", () => {
+test("draft-only destinations follow the selected league phase and one landing destination leads navigation", () => {
   for (const uses_salaries of [true, false]) {
     for (const draft_completed of [false, true, false]) {
       const context = { mode: "league", league_id: "L", draft_completed, is_commissioner: true,
@@ -57,7 +57,10 @@ test("draft-only destinations follow the selected league phase and Home leads Le
       const visible = filterHubSubviews(context).map(item => item.id);
       assert.equal(visible.includes("value"), !draft_completed);
       assert.equal(visible.includes("room"), !draft_completed);
-      assert.equal(secondaryHubSubviews(context)[0].id, "home");
+      assert.equal(primaryHubSubviews(context)[0].id, "home");
+      assert.equal(primaryHubSubviews(context)[0].label, draft_completed ? "This Week" : "Home");
+      assert.equal(secondaryHubSubviews(context).some(v => v.id === "home" || v.id === "week"), false);
+      assert.equal(visible.includes("week"), false);
       for (const id of ["home", "vibes", "rosters", "trades", "rules", "office", "insights"]) {
         assert.ok(visible.includes(id), `${id} remains useful after drafting`);
       }

@@ -8,6 +8,7 @@
  * Hits are only sent on production hostnames — not localhost / Vite preview.
  */
 import { parseAppPath } from "./routes.js";
+import {hubSubviewLabel} from "./DraftHub/hubSubnav.js";
 
 export const GA_MEASUREMENT_ID = "G-HTRKTLQVXM";
 
@@ -187,7 +188,7 @@ export function pageGroupForPath(pathname) {
   return "other";
 }
 
-export function pageTitleForPath(pathname) {
+export function pageTitleForPath(pathname, hubContext) {
   if (STANDALONE_TITLES[pathname]) return STANDALONE_TITLES[pathname];
 
   const parsed = parseAppPath(pathname);
@@ -214,7 +215,7 @@ export function pageTitleForPath(pathname) {
       const office = OFFICE_PAGE_LABELS[parsed.officeTab] || "Contracts";
       return `Fantasy · Roster management · ${office}`;
     }
-    const hub = HUB_PAGE_LABELS[parsed.hubSubView] || "Home";
+    const hub = parsed.hubSubView === "home" ? hubSubviewLabel("home", hubContext) : HUB_PAGE_LABELS[parsed.hubSubView] || "Home";
     return `Fantasy · ${hub}`;
   }
 

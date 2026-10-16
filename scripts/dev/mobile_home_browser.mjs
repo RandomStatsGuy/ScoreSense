@@ -24,7 +24,7 @@ try {
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await attachHomeFixture(page);
   await page.goto(`${base}/test-fixtures/mobile-home.html`);
-  await page.getByText('112.4',{exact:true}).waitFor();
+  await page.getByText('112.4',{exact:true}).first().waitFor();
   assert.equal(await page.locator('.hub-home-preparation').count(),0);
   assert.equal(await page.getByText('Leftover for draft',{exact:true}).count(),0);
   assert.equal(await page.getByText('Needs attention',{exact:true}).count(),0);
@@ -42,8 +42,7 @@ try {
   await page.getByRole('button',{name:'Send',exact:true}).click();
   await page.waitForFunction(()=>window.__requests.some(r=>r.method==='POST'&&r.path.includes('/chat/thread/')));
   assert.equal(await page.locator('.hub-home-standings-table').isVisible(),true);
-  await page.getByRole('button',{name:/^Game center/}).filter({visible:true}).last().click();
-  assert.deepEqual(await page.evaluate(()=>window.__navigation),{view:'game',extra:{matchupWeek:4}});
+  assert.equal(await page.getByRole('link',{name:/^Game center/}).getAttribute('href'),'/hub/game?matchupTeam=mine&matchupWeek=4');
   if(width===390){
    const header=await page.locator('.app-header-mobile-top--league').boundingBox();assert.ok(header.height<=72);
    assert.equal(await page.locator('main .hub-league-context-bar').count(),0);
@@ -55,9 +54,9 @@ try {
    assert.equal(await page.locator('.hub-league-context-caret').getAttribute('open'),null);
    await page.locator('.hub-league-context-caret > summary').click();await page.keyboard.press('Escape');
    assert.equal(await page.locator('.hub-league-context-caret').getAttribute('open'),null);
-   await page.getByRole('button',{name:'Home, choose destination',exact:true}).click();
+   await page.getByRole('button',{name:'This Week, choose destination',exact:true}).click();
    await page.locator('button.app-mobile-sheet-item[aria-label="This Week"]').click();
-   assert.equal((await page.evaluate(()=>window.__navigation)).view,'week');
+   assert.equal((await page.evaluate(()=>window.__navigation)).view,'home');
    await page.getByRole('button',{name:'More',exact:true}).click();
    await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');
    assert.equal(await page.locator('#root').getAttribute('inert'),null);
@@ -88,7 +87,7 @@ try {
  const small=await browser.newPage({viewport:{width:320,height:844}});
  await attachHomeFixture(small);
  await small.goto(`${base}/test-fixtures/mobile-home.html?long=1`);
- await small.getByText('112.4',{exact:true}).waitFor();
+ await small.getByText('112.4',{exact:true}).first().waitFor();
  await audit(small,320,'long-names');
  await small.locator('.hub-league-context-caret > summary').click();
  const box=await small.locator('.hub-league-context-caret-menu').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=320);

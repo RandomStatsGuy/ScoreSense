@@ -10,7 +10,7 @@
 .week-overview-feature { position:relative; isolation:isolate; overflow:hidden; padding:var(--space-5); border-radius:var(--radius-lg); background:var(--bg-elevated); }
 .week-overview-feature .matchup-banner-art { opacity:.2; }
 .week-overview-section-head { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); }
-.week-overview h2 { margin:0; font-size:var(--text-lg); }
+.week-overview h2,.week-overview-panel>h2,.week-overview-section-head>h2 { margin:0; font-size:var(--text-lg); }
 .week-overview-section-head>span { color:var(--text-muted); font-size:var(--text-xs); }
 .week-overview-pair { grid-auto-flow:column; grid-template-rows:auto auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); padding:var(--space-5) 0; }
 .week-overview-team { display:grid; grid-template-columns:32px minmax(0,1fr) auto; gap:var(--space-2); align-items:center; min-width:0; }
@@ -37,7 +37,7 @@
 .week-overview-panel article>small { display:block; margin-bottom:var(--space-2); color:var(--text-muted); font-size:var(--text-xs); }
 .week-overview-games { padding:0; margin:var(--space-4) 0 0; list-style:none; }
 .week-overview-games>li { border-top:1px solid var(--border); }
-.week-overview-games>li>a { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 20px; align-items:center; gap:var(--space-3); padding:var(--space-4) 0; color:inherit; text-decoration:none; }
+.week-overview-games>li>a { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 20px; align-items:center; gap:var(--space-3); padding:var(--space-4) var(--content-inline-min); color:inherit; text-decoration:none; }
 .week-overview-games>li>a:hover { background:var(--bg-subtle); }
 .week-overview-games .hub-team-mark-photo { width:30px; height:30px; }
 .week-overview-chevron { color:var(--text-muted); }

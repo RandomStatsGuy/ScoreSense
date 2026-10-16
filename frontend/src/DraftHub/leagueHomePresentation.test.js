@@ -266,3 +266,11 @@ test("clubhouse labels final only after confirmation", () => {
   assert.equal(final.status, "Final");
   assert.equal(final.support, "Final scores");
 });
+
+test("native landing scores remain provisional when the calendar advances before finalization", () => {
+ const teams=[{points:25.4},{points:3}];
+ const data={week:5,current_week:6,home_display_mode:"scores",scoring_control:{host:"native",scored:true,final:false}};
+ assert.notEqual(homeMatchupDisplay(data,...teams).status,"Final");
+ assert.equal(homeMatchupDisplay(data,...teams).support,"Provisional scores");
+ assert.equal(homeMatchupDisplay({...data,scoring_control:{...data.scoring_control,final:true}},...teams).status,"Final");
+});

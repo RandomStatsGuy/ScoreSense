@@ -78,6 +78,7 @@ export default function AppRouter() {
       <Route path="/hub/insights/trades" element={<Navigate to="/hub/trades" replace />} />
       <Route path="/hub/insights/desk" element={<Navigate to="/hub/roster-management/contracts" replace />} />
       <Route path="/hub/insights/salaries" element={<Navigate to="/hub/roster-management/sheets" replace />} />
+      <Route path="/hub/week" element={<RedirectKeepSearch to="/hub/home" />} />
       <Route path="/hub/live" element={<Navigate to="/hub/game" replace />} />
       <Route path="/hub/my-team" element={<Navigate to="/hub/roster" replace />} />
       <Route path="/hub/game-center" element={<Navigate to="/hub/game" replace />} />

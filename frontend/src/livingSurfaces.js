@@ -18,7 +18,7 @@ export const CHROME = Object.freeze([
 ]);
 
 export const SHARED = Object.freeze({
-  // Phone: shared rounded header/title hierarchy; League first, Home first within League.
+  // One phase-aware landing destination; shared compact phone/header hierarchy.
   mobileHeader: ["frontend/src/App.jsx", "frontend/src/layout/MobileHeader.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/hubSubnav.js", "frontend/src/lastDestinations.js", "frontend/src/styles/fantasy-header.css"],
     desktopHeader: ["frontend/src/App.jsx", "frontend/src/layout/DesktopPrimaryHeader.jsx", "frontend/src/layout/ProductSubnav.jsx", "frontend/src/layout/HeaderDisclosure.jsx", "frontend/src/DraftHub/HubSubnav.jsx", "frontend/src/DraftHub/hubSubnav.js", "frontend/src/DraftHub/LeagueContextBanner.jsx", "frontend/src/DraftHub/LeagueSwitcher.jsx", "frontend/src/styles/fantasy-header.css"],
   tokens: [
@@ -64,8 +64,8 @@ export const LIVING_SURFACES = Object.freeze({
     route: "/hub/home",
     page: "frontend/src/DraftHub/LeagueHome.jsx",
     copy: "frontend/src/DraftHub/leagueHomePresentation.js",
-    also: ["frontend/src/styles/fantasy-home.css"],
-    doNot: "Do not wrap Home in HubExperienceLayout. Approved October 16 matchup polish A uses saved faded banners/crops, larger paired totals, and identities grouped above each score; retain the Account palette and an honest no-artwork fallback. Keep table highlights inset with the shared product spacing. Approved October 16 B clubhouse: compact full-width matchup above the full shared conversation on the left and a standings table on the right. Phone stacks matchup, chat, standings, then unresolved attention. Chat and standings start open and retain native disclosure controls. Show Projected Week pts or Week pts explicitly, preserve missing values and true zero, and honor the server-selected approaching week. Use a compact centered phase stepper; the heading stays in the Pre-draft card. Desktop Settings sits on the right. Contract alerts use the same extend/expiring nouns as My team and Cap (2 to extend · 5 expiring). Extend the action deck. Pre-draft keeps the next-action deck and draft leftover. In-season Home omits draft-leftover/cap context; season records sit with matchup identities. In-season Home never shows a next-action section or routine lineup reminder; lead with the matchup. League chat and standings precede any Needs attention section on phone. Render that section only for actionable unresolved issues, never as a routine task dashboard. Starting Wednesday (Eastern), show the approaching week's opponent and labeled projections. The pre-draft deck action is the only page primary. Chat Send is ghost. House the league thread in the locker rail. Do not show the floating launcher on Home. Shared chat follows approved A: centered conversation, hold-to-hide bubble X, full dismissal, settings restore, mentions, reactions, private DMs, and preference-controlled on-site alerts. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, confirms, and disables when the thread is empty. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. Gate the hero on load — never Fill the seats over unresolved data. After 3s of loading, the action deck names the Sleeper sync. Needs attention does not style a count like a link. Desktop Home retains the shared league strip with its league switcher anchored left; Needs attention appears only for unresolved actionable issues. Strip Switch league / Sync league menus must paint above the Home page card below the strip — raise the bar, do not treat Needs attention as the cover. On phone, Home and the quieter league switcher share one compact header row with More; left-anchor the destination and omit the separate league strip. Keep both pickers at least 44px tall and truncate long league names without hiding the switch action. Opening Home or another Fantasy page must not change the saved league; practice rooms never become strip focus.",
+    also: ["frontend/src/styles/fantasy-home.css", "frontend/src/DraftHub/WeekLeagueOverview.jsx", "frontend/src/DraftHub/weekOverviewPresentation.js", "frontend/src/DraftHub/hubSubnav.js"],
+    doNot: "Home and This Week are one phase-aware landing page, internal id home and canonical URL /hub/home. After the draft label it This Week; before the draft label it Home. The old /hub/week redirects with its selected week/query/hash. Use one scoring request stream for the banner duel, league scoreboard, stories, public activity and standings; browsing a week must change all together and reject late responses. Keep full shared chat on the main column. No swaps or lineup writes here; Review lineup opens My team for the displayed week. Do not wrap Home in HubExperienceLayout. Approved October 16 matchup polish A uses saved faded banners/crops, larger paired totals, and identities grouped above each score; retain the Account palette and an honest no-artwork fallback. Keep table highlights inset with the shared product spacing. Approved October 16 B clubhouse: compact full-width matchup above the full shared conversation on the left and a standings table on the right. Phone stacks matchup, league games, chat, standings and factual updates, then unresolved attention. Chat and standings start open and retain native disclosure controls. Show Projected Week pts or Week pts explicitly, preserve missing values and true zero, and honor the server-selected approaching week. Use a compact centered phase stepper; the heading stays in the Pre-draft card. Desktop Settings sits on the right. Contract alerts use the same extend/expiring nouns as My team and Cap (2 to extend · 5 expiring). Extend the action deck. Pre-draft keeps the next-action deck and draft leftover. In-season Home omits draft-leftover/cap context; season records sit with matchup identities. In-season Home never shows a next-action section or routine lineup reminder; lead with the matchup. League chat and standings precede any Needs attention section on phone. Render that section only for actionable unresolved issues, never as a routine task dashboard. Starting Wednesday (Eastern), show the approaching week's opponent and labeled projections. The pre-draft deck action is the only page primary. Chat Send is ghost. House the league thread in the locker rail. Do not show the floating launcher on Home. Shared chat follows approved A: centered conversation, hold-to-hide bubble X, full dismissal, settings restore, mentions, reactions, private DMs, and preference-controlled on-site alerts. Do not add a Chat destination. Draft night · Not scheduled links to Draft. Clear chat is staff-only, red, confirms, and disables when the thread is empty. Home names the roster hole over a commissioner invite. Hide Your matchup / Standings when pre-draft with no scored week. Gate the hero on load — never Fill the seats over unresolved data. After 3s of loading, the action deck names the Sleeper sync. Needs attention does not style a count like a link. Desktop Home retains the shared league strip with its league switcher anchored left; Needs attention appears only for unresolved actionable issues. Strip Switch league / Sync league menus must paint above the Home page card below the strip — raise the bar, do not treat Needs attention as the cover. On phone, Home and the quieter league switcher share one compact header row with More; left-anchor the destination and omit the separate league strip. Keep both pickers at least 44px tall and truncate long league names without hiding the switch action. Opening Home or another Fantasy page must not change the saved league; practice rooms never become strip focus.",
   }),
   "hub.value": S({
     label: "Strategy",
@@ -129,22 +129,12 @@ export const LIVING_SURFACES = Object.freeze({
   }),
   "hub.week": S({
     label: "This Week",
-    chrome: "matchup",
+    chrome: "action-center",
     route: "/hub/week",
-    page: "frontend/src/DraftHub/WeeklyExperience.jsx",
-    copy: "frontend/src/DraftHub/weekOverviewPresentation.js",
-    also: [
-      "frontend/src/DraftHub/WeekLeagueOverview.jsx",
-      "frontend/src/styles/week-league-overview.css",
-      "frontend/src/DraftHub/WeeklyCommandCenter.jsx",
-      "frontend/src/DraftHub/GameCenter.jsx",
-      "frontend/src/DraftHub/GameCenterMatchup.jsx",
-      "frontend/src/DraftHub/gameCenterPresentation.js",
-      "frontend/src/DraftHub/WeekLineupBoard.jsx",
-      "frontend/src/DraftHub/WeekLineupCallSheet.jsx",
-      "frontend/src/DraftHub/WeekLineupPicker.jsx",
-    ],
-    doNot: "Approved October 13 league overview: your matchup, all league games, factual stories and recorded public activity, disclosed standings. Use saved team banners and crops behind the featured matchup, with readable large profile marks and aligned scores. Small marks on league rows. Reuse cached league scoring and native finality; keep pregame projections distinct from recorded points and preserve unknown values. No swaps or lineup writes here: link concerns to My team’s Lineup tab. Game center remains the detail view; rows link the chosen team and week. Missing roster, league, loading and error states must stay truthful. No invented news, activity, history, records or projections.",
+    page: "frontend/src/DraftHub/LeagueHome.jsx",
+    copy: "frontend/src/DraftHub/leagueHomePresentation.js",
+    also: ["frontend/src/DraftHub/WeekLeagueOverview.jsx", "frontend/src/DraftHub/weekOverviewPresentation.js", "frontend/src/styles/fantasy-home.css"],
+    doNot: "Compatibility URL for the combined Home landing page; redirect with query and hash intact. No second weekly destination. No swaps or lineup writes here: open My team's Lineup tab for the displayed week. Game center owns detail. Keep the approaching-week default, explicit week browsing, truthful forecasts, native finality, shared conversation, league games, stories, public activity and standings. No invented news or remote history reads.",
   }),
   "hub.vibes": S({
     label: "Vibes",
@@ -567,8 +557,8 @@ export const SURFACE_ALIASES = Object.freeze({
   "take a pick": "hub.room",
   "mark yours": "hub.room",
   "lock a night": "hub.room",
-  "this week": "hub.week",
-  "command center": "hub.week",
+  "this week": "hub.home",
+  "command center": "hub.home",
   "waiting on roster": "hub.week",
   "rate vibes": "hub.week",
   "vibe rankings": "hub.vibes",

@@ -2,10 +2,9 @@ import { leagueUsesSalaries } from "./leagueCapabilities.js";
 
 /** group: "home" | "prep" (draft prep) | "season" (in-season) | "office" (league-wide). */
 export const HUB_SUBVIEWS = [
-  { id: "home", label: "Home", shortLabel: "Home", hint: "What to do next", group: "home" },
+  { id: "home", label: "Home", shortLabel: "Home", hint: "Your league and what comes next", group: "home" },
   { id: "value", label: "Strategy", shortLabel: "Strategy", hint: "Who you take first", group: "prep" },
   { id: "room", label: "Draft", shortLabel: "Draft", hint: "Draft night and the room", group: "prep" },
-  { id: "week", label: "This Week", shortLabel: "Week", hint: "Start or sit", group: "season" },
   { id: "vibes", label: "Vibes", shortLabel: "Vibes", hint: "One read per player today", group: "season" },
   { id: "game", label: "Game center", shortLabel: "Game", leagueOnly: true, hint: "Your matchup, live", group: "season" },
   { id: "roster", label: "My team", shortLabel: "My team", hint: "Your contracts", noMoneyHint: "Your roster", group: "season" },
@@ -34,12 +33,16 @@ export function filterHubSubviews(hubContext) {
   const usesSalaries = leagueUsesSalaries(hubContext);
   return HUB_SUBVIEWS.filter((v) => {
     if (inLeague && hubContext?.draft_completed && v.group === "prep") return false;
-    if (v.id === "game") return false; // Compatibility URL is served by This Week.
+    if (v.id === "game") return false; // Game center is reached from the landing page or My team.
     if (v.commissionerOnly && !hubContext?.is_commissioner) return false;
     if (v.leagueOnly && !inLeague) return false;
     if (v.salaryOnly && !usesSalaries) return false;
     return true;
-  }).map((v) => (usesSalaries || !v.noMoneyHint ? v : { ...v, hint: v.noMoneyHint }));
+  }).map(v => {
+    const item = v.id === "home" && inLeague && hubContext?.draft_completed
+      ? { ...v, label: "This Week", shortLabel: "This Week", hint: "Your matchup and the league this week" } : v;
+    return usesSalaries || !item.noMoneyHint ? item : { ...item, hint: item.noMoneyHint };
+  });
 }
 
 export function hubDestinationGroups(hubContext) {
@@ -59,12 +62,19 @@ export function hubDestinationGroups(hubContext) {
 export function primaryHubSubviews(hubContext) {
   const visible = filterHubSubviews(hubContext);
   const inSeason = hubContext?.mode === "league" && Boolean(hubContext?.draft_completed);
-  const ids = inSeason ? ["week", "roster", "available"] : ["home", "room", "value", "roster", "available"];
+  const ids = inSeason ? ["home", "roster", "available"] : ["home", "room", "value", "roster", "available"];
   return ids.map(id => visible.find(item => item.id === id)).filter(Boolean);
 }
 
 export function secondaryHubSubviews(hubContext) {
-  // Home anchors League even when it is also prominent before the draft.
-  const primary = new Set(primaryHubSubviews(hubContext).map(item => item.id).filter(id => id !== "home"));
+  // The landing page appears once, in primary navigation in every phase.
+  const primary = new Set(primaryHubSubviews(hubContext).map(item => item.id));
   return filterHubSubviews(hubContext).filter(item => !primary.has(item.id) && item.id !== "game");
+}
+
+/** Legacy weekly ids and both phases use one landing destination and label. */
+export function hubSubviewLabel(id, hubContext) {
+  const target = id === "week" ? "home" : id;
+  return filterHubSubviews(hubContext).find(item => item.id === target)?.label
+    || HUB_SUBVIEWS.find(item => item.id === target)?.label || "Fantasy";
 }

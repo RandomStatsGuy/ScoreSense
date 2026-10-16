@@ -5,6 +5,7 @@ import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/fantasy-header.css";
+import "../src/styles/fantasy-chat.css";
 // Production lineup components with isolated, deterministic writes; never contacts a league.
 import {publishDataRevision} from "../src/useDataRevision";
 import React, {useState} from "react";
@@ -67,6 +68,7 @@ window.fetch = async (input, options = {}) => {
   const path = String(input);
   window.fixtureRequests ||= [];
   window.fixtureRequests.push(path);
+  if(path.includes('/api/hub/home'))return Response.json({phase:{id:context.draft_completed?'in_season':'pre_draft'},actions:context.draft_completed?[]:[{id:'draft_night',href:'room',message:'Choose a draft night.'}],cap:{uses_salaries:false}});
   if (path.includes("live-scoring")) {
     if(state === "loading") await new Promise(()=>{});
     if(state === "score-error" || state === "load-error") return Response.json({detail:"Matchup unavailable"},{status:503});
@@ -123,7 +125,7 @@ window.fetch = async (input, options = {}) => {
     ["smith", 4241478], ["charbonnet", 4426385], ["daniels", 4426348],
   ].map(([id, espn]) => [id, { headshot_url: `https://a.espncdn.com/i/headshots/nfl/players/full/${espn}.png` }])) });
 };
-const activeView=(params.get("view")==="myteam"||location.pathname==="/hub/roster")?"roster":location.pathname==="/hub/game"?"game":"week";
+const activeView=(params.get("view")==="myteam"||location.pathname==="/hub/roster")?"roster":location.pathname==="/hub/game"?"game":"home";
 function Preview() {
   const [ctx,setContext]=useState({...context,league_name:params.has("long") ? "The Extremely Long Fantasy Football League Name" : "Bottom to Top"});
   const [picker,setPicker]=useState(false),[more,setMore]=useState(false);

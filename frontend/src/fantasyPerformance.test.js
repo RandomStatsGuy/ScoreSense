@@ -39,7 +39,7 @@ test("ready data and delayed frames stay separate without lowering the ready dur
   configureFantasyDiagnostics(row => rows.push(row), () => now);
   const owner = beginFantasyVisit("/hub/week");
   now = 200;
-  const stop = measureFantasyReady("week", "lineup", owner, {requestFrame:cb=>frames.push(cb), cancelFrame:()=>{}});
+  const stop = measureFantasyReady("home", "lineup", owner, {requestFrame:cb=>frames.push(cb), cancelFrame:()=>{}});
   assert.equal(rows.find(row=>row.event === "data-ready").durationMs, 200);
   now = 1200; frames.shift()();
   now = 2200; frames.shift()();
@@ -73,10 +73,10 @@ test("cancelled or superseded readiness cannot complete a new visit, including f
 test("disabled and mismatched readiness schedule no frame work", () => {
   const options = {requestFrame:()=>assert.fail("should not schedule a frame")};
   configureFantasyDiagnostics(null);
-  measureFantasyReady("week", "lineup", null, options)();
+  measureFantasyReady("home", "lineup", null, options)();
   configureFantasyDiagnostics(()=>{});
   const owner = beginFantasyVisit("/hub/roster");
-  measureFantasyReady("week", "lineup", owner, options)();
+  measureFantasyReady("home", "lineup", owner, options)();
   configureFantasyDiagnostics(null);
 });
 
@@ -135,16 +135,16 @@ test("ready phases deduplicate, reject late visits, and separate API from server
   const previous = beginFantasyVisit("/hub/week");
   const finish = startHubRequest("/api/hub/league/secret/lineup?token=private", "POST");
   now = 180;
-  markFantasyReady("week", "lineup", previous);
-  markFantasyReady("week", "lineup", previous);
+  markFantasyReady("home", "lineup", previous);
+  markFantasyReady("home", "lineup", previous);
   beginFantasyVisit("/hub/home");
   now = 250;
-  markFantasyReady("week", "matchup", previous);
+  markFantasyReady("home", "matchup", previous);
   finish(new Response(null, {headers:{'server-timing':'db;dur=2, hub;dur=50.1'}}));
   assert.equal(rows.filter(row => row.event === "ready").length, 1);
   assert.equal(rows.find(row => row.event === "ready").durationMs, 80);
   const api = rows.find(row => row.event === "api-headers");
-  assert.equal(api.destination, "week");
+  assert.equal(api.destination, "home");
   assert.equal(api.durationMs, 150);
   assert.equal(api.serverMs, 50.1);
   assert.equal(api.kind, "lineup");

@@ -251,3 +251,9 @@ test("league chat phrases resolve to Home", () => {
   const bubble = resolveLivingSurfaceFromText("the chat bubble should be draggable");
   assert.equal(bubble.label, "Home");
 });
+
+test("Home and This Week resolve to the same phase-aware implementation", () => {
+  assert.equal(resolveLivingSurfaceFromText("This Week").page, LIVING_SURFACES["hub.home"].page);
+  assert.equal(LIVING_SURFACES["hub.week"].page, LIVING_SURFACES["hub.home"].page);
+  assert.equal(LIVING_SURFACES["hub.week"].copy, LIVING_SURFACES["hub.home"].copy);
+});

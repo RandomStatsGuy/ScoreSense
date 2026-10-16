@@ -372,3 +372,11 @@ def test_my_team_cap_label_follows_draft_phase() -> None:
         text = _read(*parts)
         assert "Available Cap" in text
         assert "Leftover for draft" in text
+
+
+def test_home_and_week_share_one_navigation_destination() -> None:
+    nav = _read("frontend", "src", "DraftHub", "hubSubnav.js")
+    assert '{ id: "week"' not in nav
+    assert '["home", "roster", "available"]' in nav
+    router = _read("frontend", "src", "AppRouter.jsx")
+    assert 'path="/hub/week" element={<RedirectKeepSearch to="/hub/home"' in router
