@@ -105,12 +105,12 @@ button, a, summary { touch-action:manipulation; }
 .chat-foot span { font-size:var(--text-xs); color:var(--text-muted); }
 .standings-table { border-collapse:collapse; width:100%; font-size:var(--text-xs); }
 .standings-table th { color:var(--text-muted); font-weight:400; }
-.standings-table th,.standings-table td { text-align:right; padding:var(--space-3) var(--space-1); border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
-.standings-table th:first-child,.standings-table td:first-child { width:1%; white-space:nowrap; padding-left:0; }
+.standings-table th,.standings-table td { text-align:right; padding:var(--space-3) var(--space-2); border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
+.standings-table th:first-child,.standings-table td:first-child { width:1%; white-space:nowrap; padding-left:var(--space-3); }
 .standings-table th:nth-child(n+3),.standings-table td:nth-child(n+3) { width:1%; white-space:nowrap; }
 .standings-table th:nth-child(2),.standings-table td:nth-child(2) { text-align:left; }
-.standings-table th:last-child,.standings-table td:last-child { padding-right:0; }
-.standings-table td:first-child { padding-left:0; color:var(--text-muted); }
+.standings-table th:last-child,.standings-table td:last-child { padding-right:var(--space-3); }
+.standings-table td:first-child { padding-left:var(--space-3); color:var(--text-muted); }
 .standings-table tbody tr:last-child td { border-bottom:0; }
 .standings-table tr.is-you { background:var(--accent-soft); }
 .standings-table tr.is-you td:first-child { color:var(--accent-muted); }

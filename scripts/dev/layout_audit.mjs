@@ -174,10 +174,10 @@ export function remainderColumnIndex(aligns) {
   return (aligns || []).findIndex((align) => align === "left");
 }
 
-export function columnIsOverwide(colWidth, maxContentWidth, remainder, ratio = COLUMN_PACK_RATIO) {
+export function columnIsOverwide(colWidth, maxContentWidth, remainder, ratio = COLUMN_PACK_RATIO, padL = 0, padR = 0) {
   if (remainder) return false;
   if (!(maxContentWidth > 0) || !(colWidth > 0)) return false;
-  return colWidth > maxContentWidth * ratio + 1;
+  return colWidth - padL - padR > maxContentWidth * ratio + 1;
 }
 
 export function isCssGridTableRowGroup(columnCounts, autoFillFlags = []) {
@@ -684,23 +684,28 @@ export function measureScript() {
             detail: `${mismatches.length} cells align≠${expect} header="${header.slice(0, 24)}"`,
           });
         }
-        const colWidth = Math.max(...cells.map((cell) => cell.offsetWidth || 0));
+        const outerWidth = Math.max(...cells.map((cell) => cell.offsetWidth || 0));
+        // Packing compares the content track; required text insets are not dead space.
+        const colWidth = Math.max(...cells.map(cell => {
+          const style = getComputedStyle(cell);
+          return Math.max(0, (cell.offsetWidth || 0) - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0));
+        }));
         const maxContent = Math.max(...cells.map((cell) => cellContentWidth(cell)));
         const remainder = expectAligns.findIndex((align) => align === "left") === c;
         const packRatio = columnPackRatio || 1.5;
-        if (!remainder && maxContent === 0 && colWidth > 0) {
+        if (!remainder && maxContent === 0 && outerWidth > 0) {
           results.push({
             rule: "tables",
             ok: false,
             selector: `${table.label}:${ti} col ${c}`,
-            detail: `empty column reserves ${px(colWidth)}px`,
+            detail: `empty column reserves ${px(outerWidth)}px`,
           });
         } else if (!table.el.matches(".rosters-table") && !remainder && colWidth > maxContent * packRatio + 1) {
           results.push({
             rule: "tables",
             ok: false,
             selector: `${table.label}:${ti} col ${c}`,
-            detail: `col ${c} ${px(colWidth)}px > ${packRatio}× content ${px(maxContent)}px header="${header.slice(0, 24)}"`,
+            detail: `col ${c} content track ${px(colWidth)}px > ${packRatio}× content ${px(maxContent)}px header="${header.slice(0, 24)}"`,
           });
         }
       }
@@ -1173,6 +1178,7 @@ async function auditOpenMenus(page) {
     await page.keyboard.press("Escape").catch(() => {});
   }
   results.push(...await auditFilterMenuOptions(page));
+  results.push(...await auditHighlightInsets(page));
   return results;
 }
 
@@ -1235,6 +1241,68 @@ export async function auditFilterMenuOptions(page) {
     return [{ rule: "menus", ok: true, selector: "filter menus", detail: `${failures.checked} filter menus open with every option tappable` }];
   }
   return failures.out.slice(0, 6).map((detail) => ({ rule: "menus", ok: false, selector: "filter menu", detail }));
+}
+
+/** Measure visible label insets inside painted controls and highlighted rows.
+ * Separate from box padding: nested labels, RTL, and clipped text still count. */
+export async function auditHighlightInsets(page) {
+  return page.evaluate(() => {
+    const painted = el => {
+      const style = getComputedStyle(el);
+      return style.backgroundImage !== 'none' && Boolean(style.backgroundImage)
+        || Boolean(style.backgroundColor && style.backgroundColor !== 'transparent'
+          && !/rgba\([^)]*,\s*0(?:\.0+)?\s*\)$/.test(style.backgroundColor)
+          && !/\/\s*0(?:\.0+)?\s*\)$/.test(style.backgroundColor));
+    };
+    const visible = el => {
+      if (!el.getClientRects().length || el.closest('[hidden], [inert], svg, canvas, [role="img"]')) return false;
+      const style = getComputedStyle(el);
+      if (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0') return false;
+      for (let parent=el.parentElement; parent; parent=parent.parentElement) {
+        if (parent.tagName === 'DETAILS' && !parent.open && !parent.querySelector('summary')?.contains(el)) return false;
+      }
+      return true;
+    };
+    const candidates = [...document.querySelectorAll('button, a[href], summary, [role="button"], [role="tab"], [role="option"], [aria-selected="true"], [aria-pressed="true"], [aria-current="page"], .active, .selected, .is-selected, .is-you, .is-mine, [class*="chip"], tbody tr, [role="row"], label:has(input[type="radio"]), label:has(input[type="checkbox"])')];
+    const failures=[];
+    let checked=0;
+    for (const target of new Set(candidates)) {
+      if (!visible(target)) continue;
+      const isRow = target.matches('tr, [role="row"]');
+      if (!painted(target) && !(isRow && [...target.children].some(painted))) continue;
+      const box = target.getBoundingClientRect();
+      const text = String(target.textContent||'').trim();
+      // Symbols and tiny count badges are glyphs, not padded text labels.
+      if (!/[\p{L}\p{N}]/u.test(text) || (/^\d{1,2}\+?$/.test(text) && box.width<=44 && box.height<=44)) continue;
+      const ranges=[];
+      const walker=document.createTreeWalker(target,4);
+      let node;
+      while ((node=walker.nextNode())) {
+        const parent=node.parentElement, value=node.textContent||'';
+        const start=value.search(/\S/);
+        if (start<0 || !parent || !visible(parent) || parent.closest('.sr-only, .visually-hidden, .screen-reader-only')) continue;
+        const range=document.createRange();
+        range.setStart(node,start);range.setEnd(node,value.trimEnd().length);
+        for (const original of range.getClientRects()) {
+          let rect={left:original.left,right:original.right,top:original.top,bottom:original.bottom};
+          for(let clip=parent;clip&&clip!==target;clip=clip.parentElement){
+            const cs=getComputedStyle(clip), bounds=clip.getBoundingClientRect();
+            if (/(hidden|clip|auto|scroll)/.test(cs.overflowX)) { rect.left=Math.max(rect.left,bounds.left);rect.right=Math.min(rect.right,bounds.right); }
+            if (/(hidden|clip|auto|scroll)/.test(cs.overflowY)) { rect.top=Math.max(rect.top,bounds.top);rect.bottom=Math.min(rect.bottom,bounds.bottom); }
+          }
+          if(rect.right>rect.left && rect.bottom>rect.top)ranges.push(rect);
+        }
+      }
+      if(!ranges.length)continue;
+      checked++;
+      const inset={left:Math.min(...ranges.map(r=>r.left))-box.left,right:box.right-Math.max(...ranges.map(r=>r.right)),top:Math.min(...ranges.map(r=>r.top))-box.top,bottom:box.bottom-Math.max(...ranges.map(r=>r.bottom))};
+      if(inset.left<7.5||inset.right<7.5||inset.top<3.5||inset.bottom<3.5){
+        failures.push({rule:'insets',ok:false,selector:target.getAttribute('class')||target.tagName,
+          detail:`${text.replace(/\s+/g,' ').slice(0,55)}: L${inset.left.toFixed(1)} R${inset.right.toFixed(1)} T${inset.top.toFixed(1)} B${inset.bottom.toFixed(1)}px; minimum inline 8 / block 4`});
+      }
+    }
+    return failures.length ? failures : [{rule:'insets',ok:true,selector:'painted labels',detail:`${checked} rows/controls retain inline and block text insets`}];
+  });
 }
 
 function printTable(route, width, results) {

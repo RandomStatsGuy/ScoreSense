@@ -18,6 +18,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 
 ## Spacing
 - One scale: `--space-1..8` (4/8/12/16/24/32/48/64). No literal px for margin, padding, or gap. `0` is allowed.
+- Highlighted rows, chips, tabs, and text controls retain at least `--space-2` inline and `--space-1` block text insets; table outer edges use `--content-edge-inset`. Apply spacing in every state so selection/hover cannot move content. Icon-only controls and compact numeric counters keep their intentional geometry. Check the layout audit's `insets` rule.
 - A container's padding is symmetric unless a rule below says otherwise. Bars (`.hub-page-sticky`, toolbars, table headers) have equal top and bottom padding; children carry no vertical margin inside a bar.
 - Vertical rhythm between page sections is one token (`--inset-section`). Hero → gap → content. Never 0 between two containers, never two different gaps on one page.
 - Text never touches text. Every heading/paragraph pair has a margin from the scale. Two inline text runs on one line are separated by ` · ` or a gap token, never by nothing. Collision checks compare block-level siblings only — inline children of one paragraph (a leftover number in `<strong>`) are supposed to sit adjacent.
