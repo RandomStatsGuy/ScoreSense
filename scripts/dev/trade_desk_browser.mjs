@@ -1,0 +1,190 @@
+// Production Trade desk, isolated fixtures: no requests reach a league database.
+import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
+import { build } from '../../frontend/node_modules/esbuild/lib/main.js';
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { measureScript, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX, COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS } from './layout_audit.mjs';
+
+await build({entryPoints:['frontend/test-fixtures/trades-transfers.jsx'],bundle:true,jsx:'automatic',format:'esm',outfile:'outputs/trades-fixture/trades.js',external:['/art/*'],loader:{'.js':'jsx','.png':'dataurl','.svg':'dataurl','.webp':'dataurl','.woff2':'dataurl'},define:{'process.env.NODE_ENV':'"production"'}});
+const browser = await chromium.launch({headless:true,channel:'msedge'});
+const reports=[];
+try {
+  for (const width of [1280,390,320,1024]) {
+    const page = await browser.newPage({viewport:{width,height:900}});
+    const errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.route('**/*',route=>route.abort());
+    await page.route('**/theme-init.js',route=>route.fulfill({contentType:'text/javascript',body:fs.readFileSync('frontend/public/theme-init.js','utf8')}));
+    await page.route('**/__trade_qa/**',async route=>{
+      const url=new URL(route.request().url());
+      const file=url.pathname.endsWith('.js')?'trades.js':url.pathname.endsWith('.css')?'trades.css':null;
+      await route.fulfill({contentType:file?.endsWith('.js')?'text/javascript':file?'text/css':'text/html',body:file?fs.readFileSync('outputs/trades-fixture/'+file):'<html><head><script src="/theme-init.js"></script><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="trades.css"></head><body><div id="root"></div><script type="module" src="trades.js"></script></body></html>'});
+    });
+    const open=async state=>{await page.goto(`http://127.0.0.1:5173/__trade_qa/index.html?state=${state}`);await page.locator('.hub-trade-desk').waitFor();};
+    const choose=async()=>{await page.locator('.hub-trade-desk-bar').getByRole('button',{name:'Choose partner',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:/Jordan Davis/}).click();};
+    const phone=async side=>{if(width<769)await page.locator('.hub-trade-phone-views').getByRole('button',{name:side,exact:true}).click();};
+    const audit=async state=>{
+      const checks=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+      reports.push({width,state,checks});
+      fs.writeFileSync('outputs/trades-layout.json',JSON.stringify(reports,null,2));
+      await page.screenshot({path:`outputs/trades-${state}-${width}.png`,fullPage:true});
+      assert.deepEqual(checks.filter(x=>!x.ok),[],`${state} layout`);
+    };
+    await open('salary');
+    await page.locator('.hub-trade-impact-band').waitFor();
+    await audit('initial');
+    assert.equal(await page.evaluate(()=>window.fixtureRequests.some(x=>/\/insights|\/trades\?|\/week\?|\/trade-outlook/.test(x))),false,'Cold builder requests only roster/identity/media');
+    await page.getByRole('button',{name:'Discover',exact:true}).click();
+    await page.locator('.ss-trade-rank-strong').first().waitFor();
+    assert.equal(await page.evaluate(()=>window.fixtureRequests.some(x=>/\/insights|\/trades\?/.test(x))),false);
+    await page.getByRole('button',{name:/Jordan Davis/}).click();
+    const cols=page.locator('.hub-trade-party-col');
+    await page.waitForFunction(()=>window.fixtureRequests.filter(x=>x.includes('/week?')).length===1);
+    await cols.nth(0).getByRole('button',{name:/^Send Josh Allen to/}).click();
+    await phone('You receive');
+    await cols.nth(1).getByRole('button',{name:/^Get Josh Allen from/}).click();
+    await page.waitForFunction(()=>window.fixtureWrites.at(-1)?.body.parties?.[1]?.sends?.length===1);
+    await audit('populated');
+    assert.equal(await page.evaluate(()=>window.fixtureRequests.filter(x=>x.includes('/week?')).length),1,'Selections reuse forecasts');
+    await page.getByRole('button',{name:/Full impact/}).click();
+    assert.equal(await page.getByRole('dialog').count(),1);
+    await page.keyboard.press('Shift+Tab');
+    assert.equal(await page.evaluate(()=>Boolean(document.activeElement.closest('[role=dialog]'))),true,'Modal traps keyboard focus');
+    await page.keyboard.press('Escape');
+    assert.match(await page.evaluate(()=>document.activeElement.textContent),/Full impact/,'Escape restores focus');
+    await page.locator('.hub-trade-desk-bar').getByRole('button',{name:/^Review trade/}).click();
+    await page.getByRole('heading',{name:'Review this trade',exact:true}).waitFor();
+    await audit('review');
+    assert.equal(await page.evaluate(()=>window.forecastReads),1,'Review reuses the Discover forecast');
+    await page.getByRole('textbox',{name:'Note to partners (optional)',exact:true}).fill('Fixture proposal');
+    await page.getByRole('button',{name:/Edit package/}).click();
+    await page.locator('.hub-trade-desk-bar').getByRole('button',{name:/^Review trade/}).click();
+    assert.equal(await page.getByRole('textbox',{name:'Note to partners (optional)',exact:true}).inputValue(),'Fixture proposal','Editing preserves the draft note');
+    await page.getByRole('button',{name:'Propose trade',exact:true}).click();
+    await page.waitForFunction(()=>window.fixtureWrites.some(x=>!x.body.validate_only && x.body.note==='Fixture proposal'));
+    assert.equal(await page.evaluate(()=>window.fixtureRequests.filter(x=>x.includes('/trades?')).length),1,'One inbox load after proposing');
+    await page.getByRole('button',{name:'Ideas',exact:true}).click();
+    await page.waitForFunction(()=>window.fixtureRequests.some(x=>x.includes('/insights')));
+    await page.getByRole('button',{name:'Build',exact:true}).click();
+    await page.getByRole('button',{name:'Ideas',exact:true}).click();
+    assert.equal(await page.evaluate(()=>window.fixtureRequests.filter(x=>x.includes('/insights')).length),1,'Ideas reused on revisit');
+
+    await open('salary');await choose();
+    await page.getByRole('button',{name:/Advanced terms/}).click();
+    await page.getByRole('button',{name:'Add / change partners',exact:true}).click();
+    await page.getByRole('dialog').getByRole('button',{name:/Morgan Lee/}).click();
+    await page.getByRole('button',{name:'Done choosing',exact:true}).click();
+    assert.equal(await cols.count(),3);
+    for (const [index,recipient] of ['Sunday Rivals · Jordan Davis','Mountain Kings · Morgan Lee','Sunday Roster · Maya Chen'].entries()) {
+      await phone(index?'You receive':'You send');
+      await cols.nth(index).getByRole('button',{name:'Send Josh Allen to: Choose recipient',exact:true}).click();
+      await page.getByRole('option',{name:recipient,exact:true}).click();
+    }
+    await phone('You send');
+    await cols.nth(0).getByRole('button',{name:'Send Former Player to: Choose recipient',exact:true}).click();
+    await page.getByRole('option',{name:'Mountain Kings · Morgan Lee',exact:true}).click();
+    await page.getByRole('spinbutton',{name:'Dead cap to move from Former Player',exact:true}).fill('10');
+    await page.waitForFunction(()=>window.fixtureWrites.at(-1)?.body.parties?.[0]?.dead_cap_transfers?.[0]?.amount===10);
+    const body=await page.evaluate(()=>window.fixtureWrites.at(-1).body);
+    assert.deepEqual(body.parties.map(p=>p.sends[0].to_team_id),['team1','team2','mine']);
+    assert.equal(body.parties[0].dead_cap_transfers[0].to_team_id,'team2');
+    await audit('multi-team');
+    await cols.nth(0).getByRole('button',{name:'Cut James Cook for roster space',exact:true}).click();
+    await page.waitForFunction(()=>window.fixtureWrites.at(-1)?.body.parties?.[0]?.drops?.includes('0-1'));
+    assert.equal(await cols.nth(0).locator('.hub-trade-drop-row').count(),1,'Cuts keep their dead-cap assignee');
+
+    await open('sleeper');
+    await page.getByRole('button',{name:/Inbox/}).click();
+    await page.getByRole('button',{name:'Apply agreed cap terms',exact:true}).click();
+    await page.waitForFunction(()=>window.fixtureWrites.some(x=>x.path.endsWith('/settle')));
+    await page.waitForFunction(()=>window.fixtureRequests.filter(x=>x.includes('/rosters')).length>=2);
+    assert.equal(await page.getByRole('button',{name:'Force apply',exact:true}).count(),0);
+    assert.equal(await page.evaluate(()=>window.fixtureChanges),1,'Settlement notifies the parent workspace');
+    await open('review');
+    await page.getByRole('button',{name:/Inbox/}).click();
+    await page.getByRole('button',{name:'Add dead-cap terms',exact:true}).click();
+    assert.equal(await page.getByRole('button',{name:'Cut',exact:true}).count(),0);
+    await page.getByRole('button',{name:'Send Former Player to: Choose recipient',exact:true}).click();
+    await page.getByRole('option',{name:'Sunday Rivals · Jordan Davis',exact:true}).click();
+    await page.getByRole('spinbutton',{name:'Dead cap to move from Former Player',exact:true}).fill('10');
+    await page.waitForFunction(()=>window.fixtureWrites.at(-1)?.body.parties?.[0]?.dead_cap_transfers?.[0]?.amount===10);
+    await page.getByRole('button',{name:/^Review trade/}).click();
+    await page.getByRole('button',{name:'Propose trade',exact:true}).click();
+    await page.waitForFunction(()=>window.fixtureWrites.some(x=>!x.body.validate_only && x.body.source_review_id==='sleeper-proposal'));
+    const reviewBody=await page.evaluate(()=>window.fixtureWrites.find(x=>!x.body.validate_only && x.body.source_review_id)?.body);
+    assert.ok(reviewBody.parties.every(p=>p.sends.length===0 && p.drops.length===0));
+    assert.equal(reviewBody.parties[0].dead_cap_transfers[0].amount,10);
+    for (const state of ['empty','loading','error','readonly','pick','capabilities-pick','missing','zero','predraft','invalid','slow-ideas']) {
+      await open(state);
+      if(!['loading','error','readonly'].includes(state))await page.locator('.hub-trade-impact-band').waitFor();
+      const text=await page.locator('body').innerText();
+      if(state==='empty')assert.match(text,/No other managers in this league/);
+      if(state==='error')await page.getByText('Roster service unavailable',{exact:false}).waitFor();
+      if(['pick','capabilities-pick'].includes(state))assert.ok(!text.includes('$'),'Pick leagues omit cap money');
+      if(state==='readonly')assert.equal(await page.evaluate(()=>window.fixtureWrites.length),0);
+      if(['pick','capabilities-pick','missing','zero','predraft','invalid','slow-ideas'].includes(state)) {
+        await choose();await phone('You send');
+        await cols.nth(0).getByRole('button',{name:/^Send Josh Allen to/}).click();
+        await page.waitForFunction(()=>window.fixtureWrites.some(x=>x.body.validate_only));
+        if(state==='invalid')assert.equal(await page.getByRole('button',{name:/^Review trade/}).isDisabled(),true);
+        if(state==='missing')assert.equal(await page.locator('.hub-trade-impact-band > div > strong').first().innerText(),'—');
+        if(state==='zero')assert.equal(await page.locator('.hub-trade-impact-band > div > strong').first().innerText(),'0.0');
+        if(state==='predraft')assert.equal(await page.evaluate(()=>window.fixtureRequests.filter(x=>x.includes('/week?')).length),0);
+        if(state==='slow-ideas') {
+          await page.getByRole('button',{name:'Ideas',exact:true}).click();
+          await page.getByRole('button',{name:'Build',exact:true}).click();
+          assert.equal(await page.getByRole('button',{name:/^Review trade/}).isDisabled(),false,'Slow ideas do not block builder');
+        }
+      }
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${state}: no horizontal overflow`);
+    }
+    if([1280,390].includes(width))for(const state of ['recovering','forecast-error','missing','saved']) {
+      await open(state);
+      await page.locator('.hub-trade-impact-band').waitFor();
+      assert.equal(await page.evaluate(()=>window.forecastReads),0,'Forecast work waits for an analytical surface');
+      await page.getByRole('button',{name:'Discover',exact:true}).click();
+      if(state==='recovering') {
+        await page.getByText('Updating forecasts.',{exact:false}).waitFor();
+        await page.locator('.ss-trade-rank-strong').first().waitFor({timeout:12000});
+        assert.equal(await page.evaluate(()=>window.forecastReads),2,'Queued forecasts recover automatically while visible');
+      }
+      if(state==='forecast-error')await page.getByText('Forecast update failed.',{exact:false}).waitFor();
+      if(state==='missing')await page.getByText('player still needs a forecast.',{exact:false}).waitFor();
+      if(state==='saved')await page.getByText('Using saved forecasts', {exact:false}).waitFor();
+    }
+    await open('revision');await choose();
+    await cols.nth(0).getByRole('button',{name:/^Send Josh Allen to/}).click();
+    await page.waitForFunction(()=>window.fixtureWrites.some(x=>x.body.validate_only));
+    const checksBefore=await page.evaluate(()=>window.fixtureWrites.length);
+    await page.getByRole('button',{name:'Refresh fixture projections',exact:true}).click();
+    await page.waitForFunction(n=>window.fixtureWrites.length>n,checksBefore);
+    assert.equal(await page.locator('.is-sending').count(),1,'Parent refresh preserves the selected package and rechecks validity');
+    await open('salary&long=1&more=1');await choose();
+    await phone('You send');
+    assert.equal(await cols.nth(0).locator('.hub-trade-player-row').count(),7);
+    await cols.nth(0).getByRole('button',{name:'View all 10',exact:true}).click();
+    assert.equal(await cols.nth(0).locator('.hub-trade-player-row').count(),10);
+    await page.getByRole('searchbox',{name:'Search and position apply to both rosters.',exact:true}).fill('Bijan');
+    assert.equal(await cols.nth(0).locator('.hub-trade-player-row').count(),1);
+    assert.equal(await cols.nth(1).locator('.hub-trade-player-row').count(),1,'Search filters both rosters');
+    await page.getByRole('searchbox',{name:'Search and position apply to both rosters.',exact:true}).fill('');
+    await page.getByRole('button',{name:'Position: All positions',exact:true}).click();
+    await page.getByRole('option',{name:'QB',exact:true}).click();
+    assert.equal(await cols.nth(0).locator('.hub-trade-player-row').count(),1);
+    assert.equal(await cols.nth(1).locator('.hub-trade-player-row').count(),1,'Position filters both rosters');
+    await audit('long-names');
+    await open('scope');await choose();
+    await cols.nth(0).getByRole('button',{name:/^Send Josh Allen to/}).click();
+    await page.waitForFunction(()=>window.fixtureWrites.some(x=>x.body.validate_only));
+    await page.getByRole('button',{name:'Switch fixture league',exact:true}).click();
+    await page.locator('.hub-trade-desk-bar').getByRole('button',{name:'Choose partner',exact:true}).waitFor();
+    assert.equal(await page.locator('.is-sending').count(),0,'League switch resets the package');
+    await choose();
+    await cols.nth(0).getByRole('button',{name:/^Send Josh Allen to/}).click();
+    await page.waitForFunction(()=>window.fixtureRequests.filter(x=>x.includes('/week?')).length===2);
+    assert.equal(await page.locator('.hub-trade-impact-band > div > strong').first().innerText(),'—','Wrong-context weekly payload cannot cross leagues');
+    assert.deepEqual(errors,[]);
+    console.log(`${width}: desk flow, lazy requests, three-way routing, partial dead cap, Sleeper and unavailable-state checks PASS`);
+    await page.close();
+  }
+} finally { await browser.close(); }
