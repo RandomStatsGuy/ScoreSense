@@ -36,3 +36,10 @@ test("leaving a league before rosters resolve never consumes the trade seed", as
   release([]);
   assert.deepEqual(await pending, []);
 });
+
+test("roster-first bootstrap needs no optional analytics requests", async () => {
+  const events = [];
+  await loadTradeBootstrap({loadRosters: async () => ["roster"], applyRosters: rows => events.push(rows),
+    onReady: () => events.push("ready")});
+  assert.deepEqual(events, [["roster"], "ready"]);
+});

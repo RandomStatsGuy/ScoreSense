@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { partyTradeBundle, projectTradeWeekLineup } from "./tradeWeekPreview.js";
+import { indexWeekCards, partyTradeBundle, projectTradeWeekLineup, tradeWeekPlayerPoints } from "./tradeWeekPreview.js";
 
 const RULES = {
   roster: {
@@ -162,4 +162,43 @@ test("party bundle reads receives from the other seat", () => {
   assert.deepEqual([...bundle.sendIds], ["a"]);
   assert.deepEqual([...bundle.dropIds], ["cut-1"]);
   assert.deepEqual(bundle.receiveIds, ["b"]);
+});
+
+test("partial weekly coverage never turns an incoming or bench forecast into zero", () => {
+  const byTeam = roster();
+  for (const missing of ["wr-star", "rb-bench"]) {
+    const cards = cardsFromRoster(byTeam);
+    delete cards[missing];
+    const preview = projectTradeWeekLineup({ rosterByTeam: byTeam, myTeamId: MY, rules: RULES,
+      parties: [{team_id: MY, sends: [], drops: []},
+        {team_id: THEIRS, sends: [{player_id: "wr-star", to_team_id: MY}], drops: []}],
+      weekCards: cards, weekStarters: startersFromMine(byTeam),
+    });
+    assert.equal(preview.available, false);
+    assert.equal(preview.delta, null);
+  }
+});
+
+test("known zero forecasts remain zero while null, empty and non-finite values stay unknown", () => {
+  const cards = indexWeekCards({zero: {p50: 0}, missing: {p50: null}, empty: {p50: ""}, bad: {p50: "bad"},
+    "sleeper-4034": {p50: 12.3}});
+  assert.equal(tradeWeekPlayerPoints("zero", cards), 0);
+  for (const id of ["missing", "empty", "bad", "absent"]) assert.equal(tradeWeekPlayerPoints(id, cards), null);
+  assert.equal(tradeWeekPlayerPoints("4034", cards), 12.3);
+  const byTeam = roster();
+  const zeroCards = cardsFromRoster(byTeam);
+  Object.values(zeroCards).forEach(card => {card.p50 = 0;});
+  const preview = projectTradeWeekLineup({rosterByTeam: byTeam, myTeamId: MY, rules: RULES,
+    weekCards: zeroCards, weekStarters: startersFromMine(byTeam), parties: []});
+  assert.equal(preview.available, true);
+  assert.equal(preview.before_p50, 0);
+  assert.equal(preview.delta, 0);
+});
+
+test("missing forecasts honor a custom quarterback FLEX slot", () => {
+  const byTeam = { mine: [{player_id: "unknown-qb", position: "QB"}] };
+  const preview = projectTradeWeekLineup({rosterByTeam: byTeam, myTeamId: "mine", parties: [],
+    rules: {roster: {flex: {starter: 1, eligible: ["QB"]}}}, weekCards: {}});
+  assert.equal(preview.available, false);
+  assert.equal(preview.delta, null);
 });

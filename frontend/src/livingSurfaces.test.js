@@ -116,8 +116,8 @@ test("approved primaries keep one fill on Home, Cap, and Trades", () => {
   assert.match(LIVING_SURFACES["hub.planner"].doNot, /Adding a player does not remove that dead cap/);
   assert.match(LIVING_SURFACES["hub.roster"].doNot, /Undo cut only if they are not active on any team/);
   assert.match(LIVING_SURFACES["hub.office.current"].doNot, /Adding a player does not remove that dead cap/);
-  assert.match(LIVING_SURFACES["hub.trades"].doNot, /Review or Propose is the only primary/);
-  assert.match(LIVING_SURFACES["hub.trades"].doNot, /live 2×2 grid/);
+  assert.match(LIVING_SURFACES["hub.trades"].doNot, /Review trade \(or Propose on final review\) is the only primary/);
+  assert.match(LIVING_SURFACES["hub.trades"].doNot, /Weekly PPR impact is private to the viewer/);
   assert.match(LIVING_SURFACES["hub.available"].doNot, /Walk-away is a personal local ceiling/);
 });
 

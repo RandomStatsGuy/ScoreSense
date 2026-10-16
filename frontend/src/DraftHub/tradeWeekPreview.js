@@ -1,6 +1,6 @@
 /** Project This Week starter P50 before and after a trade package. */
 
-import { buildStarterSlotPlan, fillStarterSlots } from "./weekBoard.js";
+import { buildStarterSlotPlan, fillStarterSlots, slotAcceptsPosition } from "./weekBoard.js";
 
 function round1(n) {
   return Math.round(Number(n) * 10) / 10;
@@ -34,11 +34,12 @@ function cardFor(playerId, cards) {
   return cards[`sleeper-${id}`] || null;
 }
 
-function p50Of(playerId, cards, fallback) {
+export function tradeWeekPlayerPoints(playerId, cards) {
   const card = cardFor(playerId, cards);
-  const raw = card?.p50 ?? fallback?.p50;
+  const raw = card?.p50;
+  if (raw == null || raw === "") return null;
   const n = Number(raw);
-  return Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? n : null;
 }
 
 export function partyTradeBundle(parties = [], myTeamId) {
@@ -76,7 +77,7 @@ function toPoolPlayer(row, cards, { keepSlot = false } = {}) {
     player_id: playerId,
     player_name: row?.player_name || card?.player_name || playerId,
     position: row?.position || card?.position || "",
-    p50: p50Of(playerId, cards, row),
+    p50: tradeWeekPlayerPoints(playerId, cards),
     slot: keepSlot ? row?.slot : undefined,
     lineup_role: keepSlot
       ? (row?.lineup_role || (row?.slot ? "starter" : undefined))
@@ -156,10 +157,13 @@ export function projectTradeWeekLineup({
   const afterSource = poolFromRows([...keep, ...incoming], cards)
     .sort((a, b) => b.p50 - a.p50);
 
-  const afterFilled = fillStarterSlots(plan, afterSource);
-  const afterAny = afterSource.some((row) => row.p50 > 0) || beforeSource.some((row) => row.p50 > 0);
-  if (!afterAny) return { ...UNAVAILABLE };
+  // Every player who could enter a configured starting slot needs a forecast.
+  // An unknown bench or incoming forecast cannot safely be ranked as zero.
+  if ([...beforeSource, ...afterSource].some(row => row.p50 == null && plan.some(slot => slotAcceptsPosition(slot, row.position, rules)))) {
+    return { ...UNAVAILABLE };
+  }
 
+  const afterFilled = fillStarterSlots(plan, afterSource);
   const before_p50 = round1(sumFilled(beforeFilled));
   const after_p50 = round1(sumFilled(afterFilled));
   const receiveSet = new Set(receiveIds);
