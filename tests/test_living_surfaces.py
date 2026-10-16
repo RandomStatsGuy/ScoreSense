@@ -107,7 +107,8 @@ def test_registry_donots_name_concrete_jobs() -> None:
     assert "writes no league state" in text
     assert "season filters carry the cap impact" in text
     assert "Chat Send is ghost" in text
-    assert "gate Propose on a pass" in text
+    # A prior version's verdict must not enable either trade action.
+    assert "gate Review and Propose on the current package's server verdict" in text
     hub = _read(".cursor", "rules", "frontend-draft-hub.mdc")
     assert "Rules risk posture" in hub
 
