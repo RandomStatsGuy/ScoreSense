@@ -112,3 +112,38 @@ test("removing a partner clears its incoming legs and preserves other destinatio
   assert.deepEqual(result[0].sends, [{ player_id: "p2", to_team_id: "b" }]);
   assert.equal(result[1].sends[0].to_team_id, "a");
 });
+
+
+test("experiment snapshots isolate routing, cuts, partial dead cap and notes", async () => {
+  const { cloneTradeDraft } = await import("./tradeBuilderHelpers.js");
+  const original = { parties: [{ team_id: "mine", sends: [{ player_id: "a", to_team_id: "third" }], drops: ["b"],
+    dead_cap_transfers: [{ roster_slot_id: 1, to_team_id: "other", amount: 7 }] }],
+    deadCapAssignments: [{ player_id: "b", from_team_id: "mine", assigned_to_team_id: "third", amount: 3 }],
+    proposeNote: "Version A", sourceReviewId: "review-1" };
+  const next = cloneTradeDraft(original);
+  next.parties[0].sends[0].to_team_id = "other";
+  next.parties[0].drops.length = 0;
+  next.parties[0].dead_cap_transfers[0].amount = 2;
+  next.deadCapAssignments[0].assigned_to_team_id = "other";
+  next.proposeNote = "Version B";
+  assert.equal(original.parties[0].sends[0].to_team_id, "third");
+  assert.deepEqual(original.parties[0].drops, ["b"]);
+  assert.equal(original.parties[0].dead_cap_transfers[0].amount, 7);
+  assert.equal(original.deadCapAssignments[0].assigned_to_team_id, "third");
+  assert.equal(original.proposeNote, "Version A");
+  assert.equal(next.sourceReviewId, "review-1");
+});
+
+test("removing a cut releases its assignee without touching other terms", async () => {
+  const { removeTradePackageLeg } = await import("./tradeBuilderHelpers.js");
+  const original = { parties: [{ team_id: "mine", sends: [{ player_id: "a", to_team_id: "other" }], drops: ["b", "c"],
+    dead_cap_transfers: [{ roster_slot_id: 1, amount: 7 }, { roster_slot_id: 2, amount: 3 }] }],
+    deadCapAssignments: [{ player_id: "b", from_team_id: "mine", assigned_to_team_id: "other" }, { player_id: "c", from_team_id: "mine" }] };
+  const removed = removeTradePackageLeg(original, { from: "mine", player_id: "b", drop: true });
+  assert.deepEqual(removed.parties[0].drops, ["c"]);
+  assert.deepEqual(removed.deadCapAssignments.map(a => a.player_id), ["c"]);
+  assert.equal(removed.parties[0].sends.length, 1);
+  const terms = removeTradePackageLeg(removed, { from: "mine", roster_slot_id: 1, deadCap: true });
+  assert.deepEqual(terms.parties[0].dead_cap_transfers, [{ roster_slot_id: 2, amount: 3 }]);
+  assert.equal(original.parties[0].dead_cap_transfers.length, 2);
+});
