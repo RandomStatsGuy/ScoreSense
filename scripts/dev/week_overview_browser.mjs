@@ -27,21 +27,21 @@ try {
   const page=await browser.newPage({viewport:{width,height:1000},serviceWorkers:'block',reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message)});
   await page.goto(`${base}/test-fixtures/week-overview.html?state=${state}&${state==='noart'?'noart=1':''}&${state==='long'?'long=1&long-opponent=1':''}&theme=${state==='live'?'dark':'light'}`,{waitUntil:'networkidle'});
-  await page.locator('.week-overview').waitFor();
-  if(!['score-error','loading','no-roster'].includes(state))await page.locator('.week-overview-feature').waitFor();
-  if(state==='loading')await page.locator('.week-overview .hub-loading-skeleton').waitFor();
-  if(state==='score-error')await page.getByText('Try again',{exact:true}).waitFor();
+  await page.locator('.hub-league-home').waitFor();
+  if(!['score-error','loading','no-roster'].includes(state))await page.locator('.hub-home-matchup').waitFor();
+  if(state==='loading')await page.locator('.hub-league-home .hub-loading-skeleton').waitFor();
+  if(state==='score-error')await page.getByText('Matchup unavailable. Try again shortly.',{exact:true}).waitFor();
   if(!['score-error','loading','no-roster'].includes(state)) {
    assert.equal(await page.locator('.week-overview-games>li').count(),2);
    assert.equal(await page.locator('.hub-wcc-position-button').count(),0);
-   if(state==='missing')assert.equal(await page.locator('.week-overview-feature .week-overview-score>strong').first().innerText(),'—');
-   if(state==='noart')assert.equal(await page.locator('.week-overview-feature .matchup-banner-art img').count(),0);
-   else await page.waitForFunction(()=>{const images=[...document.querySelectorAll('.week-overview-feature .matchup-banner-art img')];return images.length===2&&images.every(img=>img.complete&&img.naturalWidth>0)});
-   const tops=await page.locator('.week-overview-feature .week-overview-score').evaluateAll(es=>es.map(e=>e.getBoundingClientRect().top));
+   if(state==='missing')assert.equal(await page.locator('.hub-home-matchup-value>strong').first().innerText(),'—');
+   if(state==='noart')assert.equal(await page.locator('.hub-home-matchup .matchup-banner-art img').count(),0);
+   else await page.waitForFunction(()=>{const images=[...document.querySelectorAll('.hub-home-matchup .matchup-banner-art img')];return images.length===2&&images.every(img=>img.complete&&img.naturalWidth>0)});
+   const tops=await page.locator('.hub-home-matchup-value').evaluateAll(es=>es.map(e=>e.getBoundingClientRect().top));
    assert.ok(Math.abs(tops[0]-tops[1])<2,'Featured scores share a baseline even with long identities');
-   await page.locator('.week-overview-standings summary').click();
-   await page.locator('.week-overview-standings summary').press('Enter');
-   await page.locator('.week-overview-heading h1').click();
+   await page.locator('.hub-home-standings-card summary').click();
+   await page.locator('.hub-home-standings-card summary').press('Enter');
+
   }
   const audit=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
   const failures=audit.filter(r=>!r.ok);reports.push({width,state,failures,errors});console.log(JSON.stringify(reports.at(-1)));

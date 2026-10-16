@@ -189,3 +189,14 @@ test("TE projection links round-trip independently of the shared WR model key",(
   }
   assert.equal(parseFilterParams(new URLSearchParams('pos=flex')).position,null);
 });
+
+test("Home and legacy weekly links share one landing destination", () => {
+  for (const path of ["/hub", "/hub/home", "/hub/week"]) {
+    const destination = parseAppPath(path);
+    assert.equal(destination.hubSubView, "home");
+    assert.equal(buildAppPath(destination), "/hub/home");
+  }
+  assert.equal(buildAppPath({view:"hub",hubSubView:"week"}), "/hub/home");
+  const params = buildFilterSearchParams({...hubSubViewFilterUpdates("home", {week:5})});
+  assert.equal(stripProjectionParams(params, {preserveWeek:true}).get("week"), "5");
+});

@@ -1,0 +1,137 @@
+// Actual router/workspace with deterministic APIs; no real requests or league writes.
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {attachHomeFixture} from './fantasy_home_fixture.mjs';
+import {auditHighlightInsets,measureScript,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_PACK_RATIO,GUTTER_EDGE_SELECTORS} from './layout_audit.mjs';
+const require=createRequire(new URL('../../frontend/package.json',import.meta.url));
+const {chromium}=require('playwright');
+const browser=await chromium.launch({headless:true}), reports=[],out='outputs/fantasy-landing';
+await fs.mkdir(out,{recursive:true});
+const base='http://127.0.0.1:5173';
+async function audit(page,width,state) {
+ const layout=await page.evaluate(measureScript(),{minTarget:width<769?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+ layout.push(...await auditHighlightInsets(page));
+ reports.push({width,state,route:new URL(page.url()).pathname,layout});
+ assert.deepEqual(layout.filter(r=>!r.ok),[],`${state}@${width}`);
+}
+const displayedWeek=page=>page.locator('.week-overview-stepper strong').innerText();
+const scores=page=>page.evaluate(()=>window.fixtureRequests.filter(p=>p.includes('live-scoring')));
+try {
+ for(const width of [1280,390,320]) {
+  const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'});
+  page.setDefaultTimeout(12000);
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await attachHomeFixture(page);
+  await page.goto(`${base}/hub/week?state=live&week=5#scoreboard`,{waitUntil:'networkidle'});
+  await page.locator('.hub-home-matchup').waitFor();
+  assert.equal(new URL(page.url()).pathname,'/hub/home');
+  assert.equal(new URL(page.url()).search,'?state=live&week=5');
+  assert.equal(new URL(page.url()).hash,'#scoreboard');
+  assert.equal(await displayedWeek(page),'Week 5');
+  assert.equal(await page.locator('.hub-home-matchup').count(),1);
+  assert.equal(await page.locator('.week-overview-games>li').count(),3);
+  assert.equal((await scores(page)).length,1,'One scoring request owns every landing section');
+  assert.equal(await page.locator('.fantasy-chat-launcher-a').count(),0);
+  if(width<769) {
+   await page.getByRole('button',{name:'This Week, choose destination',exact:true}).click();
+   assert.equal(await page.locator('button.app-mobile-sheet-item[aria-label="This Week"]').count(),1);
+   assert.equal(await page.locator('button.app-mobile-sheet-item[aria-label="Home"]').count(),0);
+   await page.locator('button.app-mobile-sheet-item[aria-label="League"]').click();
+   assert.equal(await page.locator('button.app-mobile-sheet-item[aria-label="This Week"],button.app-mobile-sheet-item[aria-label="Home"]').count(),0);
+   await page.keyboard.press('Escape');
+  } else {
+   assert.equal(await page.getByRole('navigation',{name:'Fantasy',exact:true}).getByRole('link',{name:'This Week',exact:true}).count(),1);
+   await page.getByRole('button',{name:'League navigation',exact:true}).click();
+   assert.equal(await page.getByRole('navigation',{name:'League navigation',exact:true}).getByRole('link',{name:/^(Home|This Week)$/}).count(),0);
+   await page.keyboard.press('Escape');
+  }
+  await audit(page,width,'legacy-bookmark');
+  await page.getByRole('button',{name:'Previous week',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.week-overview-stepper strong')?.textContent==='Week 4');
+  assert.equal(new URL(page.url()).searchParams.get('week'),'4');
+  assert.ok((await page.locator('.week-overview-games a').evaluateAll(es=>es.map(e=>e.href))).every(h=>new URL(h).searchParams.get('matchupWeek')==='4'));
+  await page.goBack();
+  await page.waitForFunction(()=>document.querySelector('.week-overview-stepper strong')?.textContent==='Week 5');
+  await page.goForward();
+  await page.waitForFunction(()=>document.querySelector('.week-overview-stepper strong')?.textContent==='Week 4');
+  await page.locator('.week-overview-games>li').nth(1).locator('a').click();
+  await page.locator('.gc-room-scoreboard').waitFor();
+  assert.equal(new URL(page.url()).pathname,'/hub/game');
+  assert.equal(new URL(page.url()).searchParams.get('matchupTeam'),'third');
+  assert.equal(new URL(page.url()).searchParams.get('matchupWeek'),'4');
+  assert.match(await page.locator('.gc-room-scoreboard').innerText(),/Sam M/);
+  await page.goBack();
+  await page.locator('.hub-home-matchup').waitFor();
+  await page.getByRole('button',{name:/^Review lineup/}).click();
+  await page.waitForURL(url=>url.pathname==='/hub/roster');
+  assert.equal(new URL(page.url()).searchParams.get('lineup'),'1');
+  assert.equal(new URL(page.url()).searchParams.get('week'),'4');
+  await page.goto(`${base}/hub/home?state=live`,{waitUntil:'networkidle'});
+  await page.locator('.hub-home-matchup').waitFor();
+  assert.equal((await scores(page)).length,1);
+  assert.match((await scores(page))[0],/home_view=true/);
+  assert.match((await scores(page))[0],/overview=1/);
+  await page.evaluate(()=>{window.fixtureScoreControl.fail=true;});
+  await page.getByRole('button',{name:'Refresh',exact:true}).click();
+  await page.getByText('Refresh unavailable',{exact:false}).first().waitFor();
+  assert.deepEqual(await page.locator('.hub-home-matchup-value strong').allTextContents(),['25.4','3.0']);
+  assert.equal(await page.locator('.week-overview-games>li').count(),3);
+  await page.evaluate(()=>{window.fixtureScoreControl.fail=false;});
+  await page.getByRole('button',{name:'Refresh',exact:true}).click();
+  await page.getByText('Refresh unavailable',{exact:false}).waitFor({state:'hidden'});
+  await page.evaluate(()=>{window.fixtureScoreControl.slowWeek=5;});
+  await page.getByRole('button',{name:'Previous week',exact:true}).click();
+  await page.waitForFunction(()=>Boolean(window.fixtureResolveWeek));
+  await page.goBack();
+  await page.waitForFunction(()=>document.querySelector('.week-overview-stepper strong')?.textContent==='Week 6');
+  await page.evaluate(()=>window.fixtureResolveWeek());
+  await page.waitForLoadState('networkidle');
+  assert.equal(await displayedWeek(page),'Week 6','Late week response cannot overwrite the selected scope');
+  assert.equal(await page.locator('.week-overview-games>li').count(),3);
+  await audit(page,width,'combined-season');
+  await page.screenshot({path:`${out}/combined-${width}.png`,fullPage:true});
+  const writes=await page.evaluate(()=>window.fixtureWrites.filter(w=>!w.path.includes('/chat/')));
+  assert.deepEqual(writes,[],'Landing navigation does not write league focus or lineups');
+  await page.goto(`${base}/hub/week?state=pre`,{waitUntil:'networkidle'});
+  await page.locator('.hub-home-preparation').waitFor();
+  assert.equal(await page.locator('.hub-home-matchup,.week-overview-games').count(),0);
+  if(width<769)assert.equal(await page.getByRole('button',{name:'Home, choose destination',exact:true}).count(),1);
+  await audit(page,width,'pre-draft');
+  await page.screenshot({path:`${out}/pre-draft-${width}.png`,fullPage:true});
+  await page.goto(`${base}/hub/home?state=scoring-error`,{waitUntil:'networkidle'});
+  await page.getByRole('button',{name:'Try again',exact:true}).waitFor();
+  await page.evaluate(()=>{window.fixtureScoreControl.recovered=true;});
+  await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await page.locator('.hub-home-matchup').waitFor();
+  await audit(page,width,'initial-error-recovery');
+  assert.deepEqual(errors,[]);
+  await page.close();
+  console.log(`Combined Fantasy ${width}: PASS routes, history, navigation, refresh recovery and late-response guard`);
+ }
+ // Pending native refresh uses one short timer; hidden pages do not poll.
+ const native=await browser.newPage({viewport:{width:390,height:1000}});
+ await native.clock.install();
+ await attachHomeFixture(native);
+ await native.goto(`${base}/hub/home?state=zero&host=native&format=pick&pending=1`,{waitUntil:'networkidle'});
+ await native.locator('.hub-home-matchup').waitFor();
+ assert.equal((await scores(native)).length,1);
+ assert.match((await scores(native))[0],/refresh=1/);
+ await native.evaluate(()=>{window.fixtureScoreControl.pending=false;});
+ await native.clock.fastForward(5001);
+ await native.waitForFunction(()=>window.fixtureRequests.filter(p=>p.includes('live-scoring')).length===2);
+ await native.getByText('Scores are updating. You can keep browsing.',{exact:true}).waitFor({state:'hidden'});
+ assert.deepEqual(await native.locator('.hub-home-matchup-value strong').allTextContents(),['0.0','0.0']);
+ await native.evaluate(()=>Object.defineProperty(document,'hidden',{configurable:true,value:true}));
+ await native.clock.fastForward(60001);
+ assert.equal((await scores(native)).length,2,'Hidden landing pages do not poll scores');
+ await native.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));});
+ await native.waitForFunction(()=>window.fixtureRequests.filter(p=>p.includes('live-scoring')).length===3);
+ await audit(native,390,'native-pending-recovery');
+ await native.close();
+ console.log('Native scoring: PASS pending recovery, true zero, single polling timer and hidden-page backoff');
+} finally {
+ await browser.close();
+ await fs.writeFile(`${out}/navigation-review.json`,JSON.stringify(reports,null,2));
+}
+console.log(JSON.stringify({reviews:reports.length,failures:reports.flatMap(r=>r.layout.filter(x=>!x.ok))},null,2));

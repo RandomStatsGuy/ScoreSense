@@ -29,3 +29,13 @@ test('Activity renders only supported public move fields',()=>{
  assert.equal(activityCopy({event_type:'add',player_name:'Player'}),null);
  assert.deepEqual(activityCopy({event_type:'add',player_name:'Player',to_owner:'A',event_at:'date'}),{title:'Added Player',owner:'A',at:'date'});
 });
+
+test("league games and stories honor the same approaching-week mode as the landing hero", async()=>{
+ const {overviewScores}=await import('./weekOverviewPresentation.js');
+ const a={owner_name:'A',points:90,proj_total:100,starters:[{player_id:'a',proj:100,game_state:'final'}]};
+ const b={owner_name:'B',points:50,proj_total:102,starters:[{player_id:'b',proj:102,game_state:'final'}]};
+ const data={home_display_mode:'projected',matchups:[{teams:[a,b]}]};
+ assert.deepEqual([overviewScores(a,b,data).home.value,overviewScores(a,b,data).away.value],['100.0','102.0']);
+ assert.equal(overviewStories(data)[0].title,'Closest on paper');
+ assert.match(overviewStories(data)[0].text,/2.0 projected points apart/);
+});

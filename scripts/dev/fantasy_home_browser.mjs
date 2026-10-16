@@ -52,9 +52,10 @@ try {
         await page.getByText("Fixture-only reply", { exact: true }).waitFor();
         await page.locator(".chat-reaction").first().click();
         await page.waitForFunction(() => document.querySelector(".chat-reaction").getAttribute("aria-pressed") === "true");
-        await page.getByRole("button", { name: /^This Week/ }).click();
-        await page.getByRole("button", { name: /^Game center/ }).click();
-        assert.deepEqual(await page.evaluate(() => window.fixtureActions), [{ view: "week", extra: undefined }, { view: "game", extra: { matchupWeek: 6 } }]);
+        assert.equal(await page.locator('.week-overview-games>li').count(),3);
+        assert.equal(await page.getByRole('link',{name:/Game center/}).getAttribute('href'), '/hub/game?matchupTeam=mine&matchupWeek=6');
+        await page.getByRole('button',{name:/^Review lineup/}).click();
+        assert.deepEqual(await page.evaluate(() => window.fixtureActions), [{view:'roster',extra:{lineup:true,week:6}}]);
         assert.equal(await page.locator(".hub-home-attention").count(), 0);
         if (width < 769) {
           const chatY = await chat.evaluate(element => element.getBoundingClientRect().top);

@@ -36,7 +36,7 @@
 .hub-home-matchup-footer p { display:grid; gap:var(--space-1); font-size:var(--text-xs); color:var(--text-secondary); margin:0; }
 .hub-home-matchup-footer p > span { color:var(--text-muted); }
 .hub-home-matchup-actions { display:flex; align-items:center; gap:var(--space-2); }
-.hub-home-matchup-actions button { display:flex; align-items:center; justify-content:center; gap:var(--space-2); min-height:var(--control-h-lg); padding:var(--space-2) var(--space-4); }
+.hub-home-matchup-actions :is(button,a) { display:flex; align-items:center; justify-content:center; gap:var(--space-2); min-height:var(--control-h-lg); padding:var(--space-2) var(--space-4); }
 .hub-home-standings-table { width:100%; border-collapse:collapse; font-size:var(--text-xs); }
 .hub-home-standings-table th,.hub-home-standings-table td { padding:var(--space-3) var(--space-2); text-align:right; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
 .hub-home-standings-table th { color:var(--text-muted); font-weight:var(--font-weight-normal); }
@@ -79,10 +79,22 @@
   .hub-home-matchup-vs::before,.hub-home-matchup-vs::after { display:none; }
   .hub-home-matchup-footer { padding:var(--space-4); flex-direction:column; text-align:center; gap:var(--space-3); }
   .hub-home-matchup-actions { width:100%; }
-  .hub-home-matchup-actions button { flex:1; padding:var(--space-2); }
+  .hub-home-matchup-actions :is(button,a) { flex:1; padding:var(--space-2); }
   .hub-home-preparation > h2,.hub-home-preparation > p { text-align:center; max-width:none; }
   .hub-home-preparation-actions { justify-content:center; }
   .hub-home-preparation-actions .btn-primary { width:100%; }
   .hub-home-preparation-context { justify-content:center; text-align:center; }
   .hub-home-preparation-context dd { justify-content:center; }
+}
+
+/* One seasonal landing page; league rows and conversation share the main column. */
+.hub-home-week-main,.hub-home-week-aside { display:grid; gap:var(--space-5); min-width:0; }
+.hub-home-week-freshness { grid-column:1/-1; }
+.hub-home-matchup-controls { display:flex; align-items:center; gap:var(--space-4); }
+.hub-home-matchup-actions a { text-decoration:none; }
+@media(max-width:768px) {
+ .hub-home-week-main,.hub-home-week-aside { gap:var(--space-4); }
+ .hub-home-matchup-head { align-items:flex-start; }
+ .hub-home-matchup-controls { flex-direction:column; align-items:flex-end; gap:var(--space-2); }
+ .hub-home-matchup-controls .week-overview-stepper { gap:var(--space-1); }
 }

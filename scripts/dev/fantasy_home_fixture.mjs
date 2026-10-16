@@ -15,13 +15,14 @@ export async function attachHomeFixture(surface) {
     const result = await build({
       entryPoints: {
         "fantasy-home": path.join(root, "frontend/test-fixtures/fantasy-home.jsx"),
+        "fantasy-landing": path.join(root, "frontend/test-fixtures/fantasy-landing.jsx"),
         "mobile-home": path.join(root, "frontend/test-fixtures/mobile-home.jsx"),
       },
-      bundle: true, format: "esm", write: false,
+      bundle: true, resolveExtensions:[".js",".jsx",".json"], format: "esm", write: false,
       outdir: path.join(root, "outputs/fantasy-home-fixture"),
       publicPath: "/__home-fixture", external: ["/art/*"],
       loader: { ".png": "file", ".jpg": "file", ".jpeg": "file", ".webp": "file", ".svg": "file", ".woff2": "file" },
-      define: { "process.env.NODE_ENV": '"development"' }, logLevel: "silent",
+      define: { "process.env.NODE_ENV": '"development"', "import.meta.env": '{"DEV":true,"PROD":false}' }, logLevel: "silent",
     });
     return {
       assets: new Map(result.outputFiles.map(file => [path.basename(file.path), file.contents])),
@@ -31,7 +32,7 @@ export async function attachHomeFixture(surface) {
   const { assets, theme } = await compiled;
   await surface.route("**/*", async route => {
     const url = new URL(route.request().url());
-    const fixture = /^\/test-fixtures\/(fantasy-home|mobile-home)\.html$/.exec(url.pathname)?.[1];
+    const fixture = url.pathname.startsWith("/hub/") ? "fantasy-landing" : /^\/test-fixtures\/(fantasy-home|fantasy-landing|mobile-home)\.html$/.exec(url.pathname)?.[1];
     if (fixture) return route.fulfill({ contentType: "text/html", body: `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isolated production Fantasy Home</title><script>${theme}</script><link rel="stylesheet" href="/__home-fixture/${fixture}.css"></head><body><div id="root"></div><script type="module" src="/__home-fixture/${fixture}.js"></script></body></html>` });
     const name = path.basename(url.pathname);
     if (url.pathname.startsWith("/__home-fixture/") && assets.has(name)) {

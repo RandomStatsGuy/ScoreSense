@@ -781,8 +781,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       {error && <div className="error">{error}</div>}
 
       <Suspense fallback={<ValueSheetTableSkeleton rows={8} colSpan={8} />}>
-      {subView === "home" && !demoMode && (
+      {(subView === "home" || subView === "week") && !demoMode && (
         <LeagueHome
+          requestedWeek={searchParams.get("week") || searchParams.get("matchupWeek")}
           hubContext={effectiveCtx}
           reloadToken={weekReloadToken}
           onNavigate={goHubView}
@@ -874,7 +875,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
-      {(subView === "week" || subView === "game") && (
+      {subView === "game" && (
         <WeeklyExperience
           detail={subView === "game"}
           cacheScope={cacheScope}
@@ -1039,7 +1040,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           hubContext={effectiveCtx}
           hidden={hideFantasyChatDock({
             hidden: !active || subView === "room" || createLeagueOpen,
-            house: subView === "home",
+            house: subView === "home" || subView === "week",
           })}
         />
       )}

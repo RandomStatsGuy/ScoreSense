@@ -41,7 +41,7 @@ export const SECTION_SUBTITLES = {
     },
   },
   hub: {
-    home: "What to do next in this league",
+    home: "Your league, this week and the draft ahead",
     setup: "Connect Sleeper and import sheets",
     rules: "What new contracts will cost",
     value: "Pick who you take first",
