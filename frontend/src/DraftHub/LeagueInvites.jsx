@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
@@ -9,7 +10,12 @@ import {
   memberInviteExplainer,
 } from "./leagueAccessCopy";
 
-export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
+export default function LeagueInvites(props) {
+  const {leagueId, hubContext} = props;
+  return <LeagueInvitesView key={JSON.stringify([leagueId, hubContext?.can_invite_members, hubContext?.is_primary_commissioner, hubContext?.readonly])} {...props} />;
+}
+function LeagueInvitesView({ leagueId, hubContext, onChanged }) {
+  const captureScope = useAsyncActionScope(leagueId);
   const mobileLayout = useMobileLayout();
   const [email, setEmail] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -19,12 +25,15 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   const [invites, setInvites] = useState([]);
   const [lockClaims, setLockClaims] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [lastInviteUrl, setLastInviteUrl] = useState("");
   const [lastEmailSent, setLastEmailSent] = useState(null);
 
+  const busy = sending || pending || loading;
   const loadMembers = useCallback(async () => {
+    const isCurrent = captureScope();
     if (!leagueId) return;
     setLoading(true);
     setError("");
@@ -32,16 +41,17 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
       const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/members`);
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setTeams(data.teams || []);
       setInvites(data.invites || []);
       setCommissionerSub(data.commissioner_sub || "");
       setLockClaims(data.hub_context?.lock_team_claims !== false);
     } catch (e) {
-      setError(connectionErrorMessage(e));
+      if (isCurrent()) setError(connectionErrorMessage(e));
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [leagueId]);
+  }, [leagueId, captureScope]);
 
   useEffect(() => {
     if (hubContext?.can_invite_members) {
@@ -50,8 +60,9 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   }, [hubContext?.can_invite_members, loadMembers]);
 
   const sendInvite = async (e) => {
+    const isCurrent = captureScope();
     e.preventDefault();
-    if (!email.trim() || !teamName.trim()) return;
+    if (busy || !hubContext?.can_invite_members || !email.trim() || !teamName.trim()) return;
     setSending(true);
     setError("");
     setLastInviteUrl("");
@@ -68,21 +79,26 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setLastInviteUrl(data.invite?.invite_url || "");
       setLastEmailSent(data.invite?.email_sent ?? null);
       setEmail("");
       setTeamName("");
       setCoCommissioner(false);
       await loadMembers();
+      if (!isCurrent()) return;
       onChanged?.(data.hub_context);
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
     } finally {
-      setSending(false);
+      if (isCurrent()) setSending(false);
     }
   };
 
   const revokeInvite = async (inviteId) => {
+    if (busy) return;
+    const isCurrent = captureScope();
+    setPending(true);
     setError("");
     try {
       const res = await apiFetch(
@@ -90,9 +106,13 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
         { method: "DELETE" },
       );
       if (!res.ok) throw new Error(await parseApiError(res));
+      if (!isCurrent()) return;
       await loadMembers();
+      if (!isCurrent()) return;
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
+    } finally {
+      if (isCurrent()) setPending(false);
     }
   };
 
@@ -106,6 +126,9 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
   };
 
   const releaseClaim = async (teamId) => {
+    if (busy) return;
+    const isCurrent = captureScope();
+    setPending(true);
     setError("");
     try {
       const res = await apiFetch(
@@ -113,14 +136,21 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
         { method: "POST" },
       );
       if (!res.ok) throw new Error(await parseApiError(res));
+      if (!isCurrent()) return;
       await loadMembers();
+      if (!isCurrent()) return;
       onChanged?.();
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
+    } finally {
+      if (isCurrent()) setPending(false);
     }
   };
 
   const toggleLockClaims = async () => {
+    if (busy) return;
+    const isCurrent = captureScope();
+    setPending(true);
     const next = !lockClaims;
     setError("");
     try {
@@ -130,14 +160,17 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
         body: JSON.stringify({ lock_team_claims: next }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      if (!isCurrent()) return;
       setLockClaims(next);
       onChanged?.(res.ok ? undefined : null);
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
+    } finally {
+      if (isCurrent()) setPending(false);
     }
   };
 
-  if (!hubContext?.can_invite_members) return null;
+  if (!hubContext?.can_invite_members || hubContext?.readonly) return null;
 
   return (
     <section className={`panel hub-panel hub-panel-embedded${mobileLayout ? " hub-invites--mobile" : ""}`}>
@@ -147,7 +180,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
 
 
       <label className="hub-lock-claims">
-        <input type="checkbox" checked={lockClaims} onChange={toggleLockClaims} />
+        <input type="checkbox" checked={lockClaims} disabled={busy} onChange={toggleLockClaims} />
         Lock team claims
       </label>
 
@@ -157,6 +190,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
           <input
             type="email"
             value={email}
+            disabled={busy}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="owner@example.com"
             required
@@ -166,6 +200,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
           <span className="hub-field-label">Team name</span>
           <input
             value={teamName}
+            disabled={busy}
             onChange={(e) => setTeamName(e.target.value)}
             placeholder="Exact name from your spreadsheet"
             required
@@ -176,12 +211,13 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
             <input
               type="checkbox"
               checked={coCommissioner}
+              disabled={busy}
               onChange={(e) => setCoCommissioner(e.target.checked)}
             />
             Invite as co-commissioner
           </label>
         )}
-        <button type="submit" className="btn-primary" disabled={sending}>
+        <button type="submit" className="btn-primary" disabled={busy}>
           {sending ? "Sending…" : "Send invite"}
         </button>
       </form>
@@ -224,7 +260,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
                     </span>
                   </div>
                   {t.user_sub ? (
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => releaseClaim(t.id)}>
+                    <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => releaseClaim(t.id)}>
                       Release claim
                     </button>
                   ) : null}
@@ -243,7 +279,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
                       {t.sleeper_roster_id ? " · Sleeper linked" : ""}
                       {t.is_commissioner ? " · co-commish" : ""}
                     </span>
-                    <button type="button" className="btn-ghost btn-sm" onClick={() => releaseClaim(t.id)}>
+                    <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => releaseClaim(t.id)}>
                       Release claim
                     </button>
                   </>
@@ -276,7 +312,7 @@ export default function LeagueInvites({ leagueId, hubContext, onChanged }) {
                   >
                     Copy link
                   </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => revokeInvite(inv.id)}>
+                  <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => revokeInvite(inv.id)}>
                     Revoke
                   </button>
                 </div>
