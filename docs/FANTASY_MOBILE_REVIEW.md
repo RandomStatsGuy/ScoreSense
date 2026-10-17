@@ -1,5 +1,7 @@
 # Fantasy mobile review
 
+> Historical review starting September 28. Preserve its findings and evidence as history; it is not the current page queue or approval authority. Later page approvals in [PRODUCT.md](./PRODUCT.md), including October 15 Trades and October 16 Home, supersede conflicting proposals here. Current work and evidence live in [DESIGN_ROLLOUT.md](./DESIGN_ROLLOUT.md). The September Home reference still informs shared mobile controls and spacing.
+
 September 28, 2026 · source review and first design previews
 
 ## Status

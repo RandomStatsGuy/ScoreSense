@@ -12,7 +12,7 @@ This pass is for **options**. It is not documentation and not a ship.
 ## Skip (do the living-surface edit instead)
 
 - One control, copy line, token, or known bug
-- The user already picked (“do A”, “like Home”, a screenshot of the target)
+- The user already picked (“do A”, “like Home”, a screenshot of the target), or PRODUCT records an approval covering this refinement
 - Backend-only work
 
 ## Do not (mock pass)
@@ -48,6 +48,6 @@ The generator safely fills names, preserves existing files, and versions each lo
 
 ## After they pick
 
-If the pick adds an overlay, sheet, or popup that was not in the chosen option, mock that surface and screenshot it first. Then wait.
+If implementation would add an overlay, sheet, or popup outside the chosen option or another recorded approval, mock that surface and screenshot it first. Then wait for the pick. Existing approved overlays and routine fixes carry their approval forward; do not ask the user to choose them again.
 
 Implement on the living `page` / `copy`. Then `.cursor/skills/verify-fantasy-ui/SKILL.md`.

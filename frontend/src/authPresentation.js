@@ -4,7 +4,7 @@ export const AUTH_COPY = Object.freeze({
   login: Object.freeze({
     eyebrow: "Sign in",
     heading: "Sign in to your league.",
-    support: "Draft seats, contracts, and cap stay on this account. Without it you cannot save a room.",
+    support: "Return to your leagues, draft seats, and saved settings.",
     submit: "Sign in",
     submitBusy: "Signing in…",
     switchPrompt: "New here?",
@@ -13,7 +13,7 @@ export const AUTH_COPY = Object.freeze({
   register: Object.freeze({
     eyebrow: "Create account",
     heading: "Create the login that holds your league.",
-    support: "Leagues, contracts, and the draft attach to this account. Lose it and you lose the seat map.",
+    support: "Use one account for your leagues, draft seats, and saved settings.",
     submit: "Create account",
     submitBusy: "Creating account…",
     switchPrompt: "Already have an account?",

@@ -29,6 +29,21 @@ import {
   NUMERIC_RE,
 } from "./layout_audit.mjs";
 
+test("requested narrow-phone and laptop widths are preserved", () => {
+  for (const width of [320, 390, 768, 769, 1024, 1280, 1440]) {
+    assert.equal(parseArgs(["/hub/trades", "--width", String(width)]).width, width);
+    assert.equal(parseArgs([`--width=${width}`, "/hub/trades"]).width, width);
+    assert.equal(minTargetForWidth(width), width <= 768 ? 44 : 32);
+  }
+});
+
+test("invalid viewport widths fail instead of silently auditing another width", () => {
+  for (const value of ["0", "-1", "nope", "390.5", "Infinity", undefined]) {
+    const argv = value === undefined ? ["--width"] : ["--width", value];
+    assert.throws(() => parseArgs(argv), /positive integer/);
+  }
+});
+
 test("numeric columns right-align", () => {
   assert.equal(columnAlign(["$12", "$8", "—", "$0"]), "right");
   assert.equal(columnAlign(["14.2", "9.1", "0.4"]), "right");

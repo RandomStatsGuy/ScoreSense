@@ -5243,7 +5243,7 @@ td.col-rank.col-rank-top {
   flex-direction: row;
   align-items: center;
   gap: 0.32rem;
-  min-height: var(--control-h-sm);
+  min-height: var(--form-control-height, var(--control-h-sm));
   padding: 0.24rem 0.55rem 0.24rem 0.5rem;
   border-radius: var(--radius-pill);
 }
@@ -6068,10 +6068,11 @@ td.col-rank.col-rank-top {
 }
 .hub-league-field-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 5.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
   gap: 0.55rem;
   align-items: end;
 }
+.hub-league-field-split .hub-filter-menu-trigger { width: 100%; justify-content: space-between; }
 .hub-league-setup-actions { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; margin-top: 0.65rem; }
 .hub-toggle-row { display: flex; gap: 0.5rem; align-items: flex-start; cursor: pointer; font-size: 0.88rem; }
 .hub-toggle-hint { display: block; font-weight: normal; }
@@ -11137,6 +11138,7 @@ td.col-rank.col-rank-top {
   input[type="text"],
   input[type="search"],
   input[type="email"],
+  input[type="tel"],
   input[type="number"],
   input[type="password"],
   input[type="url"],
@@ -11174,6 +11176,7 @@ option {
   input[type="text"],
   input[type="search"],
   input[type="email"],
+  input[type="tel"],
   input[type="number"],
   input[type="password"],
   input[type="url"],

@@ -25,6 +25,7 @@ export default function StandalonePageShell({
 
   return (
     <div className={`standalone-page${mobileLayout ? " standalone-page--mobile" : ""} ${className}`.trim()}>
+      <a className="app-skip-link" href="#main-content">Skip to content</a>
       {mobileLayout ? (
         <header className="standalone-page-header">
           <Link to={backTo} className="standalone-page-back">
@@ -33,7 +34,7 @@ export default function StandalonePageShell({
           {title ? <h1 className="standalone-page-title">{title}</h1> : null}
         </header>
       ) : null}
-      {children}
+      <main id="main-content" tabIndex={-1}>{children}</main>
     </div>
   );
 }

@@ -81,7 +81,7 @@ export default function HubSetup({
           Create or join a league, then connect Sleeper and imports. Contract rules live on Rules.
         </p>
         {onNavigate && (
-          <button type="button" className="btn-primary btn-sm" onClick={() => onNavigate("rules")}>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate("rules")}>
             {inLeague && !isCommissioner ? "View league rules" : "Open league rules"}
           </button>
         )}

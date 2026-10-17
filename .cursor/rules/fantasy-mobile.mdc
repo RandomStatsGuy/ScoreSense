@@ -50,4 +50,6 @@ These alias existing ScoreSense tokens. Type stays ≥12px; text inputs use 16px
 
 At 390 and 1280: run the layout audit and inspect screenshots. At 320: check long destination/league names, touch targets, and overflow. Exercise pickers, disclosure click/keyboard behavior, relevant phases, and fixed-nav clearance. Audit success does not replace visual inspection.
 
-After any CSS/JS change, run `mobile_mock.py stamp` on affected pages, then reload the user's existing preview tab when available. Version every direct local stylesheet/script, including the foundation; a fresh screenshot session alone can miss stale styles in an already-open tab.
+Use actual requested viewport widths; never substitute 390 for 320 or 1280 for a laptop check. Recompose columns while preserving the selected package/team/week and its relevant consequence. Review focus against sticky headers, fixed actions, bottom navigation, safe areas, and chat together. Include both color modes and reduced motion when the changed surface uses semantic color or animation. Record the exact states and distinguish fixture screenshots from live-route checks in `docs/DESIGN_ROLLOUT.md`.
+
+After any **static mock** CSS/JS change, run `mobile_mock.py stamp` on affected HTML pages, then reload the user's existing preview tab when available. Version every direct local stylesheet/script, including the foundation. Production Vite assets use the build's versioning; do not run the mock stamper on production React. A fresh screenshot session alone can miss stale mock styles in an already-open tab.
