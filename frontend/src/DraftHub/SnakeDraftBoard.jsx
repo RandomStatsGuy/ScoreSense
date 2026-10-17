@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useModalFocus from "../ui/useModalFocus";
 import { PAINT_WIDTH, teamLogoUrl, playerInitials, lookupPlayerMedia, headshotCandidates } from "./draftMedia";
 import {
   buildDraftBoard,
@@ -132,6 +133,8 @@ export default function SnakeDraftBoard({
   const modalScrollerRef = useRef(null);
   const modalActiveRef = useRef(null);
   const inlineFullBoard = variant === "recap" && !compactDefault;
+  const modalRef = useRef(null), modalCloseRef = useRef(null);
+  useModalFocus(fullBoard, modalRef, () => setFullBoard(false), modalCloseRef);
 
   useEffect(() => setFocusRound(board.currentRound || 1), [board.currentRound]);
 
@@ -144,20 +147,6 @@ export default function SnakeDraftBoard({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [board.currentOverall, board.currentRound, fullBoard, focusRound]);
-
-  useEffect(() => {
-    if (!fullBoard || typeof document === "undefined") return undefined;
-    const previousOverflow = document.body.style.overflow;
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setFullBoard(false);
-    };
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [fullBoard]);
 
   const visibleRows = useMemo(
     () => (inlineFullBoard ? board.rows : visibleRoundWindow(board.rows, focusRound, 3)),
@@ -215,7 +204,7 @@ export default function SnakeDraftBoard({
             </button>
           </>
         )}
-        <button type="button" className="btn-primary btn-sm" onClick={() => setFullBoard(true)}>
+        <button type="button" className="btn-ghost btn-sm" onClick={() => setFullBoard(true)}>
           Full board
         </button>
       </div>
@@ -226,6 +215,7 @@ export default function SnakeDraftBoard({
     <div className="hub-pick-board-modal-backdrop" role="presentation" onMouseDown={() => setFullBoard(false)}>
       <section
         className="hub-pick-board-modal"
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Full ${board.snake ? "snake" : "linear"} draft board`}
@@ -239,7 +229,7 @@ export default function SnakeDraftBoard({
           </div>
           <div className="hub-pick-board-modal-actions">
             <button type="button" className="btn-ghost btn-sm" onClick={goCurrent}>Current pick</button>
-            <button type="button" className="btn-primary btn-sm" onClick={() => setFullBoard(false)}>Close</button>
+            <button ref={modalCloseRef} type="button" className="btn-primary btn-sm" onClick={() => setFullBoard(false)}>Close</button>
           </div>
         </header>
         <BoardGrid
