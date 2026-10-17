@@ -161,7 +161,7 @@ export default function SeasonTable({
         )}
       </div>
       <div className="table-toolbar">
-        <span className="table-meta">{sorted.length} players</span>
+        <span className="table-meta">{BOARD_COPY.playerCount(sorted.length)}</span>
         {metaLine}
       </div>
       <ProjectionTierBoard position={position} rows={sorted} media={playerMedia} loading={loading}
