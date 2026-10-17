@@ -4,6 +4,7 @@ import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import useFantasyReady from "../useFantasyReady";
 import { HubExperienceHero, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import { getWeeklySnapshot, setWeeklySnapshot, weeklySnapshotKey, invalidateWeeklySnapshot } from "./hubDataCache";
@@ -24,12 +25,14 @@ function RankingBoard({ players, auraById, votes }) {
 }
 
 export default function VibeRankings({ cacheScope, hubContext, onNavigate, reloadToken }) {
-  const contextKey = `${hubContext?.mode || ""}:${hubContext?.league_id || ""}:${hubContext?.team_id || ""}`;
+  const contextKey = JSON.stringify([hubContext?.mode, hubContext?.league_id, hubContext?.team_id, hubContext?.season, hubContext?.sleeper_league_id, hubContext?.draft_completed]);
   const snapshotKey = weeklySnapshotKey(cacheScope, contextKey, `:${reloadToken}`);
   const dataKey = snapshotKey || `${contextKey}:${reloadToken}`;
   const [dataState, setDataState] = useState(() => ({ key: dataKey, payload: getWeeklySnapshot(snapshotKey) }));
   const data = dataState.key === dataKey ? dataState.payload : getWeeklySnapshot(snapshotKey);
   const activeKey = useRef(dataKey); activeKey.current = dataKey;
+  const captureDataScope = useAsyncActionScope(dataKey);
+  const loadVersion = useRef(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(!data);
   const [busy, setBusy] = useState(false);
@@ -42,15 +45,19 @@ export default function VibeRankings({ cacheScope, hubContext, onNavigate, reloa
   const wide = useMediaQuery("(min-width:769px)");
   const coarse = useMediaQuery("(pointer:coarse)");
   const load = useCallback(async (signal) => {
+    const version = ++loadVersion.current, isCurrent = captureDataScope();
     const cached = getWeeklySnapshot(snapshotKey); setLoading(!cached); setError("");
     if (cached) { setDataState({ key: dataKey, payload: cached }); return; }
     try {
-      const res = await apiFetch("/api/hub/week", { signal }); if (!res.ok) throw new Error(await parseApiError(res));
+      const params = new URLSearchParams();
+      if (hubContext?.mode === "league" && hubContext?.league_id) params.set("league_id", hubContext.league_id);
+      if (hubContext?.season != null) params.set("season", String(hubContext.season));
+      const res = await apiFetch(`/api/hub/week?${params}`, { signal }); if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (!signal?.aborted && activeKey.current === dataKey) { setWeeklySnapshot(snapshotKey, hubContext?.league_id, payload); setDataState({ key: dataKey, payload }); }
-    } catch (e) { if (!isAbortError(e) && !signal?.aborted && activeKey.current === dataKey) setError(connectionErrorMessage(e)); }
-    finally { if (!signal?.aborted && activeKey.current === dataKey) setLoading(false); }
-  }, [snapshotKey, dataKey, hubContext?.league_id]);
+      if (!signal?.aborted && isCurrent() && version === loadVersion.current) { setWeeklySnapshot(snapshotKey, hubContext?.league_id, payload); setDataState({ key: dataKey, payload }); }
+    } catch (e) { if (!isAbortError(e) && !signal?.aborted && isCurrent() && version === loadVersion.current) setError(connectionErrorMessage(e)); }
+    finally { if (!signal?.aborted && isCurrent() && version === loadVersion.current) setLoading(false); }
+  }, [snapshotKey, dataKey, hubContext?.mode, hubContext?.league_id, hubContext?.season, captureDataScope]);
   useEffect(() => { const ctrl = new AbortController(); void load(ctrl.signal); return () => ctrl.abort(); }, [load]);
   useEffect(() => { setBusy(false); setApplyBusy(false); setLatestById({}); setVegasTeams({}); setApplyError(""); for (const controller of latestRequests.current.values()) controller.abort(); latestRequests.current.clear(); return () => { for (const controller of latestRequests.current.values()) controller.abort(); }; }, [dataKey]);
   const players = useMemo(() => deckPlayers(data), [data]);
@@ -83,17 +90,20 @@ export default function VibeRankings({ cacheScope, hubContext, onNavigate, reloa
     (async () => { try { const res = await apiFetch(`/api/player/${encodeURIComponent(player.player_id)}/latest?${params}`, { signal: controller.signal }); if (res.ok) { const payload = await res.json(); if (!controller.signal.aborted && activeKey.current === requestKey) setLatestById((cur) => ({ ...cur, [player.player_id]: payload })); } } catch { /* Optional notes have an honest empty state. */ } finally { if (latestRequests.current.get(player.player_id) === controller) latestRequests.current.delete(player.player_id); } })();
   };
   useEffect(() => {
-    const onKey = (event) => { if (event.key === "Backspace" && !busy && ratings.history.length && !event.target.closest?.("input,textarea,select,[contenteditable=true]")) { event.preventDefault(); ratings.undo(); } };
+    const onKey = (event) => { if (!event.defaultPrevented && !undoRef.current?.closest("[inert]") && event.key === "Backspace" && !busy && ratings.history.length && !event.target.closest?.("input,textarea,select,[contenteditable=true]")) { event.preventDefault(); ratings.undo(); } };
     window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
   }, [busy, ratings.undo, ratings.history.length]);
   const canEdit = canEditHubLineup({ mode: data?.hub_context?.mode || hubContext?.mode, lineupSource: data?.meta?.lineup_source, lineupLocked: data?.meta?.lineup_locked, weekScored: data?.meta?.week_scored, isCommissioner: Boolean(hubContext?.is_commissioner) });
-  const actions = vibeNextActions({ canReview: ratedToday > 0 && Boolean(data) && !error, canEdit });
+  const canApply = canEdit && Boolean(teamId && teamId === hubContext?.team_id && leagueId === hubContext?.league_id) && !hubContext?.readonly && !hubContext?.demo && !data?.meta?.week_scored;
+  const actions = vibeNextActions({ canReview: ratedToday > 0 && Boolean(data) && !error, canEdit: canApply });
+  const captureApplyScope = useAsyncActionScope(JSON.stringify([dataKey, season, week, leagueId, teamId, canApply]));
+  useEffect(() => { setApplyBusy(false); setApplyError(""); }, [dataKey, canApply, season, week]);
   const applySlate = async () => {
     if (!actions.apply || !leagueId || applyBusy) return;
-    const requestKey = dataKey; setApplyBusy(true); setApplyError("");
-    try { const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/lineup`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ starters: vibeLineupStarters(slots), season, week }) }); if (!res.ok) throw new Error(await parseApiError(res)); invalidateWeeklySnapshot(leagueId); if (activeKey.current === requestKey) onNavigate?.("week"); }
-    catch (e) { if (activeKey.current === requestKey) setApplyError(connectionErrorMessage(e)); }
-    finally { if (activeKey.current === requestKey) setApplyBusy(false); }
+    const isCurrent = captureApplyScope(); setApplyBusy(true); setApplyError("");
+    try { const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/lineup`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ starters: vibeLineupStarters(slots), season, week }) }); if (!res.ok) throw new Error(await parseApiError(res)); invalidateWeeklySnapshot(leagueId); if (isCurrent()) onNavigate?.("week"); }
+    catch (e) { if (isCurrent()) setApplyError(connectionErrorMessage(e)); }
+    finally { if (isCurrent()) setApplyBusy(false); }
   };
   return <HubPage className="hub-vibes hub-experience-page" frameless>
     <div className="hub-vibes-intro"><HubExperienceHero eyebrow={VIBE_COPY.eyebrow} heading={VIBE_COPY.deckHeading} support={VIBE_COPY.deckSupport} /></div>
@@ -113,7 +123,7 @@ export default function VibeRankings({ cacheScope, hubContext, onNavigate, reloa
           {!data ? <HubLoadingSkeleton label={VIBE_COPY.loading} rows={5} /> : <RankingBoard players={players} auraById={auraById} votes={dayVotes.votes} />}
           {actions.primary && <div className="hub-vibes-summary-actions">{actions.apply && <button type="button" className="btn-primary" disabled={applyBusy} onClick={applySlate}>{applyBusy ? VIBE_COPY.setSlateBusy : VIBE_COPY.setSlate}</button>}{actions.review && <button type="button" className={actions.primary === "review" ? "btn-primary" : "btn-ghost"} onClick={() => onNavigate?.("week")}>{VIBE_COPY.nextAction}</button>}</div>}
           {applyError && <p className="error" role="alert">{applyError}</p>}
-          {Object.keys(auraById).length > 0 && <p className="hub-vibes-save-status" role="status">{VIBE_COPY.saveStatuses[ratings.status]}{ratings.status === "error" && <button className="btn-link" type="button" onClick={ratings.retry}>{VIBE_COPY.retry}</button>}</p>}
+          {(Object.keys(auraById).length > 0 || ratings.status === "saving" || ratings.status === "error") && <p className="hub-vibes-save-status" role="status">{VIBE_COPY.saveStatuses[ratings.status]}{ratings.status === "error" && <button className="btn-link" type="button" onClick={ratings.retry}>{VIBE_COPY.retry}</button>}</p>}
           {data && players.length > 0 && <details className="hub-vibes-lineup"><summary>{VIBE_COPY.slateTitle}</summary><p>{VIBE_COPY.slateHint}</p>{slots.map((slot) => <div className="hub-vibes-slot" key={slot.key || slot.slot}><span>{slot.slot}</span><span>{slot.player?.player_name || <button type="button" className="btn-link" onClick={() => onNavigate?.("available", { pos: slot.position })}>{onNavigate ? emptySlotCta(slot.position) : emptySlotName()}</button>}</span><strong>{slot.player ? formatPts(vibeScore(slot.player, readAura(auraById, slot.player.player_id))) : ""}</strong></div>)}</details>}
           <details className="hub-vibes-explanation"><summary>{VIBE_COPY.howItWorks}</summary><p>{VIBE_COPY.explanation}</p></details>
         </details>}
