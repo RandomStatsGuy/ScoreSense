@@ -13,6 +13,7 @@ export const CLAIM_QUEUE_COPY = {
   claiming: "Claiming…",
   protected: "On waiver protection until the next window",
   loadError: "Could not load waiver claims",
+  loading: "Loading waiver claims…",
   saveError: "Could not save waiver claims",
   confirmTitle: "Confirm initial waiver priority",
   confirmSupport: "Put first priority at the top. Processing stays blocked until you confirm every team.",

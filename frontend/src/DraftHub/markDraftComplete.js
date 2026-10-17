@@ -12,7 +12,7 @@ export const MARK_DRAFT_COMPLETE_COPY = Object.freeze({
   done: "Draft complete",
 });
 
-export async function markDraftComplete(leagueId, { usesContracts = true } = {}) {
+export async function markDraftComplete(leagueId, { usesContracts = true, isCurrent = () => true } = {}) {
   const ok = await confirmDialog({
     title: MARK_DRAFT_COMPLETE_COPY.confirmTitle,
     message: usesContracts
@@ -21,7 +21,7 @@ export async function markDraftComplete(leagueId, { usesContracts = true } = {})
     confirmLabel: MARK_DRAFT_COMPLETE_COPY.action,
     danger: true,
   });
-  if (!ok) return null;
+  if (!ok || !isCurrent()) return null;
   const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

@@ -845,6 +845,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       {subView === "available" && (
         <ValueSheetTable
           mode="available"
+          teamId={effectiveCtx?.team_id}
+          actionsDisabled={leagueSwitchBusy || effectiveCtx?.readonly === true || (effectiveCtx?.mode === "league" && !effectiveCtx?.team_id)}
           title="Free agents"
           rows={valueRows}
           season={valueSheet?.season || workspace?.season}

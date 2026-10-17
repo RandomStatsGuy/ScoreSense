@@ -14,6 +14,8 @@ import {
 
 export const SHEETS_GUIDED_COPY = {
   reviewTitle: "Review changes",
+  readOnlyHelp: "Review saved salaries, status, and acquisition methods.",
+  readOnlyTotalsHelp: "Compare saved totals for every team.",
   maintenance: "Sheet maintenance",
   filters: "Filters & display",
   editContract: "Edit contract",
@@ -36,7 +38,7 @@ export const OFFICE_CONTRACTS_COPY = {
   save: "Save",
   discard: "Discard",
   saving: "Saving…",
-  saved: "Contract changes saved.",
+  saved: "Submitted contract changes saved.",
   saveBlocked: "Fix the cap errors before saving. Your edits are still here.",
   leaveTitle: "Unsaved contract edits",
   leaveMessage: "Save your contract edits or discard them before leaving.",

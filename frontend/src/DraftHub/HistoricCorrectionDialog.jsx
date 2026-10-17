@@ -25,8 +25,14 @@ function HistoricCorrectionPanel({
   updates,
   playerName,
   seasonYear,
+  isCurrent,
   onResolve,
 }) {
+  const canContinue = () => {
+    if (isCurrent()) return true;
+    onResolve(null);
+    return false;
+  };
   const reasonRef = useRef(null);
   const [ctx, setCtx] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -109,7 +115,7 @@ function HistoricCorrectionPanel({
   };
 
   const publishHistoryOnly = async () => {
-    if (!reasonOk) return;
+    if (!canContinue() || !reasonOk) return;
     setBusy(true);
     setError("");
     try {
@@ -118,15 +124,16 @@ function HistoricCorrectionPanel({
         mode: CORRECTION_MODES.HISTORY_ONLY,
         updates,
       });
-      onResolve(result);
+      if (canContinue()) onResolve(result);
     } catch (e) {
+      if (!canContinue()) return;
       setError(connectionErrorMessage(e));
       setBusy(false);
     }
   };
 
   const runPreview = async () => {
-    if (!reasonOk) return;
+    if (!canContinue() || !reasonOk) return;
     setBusy(true);
     setError("");
     try {
@@ -135,8 +142,9 @@ function HistoricCorrectionPanel({
         mode: CORRECTION_MODES.PREVIEW_FORWARD,
         updates,
       });
-      setPreview(result);
+      if (canContinue()) setPreview(result);
     } catch (e) {
+      if (!canContinue()) return;
       setError(connectionErrorMessage(e));
     } finally {
       setBusy(false);
@@ -144,7 +152,7 @@ function HistoricCorrectionPanel({
   };
 
   const applyForward = async () => {
-    if (!reasonOk) return;
+    if (!canContinue() || !reasonOk) return;
     setBusy(true);
     setError("");
     try {
@@ -154,8 +162,9 @@ function HistoricCorrectionPanel({
         updates,
         forward_rebuild_approved: true,
       });
-      onResolve(result);
+      if (canContinue()) onResolve(result);
     } catch (e) {
+      if (!canContinue()) return;
       setError(connectionErrorMessage(e));
       setBusy(false);
     }
@@ -337,6 +346,7 @@ export function historicCorrectionDialog({
   updates,
   playerName = "",
   seasonYear = null,
+  isCurrent = () => true,
 } = {}) {
   return new Promise((resolve) => {
     const host = document.createElement("div");
@@ -354,6 +364,7 @@ export function historicCorrectionDialog({
         updates={updates || {}}
         playerName={playerName}
         seasonYear={seasonYear}
+        isCurrent={isCurrent}
         onResolve={cleanup}
       />,
     );
