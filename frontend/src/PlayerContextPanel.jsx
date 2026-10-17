@@ -48,7 +48,11 @@ function ContextStat({ label, value, emphasis = false, hint }) {
  * GET /api/player/{id}/context — artifact only (zero live work on expand).
  * SCORE-34: preseason media_mode=outlook|week1_pulse; older stays opt-in.
  */
-export default function PlayerContextPanel({
+export default function PlayerContextPanel(props) {
+  return <PlayerContextView key={JSON.stringify([props.playerId, props.season, props.week, props.active ?? true, props.mediaMode])} {...props} />;
+}
+
+function PlayerContextView({
   playerId,
   season,
   week,
@@ -59,7 +63,7 @@ export default function PlayerContextPanel({
   className = "",
 }) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(active && playerId));
   const [error, setError] = useState("");
   const [cold, setCold] = useState(false);
   const [mediaModeLocal, setMediaModeLocal] = useState(null);
@@ -89,6 +93,7 @@ export default function PlayerContextPanel({
     }
 
     const controller = new AbortController();
+    setData(null);
     setLoading(true);
     setError("");
     setCold(false);
@@ -105,6 +110,7 @@ export default function PlayerContextPanel({
           `/api/player/${encodeURIComponent(playerId)}/context${q}`,
           { signal: controller.signal },
         );
+        if (controller.signal.aborted) return;
         if (res.status === 503) {
           const latestParams = new URLSearchParams();
           if (season != null) latestParams.set("season", String(season));
@@ -114,8 +120,10 @@ export default function PlayerContextPanel({
             `/api/player/${encodeURIComponent(playerId)}/latest${latestQ}`,
             { signal: controller.signal },
           );
+          if (controller.signal.aborted) return;
           if (latestRes.ok) {
             const latest = await latestRes.json();
+            if (controller.signal.aborted) return;
             setData({
               this_week: latest.this_week || latest.latest,
               media_context: { state: "none", affects_projection: false },
@@ -139,10 +147,12 @@ export default function PlayerContextPanel({
         if (!res.ok) {
           throw new Error(await parseApiError(res, "Failed to load player context"));
         }
-        setData(await res.json());
+        const payload = await res.json();
+        if (controller.signal.aborted) return;
+        setData(payload);
         setCold(false);
       } catch (err) {
-        if (isAbortError(err)) return;
+        if (isAbortError(err) || controller.signal.aborted) return;
         setData(null);
         setError(connectionErrorMessage(err, "Failed to load player context"));
       } finally {
@@ -304,14 +314,15 @@ export default function PlayerContextPanel({
     const hasMedia=Boolean(String(mediaBody||'').trim())&&(isCurrentMedia(media)||showHistoricalContent);
     return <section className="player-profile-notes" aria-label={CONTEXT_COPY.title}>
       {loading && !data ? <p role="status">{CONTEXT_COPY.loading}</p> : null}
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <p className="error" role="alert">{error}</p> : null}
       {data && hasNote ? <div className="player-context-this-week">
         {note.headline ? <p>{note.headline}</p> : null}
         {note.detail ? <p>{note.detail}</p> : null}
         {note.source ? <p className="chart-note">{note.source}</p> : null}
       </div> : null}
       {data && hasMedia ? <div className="player-context-block"><ProjectionTrustLabel kind="commentary"/>{renderMediaBody(media)}</div> : null}
-      {!loading&&!error&&!hasNote&&!hasMedia ? <p>{CONTEXT_COPY.notesEmpty}</p> : null}
+      {cold ? <p role="status">{CONTEXT_COPY.cold}</p> : null}
+      {!loading&&!cold&&!error&&!hasNote&&!hasMedia ? <p>{CONTEXT_COPY.notesEmpty}</p> : null}
     </section>;
   }
 

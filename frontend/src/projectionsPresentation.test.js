@@ -362,3 +362,11 @@ test("Separate WR/TE movement uses actual point changes, never the combined pool
   const riser=weeklyBoardSignals(rows,{position:'te'}).find(s=>s.id==='riser');
   assert.equal(riser.playerId,'a');assert.equal(riser.value,'+0.6 pts');
 });
+
+
+test("player card read identity tracks server scope while ignoring preview/label changes", async () => {
+  const {playerCardRequestKey:key}=await import("./projectionsPresentation.js");
+  const base={playerId:"one",season:2026,week:6,scope:"weekly",position:"qb"};
+  assert.equal(key(base),key({...base,playerName:"Mapped name",preview:{p50:0},applyInjuryAdjustments:true}));
+  for (const patch of [{playerId:"two"},{season:2025},{week:7},{scope:"season"},{position:"wr"},{applyInjuryAdjustments:false}]) assert.notEqual(key(base),key({...base,...patch}));
+});

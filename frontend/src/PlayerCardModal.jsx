@@ -11,7 +11,7 @@ import PlayerCardFrame from "./PlayerCardFrame";
 import {isByeWeek} from "./weeklyAvailability";
 import Chip, { injuryChipTone } from "./Chip";
 import { BOARD_COPY, PLAYER_CARD_COPY as COPY, filterInspectorCandidates, playerCardInjuryCode,
-  playerCardNumber as number, playerCardPace, positionShort, weeklyQuantiles } from "./projectionsPresentation";
+  playerCardNumber as number, playerCardPace, playerCardRequestKey, positionShort, weeklyQuantiles } from "./projectionsPresentation";
 import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
 
 function ForecastRange({ band }) {
@@ -49,7 +49,7 @@ function PlayerGameLog({ data, position }) {
   </section>;
 }
 
-function PlayerCardBody({ data, loading, error, fallbackName, request }) {
+function PlayerCardBody({ data, loading, error, fallbackName, request, onRetry }) {
   const [timeframe, setTimeframe] = useState("week");
   const [notesOpen, setNotesOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -109,7 +109,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request }) {
         <ForecastRange band={band} />
       </>}
     </section>}
-    {error ? <p className="error" role="alert">{error}</p> : null}
+    {error ? <div className="error" role="alert"><span>{error}</span> <button type="button" className="btn-ghost" onClick={onRetry}>{COPY.retry}</button></div> : null}
     {data ? <PlayerGameLog data={data} position={position} /> : null}
     {data ? <details className="player-profile-disclosure" open={notesOpen} onToggle={event => setNotesOpen(event.currentTarget.open)}>
       <summary><span>{COPY.notes}</span><span className="player-profile-plus" aria-hidden="true" /></summary>
@@ -182,47 +182,36 @@ export default function PlayerCardModal({
   maxCompare = 4,
   onSelectPlayer,
 }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const requestKey = playerCardRequestKey(request);
+  const [snapshot, setSnapshot] = useState({key:"", data:null, loading:false, error:""});
+  const [retry, setRetry] = useState(0);
+  const current = snapshot.key === requestKey;
+  const data = current ? snapshot.data : null;
+  const error = current ? snapshot.error : "";
+  const loading = Boolean(request?.playerId && (!current || snapshot.loading));
   useEffect(() => {
-    if (!request?.playerId) {
-      setData(null);
-      setError("");
-      setLoading(false);
-      return undefined;
-    }
+    if (!request?.playerId) return undefined;
     const controller = new AbortController();
+    setSnapshot({key:requestKey, data:null, loading:true, error:""});
     (async () => {
-      setData(null);
-      setLoading(true);
-      setError("");
       try {
         const params = new URLSearchParams();
         if (request.season != null) params.set("season", String(request.season));
         if (request.week != null) params.set("week", String(request.week));
         if (request.scope) params.set("scope", request.scope);
         if (request.position) params.set("position", request.position);
-        const applyInjury = request.applyInjuryAdjustments ?? true;
-        params.set("apply_injury_adjustments", applyInjury ? "true" : "false");
-        const q = params.toString() ? `?${params.toString()}` : "";
-        const res = await apiFetch(
-          `/api/player/${encodeURIComponent(request.playerId)}/card${q}`,
-          { signal: controller.signal },
-        );
+        params.set("apply_injury_adjustments", (request.applyInjuryAdjustments ?? true) ? "true" : "false");
+        const res = await apiFetch(`/api/player/${encodeURIComponent(request.playerId)}/card?${params}`, {signal:controller.signal});
         if (!res.ok) throw new Error(await parseApiError(res, "Failed to load player card"));
-        if (controller.signal.aborted) return;
-        setData(await res.json());
+        const payload = await res.json();
+        if (!controller.signal.aborted) setSnapshot({key:requestKey, data:payload, loading:false, error:""});
       } catch (err) {
         if (isAbortError(err) || controller.signal.aborted) return;
-        setData(null);
-        setError(connectionErrorMessage(err, "Failed to load player card"));
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        setSnapshot({key:requestKey, data:null, loading:false, error:connectionErrorMessage(err, "Failed to load player card")});
       }
     })();
     return () => controller.abort();
-  }, [request]);
+  }, [requestKey, retry]);
 
   if (!request) return null;
 
@@ -263,6 +252,7 @@ export default function PlayerCardModal({
           error={error}
           fallbackName={request.playerName}
           request={request}
+          onRetry={() => setRetry(value => value + 1)}
         />
       </div>
       <div className="player-inspector-footer">
