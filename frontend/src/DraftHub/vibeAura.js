@@ -24,7 +24,9 @@ export function playerKey(player) {
 }
 
 export function readAura(auraById, playerId) {
-  const n = Number(auraById?.[String(playerId)]);
+  const raw = auraById?.[String(playerId)];
+  if (raw == null || raw === "") return AURA_BASE;
+  const n = Number(raw);
   return Number.isFinite(n) ? clamp(n, AURA_MIN, AURA_MAX) : AURA_BASE;
 }
 
@@ -44,8 +46,10 @@ export function auraTone(aura) {
 
 /** Aura scales the week projection. 50 = 1.0×, 0 = 0.6×, 99 ≈ 1.39×. */
 export function vibeScore(player, aura) {
-  const p50 = Number(player?.p50);
-  const proj = Number.isFinite(p50) ? Math.max(0, p50) : 0;
+  const raw = player?.p50;
+  const p50 = Number(raw);
+  if (raw == null || raw === "" || !Number.isFinite(p50)) return null;
+  const proj = Math.max(0, p50);
   const a = Number.isFinite(Number(aura)) ? Number(aura) : AURA_BASE;
   return proj * (0.6 + 0.4 * (a / AURA_BASE));
 }
@@ -152,6 +156,7 @@ export function formatAura(aura) {
 }
 
 export function formatPts(value) {
+  if (value == null || value === "") return "—";
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
   return n.toFixed(1);

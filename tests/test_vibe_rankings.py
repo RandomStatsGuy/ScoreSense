@@ -584,3 +584,56 @@ def test_build_vibe_rankings_tolerates_malformed_week_inputs():
     assert payload["meta"]["season"] == 2026
     assert payload["meta"]["week"] == 1
     assert payload["aura_by_id"] == {}
+
+
+@pytest.mark.parametrize("endpoint", ["week", "vibes"])
+@pytest.mark.parametrize("member", [False, True])
+def test_scoped_reads_keep_displayed_league_and_saved_focus(hub_db, monkeypatch, endpoint, member):
+    first, _, _, sub = _seed_league(hub_db)
+    second = storage.create_league(sub, "Displayed Vibes", 2026, load_preset("salary_cap_auction_v1"))
+    if member:
+        sub = "vibe-scoped-member"
+        storage.join_league(sub, second["room_code"], "Member")
+        storage.set_hub_focus(sub, league_id=None)
+    else:
+        storage.set_hub_focus(sub, league_id=first["id"])
+    before = storage.get_hub_focus_league_id(sub)
+    monkeypatch.setattr("src.draft_hub.weekly_command_center.build_weekly_command_center", lambda ctx, **_: {"hub_context": ctx})
+    monkeypatch.setattr("src.draft_hub.vibe_rankings.build_vibe_rankings", lambda ctx, **_: {"hub_context": ctx})
+    try:
+        result = _client_for(sub).get(f"/api/hub/{endpoint}", params={"league_id": second["id"]})
+        assert result.status_code == 200, result.text
+        assert result.json()["hub_context"]["league_id"] == second["id"]
+        assert storage.get_hub_focus_league_id(sub) == before
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+def test_scoped_put_persists_only_displayed_team(hub_db, prepare_weekly_context):
+    first, first_team, _, sub = _seed_league(hub_db)
+    second = storage.create_league(sub, "Displayed Vibes", 2026, load_preset("salary_cap_auction_v1"))
+    second_team = storage.get_team_by_user(second["id"], sub)
+    storage.set_hub_focus(sub, league_id=first["id"])
+    storage.put_team_vibe_aura(first["id"], first_team["id"], 2026, 1, {"wr-ace": 36})
+    try:
+        with patch("src.draft_hub.weekly_command_center.load_weekly_prediction", side_effect=_fake_load), patch("src.draft_hub.weekly_command_center.resolve_week_context", return_value=(2026, 1)):
+            prepare_weekly_context()
+            result = _client_for(sub).put("/api/hub/vibes", params={"league_id": second["id"]}, json={"season": 2026, "week": 1, "aura_by_id": {"wr-ace": 78}})
+            assert result.status_code == 200, result.text
+            assert result.json()["hub_context"]["league_id"] == second["id"]
+            assert storage.get_team_vibe_aura(second["id"], second_team["id"], 2026, 1)["wr-ace"] == 78
+            assert storage.get_team_vibe_aura(first["id"], first_team["id"], 2026, 1) == {"wr-ace": 36}
+            assert storage.get_hub_focus_league_id(sub) == first["id"]
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)
+
+
+@pytest.mark.parametrize("method,endpoint", [("GET", "week"), ("GET", "vibes"), ("PUT", "vibes")])
+@pytest.mark.parametrize("missing,status", [(False, 403), (True, 404)])
+def test_scoped_requests_reject_inaccessible_league(hub_db, method, endpoint, missing, status):
+    league, _, _, _ = _seed_league(hub_db)
+    try:
+        result = _client_for("vibe-outsider").request(method, f"/api/hub/{endpoint}", params={"league_id": "missing" if missing else league["id"]}, **({"json": {"season": 2026, "week": 1, "aura_by_id": {}}} if method == "PUT" else {}))
+        assert result.status_code == status, result.text
+    finally:
+        app.dependency_overrides.pop(require_hub_user, None)

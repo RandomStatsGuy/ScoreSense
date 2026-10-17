@@ -111,6 +111,7 @@ export default function VibeSwipeDeck({ players, index = 0, auraById, media, veg
   };
   useEffect(() => {
     const onKey = (event) => {
+      if (event.defaultPrevented || wrapRef.current?.closest("[inert]")) return;
       if (event.key === "Escape" && open) { event.preventDefault(); setOpen(false); requestAnimationFrame(() => wrapRef.current?.querySelector(".hub-vibes-more")?.focus({ preventScroll: true })); return; }
       if (open || event.target.closest?.("input,textarea,select,button,a,summary,[contenteditable=true]")) return;
       if (event.key === "ArrowRight" || event.key === "ArrowLeft") { event.preventDefault(); finish(event.key === "ArrowRight" ? "start" : "sit"); }

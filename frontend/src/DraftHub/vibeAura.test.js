@@ -162,3 +162,15 @@ test("a late server read rebases queued votes and Undo without losing either", a
   assert.deepEqual(result.auraById, { hot: 95, other: 50 });
   assert.deepEqual(result.dayVotes.votes, {});
 });
+
+
+test("unknown Vibes forecasts remain missing while a recorded zero remains known", async () => {
+  const {formatPts} = await import("./vibeAura.js");
+  for (const p50 of [null, undefined, "", "bad"]) {
+    assert.equal(vibeScore({p50}, 64), null);
+    assert.equal(formatPts(vibeScore({p50}, 64)), "—");
+    assert.equal(formatPts(p50), "—");
+  }
+  assert.equal(formatPts(vibeScore({p50:0}, 64)), "0.0");
+  assert.equal(readAura({one:null}, "one"), AURA_BASE);
+});

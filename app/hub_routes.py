@@ -771,6 +771,7 @@ def hub_list_roster(
 @router.get("/week")
 def hub_weekly_command_center(
     response: Response,
+    league_id: Optional[str] = Query(None, description="Displayed league; defaults to saved focus"),
     background_tasks: BackgroundTasks = None,
     season: Optional[int] = Query(None, description="NFL season (defaults from hub + mlready)"),
     week: Optional[int] = Query(None, description="NFL week (defaults from mlready context)"),
@@ -794,7 +795,7 @@ def hub_weekly_command_center(
     with HubTimer("week", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
+            ctx = _ctx_for_league(sub, league_id) if league_id else _ctx(sub)
         with timer.phase("build"):
             payload = build_weekly_command_center(
                 ctx,
@@ -815,11 +816,12 @@ def hub_weekly_command_center(
 @router.get("/vibes")
 def hub_vibe_rankings(
     response: Response,
+    league_id: Optional[str] = Query(None, description="Displayed league; defaults to saved focus"),
     season: Optional[int] = Query(None, description="NFL season (defaults from hub + mlready)"),
     week: Optional[int] = Query(None, description="NFL week (defaults from mlready context)"),
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Personal vibe aura + start slate for the focused team (SCORE-81).
+    """Personal vibe aura + start slate for the requested or focused team (SCORE-81).
 
     Reuses week roster × weekly artifacts — no live ``predict_*``. Aura is read
     from SQLite per league/team/season/week. Apply the returned ``starters`` via
@@ -833,7 +835,7 @@ def hub_vibe_rankings(
     with HubTimer("vibes", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
+            ctx = _ctx_for_league(sub, league_id) if league_id else _ctx(sub)
         with timer.phase("build"):
             payload = build_vibe_rankings(ctx, season=season, week=week)
     return jsonable_encoder(payload)
@@ -843,9 +845,10 @@ def hub_vibe_rankings(
 def hub_put_vibe_rankings(
     response: Response,
     body: VibesPutRequest,
+    league_id: Optional[str] = Query(None, description="Displayed league; defaults to saved focus"),
     _user=Depends(require_hub_user),
 ) -> dict:
-    """Persist aura for the focused league-team-week and return the vibe slate."""
+    """Persist aura for the requested or focused league-team-week and return the vibe slate."""
     from fastapi.encoders import jsonable_encoder
 
     from src.draft_hub import storage
@@ -854,7 +857,7 @@ def hub_put_vibe_rankings(
     with HubTimer("vibes-put", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
+            ctx = _ctx_for_league(sub, league_id) if league_id else _ctx(sub)
             if ctx.get("mode") != "league" or not ctx.get("league_id") or not ctx.get("team_id"):
                 raise HTTPException(
                     status_code=400,
