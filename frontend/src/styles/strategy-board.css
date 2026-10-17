@@ -258,7 +258,7 @@
 .hub-strategy-toggle-btn.is-on {
   background: var(--accent);
   border-color: transparent;
-  color: #fff;
+  color: var(--theme-on-accent, var(--bg-base));
   font-weight: var(--font-weight-bold);
 }
 .hub-strategy-rank-focus {

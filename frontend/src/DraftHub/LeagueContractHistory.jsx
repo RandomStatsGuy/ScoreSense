@@ -276,7 +276,7 @@ function ContractRowEditor({ row, leagueId, seasonYear, isNew, onSaved, onDelete
         </label>
       )}
       {error && <p className="error-banner">{error}</p>}
-      <div className="hub-contract-edit-actions">
+      <div className="hub-contract-edit-actions" data-sheet-sticky-footer={mobileLayout || undefined}>
         <button type="button" className="btn-primary btn-sm" onClick={save} disabled={saving}>
           {saving ? "Saving…" : isNew ? "Add row" : "Correct / save"}
         </button>

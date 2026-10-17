@@ -633,7 +633,9 @@
     margin-left: auto;
   }
 
-  .proj-board-surface .table-toolbar--weekly-mobile .compare-mode-toggle {
+  .proj-board-surface .proj-board-filter,
+  .proj-board-surface .btn-export-csv,
+  .proj-board-surface .compare-mode-toggle {
     min-height: var(--touch-target);
   }
 

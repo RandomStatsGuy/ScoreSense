@@ -883,6 +883,7 @@ export function measureScript() {
     });
 
     const primaries = [...document.querySelectorAll(".btn-primary, button.btn-primary")].filter((el) => {
+      if (el.closest("[inert]")) return false;
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
     });
