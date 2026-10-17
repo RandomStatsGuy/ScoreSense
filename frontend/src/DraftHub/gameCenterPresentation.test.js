@@ -557,3 +557,13 @@ test("minute score polling is reserved for live games", async () => {
   assert.equal(gameCenterPollMs({has_live_games:true}),60_000);
   assert.equal(gameCenterPollMs({has_live_games:false,scoring_control:{live:true}}),300_000);
 });
+
+
+test("Game center lead stays unknown until both recorded scores are known", () => {
+  for (const points of [null, undefined, "", NaN]) {
+    assert.equal(gameCenterLead({points}, {points:0}), GAME_CENTER_COPY.scorePending);
+    assert.equal(gameCenterLead({points:0}, {points}), GAME_CENTER_COPY.scorePending);
+  }
+  assert.equal(gameCenterLead({points:0}, {points:0}), "Tied");
+  assert.equal(gameCenterLead({points:-2}, {points:0}), "2.0 point deficit");
+});

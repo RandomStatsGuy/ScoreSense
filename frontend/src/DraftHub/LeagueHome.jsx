@@ -4,6 +4,7 @@ import useFantasyReady from "../useFantasyReady";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import useMobileLayout from "../useMobileLayout";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { HubAlert, HubLoadingSkeleton, HubPage, HubSection } from "./HubUILayout";
 import LeagueChat from "./LeagueChat";
 import TeamIdentityMark from "./TeamIdentityMark";
@@ -156,7 +157,12 @@ export default function LeagueHome({
   }
   const leagueId = hubContext?.mode === "league" ? hubContext?.league_id : null;
 
+  const captureScope = useAsyncActionScope(cacheKey);
+  const homeReadVersion = useRef(0);
   const load = useCallback(async (signal) => {
+    const inScope = captureScope();
+    const version = ++homeReadVersion.current;
+    const current = () => inScope() && !signal?.aborted && version === homeReadVersion.current;
     const cached = getHomeCache(cacheKey);
     if (cached?.data) {
       setData(cached.data);
@@ -166,20 +172,22 @@ export default function LeagueHome({
     }
     setError("");
     try {
-      const res = await apiFetch("/api/hub/home?include_week=false", { signal });
+      const query = new URLSearchParams({include_week:"false"});
+      if (leagueId) query.set("league_id", leagueId);
+      const res = await apiFetch(`/api/hub/home?${query}`, { signal });
       if (!res.ok) throw new Error(await parseApiError(res));
       const payload = await res.json();
-      if (signal?.aborted) return;
+      if (!current()) return;
       setHomeCache(cacheKey, payload);
       setData(payload);
     } catch (e) {
-      if (isAbortError(e) || signal?.aborted) return;
+      if (isAbortError(e) || !current()) return;
       setError(connectionErrorMessage(e));
       if (!cached?.data) setData(null);
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (current()) setLoading(false);
     }
-  }, [cacheKey]);
+  }, [cacheKey, leagueId, captureScope]);
 
   useEffect(() => {
     if (!loading) {
@@ -326,7 +334,7 @@ export default function LeagueHome({
   return (
     <HubPage className={`hub-league-home hub-home-page hub-home--clubhouse${mobileLayout ? " hub-league-home--mobile" : ""}`}>
       <h1 className="sr-only">{hubSubviewLabel("home", hubContext)}</h1>
-      {error && <HubAlert variant="danger">{error}</HubAlert>}
+      {error && <HubAlert variant="danger" action={<button type="button" className="btn-ghost btn-sm" onClick={() => load()}>{HOME_PAGE_COPY.retryLeague}</button>}>{error}</HubAlert>}
       <header className="hub-home-phase-header">
         <nav className="hub-home-phases" aria-label="League season stage">
           {phaseTrack.map(item => <span key={item.id} aria-current={item.current ? "step" : undefined}><i aria-hidden="true" />{item.label}</span>)}

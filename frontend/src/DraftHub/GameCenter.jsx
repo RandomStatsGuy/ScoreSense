@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
 import useFantasyReady from "../useFantasyReady";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { isAbortError } from "../fetchAbort";
 import { usePlayerMedia } from "../PlayerCell";
-import { HubAlert, HubLoadingSkeleton, HubPage } from "./HubUILayout";
+import { HubAlert, HubAlertStack, HubLoadingSkeleton, HubPage } from "./HubUILayout";
 import { useTeamIdentities } from "./TeamIdentityContext";
 import {
   GAME_CENTER_COPY,
@@ -31,7 +32,12 @@ import WeekLeagueOverview from "./WeekLeagueOverview";
 import "../styles/game-center-room.css";
 
 
-export default function GameCenter({
+export default function GameCenter(props) {
+  const ctx = props.hubContext;
+  return <GameCenterView key={JSON.stringify([props.leagueId, ctx?.season, ctx?.team_id, ctx?.sleeper_league_id, Boolean(ctx?.draft_completed), Boolean(props.overview)])} {...props} />;
+}
+
+function GameCenterView({
   leagueId,
   hubContext,
   onNavigate,
@@ -58,15 +64,25 @@ export default function GameCenter({
   useEffect(() => setSelectedMatchupId(null), [leagueId, requestedWeek, requestedTeam, week]);
 
   const scope = `${leagueId}:${week}`;
+  const captureScope = useAsyncActionScope(scope);
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const readVersion = useRef(0);
+  const [previousScope, setPreviousScope] = useState(scope);
+  if (previousScope !== scope) {
+    setPreviousScope(scope);
+    setData(null);
+    setLoading(true);
+    setError("");
+    setLineupSummary(null);
+  }
 
   const load = useCallback(
     async (signal, { refresh = false } = {}) => {
       if (!leagueId) return;
       const version = ++readVersion.current;
-      const isCurrent = () => !signal?.aborted && scopeRef.current === scope && version === readVersion.current;
+      const inScope = captureScope();
+      const isCurrent = () => inScope() && !signal?.aborted && scopeRef.current === scope && version === readVersion.current;
       setError("");
       try {
         const params = new URLSearchParams();
@@ -88,12 +104,11 @@ export default function GameCenter({
         if (isCurrent()) setLoading(false);
       }
     },
-    [leagueId, week, scope, overview],
+    [leagueId, week, scope, overview, captureScope],
   );
 
   useEffect(() => {
     setLoading(true);
-    setData(null);
     setLineupSummary(null);
     const ctrl = new AbortController();
     const native = !hubContext?.sleeper_league_id;
@@ -107,27 +122,19 @@ export default function GameCenter({
   const scorePollMs = gameCenterPollMs(data);
   const refreshPending = ["pending", "running"].includes(data?.scoring_control?.refresh?.status);
   useEffect(() => {
-    if (!refreshPending) return undefined;
-    const ctrl = new AbortController();
-    const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") load(ctrl.signal);
-    }, 5000);
-    return () => { window.clearInterval(id); ctrl.abort(); };
-  }, [refreshPending, load]);
-
-  /** Current NFL weeks re-pull stats while the tab is visible. */
-  useEffect(() => {
-    if (!pollScores) return undefined;
+    if (!refreshPending && !pollScores) return undefined;
     const ctrl = new AbortController();
     const tick = () => {
-      if (document.visibilityState === "visible") load(ctrl.signal, { refresh: !hubContext?.sleeper_league_id });
+      if (!document.hidden) load(ctrl.signal, { refresh: !refreshPending && !hubContext?.sleeper_league_id });
     };
-    const id = window.setInterval(tick, scorePollMs);
+    const id = window.setInterval(tick, refreshPending ? 5000 : scorePollMs);
+    document.addEventListener("visibilitychange", tick);
     return () => {
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
       ctrl.abort();
     };
-  }, [pollScores, load, scorePollMs, hubContext?.sleeper_league_id]);
+  }, [refreshPending, pollScores, load, scorePollMs, hubContext?.sleeper_league_id]);
 
   const matchup = useMemo(
     () => (data?.matchups || []).find(m => String(m.matchup_id) === String(selectedMatchupId)) || findViewerMatchup(data, requestedTeam),
@@ -199,6 +206,7 @@ export default function GameCenter({
     ),
   });
   const showBanner = Boolean(!loading && data && banner);
+  const scoreNotice = !loading && !upcomingNotice ? nativeScoreRefreshMessage(data) : "";
   const stepWeek = (delta) => {
     const base = Number(weekNumber ?? currentWeek ?? 1);
     const next = Math.min(Number(maxWeek), Math.max(1, base + delta));
@@ -206,7 +214,7 @@ export default function GameCenter({
   };
 
   const showPrev = shouldShowPrevWeek(weekNumber);
-  const showNext = shouldShowNextWeek(weekNumber, maxWeek);
+  const showNext = weekNumber != null && shouldShowNextWeek(weekNumber, maxWeek);
 
   const goBanner = () => {
     if (!onNavigate || !banner) return;
@@ -239,7 +247,7 @@ export default function GameCenter({
             </button>
           )}
           <span>
-            {weekNumber ? `Week ${weekNumber}` : GAME_CENTER_COPY.loadingChip}
+            {weekNumber ? `Week ${weekNumber}` : loading ? GAME_CENTER_COPY.loadingChip : GAME_CENTER_COPY.weekUnavailable}
           </span>
           {showNext && (
             <button
@@ -255,40 +263,22 @@ export default function GameCenter({
         </div>
         {weekly && lineupSummary && lineupSummary.week === weekNumber && <span className="hub-week-call-count" role="status">{WEEK_BOARD_COPY.compactCalls(lineupSummary.calls)}</span>}
       </header>
-      {error && (
-        <HubAlert variant="warn">
+      {(error || scoreNotice || showBanner) && <HubAlertStack>
+        {error && <HubAlert variant="warn" action={<button type="button" className="btn-ghost" onClick={() => load()}>{GAME_CENTER_COPY.retry}</button>}>
           {error}
-          <button className="btn-ghost" onClick={() => load()}>
-            {GAME_CENTER_COPY.retry}
-          </button>
-        </HubAlert>
-      )}
-      {!loading && !upcomingNotice && nativeScoreRefreshMessage(data) && (
-        <HubAlert variant={nativeScoreRefreshVariant(data)}>
-          {nativeScoreRefreshMessage(data)}
-        </HubAlert>
-      )}
-      {loading && <HubLoadingSkeleton label="Loading matchups" rows={3} />}
-      {!loading && showBanner && (
-        <HubAlert
-          variant="warn"
-          action={
-            onNavigate ? (
-              <button className="btn-ghost" onClick={goBanner}>
-                {banner.actionLabel}
-              </button>
-            ) : null
-          }
-        >
+        </HubAlert>}
+        {scoreNotice && <HubAlert variant={nativeScoreRefreshVariant(data)}>{scoreNotice}</HubAlert>}
+        {showBanner && <HubAlert variant="warn" action={onNavigate ? <button className="btn-ghost" onClick={goBanner}>{banner.actionLabel}</button> : null}>
           {banner.text}
-        </HubAlert>
-      )}
+        </HubAlert>}
+      </HubAlertStack>}
+      {loading && !data && <HubLoadingSkeleton label="Loading matchups" rows={3} />}
       {!loading && fullPageEmpty && !showBanner && (
         <p className="gc-room-empty">
           {data?.hint || GAME_CENTER_COPY.emptyPreseason}
         </p>
       )}
-      {!loading && matchup && viewer && opponent && (
+      {matchup && viewer && opponent && (
         <GameCenterMatchup
           key={`${leagueId}-${weekNumber}`}
           data={data}

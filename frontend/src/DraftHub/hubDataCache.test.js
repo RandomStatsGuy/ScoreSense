@@ -215,3 +215,11 @@ test("name-link invalidation keeps other leagues' saved Insights warm", () => {
   assert.equal(getInsightsSection("link-a", "overview"), null);
   assert.deepEqual(getInsightsSection("link-b", "overview"), { name: "other league" });
 });
+
+
+test("Home cache separates season, host, draft phase and access context", () => {
+  const base = {league_id:"league",team_id:"team",mode:"league",season:2026,draft_completed:true,is_commissioner:true};
+  for (const patch of [{season:2027},{sleeper_league_id:"linked"},{draft_completed:false},{readonly:true},{is_commissioner:false}]) {
+    assert.notEqual(homeCacheKey(base), homeCacheKey({...base,...patch}));
+  }
+});

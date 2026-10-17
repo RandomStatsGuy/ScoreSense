@@ -57,6 +57,7 @@ export const GAME_CENTER_COPY = {
   emptyNoSleeper: "Link Sleeper to fill scores.",
   emptyPreseason: "No scored matchups yet. Scores fill in after kickoff.",
   loadingChip: "Loading",
+  weekUnavailable: "Week unavailable",
   unscoredChip: "No scores yet",
   emptyDuel:
     "No starting lineup is available. Review your lineup in My team.",
@@ -562,7 +563,9 @@ export function lineupIsEmpty(viewer, opponent, rows = []) {
 
 export function gameCenterLead(viewer, opponent, placeholder = false) {
   if (placeholder) return GAME_CENTER_COPY.unscoredChip;
-  const margin = Number(viewer?.points || 0) - Number(opponent?.points || 0);
+  const mine = knownNumber(viewer?.points), theirs = knownNumber(opponent?.points);
+  if (mine == null || theirs == null) return GAME_CENTER_COPY.scorePending;
+  const margin = mine - theirs;
   return margin === 0
     ? "Tied"
     : `${Math.abs(margin).toFixed(1)} point ${margin > 0 ? "lead" : "deficit"}`;

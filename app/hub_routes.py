@@ -1503,6 +1503,7 @@ def hub_league_home(
         True,
         description="When in-season, include lineup decision counts from weekly artifacts",
     ),
+    league_id: str | None = Query(None, description="Read this league without changing saved focus"),
     _user=Depends(require_hub_user),
 ) -> dict:
     """Phase-aware League Home + action center (SCORE-10). No live Sleeper."""
@@ -1513,7 +1514,7 @@ def hub_league_home(
     with HubTimer("home", response) as timer:
         with timer.phase("ctx"):
             sub = _sub(_user)
-            ctx = _ctx(sub)
+            ctx = _ctx_for_league(sub, league_id) if league_id else _ctx(sub)
         with timer.phase("build"):
             payload = build_league_home(ctx, include_week=include_week)
     return jsonable_encoder(payload)
