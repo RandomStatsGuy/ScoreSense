@@ -2,7 +2,6 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { activeNflSeason } from "../../frontend/src/dfsResults.js";
 import { pathToFileURL } from "node:url";
 const { chromium } = await import(
   pathToFileURL(
@@ -120,11 +119,11 @@ try {
       gutterSelectors: GUTTER_EDGE_SELECTORS,
     });
     const csv =
-      "Entry ID,Contest ID,Date,Points,Lineup\r\n" +
+      "Entry ID,Contest ID,Points,Lineup\r\n" +
       Array.from(
         { length: 6001 },
         (_, i) =>
-          `000${i},002,${activeNflSeason()}-09-01,111.5,"CPT One, Two FLEX ${"Player ".repeat(125)}"`,
+          `000${i},002,111.5,"CPT One, Two FLEX ${"Player ".repeat(125)}"`,
       ).join("\r\n");
     assert.ok(Buffer.byteLength(csv) > 5_000_000);
     await page
@@ -162,7 +161,9 @@ try {
       .getByRole("heading", { name: "Review your import" })
       .waitFor({ state: "hidden" });
     assert.equal(ledger.size, 6001);
-    assert.equal(await page.locator(".dfw-entry-list button").count(), 50);
+    const entryRows = page.locator(".dfw-entry-table tbody tr");
+    await entryRows.first().waitFor();
+    assert.equal(await entryRows.count(), 50);
     await page
       .getByRole("button", { name: "Next entries", exact: true })
       .click();
