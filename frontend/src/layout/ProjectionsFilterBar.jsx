@@ -30,7 +30,6 @@ export function ProjectionsFilterControls({
   rosWeekOptions,
   onRosSeasonChange,
   onRosFromWeekChange,
-  seasonModeUserPicked,
   onSeasonModeChange,
   searchQuery,
   onSearchChange,
@@ -84,10 +83,7 @@ export function ProjectionsFilterControls({
                 role="tab"
                 aria-selected={seasonMode === mode.id}
                 className={`season-mode-tab${seasonMode === mode.id ? " active" : ""}`}
-                onClick={() => {
-                  if (seasonModeUserPicked?.current) seasonModeUserPicked.current = true;
-                  onSeasonModeChange?.(mode.id);
-                }}
+                onClick={() => onSeasonModeChange?.(mode.id)}
               >
                 <span className="season-mode-tab-label">{mode.shortLabel}</span>
               </button>

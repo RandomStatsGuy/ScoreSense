@@ -60,3 +60,11 @@ test("Projections and Tools still restore their saved destinations", () => {
     { projectionsTab: "season", seasonMode: "preseason" });
   assert.deepEqual(destinationForSection("tools", { current: { view: "hub" }, storage }), { toolsTab: "best-ball" });
 });
+
+
+test("unresolved Season remains automatic when restored before metadata arrives", () => {
+  const storage = memoryStorage();
+  rememberDestination({ view: "projections", projectionsTab: "season", seasonMode: null }, storage);
+  assert.deepEqual(destinationForSection("projections", { current: { view: "tools" }, storage }),
+    { projectionsTab: "season", seasonMode: null });
+});

@@ -28,7 +28,7 @@ export default function useAppNavigation() {
       view: "projections",
       projectionsTab: "weekly",
       projectionsMobilePanel: "projections",
-      seasonMode: "live",
+      seasonMode: null,
       toolsTab: "dfs",
       hubSubView: "home",
       insightTab: "overview",
@@ -128,11 +128,11 @@ export default function useAppNavigation() {
   );
 
   const setSeasonMode = useCallback(
-    (mode) => navigateTo({
+    (mode, options) => navigateTo({
       view: "projections",
       projectionsTab: "season",
       seasonMode: mode,
-    }),
+    }, options),
     [navigateTo],
   );
 

@@ -32,7 +32,7 @@ export function snapshotDestination(route) {
   if (view === "projections") {
     return {
       projectionsTab: route.projectionsTab || "weekly",
-      seasonMode: route.seasonMode || "live",
+      seasonMode: route.seasonMode ?? null,
     };
   }
   if (view === "tools") {

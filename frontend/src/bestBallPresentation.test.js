@@ -78,6 +78,10 @@ test("edge formatting names discount and reach without amber caution", () => {
 
 test("status chip and sorts keep Edge off an ECR-only board", () => {
   assert.equal(bestBallStatusChip({ loading: true }).tone, "readonly");
+  assert.equal(bestBallStatusChip({ count: 0 }).label, "No board yet");
+  assert.equal(bestBallStatusChip({ count: 1, withAdp: 0 }).label, "1 player · no ECR cached");
+  assert.equal(bestBallStatusChip({ count: 1, withAdp: 1 }).label, "1 player");
+  assert.equal(bestBallStatusChip({ count: 2, withAdp: 1 }).label, "2 players");
   const noAdp = bestBallStatusChip({ count: 100, withAdp: 0 });
   assert.match(noAdp.label, /no ECR/i);
   assert.equal(bestBallStatusChip({ count: 643, withAdp: 245 }).label, "643 players");
