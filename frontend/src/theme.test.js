@@ -75,11 +75,11 @@ test("System follows device changes; explicit modes stay fixed", () => {
 test("appearance restores the palette before paint, independently of scene switches", () => {
   const app = boot("light", false, JSON.stringify({ atmosphere: "cozy", atmosphere_enabled: false, atmosphere_motion: false }));
   assert.equal(app.html.dataset.experienceTheme, "cozy");
-  assert.equal(app.meta(), "#f4e5de");
+  assert.equal(app.meta(), "#f6e4dc");
   assert.equal(app.appearance.getSnapshot().atmosphere_enabled, false);
   app.theme.set("dark");
   assert.equal(app.html.dataset.experienceTheme, "cozy");
-  assert.equal(app.meta(), "#241c2d");
+  assert.equal(app.meta(), "#1e1528");
 });
 
 test("appearance cache rejects malformed themes and synchronizes across tabs", () => {
@@ -91,7 +91,7 @@ test("appearance cache rejects malformed themes and synchronizes across tabs", (
   const unsubscribe = app.appearance.subscribe(() => calls++);
   const optimistic = app.appearance.set({ atmosphere: "snow", atmosphere_enabled: false });
   assert.equal(optimistic, app.appearance.getSnapshot());
-  assert.equal(app.meta(), "#102645");
+  assert.equal(app.meta(), "#0a1d36");
   app.events.storage({ key: "scoresense-appearance", newValue: '{"atmosphere":"leaves"}' });
   assert.equal(app.html.dataset.experienceTheme, "leaves");
   assert.equal(calls, 2);

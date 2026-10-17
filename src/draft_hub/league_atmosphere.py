@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-ATMOSPHERE_THEMES = ("none", "snow", "leaves", "footballs", "cozy")
+ATMOSPHERE_THEMES = ("none", "snow", "leaves", "footballs", "cozy", "kickoff", "redzone", "press")
 
 ATMOSPHERE_INTENSITIES = ("subtle", "standard", "lively")
 
@@ -258,8 +258,11 @@ def atmosphere_catalog() -> dict[str, Any]:
             {"id": "none", "title": "Classic", "support": "The original ScoreSense palette."},
             {"id": "snow", "title": "Snowfall", "support": "Icy blue, falling flakes, and soft snowbanks."},
             {"id": "leaves", "title": "Autumn", "support": "Copper, rust, and tumbling leaves."},
-            {"id": "footballs", "title": "Footballs", "support": "Soft footballs drifting in the background."},
+            {"id": "footballs", "title": "Footballs", "support": "Marshawn #24, Skittles, and game-day gold."},
             {"id": "cozy", "title": "Cozy den", "support": "Lamplight, drifting fur and yarn — and ragdolls who notice your cursor."},
+            {"id": "kickoff", "title": "Prime time", "support": "Stadium floodlights, turf emerald, and sideline flags."},
+            {"id": "redzone", "title": "Red zone", "support": "High-stakes crimson, chalk, and 1st-down markers."},
+            {"id": "press", "title": "Press box", "support": "Broadsheet newsprint, espresso ink, and editorial brass."},
         ],
         "photos": [
             {"id": "gridiron", "title": "Gridiron"},

@@ -163,7 +163,7 @@ try {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await navigate("/account#appearance");
-    for (const theme of ["cozy", "snow", "leaves", "footballs"]) {
+    for (const theme of ["cozy", "snow", "leaves", "footballs", "kickoff", "redzone", "press"]) {
       await selectTheme(theme);
       for (const mode of ["light", "dark"]) {
         await modeRadio(mode).check();

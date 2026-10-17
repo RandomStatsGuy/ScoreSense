@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildCompanionArt } from "./companionArt.js";
 import { releaseState, stepToy, toyBounds } from "./companionPhysics.js";
 
-for (const theme of ["cozy", "snow", "leaves", "footballs"]) {
+for (const theme of ["cozy", "snow", "leaves", "footballs", "kickoff", "redzone", "press"]) {
   test(theme + " props settle within their square after release from each corner", () => {
     for (const toy of buildCompanionArt(theme).toys) {
       const bounds = toyBounds(toy);

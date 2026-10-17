@@ -161,9 +161,30 @@ function YarnSvg({ particle }) {
   );
 }
 
+function FlagSvg({ particle }) {
+  return (
+    <svg width={particle.size} height={particle.size} viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M26 70 L54 18 L82 60 Q58 78 26 70 Z" fill="#facc15" stroke="#a16207" strokeWidth="4" strokeLinejoin="round" />
+      <circle cx="30" cy="70" r="14" fill="#eab308" stroke="#a16207" strokeWidth="4" />
+    </svg>
+  );
+}
+
+function PressPassSvg({ particle }) {
+  return (
+    <svg width={particle.size} height={particle.size} viewBox="0 0 100 100" aria-hidden="true">
+      <rect x="22" y="14" width="56" height="72" rx="10" fill="#f7f3eb" stroke="#7e778f" strokeWidth="4" />
+      <rect x="30" y="26" width="40" height="16" rx="4" fill="#d99b4e" />
+      <path d="M32 56 H68 M32 68 H56" stroke="#6b6052" strokeWidth="5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function ParticleArt({ particle }) {
   if (particle.theme === "leaves") return <LeafSvg particle={particle} />;
   if (particle.theme === "snow") return <SnowSvg particle={particle} />;
+  if (particle.theme === "kickoff") return <FlagSvg particle={particle} />;
+  if (particle.theme === "press") return <PressPassSvg particle={particle} />;
   if (particle.theme === "cozy") {
     if (particle.variant === 1) return <MouseSvg particle={particle} />;
     if (particle.variant === 2) return <YarnSvg particle={particle} />;
