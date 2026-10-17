@@ -3696,10 +3696,15 @@
 }
 
 .hub-roster-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--control-h-sm);
+  min-height: var(--control-h-sm);
   appearance: none;
   background: none;
   border: none;
-  padding: 0;
+  padding: 0 var(--space-2);
   margin: 0;
   font: inherit;
   font-size: var(--text-xs);
@@ -3708,6 +3713,13 @@
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.12em;
+}
+
+@media (max-width: 768px) {
+  .hub-roster-action {
+    min-width: var(--control-h-lg);
+    min-height: var(--control-h-lg);
+  }
 }
 
 .hub-roster-action:hover:not(:disabled) { color: var(--text-primary); }

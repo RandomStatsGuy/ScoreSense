@@ -155,6 +155,14 @@ export default function DraftRoom({
   const lastSoundEventRef = useRef("");
   const soundRoomRef = useRef("");
   const onLiveDraftChangeRef = useRef(onLiveDraftChange);
+  const simulateButtonRef = useRef(null), returnSimulationFocus = useRef(false);
+  useEffect(() => {
+    if (simulationStatus !== "idle" || !returnSimulationFocus.current) return;
+    returnSimulationFocus.current = false;
+    // The confirmation disables its trigger; restore after React enables it.
+    const button = simulateButtonRef.current;
+    if (button?.isConnected && !button.disabled && document.activeElement === document.body) button.focus();
+  }, [simulationStatus]);
 
   const session = roomState?.session;
   const league = roomState?.league;
@@ -1082,6 +1090,7 @@ export default function DraftRoom({
         : "Run the rest of this practice draft instantly? Bots nominate and settle every auction until rosters are full.",
       confirmLabel: "Simulate",
     }))) {
+      returnSimulationFocus.current = true;
       setSimulationStatus("idle");
       return;
     }
@@ -1481,14 +1490,15 @@ export default function DraftRoom({
       return;
     }
     const prevState = roomState;
-    applyState({
+    const optimisticState = {
       ...roomState,
       session: {
         ...session,
         high_bid: val,
         high_bidder_team_id: myTeamId,
       },
-    });
+    };
+    applyState(optimisticState);
     setPendingAction("bid");
     setError("");
     try {
@@ -1502,7 +1512,8 @@ export default function DraftRoom({
       bidTouched.current = false;
       wsRefresh();
     } catch (e) {
-      if (prevState) applyState(prevState);
+      // A newer broadcast or refresh owns the room once it replaces this bid.
+      if (prevState) setRoomState(current => current === optimisticState ? prevState : current);
       setError(e.message || "Bid failed");
     } finally {
       setPendingAction("");
@@ -1780,7 +1791,7 @@ export default function DraftRoom({
         />
       )}
 
-      {error && <div className="error hub-draft-error">{error}</div>}
+      {error && <div className="error hub-draft-error" role="alert">{error}</div>}
       {inLiveDraft && (
         <DraftLiveCommandBar
           session={session}
@@ -1858,6 +1869,7 @@ export default function DraftRoom({
                   className="btn-ghost btn-sm"
                   disabled={draftControlsLocked}
                   onClick={simulateRemainingDraft}
+                  ref={simulateButtonRef}
                   title="Finish the mock instantly"
                 >
                   {simulationRunning
