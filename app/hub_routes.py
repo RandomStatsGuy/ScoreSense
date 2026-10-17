@@ -6089,10 +6089,11 @@ async def hub_league_sheet_import(
     file: UploadFile = File(...),
     manager_team_name: Optional[str] = None,
     replace_existing: bool = True,
+    league_id: Optional[str] = None,
     _user=Depends(require_hub_user),
 ) -> dict:
     sub = _sub(_user)
-    ctx = _ctx(sub)
+    ctx = _ctx_for_league(sub, league_id) if league_id else _ctx(sub)
     if ctx.get("mode") == "league" and not ctx.get("can_import_league_sheet"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can import league sheets")
     ws_id, team_id = roster_scope(ctx)
@@ -6561,6 +6562,7 @@ async def hub_cap_sheet_validate(
     replace_existing: bool = Query(True),
     sync_sleeper_first: bool = Query(False),
     contracts_only: bool = Query(False),
+    league_id: Optional[str] = None,
     _user=Depends(require_hub_user),
 ) -> dict:
     from pathlib import Path
@@ -6572,7 +6574,7 @@ async def hub_cap_sheet_validate(
     from src.draft_hub.schemas import LeagueRules
 
     sub = _sub(_user)
-    ctx = _ctx(sub)
+    ctx = _ctx_for_league(sub, league_id) if league_id else _ctx(sub)
     if ctx.get("mode") != "league" or not ctx.get("is_commissioner"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can validate cap sheets")
     league_id = str(ctx.get("league_id") or "")
@@ -6611,6 +6613,7 @@ async def hub_cap_sheet_import(
         False,
         description="Update salaries/contracts only; do not wipe rosters (implies sync_sleeper_first)",
     ),
+    league_id: Optional[str] = None,
     _user=Depends(require_hub_user),
 ) -> dict:
     from pathlib import Path
@@ -6626,7 +6629,7 @@ async def hub_cap_sheet_import(
     )
 
     sub = _sub(_user)
-    ctx = _ctx(sub)
+    ctx = _ctx_for_league(sub, league_id) if league_id else _ctx(sub)
     if ctx.get("mode") != "league" or not ctx.get("is_commissioner"):
         raise HTTPException(status_code=403, detail="Only the league commissioner can import cap sheets")
     league_id = str(ctx.get("league_id") or "")

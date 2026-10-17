@@ -9,6 +9,7 @@ export const PROJECTION_SYNC_COPY = {
   timeout: "Projection sync is taking longer than expected. Your saved forecasts remain available. Check again shortly.",
 };
 export const ACCESS_GUIDED_COPY = {
+  retry: "Retry loading teams",
   connections: "Connections", title: "Know what is linked and what can write.",
   support: "Live connections refresh through Sync league. Imports are one-time snapshots that change when you apply another file.",
   linked: "Sleeper linked", disconnected: "No live connection", sleeper: "Sleeper league",

@@ -1,4 +1,6 @@
 export const CORRECTIONS_COPY = {
+  changeWeek: "Change correction week?", discardWeek: "Changing weeks discards the unsaved correction, reason and preview for this week.", discard: "Discard and change week",
+  retry: "Retry historical records",
   action: "Correction action",
   modeLineups: "Save lineups", modeResults: "Publish results",
   move: "Move", moveAria: name => `Slot for ${name || "player"}`,

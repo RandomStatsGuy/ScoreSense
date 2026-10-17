@@ -3,6 +3,7 @@ import { confirmDialog } from "../ui/confirm";
 import { LEAGUE_TEAM_SIZES } from "./leagueCreateJoin";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import useMobileLayout from "../useMobileLayout";
 import { HubAlert, HubExperienceHero, HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, HubPageSticky, HubSection } from "./HubUILayout";
 import CommissionerLeagueRosters from "./CommissionerLeagueRosters";
@@ -157,6 +158,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
       );
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!mounted.current) return;
       await load();
       if (!mounted.current) return;
       onChanged?.(data.hub_context);
@@ -246,7 +248,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
   const sizeBlocked = resize?.blocker || (targetSize < actual ? LEAGUE_SIZE_COPY.preview(targetSize, actual, usesSalaries) : "");
   const saveSize = async (e) => {
     e.preventDefault();
-    if (busy || loading || sizeBlocked || targetSize === configured) return;
+    if (busy || loading || !resize || sizeBlocked || targetSize === configured) return;
     setBusy("size");
     setError("");
     setNotice("");
@@ -279,7 +281,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
         </p>
       </header>
 
-      <div className="hub-roster-team-stats" aria-label="Membership summary">
+      {resize && <div className="hub-roster-team-stats" aria-label="Membership summary">
         <span><strong>{claimed}</strong> / {teams.length} claimed</span>
         <span><strong>{sleeperLinked}</strong> / {teams.length} Sleeper-linked</span>
         <span>
@@ -288,7 +290,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
             actual: resize?.actual_teams ?? teams.length,
           })}
         </span>
-      </div>
+      </div>}
 
       <section className="hub-office-franchises" aria-label={LEAGUE_SIZE_COPY.title}>
         <header className="hub-section-head">
@@ -301,10 +303,10 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
             value={targetSize}
             options={sizeOptions.map((n) => ({ id: n, label: `${n} teams` }))}
             onChange={(value) => setTargetSize(Number(value))}
-            disabled={loading || Boolean(busy) || Boolean(resize?.blocker)}
+            disabled={loading || !resize || Boolean(busy) || Boolean(resize?.blocker)}
           />
           <button type="submit" className="btn-primary btn-sm"
-            disabled={loading || Boolean(busy) || Boolean(sizeBlocked) || targetSize === configured}>
+            disabled={loading || !resize || Boolean(busy) || Boolean(sizeBlocked) || targetSize === configured}>
             {busy === "size" ? LEAGUE_SIZE_COPY.saving : LEAGUE_SIZE_COPY.save}
           </button>
           <button type="button" className="btn-ghost btn-sm" onClick={() => onNavigate?.("room")}>
@@ -332,7 +334,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
       </section>
 
       {notice && <HubAlert variant="info">{notice}</HubAlert>}
-      {error && <div className="error">{error}</div>}
+      {error && <div role="alert" className="error">{error} <button type="button" className="btn-ghost btn-sm" onClick={() => load()}>{ACCESS_GUIDED_COPY.retry}</button></div>}
       {loading && <p className="chart-note">Loading members…</p>}
 
       <div className="table-wrap hub-members-table-wrap">
@@ -358,7 +360,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
               const removal = removals.get(String(t.id));
               return (
                 <tr key={t.id}>
-                  <td>{hubTeamLabel(t)}</td>
+                  <td>{hubTeamLabel(t, { includeTeam: false })}</td>
                   <td data-label="Account">{t.user_sub ? "Claimed" : "Unclaimed"}</td>
                   <td data-label="Sleeper">
                     {t.sleeper_roster_id
@@ -388,8 +390,8 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
                         type="button"
                         className="btn-ghost btn-sm"
                         disabled={loading || Boolean(busy)}
-                        aria-label={`${removeFranchiseLabel()}: ${hubTeamLabel(t)}`}
-                        onClick={() => removeFranchise(t.id, hubTeamLabel(t))}
+                        aria-label={`${removeFranchiseLabel()}: ${hubTeamLabel(t, { includeTeam: false })}`}
+                        onClick={() => removeFranchise(t.id, hubTeamLabel(t, { includeTeam: false }))}
                       >
                         {busy === t.id ? "Removing…" : removeFranchiseLabel()}
                       </button>
@@ -411,6 +413,7 @@ export function OfficeMembers({ leagueId, hubContext, onChanged, onNavigate }) {
 }
 
 function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }) {
+  const captureScope = useAsyncActionScope(leagueId);
   const [importType, setImportType] = useState("csv");
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -418,19 +421,21 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }
 
   const load = useCallback(async () => {
     if (!leagueId) return;
+    const isCurrent = captureScope();
     setLoading(true);
     setError("");
     try {
       const res = await apiFetch(`/api/hub/league/${encodeURIComponent(leagueId)}/members`);
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setTeams(data.teams || []);
     } catch (e) {
-      setError(connectionErrorMessage(e));
+      if (isCurrent()) setError(connectionErrorMessage(e));
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [leagueId]);
+  }, [leagueId, captureScope]);
 
   useEffect(() => {
     load();
@@ -472,9 +477,9 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }
             {sleeperLinked ? ACCESS_GUIDED_COPY.linkedState : ACCESS_GUIDED_COPY.disconnectedState}
           </span>
         </header>
-        {error && <div className="error">{error}</div>}
+        {error && <div role="alert" className="error">{error} <button type="button" className="btn-ghost btn-sm" onClick={load}>{ACCESS_GUIDED_COPY.retry}</button></div>}
         {loading && <p className="chart-note">Loading teams…</p>}
-        {!loading && (
+        {!loading && !error && (
           <LeagueSleeperConnect
             leagueId={leagueId}
             hubContext={hubContext}
@@ -490,11 +495,11 @@ function OfficeAccess({ leagueId, hubContext, workspace, onChanged, onNavigate }
       <details className="hub-office-access-section hub-office-access-disclosure">
         <summary><span><strong>{ACCESS_GUIDED_COPY.imports}</strong><small>{ACCESS_GUIDED_COPY.importsSupport}</small></span></summary>
         <div className="hub-toolbar" role="group" aria-label={ACCESS_GUIDED_COPY.imports}>
-          <button type="button" className="hub-filter-chip" aria-pressed={importType === "csv"} onClick={() => setImportType("csv")}>{ACCESS_GUIDED_COPY.csv}</button>
-          {leagueUsesSalaries(hubContext) && <button type="button" className="hub-filter-chip" aria-pressed={importType === "workbook"} onClick={() => setImportType("workbook")}>{ACCESS_GUIDED_COPY.workbook}</button>}
+          <HubFilterChip active={importType === "csv"} aria-pressed={importType === "csv"} onClick={() => setImportType("csv")}>{ACCESS_GUIDED_COPY.csv}</HubFilterChip>
+          {leagueUsesSalaries(hubContext) && <HubFilterChip active={importType === "workbook"} aria-pressed={importType === "workbook"} onClick={() => setImportType("workbook")}>{ACCESS_GUIDED_COPY.workbook}</HubFilterChip>}
         </div>
         {importType === "workbook" && leagueUsesSalaries(hubContext)
-          ? <CapSheetImport onImported={onChanged} embedded />
+          ? <CapSheetImport leagueId={leagueId} season={workspace?.season || hubContext?.season} onImported={onChanged} embedded />
           : <LeagueSheetImport leagueId={leagueId} season={workspace?.season || hubContext?.season} onImported={onChanged} embedded commissionerMode />}
       </details>
 
@@ -544,6 +549,7 @@ export default function LeagueOffice({
   const [historySeason, setHistorySeason] = useState("current");
   const [dataEpoch, setDataEpoch] = useState(0);
   const season = Number(hubContext?.season || new Date().getFullYear());
+  const officeScope = JSON.stringify([leagueId, season, isCommissioner, Boolean(hubContext?.is_primary_commissioner), Boolean(hubContext?.can_invite_members), leagueUsesContracts(hubContext)]);
   const handleChanged = useCallback(() => {
     setDataEpoch((n) => n + 1);
     onChanged?.();
@@ -663,7 +669,7 @@ export default function LeagueOffice({
       )}
 
       {activeTab === "corrections" && isCommissioner && (
-        <WeekCorrections key={leagueId} leagueId={leagueId} season={season} onChanged={handleChanged} />
+        <WeekCorrections key={officeScope} leagueId={leagueId} season={season} onChanged={handleChanged} />
       )}
 
       {activeTab === "historic" && isCommissioner && (
@@ -705,7 +711,7 @@ export default function LeagueOffice({
       {activeTab === "members" && isCommissioner && (
         <HubPage>
           <OfficeMembers
-            key={leagueId}
+            key={officeScope}
             onNavigate={onNavigate}
             leagueId={leagueId}
             hubContext={hubContext}
@@ -717,6 +723,7 @@ export default function LeagueOffice({
       {activeTab === "access" && isCommissioner && (
         <HubPage>
           <OfficeAccess
+            key={officeScope}
             leagueId={leagueId}
             hubContext={hubContext}
             workspace={workspace}

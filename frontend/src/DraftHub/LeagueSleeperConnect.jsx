@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
@@ -15,6 +16,7 @@ import {
 } from "./leagueAccessCopy";
 
 export default function LeagueSleeperConnect({ leagueId, hubContext, overview, onConnected }) {
+  const captureScope = useAsyncActionScope(JSON.stringify([leagueId, hubContext?.is_commissioner, hubContext?.readonly]));
   const linkedLeagueId = overview?.league?.sleeper_league_id || hubContext?.sleeper_league_id || "";
   const hubTeams = useMemo(
     () => (overview?.teams || []).map((b) => b.team),
@@ -31,6 +33,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
   const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const unlinkRead = useRef(0);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const [unlinkPreview, setUnlinkPreview] = useState(null);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
@@ -59,12 +62,14 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
   const loadSleeperTeams = useCallback(async (leagueIdOverride) => {
     const slId = String(leagueIdOverride ?? sleeperLeagueId ?? "").trim();
     if (!slId) return [];
+    const isCurrent = captureScope();
     setLoading(true);
     setError("");
     try {
       const res = await apiFetch(`/api/hub/sleeper/league/${encodeURIComponent(slId)}/teams`);
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return [];
       const teams = data.teams || [];
       setSleeperTeams(teams);
       setSleeperMeta({ name: data.league_name, season: data.season });
@@ -82,13 +87,14 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       setMappings(initial);
       return teams;
     } catch (e) {
+      if (!isCurrent()) return [];
       setError(e.message || "Could not load Sleeper league");
       setSleeperTeams([]);
       return [];
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [hubTeams, sleeperLeagueId]);
+  }, [hubTeams, sleeperLeagueId, captureScope]);
 
   const linkedCount = hubTeams.filter((t) => t.sleeper_roster_id).length;
   const hubTeamCount = hubTeams.length;
@@ -117,6 +123,8 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
   };
 
   const connectAll = async () => {
+    if (connecting || syncing || pauseBusy || unlinkBusy || loading) return;
+    const isCurrent = captureScope();
     if (!sleeperLeagueId.trim()) {
       setError("Enter your Sleeper league ID.");
       return;
@@ -126,11 +134,13 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
     setMsg("");
     try {
       const teams = sleeperTeams.length ? sleeperTeams : await loadSleeperTeams(sleeperLeagueId.trim());
+      if (!isCurrent()) return;
       if (!teams.length) {
         setError("No Sleeper teams found — check the league ID.");
         return;
       }
       const data = await connectWithTeams(teams, sleeperLeagueId);
+      if (!isCurrent()) return;
       const added = data.merge?.added ?? 0;
       const connected = data.teams_connected ?? 0;
       setMsg(
@@ -139,13 +149,16 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       );
       onConnected?.(data);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e.message || "Could not connect Sleeper league");
     } finally {
-      setConnecting(false);
+      if (isCurrent()) setConnecting(false);
     }
   };
 
   const syncAll = async () => {
+    if (connecting || syncing || pauseBusy || unlinkBusy || loading) return;
+    const isCurrent = captureScope();
     setSyncing(true);
     setError("");
     setMsg("");
@@ -155,6 +168,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setMsg(
         data.sleeper_sync_paused
           ? data.message
@@ -164,13 +178,16 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       );
       onConnected?.(data);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e.message || "Could not sync from Sleeper");
     } finally {
-      setSyncing(false);
+      if (isCurrent()) setSyncing(false);
     }
   };
 
   const setSyncPaused = async (nextPaused) => {
+    if (connecting || syncing || pauseBusy || unlinkBusy || loading) return;
+    const isCurrent = captureScope();
     setPauseBusy(true);
     setError("");
     setMsg("");
@@ -182,17 +199,23 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setPaused(Boolean(data.sleeper_sync?.paused));
       setMsg(data.sleeper_sync?.paused ? SLEEPER_SYNC_PAUSE_COPY.pausedDone : SLEEPER_SYNC_PAUSE_COPY.resumedDone);
       onConnected?.(data);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e.message || "Could not change Sleeper roster sync");
     } finally {
-      setPauseBusy(false);
+      if (isCurrent()) setPauseBusy(false);
     }
   };
 
   const openUnlink = async () => {
+    if (connecting || syncing || pauseBusy || unlinkBusy || loading) return;
+    const isCurrent = captureScope();
+    const readId = ++unlinkRead.current;
+    setUnlinkPreview(null);
     setUnlinkOpen(true);
     setError("");
     setMsg("");
@@ -201,13 +224,17 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
         `/api/hub/league/${encodeURIComponent(leagueId)}/sleeper/disconnect`,
       );
       if (!res.ok) throw new Error(await parseApiError(res));
-      setUnlinkPreview(await res.json());
+      const data = await res.json();
+      if (isCurrent() && readId === unlinkRead.current) setUnlinkPreview(data);
     } catch (e) {
+      if (!isCurrent() || readId !== unlinkRead.current) return;
       setError(e.message || "Could not read the Sleeper link");
     }
   };
 
   const runUnlink = async () => {
+    if (connecting || syncing || pauseBusy || unlinkBusy || loading) return;
+    const isCurrent = captureScope();
     setUnlinkBusy(true);
     setError("");
     setMsg("");
@@ -222,6 +249,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       );
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setUnlinkOpen(false);
       setUnlinkPreview(null);
       setSleeperTeams([]);
@@ -229,12 +257,14 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
       setMsg(SLEEPER_UNLINK_COPY.done);
       onConnected?.(data);
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e.message || "Could not unlink Sleeper");
     } finally {
-      setUnlinkBusy(false);
+      if (isCurrent()) setUnlinkBusy(false);
     }
   };
 
+  const actionBusy = connecting || syncing || pauseBusy || unlinkBusy || loading;
   const unlinkRows = Number(unlinkPreview?.sleeper_roster_rows) || 0;
 
   return (
@@ -250,7 +280,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
           <p className="chart-note">
             Import to add all teams and rosters.
           </p>
-          <button type="button" className="btn-primary" onClick={connectAll} disabled={connecting || loading || paused}>
+          <button type="button" className="btn-primary" onClick={connectAll} disabled={actionBusy || paused}>
             {connecting ? "Importing…" : `Import all ${sleeperTeamCount} Sleeper teams`}
           </button>
           {paused && <p className="chart-note">{SLEEPER_SYNC_PAUSE_COPY.importPaused}</p>}
@@ -263,7 +293,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             {OFFICE_CONTRACTS_COPY.sleeperLinked(linkedCount, hubTeamCount)}
           </span>
           {!paused && (
-            <button type="button" className="btn-ghost btn-sm" onClick={syncAll} disabled={syncing}>
+            <button type="button" className="btn-ghost btn-sm" onClick={syncAll} disabled={actionBusy}>
               {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
             </button>
           )}
@@ -284,7 +314,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             {loading ? "Loading…" : "Check Sleeper status"}
           </button>
           {!paused && (
-            <button type="button" className="btn-ghost btn-sm" onClick={syncAll} disabled={syncing}>
+            <button type="button" className="btn-ghost btn-sm" onClick={syncAll} disabled={actionBusy}>
               {syncing ? "Syncing…" : OFFICE_CONTRACTS_COPY.refreshAction}
             </button>
           )}
@@ -309,7 +339,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             type="button"
             className="btn-ghost btn-sm"
             onClick={() => setSyncPaused(!paused)}
-            disabled={pauseBusy}
+            disabled={actionBusy}
           >
             {pauseBusy
               ? SLEEPER_SYNC_PAUSE_COPY.busy
@@ -326,11 +356,12 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             Sleeper league ID
             <input
               value={sleeperLeagueId}
+              disabled={actionBusy}
               onChange={(e) => setSleeperLeagueId(e.target.value)}
               placeholder="e.g. 1257419072740644612"
             />
           </label>
-          <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams()} disabled={actionBusy || !sleeperLeagueId.trim()}>
             {loading ? "Loading…" : "Load teams"}
           </button>
         </div>
@@ -344,11 +375,12 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
               Sleeper league ID
               <input
                 value={sleeperLeagueId}
+              disabled={actionBusy}
                 onChange={(e) => setSleeperLeagueId(e.target.value)}
                 placeholder="e.g. 1257419072740644612"
               />
             </label>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams()} disabled={loading || !sleeperLeagueId.trim()}>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => loadSleeperTeams()} disabled={actionBusy || !sleeperLeagueId.trim()}>
               {loading ? "Loading…" : "Load teams"}
             </button>
           </div>
@@ -393,7 +425,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
                   type="button"
                   className="btn-primary btn-sm"
                   onClick={runUnlink}
-                  disabled={unlinkBusy}
+                  disabled={actionBusy || !unlinkPreview}
                 >
                   {unlinkBusy ? SLEEPER_UNLINK_COPY.busy : SLEEPER_UNLINK_COPY.confirm}
                 </button>
@@ -401,6 +433,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
                   type="button"
                   className="btn-ghost btn-sm"
                   onClick={() => {
+                    unlinkRead.current += 1;
                     setUnlinkOpen(false);
                     setUnlinkPreview(null);
                   }}
@@ -508,7 +541,7 @@ export default function LeagueSleeperConnect({ leagueId, hubContext, overview, o
             )}
           </details>
 
-          <button type="button" className="btn-primary" onClick={connectAll} disabled={connecting || loading || paused}>
+          <button type="button" className="btn-primary" onClick={connectAll} disabled={actionBusy || paused}>
             {connecting ? "Connecting…" : needsFullImport ? `Import all ${sleeperTeams.length} teams` : "Update links & import rosters"}
           </button>
           {paused && <p className="chart-note">{SLEEPER_SYNC_PAUSE_COPY.importPaused}</p>}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { HubAlert, HubLoadingSkeleton } from "./HubUILayout";
@@ -16,6 +17,7 @@ export default function OfficeLeagueLifecycle({
   onChanged,
   onNavigate,
 }) {
+  const captureScope = useAsyncActionScope(leagueId);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -24,6 +26,7 @@ export default function OfficeLeagueLifecycle({
 
   const load = useCallback(async () => {
     if (!leagueId) return;
+    const isCurrent = captureScope();
     setLoading(true);
     setError("");
     try {
@@ -31,13 +34,14 @@ export default function OfficeLeagueLifecycle({
         `/api/hub/league/${encodeURIComponent(leagueId)}/delete-request`,
       );
       if (!res.ok) throw new Error(await parseApiError(res));
-      setStatus(await res.json());
+      const data = await res.json();
+      if (isCurrent()) setStatus(data);
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
-  }, [leagueId]);
+  }, [leagueId, captureScope]);
 
   useEffect(() => {
     load();
@@ -57,14 +61,17 @@ export default function OfficeLeagueLifecycle({
   }, [pending, status]);
 
   async function handleExport() {
+    if (busy) return;
+    const isCurrent = captureScope();
     setBusy("export");
     setError("");
     try {
-      await downloadLeagueWorkbook(leagueId);
+      await downloadLeagueWorkbook(leagueId, { isCurrent });
+      if (!isCurrent()) return;
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
     } finally {
-      setBusy("");
+      if (isCurrent()) setBusy("");
     }
   }
 
@@ -78,51 +85,62 @@ export default function OfficeLeagueLifecycle({
   }
 
   async function handleStart() {
+    if (busy || loading || !status) return;
+    const isCurrent = captureScope();
     if (!nameReady) return;
     setBusy("start");
     setError("");
     try {
-      await downloadLeagueWorkbook(leagueId);
+      await downloadLeagueWorkbook(leagueId, { isCurrent });
+      if (!isCurrent()) return;
       const data = await postDelete("/delete-request", {
         body: { confirm_name: typed },
       });
+      if (!isCurrent()) return;
       await afterWrite(data);
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
     } finally {
-      setBusy("");
+      if (isCurrent()) setBusy("");
     }
   }
 
   async function handleApprove() {
+    if (busy || loading || !status) return;
+    const isCurrent = captureScope();
     if (!nameReady) return;
     setBusy("approve");
     setError("");
     try {
-      await downloadLeagueWorkbook(leagueId);
+      await downloadLeagueWorkbook(leagueId, { isCurrent });
+      if (!isCurrent()) return;
       const data = await postDelete("/delete-request/approve", {
         body: { confirm_name: typed },
       });
+      if (!isCurrent()) return;
       await afterWrite(data);
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
     } finally {
-      setBusy("");
+      if (isCurrent()) setBusy("");
     }
   }
 
   async function handleCancel() {
+    if (busy || loading || !status) return;
+    const isCurrent = captureScope();
     setBusy("cancel");
     setError("");
     try {
       const data = await postDelete("/delete-request/cancel");
+      if (!isCurrent()) return;
       setTyped("");
       setStatus(data);
       onChanged?.();
     } catch (err) {
-      setError(connectionErrorMessage(err));
+      if (isCurrent()) setError(connectionErrorMessage(err));
     } finally {
-      setBusy("");
+      if (isCurrent()) setBusy("");
     }
   }
 
@@ -199,6 +217,7 @@ export default function OfficeLeagueLifecycle({
               type="text"
               autoComplete="off"
               value={typed}
+              disabled={loading || Boolean(busy)}
               onChange={(event) => setTyped(event.target.value)}
               placeholder={officialName}
             />
@@ -214,7 +233,7 @@ export default function OfficeLeagueLifecycle({
             <button
               type="button"
               className="btn-danger"
-              disabled={!nameReady || Boolean(busy)}
+              disabled={loading || !status || !nameReady || Boolean(busy)}
               aria-describedby={nameReady ? undefined : `${confirmId}-hint`}
               onClick={handleStart}
             >
@@ -225,7 +244,7 @@ export default function OfficeLeagueLifecycle({
             <button
               type="button"
               className="btn-danger"
-              disabled={!nameReady || Boolean(busy)}
+              disabled={loading || !status || !nameReady || Boolean(busy)}
               aria-describedby={nameReady ? undefined : `${confirmId}-hint`}
               onClick={handleApprove}
             >
