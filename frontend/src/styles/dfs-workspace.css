@@ -194,7 +194,7 @@
 .dfw button.dfw-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--text-primary);
+  color: var(--theme-on-accent, var(--text-primary));
 }
 .dfw input:not([type="checkbox"]),
 .dfw textarea {

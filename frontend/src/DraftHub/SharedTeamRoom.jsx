@@ -7,14 +7,14 @@ export default function SharedTeamRoom() {
   const { token } = useParams();
   return (
     <div className="app">
-      <a className="skip-link" href="#main-content">
+      <a className="app-skip-link" href="#main-content">
         Skip to content
       </a>
       <header className="team-room-heading">
         <a href="/hub/roster" rel="noreferrer">ScoreSense</a>
         <span>Shared team room</span>
       </header>
-      <main id="main-content">
+      <main id="main-content" tabIndex={-1}>
         <TeamRoom token={token} />
       </main>
     </div>

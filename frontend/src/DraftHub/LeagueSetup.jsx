@@ -228,7 +228,7 @@ export default function LeagueSetup({
       <div className="hub-league-setup-add">
         <button
           type="button"
-          className={`${showAddLeague ? "btn-ghost" : "btn-primary"} btn-sm hub-league-setup-add-toggle`}
+          className="btn-ghost btn-sm hub-league-setup-add-toggle"
           onClick={() => setShowAddLeague((v) => !v)}
           aria-expanded={showAddLeague}
         >

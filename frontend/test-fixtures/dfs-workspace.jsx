@@ -190,7 +190,7 @@ window.fetch = async (url, options = {}) => {
     builds.unshift(build);
     return respond(build);
   }
-  if (u.endsWith("/results/import")) {
+  if (new URL(u, location.origin).pathname.endsWith("/results/import")) {
     for (const r of body.entries) {
       const i = entries.findIndex(
         (e) =>

@@ -1,12 +1,13 @@
 # ScoreSense docs
 
-Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md).** Agents load a compressed copy on every turn via `.cursor/rules/scoresense-core.mdc`. If another file disagrees with `PRODUCT.md`, update the other file.
+Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md).** The always-applied `.cursor/rules/scoresense-core.mdc` supplies essential constraints and directs agents to read the relevant files explicitly. If another file disagrees with `PRODUCT.md`, update the other file.
 
 ## Read first
 
 | Doc | Use when |
 |-----|----------|
 | [PRODUCT.md](./PRODUCT.md) | Any user-facing feature — names, IA, visual language, copy, chrome |
+| [DESIGN_ROLLOUT.md](./DESIGN_ROLLOUT.md) | Current design execution queue, page briefs, evidence, and remaining gaps; subordinate to PRODUCT |
 | [specs/rules-center-2026-08.md](./specs/rules-center-2026-08.md) | Historical Rules Center spec. PRODUCT.md and frontend-craft.mdc win. |
 | [CONTRACT_SCENARIOS.md](./CONTRACT_SCENARIOS.md) | Contract type, years left, keeper / import cases |
 | [LEAGUE_RESIZE.md](./LEAGUE_RESIZE.md) | Add / remove auction franchises (Members) |
@@ -45,7 +46,7 @@ Start here. **Product, brand, and design rules live in [PRODUCT.md](./PRODUCT.md
 | [DFS workflow design options](./mockups/dfs-flow.html) | A/B/C static workflow alternatives; A selected and implemented in production |
 | [MOBILE_APP.md](./MOBILE_APP.md) | PWA and Android TWA |
 | [Fantasy mobile design](../.cursor/rules/fantasy-mobile.mdc) | Approved mobile parameters, controls, and mock foundation |
-| [Fantasy mobile review](./FANTASY_MOBILE_REVIEW.md) | Page-by-page review queue and Home design decisions |
+| [Fantasy mobile review](./FANTASY_MOBILE_REVIEW.md) | Historical September review and evidence; current queue is DESIGN_ROLLOUT |
 | [INJURY_TIMELINE.md](./INJURY_TIMELINE.md) | Heuristic return windows |
 
 ## Models

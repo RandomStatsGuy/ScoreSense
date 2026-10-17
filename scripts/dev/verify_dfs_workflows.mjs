@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+const require = createRequire(new URL("../../frontend/package.json", import.meta.url));
+const { chromium } = require("playwright");
 import fs from "node:fs/promises";
 import {
   DFS_WORKSPACE_COPY as C,
@@ -94,11 +96,18 @@ const history = file(
 );
 for (let i = 0; i < 2; i++) {
   await page.getByLabel(R.history, { exact: true }).setInputFiles(history);
+  await page.getByRole("button", { name: /^Import type/ }).click();
+  await page.getByRole("option", { name: R.historyKind, exact: true }).click();
+  await page.getByLabel(R.settled, { exact: true }).check();
   await page.getByRole("button", { name: R.preview, exact: true }).click();
   await page.getByRole("button", { name: R.saveImport, exact: true }).click();
   await page.getByText("$730.00", { exact: true }).first().waitFor();
 }
 await page.getByText("$605.00", { exact: true }).first().waitFor();
+const importedEntry = page.locator(".dfw-entry-list").getByRole("button").filter({ hasText: "Sample contest" });
+for (let remaining = 3; !(await importedEntry.count()) && remaining > 0; remaining--) {
+  await page.getByRole("button", { name: R.next, exact: true }).click();
+}
 await page
   .locator(".dfw-entry-list")
   .getByRole("button")

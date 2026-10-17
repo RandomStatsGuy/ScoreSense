@@ -11,6 +11,10 @@ Layout craft (spacing, alignment, tables, selects): `.cursor/rules/frontend-craf
 Phone design and static mock foundation: `.cursor/rules/fantasy-mobile.mdc`.
 Page-specific do-nots: the matching row in `frontend/src/livingSurfaces.js`.
 
+## Before editing
+
+Resolve the current registry row and PRODUCT approval; record substantial page briefs and separate machine, visual and task evidence in `docs/DESIGN_ROLLOUT.md`. Existing approvals carry forward for bounded refinements. Historical mock proposals are not new approvals. Home/This Week share the canonical landing page; preserve that consolidation and the current Trades desk.
+
 ## Layout
 
 - Resolve the screen in `frontend/src/livingSurfaces.js` and open that `page` / `copy` before changing chrome.

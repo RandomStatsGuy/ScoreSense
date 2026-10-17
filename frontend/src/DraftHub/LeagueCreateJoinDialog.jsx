@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { createPortal } from "react-dom";
 import LeagueCreateJoinForm from "./LeagueCreateJoinForm";
 import { LEAGUE_CREATE_COPY } from "./leagueAccessCopy";
+import useModalFocus from "../ui/useModalFocus";
 
 export default function LeagueCreateJoinDialog({
   open,
@@ -10,35 +11,18 @@ export default function LeagueCreateJoinDialog({
   presets,
   onCreated,
 }) {
+  const dialogRef = useRef(null);
+  useModalFocus(open, dialogRef, onClose);
   const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (event) => {
-      if (event.key === "Escape") onCloseRef.current?.();
-    };
-    document.addEventListener("keydown", onKey);
-    const root = document.getElementById("root");
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    // Portal lives on document.body. Lock #root so a leftover sheet, chat
-    // backdrop, or native select popup cannot keep eating pointer events.
-    root?.setAttribute("inert", "");
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-      root?.removeAttribute("inert");
-    };
-  }, [open]);
+  onCloseRef.current = onClose;
 
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
     <div
       className="invite-overlay league-create-overlay"
+      ref={dialogRef}
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="league-create-title"

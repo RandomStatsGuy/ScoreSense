@@ -16,3 +16,9 @@ alwaysApply: false
 - Secrets and paths go through `src/config.py`, not raw `os.environ` in routes.
 - `HUB_TIMING=true` logs slow hub routes (>500ms) and may set `X-Hub-Timing-MS`.
 - After mlready or model changes, refresh the draft-pool fingerprint (`preseason_refresh` or `scripts/ops/fix_artifact_fingerprints.py`). Do not leave first-visit Fantasy pages on cold live inference.
+
+## Measurement and perceived speed
+
+Perceived speed follows the same architecture: paint roster/cap snapshots first, retain known content during refresh, reserve image/skeleton geometry, and make selection/previews immediate. Trades loads Ideas/Inbox on demand and reuses the existing account/league/team-scoped weekly snapshot. Measure cold/warm navigation and a representative interaction before claiming an improvement; record device/viewport, cache state, and data source.
+
+Future field-measurement targets are LCP ≤2.5s, INP ≤200ms, and CLS ≤0.1 at the 75th percentile, segmented by phone/desktop ([Core Web Vitals thresholds](https://web.dev/articles/defining-core-web-vitals-thresholds)). These are targets, not current results; one local lab render cannot establish a field percentile. Do not add a telemetry dependency or more polling just to populate the rollout log.

@@ -1,6 +1,8 @@
 /* Product rhythm — every destination, mobile and desktop.
    Text never sits flush on a border or rule. Type never drops below --text-xs. */
 
+:root { --form-control-height: var(--control-h-sm); }
+
 .projection-refresh-status {
   display: flex;
   align-items: center;
@@ -115,6 +117,7 @@ button.btn-link.hub-league-switcher-create,
 
 @media (max-width: 768px) {
   :root {
+    --form-control-height: var(--control-h-lg);
     --inset-cell: 0.45rem 0.6rem;
     --inset-section: 1rem 1.05rem;
   }
@@ -133,6 +136,14 @@ button.btn-link.hub-league-switcher-create,
   .proj-board-filter,
   .week-step-btn,
   .hub-star-btn,
+  .btn,
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger,
+  .btn-export-csv,
+  .app-section-subnav-btn,
+  .hub-form-col input[type="text"],
+  .hub-form-col input[type="number"],
   .btn-sm,
   .btn-ghost.btn-sm,
   button.btn-sm {

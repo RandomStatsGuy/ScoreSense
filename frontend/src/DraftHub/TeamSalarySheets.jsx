@@ -857,7 +857,7 @@ function RosterTable({
       <table className="data-table compact hub-salary-sheet-table">
         <thead>
           <tr>
-            <th>Pos</th>
+            <th className="pos">Pos</th>
             <th className="col-player">Player</th>
             {hasPrior && <th className="num" title={seasonCapYearHint(priorSeason)}>{priorSeason} $</th>}
             <th>Status</th>

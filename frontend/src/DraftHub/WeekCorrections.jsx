@@ -200,7 +200,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
             <ul>{group.changes.map(change => <li key={`${change.name}-${change.before}`}><strong>{change.name}</strong><span>{correctionChangeText(change, slots)}</span></li>)}</ul>
           </section>)}
           {changes.length > 0 && <button className="btn-ghost btn-sm correction-undo" disabled={busy} onClick={() => {setTeams(correctionTeamRows(context));setPreview(null);}}>{COPY.undo}</button>}
-          <label>{COPY.reason}<textarea value={reason} disabled={busy} onChange={event => { setReason(event.target.value); setPreview(null); }} /></label>
+          <label>{COPY.reason}<textarea aria-label={COPY.reason} value={reason} disabled={busy} onChange={event => { setReason(event.target.value); setPreview(null); }} /></label>
           <label className="correction-ack"><input type="checkbox" checked={acknowledge} disabled={busy} onChange={event => { setAcknowledge(event.target.checked); setPreview(null); }} />{COPY.empty}</label>
           {error && !preview && <p role="alert" className="error">{error}</p>}
           {notice && <p role="status">{notice}</p>}

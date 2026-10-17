@@ -105,6 +105,8 @@ export default function LobbyJoinPage() {
   if (leagueId) {
     return (
       <div className="draft-lobby-page">
+        <a className="app-skip-link" href="#main-content">Skip to content</a>
+        <main id="main-content" tabIndex={-1}>
         <Suspense fallback={<p className="chart-note">Loading draft room…</p>}>
           <DraftRoom
             leagueId={leagueId}
@@ -116,15 +118,18 @@ export default function LobbyJoinPage() {
             season={preview?.season}
           />
         </Suspense>
+        </main>
       </div>
     );
   }
 
   return (
     <div className="draft-lobby-page draft-lobby-join">
+      <a className="app-skip-link" href="#main-content">Skip to content</a>
       <header className="draft-lobby-join-brand">
         <Link to="/projections/weekly">{PRODUCT_NAME}</Link>
       </header>
+      <main id="main-content" tabIndex={-1}>
       {loading ? (
         <p className="chart-note">Opening the lobby…</p>
       ) : error && !preview ? (
@@ -216,6 +221,7 @@ export default function LobbyJoinPage() {
           </div>
         </>
       )}
+      </main>
     </div>
   );
 }

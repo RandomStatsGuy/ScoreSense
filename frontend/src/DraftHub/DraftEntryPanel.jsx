@@ -220,7 +220,7 @@ export default function DraftEntryPanel({
             <p className="chart-note">Invite friends or draft vs bots. Nothing here changes this league.</p>
           </header>
           <div className="hub-draft-entry-card-actions">
-            <button type="button" className="btn-primary" onClick={() => navigate("/tools/mock-draft")}>
+            <button type="button" className="btn-ghost" onClick={() => navigate("/tools/mock-draft")}>
               Open mock draft
             </button>
           </div>

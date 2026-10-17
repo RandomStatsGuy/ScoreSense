@@ -1,6 +1,8 @@
 // Development-only fixture. Production build includes only index.html.
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import MobileHeader from '../src/layout/MobileHeader';
+import useMobileLayout from '../src/useMobileLayout';
 import LeagueRostersBrowser from '../src/DraftHub/LeagueRostersBrowser';
 import '../src/styles.css';
 import '../src/styles/product-hierarchy.css';
@@ -55,11 +57,12 @@ window.fetch = async (url, opts) => {
   });
 };
 function Preview() {
+  const mobile = useMobileLayout();
   const [league, setLeague] = React.useState('fixture');
   const [locked, setLocked] = React.useState(false);
   window.__setLeague = setLeague;
   window.__setLocked = setLocked;
-  return <><div style={{
+  return <>{mobile ? <MobileHeader title="Rosters" /> : <><div style={{
       padding: '16px 24px',
       borderBottom: '1px solid var(--border)',
       display: 'flex',
@@ -77,7 +80,7 @@ function Preview() {
     }}>{['Home', 'Strategy', 'Draft', 'This Week', 'Vibes', 'Game center', 'My team', 'Free agents', 'Rosters', 'Cap', 'Trades', 'Rules'].map(n => <span key={n} style={{
         whiteSpace: 'nowrap',
         color: n === 'Rosters' ? 'var(--accent-muted)' : 'var(--text-secondary)'
-      }}>{n}</span>)}</div><LeagueRostersBrowser leagueId={league} hubContext={{
+      }}>{n}</span>)}</div></>}<LeagueRostersBrowser leagueId={league} hubContext={{
       team_id: 'Caleb K',
       acquisition_window: locked ? {
         trade_scope: 'surviving_contracts'

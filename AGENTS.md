@@ -9,6 +9,13 @@
 > Repo skills: `.cursor/skills/run-tests/SKILL.md`, `.cursor/skills/fast-ui-mock/SKILL.md`, `.cursor/skills/verify-fantasy-ui/SKILL.md`, `.cursor/skills/mirror-prod-league/SKILL.md`, `.cursor/skills/start-local-app/SKILL.md`, `.cursor/skills/file-fun-ux-idea/SKILL.md`, `.cursor/skills/add-fantasy-destination/SKILL.md`, `.cursor/skills/add-hub-route/SKILL.md`, `.cursor/skills/add-ui-copy/SKILL.md`, `.cursor/skills/change-league-rules/SKILL.md`, `.cursor/skills/refresh-draft-pool/SKILL.md`.
 > Doc index: [`docs/README.md`](docs/README.md).
 
+## Design work entry point
+
+For design planning as well as UI implementation, including broad requests such as “improve the product,” read `docs/PRODUCT.md`, resolve the relevant living surfaces, and explicitly load the frontend craft and matching workflows above. Start with the user's task, approved baseline, first three attention priorities, and observed friction. Existing approval carries forward for a refinement within that baseline; use `fast-ui-mock` for an unapproved layout or overlay. Backend-only tasks do not need this design pass.
+
+Track page briefs, bounded changes, and separate machine, visual, and interaction evidence in [`docs/DESIGN_ROLLOUT.md`](docs/DESIGN_ROLLOUT.md). It is an execution record subordinate to PRODUCT, not another design authority. Check available screenshot capabilities in the current environment; an audit alone does not establish visual verification.
+
+
 ScoreSense (4th Down Labs) is a fantasy football product: **Projections** (weekly/season quantile GBM), **Fantasy** (salary-cap leagues, auction/pick draft, contracts, cap, trades), and **Tools** (DFS, mock draft, best ball board). Sentiment is a readout on projections. Props exist as research/backlog, not top-level nav.
 
 Internal code may say “Draft Hub.” User-facing copy says **Fantasy**. Do not invent a fourth top-level area or a new visual language.
@@ -38,7 +45,7 @@ New Cloud agents should find API `:8000` and Vite `:5173` already starting (`.cu
 - If a server is down: `.cursor/skills/start-local-app/SKILL.md` / `bash scripts/dev/start_hub_dev.sh`
 - Do not start a second API or Vite on another port.
 - Cloud install uses `requirements-ci.txt` (no desktop extras). `scripts/dev/cloud_install.sh` installs `python3-venv` when the image lacks `ensurepip`.
-- Cloud agents cannot screenshot. After UI work, run `cd frontend && npm run audit:layout -- <route>` at 1280 and 390 and paste the PASS/FAIL table. Write **not visually verified** in the PR body when you cannot attach shots. Do not say verified.
+- After UI work, audit the actual 1280 and 390 widths and report PASS/FAIL. Inspect and attach screenshots when the current environment supports them; otherwise report **not visually verified**. Do not infer screenshot availability from cloud/local hosting.
 
 ## Architecture
 

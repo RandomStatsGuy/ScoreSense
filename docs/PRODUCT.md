@@ -11,7 +11,7 @@
 > **Read this before designing or building any user-facing work.**
 > Explicit user-approved designs take priority; update this file and the living-surface registry to record approved changes. Otherwise, if another doc disagrees with this file, this file wins. Update this file in the same change when you add a destination, name, token, or interaction pattern.
 
-Agents: `.cursor/rules/scoresense-core.mdc` injects these rules on every turn. Do not wait for the user to restate them.
+Agents: `.cursor/rules/scoresense-core.mdc` supplies the essential checkpoint on every turn and directs you to read this file. A linked document is not evidence that its contents entered context. Do not wait for the user to restate the guidance.
 
 ---
 
@@ -77,6 +77,22 @@ In this order:
 5. **Respectful** — talk to an experienced fantasy player. No tutorial voice, no “you do not have permission” theatrics.
 
 Fun comes from consequence and control. The approved optional Appearance themes add recognizable cats, falling snow, and autumn leaves as a personal atmosphere; functional content remains clear and predictable.
+
+### Design decisions and review
+
+This standard applies to conceptual design requests as well as implementation. Requirements use must/never; defaults guide decisions within the current approved surface; explicit approved exceptions preserve the different needs of boards, rooms, dense tables, and workspaces. Existing approval carries forward for a refinement within its scope. A new layout or overlay outside that approval follows the existing focused mock workflow.
+
+Before a substantial page pass, record a brief in [DESIGN_ROLLOUT.md](./DESIGN_ROLLOUT.md): the user's task, approved baseline, first/second/third attention priorities, observed friction with source or rendered evidence, bounded proposed change and shared components, behavior/data/permission invariants, relevant states and viewports, and observable acceptance checks. Planning is not proof that a defect exists or that a page was reviewed.
+
+- **Hierarchy and grouping:** keep the decisive value, applicable constraint, and next action adjacent. Use the established spacing rhythm to separate tasks and group related identity, data, and controls. Inspect the complete page as well as individual cards.
+- **Typography and color:** use the existing scale, readable labels, aligned numbers, and long-name handling. Status has a label, sign, or icon as well as color. Review semantic colors in light and dark modes and over team artwork.
+- **Personality and density:** preserve approved banners, portraits, jerseys, room materials, and Account atmosphere. Reserve image geometry to avoid shifting controls. Keep essential decision information visible and disclose advanced analysis/history; ranking tables retain useful density.
+- **Interaction and motion:** immediate selection and reversible previews provide feedback; committed writes require current server validation. Preserve edits after failure and clearly identify stale, locked, read-only, or unsaved state. Motion explains change or supports an approved interaction; reduced motion preserves the task and keyboard alternatives.
+- **Responsive composition:** recompose rather than shrinking text or hiding the relevant consequence. Check fixed actions, navigation, chat, menus, dialogs, and keyboard focus together. Preserve selected league/team/week across the journey.
+
+Use **WCAG 2.2 AA** as the engineering baseline, including applicable keyboard, focus visibility/obscuration, labels/errors, text and non-text contrast, reflow, and name/role/state criteria. Normal text needs 4.5:1 contrast; qualifying large text and necessary non-text control/state graphics need 3:1, subject to the standard's exceptions. ScoreSense retains its larger 44px phone targets and established desktop density. A target-size or contrast check alone is not a conformance assessment. Reference: [W3C WCAG 2.2](https://www.w3.org/TR/WCAG22/).
+
+Record evidence separately: **machine checks** (named tests/build/layout rules), **visual inspection** (screenshots actually inspected with width/theme/state), and **task verification** (interaction and observed outcome). Distinguish fixtures from real league data. Substantial passes inspect 390 and 1280; add actual 320 and laptop widths when wrapping, columns, or header fit create risk. Cover relevant loading, empty, error, stale, locked, read-only, unsaved, long-content, keyboard, contrast, reduced-motion, salary/pick, and native/Sleeper states. Mark unavailable evidence explicitly; audit PASS alone establishes neither visual quality nor accessibility nor performance.
 
 ---
 
@@ -206,7 +222,7 @@ Editorial Fantasy and Tools pages use the shared experience stack:
 `HubExperienceLayout` — main column + sticky summary rail
 `HubExperienceSummary` — “At a glance” facts + primary action
 
-Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + a centered phase stepper, Settings in the chip slot, and the heading stays in the Pre-draft card. Strategy, Rosters, Trades and Cap are also exceptions: no hero band. Rosters uses a compact title and toolbar with a table/details layout; its CSS may define that approved layout without changing unrelated experience pages. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
+Fantasy destinations share one `HubExperienceHero` (eyebrow + heading + band). Home is the exception: the page hero is eyebrow + a centered phase stepper, Settings in the chip slot, and the heading stays in the Pre-draft card. Strategy, Rosters and Cap are also exceptions: no hero band. Trades retains its approved compact shared hero and desk. Rosters uses a compact title and toolbar with a table/details layout; its CSS may define that approved layout without changing unrelated experience pages. Tools keep the display H1 + eyebrow pattern. Hero heading and padding use `--experience-hero-heading` and `--experience-hero-pad`. Status chips are not the page primary — do not put “You can edit” or “Need a partner” where Save belongs. Tab strips sit below the hero band. The shared league strip (and Needs attention) shows on Home and idle Draft; live rooms stay board-first. The app shell is one `<main id="main-content">` with a skip link.
 
 Reuse `frontend/src/DraftHub/HubUILayout.jsx`. Do not fork a second hero/summary system.
 
