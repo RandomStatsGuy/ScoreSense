@@ -40,6 +40,13 @@ try {
   assert.equal((await measure()).some(row=>row.rule==="primaries"&&!row.ok),false,"Inert background actions do not compete with the active dialog");
   await page.locator("#background").evaluate(el=>{el.inert=false;});
   assert.equal((await measure()).some(row=>row.rule==="primaries"&&!row.ok),true,"Two actionable primaries still fail");
+  await page.setContent('<style>.hub-toolbar {display:flex;flex-direction:column;align-items:flex-start;padding:8px;gap:8px} button {margin:0;padding:0;width:160px;min-height:32px} #primary {height:38px}</style><div class="hub-toolbar"><button id="primary">Continue</button><button>Browse</button></div>');
+  assert.equal((await measure()).some(row=>row.rule==="bars"&&!row.ok),false,"Stacked actions retain their approved control tiers");
+  await page.locator(".hub-toolbar").evaluate(el=>{el.style.flexDirection="row";});
+  assert.equal((await measure()).some(row=>row.rule==="bars"&&!row.ok&&row.detail.includes("control heights")),true,"Unequal controls in one horizontal row still fail");
+  await page.setViewportSize({width:390,height:900});
+  await page.locator(".hub-toolbar").evaluate(el=>{el.style.flexDirection="column";});
+  assert.equal((await page.evaluate(measureScript(),{minTarget:44,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR})).some(row=>row.rule==="targets"&&!row.ok),true,"Stacking does not exempt undersized phone controls");
   let pending, measuredWidth;
   const context=await browser.newContext();
   await context.route("http://127.0.0.1:5173/**", async route=>{

@@ -6,15 +6,15 @@ October 16, 2026 · execution record · `codex/design-rollout` from `develop` (`
 
 ## Overall completion status
 
-The original project has two parts: strengthen the AI design instruction system, then inspect and improve the full page inventory against it. The implementation pass is merged; final acceptance remains open. The 45-surface source/brief queue and initial working-snapshot review do not establish current visual/task completion for every page. Status reports should use this whole-project scope and the evidence boundaries below.
+The original project has two parts: strengthen the AI design instruction system, then inspect and improve the full page inventory against it. Implementation and focused follow-ups through #793 are merged. The October 17 closeout below completes the three fresh Cursor CLI probes and reconciles **45/45 registry entries** with named evidence. This closes the planned instruction/page-review pass within those recorded scopes; it does not certify every hidden state, authenticated integration, device or accessibility combination. The closeout branch also fixes two demonstrated Admin layout defects and a stacked-action audit false positive.
 
-| Original workstream | Current state | Remaining acceptance work |
+| Original workstream | Current state | Remaining boundary |
 |---|---|---|
-| AI design guidance and workflow | Rules, skills, PRODUCT, agent routing and documentation changes merged in #765 | Three fresh Cursor activation probes: conceptual Trades, attached Trades source, backend-only task |
-| Full page inventory and initial review | 45 surfaces mapped and briefed; initial page-family review complete | Reconcile current-page evidence where it is still historical or only machine checked |
-| Implementation and focused follow-ups | #765, #767, #769, #771, #773, #775, #777, #779, #781, #783, #785, #787, #789 and #791 merged; preserve approved designs and fix demonstrated friction | Confirm and address findings from the remaining acceptance checks |
-| Current visual and task evidence | Named Trades, standalone/entry, Appearance, DFS, draft-room, draft-tools, Rules/setup, Cap/Rosters/My team, management/acquisition, Members/Access/Corrections, Insights/history, Home/Game center, shared player/chat, Vibes and full-App shell checks recorded below | Reconcile named evidence across all 45 rows; full-App shell checks and a bounded real local Rules read are now recorded, with integration and device limits retained |
-| Final project closeout | Open | Reconcile this acceptance checklist against the original request, report unresolved evidence and complete the authorized delivery process |
+| AI design guidance and workflow | Merged in #765; three fresh Cursor CLI activation probes PASS | Automatic rule injection is Cursor-reported; CLI file context does not test the editor attachment UI |
+| Full page inventory | 45/45 IDs reconciled in the final checklist; supporting page evidence refreshed | Render-only auth forms and other scoped limits are explicit per row |
+| Implementation and focused follow-ups | #765 through #793 merged in the named batches below; final Admin/audit fixes verified on this closeout branch | Final branch delivery/review remains separate from merge/deploy |
+| Machine, visual and task evidence | Separate evidence recorded per family; 60 supporting combinations, 52 standalone audits and 56 navigation combinations pass in this closeout | Synthetic responses establish client behavior; only the named local snapshot reads establish actual React/API/SQLite integration |
+| Final project closeout | Requested probes and evidence checklist complete | Live auth/provider/persistence, device/assistive-technology and field-performance checks listed at the end remain unverified |
 
 Field Core Web Vitals remain future measurement targets from the plan. Neither their target values nor fixture timing should be reported as measured production performance.
 
@@ -182,7 +182,7 @@ Those results belong to that mixed snapshot on `codex/dfs-matchup-weights`; they
 - The older full DFS workflow harness did not complete on #765 because it targeted superseded disclosures/export controls. The follow-up below replaces that harness and records current export evidence separately. Historical working-snapshot evidence remains historical.
 - Synthetic fixtures establish the named populated/permission states. Real Cap cut/extension writes, admin mutations, live imports/publication, enrollment, recovery email and production league writes are unexercised. No deployment is part of this rollout.
 - This is not WCAG conformance or field-performance certification. Shared targets, labels, landmarks, selected keyboard/modal tasks and theme renders were checked. Full assistive-technology, contrast and zoom/reflow review and field Core Web Vitals measurement remain separate.
-- Three fresh Cursor-chat probes remain manual: conceptual Trades planning without an attached file, a `LeagueTrades.jsx`-attached edit, and a backend-only task. Source/frontmatter/path tests cannot establish actual Cursor rule activation.
+- The original three fresh Cursor activation probes were outstanding at #765; actual CLI sessions and their evidence are now recorded in the final closeout below. Source/frontmatter/path tests alone are not activation evidence.
 - Delivery began as a scoped draft PR against `develop`. The user subsequently authorized review, fixes and merge after passing checks. The full local gate above passed; remote CI and review must also pass before merging. Release remains outside this task. The original checkout's unrelated work is preserved.
 
 
@@ -701,3 +701,124 @@ Visual evidence: inspected only the visible portions of these eight archived syn
 Verification: final full frontend gate **1,361 PASS**, production build PASS with the existing chunk-size advisory, and product/living-surface Python checks **37 PASS**. No backend behavior changed; the full backend ready/merge gate, paid review, merge and deployment were not run. Local reports/logs stay under `outputs/app-shell-*`, `outputs/navigation-accessibility/` and the focused player/chat report.
 
 Whole-project closeout: implementation and the named page-family follow-ups through #791 are merged. This batch closes the reproduced full-App ownership defects and records shared navigation/accessibility evidence; it does not declare all 45 entries accepted. Next reconcile each original surface against its current named visual/task evidence and run the three fresh Cursor probes (conceptual Trades, attached Trades source, backend-only). Inspecting the installed Cursor CLI help did not create a fresh Cursor conversation and is not activation evidence. Remaining integration limits include real auth/provider delivery, persisted focus, pending ratings across context departure/reload, physical touch/mobile keyboards and unmeasured page/state contrast/zoom combinations. Field performance remains a future measurement target. Preserve these limits rather than treating synthetic success as completion of those checks.
+
+
+## Follow-up: Cursor activation and final evidence reconciliation
+
+Task: run three fresh read-only Cursor sessions against published guidance, reconcile all 45 registry IDs with named machine/visual/task evidence and source continuity, and refresh supporting routes where current acceptance was incomplete. Preserve approved layouts and source-only/backend scope. First priorities are correct guidance discovery, traceable page evidence, and an honest remaining-work boundary. Real authentication for the Cursor CLI is user-completed; UI fixtures use synthetic accounts and rejected writes. The initial supporting refresh reproduces a desktop Admin membership-column packing failure and a false toolbar-height failure on Verify email's stacked actions. Fix the owning Admin column and audit geometry; keep horizontal-row height and phone target checks strict. A hidden-desktop-table selector caused the phone Admin harness failure and is corrected independently. No new product layout or real admin/account/lobby mutation.
+
+A further rendered Admin check confirmed that the phone tab strip measured 651px inside its 351px parent; it had no internal scroll range and Leagues could not be clicked. Bound the existing Admin nav to its parent width so its native horizontal scroller can reveal every tab. The final browser task clicks Users → Leagues → Overview at both widths/themes; no force click, hidden-element action or admin write is used. The desktop league-label selector is also corrected to tolerate its existing disclosure arrow.
+
+
+### Fresh Cursor activation results
+
+Three independent, read-only `ask` sessions ran in the native Windows portable Cursor CLI **2026.10.16-e3cb207**, after user-completed authentication. They used published worktree guidance at `978b8415`, without resume/continue, source edits, app/test execution, database/secret reads or Git changes. The CLI's optional native sandbox flag is unsupported on Windows; normal allowlist behavior remained in place. A denied shell listing in the conceptual probe was replaced by source search. Guidance/source fingerprints were unchanged after all three sessions. Raw local streams are excluded from the commit; [sanitized probe evidence](./reviews/design-closeout/cursor-probes.json) retains the prompts, session IDs, actual read paths, source hashes and grading.
+
+| Probe | Observed behavior | Result |
+|---|---|---|
+| Conceptual Trades, no file supplied | Reads matching workflow, PRODUCT and registry; resolves `hub.trades`, October 15 A, package → consequence → Review; preserves approved desk and distinguishes a new panel requiring mock approval | PASS |
+| Trades with CLI `@LeagueTrades.jsx` context | Reads source and supporting guidance; follows the approved baseline and first-three priorities; proposes a bounded existing Inbox refinement and separates machine, visual and task verification | PASS |
+| Backend-only roster/auth review | Traces backend route/auth/storage; uses backend guidance and avoids PRODUCT/frontend design workflow; a source search for callers does not turn into a design pass | PASS |
+
+The frontend craft/mobile/Fantasy automatic-rule list is **reported by Cursor**, not independently exposed as a complete injected prompt by the stream. Actual tool reads, task behavior and fresh session identities are observed. The file probe uses CLI `@path` plus an actual source read, not the native editor's attachment control. Proposed refinements from probes are evaluation output, not newly approved implementation work.
+
+### Final supporting refresh
+
+`node scripts/dev/design_closeout_browser.mjs` uses production components, synthetic source-shaped responses, blocked external I/O and rejected writes. Its **60 PASS** combinations comprise 15 families at 1280/390 in light/dark: Model populated/missing, Admin, Verify success/error/waiting, Callback safe/unsafe destination, Public room populated/empty/error and Lobby practice/full/member/missing. They contain **72 passing layout audits**, one-main/overflow/theme/runtime/request checks, Admin Users → Leagues → Overview, public locker Escape/focus return and failed-room retry, and two deliberately rejected practice joins retaining the guest name. Callback checks establish token handling and safe return routing with a fixture token, not real OAuth. Model data are synthetic and establish no accuracy claim. Admin mutations, successful enrollment and actual account verification are not exercised. Model-ready captures were repeated in four combinations after waiting for the existing chart entry animation to settle; those are repeats, not additional unique cases.
+
+The existing production standalone runner passes **52 layout audits** at both widths/themes: Account, Report, SMS, Login, Register, Forgot/Reset password, Terms and Privacy. Tasks cover retained failed profile edits/retry, delete disclosure, SMS/register consent gating and the Report area menu. Login/registration/recovery/reset submissions, real SMS/mail, successful profile/password changes, deletion and report delivery are not exercised. The existing full-App navigation catalog passes **56 combinations / 60 audits**, retaining the named keyboard, sampled contrast, short-sheet/text-scaling, routing and reload scope above. These are separate catalogs, not 168 equivalent end-to-end journeys.
+
+The generic toolbar audit now compares control heights only when controls occupy the same horizontal visual row. Verify email's approved stacked primary/secondary tiers no longer produce a fictitious mismatch. Real-DOM regressions establish that unequal horizontal controls still fail and stacked undersized phone targets still fail. Explicit `[data-control-row]` contracts retain their stricter check. Admin's empty-membership track now sizes to content, and its phone nav stays within its parent, allowing real pointer access through its existing horizontal scroller.
+
+| Current check | 1280 light/dark | 390 light/dark |
+|---|---|---|
+| Supporting 15 families, including Admin tabs | PASS | PASS |
+| Standalone forms/legal layouts | PASS | PASS |
+| Existing full-App navigation catalog | PASS | PASS |
+
+The prescribed `npm run audit:layout -- /admin?case=admin --width 1280` and `--width 390` also PASS every rule. For these two CLI runs, `LAYOUT_AUDIT_BASE` points to a temporary local static server serving the already compiled, fully synthetic Admin fixture; it serves no real API and is closed afterward. They cover the initial Users pane in the default theme, while the 60-case catalog above supplies both themes and the tab journey.
+
+Additional final gates: **1,361 frontend tests PASS**, **37 product/registry Python checks PASS**, real-DOM audit regression PASS and production build PASS (existing chunk-size advisory). No backend behavior changes, full backend ready gate, paid review, merge or deployment ran in this batch. Local logs/reports remain under `outputs/design-closeout/`, `outputs/navigation-accessibility/` and `frontend/qa-dist/form-alignment/`; [compact evidence and continuity manifest](./reviews/design-closeout/checklist-evidence.json) is committed.
+
+Visual inspection covered only the visible portions of these **20 archived captures**, including settled Model lines and Admin's reached Leagues tab. Full-page Account/legal images establish the captured composition, not a legal-content review or every text/contrast measurement. Other generated captures have machine evidence and are not individually claimed inspected. Two retained October 16 Trades initial-state captures from the original scoped run were also inspected and archived during closeout: [desktop](./reviews/design-closeout/trades-retained-initial-1280-dark.png) and [phone](./reviews/design-closeout/trades-retained-initial-390-dark.png). These are carried-forward captures, not newly generated renders; source continuity and later shared checks apply.
+
+- Admin: [desktop Users](./reviews/design-closeout/admin-1280-light-users.png), [phone Leagues](./reviews/design-closeout/admin-390-dark-leagues.png).
+- Model: [desktop populated](./reviews/design-closeout/model-ready-1280-dark-ready.png), [phone populated](./reviews/design-closeout/model-ready-390-light-ready.png).
+- Verify: [desktop expired link](./reviews/design-closeout/verify-error-1280-dark-ready.png), [phone success](./reviews/design-closeout/verify-success-390-light-ready.png).
+- Public room: [desktop](./reviews/design-closeout/public-ready-1280-light-ready.png), [phone](./reviews/design-closeout/public-ready-390-dark-ready.png).
+- Lobby: [desktop rejected practice join](./reviews/design-closeout/lobby-practice-1280-dark-ready.png), [phone member entry](./reviews/design-closeout/lobby-member-390-light-ready.png).
+- Account: [desktop](./reviews/design-closeout/light-account-1280.png), [phone](./reviews/design-closeout/dark-account-390.png).
+- Report and SMS: [desktop Report](./reviews/design-closeout/dark-report-1280.png), [phone SMS consent](./reviews/design-closeout/dark-sms-alerts-390.png).
+- Auth forms: [phone Login](./reviews/design-closeout/light-login-390.png), [desktop Register](./reviews/design-closeout/dark-register-1280.png), [phone Forgot password](./reviews/design-closeout/dark-auth-forgot-password-390.png), [desktop Reset password](./reviews/design-closeout/light-auth-reset-password-1280.png).
+- Legal: [phone Terms](./reviews/design-closeout/light-terms-390.png), [desktop Privacy](./reviews/design-closeout/dark-privacy-1280.png).
+
+### Source continuity through merged #793
+
+Compare each registry row's `page`, `copy` and `also` files from its named acceptance merge through closeout base `978b8415`: **35 unchanged rows, 10 changed rows**. This corrects an intermediate 34/11 count. It is a bounded source comparison, not proof that every transitive dependency is unchanged. Shared App/navigation/player/chat evidence is recorded separately. This branch additionally changes Admin CSS and refreshes its evidence above.
+
+| Changed rows | Classified change and evidence |
+|---|---|
+| `hub.value` | Strategy selected-button foreground token in #773; that follow-up repeats all 42 draft-tools cases |
+| `hub.room`, `hub.setup`, `hub.create-join` | Shared access-copy file adds the Access retry label; the exports these flows consume are unchanged |
+| `hub.office`, `hub.office.rosters` | LeagueOffice's Members/Access callbacks and keyed pane scope change in #783; Contracts/Roster moves subtrees are unchanged, and the office host/panes have the named #783 checks |
+| `projections.weekly`, `projections.season` | Presentation helper adds player-card retry/request identity, leaving board copy unchanged; #789 covers inspector consumers and #793 plus the refreshed navigation catalog cover the parent |
+| `account.report` | Shared UserMenu changes notification-dialog focus return in #773; Report source unchanged, menu checked in full App and Report refreshed above |
+| `public.lobby` | Shared room changes covered by #769/#789 draft/chat checks; current public entry is refreshed above |
+
+### Final 45-surface checklist
+
+Each row is **accounted for within its named scope**. Links resolve to machine results and actually inspected visual evidence in this record. Prior family evidence is carried forward only with the source comparison above and shared-consumer checks; it was not all rerun in this batch. Compatibility/host rows inherit their target/pane visuals. A rendered form or transient redirect is labeled as such; no all-state/live-integration acceptance is implied. This remains an evidence index, not another route registry.
+
+| Registry ID | Machine evidence | Inspected visual evidence | Exercised task / scope |
+|---|---|---|---|
+| `hub.home` | [Recorded family PASS](#follow-up-home-and-game-center-context-acceptance) | [Named family captures](#follow-up-home-and-game-center-context-acceptance) | Selected week/league, phase and scoring-host context; shared conversation; synthetic reads/writes |
+| `hub.value` | [Recorded family PASS](#follow-up-strategy-mock-launch-and-best-ball) | [Named family captures](#follow-up-strategy-mock-launch-and-best-ball) | Face-off choice/Undo, rankings/private queue and stale league-save suppression |
+| `hub.available` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Bid/claim/instant-add restrictions, retained failure and context invalidation |
+| `hub.room` | [Recorded family PASS](#follow-up-current-draft-lobby-and-room-tasks) | [Named family captures](#follow-up-current-draft-lobby-and-room-tasks) | Calendar/readiness and failed availability-save retention/retry |
+| `hub.room.live` | [Recorded family PASS](#follow-up-current-draft-lobby-and-room-tasks) | [Named family captures](#follow-up-current-draft-lobby-and-room-tasks) | Bid/pick, stale rejection, queue, pause, full-board focus; synthetic socket |
+| `hub.week` | [Recorded family PASS](#follow-up-home-and-game-center-context-acceptance) | [Named family captures](#follow-up-home-and-game-center-context-acceptance) | Compatibility redirect to Home; query/hash URL contract plus inherited Home visuals |
+| `hub.vibes` | [Recorded family PASS](#follow-up-vibes-acceptance) | [Named family captures](#follow-up-vibes-acceptance) | Higher/Lower, Undo, rankings, failed-save recovery and lineup scope; local-only reload case |
+| `hub.game` | [Recorded family PASS](#follow-up-home-and-game-center-context-acceptance) | [Named family captures](#follow-up-home-and-game-center-context-acceptance) | Selected duel/week/team, score versus forecast, missing/zero and synthetic scoring actions |
+| `hub.roster` | [Recorded family PASS](#follow-up-cap-rosters-and-my-team-context-acceptance) | [Named family captures](#follow-up-cap-rosters-and-my-team-context-acceptance) | Room/Lineup/Manage context and preview boundaries; later Vibes lineup consumer checks |
+| `hub.rosters` | [Recorded family PASS](#follow-up-cap-rosters-and-my-team-context-acceptance) | [Named family captures](#follow-up-cap-rosters-and-my-team-context-acceptance) | Directory → selected roster/player; salary/pick and delayed selection scope |
+| `hub.planner` | [Recorded family PASS](#follow-up-cap-rosters-and-my-team-context-acceptance) | [Named family captures](#follow-up-cap-rosters-and-my-team-context-acceptance) | Current versus preview obligations, filters and revert; no real cap write |
+| `hub.trades` | [Recorded family PASS](#current-branch-verification) | [Retained initial capture](./reviews/design-closeout/trades-retained-initial-1280-dark.png) | Package selection/current verdict/review, versions and modal focus; no real proposal |
+| `hub.rules` | [Recorded family PASS](#follow-up-rules-save-state-and-setup-roles) | [Named family captures](#follow-up-rules-save-state-and-setup-roles) | Unsaved/save/discard scope; #793 also adds bounded actual local SQLite Rules/header reads |
+| `hub.office` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Pane host; inherits current/historic/rosters and later Members/Access/Corrections evidence |
+| `hub.office.current` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Staged contract edits versus immediate actions, retained failures and context ownership |
+| `hub.office.rosters` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Non-contract roster moves and action scope; no persisted roster settlement |
+| `hub.office.historic` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Salary-sheet manager/season context, retained read failure; no live sheet rebuild |
+| `hub.office.corrections` | [Recorded family PASS](#follow-up-members-access--imports-and-corrections-acceptance) | [Named family captures](#follow-up-members-access--imports-and-corrections-acceptance) | Week-discard confirmation, preview/save retry and host blockers; no live final publication |
+| `hub.office.members` | [Recorded family PASS](#follow-up-members-access--imports-and-corrections-acceptance) | [Named family captures](#follow-up-members-access--imports-and-corrections-acceptance) | Capacity, retained resize/team input and permission/stale-callback boundaries |
+| `hub.office.access` | [Recorded family PASS](#follow-up-members-access--imports-and-corrections-acceptance) | [Named family captures](#follow-up-members-access--imports-and-corrections-acceptance) | Explicit import destination/warnings, retained failure, invite/unlink/delete gates; synthetic only |
+| `hub.insights` | [Recorded family PASS](#follow-up-insights-and-history-acceptance) | [Named family captures](#follow-up-insights-and-history-acceptance) | Period/filter/history identity, cached/empty/failed reads and recorded-zero truth |
+| `hub.setup` | [Recorded family PASS](#follow-up-rules-save-state-and-setup-roles) | [Named family captures](#follow-up-rules-save-state-and-setup-roles) | Staff/member/read-only setup and connection-status next action; no live linking |
+| `tools.dfs` | [Recorded family PASS](#follow-up-current-dfs-workflow-verification) | [Named family captures](#follow-up-current-dfs-workflow-verification) | Guided Build/Review/Download, both CSV paths, kickoff guard and Results recovery |
+| `tools.mock-draft` | [Recorded family PASS](#follow-up-strategy-mock-launch-and-best-ball) | [Named family captures](#follow-up-strategy-mock-launch-and-best-ball) | Format/field match, retained launch failure, recent pin/recap; no real successful launch |
+| `tools.mock-draft.live` | [Recorded family PASS](#follow-up-current-draft-lobby-and-room-tasks) | [Named family captures](#follow-up-current-draft-lobby-and-room-tasks) | Shared practice room simulation/discard, stale completion and completed recap |
+| `tools.best-ball` | [Recorded family PASS](#follow-up-season-link-and-ranking-count-acceptance) | [Named family captures](#follow-up-season-link-and-ranking-count-acceptance) | Singular status and full filtered export from windowed rows; draft-tools behavior carried forward |
+| `projections.weekly` | [Recorded navigation PASS](#follow-up-full-app-shell-acceptance) | [Board filters](./reviews/app-shell-acceptance/projections-filters-390-dark.png) | Board/rank copy plus current navigation filters/inspector; no real forecast inference |
+| `projections.season` | [Recorded family PASS](#follow-up-season-link-and-ranking-count-acceptance) | [Named family captures](#follow-up-season-link-and-ranking-count-acceptance) | Explicit/automatic mode, delayed metadata, position refresh, history/area return and reload |
+| `projections.inspector` | [Recorded family PASS](#follow-up-player-details-and-shared-chat-acceptance) | [Named family captures](#follow-up-player-details-and-shared-chat-acceptance) | Tabs/history/context retry and modal focus; full-App consumer also checked |
+| `account.model` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/model-ready-1280-dark-ready.png) | Synthetic populated/missing accuracy render; chart visible, no model-quality validation |
+| `account.admin` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/admin-390-dark-leagues.png) | Users → Leagues → Overview, content packing and reachable phone tabs; read-only fixture |
+| `account.account` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/dark-account-390.png) | Retained failed profile edit/retry, delete disclosure and Appearance; no real account change |
+| `account.report` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/dark-report-1280.png) | Report area menu and form render; actual report submission/delivery unverified |
+| `account.login` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/light-login-390.png) | Form render/layout only; real sign-in/provider redirect unverified |
+| `account.register` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/dark-register-1280.png) | Form render and consent gating; actual enrollment/mail unverified |
+| `account.privacy` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/dark-privacy-1280.png) | Document render/reflow and links present; no interactive business transaction |
+| `account.auth-callback` | [Current scoped PASS](#final-supporting-refresh) | N/A: transient redirect | Safe/unsafe return handling with synthetic token; transient destination, no dedicated persistent visual |
+| `account.verify` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/verify-success-390-light-ready.png) | Success/error/waiting presentation; no real verification transaction |
+| `account.forgot-password` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/dark-auth-forgot-password-390.png) | Form render/layout only; no recovery request or mail |
+| `account.reset-password` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/light-auth-reset-password-1280.png) | Token-context form render/layout only; no password update |
+| `public.team-room` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/public-ready-390-dark-ready.png) | Read-only populated/empty/error/retry, missing projection versus zero, locker focus; no private writers |
+| `public.lobby` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/lobby-practice-1280-dark-ready.png) | Rejected practice join/name retention, full/missing/member entry; no enrollment or real auth |
+| `hub.create-join` | [Recorded family PASS](#current-branch-verification) | [Named family captures](#current-branch-verification) | Existing six dialog tasks: containment/Escape, targets and retained failed creation; no real join |
+| `account.terms` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/light-terms-390.png) | Document render/reflow and links present; no interactive business transaction |
+| `account.sms-alerts` | [Current scoped PASS](#final-supporting-refresh) | [Capture](./reviews/design-closeout/dark-sms-alerts-390.png) | Phone/consent gating and form render; no SMS request/delivery |
+
+### Closeout boundary
+
+The requested instruction activation and 45-surface review/evidence pass are complete within the scopes above, with demonstrated findings fixed. The remaining checks are **unverified**, not silently passed: real authenticated sign-in/enrollment/recovery and provider delivery; persisted parent focus and live scoring/import/acquisition/publication; pending rating synchronization after departure/reload and cross-device behavior; physical touch/mobile keyboards; exhaustive role/host/state, artwork, assistive-technology, contrast and browser/OS zoom coverage. Some initial form entries are render/consent checks only, as labeled. Previous page-family boundaries remain applicable where a later record has not explicitly closed them. Field Core Web Vitals and model quality are not established by these UI fixtures. These limits do not require inventing additional UI changes or adopting hypothetical probe proposals.
+
+Delivery: one scoped draft PR to `develop` containing this evidence, reusable checks and the Admin/audit fixes. Review/ready/full backend merge gate, merge and deployment remain separate actions. Original-checkout work and production data are preserved.

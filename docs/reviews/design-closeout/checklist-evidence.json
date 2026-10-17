@@ -1,0 +1,770 @@
+{
+  "baseline_head": "978b8415e133d93c8be00f9872028ff475141d80",
+  "source_comparison_scope": "Registry page/copy/also files compared from the named acceptance merge through baseline develop; shared App/navigation evidence is separate. This branch additionally changes Admin CSS.",
+  "unchanged_owned_file_rows": 35,
+  "changed_owned_file_rows": 10,
+  "source_continuity": [
+    {
+      "id": "hub.home",
+      "evidence_pr": 787,
+      "evidence_merge": "c217ebfb5bcc3c499a627c72e1c03688ec772171",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.value",
+      "evidence_pr": 771,
+      "evidence_merge": "b9053cc6f835ec4efb4126b38dfcabba98399000",
+      "owned_files_changed_after": [
+        "frontend/src/styles/strategy-board.css"
+      ]
+    },
+    {
+      "id": "hub.available",
+      "evidence_pr": 781,
+      "evidence_merge": "5b9a4dd95f03b2c60baa75b905c6faa1fa614f61",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.room",
+      "evidence_pr": 769,
+      "evidence_merge": "fc6cf9c81eff90832a2e4b0681f1e239f9fffe77",
+      "owned_files_changed_after": [
+        "frontend/src/DraftHub/leagueAccessCopy.js"
+      ]
+    },
+    {
+      "id": "hub.room.live",
+      "evidence_pr": 769,
+      "evidence_merge": "fc6cf9c81eff90832a2e4b0681f1e239f9fffe77",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.week",
+      "evidence_pr": 787,
+      "evidence_merge": "c217ebfb5bcc3c499a627c72e1c03688ec772171",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.vibes",
+      "evidence_pr": 791,
+      "evidence_merge": "a17c8c7e51057dfe8e39169e587b1dc8ca293332",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.game",
+      "evidence_pr": 787,
+      "evidence_merge": "c217ebfb5bcc3c499a627c72e1c03688ec772171",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.roster",
+      "evidence_pr": 779,
+      "evidence_merge": "57291fd2800f90954d9bd1d7ee907e4796b78929",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.rosters",
+      "evidence_pr": 779,
+      "evidence_merge": "57291fd2800f90954d9bd1d7ee907e4796b78929",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.planner",
+      "evidence_pr": 779,
+      "evidence_merge": "57291fd2800f90954d9bd1d7ee907e4796b78929",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.trades",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.rules",
+      "evidence_pr": 777,
+      "evidence_merge": "a116272011b5fcd2d5e7e641d7c40449ba89fb1a",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.office",
+      "evidence_pr": 781,
+      "evidence_merge": "5b9a4dd95f03b2c60baa75b905c6faa1fa614f61",
+      "owned_files_changed_after": [
+        "frontend/src/DraftHub/LeagueOffice.jsx"
+      ]
+    },
+    {
+      "id": "hub.office.current",
+      "evidence_pr": 781,
+      "evidence_merge": "5b9a4dd95f03b2c60baa75b905c6faa1fa614f61",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.office.rosters",
+      "evidence_pr": 781,
+      "evidence_merge": "5b9a4dd95f03b2c60baa75b905c6faa1fa614f61",
+      "owned_files_changed_after": [
+        "frontend/src/DraftHub/LeagueOffice.jsx"
+      ]
+    },
+    {
+      "id": "hub.office.historic",
+      "evidence_pr": 781,
+      "evidence_merge": "5b9a4dd95f03b2c60baa75b905c6faa1fa614f61",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.office.corrections",
+      "evidence_pr": 783,
+      "evidence_merge": "a5cb0319abc5a48da15f20c8d8ded119daeb9bf0",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.office.members",
+      "evidence_pr": 783,
+      "evidence_merge": "a5cb0319abc5a48da15f20c8d8ded119daeb9bf0",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.office.access",
+      "evidence_pr": 783,
+      "evidence_merge": "a5cb0319abc5a48da15f20c8d8ded119daeb9bf0",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.insights",
+      "evidence_pr": 785,
+      "evidence_merge": "3cb216a73baeed1a04e03718cef6082f8659f645",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "hub.setup",
+      "evidence_pr": 777,
+      "evidence_merge": "a116272011b5fcd2d5e7e641d7c40449ba89fb1a",
+      "owned_files_changed_after": [
+        "frontend/src/DraftHub/leagueAccessCopy.js"
+      ]
+    },
+    {
+      "id": "tools.dfs",
+      "evidence_pr": 767,
+      "evidence_merge": "c7b5cfc1ea8f0668e21f6d670b4e200833b6b36d",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "tools.mock-draft",
+      "evidence_pr": 771,
+      "evidence_merge": "b9053cc6f835ec4efb4126b38dfcabba98399000",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "tools.mock-draft.live",
+      "evidence_pr": 769,
+      "evidence_merge": "fc6cf9c81eff90832a2e4b0681f1e239f9fffe77",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "tools.best-ball",
+      "evidence_pr": 775,
+      "evidence_merge": "ea9e25c192bb01d96dbc6c01220d7dadbb59c851",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "projections.weekly",
+      "evidence_pr": 775,
+      "evidence_merge": "ea9e25c192bb01d96dbc6c01220d7dadbb59c851",
+      "owned_files_changed_after": [
+        "frontend/src/projectionsPresentation.js"
+      ]
+    },
+    {
+      "id": "projections.season",
+      "evidence_pr": 775,
+      "evidence_merge": "ea9e25c192bb01d96dbc6c01220d7dadbb59c851",
+      "owned_files_changed_after": [
+        "frontend/src/projectionsPresentation.js"
+      ]
+    },
+    {
+      "id": "projections.inspector",
+      "evidence_pr": 789,
+      "evidence_merge": "9a759a93b4ce6442354985dc892297f0aa95f3e5",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.model",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.admin",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.account",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.report",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": [
+        "frontend/src/layout/UserMenu.jsx"
+      ]
+    },
+    {
+      "id": "account.login",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.register",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.privacy",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.auth-callback",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.verify",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.forgot-password",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.reset-password",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "public.team-room",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "public.lobby",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": [
+        "frontend/src/DraftHub/DraftRoom.jsx",
+        "frontend/src/DraftHub/leagueAccessCopy.js"
+      ]
+    },
+    {
+      "id": "hub.create-join",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": [
+        "frontend/src/DraftHub/leagueAccessCopy.js"
+      ]
+    },
+    {
+      "id": "account.terms",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    },
+    {
+      "id": "account.sms-alerts",
+      "evidence_pr": 765,
+      "evidence_merge": "d9b8b6562c94d3c0eaa344aca939888c81d7915f",
+      "owned_files_changed_after": []
+    }
+  ],
+  "supporting_browser": {
+    "command": "node scripts/dev/design_closeout_browser.mjs",
+    "synthetic": true,
+    "cases": [
+      {
+        "name": "model-ready",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "model-ready",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "model-ready",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "model-ready",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "model-missing",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "model-missing",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "model-missing",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "model-missing",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "admin",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 3
+      },
+      {
+        "name": "admin",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 3
+      },
+      {
+        "name": "admin",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 3
+      },
+      {
+        "name": "admin",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 3
+      },
+      {
+        "name": "verify-success",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-success",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-success",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-success",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-error",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-error",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-error",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-error",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-waiting",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-waiting",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-waiting",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "verify-waiting",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-safe",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-safe",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-safe",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-safe",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-unsafe",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-unsafe",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-unsafe",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "callback-unsafe",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-ready",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-ready",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-ready",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-ready",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-empty",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-empty",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-empty",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-empty",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "public-error",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 2
+      },
+      {
+        "name": "public-error",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 2
+      },
+      {
+        "name": "public-error",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 2
+      },
+      {
+        "name": "public-error",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 2
+      },
+      {
+        "name": "lobby-practice",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-practice",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-practice",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-practice",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-full",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-full",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-full",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-full",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-member",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-member",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-member",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-member",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-missing",
+        "width": 1280,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-missing",
+        "width": 1280,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-missing",
+        "width": 390,
+        "theme": "light",
+        "passed": true,
+        "layout_audits": 1
+      },
+      {
+        "name": "lobby-missing",
+        "width": 390,
+        "theme": "dark",
+        "passed": true,
+        "layout_audits": 1
+      }
+    ],
+    "layout_audits": 72
+  },
+  "other_current_checks": {
+    "standalone_layout_audits": 52,
+    "navigation_cases": 56,
+    "frontend_units": 1361,
+    "product_registry_python": 37,
+    "real_dom_audit": "PASS",
+    "production_build": "PASS; existing chunk advisory"
+  },
+  "inspected_archived_captures": [
+    "admin-1280-light-users.png",
+    "admin-390-dark-leagues.png",
+    "model-ready-1280-dark-ready.png",
+    "model-ready-390-light-ready.png",
+    "verify-error-1280-dark-ready.png",
+    "verify-success-390-light-ready.png",
+    "public-ready-1280-light-ready.png",
+    "public-ready-390-dark-ready.png",
+    "lobby-practice-1280-dark-ready.png",
+    "lobby-member-390-light-ready.png",
+    "light-account-1280.png",
+    "dark-account-390.png",
+    "dark-report-1280.png",
+    "dark-sms-alerts-390.png",
+    "light-login-390.png",
+    "dark-register-1280.png",
+    "dark-auth-forgot-password-390.png",
+    "light-auth-reset-password-1280.png",
+    "light-terms-390.png",
+    "dark-privacy-1280.png"
+  ],
+  "capture_scope": "Named visible portions only. Model-ready was repeated in four width/theme combinations after waiting for the chart entry animation to finish; not four additional unique cases.",
+  "inspected_retained_captures": [
+    "trades-retained-initial-1280-dark.png",
+    "trades-retained-initial-390-dark.png"
+  ],
+  "admin_cli_route_audits": {
+    "route": "/admin?case=admin",
+    "widths": [
+      1280,
+      390
+    ],
+    "result": "PASS all rules",
+    "scope": "Initial Users, default theme, temporary static fixture server with no real API; both themes and tab journey are in the separate supporting catalog."
+  }
+}

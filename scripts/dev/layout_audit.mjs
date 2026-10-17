@@ -430,16 +430,25 @@ export function measureScript() {
         });
       }
       const kids = [...el.children].filter((c) => getComputedStyle(c).display !== "none");
-      const controlHeights = kids
+      const controls = kids
         .map((c) => {
           const trigger = c.matches(".hub-filter-menu-trigger, [role='combobox']")
             ? c
             : c.querySelector(".hub-filter-menu-trigger, [role='combobox']");
-          const inner = trigger || (c.matches(barControlSelector) ? c : c.querySelector(barControlSelector));
-          return inner ? inner.offsetHeight : 0;
+          return trigger || (c.matches(barControlSelector) ? c : c.querySelector(barControlSelector));
         })
-        .filter((h) => h > 0);
-      if (controlHeights.length > 1 && controlHeights.some((h) => Math.abs(h - controlHeights[0]) > 2)) {
+        .filter((control) => control && control.offsetHeight > 0);
+      // Wrapped or stacked actions do not form one horizontal control row.
+      const mismatch = controls.some((control, index) => {
+        const box = control.getBoundingClientRect();
+        return controls.slice(index + 1).some((other) => {
+          const next = other.getBoundingClientRect();
+          return Math.min(box.bottom, next.bottom) > Math.max(box.top, next.top) + 1
+            && Math.abs(control.offsetHeight - other.offsetHeight) > 2;
+        });
+      });
+      if (mismatch) {
+        const controlHeights = controls.map(control => control.offsetHeight);
         results.push({
           rule: "bars",
           ok: false,
