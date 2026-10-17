@@ -411,7 +411,7 @@ export function homeCacheKey(hubContext) {
   const teamId = hubContext?.team_id || "";
   const mode = hubContext?.mode || "";
   const capabilities = hubContext?.capabilities || {};
-  return `${leagueId}:${teamId}:${mode}:${capabilities.version || 0}:${capabilities.economics || ""}:${capabilities.acquisition_mode || ""}`;
+  return `${leagueId}:${teamId}:${mode}:${capabilities.version || 0}:${capabilities.economics || ""}:${capabilities.acquisition_mode || ""}:${JSON.stringify([hubContext?.season, hubContext?.sleeper_league_id, Boolean(hubContext?.draft_completed), Boolean(hubContext?.readonly), Boolean(hubContext?.is_commissioner)])}`;
 }
 
 export function getHomeCache(key) {
