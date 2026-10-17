@@ -114,6 +114,7 @@ export const HOME_PAGE_COPY = {
   draftNight: "Draft night",
   openDraft: "Open draft room",
   syncLeague: "Sync league",
+  retryLeague: "Retry league",
   retryMatchup: "Try again",
   matchupUnavailable: "Matchup unavailable. Try again shortly.",
   matchupLoading: "Loading your matchup",

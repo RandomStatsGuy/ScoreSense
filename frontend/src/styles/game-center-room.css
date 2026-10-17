@@ -463,10 +463,16 @@
   .gc-room-score {
     grid-column: 1/-1;
     grid-row: 2;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-2);
   }
   .gc-room-score > strong {
-    font-size: 48px;
+    font-size: clamp(var(--text-2xl), 10vw, 48px);
+  }
+  .gc-room-score > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .gc-room-layout {
     grid-template-columns: minmax(0, 1fr);
