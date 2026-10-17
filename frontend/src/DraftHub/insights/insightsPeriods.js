@@ -1,5 +1,5 @@
 import { normalizeHubPosition } from "../hubPositions.js";
-import { scoringTeamKey } from "./insightsPresentation.js";
+import { hasRecordedPoints, scoringTeamKey } from "./insightsPresentation.js";
 
 export function periodYears(years, period = { mode: "all" }) {
   const sorted = [...new Set((years || []).map(Number).filter(Number.isFinite))].sort((a, b) => a - b);
@@ -19,23 +19,26 @@ export function landingForPeriod(landing, period) {
   const years = periodYears(landing.seasons, period);
   const summaries = landing.season_summaries.filter((s) => years.includes(Number(s.season)));
   const managers = new Map();
+  let missingProduction = false;
   for (const summary of summaries) {
     if (summary.preseason) continue;
     for (const row of summary.standings || []) {
       const key = scoringTeamKey(row);
       // A roster number identifies a seat only within its season, never a career.
       const identity = row.owner_id ? key : `${summary.season}:${key}`;
-      const prev = managers.get(identity) || { wins: 0, losses: 0, ties: 0, total_points: 0, weeks_scored: 0, seasons_played: 0 };
+      const prev = managers.get(identity) || { wins: 0, losses: 0, ties: 0, total_points: null, weeks_scored: 0, seasons_played: 0 };
+      const hasPoints = hasRecordedPoints(row.total_points);
+      if (!hasPoints) missingProduction = true;
       managers.set(identity, { ...row,
         wins: prev.wins + Number(row.wins || 0), losses: prev.losses + Number(row.losses || 0),
-        ties: prev.ties + Number(row.ties || 0), total_points: prev.total_points + Number(row.total_points || 0),
-        weeks_scored: prev.weeks_scored + Number(row.weeks_scored || 0), seasons_played: prev.seasons_played + 1 });
+        ties: prev.ties + Number(row.ties || 0), total_points: hasPoints ? (prev.total_points ?? 0) + Number(row.total_points) : prev.total_points,
+        weeks_scored: prev.weeks_scored + (hasPoints ? Number(row.weeks_scored || 0) : 0), seasons_played: prev.seasons_played + 1 });
     }
   }
   const rows = [...managers.values()].map((row) => ({ ...row,
     games: row.wins + row.losses + row.ties,
     win_pct: (row.wins + row.ties / 2) / Math.max(row.wins + row.losses + row.ties, 1),
-    avg_points: row.total_points / Math.max(row.weeks_scored, 1) }));
+    avg_points: row.total_points == null || !row.weeks_scored ? null : row.total_points / row.weeks_scored }));
   const champions = (landing.champions || []).filter((row) => years.includes(Number(row.season)));
   const titles = new Map();
   for (const row of champions) {
@@ -44,11 +47,11 @@ export function landingForPeriod(landing, period) {
     titles.set(key, { ...(prev || row), titles: (prev?.titles || 0) + 1 });
   }
   return { ...landing, champions, seasons_included: summaries.map((s) => s.season),
-    record_leaders: [...rows].sort((a, b) => b.win_pct - a.win_pct || b.wins - a.wins || b.total_points - a.total_points),
-    scoring_leaders: [...rows].sort((a, b) => b.total_points - a.total_points),
+    record_leaders: [...rows].sort((a, b) => b.win_pct - a.win_pct || b.wins - a.wins || (a.total_points == null || b.total_points == null ? 0 : b.total_points - a.total_points)),
+    scoring_leaders: rows.filter(row => row.total_points != null).sort((a, b) => b.total_points - a.total_points),
     most_titles: [...titles.values()].sort((a, b) => b.titles - a.titles)[0] || null,
     available: Boolean(rows.length || champions.length), has_records: rows.some((r) => r.games > 0),
-    partial: years.some((y) => !summaries.some((s) => Number(s.season) === y)) };
+    partial: missingProduction || summaries.some(summary => summary.partial) || years.some((y) => !summaries.some((s) => Number(s.season) === y)) };
 }
 
 export function contractRanks(rows, years, position = "all") {

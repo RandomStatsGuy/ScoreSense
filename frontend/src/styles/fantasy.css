@@ -2511,7 +2511,7 @@
 }
 
 .hub-insights-player-btn:hover,
-.hub-insights-player-btn.active { background: rgba(99, 102, 241, 0.12); }
+.hub-insights-player-btn.active { background: var(--accent-soft); }
 
 .hub-insights-timeline { margin: 0.75rem 0 0; padding-left: 1.1rem; line-height: 1.6; color: var(--text-secondary); }
 

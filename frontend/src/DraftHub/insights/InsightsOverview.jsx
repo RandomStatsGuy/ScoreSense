@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { HubPage } from "../HubUILayout";
 import useMobileLayout from "../../useMobileLayout";
 import { InsightsOverviewSkeleton } from "./InsightsChrome";
-import { championYearRows, formatPoints, formatRecordLine, INSIGHTS_COPY,
+import { championYearRows, formatPoints, formatRecordLine, hasRecordedPoints, INSIGHTS_COPY,
   overviewPlaque, scoringTeamKey, teamDisplayName } from "./insightsPresentation";
 
 export default function InsightsOverview({ landing, ownerMap, loading, error, onOpenTab }) {
@@ -11,11 +11,12 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
   const copy = INSIGHTS_COPY.overview;
   const plaque = useMemo(() => overviewPlaque(landing?.most_titles, landing?.champions || [], ownerMap), [landing, ownerMap]);
   const years = useMemo(() => championYearRows(landing?.champions || [], landing?.most_titles, ownerMap), [landing, ownerMap]);
-  const records = sort === "record" ? landing?.record_leaders || [] : landing?.scoring_leaders || [];
-  const pointsLeader = Math.max(0, ...(landing?.scoring_leaders || []).map((r) => Number(r.total_points) || 0));
+  const scorers = (landing?.scoring_leaders || []).filter(row => hasRecordedPoints(row.total_points));
+  const records = sort === "record" ? landing?.record_leaders || [] : scorers;
+  const pointsLeader = scorers.length ? Math.max(...scorers.map(row => Number(row.total_points))) : 0;
   const recordHighlight = (landing?.record_leaders || []).find(row =>
     Number(row.wins || 0) + Number(row.losses || 0) + Number(row.ties || 0) > 0);
-  const pointsHighlight = (landing?.scoring_leaders || []).find(row =>
+  const pointsHighlight = scorers.find(row =>
     Number(row.weeks_scored || 0) > 0 || Number(row.total_points || 0) > 0);
   return <HubPage frameless className="hub-insights-page hub-insights-page--overview">
     {loading && !landing?.available && <InsightsOverviewSkeleton />}

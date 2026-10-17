@@ -307,3 +307,11 @@ test("career labels read either season label order and keep the mapped real name
   assert.equal(teamDisplayName({team_name:"Season team",display_name:"Season team · Josh C"},null,false),"Josh C");
   assert.equal(teamDisplayName({team_name:"Season team",owner_name:"Josh C",display_name:"jdcarter40"},null,true),"Season team · Josh C");
 });
+
+
+test("missing points do not become a recorded zero", async () => {
+  const {formatPoints} = await import("./insightsPresentation.js");
+  for (const value of [null, undefined, "", "  ", "invalid"]) assert.equal(formatPoints(value), "—");
+  assert.equal(formatPoints(0), "0");
+  assert.equal(formatPoints(-2.5), "-2.5");
+});
