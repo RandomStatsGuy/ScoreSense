@@ -85,6 +85,15 @@ function fieldDescribedBy(id, error) {
   return error ? id : undefined;
 }
 
+function rulesFormFromServer(workspace, context) {
+  const leagueMode = context?.mode === "league";
+  return {
+    name: leagueMode ? (context?.league_name || workspace?.name || "") : (workspace?.name || ""),
+    season: Number(leagueMode ? context?.season ?? workspace?.season : workspace?.season) || new Date().getFullYear(),
+    rules: mergeLeagueRules((leagueMode ? context?.rules : workspace?.rules) || workspace?.rules || DEFAULT_RULES),
+  };
+}
+
 export default function RulesWizard({
   workspace,
   hubContext,
@@ -113,17 +122,15 @@ export default function RulesWizard({
   const [category, setCategory] = useState("scoring");
   const sourceKeyRef = useRef("");
   const dirtyRef = useRef(false);
+  const operationRef = useRef(0);
+  const activeSaveRef = useRef(0);
 
   const applyServerState = React.useCallback((ws, ctx) => {
-    const leagueMode = ctx?.mode === "league";
-    const nextName = leagueMode ? (ctx?.league_name || ws?.name || "") : (ws?.name || "");
-    const nextSeason = Number(leagueMode ? ctx?.season ?? ws?.season : ws?.season) || new Date().getFullYear();
-    const incoming = (leagueMode ? ctx?.rules : ws?.rules) || ws?.rules || DEFAULT_RULES;
-    const nextRules = mergeLeagueRules(incoming);
-    setName(nextName);
-    setSeason(nextSeason);
-    setRules(nextRules);
-    setSavedSnapshot(snapshotRulesForm({ name: nextName, season: nextSeason, rules: nextRules }));
+    const next = rulesFormFromServer(ws, ctx);
+    setName(next.name);
+    setSeason(next.season);
+    setRules(next.rules);
+    setSavedSnapshot(snapshotRulesForm(next));
     setUndo(null);
   }, []);
 
@@ -133,6 +140,11 @@ export default function RulesWizard({
       : `workspace:${workspace?.id || ""}`;
     if (sourceKeyRef.current !== sourceKey) {
       sourceKeyRef.current = sourceKey;
+      operationRef.current += 1;
+      activeSaveRef.current = 0;
+      setSaving(false);
+      setStatus({ kind: "", text: "" });
+      setSavedAt(null);
       setManagerDirty(false);
       applyServerState(workspace, hubContext);
       return;
@@ -143,6 +155,13 @@ export default function RulesWizard({
   const formSnapshot = snapshotRulesForm({ name, season, rules });
   const dirty = formSnapshot !== savedSnapshot;
   dirtyRef.current = dirty || managerDirty;
+  const formSnapshotRef = useRef(formSnapshot);
+  formSnapshotRef.current = formSnapshot;
+
+  useEffect(() => () => {
+    operationRef.current += 1;
+    activeSaveRef.current = 0;
+  }, []);
 
   const touch = () => {
     if (status.text) setStatus({ kind: "", text: "" });
@@ -243,7 +262,12 @@ export default function RulesWizard({
       setStatus({ kind: "error", text: RULES_COPY.fixBeforeSave });
       return;
     }
-    if (!dirtyRef.current) return;
+    if (readOnlyRules || !dirty || activeSaveRef.current) return;
+    const operation = ++operationRef.current;
+    const sourceKey = sourceKeyRef.current;
+    const submittedSnapshot = formSnapshot;
+    const isCurrent = () => operationRef.current === operation && sourceKeyRef.current === sourceKey;
+    activeSaveRef.current = operation;
     setSaving(true);
     setStatus({ kind: "", text: "" });
     try {
@@ -262,28 +286,33 @@ export default function RulesWizard({
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       const saved = data.saved;
-      if (boundLeagueId) {
-        applyServerState(
-          saved || data,
-          {
-            ...(hubContext || {}),
-            league_id: boundLeagueId,
-            league_name: saved?.name ?? name,
-            season: saved?.season ?? season,
-            rules: saved?.rules ?? rules,
-          },
-        );
+      const savedWorkspace = boundLeagueId ? (saved || data) : data;
+      const savedContext = boundLeagueId ? {
+        ...(hubContext || {}),
+        league_id: boundLeagueId,
+        league_name: saved?.name ?? name,
+        season: saved?.season ?? season,
+        rules: saved?.rules ?? rules,
+      } : (data.hub_context || hubContext);
+      const hasNewerEdits = formSnapshotRef.current !== submittedSnapshot;
+      if (hasNewerEdits) {
+        // Acknowledge only the submitted form. Keep later edits unsaved.
+        setSavedSnapshot(snapshotRulesForm(rulesFormFromServer(savedWorkspace, savedContext)));
       } else {
-        applyServerState(data, data.hub_context || hubContext);
+        applyServerState(savedWorkspace, savedContext);
       }
       onSaved?.(data, { boundLeagueId: boundLeagueId || null });
       setSavedAt(new Date());
-      setStatus({ kind: "ok", text: RULES_COPY.saved });
+      setStatus({ kind: "ok", text: hasNewerEdits ? RULES_COPY.savedWithNewerEdits : RULES_COPY.saved });
     } catch (error) {
-      setStatus({ kind: "error", text: error.message || RULES_COPY.saveFailed });
+      if (isCurrent()) setStatus({ kind: "error", text: error.message || RULES_COPY.saveFailed });
     } finally {
-      setSaving(false);
+      if (isCurrent()) {
+        activeSaveRef.current = 0;
+        setSaving(false);
+      }
     }
   };
 
@@ -293,6 +322,7 @@ export default function RulesWizard({
       setStatus({ kind: "error", text: RULES_COPY.templateMissing });
       return;
     }
+    const operation = operationRef.current;
     const ok = await confirmDialog({
       title: RULES_COPY.templateConfirmTitle(preset.label),
       message: templateConfirmMessage(preset, rules),
@@ -300,7 +330,7 @@ export default function RulesWizard({
       cancelLabel: RULES_COPY.keepEditing,
       danger: false,
     });
-    if (!ok) return;
+    if (!ok || operation !== operationRef.current) return;
     setUndo({
       name,
       season,
@@ -810,12 +840,20 @@ export default function RulesWizard({
 
           {!readOnlyRules && activeCategory !== "managers" && (
             <div className="hub-rules-sticky-save">
-              <div><strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong><p className="hub-rules-summary-note">{activeCategory === "scoring" ? SCORING_COPY.effect : formatCopy.saveFootnote}</p></div>
-              <button type="button" className="btn-ghost" disabled={!dirty || saving} onClick={() => applyServerState(workspace, hubContext)}>{RULES_COPY.discard}</button>
+              <div>
+                <strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong>
+                <p className="hub-rules-summary-note">{activeCategory === "scoring" ? SCORING_COPY.effect : formatCopy.saveFootnote}</p>
+                {saveReason && dirty ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
+                {status.text && (
+                  <p className={`hub-rules-status is-${status.kind || "ok"}`} role="status" aria-live="polite">
+                    {status.text}
+                  </p>
+                )}
+              </div>
+              <button type="button" className="btn-ghost" disabled={!dirty || saving} onClick={() => { applyServerState(workspace, hubContext); setStatus({ kind: "", text: "" }); }}>{RULES_COPY.discard}</button>
               <button type="button" className="btn-primary" disabled={saveDisabled} onClick={save}>
                 {saving ? RULES_COPY.saving : RULES_COPY.save}
               </button>
-              {saveReason && dirty ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
             </div>
           )}
 
@@ -840,11 +878,7 @@ export default function RulesWizard({
               </button>
             </div>
           )}
-          {status.text && (
-            <p className={`hub-rules-status is-${status.kind || "ok"}`} role="status" aria-live="polite">
-              {status.text}
-            </p>
-          )}
+
         </aside>
       </div>
     </HubPage>
