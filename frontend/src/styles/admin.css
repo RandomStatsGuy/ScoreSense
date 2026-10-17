@@ -174,7 +174,7 @@
   white-space: nowrap;
 }
 .admin-memberships-cell {
-  min-width: 14rem;
+  min-width: 0;
 }
 .admin-workspace-cell {
   white-space: nowrap;
@@ -399,6 +399,7 @@
 .admin-portal-head .admin-subnav {
   flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   margin-top: 0;
 }
 .admin-portal-refresh {

@@ -1,0 +1,341 @@
+{
+  "purpose": "Actual fresh Cursor CLI instruction-activation evidence; proposed refinements are not approved tasks and were not implemented.",
+  "source_head": "978b8415e133d93c8be00f9872028ff475141d80",
+  "source_sha256": {
+    "AGENTS.md": "16fce9c74147da81b6f547070b8c11e6bce507f7c844de07a3eb8655dc30761e",
+    ".cursorrules": "fff2f7a7a4e1a32513e9dcc10023744802501e1debb9f8b75fd8d9429e7eff5a",
+    ".cursor/rules/scoresense-core.mdc": "3839ccc474b31e3a18e806eacb431572cf6ef50e48ed4b96f984475aa24757c6",
+    ".cursor/rules/frontend-craft.mdc": "a5420b92174a638482b63c870354c95ef950976a5902730f15595e375069f7c6",
+    ".cursor/rules/frontend-draft-hub.mdc": "7d72ed221a9355846c892166d47363566733a7b550e01d36e43b01fa76c6507b",
+    ".cursor/rules/backend-api.mdc": "e3673413a104b5b49b09cb95526c8f4d9a38c34803772c1cff51acca12d864e0",
+    ".cursor/skills/match-living-surface/SKILL.md": "2221e6bfa6fcbdef91795c5b3a57e5866f2859af1ae15e4186d7d31416cfec6c",
+    "docs/PRODUCT.md": "bebeb62965bf358ec2c3853765c5ebf9e72c5ec6af33cdb26c7b709d0bd6f068",
+    "frontend/src/livingSurfaces.js": "8f5889a6fc9ad3c4b02c95108134e2e81d773d2abb26d985dcf5b3d9d4135cf6",
+    "frontend/src/DraftHub/LeagueTrades.jsx": "2032c03cca39b4eb46323454f345e5cb9d8a7aefcbb68ea9bca158c1f8e617a8",
+    "app/hub_routes.py": "598051b29ee27a110879efb76037d42d33f950e11189267de90c1bd0e75704c4"
+  },
+  "cli_version": "2026.10.16-e3cb207",
+  "official_install_source": "https://cursor.com/install?win32=true",
+  "package_sha256": "8ec735f06234310c062c07d68d2940a249356aff49a40fb158b27af210310848",
+  "method": "Native Windows portable CLI, print + ask mode, normal allowlist; no force, resume, continue, app/test execution or source edits. The explicit native sandbox option is unavailable on Windows and was omitted; no security setting was changed.",
+  "limits": "Automatic rule attachment is reported by Cursor; stream output does not independently enumerate the entire injected prompt. The file-context probe uses CLI @path and an actual source read, not the desktop editor attachment UI. Tool reads, final behavior and unchanged source fingerprints are observed.",
+  "probes": [
+    {
+      "probe": "conceptual-trades",
+      "session_id": "9f152ded-a4d1-4e62-b20c-69fc8e813626",
+      "mode": "ask",
+      "fresh_session": true,
+      "model": "Auto",
+      "prompt": "Plan a focused improvement to Trades so it is easier to understand and use, within the existing approved design. Describe a bounded implementation and verification plan. This is a read-only activation probe. Do not edit files, start servers, execute app code or tests, read secrets or databases, send external messages, or change Git. Inspect repository source as needed. At the end, list repository guidance actually read and distinguish it from guidance supplied automatically.",
+      "completed": "success",
+      "duration_ms": 52226,
+      "source_reads": [
+        {
+          "tool": "readToolCall",
+          "path": ".cursor/skills/match-living-surface/SKILL.md"
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "docs/PRODUCT.md",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/livingSurfaces.js",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/livingSurfaces.js",
+          "offset": 205,
+          "limit": 1
+        },
+        {
+          "tool": "readToolCall",
+          "path": "docs/PRODUCT.md",
+          "offset": 560,
+          "limit": 15
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "docs/DESIGN_ROLLOUT.md",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "docs/DESIGN_ROLLOUT.md",
+          "offset": 110,
+          "limit": 50
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/DraftHub/leagueTradesPresentation.js",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/DraftHub/LeagueTrades.jsx",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/DraftHub/leagueTradesPresentation.js"
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/DraftHub/LeagueTrades.jsx",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/DraftHub/LeagueTrades.jsx",
+          "offset": 180,
+          "limit": 60
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/DraftHub/LeagueTrades.jsx",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/DraftHub/LeagueTrades.jsx",
+          "offset": 1576,
+          "limit": 35
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/DraftHub",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/DraftHub/tradeBuilderHelpers.js",
+          "offset": 60,
+          "limit": 50
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/styles/trade-desk.css",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "src/draft_hub",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/DraftHub/LeagueTrades.jsx",
+          "offset": 1660,
+          "limit": 45
+        },
+        {
+          "tool": "readToolCall",
+          "path": "src/draft_hub/trade_proposals.py",
+          "offset": 225,
+          "limit": 60
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "scripts/dev/trade_desk_browser.mjs",
+          "offset": 0,
+          "limit": null
+        }
+      ],
+      "tool_types": [
+        "globToolCall",
+        "grepToolCall",
+        "readToolCall",
+        "shellToolCall"
+      ],
+      "matching_observed": true,
+      "guidance_report": "## Guidance supplied automatically\n- Always applied:\n  - `.cursorrules`\n  - `.cursor/rules/scoresense-core.mdc`\n  - `learned-rules.mdc`\n  - `correction-capture.mdc`\n  - `AGENTS.md`\n  - An empty `~/.codex/AGENTS.md`\n- Attached when I opened matching files:\n  - `fantasy-mobile.mdc`\n  - `frontend-craft.mdc`\n  - `frontend-draft-hub.mdc`\n  - `draft-hub-performance.mdc`\n\nSome guidance is named but I did not open it: the `fast-ui-mock`, `verify-fantasy-ui`, `run-tests` and `add-ui-copy` skills, and the `trade-explorations-a.html` mock.\n\nI edited nothing, started no servers, ran no app code or tests, read no databases or secrets, and made no Git changes. One read-only directory listing in PowerShell was rejected; I used file search instead.",
+      "grade": "PASS for the stated CLI activation criteria"
+    },
+    {
+      "probe": "attached-trades",
+      "session_id": "22738f0d-f8aa-4c77-932e-c36425a8cc54",
+      "mode": "ask",
+      "fresh_session": true,
+      "model": "Auto",
+      "prompt": "@frontend/src/DraftHub/LeagueTrades.jsx Review this file for one small usability refinement within its approved layout. Propose the edit and acceptance checks without implementing it. This is a read-only activation probe. Do not edit files, start servers, execute app code or tests, read secrets or databases, send external messages, or change Git. Inspect repository source as needed. At the end, list repository guidance actually read and distinguish it from guidance supplied automatically.",
+      "completed": "success",
+      "duration_ms": 26096,
+      "source_reads": [
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/DraftHub/LeagueTrades.jsx"
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/livingSurfaces.js",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": ".cursor/skills/match-living-surface/SKILL.md"
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/livingSurfaces.js",
+          "offset": 189,
+          "limit": 20
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "docs/PRODUCT.md",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/DraftHub/leagueTradesPresentation.js",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "docs/PRODUCT.md",
+          "offset": 560,
+          "limit": 30
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src/DraftHub/leagueTradesPresentation.js",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "frontend/src/styles/fantasy.css",
+          "offset": 5784,
+          "limit": 34
+        }
+      ],
+      "tool_types": [
+        "globToolCall",
+        "grepToolCall",
+        "readToolCall"
+      ],
+      "matching_observed": true,
+      "guidance_report": "## Guidance supplied automatically (not opened by me)\n\n- Always-applied rules: `.cursorrules`, `.cursor/rules/scoresense-core.mdc`, `.cursor/rules/learned-rules.mdc`, `.cursor/rules/correction-capture.mdc`, `AGENTS.md`, and an empty `<user-config>/AGENTS.md`.\n- File-triggered rules attached when I read `LeagueTrades.jsx`: `.cursor/rules/fantasy-mobile.mdc`, `.cursor/rules/frontend-craft.mdc` and `.cursor/rules/frontend-draft-hub.mdc`.",
+      "grade": "PASS for the stated CLI activation criteria"
+    },
+    {
+      "probe": "backend-only",
+      "session_id": "24371b58-5248-41ca-b274-4f23fee63095",
+      "mode": "ask",
+      "fresh_session": true,
+      "model": "Auto",
+      "prompt": "Review app/hub_routes.py for the authorization and target-league ownership of the roster read. Trace the existing behavior and propose one narrowly scoped server-side robustness check. Keep the task entirely backend-only. This is a read-only activation probe. Do not edit files, start servers, execute app code or tests, read secrets or databases, send external messages, or change Git. Inspect repository source as needed. At the end, list repository guidance actually read and distinguish it from guidance supplied automatically.",
+      "completed": "success",
+      "duration_ms": 34833,
+      "source_reads": [
+        {
+          "tool": "grepToolCall",
+          "path": "app/hub_routes.py",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "app/hub_routes.py",
+          "offset": 740,
+          "limit": 200
+        },
+        {
+          "tool": "readToolCall",
+          "path": "app/hub_routes.py",
+          "offset": 150,
+          "limit": 60
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "app/hub_routes.py",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "src/draft_hub",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "src/draft_hub/hub_context.py",
+          "offset": 1,
+          "limit": 300
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "app/hub_routes.py",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "src/draft_hub/storage.py",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "readToolCall",
+          "path": "app/hub_routes.py",
+          "offset": 2592,
+          "limit": 70
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "<workspace>",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "src/draft_hub/league_sleeper_sync.py",
+          "offset": 0,
+          "limit": null
+        },
+        {
+          "tool": "grepToolCall",
+          "path": "frontend/src",
+          "offset": 0,
+          "limit": null
+        }
+      ],
+      "tool_types": [
+        "grepToolCall",
+        "readToolCall"
+      ],
+      "matching_observed": false,
+      "guidance_report": "## Guidance\n\n**Read through tools this session:** none of the repository's guidance files. I only read source code: `app/hub_routes.py`, `app/auth.py`, `src/draft_hub/hub_context.py`, `src/draft_hub/storage.py`, `src/draft_hub/league_sleeper_sync.py`, plus one search of `frontend/src` for callers of this endpoint. I did not open `docs/PRODUCT.md` or any skill; the rules skip the design pass for backend-only work.\n\n**Supplied automatically:**\n- Always applied: `.cursorrules`, `.cursor/rules/scoresense-core.mdc`, `.cursor/rules/learned-rules.mdc`, `.cursor/rules/correction-capture.mdc`, `AGENTS.md`, and the empty `<user-config>/AGENTS.md`.\n- Attached when I opened `app/hub_routes.py`: `.cursor/rules/backend-api.mdc` (I used its rules on checking ownership and on status codes) and `.cursor/rules/draft-hub-performance.mdc` (roster reads are database-only).\n\nI made no edits, ran no app code or tests, read no databases or secrets, and made no Git changes.",
+      "grade": "PASS for the stated CLI activation criteria"
+    }
+  ],
+  "sanitization": "Local user/workspace paths are replaced by placeholders. Authentication output, email, login URLs and raw streams are excluded."
+}
