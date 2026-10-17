@@ -694,6 +694,7 @@
   .hub-insights-explore button, .hub-office-access button { min-height: 44px; }
 }
 .hub-salary-table-container .hub-salary-sheet-table { width: 100%; }
+.hub-salary-table-container .hub-salary-sheet-table .col-player { width: 100%; }
 .hub-salary-table-container .hub-salary-sheet-table td { position: static; }
 .hub-salary-table-container .hub-salary-sheet-table th:not(.col-player),
 .hub-salary-table-container .hub-salary-sheet-table td:not(.col-player) { width: 1%; white-space: nowrap; }
@@ -11061,7 +11062,7 @@ button.hub-locker {
 
 .hub-salary-table-container .hub-salary-sheet-table td:first-child { text-align: center; }
 .hub-salary-table-container .hub-salary-sheet-table th.num,
-.hub-salary-table-container .hub-salary-sheet-table td.num { padding-left: 0; padding-right: 0; }
+.hub-salary-table-container .hub-salary-sheet-table td.num { padding-left: var(--space-2); padding-right: var(--space-2); }
 @media (max-width: 640px) {
   .hub-salary-table-container .hub-salary-sheet-table td:first-child { text-align: left; }
 }

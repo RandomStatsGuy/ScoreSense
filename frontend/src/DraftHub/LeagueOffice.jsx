@@ -528,7 +528,7 @@ export default function LeagueOffice({
   active = true,
 }) {
   const mobileLayout = useMobileLayout();
-  const isCommissioner = Boolean(hubContext?.is_commissioner);
+  const isCommissioner = Boolean(hubContext?.is_commissioner) && hubContext?.readonly !== true;
   const capabilities = hubContext?.capabilities;
   const tabs = useMemo(
     () => visibleOfficeTabs(isCommissioner, capabilities),

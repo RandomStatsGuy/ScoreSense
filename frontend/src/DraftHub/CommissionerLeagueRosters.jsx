@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../auth";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { connectionErrorMessage, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileDataList, { MobileStat } from "../MobileDataList";
@@ -131,8 +132,10 @@ function AddPlayerForm({
   onSaved,
   onError,
   onNotice,
+  primary = true,
 }) {
   const showsMoney = useShowsMoney();
+  const captureAction = useAsyncActionScope(`${leagueId}:${teamId}:${season}`);
   const [query, setQuery] = useState("");
   const [entryKind, setEntryKind] = useState("player");
   const [position, setPosition] = useState("");
@@ -219,6 +222,8 @@ function AddPlayerForm({
   };
 
   const submit = async ({ force = false } = {}) => {
+    const isCurrent = captureAction();
+    if (!isCurrent()) return;
     if (salaryError) {
       onError?.(salaryError);
       return;
@@ -248,6 +253,7 @@ function AddPlayerForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (!isCurrent()) return;
       if (res.status === 409) {
         const msg = await parseApiError(res);
         if (!recordingDeadCap && !force && isRosterReassignConflict(msg)) {
@@ -257,7 +263,7 @@ function AddPlayerForm({
             confirmLabel: `Move to ${teamName}`,
             danger: true,
           });
-          if (ok) {
+          if (ok && isCurrent()) {
             await submit({ force: true });
           }
           return;
@@ -270,9 +276,9 @@ function AddPlayerForm({
       resetForm();
       onSaved?.({ syncHub: true });
     } catch (e) {
-      onError?.(connectionErrorMessage(e));
+      if (isCurrent()) onError?.(connectionErrorMessage(e));
     } finally {
-      if (!force) setAdding(false);
+      if (!force && isCurrent()) setAdding(false);
     }
   };
 
@@ -397,7 +403,7 @@ function AddPlayerForm({
         </label>}
         <button
           type="button"
-          className="btn-primary btn-sm"
+          className={`${primary ? "btn-primary" : "btn-ghost"} btn-sm`}
           disabled={adding || (recordingDeadCap ? !query.trim() || !position : !selected) || Boolean(salaryError)}
           onClick={() => submit()}
         >
@@ -740,6 +746,7 @@ function TeamRosterBlock({
           stage={stage}
           draftCompleted={draftCompleted}
           onSaved={onSaved}
+          primary={!showsMoney || draftCompleted || !Object.keys(pendingByPlayer).length}
           onError={setError}
           onNotice={(msg) => {
             setNotice(msg);
@@ -869,7 +876,7 @@ function TeamRosterBlock({
                   <StageColHead label={stage?.yearsColumn || "Yrs"} sub={stage?.yearsColumnSub} />
                 </th>
               )}
-              {showsMoney && <th>Schedule</th>}
+              {showsMoney && <th className="num">Schedule</th>}
               <th className="hub-roster-actions" aria-label="Actions" />
             </tr>
           </thead>
@@ -956,7 +963,7 @@ function TeamRosterBlock({
                         />
                       </label>
                     </td>
-                    <td className="chart-note hub-schedule-preview">{vm.livePreview}</td>
+                    <td className="num chart-note hub-schedule-preview">{vm.livePreview}</td>
                     </>
                   )}
                   <td className="hub-roster-actions">
@@ -1036,7 +1043,15 @@ function LeagueRostersSkeleton() {
   );
 }
 
-export default function CommissionerLeagueRosters({ leagueId, season, workspace, hubContext, onChanged, reloadNonce = 0 }) {
+export default function CommissionerLeagueRosters(props) {
+  const ctx = props.hubContext;
+  if (!ctx?.is_commissioner || ctx?.readonly === true) return null;
+  const scope = `${props.leagueId}:${props.season || props.workspace?.season || ""}:${Boolean(ctx.draft_completed)}:${leagueUsesContracts(ctx)}`;
+  return <CommissionerLeagueRostersView key={scope} {...props} />;
+}
+
+function CommissionerLeagueRostersView({ leagueId, season, workspace, hubContext, onChanged, reloadNonce = 0 }) {
+  const captureAction = useAsyncActionScope(leagueId);
   const showsMoney = leagueUsesContracts(hubContext);
   const [searchParams] = useSearchParams();
   const playerFromUrl = (searchParams.get("player") || "").trim();
@@ -1057,6 +1072,8 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   pendingRef.current = pendingByPlayer;
   overviewRef.current = overview;
   const mobileLayout = useMobileLayout();
+
+  useEffect(() => () => { loadGenRef.current += 1; }, []);
 
   const load = useCallback(async (opts = {}) => {
     if (!leagueId) return;
@@ -1130,14 +1147,17 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   });
 
   const handleSaved = useCallback(async (opts = {}) => {
+    const isCurrent = captureAction();
+    if (!isCurrent()) return;
     await load({ background: Boolean(overviewRef.current), refresh: true });
-    if (opts.syncHub) onChanged?.();
-  }, [load, onChanged]);
+    if (isCurrent() && opts.syncHub) onChanged?.();
+  }, [load, onChanged, captureAction]);
 
   const refresh = useCallback(async () => {
+    const isCurrent = captureAction();
     await load({ refresh: true });
-    onChanged?.();
-  }, [load, onChanged]);
+    if (isCurrent()) onChanged?.();
+  }, [load, onChanged, captureAction]);
 
   const teams = useMemo(() => {
     return [...(overview?.teams || [])].sort((a, b) => {
@@ -1189,7 +1209,8 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
 
   const writeImmediate = useCallback(async (row, patch) => {
     const playerId = row?.player_id;
-    if (!playerId) return;
+    const isCurrent = captureAction();
+    if (!playerId || !isCurrent()) return;
     setError("");
     setFieldErrors((prev) => {
       if (!prev[playerId]) return prev;
@@ -1208,6 +1229,7 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       note: patch.drop ? undefined : OFFICE_CONTRACTS_COPY.liveEditNote,
     });
     if (!res?.ok) throw new Error(await parseApiError(res));
+    if (!isCurrent()) return;
     setPendingByPlayer((prev) => {
       if (!prev[playerId]) return prev;
       const next = { ...prev };
@@ -1215,11 +1237,12 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
       return next;
     });
     setSaveNotice(showsMoney ? OFFICE_CONTRACTS_COPY.liveSaved : OFFICE_CONTRACTS_COPY.rosterSaved);
-    setTimeout(() => setSaveNotice(""), 4000);
+    setTimeout(() => { if (isCurrent()) setSaveNotice(""); }, 4000);
     await handleSaved({ syncHub: true });
-  }, [handleSaved, showsMoney]);
+  }, [handleSaved, showsMoney, captureAction]);
 
   const queueChange = useCallback((row, patch) => {
+    if (!captureAction()()) return;
     setFieldErrors((prev) => {
       if (!prev[row.player_id]) return prev;
       const next = { ...prev };
@@ -1267,6 +1290,8 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
   }, [showPendingTray]);
 
   const savePending = async () => {
+    const isCurrent = captureAction();
+    if (!isCurrent() || saving) return;
     const errors = [];
     const byPlayer = {};
     for (const block of teams) {
@@ -1291,14 +1316,15 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
         placeholder: OFFICE_CONTRACTS_COPY.overridePlaceholder,
         confirmLabel: OFFICE_CONTRACTS_COPY.overrideConfirm,
       });
-      if (reason == null) return;
+      if (reason == null || !isCurrent()) return;
       note = reason;
     }
     setSaving(true);
     setError("");
-    const remaining = { ...pendingByPlayer };
+    let savedAny = false;
     try {
       for (const [playerId, change] of Object.entries(pendingByPlayer)) {
+        if (!isCurrent()) return;
         const res = await sendRosterWrite(apiFetch, {
           playerId: change.playerId || playerId,
           rosterSlotId: change.rosterSlotId,
@@ -1310,18 +1336,26 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
           note,
         });
         if (!res?.ok) throw new Error(await parseApiError(res));
-        delete remaining[playerId];
+        if (!isCurrent()) return;
+        savedAny = true;
+        setPendingByPlayer((current) => {
+          if (current[playerId] !== change) return current;
+          const next = { ...current };
+          delete next[playerId];
+          return next;
+        });
       }
-      setPendingByPlayer({});
       setFieldErrors({});
       setSaveNotice(OFFICE_CONTRACTS_COPY.saved);
-      setTimeout(() => setSaveNotice(""), 4000);
+      setTimeout(() => { if (isCurrent()) setSaveNotice(""); }, 4000);
       await handleSaved({ syncHub: true });
     } catch (e) {
-      setPendingByPlayer(remaining);
-      setError(connectionErrorMessage(e));
+      if (!isCurrent()) return;
+      const message = connectionErrorMessage(e);
+      if (savedAny) await handleSaved({ syncHub: true });
+      if (isCurrent()) setError(message);
     } finally {
-      setSaving(false);
+      if (isCurrent()) setSaving(false);
     }
   };
 
@@ -1523,12 +1557,14 @@ export default function CommissionerLeagueRosters({ leagueId, season, workspace,
             type="button"
             className="btn-danger"
             onClick={async () => {
+              const isCurrent = captureAction();
               if (showPendingTray && !(await confirmLeave())) return;
+              if (!isCurrent()) return;
               try {
-                const data = await markDraftComplete(leagueId);
-                if (data) onChanged?.();
+                const data = await markDraftComplete(leagueId, { isCurrent });
+                if (data && isCurrent()) onChanged?.();
               } catch (e) {
-                setError(e.message || "Could not mark draft complete");
+                if (isCurrent()) setError(e.message || "Could not mark draft complete");
               }
             }}
           >
