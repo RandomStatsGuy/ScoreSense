@@ -34,6 +34,7 @@ export const RULES_COPY = {
   save: "Save league rules",
   saving: "Saving…",
   saved: "League rules saved.",
+  savedWithNewerEdits: "Earlier rules saved. Newer edits still need Save.",
   saveFailed: "Rules could not be saved.",
   fixBeforeSave: "Fix the highlighted rules before saving.",
   noChanges: "No changes to save.",

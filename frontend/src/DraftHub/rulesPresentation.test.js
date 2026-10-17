@@ -258,3 +258,9 @@ test("native specialist weights remain editable, validated, and part of saved st
   form.rules.scoring.def_sacks = Infinity;
   assert.ok(validateLeagueSettings(form)["scoring.def_sacks"]);
 });
+
+
+test("save feedback distinguishes an acknowledged submission from newer unsaved edits", () => {
+  assert.match(RULES_COPY.savedWithNewerEdits, /Earlier rules saved/);
+  assert.match(RULES_COPY.savedWithNewerEdits, /Newer edits still need Save/);
+});
