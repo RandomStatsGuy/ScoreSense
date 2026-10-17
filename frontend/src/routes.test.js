@@ -113,7 +113,15 @@ test("season projections deep-link without a mode lands on Season, not Weekly", 
   const parsed = parseAppPath("/projections/season");
   assert.equal(parsed.view, "projections");
   assert.equal(parsed.projectionsTab, "season");
-  assert.equal(parsed.seasonMode, "live");
+  assert.equal(parsed.seasonMode, null, "Plain Season defers its mode to metadata");
+  assert.equal(buildAppPath(parsed), "/projections/season");
+  assert.equal(buildAppPath({ view: "projections", projectionsTab: "season" }), "/projections/season");
+  for (const mode of ["preseason", "live"]) {
+    const route = parseAppPath(`/projections/season/${mode}/narrative`);
+    assert.equal(route.seasonMode, mode);
+    assert.equal(route.seasonMobilePanel, "narrative");
+    assert.equal(buildAppPath(route), `/projections/season/${mode}/narrative`);
+  }
   assert.notEqual(parsed.projectionsTab, "weekly");
   assert.equal(
     buildAppPath({ view: "projections", projectionsTab: "season", seasonMode: "live" }),

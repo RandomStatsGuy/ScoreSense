@@ -240,7 +240,6 @@ export default function App() {
   const [contextReloadToken, setContextReloadToken] = useState(0);
   const [hubMounted, setHubMounted] = useState(false);
   const rosFetchGen = useRef(0);
-  const seasonModeUserPicked = useRef(false);
 
   const isWeeklyProjections = view === "projections" && projectionsTab === "weekly";
   const isSeasonPreseason = view === "projections" && projectionsTab === "season" && seasonMode === "preseason";
@@ -840,7 +839,6 @@ export default function App() {
     fetchDraftMeta(modelPosition, controller.signal);
     setSelectedTeams([]);
     setSearchQuery("");
-    seasonModeUserPicked.current = false;
     return () => controller.abort();
   }, [view, modelPosition, fetchProjMeta, fetchDraftMeta]);
 
@@ -1059,13 +1057,11 @@ export default function App() {
   }, [projMeta, filtersFromUrl.season, filtersFromUrl.week, position, syncFiltersToUrl]);
 
   useEffect(() => {
-    if (!projMeta || seasonModeUserPicked.current) return;
-    if (projectionsTab !== "season") return;
-    const defaultMode = defaultSeasonMode(projMeta);
-    if (seasonMode !== defaultMode) {
-      setSeasonMode(defaultMode);
-    }
-  }, [projMeta, projectionsTab, seasonMode, setSeasonMode]);
+    if (!projMeta || view !== "projections" || projectionsTab !== "season" || seasonMode != null) return;
+    // Resolve only the plain Season entry. Links, history and remembered modes
+    // remain authoritative when metadata reloads or the product area changes.
+    setSeasonMode(defaultSeasonMode(projMeta), { replace: true });
+  }, [projMeta, view, projectionsTab, seasonMode, setSeasonMode]);
 
   useEffect(() => {
     setSearchQuery("");
@@ -1390,11 +1386,7 @@ export default function App() {
         setRosFromWeek(v);
         syncFiltersToUrl({ rosFromWeek: v });
       },
-      seasonModeUserPicked,
-      onSeasonModeChange: (mode) => {
-        seasonModeUserPicked.current = true;
-        setSeasonMode(mode);
-      },
+      onSeasonModeChange: setSeasonMode,
       searchQuery,
       onSearchChange: setSearchQuery,
       movementFilters: isWeeklyProjections && meta?.projection_movement != null

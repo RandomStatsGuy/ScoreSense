@@ -17,12 +17,13 @@ import "../src/styles/fantasy-header.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/fantasy-chat.css";
 import "../src/styles/appearance.css";
-const preseasonScenario=location.pathname.endsWith("/preseason");
+const fixtureParams=new URLSearchParams(location.search);
+const preseasonScenario=(fixtureParams.get("fixtureMeta")|| (location.pathname.endsWith("/preseason")?"preseason":"live"))==="preseason";
 const rules={draft_type:"auction",salary_cap:200,roster_size_max:12,roster:{qb:{starter:1},rb:{starter:0},wr:{starter:0},te:{starter:0},k:{starter:0},def:{starter:0},flex:{starter:0}}};
 const context={mode:"league",league_id:"navigation-fixture",league_name:"Synthetic long league name for navigation testing",team_id:"mine",team_name:"Example team",season:2026,is_commissioner:true,draft_completed:true,rules};
 const row={player_id:"example-qb",Player:"Example quarterback",Team:"BUF",Position:"QB",Season:2026,Week:6,Age:30,"Projected Points":22.4,"Low (P10)":10,"High (P90)":32,"Season Proj":350,"Per-Game Proj":22.4,"Low (Season)":200,"High (Season)":450,P50:22.4,"ROS P50":220,"ROS Proj":220,model_rank:1,adp_rank:2,value_vs_adp:1};
 const starter={player_id:row.player_id,player_name:row.Player,position:"QB",team:"BUF",slot:"QB",p50:22.4,p10:10,p90:32};
-const fixture=window.__navigationFixture={requests:[]};
+const fixture=window.__navigationFixture={requests:[],metadataMode:preseasonScenario?"preseason":"live",metadataPending:0,metadataResolved:0};
 window.fetch=async(input,options={})=>{
   const path=String(input),method=options.method||"GET";
   fixture.requests.push({path,method});
@@ -36,7 +37,12 @@ window.fetch=async(input,options={})=>{
   if(path.includes("/api/hub/week"))return Response.json({hub_context:context,meta:{season:2026,week:6,lineup_source:"hub",week_scored:false},status:{},sync:{},counts:{roster:1,missing_projections:0},decisions:[],roster:{starters:[starter],bench:[]}});
   if(path.includes("/live-scoring"))return Response.json({available:true,source:"hub",placeholder:true,season:2026,week:6,current_week:6,max_week:18,starting_slots:["QB"],standings:[],scoring_control:{host:"native",final:false},matchups:[]});
   if(path.includes("/api/refresh/status"))return Response.json({status:"never_run",automatic:{last_success_at:"2026-10-17T00:00:00Z",health:{}}});
-  if(path.includes("/api/meta/"))return Response.json({default_season:2026,default_week:6,upcoming_season:2026,seasons:[2026],teams:["BUF"],weeks_by_season:{"2026":[6]},is_offseason:preseasonScenario,preseason_mode:preseasonScenario});
+  if(path.includes("/api/meta/")){
+    fixture.metadataPending++;
+    await new Promise(resolve=>setTimeout(resolve,Number(fixtureParams.get("fixtureMetaDelay"))||0));
+    fixture.metadataPending--;fixture.metadataResolved++;
+    return Response.json({default_season:2026,default_week:6,upcoming_season:2026,seasons:[2026],teams:["BUF"],weeks_by_season:{"2026":[6]},is_offseason:fixture.metadataMode==="preseason",preseason_mode:fixture.metadataMode==="preseason"});
+  }
   if(path.includes("/api/predict/")&&path.includes("changes"))return Response.json({changes:[]});
   if(path.includes("/api/predict/")||path.includes("/api/draft/")||path.includes("/api/ros/"))return Response.json({position:"qb",projections:[row],meta:{season:2026,week:6,from_week:6,projection_week:6,weeks_remaining:10,projection_built_at:"2026-10-17T00:00:00Z",projection_refresh:{needs_attention:false}}});
   if(path.includes("/api/bestball/board"))return Response.json({players:[row],meta:{with_adp:1}});

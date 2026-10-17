@@ -57,8 +57,9 @@ export function bestBallHeroCopy() {
 export function bestBallStatusChip({ loading = false, count = 0, withAdp = 0 } = {}) {
   if (loading) return { label: "Building board", tone: "readonly" };
   if (!count) return { label: "No board yet", tone: "readonly" };
-  if (!withAdp) return { label: `${count} players · no ECR cached`, tone: "readonly" };
-  return { label: `${count} players`, tone: "readonly" };
+  const playerCount = `${count} player${count === 1 ? "" : "s"}`;
+  if (!withAdp) return { label: `${playerCount} · no ECR cached`, tone: "readonly" };
+  return { label: playerCount, tone: "readonly" };
 }
 
 export function bestBallScoringNote() {

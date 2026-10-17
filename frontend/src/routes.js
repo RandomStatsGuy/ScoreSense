@@ -120,7 +120,8 @@ export function parseAppPath(pathname) {
       };
     }
     if (parts[1] === "season") {
-      const mode = SEASON_MODES.has(parts[2]) ? parts[2] : "live";
+      // No mode means use metadata once; an explicit mode belongs to the URL.
+      const mode = SEASON_MODES.has(parts[2]) ? parts[2] : null;
       const panel = parts[3] || "projections";
       return {
         view: "projections",
@@ -263,7 +264,7 @@ export function buildAppPath({
   view,
   projectionsTab = "weekly",
   projectionsMobilePanel = "projections",
-  seasonMode = "live",
+  seasonMode = null,
   seasonMobilePanel = "projections",
   toolsTab = "dfs",
   hubSubView = "home",
@@ -279,6 +280,7 @@ export function buildAppPath({
           : "";
       return `/projections/weekly${panel}`;
     }
+    if (seasonMode == null) return "/projections/season";
     const mode = SEASON_MODES.has(seasonMode) ? seasonMode : "live";
     const panelSuffix =
       seasonMobilePanel && seasonMobilePanel !== "projections"
