@@ -137,6 +137,7 @@ Checks below ran in the isolated checkout, rather than against the original mixe
 | Real-DOM layout audit regression | **PASS**: grouped headers/footer, missing values, skeleton/header-only/card exclusion, genuine column-gap detection, unfinished background load and a reused 390px context. |
 | Production standalone browser | **52 layout audits PASS**, 1280/390, light/dark and reduced motion. Account, Report, SMS, register/login, recovery/reset, Terms/Privacy. Synthetic account failure retains edits, delete disclosure expands, SMS consent gates the request, and the report menu works. |
 | Create/join browser | **6 PASS**, 320/390/1280 in both themes: repeated Tab stays inside, background is inert, Escape returns focus, fields meet target heights, dialog fits viewport and failed creation preserves input. Synthetic failure only. |
+| Appearance hero browser | `node scripts/dev/hero_theme_browser.mjs`: **20 scenarios PASS**: Classic, Cozy den, Snowfall, Autumn, Footballs at 1280/390 in light/dark. Both shared and Rules heroes retain painted theme surfaces; reduced motion and overflow checked. |
 | DFS large import browser | **PASS at 1280/390**, real production worker: 6,001 entries / 5,489,838 bytes, synthetic interruption and idempotent retry in nine batches, 50-entry pages. Uses the current results table; no missing season-helper dependency. |
 | Trades browser workflow | **PASS at 320, 390, 1024, 1280**: current desk selection/validation/review, notes, lazy requests/reuse, three-way routing, partial dead cap, linked Sleeper/unavailable states and modal focus. No real proposal is sent. |
 
@@ -151,6 +152,7 @@ Selected current-branch captures below use synthetic data and reduced motion; th
 | Create/join, failed creation, 390 light | [Phone dialog](./reviews/design-rollout/create-join-phone-light.webp) |
 | Create/join, failed creation, 1280 dark | [Desktop dialog](./reviews/design-rollout/create-join-desktop-dark.webp) |
 | Account, 390 light | [Account form](./reviews/design-rollout/account-phone-light.webp) |
+| Dark Appearance palette regression, isolated hero styles, 390 | [Theme contact sheet](./reviews/design-rollout/hero-dark-palettes.webp); functional pages are represented only by their shared/Rules hero primitives |
 | Populated Salary sheets, 1280 light | [Salary table](./reviews/design-rollout/salary-desktop-light.webp) |
 
 ## Historical working-snapshot review

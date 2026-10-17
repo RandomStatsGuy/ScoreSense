@@ -447,7 +447,7 @@ button.btn-link.hub-league-switcher-create:hover {
   border-bottom: 1px solid var(--experience-rule);
   background: var(--experience-hero-background,
     radial-gradient(circle at 88% 10%, rgba(91, 143, 232, 0.12), transparent 30%),
-    linear-gradient(145deg, #111d2c 0%, #0c1623 72%));
+    linear-gradient(145deg, var(--theme-surface, #111d2c) 0%, var(--theme-surface, #0c1623) 72%));
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
@@ -1659,7 +1659,7 @@ button.btn-link.hub-league-switcher-create:hover {
   border-bottom: 1px solid var(--experience-rule);
   background: var(--experience-hero-background,
     radial-gradient(circle at 88% 10%, rgba(91, 143, 232, 0.12), transparent 30%),
-    linear-gradient(145deg, #111d2c 0%, #0c1623 72%));
+    linear-gradient(145deg, var(--theme-surface, #111d2c) 0%, var(--theme-surface, #0c1623) 72%));
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
