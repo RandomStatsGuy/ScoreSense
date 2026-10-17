@@ -20,6 +20,8 @@ export const FANTASY_CHAT_COPY = {
   newDirect: "Message a manager",
   noManagers: "No other managers have joined yet.",
   noMessages: "No messages yet — say hello.",
+  readOnly: "This conversation is read-only.",
+  directUnavailable: "This manager is unavailable for direct messages.",
   loading: "Loading messages…",
   send: "Send",
   sending: "Sending…",

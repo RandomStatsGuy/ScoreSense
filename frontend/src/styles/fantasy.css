@@ -8369,7 +8369,7 @@ button.hub-wcc-bench-chip {
 .hub-draft-activity-panel {
   padding: 0.8rem;
   border-top: 1px solid var(--draft-border);
-  background: #0a121e;
+  background: var(--theme-surface, #0a121e);
 }
 
 .hub-pick-board--stage {

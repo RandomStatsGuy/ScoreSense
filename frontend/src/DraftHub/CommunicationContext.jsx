@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiFetch } from "../auth";
 import { parseApiError, connectionErrorMessage } from "../format";
 import { isAbortError } from "../fetchAbort";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { chatPollMs, incomingSiteAlerts, readChatLauncherDismissed, writeChatLauncherDismissed } from "./fantasyChatPresentation";
 
 const Context = createContext(null);
@@ -29,12 +30,13 @@ export function CommunicationProvider({ children, hubContext, enabled, identity 
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const seen = useRef(null);
-  const currentKey = useRef("");
   const requestVersion = useRef(0);
   const context = hubContext || discovered;
   const leagueId = enabled && context?.mode === "league" && !context?.demo ? context.league_id : null;
   const key = `${identity || "dev"}:${leagueId || ""}:${context?.team_id || ""}`;
-  currentKey.current = key;
+  const operationKey=JSON.stringify([key,Boolean(enabled)]);
+  const captureScope=useAsyncActionScope(operationKey);
+  const pendingPreferences=useRef(null);
   const data = snapshot.key === key ? snapshot.data : EMPTY;
   const ready = snapshot.key === key;
   const base = leagueId ? `/api/hub/league/${encodeURIComponent(leagueId)}` : null;
@@ -46,7 +48,7 @@ export function CommunicationProvider({ children, hubContext, enabled, identity 
     return () => controller.abort();
   }, [enabled, hubContext, identity]);
 
-  useEffect(() => { seen.current=null; setScene(null); setToast(null); setError(""); setSaving(false); }, [key]);
+  useEffect(() => { pendingPreferences.current=null; seen.current=null; setScene(null); setToast(null); setError(""); setSaving(false); }, [operationKey]);
   useEffect(() => {
     if(enabled && ready && new URLSearchParams(location.search).get('notifications')==='settings')setScene('settings');
   }, [enabled, ready, key, location.search]);
@@ -54,10 +56,13 @@ export function CommunicationProvider({ children, hubContext, enabled, identity 
   const refresh = useCallback(async (signal) => {
     if (!enabled) return;
     const version=++requestVersion.current;
+    const isCurrent=captureScope();
     try {
       const next = await chatRequest(base ? `${base}/chat/summary` : "/api/hub/notifications/preferences", {signal});
-      if (signal?.aborted || currentKey.current !== key || version!==requestVersion.current) return;
-      const value = base ? next : {...EMPTY, preferences:next.preferences};
+      if (signal?.aborted || !isCurrent() || version!==requestVersion.current) return;
+      let value = base ? next : {...EMPTY, preferences:next.preferences};
+      const pending=pendingPreferences.current;
+      if(pending?.key===key&&pending.isCurrent())value={...value,preferences:{...value.preferences,...pending.patch}};
       if (seen.current) {
         const incoming = incomingSiteAlerts(value.notifications, seen.current, value.preferences);
         if (!document.hidden && incoming.length) setToast(incoming[0]);
@@ -65,7 +70,7 @@ export function CommunicationProvider({ children, hubContext, enabled, identity 
       seen.current=new Set(value.notifications.map(item=>item.id));
       setSnapshot({key, data:value}); setError("");
     } catch (e) {
-      if (!isAbortError(e) && !signal?.aborted && currentKey.current === key && version===requestVersion.current) setError(connectionErrorMessage(e));
+      if (!isAbortError(e) && !signal?.aborted && isCurrent() && version===requestVersion.current) setError(connectionErrorMessage(e));
     }
   }, [enabled, base, key]);
 
@@ -86,24 +91,30 @@ export function CommunicationProvider({ children, hubContext, enabled, identity 
   const openChat = useCallback((next="league") => { setThread(next); setScene("chat"); setToast(null); }, []);
   const setBubble = useCallback((hidden) => { setDismissed(writeChatLauncherDismissed(hidden)); }, []);
   const savePreferences = useCallback(async (patch) => {
+    if(!enabled||pendingPreferences.current?.isCurrent())return;
+    const isCurrent=captureScope();
+    pendingPreferences.current={key,patch,isCurrent};
     const previous=data.preferences;
     requestVersion.current++;
     setSnapshot(prev=>({key,data:{...(prev.key===key?prev.data:EMPTY),preferences:{...previous,...patch}}}));
     setSaving(true); setError("");
     try {
       const response=await chatRequest("/api/hub/notifications/preferences",jsonRequest({preferences:patch},"PUT"));
-      if(currentKey.current===key) { requestVersion.current++; seen.current=null; setSnapshot(prev=>({key,data:{...(prev.key===key?prev.data:EMPTY),preferences:response.preferences}})); await refresh(); }
-    } catch(e) { if(currentKey.current===key) { setSnapshot(prev=>({...prev,data:{...prev.data,preferences:previous}})); setError(connectionErrorMessage(e)); } }
-    finally { if(currentKey.current===key) setSaving(false); }
-  }, [key, data.preferences, refresh]);
+      if(isCurrent()) { pendingPreferences.current=null; requestVersion.current++; seen.current=null; setSnapshot(prev=>({key,data:{...(prev.key===key?prev.data:EMPTY),preferences:response.preferences}})); await refresh(); }
+    } catch(e) { if(isCurrent()) { pendingPreferences.current=null; setSnapshot(prev=>({...prev,data:{...prev.data,preferences:previous}})); setError(connectionErrorMessage(e)); } }
+    finally { if(isCurrent()) setSaving(false); }
+  }, [key, enabled, data.preferences, refresh, captureScope]);
   const readAlerts = useCallback(async (ids, through=null) => {
-    if(!base || (!ids.length&&!through)) return;
-    try { await chatRequest(`${base}/notifications/read`,jsonRequest({ids,through})); if(currentKey.current===key)await refresh(); }
-    catch(e) { if(currentKey.current===key)setError(connectionErrorMessage(e)); }
-  }, [base, refresh, key]);
+    if(!enabled||!base || (!ids.length&&!through)) return;
+    const isCurrent=captureScope();
+    try { await chatRequest(`${base}/notifications/read`,jsonRequest({ids,through})); if(isCurrent())await refresh(); }
+    catch(e) { if(isCurrent())setError(connectionErrorMessage(e)); }
+  }, [base, enabled, refresh, key, captureScope]);
   const openNotification = useCallback(async item => {
-    await readAlerts([item.id]); setToast(null);
-    if(currentKey.current!==key)return;
+    const isCurrent=captureScope();
+    await readAlerts([item.id]);
+    if(!isCurrent())return;
+    setToast(null);
     if(item.target?.view==='trades') { setScene(null); navigate('/hub/trades'); }
     else openChat(item.target?.thread || 'league');
   }, [readAlerts, navigate, openChat, key]);

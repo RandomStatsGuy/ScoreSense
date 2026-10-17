@@ -105,6 +105,7 @@ export const PLAYER_CARD_COPY = {
   details: "Projection details", comparison: "Preseason comparison", missingBaseline: "No saved preseason comparison",
   bye: "Bye", byeNote: "No game this week", injuryDetails: "Open injury details",
   injuryAdjustment: "Injury adjustment", close: "Close player details", compare: "Compare player",
+  retry: "Retry player details",
   removeCompare: "Remove from compare", updated: "Updated", through: "Through week",
   baselineExplanation: "Saved preseason points are prorated through the same number of games played. This is a pace comparison, not a comparison with the full-year total.",
   remainingExplanation: "The rest-of-season forecast covers remaining games only. Recorded points are shown on Season so far.",
@@ -943,4 +944,10 @@ export function projectionRankMovement(row, available, position) {
   }
   const delta = projectionValue(row.rank_delta);
   return delta == null || delta === 0 ? "" : `${delta > 0 ? "↑" : "↓"}${Math.abs(delta)}`;
+}
+
+
+/** Server read identity; labels and board previews do not invalidate a saved card. */
+export function playerCardRequestKey(request) {
+  return JSON.stringify([request?.playerId, request?.season, request?.week, request?.scope, request?.position, request?.applyInjuryAdjustments ?? true]);
 }
