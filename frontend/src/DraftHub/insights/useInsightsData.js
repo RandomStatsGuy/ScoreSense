@@ -56,7 +56,7 @@ export function mergeInsightsPayload(prev, next, opts = {}) {
     hub_context: next.hub_context ?? prev.hub_context,
     cache_status: next.cache_status ?? prev.cache_status,
     analytics: mergeAnalyticsBlock(prev.analytics, next.analytics, capInRequest),
-    historic: next.historic?.available || (next.historic?.awards || []).length
+    historic: sections === "cap" ? next.historic : next.historic?.available || (next.historic?.awards || []).length
       ? next.historic
       : prev.historic,
     trade: (next.trade?.suggestions || []).length || (next.trade?.partners || []).length
@@ -76,7 +76,7 @@ export function mergeInsightsPayload(prev, next, opts = {}) {
   };
 }
 
-export function useInsightsData(leagueId, refs) {
+export function useInsightsData(leagueId, refs, activeTab) {
   const loadGenerationRef = useRef(0);
   const loadCacheRef = useRef(new Map());
 
@@ -86,6 +86,9 @@ export function useInsightsData(leagueId, refs) {
     loadGenerationRef.current += 1;
     return () => { loadGenerationRef.current += 1; };
   }, [leagueId]);
+
+  // A tab change also invalidates a pending request when History has its own loader.
+  useEffect(() => () => { loadGenerationRef.current += 1; }, [activeTab]);
 
   const resolveHistorySeason = useCallback((tab, opts = {}) => {
     const active = opts.activeTab ?? tab;
