@@ -133,6 +133,7 @@ Checks below ran in the isolated checkout, rather than against the original mixe
 |---|---|
 | Frontend unit tests | **1,271 PASS**, zero failures; all `frontend/src/**/*.test.js` plus `scripts/dev/layout_audit.test.mjs` explicitly enumerated. The existing `npm test` directory argument fails to resolve `src` on this Windows Node 24 host; the equivalent explicit file run passed. |
 | Python product/registry | **37 PASS**: `tests/test_product_constitution.py`, `tests/test_living_surfaces.py`; `PYTHONPATH=.` and workspace-local `--basetemp`. This is not the full backend ready gate. |
+| Full backend merge gate | **4,068 PASS, 2 skipped**, 7 dependency deprecation warnings; full `pytest tests/ -q` with workspace-local temp files. Backend source was unchanged by the review fixes. |
 | Production frontend build | **PASS**. Existing large-chunk warning remains. |
 | Real-DOM layout audit regression | **PASS**: grouped headers/footer, missing values, skeleton/header-only/card exclusion, genuine column-gap detection, unfinished background load and a reused 390px context. |
 | Production standalone browser | **52 layout audits PASS**, 1280/390, light/dark and reduced motion. Account, Report, SMS, register/login, recovery/reset, Terms/Privacy. Synthetic account failure retains edits, delete disclosure expands, SMS consent gates the request, and the report menu works. |
@@ -168,4 +169,4 @@ Those results belong to that mixed snapshot on `codex/dfs-matchup-weights`; they
 - Synthetic fixtures establish the named populated/permission states. Real Cap cut/extension writes, admin mutations, live imports/publication, enrollment, recovery email and production league writes are unexercised. No deployment is part of this rollout.
 - This is not WCAG conformance or field-performance certification. Shared targets, labels, landmarks, selected keyboard/modal tasks and theme renders were checked. Full assistive-technology, contrast and zoom/reflow review and field Core Web Vitals measurement remain separate.
 - Three fresh Cursor-chat probes remain manual: conceptual Trades planning without an attached file, a `LeagueTrades.jsx`-attached edit, and a backend-only task. Source/frontmatter/path tests cannot establish actual Cursor rule activation.
-- Delivery is a scoped draft PR against `develop`; ready-for-review checks, merge and release remain gated by the repository workflow. The original checkout's unrelated work is preserved.
+- Delivery began as a scoped draft PR against `develop`. The user subsequently authorized review, fixes and merge after passing checks. The full local gate above passed; remote CI and review must also pass before merging. Release remains outside this task. The original checkout's unrelated work is preserved.
