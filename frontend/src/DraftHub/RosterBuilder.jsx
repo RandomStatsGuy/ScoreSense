@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import useFantasyReady from "../useFantasyReady";
 import { parseApiError } from "../format";
 import { createPortal } from "react-dom";
@@ -119,6 +120,7 @@ function ContractSidePanelBody({
   usesSalaries = true,
   contractsReadOnly,
   canEditType,
+  canWrite,
   draftCompleted,
   edit,
   setEdit,
@@ -271,7 +273,7 @@ function ContractSidePanelBody({
       )}
 
       <div className="hub-roster-contract-panel-actions">
-        {usesSalaries && extendEligible && (
+        {usesSalaries && canWrite && extendEligible && (
           <div className="hub-roster-contract-panel-primary">
             <p className="my-team-extension-preview">{MY_TEAM_COPY.extensionStart(fmtSal(extendStart), extendYearsFor(r))}</p>
             <HubFilterMenu
@@ -298,7 +300,7 @@ function ContractSidePanelBody({
             </button>
           </div>
         )}
-        {usesSalaries && pendingExt && !draftCompleted && (
+        {usesSalaries && canWrite && pendingExt && !draftCompleted && (
           <button
             type="button"
             className="btn-ghost btn-sm"
@@ -310,7 +312,7 @@ function ContractSidePanelBody({
           </button>
         )}
         <div className="hub-roster-contract-panel-danger">
-          {usesSalaries && <button
+          {usesSalaries && canWrite && <button
             type="button"
             className={`btn-ghost btn-sm${isCut ? " hub-uncut-btn" : ""}`}
             disabled={isSaving || (isCut && r.can_undo_cut === false)}
@@ -349,7 +351,13 @@ function ContractSidePanelBody({
   );
 }
 
-export default function RosterBuilder({
+export default function RosterBuilder(props) {
+  const ctx = props.hubContext;
+  const scope = `${props.cacheScope || ""}:${ctx?.mode || "solo"}:${ctx?.league_id || props.workspace?.id || "solo"}:${ctx?.team_id || ""}:${props.workspace?.season || ctx?.season || ""}`;
+  return <RosterBuilderView key={scope} {...props} />;
+}
+
+function RosterBuilderView({
   cacheScope,
   roster,
   onChanged,
@@ -433,7 +441,15 @@ export default function RosterBuilder({
   // SCORE-42: managers may still queue a server-calculated extension for their own eligible deals.
   const contractsReadOnly = isLeague || readOnly;
   const canEditType = !contractsReadOnly;
-  const canRemove = !isLeague || isCommissioner;
+  const canWrite = hubContext?.readonly !== true && (isLeague ? Boolean(hubContext?.team_id) : !readOnly);
+  const canRemove = canWrite && (!isLeague || isCommissioner);
+  const actionScope = `${canWrite}:${isCommissioner}:${usesSalaries}:${draftCompleted}`;
+  const captureAction = useAsyncActionScope(actionScope);
+  useEffect(() => {
+    setSavingId(null);
+    setError("");
+    if (!canWrite) setLookOpen(false);
+  }, [actionScope, canWrite]);
   const lookup = valueRows?.find((r) => r.player_id === playerId);
 
   const sortedRoster = useMemo(
@@ -495,6 +511,8 @@ export default function RosterBuilder({
   }, []);
 
   const toggleCut = useCallback(async (r, cut) => {
+    if (!canWrite) return;
+    const isCurrent = captureAction();
     if (!cut && r?.can_undo_cut === false) return;
     if (cut && draftCompleted) {
       const story = contractDeadCapStory({ ...r, roster_status: "active" }, workspace?.rules);
@@ -504,7 +522,7 @@ export default function RosterBuilder({
         confirmLabel: MY_TEAM_COPY.cutConfirmLabel,
         danger: true,
       });
-      if (!ok) return;
+      if (!ok || !isCurrent()) return;
     }
     setSavingId(r.player_id);
     setError("");
@@ -519,13 +537,14 @@ export default function RosterBuilder({
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      if (!isCurrent()) return;
       onChanged?.();
     } catch (e) {
-      setError(e.message || "Could not update cut status");
+      if (isCurrent()) setError(e.message || "Could not update cut status");
     } finally {
-      setSavingId(null);
+      if (isCurrent()) setSavingId(null);
     }
-  }, [onChanged, draftCompleted, workspace?.rules]);
+  }, [onChanged, draftCompleted, workspace?.rules, canWrite, captureAction]);
 
   useEffect(() => {
     if (!lookOpen || !roster?.length) {
@@ -609,34 +628,40 @@ export default function RosterBuilder({
   }, [extendYearsById, maxYears]);
 
   const queueRookieExtend = useCallback(async (r) => {
+    if (!canWrite) return;
+    const isCurrent = captureAction();
     setSavingId(r.player_id);
     setError("");
     try {
       const data = await postRookieExtend(r.player_id, extendYearsFor(r), maxYears);
+      if (!isCurrent()) return;
       setError(rookieExtendSuccessMessage(data));
-      setTimeout(() => setError(""), 4000);
+      setTimeout(() => { if (isCurrent()) setError(""); }, 4000);
       onChanged?.();
     } catch (e) {
-      setError(e.message || "Could not queue extension");
+      if (isCurrent()) setError(e.message || "Could not queue extension");
     } finally {
-      setSavingId(null);
+      if (isCurrent()) setSavingId(null);
     }
-  }, [extendYearsFor, maxYears, onChanged]);
+  }, [extendYearsFor, maxYears, onChanged, canWrite, captureAction]);
 
   const undoQueuedExtension = useCallback(async (r) => {
+    if (!canWrite) return;
+    const isCurrent = captureAction();
     setSavingId(r.player_id);
     setError("");
     try {
       await cancelRookieExtend(r.player_id);
+      if (!isCurrent()) return;
       setError(rookieExtendCancelSuccessMessage());
-      setTimeout(() => setError(""), 4000);
+      setTimeout(() => { if (isCurrent()) setError(""); }, 4000);
       onChanged?.();
     } catch (e) {
-      setError(e.message || "Could not undo the extension");
+      if (isCurrent()) setError(e.message || "Could not undo the extension");
     } finally {
-      setSavingId(null);
+      if (isCurrent()) setSavingId(null);
     }
-  }, [onChanged]);
+  }, [onChanged, canWrite, captureAction]);
 
   const saveRow = useCallback(async (r) => {
     if (hubContext?.mode === "league") return;
@@ -713,7 +738,8 @@ export default function RosterBuilder({
 
   const remove = async (row) => {
     const pid = row?.player_id;
-    if (!pid) return;
+    if (!pid || !canRemove) return;
+    const isCurrent = captureAction();
     const ok = await confirmDialog({
       title: usesSalaries ? MY_TEAM_COPY.removeTitle : MY_TEAM_COPY.dropPlayerTitle(row.player_name),
       message: usesSalaries
@@ -722,13 +748,17 @@ export default function RosterBuilder({
       confirmLabel: usesSalaries ? MY_TEAM_COPY.removeConfirmLabel : MY_TEAM_COPY.dropPlayer,
       danger: true,
     });
-    if (!ok) return;
+    if (!ok || !isCurrent()) return;
     const res = await sendRosterWrite(apiFetch, {
       playerId: pid,
       rosterSlotId: row?.id,
       drop: true,
     });
-    if (!res.ok) setError(await parseApiError(res));
+    if (!isCurrent()) return;
+    if (!res.ok) {
+      const message = await parseApiError(res);
+      if (isCurrent()) setError(message);
+    }
     else {
       if (selectedSlotKey && rosterSlotKey(row) === selectedSlotKey) setSelectedSlotKey(null);
       onChanged?.();
@@ -829,6 +859,7 @@ export default function RosterBuilder({
       usesSalaries,
       contractsReadOnly,
       canEditType,
+      canWrite,
       draftCompleted,
       edit: vm.edit,
       setEdit,
@@ -876,7 +907,7 @@ export default function RosterBuilder({
         </>}
       </section>
 
-      {isLeague && hubContext?.league_id && hubContext?.team_id && (
+      {canWrite && isLeague && hubContext?.league_id && hubContext?.team_id && (
         <TeamIdentityStudio
           open={lookOpen}
           onClose={() => setLookOpen(false)}
@@ -982,7 +1013,7 @@ export default function RosterBuilder({
       <footer className="my-team-footer">
         <nav aria-label={MY_TEAM_COPY.related}>
           {onNavigate && <button type="button" className="my-team-footer-action" onClick={() => onNavigate("trades")}>{MY_TEAM_COPY.trades} <span aria-hidden="true">↗</span></button>}
-          {isLeague && hubContext?.league_id && hubContext?.team_id && <button type="button" className="my-team-footer-action" onClick={() => setLookOpen(true)}>{MY_TEAM_COPY.appearance} <span aria-hidden="true">↗</span></button>}
+          {canWrite && isLeague && hubContext?.league_id && hubContext?.team_id && <button type="button" className="my-team-footer-action" onClick={() => setLookOpen(true)}>{MY_TEAM_COPY.appearance} <span aria-hidden="true">↗</span></button>}
         </nav>
       {usesSalaries && <ContractRulesDisclosure
         contractsReadOnly={contractsReadOnly}
@@ -1013,7 +1044,7 @@ export default function RosterBuilder({
     </div>
     {roomTab === "room" ? <TeamRoom key={`${hubContext.league_id}:${hubContext.team_id}`} cacheScope={cacheScope} leagueId={hubContext.league_id} teamId={hubContext.team_id}
       onContract={usesSalaries ? (pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); } : null}
-      onAppearance={() => { setRoomTab("manage"); setLookOpen(true); }}
+      onAppearance={canWrite ? () => { setRoomTab("manage"); setLookOpen(true); } : null}
       onLineup={() => setRoomTab("lineup")} /> : roomTab === "lineup" ? <Suspense fallback={<HubLoadingSkeleton rows={4}/>}><MyTeamLineup
        {...{cacheScope,hubContext,onNavigate}} requestedWeek={lineupWeek} embedded showWeekStepper
        onLineupChanged={onChanged} onNavigateSetup={() => onNavigate?.("office-access")} /></Suspense> : rosterPage}
