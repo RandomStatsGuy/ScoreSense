@@ -31,7 +31,7 @@ export function CommunicationProvider({ children, hubContext, enabled, identity 
   const [saving, setSaving] = useState(false);
   const seen = useRef(null);
   const requestVersion = useRef(0);
-  const context = hubContext || discovered;
+  const context = hubContext || (discovered && discovered.identity === identity ? discovered.context : null);
   const leagueId = enabled && context?.mode === "league" && !context?.demo ? context.league_id : null;
   const key = `${identity || "dev"}:${leagueId || ""}:${context?.team_id || ""}`;
   const operationKey=JSON.stringify([key,Boolean(enabled)]);
@@ -44,7 +44,7 @@ export function CommunicationProvider({ children, hubContext, enabled, identity 
   useEffect(() => {
     if (!enabled || hubContext) { setDiscovered(null); return undefined; }
     const controller = new AbortController();
-    chatRequest("/api/hub/context", {signal:controller.signal}).then(data=>{if(!controller.signal.aborted)setDiscovered(data);}).catch(() => {});
+    chatRequest("/api/hub/context", {signal:controller.signal}).then(data=>{if(!controller.signal.aborted)setDiscovered({identity,context:data});}).catch(() => {});
     return () => controller.abort();
   }, [enabled, hubContext, identity]);
 
