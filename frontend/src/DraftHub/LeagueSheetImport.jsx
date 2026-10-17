@@ -1,9 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { SHEET_IMPORT_COPY } from "./leagueAccessCopy";
 
-export default function LeagueSheetImport({ season, leagueId, onImported, embedded = false, commissionerMode = false }) {
+export default function LeagueSheetImport(props) {
+  return <LeagueSheetImportView key={JSON.stringify([props.leagueId, props.season, props.commissionerMode])} {...props} />;
+}
+function LeagueSheetImportView({ season, leagueId, onImported, embedded = false, commissionerMode = false }) {
+  const captureScope = useAsyncActionScope(JSON.stringify([leagueId, season]));
   const fileRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [managerTeam, setManagerTeam] = useState("");
@@ -11,28 +16,28 @@ export default function LeagueSheetImport({ season, leagueId, onImported, embedd
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
-  useEffect(() => { setSelectedFile(null); setResult(null); setError(""); if (fileRef.current) fileRef.current.value = ""; }, [leagueId, season]);
-
   const importSheet = async (file) => {
-    if (!file) return;
+    if (!file || importing) return;
+    const isCurrent = captureScope();
     setImporting(true);
     setError("");
     try {
       const fd = new FormData();
       fd.append("file", file);
       const q = new URLSearchParams();
+      if (leagueId) q.set("league_id", leagueId);
       if (managerTeam.trim()) q.set("manager_team_name", managerTeam.trim());
       const res = await apiFetch(`/api/hub/league-sheet/import?${q}`, { method: "POST", body: fd });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setResult(data);
       setSelectedFile(null);
       onImported?.();
     } catch (e) {
-      setError(e.message || "Import failed");
+      if (isCurrent()) setError(e.message || "Import failed");
     } finally {
-      setImporting(false);
-      if (fileRef.current) fileRef.current.value = "";
+      if (isCurrent()) { setImporting(false); if (fileRef.current) fileRef.current.value = ""; }
     }
   };
 
@@ -47,7 +52,7 @@ export default function LeagueSheetImport({ season, leagueId, onImported, embedd
       <div className="hub-form-row">
         <label>
           <span className="hub-field-label">Filter to my team (optional)</span>
-          <input value={managerTeam} onChange={(e) => setManagerTeam(e.target.value)} placeholder="Exact team name from CSV" />
+          <input value={managerTeam} disabled={importing} onChange={(e) => setManagerTeam(e.target.value)} placeholder="Exact team name from CSV" />
         </label>
       </div>
       )}

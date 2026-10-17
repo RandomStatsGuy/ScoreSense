@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
+import { confirmDialog } from "../ui/confirm";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import { HubFilterMenu, HubPage } from "./HubUILayout";
@@ -35,6 +37,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
   const scope = useRef(0);
   const resultRef = useRef(null);
   const base = `/api/hub/league/${encodeURIComponent(leagueId)}/corrections/${season}/${week}`;
+  const captureScope = useAsyncActionScope(base);
   useEffect(() => {
     const generation = ++scope.current;
     setQuery(""); setSuggestions([]); setTargetSlot("BN"); setContext(null); setPreview(null); setTeams([]); setError(""); setReason(""); setAcknowledge(false); setBusy(false);
@@ -61,7 +64,9 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
     }));
   };
   const request = async (publish = false) => {
+    if (busy || !context || (publish && !preview?.can_publish)) return;
     const generation = scope.current;
+    const isCurrent = captureScope();
     setBusy(true); setError(""); setNotice("");
     try {
       const body = publish ? {
@@ -72,7 +77,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
       });
       if (!response.ok) throw new Error(await parseApiError(response));
       const data = await response.json();
-      if (scope.current !== generation) return;
+      if (!isCurrent() || scope.current !== generation) return;
       if (publish) {
         clearHubDataCache();
         setNotice(preview.mode === "lineup" ? COPY.lineupSaved : COPY.published); setPreview(null); setReload(value => value + 1); onChanged?.();
@@ -81,9 +86,9 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
         requestAnimationFrame(() => resultRef.current?.focus());
       }
     } catch (failure) {
-      if (scope.current === generation) setError(failure.message);
+      if (isCurrent() && scope.current === generation) setError(failure.message);
     } finally {
-      if (scope.current === generation) setBusy(false);
+      if (isCurrent() && scope.current === generation) setBusy(false);
     }
   };
   const slots = correctionSlots(context?.slots);
@@ -92,6 +97,18 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
   const metadata = context?.teams.find(item => item.id === selectedTeam);
   const teamLabel = item => item?.owner_name || item?.name || COPY.manager;
   const changes = correctionChanges(correctionTeamRows(context), teams);
+  const changeWeek = async value => {
+    if (busy || Number(value) === week) return;
+    const isCurrent = captureScope();
+    if (changes.length || reason.trim() || acknowledge) {
+      setBusy(true);
+      const confirmed = await confirmDialog({ title: COPY.changeWeek, message: COPY.discardWeek, confirmLabel: COPY.discard });
+      if (!isCurrent()) return;
+      setBusy(false);
+      if (!confirmed) return;
+    }
+    if (isCurrent()) { setNotice(""); setWeek(Number(value)); }
+  };
   const eligible = (position, slot) => slot === "BN" || (context?.slot_positions?.[slot.replace(/\d+$/, "")] || [slot.replace(/\d+$/, "")]).includes(position);
   const changePlayers = players => { setPreview(null); setTeams(previous => previous.map(item => item.team_id === selectedTeam ? {...item, players} : item)); };
   const fill = slot => { setTargetSlot(slot); setQuery(""); setSuggestions([]); requestAnimationFrame(() => searchRef.current?.focus()); };
@@ -133,11 +150,11 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
   return <HubPage className="week-corrections">
     <h2>{COPY.title}</h2><p>{COPY.support}</p>
     <div className="correction-toolbar"><HubFilterMenu label={COPY.week} value={String(week)} options={WEEK_OPTIONS} disabled={busy}
-      onChange={value => { setNotice(""); setWeek(Number(value)); }} />
+      onChange={changeWeek} />
       {context && <HubFilterMenu label={COPY.manager} value={selectedTeam} disabled={busy}
         options={context.teams.map(item => ({id:item.id,label:teamLabel(item)}))}
         onChange={value => { setSelectedTeam(value); setQuery(""); setTargetSlot("BN"); }} />}</div>
-    {error && !context && <p role="alert" className="error">{error}</p>}
+    {error && !context && <div role="alert" className="error">{error} <button type="button" className="btn-ghost btn-sm" onClick={() => setReload(value => value + 1)}>{COPY.retry}</button></div>}
     {!context && !error && <p role="status">{COPY.loading}</p>}
     {context && <>
       <div className="correction-workspace">

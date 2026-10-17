@@ -1,11 +1,13 @@
 import React, { useRef, useState } from "react";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { apiFetch } from "../auth";
 import { parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
 import MobileBottomSheet from "../layout/MobileBottomSheet";
 
-function buildImportParams(syncSleeperFirst) {
+function buildImportParams(syncSleeperFirst, leagueId) {
   const params = new URLSearchParams();
+  if (leagueId) params.set("league_id", leagueId);
   if (syncSleeperFirst) {
     params.set("sync_sleeper_first", "true");
     params.set("contracts_only", "true");
@@ -16,7 +18,8 @@ function buildImportParams(syncSleeperFirst) {
   return params;
 }
 
-export default function CapSheetImport({ onImported, embedded = false }) {
+export default function CapSheetImport({ leagueId, season, onImported, embedded = false }) {
+  const captureScope = useAsyncActionScope(JSON.stringify([leagueId, season]));
   const mobileLayout = useMobileLayout();
   const fileRef = useRef(null);
   const pendingFileRef = useRef(null);
@@ -30,34 +33,40 @@ export default function CapSheetImport({ onImported, embedded = false }) {
   const [confirmReplaceOpen, setConfirmReplaceOpen] = useState(false);
 
   const runImport = async (file) => {
-    if (!file) return;
+    if (!file || importing || validating) return;
+    const isCurrent = captureScope();
     setImporting(true);
     setError("");
     setResult(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const params = buildImportParams(syncSleeperFirst);
+      const params = buildImportParams(syncSleeperFirst, leagueId);
       const res = await apiFetch(`/api/hub/cap-sheet/import?${params}`, {
         method: "POST",
         body: fd,
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setResult(data);
       setValidation(null);
       pendingFileRef.current = null;
       onImported?.();
     } catch (e) {
+      if (!isCurrent()) return;
       setError(e.message || "Import failed");
     } finally {
-      setImporting(false);
-      if (fileRef.current) fileRef.current.value = "";
+      if (isCurrent()) {
+        setImporting(false);
+        if (fileRef.current) fileRef.current.value = "";
+      }
     }
   };
 
   const validateFile = async (file) => {
-    if (!file) return;
+    if (!file || importing || validating) return;
+    const isCurrent = captureScope();
     setValidating(true);
     setError("");
     setResult(null);
@@ -67,15 +76,17 @@ export default function CapSheetImport({ onImported, embedded = false }) {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const params = buildImportParams(syncSleeperFirst);
+      const params = buildImportParams(syncSleeperFirst, leagueId);
       const res = await apiFetch(`/api/hub/cap-sheet/validate?${params}`, {
         method: "POST",
         body: fd,
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
+      if (!isCurrent()) return;
       setValidation(data);
     } catch (e) {
+      if (!isCurrent()) return;
       const msg = e.message || "Validation failed";
       setError(
         /field required/i.test(msg)
@@ -84,8 +95,10 @@ export default function CapSheetImport({ onImported, embedded = false }) {
       );
       pendingFileRef.current = null;
     } finally {
-      setValidating(false);
-      if (fileRef.current) fileRef.current.value = "";
+      if (isCurrent()) {
+        setValidating(false);
+        if (fileRef.current) fileRef.current.value = "";
+      }
     }
   };
 
@@ -115,6 +128,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
         <input
           type="checkbox"
           checked={syncSleeperFirst}
+          disabled={validating || importing}
           onChange={(e) => {
             setSyncSleeperFirst(e.target.checked);
             setValidation(null);
@@ -138,7 +152,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
         />
         <button
           type="button"
-          className="btn-primary"
+          className={validation ? "btn-ghost btn-sm" : "btn-primary btn-sm"}
           disabled={validating || importing}
           onClick={triggerPick}
         >
@@ -147,7 +161,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
         {validation && canImport && (
           <button
             type="button"
-            className="btn-ghost"
+            className="btn-primary btn-sm"
             disabled={importing}
             onClick={() => runImport(pendingFileRef.current)}
           >
@@ -184,6 +198,7 @@ export default function CapSheetImport({ onImported, embedded = false }) {
                   <input
                     type="checkbox"
                     checked={confirmWarnings}
+                    disabled={validating || importing}
                     onChange={(e) => setConfirmWarnings(e.target.checked)}
                   />
                   I reviewed the warnings and want to proceed
