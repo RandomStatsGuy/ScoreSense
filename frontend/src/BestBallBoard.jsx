@@ -80,16 +80,18 @@ export default function BestBallBoard() {
     };
   }, [dataRevision]);
 
+  const sortOptions = bestBallSorts({ ecrOnly: !meta?.with_adp, withAdp: meta?.with_adp || 0 });
+  const activeSortId = sortOptions.some(option => option.id === sortId) ? sortId : "model";
   const rows = useMemo(
     () => sortBoardRows(
       filterBoardRows(players, { position: positionId, search, coverage: coverageId }),
-      sortId,
+      activeSortId,
     ),
-    [players, positionId, search, coverageId, sortId],
+    [players, positionId, search, coverageId, activeSortId],
   );
   const items = useMemo(
-    () => buildBoardItems(rows, { groupByPosition: shouldGroupBoard(sortId, positionId) }),
-    [rows, sortId, positionId],
+    () => buildBoardItems(rows, { groupByPosition: shouldGroupBoard(activeSortId, positionId) }),
+    [rows, activeSortId, positionId],
   );
   const windowed = !loading && items.length > 40;
   const { rootRef, range } = usePageWindowedRows(items.length, { enabled: windowed });
@@ -108,7 +110,6 @@ export default function BestBallBoard() {
     withAdp: meta?.with_adp || 0,
   });
   const boardNote = bestBallBoardNote();
-  const sortOptions = bestBallSorts({ ecrOnly: !meta?.with_adp, withAdp: meta?.with_adp || 0 });
 
   const exportCsv = () => {
     downloadCsv("scoresense-bestball", bestBallCsvLines(rows, csvQuote));
@@ -165,7 +166,7 @@ export default function BestBallBoard() {
               />
               <HubFilterMenu
                 label="Sort"
-                value={sortId}
+                value={activeSortId}
                 options={sortOptions}
                 onChange={setSortId}
               />

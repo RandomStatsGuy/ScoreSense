@@ -218,7 +218,7 @@
   align-items: center;
   gap: var(--space-sm);
 }
-.hub-strategy-card .btn-primary {
+.hub-strategy-card .hub-strategy-take {
   width: 100%;
 }
 .hub-strategy-empty,
@@ -246,6 +246,7 @@
   flex-wrap: wrap;
 }
 .hub-strategy-toggle-btn {
+  min-height: var(--control-h-sm);
   padding: var(--inset-chip);
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
@@ -378,13 +379,16 @@
 @media (prefers-reduced-motion: reduce) {
   .hub-strategy-toggle-btn,
   .hub-strategy-card,
-  .hub-strategy-vote .btn-primary {
+  .hub-strategy-take {
     transition: none;
   }
 }
 /* From styles/product-rhythm.css; keep source order when adding overrides. */
 /* From styles/fantasy-phone.css; keep source order when adding overrides. */
 @media (max-width: 768px) {
+  .hub-strategy-toggle-btn {
+    min-height: var(--touch-target);
+  }
 
   .hub-strategy-photo--hero {
     max-height: 11rem;

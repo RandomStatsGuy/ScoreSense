@@ -652,7 +652,8 @@ export function measureScript() {
       // Phone card layouts have no shared column track to measure.
       if (table.el.tagName === "TABLE" && getComputedStyle(table.el).display !== "table") return;
       const rows = table.rows.filter((row) => rowCells(row).length && !row.closest("tfoot") && !row.closest(".table-skeleton") && !row.matches(".table-skeleton-row") && !row.querySelector(".table-skeleton-cell"));
-      if (!rows.length || (table.label === "table" && !rows.some(row => row.querySelector("td")))) return;
+      // A full-width empty/loading message provides no data-column track to audit.
+      if (!rows.length || (table.label === "table" && !rows.some(row => [...row.querySelectorAll("td")].some(cell => cell.colSpan === 1)))) return;
       const colCount = Math.max(...rows.map((row) => rowCells(row).length));
       const expectAligns = [];
       for (let c = 0; c < colCount; c += 1) {
