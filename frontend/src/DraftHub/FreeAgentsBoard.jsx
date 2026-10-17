@@ -83,7 +83,7 @@ function ActionSheet({ draft, media, scale, mode, canAct, busy, error, onClose, 
 
 export default function FreeAgentsBoard({ rows, count, loading, media, scale, scrollerRef, topPad, bottomPad, loadMore,
   pickDraft, rules, riskTolerance, banner, acquisitionWindow, remainingCap, addMode, addVisible, addEnabled, actionsDisabled,
-  claims, priority, protectedIds, roster, rosterIds, onWatch, watchIds, onHistory, claimContent, ceilingFor,
+  claims, claimsReady = true, priority, protectedIds, roster, rosterIds, onWatch, watchIds, onHistory, claimContent, ceilingFor,
   posFilter, positionOptions, setPosFilter, sortKey, sortOptions, onSort, search, setSearch,
   tierFilter, tierOptions, setTierFilter, riskProfile, riskOptions, setRiskProfile, needsOnly, needPositions, setNeedsOnly,
   boardDirty, resetBoard, emptyMessage, draft, onOpen, onClose, onChange, onConfirm, busy, error }) {
@@ -102,7 +102,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
     <div className="fa-window"><div className="fa-window-copy"><strong>{title}</strong><span>{addMode === "claim" ? priority : !pickDraft && remainingCap != null ? COPY.capAvailable(remainingCap) : addMode === "locked" ? COPY.starHint : COPY.seasonOutlook}</span></div>
       <button className="fa-icon" aria-label={COPY.howAddsWork} aria-expanded={infoOpen} aria-controls="fa-how-adds" onClick={() => setInfoOpen(v => !v)}><Icon /></button></div>
     {infoOpen && <div className="fa-info" id="fa-how-adds"><p>{banner?.text || COPY.howAddsBody}</p>{banner?.text && <p>{COPY.howAddsBody}</p>}{addMode === "add" && !pickDraft && <p>{COPY.nativeInstantTerms}</p>}</div>}
-    {addMode === "claim" && <>{!priority || priority === CLAIM_QUEUE_COPY.needsConfirm ? claimContent : <details className="fa-claims-disclosure"><summary>{COPY.claimCount(claims.length)} · {priority}</summary>{claimContent}</details>}</>}
+    {addMode === "claim" && <>{!claimsReady || !priority || priority === CLAIM_QUEUE_COPY.needsConfirm ? claimContent : <details className="fa-claims-disclosure"><summary>{COPY.claimCount(claims.length)} · {priority}</summary>{claimContent}</details>}</>}
     <div className="fa-toolbar"><HubFilterMenu className="hub-filter-menu--fluid" label={COPY.pos} value={posFilter} options={positionOptions} onChange={setPosFilter} />
       <HubFilterMenu className="hub-filter-menu--fluid" label={COPY.sort} value={sortKey} options={sortOptions.map(option => ({ ...option, shortLabel: COPY.sortShort[option.id] }))} onChange={onSort} />
       <button className="fa-icon" aria-label={COPY.searchFilters} aria-expanded={filtersOpen} aria-controls="fa-filters" onClick={() => setFiltersOpen(v => !v)}><Icon search /></button></div>

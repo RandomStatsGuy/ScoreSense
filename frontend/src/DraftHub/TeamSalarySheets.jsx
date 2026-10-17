@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { connectionErrorMessage, parseApiError } from "../format";
 import { invalidateInsightsAfterCapSync } from "./hubDataCache";
 import { HubFilterChip, HubFilterMenu, HubFilterScroll, HubPage, SortTh } from "./HubUILayout";
@@ -1036,7 +1037,12 @@ function TeamRosterSheet({
   );
 }
 
-export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommissioner = false, embedded = false, reloadNonce = 0 }) {
+export default function TeamSalarySheets(props) {
+  return <TeamSalarySheetsView key={`${props.leagueId}:${props.seasonFilter || ""}:${Boolean(props.isCommissioner)}`} {...props} />;
+}
+
+function TeamSalarySheetsView({ leagueId, seasonFilter = "", isCommissioner = false, embedded = false, reloadNonce = 0 }) {
+  const captureAction = useAsyncActionScope(leagueId);
   const [data, setData] = useState(null);
   const [audit, setAudit] = useState(null);
   const [season, setSeason] = useState("");
@@ -1096,6 +1102,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
   seasonRef.current = season;
   const loadGenRef = useRef(0);
   const sheetAbortRef = useRef(null);
+  useEffect(() => () => { loadGenRef.current += 1; sheetAbortRef.current?.abort(); }, []);
 
   const load = useCallback(async (seasonOverride, { silent = false, major = false } = {}) => {
     if (!leagueId) return null;
@@ -1349,6 +1356,8 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
   }, []);
 
   const saveSalary = useCallback(async (row, field, draftValue, rowKey, ownerLabel) => {
+    const isCurrent = captureAction();
+    if (!isCurrent()) return false;
     const yr = String(seasonRef.current || dataRef.current?.season_year || "");
     if (!isCommissioner || !yr || !ownerLabel) return;
     setEditingSalaryKey("");
@@ -1378,6 +1387,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
           updates: salaryFieldUpdates(field, parsed),
           playerName: row.player_name,
           seasonYear: Number(yr),
+          isCurrent,
         });
         if (!result) return false;
       } else {
@@ -1395,7 +1405,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
             after: parsed == null ? "—" : fmtSal(parsed),
           },
         });
-        if (note == null) return false;
+        if (note == null || !isCurrent()) return false;
         const cap = field === "cap_hit"
           ? (parsed ?? row.cap_hit ?? 1)
           : (row.cap_hit ?? 1);
@@ -1420,8 +1430,9 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         });
         if (!res.ok) throw new Error(await parseApiError(res));
       }
+      if (!isCurrent()) return false;
       await refreshSilent(yr);
-      return true;
+      return isCurrent();
     } catch (e) {
       setActionError(connectionErrorMessage(e));
     } finally {
@@ -1558,7 +1569,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
   }, [patchSheetRow]);
 
   const stageEdit = (kind, row, value, rowKey, ownerLabel, field = kind) => {
-    if (publishingEdits) return;
+    if (!isCommissioner || !captureAction()() || publishingEdits) return;
     setEditingSalaryKey("");
     const current = row[field] ?? "";
     const key = `${ownerLabel}:${rowKey}:${field}`;
@@ -1577,19 +1588,20 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
     }]);
   };
   const publishEdits = async () => {
-    if (publishingRef.current) return;
+    const isCurrent = captureAction();
+    if (!isCommissioner || !isCurrent() || publishingRef.current) return;
     publishingRef.current = true;
     const publishingLeague = leagueId;
     setPublishingEdits(true);
     try {
       for (const edit of pendingEdits) {
-        if (publishingLeague !== leagueScopeRef.current || edit.season !== String(seasonRef.current || dataRef.current?.season_year || "")) {
+        if (!isCurrent() || publishingLeague !== leagueScopeRef.current || edit.season !== String(seasonRef.current || dataRef.current?.season_year || "")) {
           setActionError(SHEETS_GUIDED_COPY.wrongSeason);
           break;
         }
         const currentRow = dataRef.current?.team_sheets?.find((sheet) => sheet.owner_label === edit.ownerLabel)?.rows?.find((row) => row.player_name === edit.row.player_name) || edit.row;
         const rowId = await resolveHistoricRowId(publishingLeague, edit.season, currentRow, edit.ownerLabel);
-        if (publishingLeague !== leagueScopeRef.current || edit.season !== String(seasonRef.current || dataRef.current?.season_year || "")) {
+        if (!isCurrent() || publishingLeague !== leagueScopeRef.current || edit.season !== String(seasonRef.current || dataRef.current?.season_year || "")) {
           setActionError(SHEETS_GUIDED_COPY.wrongSeason);
           break;
         }
@@ -1602,10 +1614,10 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         const saved = edit.kind === "salary"
           ? await saveSalary(publishedRow, edit.field, edit.value, edit.rowKey, edit.ownerLabel)
           : await ({ position: savePosition, roster_status: saveStatus, acquisition_type: saveAcquisition })[edit.kind](...args);
-        if (!saved) break;
+        if (!saved || !isCurrent()) break;
         setPendingEdits((edits) => edits.filter((item) => item.key !== edit.key));
       }
-    } finally { publishingRef.current = false; setPublishingEdits(false); }
+    } finally { publishingRef.current = false; if (isCurrent()) setPublishingEdits(false); }
   };
 
   const saveSeasonCap = useCallback(async (year, draftValue) => {
@@ -1969,7 +1981,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
         <div>
           <h2 className="hub-tab-intro-title">Team salary sheets</h2>
           <p className="hub-section-hint">
-            {sheetsDefaultHint()}
+            {isCommissioner ? sheetsDefaultHint() : SHEETS_GUIDED_COPY.readOnlyHelp}
           </p>
         </div>
         )}
@@ -2131,7 +2143,7 @@ export default function TeamSalarySheets({ leagueId, seasonFilter = "", isCommis
             <summary>
               <span>
                 <strong>League totals by season</strong>
-                <small>Compare every team or change the cap limit.</small>
+                <small>{isCommissioner ? "Compare every team or change the cap limit." : SHEETS_GUIDED_COPY.readOnlyTotalsHelp}</small>
               </span>
               <span className="table-meta" title={isCommissioner ? "Click a year to switch sheets. Edit Cap limit in the matrix." : "Click a year to switch sheets."}>
                 {seasonYear ? `${fmtSal(capForSeason(seasonYear))} cap` : "Cap by season"}

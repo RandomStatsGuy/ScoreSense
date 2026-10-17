@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import useFantasyReady from "../useFantasyReady";
 import { parseApiError } from "../format";
 import { TipLine, TipTitle } from "../HoverTip";
@@ -117,7 +118,11 @@ const PROJECTED_POINTS_TIP_PICK = (
   </>
 );
 
-export default function ValueSheetTable({
+export default function ValueSheetTable(props) {
+  return <ValueSheetTableView key={`${props.leagueId || "solo"}:${props.teamId || ""}:${props.season || ""}`} {...props} />;
+}
+
+function ValueSheetTableView({
   rows,
   season,
   onAddToRoster,
@@ -175,6 +180,8 @@ export default function ValueSheetTable({
   const addMode = playersTabAddMode(acquisitionWindow, { inLeague, draftConsole });
   const addVisible = showAdd && addMode !== "hidden";
   const addEnabled = addVisible && addMode !== "locked";
+  const actionScope = `${addMode}:${actionsDisabled}:${isCommissioner}:${addVisible}`;
+  const captureAction = useAsyncActionScope(actionScope);
   const playersBanner = !draftConsole && inLeague ? playersTabBanner(acquisitionWindow) : null;
   const valueColLabel = "Suggested bid";
   const isAvailableView = mode === "available";
@@ -193,6 +200,7 @@ export default function ValueSheetTable({
   const [waiverPriority, setWaiverPriority] = useState(null);
   const [protectedIds, setProtectedIds] = useState([]);
   const [claimsReady, setClaimsReady] = useState(false);
+  const [claimLoadError, setClaimLoadError] = useState("");
   const [showAdvancedLocal, setShowAdvancedLocal] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [mobileListLimit, setMobileListLimit] = useState(20);
@@ -439,6 +447,8 @@ export default function ValueSheetTable({
   }, [riskTolerance, rules]);
 
   const saveClaims = useCallback(async (claims) => {
+    const isCurrent = captureAction();
+    if (!isCurrent()) return null;
     const res = await apiFetch("/api/hub/fa-market/claims", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -446,13 +456,15 @@ export default function ValueSheetTable({
     });
     if (!res.ok) throw new Error(await parseApiError(res));
     const result = await res.json();
+    if (!isCurrent()) return null;
     setClaimQueue(result.claims || []);
     setWaiverPriority(result.priority || null);
     return result;
-  }, []);
+  }, [captureAction]);
 
   useEffect(() => {
     setClaimsReady(false);
+    setClaimLoadError("");
     if (addMode !== "claim" || !leagueId) {
       setClaimQueue([]);
       setWaiverPriority(null);
@@ -460,25 +472,31 @@ export default function ValueSheetTable({
       return undefined;
     }
     const controller = new AbortController();
+    const isCurrent = captureAction();
     apiFetch("/api/hub/fa-market", { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(await parseApiError(res));
         return res.json();
       })
       .then((result) => {
+        if (controller.signal.aborted || !isCurrent()) return;
         setClaimQueue(result?.market?.my_claims || []);
         setWaiverPriority(result?.market?.waiver_priority || null);
         setProtectedIds(result?.market?.protected_player_ids || []);
         setClaimsReady(true);
       })
       .catch((failure) => {
-        if (failure.name !== "AbortError") setAddError(failure.message || CLAIM_QUEUE_COPY.loadError);
+        if (!controller.signal.aborted && isCurrent() && failure.name !== "AbortError") {
+          setClaimLoadError(failure.message || CLAIM_QUEUE_COPY.loadError);
+          setAddError(failure.message || CLAIM_QUEUE_COPY.loadError);
+        }
       });
     return () => controller.abort();
-  }, [addMode, leagueId]);
+  }, [addMode, leagueId, actionScope, captureAction]);
 
   const updateClaims = useCallback(async (next) => {
-    if (actionsDisabled || !claimsReady) return false;
+    const isCurrent = captureAction();
+    if (!isCurrent() || actionsDisabled || !claimsReady) return false;
     setAddingId("claims");
     setAddError("");
     try {
@@ -489,14 +507,14 @@ export default function ValueSheetTable({
         position: claim.position ?? "",
         drop_player_id: claim.drop_player_id || null,
       })));
-      return true;
+      return isCurrent();
     } catch (failure) {
-      setAddError(failure.message || CLAIM_QUEUE_COPY.saveError);
+      if (isCurrent()) setAddError(failure.message || CLAIM_QUEUE_COPY.saveError);
       return false;
     } finally {
-      setAddingId(null);
+      if (isCurrent()) setAddingId(null);
     }
-  }, [saveClaims, actionsDisabled, claimsReady]);
+  }, [saveClaims, actionsDisabled, claimsReady, captureAction]);
 
   const movePriorityTeam = useCallback((index, direction) => {
     setWaiverPriority((current) => {
@@ -510,7 +528,8 @@ export default function ValueSheetTable({
   }, []);
 
   const confirmPriority = useCallback(async () => {
-    if (actionsDisabled || !claimsReady) return;
+    const isCurrent = captureAction();
+    if (!isCurrent() || !isCommissioner || actionsDisabled || !claimsReady) return;
     setAddingId("priority");
     setAddError("");
     try {
@@ -521,13 +540,14 @@ export default function ValueSheetTable({
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const result = await res.json();
+      if (!isCurrent()) return;
       setWaiverPriority({ ...result.priority, current_team_id: waiverPriority?.current_team_id });
     } catch (failure) {
-      setAddError(failure.message || CLAIM_QUEUE_COPY.confirmError);
+      if (isCurrent()) setAddError(failure.message || CLAIM_QUEUE_COPY.confirmError);
     } finally {
-      setAddingId(null);
+      if (isCurrent()) setAddingId(null);
     }
-  }, [waiverPriority, actionsDisabled, claimsReady]);
+  }, [waiverPriority, actionsDisabled, claimsReady, isCommissioner, captureAction]);
 
   const showWalkaway = addMode === "bid" && addEnabled && Boolean(leagueId) && isAvailableView;
   const ceilingFor = (playerId) => {
@@ -555,6 +575,8 @@ export default function ValueSheetTable({
   const closeBidDraft = useCallback(() => setBidDraft(null), []);
 
   const submitFaBid = useCallback(async (row, amount, ceiling) => {
+    const isCurrent = captureAction();
+    if (!isCurrent() || actionsDisabled || !addEnabled || addMode !== "bid") return;
     if (parseWalkaway(amount) == null || parseWalkaway(ceiling) == null || bidBlockedByCeiling(amount, ceiling)) return;
     if (remainingCap != null && Number(amount) > Number(remainingCap)) return;
     persistCeiling(row.player_id, ceiling);
@@ -562,6 +584,7 @@ export default function ValueSheetTable({
     setAddingId(row.player_id);
     try {
       const result = await postBid(row, amount);
+      if (!isCurrent()) return;
       const high = result?.high_bid?.high_bid;
       setAddError(
         high != null
@@ -571,13 +594,15 @@ export default function ValueSheetTable({
       onAddToRoster?.();
       setBidDraft(null);
     } catch (e) {
-      setAddError(e.message || "Could not place bid");
+      if (isCurrent()) setAddError(e.message || "Could not place bid");
     } finally {
-      setAddingId(null);
+      if (isCurrent()) setAddingId(null);
     }
-  }, [onAddToRoster, persistCeiling, postBid, remainingCap]);
+  }, [onAddToRoster, persistCeiling, postBid, remainingCap, captureAction, actionsDisabled, addEnabled, addMode]);
 
   const addPlayer = useCallback(async (row) => {
+    const isCurrent = captureAction();
+    if (!isCurrent() || actionsDisabled || !addEnabled) return;
     const taken = row.status === "taken";
     setAddError("");
     if (addMode === "bid") {
@@ -616,19 +641,20 @@ export default function ValueSheetTable({
         confirmLabel: "Reassign",
         danger: true,
       });
-      if (!ok) return;
+      if (!ok || !isCurrent()) return;
     }
     setAddingId(row.player_id);
     try {
       await postAddPlayer(row, { force: taken && isCommissioner });
+      if (!isCurrent()) return;
       onAddToRoster?.();
       setBidDraft(null);
     } catch (e) {
-      setAddError(e.message || "Could not add player");
+      if (isCurrent()) setAddError(e.message || "Could not add player");
     } finally {
-      setAddingId(null);
+      if (isCurrent()) setAddingId(null);
     }
-  }, [addMode, claimQueue, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer, protectedIds, updateClaims]);
+  }, [addMode, claimQueue, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer, protectedIds, updateClaims, captureAction, actionsDisabled, addEnabled]);
 
   const panelTitle = title || (isAvailableView ? "Free agents" : "Strategy");
   const panelSub = loading && !rows?.length ? "Loading players…" : subtitle || (
@@ -742,14 +768,14 @@ export default function ValueSheetTable({
               <p>{CLAIM_QUEUE_COPY.support}</p>
             </div>
             <span className="chip">
-              {waiverPriority?.confirmed
+              {!claimsReady ? (claimLoadError || CLAIM_QUEUE_COPY.loading) : waiverPriority?.confirmed
                 ? CLAIM_QUEUE_COPY.prioritySet(
                   waiverPriority.teams?.find((team) => team.team_id === waiverPriority.current_team_id)?.priority,
                 )
                 : CLAIM_QUEUE_COPY.needsConfirm}
             </span>
           </div>
-          {!claimQueue.length ? <p>{CLAIM_QUEUE_COPY.empty}</p> : (
+          {!claimsReady ? <p role="status">{claimLoadError || CLAIM_QUEUE_COPY.loading}</p> : !claimQueue.length ? <p>{CLAIM_QUEUE_COPY.empty}</p> : (
             <ol className="hub-fa-claim-list">
               {claimQueue.map((claim, index) => (
                 <li key={claim.id || claim.player_id}>
@@ -810,10 +836,10 @@ export default function ValueSheetTable({
         </section>
       ) : null;
 
-  useEffect(() => { setBidDraft(null); setAddError(""); }, [leagueId, addMode]);
+  useEffect(() => { setBidDraft(null); setAddingId(null); setAddError(""); }, [leagueId, actionScope]);
 
   if (isAvailableView && !draftConsole) {
-    const priority = waiverPriority?.confirmed
+    const priority = !claimsReady ? (claimLoadError || CLAIM_QUEUE_COPY.loading) : waiverPriority?.confirmed
       ? CLAIM_QUEUE_COPY.prioritySet(waiverPriority.teams?.find(team => team.team_id === waiverPriority.current_team_id)?.priority)
       : CLAIM_QUEUE_COPY.needsConfirm;
     return <FreeAgentsBoard rows={mobileLayout ? mobileRows : visibleRows} count={sorted.length} loading={loading}
@@ -821,7 +847,7 @@ export default function ValueSheetTable({
       loadMore={mobileLayout && mobileRows.length < sorted.length ? () => setMobileListLimit(n => n + MOBILE_LIST_PAGE) : null}
       pickDraft={pickDraft} rules={rules} riskTolerance={riskTolerance} banner={playersBanner} acquisitionWindow={acquisitionWindow}
       remainingCap={remainingCap} addMode={addMode} addVisible={addVisible} addEnabled={addEnabled} actionsDisabled={actionsDisabled || (addMode === "claim" && !claimsReady)}
-      claims={claimQueue} priority={priority} protectedIds={protectedIds} roster={roster} rosterIds={rosterIds} ceilingFor={ceilingFor}
+      claims={claimQueue} claimsReady={claimsReady} priority={priority} protectedIds={protectedIds} roster={roster} rosterIds={rosterIds} ceilingFor={ceilingFor}
       onWatch={onWatchPlayer} watchIds={watchIds} onHistory={rulesUseContracts(rules) ? onOpenContractHistory : null} claimContent={claimContent}
       posFilter={posFilter} positionOptions={positionOptions} setPosFilter={setPosFilter}
       sortKey={sortKey} sortOptions={sortMenuOptions} onSort={onSort} search={search} setSearch={setSearch}
