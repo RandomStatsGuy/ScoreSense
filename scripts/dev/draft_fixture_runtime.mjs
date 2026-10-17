@@ -8,23 +8,25 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const require = createRequire(path.join(root, "frontend/package.json"));
 const { build } = require("esbuild");
 const directory = path.join(root, "outputs/draft-room-fixture");
-let compiled;
+const compiled=new Map();
 export const draftFixtureUrl = "http://127.0.0.1:5173/test-fixtures/draft-room.html";
-export async function attachDraftFixture(context) {
-  if (!compiled) compiled = (async () => {
-    await mkdir(directory, { recursive: true });
-    await build({ entryPoints: { app: path.join(root, "frontend/test-fixtures/draft-room.jsx") },
-      bundle: true, jsx: "automatic", resolveExtensions: [".js", ".jsx", ".json"], format: "esm", outdir: directory, entryNames: "[name]", external: ["/art/*"],
+export async function attachDraftFixture(context, { fixture="draft-room" } = {}) {
+  if (!["draft-room","draft-tools"].includes(fixture)) throw new Error("Unknown draft fixture");
+  const assets=fixture==="draft-room"?directory:path.join(directory,fixture);
+  if (!compiled.has(fixture)) compiled.set(fixture,(async () => {
+    await mkdir(assets, { recursive: true });
+    await build({ entryPoints: { app: path.join(root, `frontend/test-fixtures/${fixture}.jsx`) },
+      bundle: true, jsx: "automatic", resolveExtensions: [".js", ".jsx", ".json"], format: "esm", outdir: assets, entryNames: "[name]", external: ["/art/*"],
       loader: { ".png": "dataurl", ".jpg": "dataurl", ".webp": "dataurl", ".svg": "dataurl", ".woff2": "dataurl" },
       define: { "process.env.NODE_ENV": '"production"', "import.meta.env": '{"DEV":true,"PROD":false}' }, logLevel: "silent" });
     return readFile(path.join(root, "frontend/public/theme-init.js"), "utf8");
-  })();
-  const theme = await compiled;
+  })());
+  const theme = await compiled.get(fixture);
   await context.route("http://127.0.0.1:5173/**", async route => {
     const url = new URL(route.request().url());
-    if (url.pathname === "/test-fixtures/draft-room.html") return route.fulfill({ contentType: "text/html", body: `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>${theme}</script><link rel="stylesheet" href="/__draft-fixture/app.css"></head><body><div id="root"></div><script type="module" src="/__draft-fixture/app.js"></script></body></html>` });
+    if (url.pathname === `/test-fixtures/${fixture}.html`) return route.fulfill({ contentType: "text/html", body: `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>${theme}</script><link rel="stylesheet" href="/__draft-fixture/app.css"></head><body><div id="root"></div><script type="module" src="/__draft-fixture/app.js"></script></body></html>` });
     if (["/__draft-fixture/app.js", "/__draft-fixture/app.css"].includes(url.pathname))
-      return route.fulfill({ contentType: url.pathname.endsWith(".js") ? "text/javascript" : "text/css", body: await readFile(path.join(directory, path.basename(url.pathname))) });
+      return route.fulfill({ contentType: url.pathname.endsWith(".js") ? "text/javascript" : "text/css", body: await readFile(path.join(assets, path.basename(url.pathname))) });
     if (url.pathname.startsWith("/art/") || url.pathname.startsWith("/fonts/")) {
       const publicRoot = path.join(root, "frontend/public"), file = path.resolve(publicRoot, "." + decodeURIComponent(url.pathname));
       if (file.startsWith(publicRoot + path.sep)) {

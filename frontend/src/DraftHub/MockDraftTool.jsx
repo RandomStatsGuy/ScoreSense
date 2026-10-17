@@ -134,14 +134,16 @@ export default function MockDraftTool({ projMeta = null }) {
     const ctrl = new AbortController();
     (async () => {
       try {
-        const [ctx, rooms] = await Promise.all([
+        const [ctx, rooms] = await Promise.allSettled([
           loadContext(ctrl.signal),
           loadRecent(ctrl.signal),
         ]);
         if (ctrl.signal.aborted) return;
-        setHubContext(ctx);
-        setRecent(rooms);
-        setError("");
+        // Recent-room history and league setup remain usable independently.
+        if (ctx.status === "fulfilled") setHubContext(ctx.value);
+        if (rooms.status === "fulfilled") setRecent(rooms.value);
+        const failures = [ctx, rooms].filter(result => result.status === "rejected");
+        setError(failures.map(result => connectionErrorMessage(result.reason, "Could not load mock draft")).join(" "));
       } catch (e) {
         if (ctrl.signal.aborted) return;
         setError(connectionErrorMessage(e, "Could not load mock draft"));

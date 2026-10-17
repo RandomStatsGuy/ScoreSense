@@ -117,7 +117,7 @@ function FaceCard({ row, media, pickDraft, ctx, riskTolerance, onTake }) {
             </div>
           ))}
         </div>
-        <button type="button" className="btn btn-primary" onClick={onTake}>
+        <button type="button" className="btn btn-ghost hub-strategy-take" onClick={onTake}>
           {takeLabel(row)}
         </button>
       </div>
@@ -179,6 +179,9 @@ export default function StrategyBoard({
     [season, teamCount, rules, pickDraft],
   );
   const fingerprint = useMemo(() => contextFingerprint(ctx), [ctx]);
+  const scope = JSON.stringify([leagueId, fingerprint]);
+  const activeScope = useRef(scope);
+  activeScope.current = scope;
   const siteBoard = useMemo(() => buildSiteBoard(rows, ctx), [rows, ctx]);
   const siteKey = useMemo(
     () => siteBoard.map((row) => String(row.player_id)).join("|"),
@@ -194,13 +197,16 @@ export default function StrategyBoard({
     setSeenKeys(saved.seenKeys);
     setFeedMine(saved.feedMine);
     setHistory([]);
-    setHydrated(fingerprint);
-  }, [leagueId, fingerprint, siteKey, skipHydrate]);
+    setFeedBusy(false);
+    setFeedError("");
+    setFeedNote("");
+    setHydrated(scope);
+  }, [leagueId, fingerprint, scope, siteKey, skipHydrate]);
 
   useEffect(() => {
-    if (hydrated !== fingerprint) return;
+    if (hydrated !== scope) return;
     saveRankState(leagueId, fingerprint, { order, seenKeys, feedMine });
-  }, [leagueId, fingerprint, hydrated, order, seenKeys, feedMine]);
+  }, [leagueId, fingerprint, scope, hydrated, order, seenKeys, feedMine]);
 
   const board = useMemo(() => applyOrder(siteBoard, order), [siteBoard, order]);
   const pair = useMemo(
@@ -224,11 +230,13 @@ export default function StrategyBoard({
   const line = contextLine({ ...ctx, leagueName });
 
   const writeQueue = useCallback(async (playerIds) => {
+    if (activeScope.current !== scope) return { ok: false, stale: true };
+    // Equal player IDs in two leagues still represent two independent queues.
+    const key = JSON.stringify([scope, inLeague, playerIds]);
     if (!inLeague || !leagueId) {
-      lastWritten.current = playerIds.join(",");
+      lastWritten.current = key;
       return { ok: true, local: true };
     }
-    const key = playerIds.join(",");
     if (lastWritten.current === key) return { ok: true, skipped: true };
     setFeedBusy(true);
     setFeedError("");
@@ -239,18 +247,19 @@ export default function StrategyBoard({
         body: JSON.stringify({ player_ids: playerIds }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      if (activeScope.current !== scope) return { ok: false, stale: true };
       lastWritten.current = key;
       return { ok: true };
     } catch (err) {
-      setFeedError(err.message || COPY.feedError);
+      if (activeScope.current === scope) setFeedError(err.message || COPY.feedError);
       return { ok: false };
     } finally {
-      setFeedBusy(false);
+      if (activeScope.current === scope) setFeedBusy(false);
     }
-  }, [inLeague, leagueId]);
+  }, [inLeague, leagueId, scope]);
 
   useEffect(() => {
-    if (hydrated !== fingerprint) return;
+    if (hydrated !== scope) return;
     if (!feedMine) return;
     let active = true;
     const ids = queueFromOrder(order);
@@ -265,7 +274,7 @@ export default function StrategyBoard({
       active = false;
       clearTimeout(timer);
     };
-  }, [feedMine, order, hydrated, fingerprint, writeQueue]);
+  }, [feedMine, order, hydrated, scope, writeQueue]);
 
   const setFeed = useCallback(async (next) => {
     setFeedMine(next);
@@ -450,7 +459,7 @@ export default function StrategyBoard({
               </button>
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-ghost btn-sm"
                 onClick={() => setPage("rankings")}
               >
                 {COPY.viewRankings}
