@@ -14,6 +14,8 @@ alwaysApply: false
 - Scope notices to the route and task. Disclose routine detail; keep actionable errors and consequences beside the control, including permissions, costs, scoring, freshness, frozen inputs, and preview versus saved state.
 - Use plain team/manager/season terminology, labeled controls, explicit projection scope, and actual source dates. Missing data stays missing.
 
+The layout audit covers measurable geometry, not overall visual quality, accessibility conformance or field performance. PRODUCT and approved surface exceptions win.
+
 These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until the audit passes on every surface that shares the primitive you touched.
 
 ## Spacing
@@ -23,6 +25,14 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Vertical rhythm between page sections is one token (`--inset-section`). Hero → gap → content. Never 0 between two containers, never two different gaps on one page.
 - Text never touches text. Every heading/paragraph pair has a margin from the scale. Two inline text runs on one line are separated by ` · ` or a gap token, never by nothing. Collision checks compare block-level siblings only — inline children of one paragraph (a leftover number in `<strong>`) are supposed to sit adjacent.
 - Disclosures, footnotes, and "see also" lines live inside the card they refer to, not floating between cards.
+
+## Composition and evidence
+- Before a substantial pass, record the task, approved baseline, attention order, demonstrated friction, bounded change, preserved behavior, and acceptance checks in `docs/DESIGN_ROLLOUT.md`. Inspect a realistic render before describing visual defects.
+- Group identity, decisive values, constraints, and the action they affect. Review the whole-page rhythm at 390 and 1280; inspect actual 320 and laptop widths for long labels, fixed actions, or multi-column workspaces.
+- Preserve essential consequences in the primary flow. Disclose advanced analysis/history without hiding blockers. Approved tables, rooms, boards, and workspaces retain their density and personality.
+- Use WCAG 2.2 AA as the engineering baseline from PRODUCT. Review text/non-text contrast in both themes, status beyond color, keyboard operation, visible unobscured focus, labels/errors, zoom/reflow, and dialog focus return. The layout audit does not measure all of these.
+- Preserve long player/manager names and full accessible labels. Reserve image dimensions; inspect text over artwork. Use existing media helpers and theme roles.
+- Selection and reversible previews respond immediately. Saves retain input on failure, announce outcomes, and use current server validation. Motion communicates state or supports an approved interaction; reduced motion preserves equivalent task access.
 
 ## Alignment
 - Standalone settings and entry forms use `StandaloneFormContent`: center a column capped by `--form-content-max` inside the card; align titles, headings, labels, editable text, help, and actions to its left edge. Phone columns fill the available inset. Session forms retain their narrower session column; legal prose stays left-aligned at reading width.
@@ -43,7 +53,7 @@ These are checked by `scripts/dev/layout_audit.mjs`. A change is not done until 
 - Cursor verification follows `docs/PRODUCT.md`: reuse the shared pointer styles in `frontend/src/styles.css`, mark custom clickable targets with `data-interactive="true"` only while enabled, and run the UI audit's `cursors` check for controls, nested labels/icons, tooltips, and charts; preserve text-entry, disabled, and drag cursors.
 - Standalone field pairs use `StandaloneFormRow` and `--form-field-min` to share available width and stack on phone. Text fields and dropdowns share the form control height; use explicit text input types so fields receive shared styling.
 - Interactive targets are ≥ 32 tall at 1280 and ≥ 44 at 390. Do not apply the phone 44 floor on desktop. Lock/Skip/Add/History in a row share one style tier (all buttons or all links, not mixed).
-- One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text. Do not demote whichever `.btn-primary` is second in the DOM to satisfy the audit — each extra primary is a judgment call on an approved list. Approved: Cap Undo cut and Undo extension are ghost (leftover / open the room stays primary); Home chat Send is ghost (the deck action stays); Trades Continue or Propose is the only primary (Accept and Load into builder are ghost).
+- One primary per viewport. A second blue filled button on screen is a bug. Undo, secondary, and "browse" are ghost or text. Do not demote whichever `.btn-primary` is second in the DOM to satisfy the audit — each extra primary is a judgment call on an approved list. Approved: Cap Undo cut and Undo extension are ghost (leftover / open the room stays primary); Home chat Send is ghost (the deck action stays); Trades Review or Propose is the only primary (Accept and Load into builder are ghost).
 - Native `<select>` is never used; `HubFilterMenu` is the default. The approved Rosters board uses its compact `BoardFilter` with manager search and keyboard dismissal. Navigation links and league actions in the approved Fantasy header use `HeaderDisclosure`; data filters continue using the existing filter components. Applies to Rules, DFS, Season, every page.
 - Option menus that overflow their host must paint above later siblings. Atmosphere pins `.draft-hub` children at z-index 1 so the wash stays behind content — raise `.hub-league-context-bar` above page content (the approved header uses `--z-sticky`, below `--z-header` and portaled account menus). A later `.hub-page` at the same z-index as the strip is a bug. Checked by layout_audit `menus`.
 - Anchored menu panels use `useMenuPlacement` (`frontend/src/ui/`) so they flip above fixed phone chrome. A menu inside a z-indexed row must raise that row while open (`:has(.is-open)`) when later rows carry a higher z-index. Blur-to-close goes through `focusLeftMenu` (`ui/menuFocus.js`), which ignores Safari's null `relatedTarget` and focus landing on an ancestor such as `<main tabindex="-1">`; outside pointerdown closes instead. layout_audit `menus` taps every option of each open filter menu.

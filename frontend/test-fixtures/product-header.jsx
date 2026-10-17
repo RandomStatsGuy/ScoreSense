@@ -1,6 +1,7 @@
 // Production navigation components, without page data or authentication requests.
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";
 import ProductSubnav from "../src/layout/ProductSubnav";
 import MobileHeader from "../src/layout/MobileHeader";
@@ -42,7 +43,6 @@ function Preview() {
     <MobileDestinationSheet open={open} onClose={() => setOpen(false)} title={isProjection ? "Projections" : "Tools"} groups={[{ id: view, items: isProjection ? projectionDestinationItems() : toolDestinationItems() }]} active={active} onSelect={navigate} />
   </div>;
 }
-createRoot(document.getElementById("root")).render(<Preview />);
-
+createRoot(document.getElementById("root")).render(<MemoryRouter><Preview /></MemoryRouter>);
 import "../src/styles/color-theme.css";
 import "../src/styles/appearance.css";

@@ -121,6 +121,7 @@ export default function LeagueCreateJoinForm({
             <label>
               League name
               <input
+                type="text"
                 value={leagueName}
                 onChange={(e) => setLeagueName(e.target.value)}
                 placeholder="Sunday Night Cap League"
@@ -130,6 +131,7 @@ export default function LeagueCreateJoinForm({
             <label>
               Your team name
               <input
+                type="text"
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="My Team"
@@ -171,6 +173,7 @@ export default function LeagueCreateJoinForm({
             <label>
               Room code
               <input
+                type="text"
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                 placeholder="ABC123"
@@ -180,6 +183,7 @@ export default function LeagueCreateJoinForm({
             <label>
               Team name
               <input
+                type="text"
                 value={joinTeamName}
                 onChange={(e) => setJoinTeamName(e.target.value)}
                 placeholder="As listed by commissioner"

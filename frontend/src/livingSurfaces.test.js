@@ -208,6 +208,12 @@ test("audit routes come from the registry and skip overlays", () => {
   assert.equal(LIVING_SURFACES["projections.inspector"].overlay, true);
 });
 
+test("supporting-flow requests resolve to their implementation and authority", () => {
+  for (const [request,id] of [["verify email","account.verify"],["forgot password","account.forgot-password"],["reset password","account.reset-password"],["shared team room","public.team-room"],["lobby entry","public.lobby"],["create or join league","hub.create-join"]]) {
+    assert.equal(resolveLivingSurfaceFromText(request),LIVING_SURFACES[id]);
+  }
+});
+
 test("live mock forbids Available players and keeps Discard on", () => {
   const live = LIVING_SURFACES["tools.mock-draft.live"];
   assert.match(live.doNot, /Available players/);

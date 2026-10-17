@@ -161,7 +161,9 @@ try {
       .getByRole("heading", { name: "Review your import" })
       .waitFor({ state: "hidden" });
     assert.equal(ledger.size, 6001);
-    assert.equal(await page.locator(".dfw-entry-list button").count(), 50);
+    const entryRows = page.locator(".dfw-entry-table tbody tr");
+    await entryRows.first().waitFor();
+    assert.equal(await entryRows.count(), 50);
     await page
       .getByRole("button", { name: "Next entries", exact: true })
       .click();

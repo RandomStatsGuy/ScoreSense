@@ -791,7 +791,7 @@
   min-height: 28.5rem;
   padding: 1rem 1.1rem;
   overflow: hidden;
-  border: 1px solid #304158;
+  border: 1px solid var(--border-strong, #304158);
   border-radius: 22px;
   background: var(--theme-surface, #0f1a29);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
@@ -829,7 +829,7 @@
   border: 1px solid var(--border);
   border-radius: 50%;
   background: var(--theme-raised, #142133);
-  color: #687a94;
+  color: var(--theme-muted, #687a94);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
 }
@@ -861,7 +861,7 @@
 }
 
 .mock-draft-experience-toggle button.is-active {
-  border-color: #35517a;
+  border-color: var(--border-strong, #35517a);
   background: var(--theme-raised, #172a43);
   color: var(--text-primary);
 }
@@ -1047,7 +1047,7 @@
   }
 
   .mock-draft-launchpad {
-    position: static;
+    position: relative;
     min-height: 0;
   }
 

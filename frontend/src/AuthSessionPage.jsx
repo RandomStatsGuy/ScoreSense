@@ -17,7 +17,8 @@ export function AuthSessionChrome({
 }) {
   return (
     <div className="auth-session">
-      <div className="auth-session-inner">
+      <a className="app-skip-link" href="#main-content">Skip to content</a>
+      <main id="main-content" tabIndex={-1} className="auth-session-inner">
         <Link className="auth-session-back" to={backTo}>
           ← {backLabel}
         </Link>
@@ -32,7 +33,7 @@ export function AuthSessionChrome({
         </header>
         <div className="auth-session-card">{children}</div>
         <LegalLinks className="auth-session-legal" compact />
-      </div>
+      </main>
     </div>
   );
 }

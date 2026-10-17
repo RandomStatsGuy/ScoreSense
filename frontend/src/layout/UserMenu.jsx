@@ -119,7 +119,7 @@ export default function UserMenu({
   if (!authenticated) {
     return (
       <div className="user-menu">
-        <button type="button" className="btn-primary btn-sm" onClick={openSignIn}>
+        <button type="button" className="btn-ghost btn-sm" onClick={openSignIn}>
           Sign in
         </button>
         <button

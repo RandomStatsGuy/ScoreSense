@@ -19,10 +19,10 @@ Need real rosters / cap / trades? `.cursor/skills/mirror-prod-league/SKILL.md` (
 
 ## 3. Measure, then click
 
-1. Run `npm run audit:layout -- <route>` at 1280 and at 390 (from `frontend/`). Paste the PASS/FAIL table in the reply. A FAIL you did not cause is still yours if it is in a primitive you touched.
-2. If you changed a shared class or component, run the audit on every route that uses it (`grep -rl "<class>" frontend/src` → map to routes via `surfacesForFile` / `livingSurfaceRoutes`).
+1. Run `npm run audit:layout -- <route> --width <width>` at 1280 and at 390 (from `frontend/`). Paste the PASS/FAIL table in the reply. A FAIL you did not cause is still yours if it is in a primitive you touched.
+2. If you changed a shared class or component, run the audit on every route that uses it (`rg -l "<class>" frontend/src` → map to routes via `surfacesForFile` / `livingSurfaceRoutes`).
 3. Exercise the control you touched. Open every other destination that reads the same state (Cap, My team, Rules).
-4. Hit empty, loading, error, readonly, unsaved when the change can see those states.
+4. Exercise relevant loading, empty, error, stale, locked, read-only and unsaved states; keyboard/focus/menu/dialog behavior; fixed-action/chat/nav clearance; both themes and reduced motion; applicable host, format and role variants. Record the combinations actually exercised.
 5. Screenshot 1280 and 390 of the changed surface and attach them. If you cannot screenshot, say **not visually verified** in the PR body — do not say verified.
 
 Hero, strip, and bar changes are responsive. Always include the 390 pass for those.
@@ -33,4 +33,6 @@ Hero, strip, and bar changes are responsive. Always include the 390 pass for tho
 - no new page-scoped override of a shared primitive
 - the reply names the surfaces you did NOT check
 
-Cloud agents cannot screenshot. They must run the audit and write **not visually verified** when they cannot attach 1280/390 shots.
+When screenshots are unavailable, run the audit and write **not visually verified** in the PR body. Identify the environment limitation; do not infer capability from the host label.
+
+Use screenshot capabilities available in this environment. A geometry audit is not visual verification or a WCAG/performance certification. Record page briefs and separate machine/visual/task evidence in `docs/DESIGN_ROLLOUT.md`.

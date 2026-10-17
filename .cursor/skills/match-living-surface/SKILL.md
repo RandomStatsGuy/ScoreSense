@@ -5,7 +5,7 @@ description: Look up the shipped page and copy module for a ScoreSense screen an
 
 # Match the living surface
 
-Triggered by `.cursor/rules/scoresense-core.mdc` (Matching checkpoint) before UI work. The living file beats a prose description.
+Triggered by `.cursor/rules/scoresense-core.mdc` (Matching checkpoint) before design planning or UI work, including broad product-improvement requests with no file attached. Read PRODUCT for authority and the living files for implementation. Backend-only work skips this workflow.
 
 ## 1. Resolve the destination
 
@@ -31,7 +31,9 @@ From the row, read:
 
 Then reply **Matching:** `{id}` · `{page}` before you edit. That line is the checkpoint. If it is wrong, the user can override it in one sentence.
 
-If this is a redesign or first design and they have not picked an option, follow `.cursor/skills/fast-ui-mock/SKILL.md` and **stop**. Do not edit product React on that pass.
+For a substantial pass, record the task, approved baseline, attention order, demonstrated friction, bounded change, invariants, and acceptance checks in `docs/DESIGN_ROLLOUT.md`. Inspect the rendered page before asserting visual defects.
+
+Carry forward an existing approval for work within its scope, including routine refinements. If this is an unapproved layout, first design, or new overlay outside that approval, follow `.cursor/skills/fast-ui-mock/SKILL.md` and **stop** for the design pick after preparing reviewable options. Do not edit the unapproved product layout on that pass. Continue independently authorized work while a design choice is pending.
 
 ## 3. Change by extending, not replacing
 

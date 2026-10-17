@@ -238,7 +238,7 @@
   flex-direction: row;
   align-items: center;
   gap: 0.32rem;
-  min-height: var(--control-h-sm);
+  min-height: var(--form-control-height, var(--control-h-sm));
   padding: 0.24rem 0.55rem 0.24rem 0.5rem;
   border-radius: var(--radius-pill);
 }
@@ -605,6 +605,19 @@
   overscroll-behavior-x: contain;
   max-width: 100%;
   -webkit-overflow-scrolling: touch;
+}
+
+.hub-salary-matrix-table .num,
+.hub-salary-sheet-table .num,
+.hub-salary-sheet-table th:last-child,
+.hub-salary-sheet-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.hub-salary-sheet-table .pos,
+.hub-salary-sheet-table .hub-salary-pos-cell {
+  text-align: center;
 }
 
 .hub-salary-matrix-table th.hub-salary-matrix-season-head {
@@ -6911,20 +6924,19 @@
 }
 
 .hub-wcc-board-overlay {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--space-4);
   border-radius: var(--radius-md);
-  background: rgba(9, 17, 29, 0.46);
+  background: var(--experience-surface);
 }
 
 .hub-wcc-board-overlay-card {
   max-width: 22rem;
   padding: 1.15rem 1.2rem 1.2rem;
-  border: 1px solid rgba(91, 143, 232, 0.28);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--theme-raised, #132033);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
@@ -7051,7 +7063,7 @@ button.hub-wcc-bench-chip {
 
 @media (prefers-reduced-motion: reduce) {
   .hub-wcc-board-overlay {
-    background: rgba(9, 17, 29, 0.72);
+    background: var(--experience-surface);
   }
 }
 
@@ -10356,7 +10368,6 @@ button.hub-locker {
 }
 
 .hub-cap-league-spend {
-  min-height: var(--control-h-sm);
   padding: 0;
 }
 

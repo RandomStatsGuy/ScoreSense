@@ -2,7 +2,7 @@
 /**
  * Falsifiable layout craft checks for ScoreSense screens.
  *
- *   node scripts/dev/layout_audit.mjs <route> [--width 1280|390] [--json] [--gate type,selects]
+ *   node scripts/dev/layout_audit.mjs <route> [--width <css-pixels>] [--json] [--gate type,selects]
  *   node scripts/dev/layout_audit.mjs --all [--width 1280] [--json] [--gate type,selects,collisions,grids]
  *
  * Requires a running app at http://127.0.0.1:5173 and Playwright
@@ -84,7 +84,7 @@ export function parseArgs(argv) {
     else if (!tok.startsWith("-") && !args.route) args.route = tok;
   }
   if (![1280, 390].includes(args.width)) {
-    args.width = args.width <= 500 ? 390 : 1280;
+    if (!Number.isInteger(args.width) || args.width <= 0) throw new Error("width must be a positive integer");
   }
   return args;
 }
@@ -128,7 +128,7 @@ export function isAutoFillGridTemplate(specified) {
 }
 
 export function minTargetForWidth(width) {
-  return Number(width) === 390 ? 44 : 32;
+  return Number(width) <= 768 ? 44 : 32;
 }
 
 export function isNumericCellText(text) {
@@ -651,8 +651,8 @@ export function measureScript() {
       if (!table.el.getClientRects().length) return;
       // Phone card layouts have no shared column track to measure.
       if (table.el.tagName === "TABLE" && getComputedStyle(table.el).display !== "table") return;
-      const rows = table.rows.filter((row) => rowCells(row).length && !row.closest("tfoot"));
-      if (!rows.length) return;
+      const rows = table.rows.filter((row) => rowCells(row).length && !row.closest("tfoot") && !row.closest(".table-skeleton") && !row.matches(".table-skeleton-row") && !row.querySelector(".table-skeleton-cell"));
+      if (!rows.length || (table.label === "table" && !rows.some(row => row.querySelector("td")))) return;
       const colCount = Math.max(...rows.map((row) => rowCells(row).length));
       const expectAligns = [];
       for (let c = 0; c < colCount; c += 1) {
@@ -660,7 +660,8 @@ export function measureScript() {
         if (!cells.length) continue;
         const header = firstLine(cells[0]?.innerText || "");
         const bodyTexts = cells.slice(1).map((cell) => firstLine((cell.querySelector(".player-cell-name") || cell).innerText));
-        const glyph = bodyTexts.length && bodyTexts.every((t) => /^[A-Z]{1,3}$|^[QDP]$/.test(t));
+        const knownTexts = bodyTexts.filter(t => t && !/^[\u00b7\u2022\u2014\u2013-]$/.test(t));
+        const glyph = /^(pos|position)$/i.test(header) || (knownTexts.length && knownTexts.every(t => /^[A-Z]$|^(QB|RB|WR|TE|WR\/TE|DEF|DST|D\/ST)$/.test(t)));
         const action = /action/i.test(header) || (!table.el.matches(".rosters-table") && /actions|contract/i.test(cells[0]?.className || ""));
         const numeric = bodyTexts.filter((t) => t && isNumeric(t)).length;
         let expect = "left";
@@ -1071,28 +1072,32 @@ export function measureScript() {
   };
 }
 
-async function auditRoute(browser, route, width) {
-  const page = await browser.newPage({ viewport: { width, height: width === 390 ? 844 : 900 } });
+export async function auditRoute(browser, route, width, { base = BASE } = {}) {
+  const page = await browser.newPage();
+  await page.setViewportSize({ width, height: width <= 768 ? 844 : 900 });
   if (AUTH_TOKEN) {
     await page.addInitScript((token) => localStorage.setItem("scoresense_token", token), AUTH_TOKEN);
   }
-  const url = `${BASE}${route}`;
+  const url = `${base}${route}`;
   try {
-    await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
   } catch (err) {
     await page.close();
     return [{ rule: "load", ok: false, selector: route, detail: String(err).slice(0, 160) }];
   }
-  await page.waitForTimeout(600);
+  await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+  let ready = true;
   try {
     await page.waitForFunction(
       () =>
         Boolean(document.querySelector("main#main-content")) &&
-        !document.querySelector("[aria-busy='true'], .hub-loading-skeleton, .hub-insights-skeleton"),
+        !Array.from(document.querySelectorAll("[aria-busy='true'], .table-skeleton-cell, .hub-loading-skeleton, .hub-insights-skeleton"))
+          .some(el => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden"),
+      null,
       { timeout: 12000 },
     );
   } catch {
-    /* skeletons may persist on empty/error; still measure */
+    ready = false;
   }
   await page.waitForTimeout(400);
   const minTarget = minTargetForWidth(width);
@@ -1104,6 +1109,7 @@ async function auditRoute(browser, route, width) {
     columnPackRatio: COLUMN_PACK_RATIO,
     gutterSelectors: GUTTER_EDGE_SELECTORS,
   });
+  if (!ready) results.push({rule:"load",ok:false,selector:route,detail:"Page did not reach a main landmark without loading placeholders within 12 seconds"});
   const openMenuResults = await auditOpenMenus(page);
   results.push(...openMenuResults);
   results.push(...await auditLockerStability(page));
@@ -1322,16 +1328,18 @@ async function main() {
   } else if (args.route) {
     jobs = [args.route.startsWith("/") ? args.route : `/${args.route}`];
   } else {
-    console.error("usage: node scripts/dev/layout_audit.mjs <route|--all> [--width 1280|390] [--json] [--gate type,selects,...]");
+    console.error("usage: node scripts/dev/layout_audit.mjs <route|--all> [--width <css-pixels>] [--json] [--gate type,selects,...]");
     process.exit(2);
   }
 
   const { chromium } = await importPlaywright();
-  const browser = await chromium.launch({ headless: true });
+  const channel = process.env.PLAYWRIGHT_CHANNEL || (process.platform === "win32" ? "msedge" : undefined);
+  const browser = await chromium.launch({ headless: true, ...(channel ? {channel} : {}) });
+  const context = await browser.newContext();
   const report = [];
   try {
     for (const route of jobs) {
-      const results = await auditRoute(browser, route, args.width);
+      const results = await auditRoute(context, route, args.width);
       report.push({ route, width: args.width, results });
       if (!args.json) printTable(route, args.width, results);
     }

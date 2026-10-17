@@ -570,7 +570,7 @@ export default function WeeklyCommandCenter({
             subtitle={weekLabel + (meta.season != null ? ` · ${meta.season}` : "")}
             items={railItems}
             note={railNote}
-            action={openCall || pickerSlot ? null : primary.kind === "strip-sync" ? (
+            action={openCall || pickerSlot || emptyRoster || loadFailed ? null : primary.kind === "strip-sync" ? (
               <p className="hub-experience-summary-note">Use Sync league in the league strip.</p>
             ) : primary.kind && primary.kind !== "none" && primary.kind !== "wait" ? (
               <button
