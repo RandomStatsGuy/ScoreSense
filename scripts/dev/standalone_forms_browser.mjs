@@ -14,7 +14,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const dist = path.join(root, 'frontend/dist');
 const out = path.join(root, 'frontend/qa-dist/form-alignment');
 const base = process.env.LAYOUT_AUDIT_BASE || 'http://127.0.0.1:5173';
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, channel: process.platform === "win32" ? "msedge" : undefined });
 const reports = [];
 await fs.mkdir(out, { recursive: true });
 const scenarios = [
