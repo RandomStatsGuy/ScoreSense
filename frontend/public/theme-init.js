@@ -6,7 +6,7 @@
   const appearanceListeners = new Set();
   const listeners = new Set();
   const normalize = (value) => ["light", "system"].includes(value) ? value : "dark";
-  const themes = ["none", "cozy", "snow", "leaves", "footballs"];
+  const themes = ["none", "cozy", "snow", "leaves", "footballs", "kickoff", "redzone", "press"];
   const read = (name) => { try { return localStorage.getItem(name); } catch { return null; } };
   const normalizeAppearance = (value) => Object.freeze({
     ...(value && typeof value === "object" && !Array.isArray(value) ? value : {}),
@@ -18,10 +18,13 @@
   let appearance = parseAppearance(read(appearanceKey));
   const canvases = {
     none: { light: "#edf1f1", dark: "#070d17" },
-    cozy: { light: "#f4e5de", dark: "#241c2d" },
-    snow: { light: "#dceff5", dark: "#102645" },
-    leaves: { light: "#f4e0c9", dark: "#2f1b26" },
-    footballs: { light: "#eee4d6", dark: "#241e19" },
+    cozy: { light: "#f6e4dc", dark: "#1e1528" },
+    snow: { light: "#d8eef7", dark: "#0a1d36" },
+    leaves: { light: "#f5dec4", dark: "#241318" },
+    footballs: { light: "#efe5d4", dark: "#17120d" },
+    kickoff: { light: "#e1efe8", dark: "#081715" },
+    redzone: { light: "#f2e4e4", dark: "#1c0f13" },
+    press: { light: "#f0e8d8", dark: "#16151a" },
   };
   let current = "dark";
   function apply(value) {

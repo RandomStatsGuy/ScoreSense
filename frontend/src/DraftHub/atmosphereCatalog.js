@@ -1,4 +1,4 @@
-export const ATMOSPHERE_THEMES = ["none", "snow", "leaves", "footballs", "cozy"];
+export const ATMOSPHERE_THEMES = ["none", "snow", "leaves", "footballs", "cozy", "kickoff", "redzone", "press"];
 export const ATMOSPHERE_INTENSITIES = ["subtle", "standard", "lively"];
 export const PHOTO_PRESETS = ["gridiron", "tunnel", "night", "turf", "storm", "locker_lights"];
 export const BANNER_PRESETS = ["navy_stripe", "teal_fade", "amber_edge", "home_white", "away_slate", "championship"];
@@ -44,8 +44,11 @@ export const ATMOSPHERE_COPY = {
   none: { title: "Classic", support: "The original ScoreSense palette." },
   snow: { title: "Snowfall", support: "Icy blue, falling flakes, and soft snowbanks." },
   leaves: { title: "Autumn", support: "Copper, rust, and tumbling leaves." },
-  footballs: { title: "Footballs", support: "Soft footballs drifting in the background." },
+  footballs: { title: "Footballs", support: "Marshawn #24, Skittles, and game-day gold." },
   cozy: { title: "Cozy den", support: "Lamplight, drifting yarn and toys, and ragdolls on their cat trees." },
+  kickoff: { title: "Prime time", support: "Stadium floodlights, turf emerald, and sideline flags." },
+  redzone: { title: "Red zone", support: "High-stakes crimson, chalk, and 1st-down markers." },
+  press: { title: "Press box", support: "Broadsheet newsprint, espresso ink, and editorial brass." },
 };
 
 /** Copy for the tailoring controls under the theme picker. */

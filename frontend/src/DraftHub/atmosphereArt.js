@@ -27,7 +27,7 @@ export function intensityPreset(intensity) {
 }
 
 /** Theme-level size multipliers (leaves/footballs read poorly at snow sizes). */
-const THEME_SIZE_MUL = { snow: 1.05, leaves: 1.4, footballs: 2.15, cozy: 1.35 };
+const THEME_SIZE_MUL = { snow: 1.05, leaves: 1.4, footballs: 2.15, cozy: 1.35, kickoff: 1.5, redzone: 2.0, press: 1.45 };
 
 /** Autumn palette: [bodyTop, bodyBottom] gradient stops per leaf. */
 export const LEAF_COLORS = [
