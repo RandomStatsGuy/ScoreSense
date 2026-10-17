@@ -36,6 +36,10 @@ try {
   assert.ok((await measure()).some(row => row.rule === "tables" && !row.ok && row.detail.includes("align≠right")), "a real numeric misalignment still fails");
   await page.locator("#grouped tbody tr").first().locator("td").nth(1).evaluate(el => { el.style.textAlign = "right"; el.classList.add("wide"); });
   assert.ok((await measure()).some(row => row.rule === "tables" && !row.ok && row.detail.includes("content")), "a real overwide numeric column still fails");
+  await page.setContent('<div id="background" inert><button class="btn-primary">Background action</button></div><div role="dialog" aria-modal="true"><button class="btn-primary">Confirm action</button></div>');
+  assert.equal((await measure()).some(row=>row.rule==="primaries"&&!row.ok),false,"Inert background actions do not compete with the active dialog");
+  await page.locator("#background").evaluate(el=>{el.inert=false;});
+  assert.equal((await measure()).some(row=>row.rule==="primaries"&&!row.ok),true,"Two actionable primaries still fail");
   let pending, measuredWidth;
   const context=await browser.newContext();
   await context.route("http://127.0.0.1:5173/**", async route=>{

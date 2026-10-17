@@ -8246,7 +8246,7 @@ td.col-rank.col-rank-top {
   .header-context-control,
   .app-header-context-filters .header-select.header-context-control,
   .app-header-context-filters .team-filter-btn.header-context-control {
-    min-height: 2.25rem;
+    min-height: var(--touch-target);
     padding: 0.38rem 0.55rem;
     font-size: 0.76rem;
   }
@@ -8284,6 +8284,8 @@ td.col-rank.col-rank-top {
   }
 
   .app-mobile-sheet {
+    scroll-padding-block-start: calc(var(--sheet-header-block-size, 0px) + var(--space-1));
+    scroll-padding-block-end: calc(var(--sheet-footer-block-size, 0px) + var(--space-1));
     width: 100%;
     max-width: 28rem;
     max-height: min(78dvh, 32rem);
@@ -11089,6 +11091,7 @@ td.col-rank.col-rank-top {
 .btn-primary {
   border: 1px solid transparent;
   background: #4f7fda;
+  color: var(--theme-on-accent, var(--bg-base));
   box-shadow: none;
 }
 
@@ -12095,3 +12098,7 @@ th.sortable-header {
 
 /* This Week pointer card */
 
+
+@media (prefers-reduced-motion: reduce) {
+  .app-mobile-sheet { animation: none; }
+}

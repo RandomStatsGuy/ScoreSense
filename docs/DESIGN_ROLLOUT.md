@@ -4,6 +4,20 @@ October 16, 2026 · execution record · `codex/design-rollout` from `develop` (`
 
 [PRODUCT.md](./PRODUCT.md) is the design authority. This record tracks the user's full-page rollout request, page briefs, demonstrated changes, and evidence. Existing approved designs carry forward. A queue entry is not a claim that a page has a defect or has passed review. Delivery uses an isolated branch from current `develop`. The original working checkout and its unrelated edits remain intact; only this task's remaining changes were ported. Earlier local-review evidence is historical and is distinguished below from checks on this branch.
 
+## Overall completion status
+
+The original project has two parts: strengthen the AI design instruction system, then inspect and improve the full page inventory against it. The implementation pass is merged; final acceptance remains open. The 45-surface source/brief queue and initial working-snapshot review do not establish current visual/task completion for every page. Status reports should use this whole-project scope and the evidence boundaries below.
+
+| Original workstream | Current state | Remaining acceptance work |
+|---|---|---|
+| AI design guidance and workflow | Rules, skills, PRODUCT, agent routing and documentation changes merged in #765 | Three fresh Cursor activation probes: conceptual Trades, attached Trades source, backend-only task |
+| Full page inventory and initial review | 45 surfaces mapped and briefed; initial page-family review complete | Reconcile current-page evidence where it is still historical or only machine checked |
+| Implementation and focused follow-ups | #765, #767, #769 and #771 merged; preserve approved designs and fix demonstrated friction | Confirm and address findings from the remaining acceptance checks |
+| Current visual and task evidence | Named Trades, standalone/entry, Appearance, DFS, draft-room and draft-tools checks recorded below | Complete remaining relevant page/state, keyboard, contrast/reflow, host/role and read-only live-route checks; inspect the remaining captures explicitly |
+| Final project closeout | Open | Reconcile this acceptance checklist against the original request, report unresolved evidence and complete the authorized delivery process |
+
+Field Core Web Vitals remain future measurement targets from the plan. Neither their target values nor fixture timing should be reported as measured production performance.
+
 ## Responsibilities and instruction routing
 
 | Owner | Responsibility |
@@ -256,3 +270,36 @@ Observed and fixed:
 Inspected current synthetic captures: [Strategy desktop auction](./reviews/draft-tools/strategy-desktop-light.png), [Strategy phone snake](./reviews/draft-tools/strategy-phone-dark.png), [Strategy phone queue source](./reviews/draft-tools/strategy-rankings-phone-dark.png), [Mock desktop retained launch](./reviews/draft-tools/mock-desktop-dark.png), [Mock phone retained launch](./reviews/draft-tools/mock-phone-light.png), [Best ball desktop](./reviews/draft-tools/bestball-desktop-dark.png), and [Best ball phone](./reviews/draft-tools/bestball-phone-light.png). The phone Best ball table intentionally scrolls within its own container. Remote player/team artwork is blocked; those captures show missing-image fallbacks. Raw reports, captures, before-failure evidence and logs stay in `outputs/draft-tools-review/`.
 
 Boundaries: no real account, league, provider, draft or focus write; no production test or deploy. This batch does not certify real authenticated routes, live network/server concurrency, account switching, linear drafts, successful launch/simulation, artwork delivery, field performance, or complete contrast/zoom/assistive-technology coverage. Other product pages were not rerun; the existing draft-room fixture received only its three rejection regressions. Next work should address the remaining live-route and accessibility evidence gaps, with fresh Cursor rule-activation probes still manual.
+
+
+## Follow-up: navigation accessibility and deployed routes
+
+Task: continue after merged #771/release #772 with navigation keyboard, contrast and reflow evidence. Preserve the approved flat desktop product/destination rows and compact phone header, destination sheets and bottom navigation. Attention order is current product/destination, reachable navigation choices, then account/secondary actions. Read-only browser inspection of deployed Weekly, Best ball and Fantasy succeeded; prior terminal TLS failures do not establish browser availability.
+
+Observed friction: at a 390×360 CSS viewport on the deployed site, reverse Tab in More moves Account settings and Log out behind the sheet's sticky header. Forward focus stays trapped and Escape returns correctly. Bounded change: give the shared MobileBottomSheet scroll container clearance for its actual header height, including resized/wrapped titles, without changing approved composition. Add a reusable current-App fixture with intercepted account/league data, exercise route changes and all shared sheet consumers, inspect both themes/320px reflow and 200% text resizing, and measure named navigation text/focus contrast. Preserve existing focus containment, nested dialogs, rotation cleanup, selection, private queues and league focus; no real league/account writes or deployment.
+
+
+Observed and fixed in this follow-up:
+
+- Short-phone reverse Tab put More actions behind the sticky heading. The source fixture reproduced the deployed failure before the change. MobileBottomSheet measures its grip/header and any explicitly marked sticky footer, observes size changes and supplies native scroll padding. Contract history's Save/Cancel footer opts into that clearance; its previously covered text fields remain visible as focus moves in both directions. Phone contract text fields use the existing target-height token.
+- Closing Notification settings after opening it from the desktop account menu returned focus to the body because its menu-item trigger had unmounted. Focus the persistent account trigger before opening the dialog. The isolated regression failed on the original code and passes after the fix; the same failure was observed on the deployed site. Phone More-to-settings return also passes.
+- Projection Compare, preseason board filters and the filter-sheet team control could retain 32/36px desktop sizing on phone. Update their owning responsive rules to the shared target height, covering Weekly and both season modes. No new page layout or token.
+- Classic dark filled buttons and Strategy's selected queue-source control used white text on blue. Reuse the existing foreground role with the canvas ink fallback, preserving light and Appearance palettes. The tested Classic action improves from **3.90:1 to 4.99:1**. Default/hover checks cover Classic, Cozy den, Snowfall, Autumn and Footballs in both modes.
+- The layout audit counted a modal's inert background primary as actionable competition. Ignore inert descendants for this rule. Real-DOM regression checks retain the failure for two actionable primaries. Sheet entry animation now respects reduced motion.
+- Added an overall acceptance checklist near the top of this record. The merged implementation/initial review and incomplete whole-project acceptance are explicitly distinct.
+
+| Follow-up gate | Result / actual scope |
+|---|---|
+| Frontend unit gate | **1,344 PASS**; explicitly enumerated test files plus layout-audit unit tests. Final source-style subset: **12 PASS**. Existing Windows directory-argument limitation remains. |
+| Targeted Python | **37 PASS**: living surfaces and product constitution, isolated temp paths. Backend source unchanged; full backend ready gate not repeated for this draft. |
+| Production frontend build | **PASS**; existing large-chunk warning remains. |
+| Current-App browser | `navigation_accessibility_browser.mjs`: **56 scenarios PASS**, **60 layout audits PASS**. Actual App/BrowserRouter with intercepted synthetic reads and rejected writes; direct production sheet consumers where appropriate. Weekly, preseason/live-season defaults, Fantasy Home and Best ball at 1280/1024/390 in both themes. |
+| Sheet tasks | Forward/reverse Tab, visible focused targets, Escape/return, inert background, rotation cleanup, wrapped contract headers, nested menu-to-notification return, projection filters/player inspector, history editor and replacement confirmation. All seven MobileBottomSheet consumer types are exercised. Imports, contract saves and notification preferences are not submitted. |
+| Reflow and contrast | More at 320/390×360 with normal and **200% root text size**, both themes; it scrolls without losing any menu action. This is text resizing, not a browser zoom test. **524 measured navigation/focus samples** pass their applicable thresholds, plus **20 palette/default-hover states**. The checker resolves computed colors/gradient stops for the named controls; it is not a whole-page contrast or WCAG assessment. |
+| Route tasks | Four desktop/phone, light/dark journeys select Mock, visit Season, restore Mock through Tools, then return through browser Back and reload. Remembered destination and one main landmark persist; every fixture request remains GET/HEAD. Season fixtures provide matching preseason/live metadata; conflicting-default explicit-link retention remains an open route check. |
+| Existing regressions | Layout-audit real DOM **PASS**, including inert-background and genuine competing-primary cases. Draft tools: **42 scenarios / 46 audits PASS**. Draft room: **3 rejection scenarios PASS**. These retain their earlier documented scopes. |
+| Read-only deployed inspection | Weekly projections, Best ball and Fantasy Home loaded in the app browser. Account menu and phone destination containment/return worked; short More and desktop notification-return failures were reproduced. No forms, league switch, account change or deployment action was performed. Changed code is verified locally and has not been deployed by this task. |
+
+Inspected synthetic captures: [desktop focus return](./reviews/navigation-accessibility/account-focus-desktop-dark.png), [320px doubled-text More](./reviews/navigation-accessibility/more-text-size-light.png), [phone projection filters](./reviews/navigation-accessibility/filters-phone-light.png), [phone player inspector](./reviews/navigation-accessibility/player-phone-dark.png), [phone contract editor](./reviews/navigation-accessibility/contracts-phone-dark.png), [laptop preseason board](./reviews/navigation-accessibility/preseason-laptop-light.png), [desktop Fantasy](./reviews/navigation-accessibility/fantasy-desktop-light.png) and [phone Fantasy More](./reviews/navigation-accessibility/fantasy-more-phone-dark.png). Artwork requests are blocked in fixtures. Reports, before-failure evidence and remaining captures stay in `outputs/navigation-accessibility/`.
+
+Whole-project acceptance remains open: finish the remaining current-page visual/task evidence, relevant host/role and failure variants, broader contrast/zoom/assistive-technology checks and additional live journeys; perform the three fresh Cursor rule-activation probes. The single-player fixture also exposes existing singular-count copy on ranking boards for a later copy pass. Full backend merge gates and field-performance measurements are not claimed by this draft. The instruction system and 45-surface initial pass are implemented; this follow-up closes named verification gaps without certifying every page/state.

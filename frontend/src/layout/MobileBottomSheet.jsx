@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import useMobileLayout from "../useMobileLayout";
 import useModalFocus from "../ui/useModalFocus";
@@ -16,7 +16,30 @@ export default function MobileBottomSheet({
 }) {
   const sheetRef = useRef(null);
   const dragStartY = useRef(null);
+  const gripRef = useRef(null);
   const mobileLayout = useMobileLayout();
+
+  // Native keyboard scrolling must leave room for sticky sheet chrome.
+  // Measure it so wrapped titles and text resizing retain the same clearance.
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    const grip = gripRef.current;
+    if (!open || !mobileLayout || !sheet || !grip) return undefined;
+    const footer = sheet.querySelector("[data-sheet-sticky-footer]");
+    const measure = () => {
+      sheet.style.setProperty("--sheet-header-block-size", `${grip.offsetHeight}px`);
+      sheet.style.setProperty("--sheet-footer-block-size", `${footer?.offsetHeight || 0}px`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grip);
+    if (footer) observer.observe(footer);
+    return () => {
+      observer.disconnect();
+      sheet.style.removeProperty("--sheet-header-block-size");
+      sheet.style.removeProperty("--sheet-footer-block-size");
+    };
+  }, [open, mobileLayout]);
 
   // A hidden sheet after rotation must not keep the page locked.
   useModalFocus(open && mobileLayout, sheetRef, onClose);
@@ -64,6 +87,7 @@ export default function MobileBottomSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <div
+          ref={gripRef}
           className="app-mobile-sheet-grip"
           onTouchStart={onDragStart}
           onTouchMove={onDragMove}

@@ -4863,6 +4863,10 @@
   grid-template-columns: 1fr;
 }
 
+.hub-contract-edit--mobile input.search-input {
+  min-height: var(--touch-target);
+}
+
 .hub-contract-edit--mobile .hub-contract-edit-actions {
   position: sticky;
   bottom: 0;

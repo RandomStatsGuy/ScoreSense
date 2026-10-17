@@ -157,7 +157,7 @@ export default function UserMenu({
           <button type="button" role="menuitem" className="user-menu-item" onClick={run(onAccount)}>
             Account settings
           </button>
-          <NotificationSettingsAction role="menuitem" className="user-menu-item" onBeforeOpen={()=>setOpen(false)} />
+          <NotificationSettingsAction role="menuitem" className="user-menu-item" onBeforeOpen={()=>{setOpen(false);triggerRef.current?.focus();}} />
           <button type="button" role="menuitem" className="user-menu-item" onClick={run(onGoToReport)}>
             Report a bug
           </button>
