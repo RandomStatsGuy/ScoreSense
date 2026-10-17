@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../auth";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { parseApiError } from "../format";
 import { HubPage, HubFilterMenu, HubAlert, HubLoadingSkeleton } from "./HubUILayout";
 import { leagueUsesSalaries } from "./leagueCapabilities";
@@ -25,7 +26,7 @@ export default function CapPlanner({
   acquisitionWindow,
   onOpenContractHistory
 }) {
-  const scope = `${hubContext?.league_id || workspace?.id || "solo"}:${hubContext?.team_id || ""}`;
+  const scope = `${hubContext?.league_id || workspace?.id || "solo"}:${hubContext?.team_id || ""}:${workspace?.season || hubContext?.season || ""}`;
   return <CapPlannerView key={scope} {...{
     capSheet,
     roster,
@@ -96,6 +97,13 @@ function CapPlannerView({
   const triggerRefs = useRef({});
   const aroundRef = useRef(null);
   const headingRef = useRef(null);
+  const actionScope = `${leagueId}:${ownId}:${workspace?.season || ""}:${hubContext?.readonly === true}:${draftCompleted}:${leagueUsesSalaries(hubContext)}`;
+  const captureAction = useAsyncActionScope(actionScope);
+  useEffect(() => {
+    setCutBusyId("");
+    setExtendBusy(false);
+    setMsg("");
+  }, [actionScope]);
   const controller = useRef(null);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
@@ -175,6 +183,7 @@ function CapPlannerView({
   const cutAndHandoff = async () => {
     if (!cutPreview || cutPreview.is_cut || cutBusyId) return;
     if (!own || offset !== 0 || !canWrite) return;
+    const isCurrent = captureAction();
     const ok = await confirmDialog({
       title: CAP_CUT_COPY.confirmTitle(cutPreview.player_name),
       message: capCutConfirmCopy(cutPreview),
@@ -182,7 +191,7 @@ function CapPlannerView({
       cancelLabel: CAP_CUT_COPY.keep,
       danger: true
     });
-    if (!ok) return;
+    if (!ok || !isCurrent()) return;
     setCutBusyId(String(cutPreview.player_id));
     setMsg("");
     try {
@@ -197,6 +206,7 @@ function CapPlannerView({
         })
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      if (!isCurrent()) return;
       setMsg(C.cutSaved);
       setCutId("");
       onChanged?.();
@@ -205,13 +215,14 @@ function CapPlannerView({
         pos: cutPreview.funded_position || undefined
       });
     } catch (e) {
-      setMsg(e.message || C.errorCut);
+      if (isCurrent()) setMsg(e.message || C.errorCut);
     } finally {
-      setCutBusyId("");
+      if (isCurrent()) setCutBusyId("");
     }
   };
   const undoCut = async playerId => {
     if (!own || !canWrite) return;
+    const isCurrent = captureAction();
     setCutBusyId(String(playerId));
     setMsg("");
     try {
@@ -226,11 +237,12 @@ function CapPlannerView({
         })
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+      if (!isCurrent()) return;
       onChanged?.();
     } catch (e) {
-      setMsg(e.message || C.errorUndo);
+      if (isCurrent()) setMsg(e.message || C.errorUndo);
     } finally {
-      setCutBusyId("");
+      if (isCurrent()) setCutBusyId("");
     }
   };
   const saveExtension = async row => {
@@ -238,29 +250,33 @@ function CapPlannerView({
       draftCompleted,
       rules
     }).ok) return;
+    const isCurrent = captureAction();
     setExtendBusy(true);
     setMsg("");
     try {
       const data = await postRookieExtend(row.player_id, chosenPlans[row.player_id], rules?.contracts?.max_years);
+      if (!isCurrent()) return;
       chooseYears(row, 0);
       setMsg(rookieExtendSuccessMessage(data));
       onChanged?.();
     } catch (e) {
-      setMsg(e.message);
+      if (isCurrent()) setMsg(e.message);
     } finally {
-      setExtendBusy(false);
+      if (isCurrent()) setExtendBusy(false);
     }
   };
   const undoExtension = async id => {
     if (!own || !canWrite) return;
+    const isCurrent = captureAction();
     setExtendBusy(true);
     try {
       await cancelRookieExtend(id);
+      if (!isCurrent()) return;
       onChanged?.();
     } catch (e) {
-      setMsg(e.message);
+      if (isCurrent()) setMsg(e.message);
     } finally {
-      setExtendBusy(false);
+      if (isCurrent()) setExtendBusy(false);
     }
   };
   const canWrite = (!leagueId || Boolean(hubContext?.team_id)) && hubContext?.readonly !== true;
