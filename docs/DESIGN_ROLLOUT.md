@@ -165,8 +165,33 @@ Those results belong to that mixed snapshot on `codex/dfs-matchup-weights`; they
 ## Verification boundaries and delivery
 
 - The source/brief queue covers all 45 registry entries, including compatibility and overlays. A registry entry is not proof of every role, phase, data source or hidden state. Browser checks name their actual routes and fixture variants.
-- The older full DFS workflow harness targets superseded disclosures/export controls; it remains upstream unchanged and did not complete on this branch. Current large-import checks above passed; historical export evidence above is not current-branch evidence.
+- The older full DFS workflow harness did not complete on #765 because it targeted superseded disclosures/export controls. The follow-up below replaces that harness and records current export evidence separately. Historical working-snapshot evidence remains historical.
 - Synthetic fixtures establish the named populated/permission states. Real Cap cut/extension writes, admin mutations, live imports/publication, enrollment, recovery email and production league writes are unexercised. No deployment is part of this rollout.
 - This is not WCAG conformance or field-performance certification. Shared targets, labels, landmarks, selected keyboard/modal tasks and theme renders were checked. Full assistive-technology, contrast and zoom/reflow review and field Core Web Vitals measurement remain separate.
 - Three fresh Cursor-chat probes remain manual: conceptual Trades planning without an attached file, a `LeagueTrades.jsx`-attached edit, and a backend-only task. Source/frontmatter/path tests cannot establish actual Cursor rule activation.
 - Delivery began as a scoped draft PR against `develop`. The user subsequently authorized review, fixes and merge after passing checks. The full local gate above passed; remote CI and review must also pass before merging. Release remains outside this task. The original checkout's unrelated work is preserved.
+
+
+## Follow-up: current DFS workflow verification
+
+Task: close the current guided-flow coverage gap after release of #765. Approved baseline is Tools / DFS, Build / Review / Download, followed by the shared Results dashboard. Attention order is build inputs, the actual reviewed set, the exact entry-update file, then descriptive results. The old full-workflow checker stops at controls now inside closed disclosures and uses superseded export and ledger selectors; that is a demonstrated verification gap, not evidence of a visual defect.
+
+Bounded change: use the existing isolated DFS fixture runtime, current disclosures and accessible actions, and explicit synthetic access/status/history responses. Verify both file paths, metadata and untouched reservations, original build inputs, pre-lock/access/status blockers, recovery after failed history sync, and idempotent Results imports at desktop and phone widths in both themes. Preserve the approved layout, original forecasts, export guards, account boundaries and unconfirmed platform acceptance. No live account, contest, provider upload or league write is part of these checks. The results below belong to the follow-up branch based on the merged #765 release.
+
+
+The current workflow exposed a product defect: `useDfsBuilder` discarded the weekly schedule for Captain formats. Consequently, a Showdown build recorded no known kickoffs and its pre-lock check could not enforce a scheduled start. Captain formats now fetch and retain the existing schedule readout while keeping game weighting disabled. Original build schedules remain frozen; unavailable schedule data still stays explicitly unknown, and platform acceptance remains unconfirmed.
+
+| Follow-up gate | Result / actual scope |
+|---|---|
+| Frontend unit gate | **1,344 PASS**, zero failures: explicitly enumerated `frontend/src/**/*.test.js`, `*.test.mjs` and layout-audit unit tests. Uses the equivalent file list because the existing Windows Node 24 directory argument fails. |
+| Targeted backend contracts | **68 PASS**: API lineup, DFS results, Vegas schedule, product constitution and living surfaces. Provider calls mocked; isolated temp paths. Backend source unchanged; full backend ready gate not repeated for this draft. |
+| Production frontend build | **PASS**; existing large-chunk warning remains. |
+| Guided Showdown workflow | `node scripts/dev/verify_dfs_workflows.mjs`: **4 full scenarios PASS** at 1280/390 in light/dark. Current user-operated disclosures, keyboard stage/entry selection, imported Captain input multiplied once, two distinct reviewed rosters, saved original settings, both CSV paths and postgame notes. |
+| Export and Results contracts | Both download paths preserve reviewed roster IDs. Reserved-entry metadata, leading-zero entry/contest IDs and an unrelated reservation stay intact. Failed optional history sync requires explicit recovery; revoked access blocks recovery; retry downloads identical sealed bytes. Re-import updates the same ledger identity, retaining the saved build link. Exact fixture totals: $605 settled fees, $730 payouts, $125 net, 20.7% ROI. |
+| Guard states | **10 scenarios PASS**: loading, empty, error, read-only and known-started at both widths in light theme. The controlled clock advances beyond the frozen kickoff: My Lineups CSV is blocked and reserved-entry download stays disabled. Fresh unavailable-player status and revoked access are also exercised in every full workflow. |
+| Component layout | **16 audits PASS**: Build, Review, Download and Results at both widths in both themes. No horizontal overflow, runtime errors or unexpected external requests. Reduced motion enabled. These are isolated production-component fixtures, not live-route verification or accessibility certification. |
+| Existing Classic regression | `dfs_flow_tasks.mjs --smoke`: **PASS** at 390 dark, including closed disclosures, exposure conflict, guided build/review/download, sealed CSV and worker backup recovery. |
+
+Inspected synthetic captures: [phone Download](./reviews/dfs-workflow/download-390-light.png), [desktop dark Review](./reviews/dfs-workflow/review-1280-dark.png), [phone Results summary](./reviews/dfs-workflow/results-390-dark-top.png), and [phone selected-entry review](./reviews/dfs-workflow/results-390-dark-selected.png). Raw reports and logs stay in `outputs/dfs-guided-workflows/`.
+
+Production health could not be confirmed: read-only health/version requests failed at TLS connection setup on this host, and the web fetch was unavailable. No production test or mutation ran. Real authenticated app routes, FanDuel variants, other product pages, full assistive-technology/contrast/zoom review, field performance and the three manual Cursor activation probes were not checked in this follow-up. The next batch should address those evidence gaps in scope; this draft does not certify them.

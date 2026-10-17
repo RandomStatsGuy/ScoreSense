@@ -54,6 +54,9 @@ let entries = Array.from({ length: 120 }, (_, i) => ({
 let builds = [];
 const mode = new URLSearchParams(location.search).get("state");
 window.__dfsPoolReads = 0;
+window.__dfsExportAccessChecks = 0;
+window.__dfsHistorySyncs = 0;
+window.__dfsLedger = () => ({ entries, builds });
 if (mode === "empty") entries = [];
 function fixturePlayers(site) {
   const single = /showdown|fanduel_single/.test(site || "");
@@ -69,7 +72,7 @@ function fixturePlayers(site) {
             ] : []),
           ].map((p, i) => {
     const salary = mode === "coverage" && !single ? Math.round(p.salary * 0.7 / 100) * 100 : p.salary;
-    return { dfs_id: String(400 + i), cpt_dfs_id: String(1400 + i), ...p, salary, cpt_salary: salary * 1.5 };
+    return { dfs_id: String(400 + i), cpt_dfs_id: String(1400 + i), ...p, salary, cpt_salary: salary * 1.5, ...(p.player_id === window.__dfsUnavailableId ? { "Injury Status": "Out" } : {}) };
   });
 }
 const nativeFetch = window.fetch.bind(window);
@@ -87,6 +90,10 @@ window.fetch = async (url, options = {}) => {
         headers: { "Content-Type": "application/json" },
       }),
     );
+  if (new URL(u, location.origin).pathname === "/api/lineup/export-access") {
+    window.__dfsExportAccessChecks++;
+    return respond({ allowed: mode !== "readonly" && !window.__dfsAccessDenied });
+  }
   if (u.includes("/formats")) return respond({ formats: DEFAULT_FORMATS });
   if (u.includes("/slates?"))
     return respond({
@@ -117,7 +124,7 @@ window.fetch = async (url, options = {}) => {
         });
   }
   if (u.includes("/vegas?")) return respond({ games: [
-    { game_id: "sf-la", away: "SF", home: "LAR", total_line: 49.5, spread_line: 2.5, away_implied: 23.5, home_implied: 26, first_seen_total_line: 47.5, first_seen_spread_line: 1.5, weekday: "Sunday", kickoff_et: "2026-09-27T16:25:00-04:00" },
+    { game_id: "sf-la", away: "SF", home: "LAR", total_line: 49.5, spread_line: 2.5, away_implied: 23.5, home_implied: 26, first_seen_total_line: 47.5, first_seen_spread_line: 1.5, weekday: "Sunday", kickoff_et: mode === "workflow" ? new Date(Date.now() + 86400000).toISOString() : "2026-09-27T16:25:00-04:00" },
     { game_id: "buf-kc", away: "BUF", home: "KC", total_line: 48, spread_line: -1, away_implied: 24.5, home_implied: 23.5, first_seen_total_line: 49, first_seen_spread_line: 1, weekday: "Sunday", kickoff_et: "2026-09-27T16:25:00-04:00" },
     { game_id: "nyj-mia", away: "NYJ", home: "MIA", total_line: 41.5, spread_line: 3.5, away_implied: 19, home_implied: 22.5, first_seen_total_line: null, first_seen_spread_line: null, weekday: "Sunday", kickoff_et: "2026-09-27T13:00:00-04:00" },
   ] });
@@ -170,14 +177,29 @@ window.fetch = async (url, options = {}) => {
         },
       });
     }
+    // The workflow scenario uses two distinct, legal rosters and the actual
+    // imported inputs. Other preview scenarios retain their existing response.
+    const lineupRows = mode === "workflow" ? [rows, rows.map(row => row.player_id === "p4" ? {
+      ...row, player_id: "p6", player: pool[6].Player, team: pool[6].Team, position: pool[6].Position,
+      dfs_id: pool[6].dfs_id, salary: pool[6].salary, proj: pool[6]["Projected Points"],
+      floor: pool[6]["Low (P10)"], ceiling: pool[6]["High (P90)"],
+    } : row)].map(roster => roster.map(row => {
+      const override = body.projection_overrides?.[row.player_id];
+      const multiplier = row.slot === "CPT" ? 1.5 : 1;
+      return override ? { ...row, proj: override.proj * multiplier, floor: override.floor * multiplier,
+        ceiling: override.ceiling * multiplier } : row;
+    })) : [rows];
+    if (mode === "workflow" && body.lineup_count !== 2) return respond({ detail: "The workflow fixture supplies exactly two legal lineups." }, 422);
     return respond({
       ok: true,
       build_snapshot: { id: "fixture-snapshot", captured_at: "2026-09-28T12:00:00Z", content: { schema_version: "fixture" } },
-      lineups: Array.from({ length: body.lineup_count }, () => ({
+      lineups: Array.from({ length: body.lineup_count }, (_, index) => {
+        const rows = lineupRows[index % lineupRows.length];
+        return {
         lineup: rows,
         total_salary: rows.reduce((sum, p) => sum + p.salary, 0),
         total_points: rows.reduce((sum, p) => sum + p.proj, 0),
-      })),
+      }; }),
     });
   }
   if (u.endsWith("/builds")) {
@@ -191,6 +213,8 @@ window.fetch = async (url, options = {}) => {
     return respond(build);
   }
   if (new URL(u, location.origin).pathname.endsWith("/results/import")) {
+    window.__dfsHistorySyncs++;
+    if (window.__dfsHistorySyncFailure) return respond({ detail: "Synthetic history service interruption." }, 503);
     for (const r of body.entries) {
       const i = entries.findIndex(
         (e) =>
