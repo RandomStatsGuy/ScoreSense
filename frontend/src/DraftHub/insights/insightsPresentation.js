@@ -191,7 +191,13 @@ export function gapFromLeader(value, leader, digits = 1) {
   return Math.round((top - v) * (10 ** digits)) / (10 ** digits);
 }
 
+export function hasRecordedPoints(value) {
+  return (typeof value === "number" || typeof value === "string" && value.trim() !== "")
+    && Number.isFinite(Number(value));
+}
+
 export function formatPoints(value) {
+  if (!hasRecordedPoints(value)) return "—";
   const n = Number(value);
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString("en-US", { maximumFractionDigits: 1 });
@@ -530,6 +536,11 @@ export const INSIGHTS_COPY = {
     linkedSource: "Sleeper",
   },
   history: {
+    refreshing: "Refreshing player history…",
+    linkForStaff: "Link your Sleeper league in Access & imports to add season-by-season ownership.",
+    linkForMember: "A commissioner can link Sleeper in Access & imports to add season-by-season ownership.",
+    linkRequired: "Link Sleeper in Access & imports to load season history.",
+    search: "Search player history", loading: "Loading saved player history…", unavailable: "Saved player history unavailable", retry: "Retry saved history",
     eyebrow: "History",
     heading: "Player contract history",
     support: "Review a player's teams, salaries, and contract changes by season.",

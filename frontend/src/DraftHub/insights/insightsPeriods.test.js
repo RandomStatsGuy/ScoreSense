@@ -23,3 +23,20 @@ test("contract return sums costs and points before dividing; zero counts, missin
   assert.equal(ranks.worst[0].deal_id, "zero");
   assert.equal(contractRanks(ranks.best, [2022]).count, 0);
 });
+
+
+test("a selected period retains missing production without ranking it as zero", () => {
+  const out = landingForPeriod({seasons:[2025],season_summaries:[{season:2025,standings:[{owner_id:"missing",wins:2,losses:1,ties:0,total_points:null,weeks_scored:0},{owner_id:"zero",wins:0,losses:1,ties:0,total_points:0,weeks_scored:1}]}]}, {mode:"range",from:2025,through:2025});
+  assert.equal(out.record_leaders.find(r=>r.owner_id==="missing").total_points,null);
+  assert.deepEqual(out.scoring_leaders.map(r=>r.owner_id),["zero"]);
+});
+
+
+test("partial production does not dilute a recorded average with unknown points", () => {
+  const standing=(total_points,weeks_scored)=>({owner_id:"one",wins:1,losses:0,ties:0,total_points,weeks_scored});
+  const out=landingForPeriod({seasons:[2024,2025],season_summaries:[{season:2024,standings:[standing(100,1)]},{season:2025,standings:[standing(null,10)]}]},{mode:"last3"});
+  assert.equal(out.scoring_leaders[0].total_points,100);
+  assert.equal(out.scoring_leaders[0].weeks_scored,1);
+  assert.equal(out.scoring_leaders[0].avg_points,100);
+  assert.equal(out.partial,true);
+});

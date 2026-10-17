@@ -1,13 +1,16 @@
+import { hasRecordedPoints, INSIGHTS_COPY } from "./insights/insightsPresentation.js";
+
 /**
  * Insights empty-state + History refresh affordance helpers (SCORE-20).
  */
 
-/** True when scoring payload has at least one non-zero scored point. */
+/** Recorded zero and negative scores count; an unplayed roster shell does not. */
 export function hasScoredFantasyPoints(scoring) {
   if (!scoring?.available) return false;
-  if ((scoring.standings || []).some((t) => Number(t.total_points) > 0)) return true;
+  if ((scoring.standings || []).some(t => hasRecordedPoints(t.total_points)
+    && (Number(t.weeks_scored) > 0 || Number(t.total_points) !== 0))) return true;
   return (scoring.weeks || []).some((wk) =>
-    (wk.teams || []).some((t) => Number(t.points) > 0),
+    (wk.teams || []).some(t => hasRecordedPoints(t.points)),
   );
 }
 
@@ -57,11 +60,12 @@ export function ownershipRefreshAffordance(ownership, hubContext = {}) {
   if (!linked) {
     const showHint = rawHint && !asksRefresh
       ? rawHint
-      : "Link your Sleeper league in Setup to pull season-by-season ownership.";
+      : hubContext.is_commissioner && !hubContext.readonly
+        ? INSIGHTS_COPY.history.linkForStaff : INSIGHTS_COPY.history.linkForMember;
     return {
       canRefresh: false,
       emphasize: false,
-      disabledReason: "Link Sleeper in Setup to load season history.",
+      disabledReason: INSIGHTS_COPY.history.linkRequired,
       showHint,
       buttonLabel: "Refresh history",
     };

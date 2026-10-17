@@ -63,7 +63,7 @@ test("ownershipRefreshAffordance disables when Sleeper not linked", () => {
   );
   assert.equal(out.canRefresh, false);
   assert.equal(out.emphasize, false);
-  assert.match(out.showHint, /Link your Sleeper/i);
+  assert.match(out.showHint, /commissioner.*Access & imports/i);
   assert.ok(!/Tap Refresh/i.test(out.showHint));
 });
 
@@ -91,4 +91,20 @@ test("ownershipRefreshAffordance quiets after synced history", () => {
   assert.equal(out.canRefresh, true);
   assert.equal(out.emphasize, false);
   assert.equal(out.showHint, null);
+});
+
+
+test("recorded zero and negative weeks are scored while unplayed shells stay hidden", () => {
+  for (const points of [0, -2]) {
+    assert.equal(shouldShowScoringTables({available:true,preseason:false,standings:[{total_points:points,weeks_scored:1}]}), true);
+    assert.equal(shouldShowScoringTables({available:true,preseason:false,weeks:[{week:1,teams:[{points}]}]}), true);
+  }
+  assert.equal(shouldShowScoringTables({available:true,preseason:true,standings:[{total_points:0,weeks_scored:0}]}), false);
+});
+
+
+test("History connection guidance uses Access and matches the reader role", () => {
+  assert.match(ownershipRefreshAffordance(null,{is_commissioner:true}).showHint,/Link your Sleeper.*Access & imports/);
+  assert.match(ownershipRefreshAffordance(null,{is_commissioner:true,readonly:true}).showHint,/commissioner.*Access & imports/);
+  assert.doesNotMatch(ownershipRefreshAffordance(null,{}).disabledReason,/Setup/);
 });

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, formatRelativeTime, parseApiError } from "../format";
 import useMobileLayout from "../useMobileLayout";
@@ -111,6 +112,7 @@ function InsightsTableToolbar({ search, onSearchChange, placeholder, count, tota
         type="search"
         className="search-input hub-insights-table-search"
         placeholder={placeholder}
+        aria-label={placeholder}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
       />
@@ -293,7 +295,7 @@ function normalizeOwnershipPayload(payload) {
 function pickOwnershipBlock(fresh, insightsPayload) {
   const fromFresh = normalizeOwnershipPayload(fresh);
   const fromInsights = normalizeOwnershipPayload(insightsPayload);
-  if (fromFresh?.players?.length) return fromFresh;
+  if (fromFresh) return fromFresh;
   return fromInsights;
 }
 
@@ -311,18 +313,18 @@ function ChartFallback() {
 }
 
 function matchOwnershipPlayer(players, rawId) {
-  const id = String(rawId || "");
+  const token = value => String(value ?? "").trim().replace(/^sleeper-/, "");
+  const id = token(rawId);
   if (!id || !players?.length) return null;
-  return players.find((p) => String(p.player_id) === id)
-    || players.find((p) => String(p.sleeper_player_id) === id)
-    || players.find((p) => {
-      const pid = String(p.player_id || "");
-      return pid && (pid.endsWith(id) || id.endsWith(pid));
-    })
-    || null;
+  return players.find(player => [player.player_id, player.sleeper_player_id]
+    .some(value => value != null && token(value) === id)) || null;
 }
 
-export default function LeagueInsights({
+export default function LeagueInsights(props) {
+  const capabilities = leagueCapabilitiesFromContext(props.hubContext);
+  return <LeagueInsightsView key={JSON.stringify([props.leagueId, props.hubContext?.season, capabilities.uses_salaries, Boolean(props.hubContext?.demo)])} {...props} />;
+}
+function LeagueInsightsView({
   leagueId,
   hubContext,
   bootstrapData,
@@ -355,7 +357,7 @@ export default function LeagueInsights({
     if (activeTabProp) setActiveTabLocal(activeTabProp);
   }, [activeTabProp]);
 
-  const isCommissioner = Boolean(hubContext?.is_commissioner);
+  const isCommissioner = Boolean(hubContext?.is_commissioner) && !hubContext?.readonly;
   const capabilities = leagueCapabilitiesFromContext(hubContext);
   const usesSalaries = capabilities.uses_salaries;
   const insightsTabs = useMemo(
@@ -433,7 +435,8 @@ export default function LeagueInsights({
     () => ({ capSeasonRef, scoringSeasonRef, historySeasonRef }),
     [],
   );
-  const { load: loadInsights, loadCacheRef } = useInsightsData(leagueId, insightsRefs);
+  const captureScope = useAsyncActionScope(leagueId);
+  const { load: loadInsights, loadCacheRef, resetCache } = useInsightsData(leagueId, insightsRefs, activeTab);
   const insightsHandlers = useMemo(() => ({
     setData,
     setLoading,
@@ -479,6 +482,12 @@ export default function LeagueInsights({
     load({ activeTab: tab, sections });
   }, [leagueId, load, loadCacheRef, bootstrapData, bootstrapAt]);
 
+  useEffect(() => {
+    setOwnershipLoading(false);
+    setOwnershipSeasonLoading(false);
+    return () => { ownershipGenRef.current += 1; };
+  }, [leagueId, activeTab, historySeason]);
+
   const loadOwnershipHistory = useCallback(async (opts = {}) => {
     if (!leagueId) return null;
     const isSeasonRefresh = Boolean(opts.refresh);
@@ -499,6 +508,7 @@ export default function LeagueInsights({
       let res = await apiFetch(
         `/api/hub/league/${encodeURIComponent(leagueId)}/insights${q}`,
       );
+      if (generation !== ownershipGenRef.current) return null;
       if (res.status === 404) {
         const legacy = new URLSearchParams();
         if (isSeasonRefresh) legacy.set("refresh", "1");
@@ -543,7 +553,12 @@ export default function LeagueInsights({
   useEffect(() => {
     if (prevTabRef.current === activeTab) return;
     prevTabRef.current = activeTab;
-    if (activeTab === "ownership") return;
+    if (activeTab === "ownership") {
+      setLoading(false);
+      setTabLoading(false);
+      setRefreshing(false);
+      return;
+    }
     const sections = INSIGHTS_TAB_SECTIONS[activeTab];
     if (!sections) return;
     load({
@@ -726,7 +741,6 @@ export default function LeagueInsights({
 
   useEffect(() => {
     if (capSeason === "all") {
-      setSpendMetric("pct");
       setCapSortKey("pct_committed");
     }
   }, [capSeason]);
@@ -855,12 +869,16 @@ export default function LeagueInsights({
   const historyLabel = historySeasonLabel(historyMode, historyYear);
   const usingHistoricCap = capHistoryMode !== "current" && Boolean(data?.analytics?.source === "contract_history");
   const historyRefresh = ownershipRefreshAffordance(ownership, hubContext);
+  const ownershipCount = ownership?.player_count ?? ownership?.players?.length ?? 0;
 
-  const onCapSeasonChange = (next) => {
+  const onCapSeasonChange = async (next) => {
+    const previous = capSeason;
+    const previousSort = capSortKey;
+    const isCurrent = captureScope();
     setCapSeason(next);
     setTeamPick("");
     setPositionFocus("");
-    load({
+    const updated = await load({
       activeTab: "cap",
       capSeason: next,
       sections: "cap",
@@ -868,16 +886,22 @@ export default function LeagueInsights({
       keepSeason: true,
       background: true,
     });
+    if (updated === false && isCurrent() && activeTabRef.current === "cap" && capSeasonRef.current === next) {
+      setCapSeason(previous);
+      setCapSortKey(previousSort);
+    }
   };
 
   const onHistorySeasonChange = (next) => {
     setHistorySeason(next);
   };
 
-  const onScoringSeasonChange = (next) => {
+  const onScoringSeasonChange = async (next) => {
+    const previous = scoringSeason;
+    const isCurrent = captureScope();
     setScoringSeason(next);
     loadCacheRef.current.delete(`scoring:${next}`);
-    load({
+    const updated = await load({
       activeTab: "scoring",
       scoringSeason: next,
       sections: "scoring",
@@ -886,6 +910,9 @@ export default function LeagueInsights({
       keepChartHidden: true,
       background: true,
     });
+    if (updated === false && isCurrent() && activeTabRef.current === "scoring" && scoringSeasonRef.current === next) {
+      setScoringSeason(previous);
+    }
   };
 
   const togglePosition = (pos) => {
@@ -902,13 +929,13 @@ export default function LeagueInsights({
 
   const refreshHistory = async () => {
     if (activeTabRef.current === "scoring") {
-      loadCacheRef.current.delete(`scoring:${scoringSeason}`);
+      resetCache();
       await load({ activeTab: "scoring", sections: "scoring", refresh: true, merge: true,
         keepSeason: true, keepChartHidden: true, background: true, scoringSeason });
       return;
     }
     const requestedTab = activeTabRef.current;
-    loadCacheRef.current.clear();
+    resetCache();
     const updated = await load({ activeTab: "overview", sections: "overview", refresh: true, merge: true, background: true });
     if (!updated) return;
     if (activeTabRef.current !== requestedTab) return;
@@ -918,7 +945,7 @@ export default function LeagueInsights({
   };
   const insightsHeader = <InsightsHeader tabs={insightsTabs} active={activeTab} onTab={setActiveTab}
     landing={activeTab === "scoring" ? data?.scoring : data?.landing} years={periodChoices} period={period} onPeriod={setPeriod}
-    onRefresh={refreshHistory} busy={loading || refreshing || tabLoading || ownershipSeasonLoading}
+    onRefresh={refreshHistory} busy={loading || refreshing || tabLoading || (activeTab === "ownership" && (ownershipLoading || ownershipSeasonLoading))}
     titleMeta={activeTab === "scoring" ? `${scoringSeasonLabel} · ${scoringStandingsRaw.length} ${scoringYearSpecific ? "teams" : "managers"}` : activeTab === "cap" ? `${capHistoryLabel} · ${capTeamsRaw.length} ${capYearSpecific ? "teams" : "managers"}` : null}
     refreshLabel={activeTab === "scoring" ? INSIGHTS_COPY.controls.refreshScoring : INSIGHTS_COPY.overview.refresh}
     showPeriod={activeTab === "overview" || activeTab === "contracts"}
@@ -1402,7 +1429,7 @@ export default function LeagueInsights({
           <header className="hub-section-head hub-section-head--row">
             <div>
               <p className="hub-section-hint">
-                {ownership?.player_count ?? 0} players
+                {ownership ? `${ownershipCount} ${ownershipCount === 1 ? "player" : "players"}` : ownershipError ? INSIGHTS_COPY.history.unavailable : INSIGHTS_COPY.history.loading}
                 {ownership?.has_contract_history && " · includes sheet data"}
                 {ownership?.ownership_synced_at && (
                   <span className="table-meta">
@@ -1430,17 +1457,15 @@ export default function LeagueInsights({
               </button>
             </div>
           </header>
-          {ownershipError && <p className="chart-note error">{ownershipError}</p>}
+          {ownershipError && <div role="alert" className="error">{ownershipError} <button type="button" className="btn-ghost btn-sm" onClick={() => loadOwnershipHistory({ keepSelection: true })}>{INSIGHTS_COPY.history.retry}</button></div>}
           {historyRefresh.showHint && (
             <p className="chart-note hub-insights-scoring-hint">{historyRefresh.showHint}</p>
           )}
-          {ownershipLoading && (
-            <p className="chart-note">Loading player list…</p>
-          )}
+          {ownershipLoading && !ownership && <InsightsSkeleton />}
           {ownershipSeasonLoading && (
-            <p className="chart-note">Loading Sleeper history…</p>
+            <p className="chart-note" role="status">{INSIGHTS_COPY.history.refreshing}</p>
           )}
-          {!ownershipLoading && !loading && !tabLoading && !error && filteredPlayers.length === 0 && (
+          {!ownershipLoading && !ownershipSeasonLoading && !ownershipError && ownership && !loading && !tabLoading && !error && filteredPlayers.length === 0 && (
             <p className="chart-note">
               No players for this view. Try another season.
             </p>
@@ -1451,6 +1476,7 @@ export default function LeagueInsights({
                 type="search"
                 className="search-input"
                 placeholder="Search player…"
+                aria-label={INSIGHTS_COPY.history.search}
                 value={playerSearch}
                 onChange={(e) => setPlayerSearch(e.target.value)}
               />
@@ -1462,6 +1488,7 @@ export default function LeagueInsights({
                       <button
                         type="button"
                         className={`hub-insights-player-btn hub-player-history-row${selectedPlayerId === p.player_id ? " active" : ""}`}
+                        aria-current={selectedPlayerId === p.player_id ? "true" : undefined}
                         onClick={() => setSelectedPlayerId(p.player_id)}
                       >
                         <PlayerCell
@@ -1487,12 +1514,12 @@ export default function LeagueInsights({
               </ul>
             </div>
             <div className="hub-insights-ownership-detail hub-player-history-detail">
-              {!selectedPlayer && playerFromUrl && (
+              {!ownershipLoading && !ownershipError && !selectedPlayer && playerFromUrl && (
                 <p className="chart-note">
                   No contract history for this player in the selected seasons.
                 </p>
               )}
-              {!selectedPlayer && !playerFromUrl && (
+              {!ownershipLoading && !ownershipError && !selectedPlayer && !playerFromUrl && (
                 <p className="chart-note">Pick a player to see teams and timeline.</p>
               )}
               {selectedPlayer && (
