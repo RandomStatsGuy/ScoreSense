@@ -11,7 +11,7 @@ const directory = path.join(root, "outputs/draft-room-fixture");
 const compiled=new Map();
 export const draftFixtureUrl = "http://127.0.0.1:5173/test-fixtures/draft-room.html";
 export async function attachDraftFixture(context, { fixture="draft-room" } = {}) {
-  if (!["draft-room","draft-tools","navigation-accessibility","rules-state","roster-context","management-acquisition","office-acceptance","insights-history","home-game-acceptance","player-chat-acceptance"].includes(fixture)) throw new Error("Unknown draft fixture");
+  if (!["draft-room","draft-tools","navigation-accessibility","rules-state","roster-context","management-acquisition","office-acceptance","insights-history","home-game-acceptance","player-chat-acceptance","vibes-acceptance","lineup-picker"].includes(fixture)) throw new Error("Unknown draft fixture");
   const assets=fixture==="draft-room"?directory:path.join(directory,fixture);
   if (!compiled.has(fixture)) compiled.set(fixture,(async () => {
     await mkdir(assets, { recursive: true });
@@ -24,7 +24,7 @@ export async function attachDraftFixture(context, { fixture="draft-room" } = {})
   const theme = await compiled.get(fixture);
   await context.route("http://127.0.0.1:5173/**", async route => {
     const url = new URL(route.request().url());
-    if (url.pathname === `/test-fixtures/${fixture}.html` || (["navigation-accessibility","rules-state","roster-context","management-acquisition","office-acceptance","insights-history","home-game-acceptance","player-chat-acceptance"].includes(fixture) && route.request().resourceType() === "document")) return route.fulfill({ contentType: "text/html", body: `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>${theme}</script><link rel="stylesheet" href="/__draft-fixture/app.css"></head><body><div id="root"></div><script type="module" src="/__draft-fixture/app.js"></script></body></html>` });
+    if (url.pathname === `/test-fixtures/${fixture}.html` || (["navigation-accessibility","rules-state","roster-context","management-acquisition","office-acceptance","insights-history","home-game-acceptance","player-chat-acceptance","vibes-acceptance","lineup-picker"].includes(fixture) && route.request().resourceType() === "document")) return route.fulfill({ contentType: "text/html", body: `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script>${theme}</script><link rel="stylesheet" href="/__draft-fixture/app.css"></head><body><div id="root"></div><script type="module" src="/__draft-fixture/app.js"></script></body></html>` });
     if (["/__draft-fixture/app.js", "/__draft-fixture/app.css"].includes(url.pathname))
       return route.fulfill({ contentType: url.pathname.endsWith(".js") ? "text/javascript" : "text/css", body: await readFile(path.join(assets, path.basename(url.pathname))) });
     if (url.pathname.startsWith("/art/") || url.pathname.startsWith("/fonts/")) {
