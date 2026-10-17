@@ -156,7 +156,17 @@ export default function App() {
     updateFilters,
     setAdminTab,
   } = nav;
-  const [hubContext, setHubContext] = useState(null);
+  // A hidden Fantasy pane survives navigation, but never an account boundary.
+  const hubIdentity = JSON.stringify([authenticated, user?.sub || user?.id || null, hubAuthRequired]);
+  const hubOwnerRef = useRef({ identity: hubIdentity });
+  if (hubOwnerRef.current.identity !== hubIdentity) hubOwnerRef.current = { identity: hubIdentity };
+  const hubOwner = hubOwnerRef.current;
+  const [ownedHubContext, setOwnedHubContext] = useState(null);
+  const hubContext = ownedHubContext?.owner === hubOwner ? ownedHubContext.context : null;
+  const setHubContext = useCallback((context) => {
+    if (hubOwnerRef.current !== hubOwner) return;
+    setOwnedHubContext({ owner: hubOwner, context });
+  }, [hubOwner]);
   const [compareIds, setCompareIds] = useState(() => filtersFromUrl.compareIds || []);
   const [compareViewOpen, setCompareViewOpen] = useState(
     () => Boolean(filtersFromUrl.compareView && (filtersFromUrl.compareIds || []).length >= 2),
@@ -1686,6 +1696,7 @@ export default function App() {
           >
             <Suspense fallback={<p className="chart-note">Loading Fantasy…</p>}>
               <DraftHub
+                key={hubIdentity}
                 subView={hubSubView}
                 onSubViewChange={setHubSubView}
                 onHubContextChange={setHubContext}

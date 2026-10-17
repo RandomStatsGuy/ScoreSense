@@ -1,5 +1,6 @@
 import { hubCacheGeneration } from "./hubDataCache";
 import useDataRevision from "../useDataRevision";
+import useAsyncActionScope from "../ui/useAsyncActionScope";
 import "../styles/fantasy.css";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -95,6 +96,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   const [leagueId, setLeagueId] = useState("");
   const [hubContext, setHubContext] = useState(null);
   const cacheScope = user?.sub || (!authenticated ? "local" : null);
+  const captureAccountScope = useAsyncActionScope(cacheScope);
+  const workspaceRequest = React.useRef(0);
+  const leagueSwitchInFlight = React.useRef(false);
   const poolScope = cacheScope
     ? `${cacheScope}:${hubContext?.league_id || workspace?.hub_context?.league_id || "solo"}`
     : "";
@@ -369,6 +373,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   }, []);
 
   const refreshAll = useCallback(async (signal) => {
+    const accountIsCurrent = captureAccountScope();
+    if (!accountIsCurrent()) return;
+    const request = ++workspaceRequest.current;
+    const isCurrent = () => accountIsCurrent() && request === workspaceRequest.current && !signal?.aborted;
     setLoading(true);
     setError("");
     try {
@@ -384,10 +392,10 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           const data = await res.json();
           return data.presets || [];
         },
-        onPresets: setPresets,
+        onPresets: (items) => { if (isCurrent()) setPresets(items); },
         signal,
       });
-      if (signal?.aborted) return;
+      if (!isCurrent()) return;
       const ctx = ws.hub_context || null;
       setWorkspace({ ...ws, hub_context: ctx });
       applyHubContext(ctx, { force: true });
@@ -399,9 +407,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         return ctx?.league_id || "";
       });
       const merged = effectiveMemberships(ws.memberships || [], ctx);
-      if (!signal?.aborted) setMemberships(merged);
+      setMemberships(merged);
     } catch (e) {
-      if (isAbortError(e)) return;
+      if (!isCurrent() || isAbortError(e)) return;
       const msg = connectionErrorMessage(e);
       if (demoMode && /demo|404|not configured/i.test(msg)) {
         exitDemo();
@@ -412,12 +420,14 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         setError(msg);
       }
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
+    if (!isCurrent()) return;
     // Roster load is deferred to the first roster-needing tab (see effect below).
     rosterBootRef.current = false;
   }, [
     authenticated,
+    captureAccountScope,
     applyHubContext,
     demoMode,
     exitDemo,
@@ -613,11 +623,17 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
   }, [applyHubContext, refreshAll]);
 
   const onLeagueSwitch = useCallback(async (opts) => {
+    const isCurrent = captureAccountScope();
+    if (!isCurrent() || leagueSwitchInFlight.current) return;
+    leagueSwitchInFlight.current = true;
     setLeagueSwitchBusy(true);
     setLeagueSyncError("");
     setError("");
     try {
       const data = await setHubFocus(opts);
+      if (!isCurrent()) return;
+      // Reads from before the successful switch cannot restore its old focus.
+      workspaceRequest.current += 1;
       clearHubDataCache();
       setCapSheet(null);
       setValueSheet(null);
@@ -627,13 +643,15 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
       }
       await refreshAll();
     } catch (e) {
+      if (!isCurrent()) return;
       const msg = connectionErrorMessage(e);
       setError(msg);
       throw e;
     } finally {
-      setLeagueSwitchBusy(false);
+      leagueSwitchInFlight.current = false;
+      if (isCurrent()) setLeagueSwitchBusy(false);
     }
-  }, [applyHubContext, refreshAll]);
+  }, [applyHubContext, captureAccountScope, refreshAll]);
 
   const effectiveCtx = effectiveHubContext(hubContext, workspace);
   const valueRows = valueSheet?.rows ?? EMPTY_VALUE_ROWS;
