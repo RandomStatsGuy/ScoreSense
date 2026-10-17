@@ -351,13 +351,16 @@ export default function useDfsBuilder(projMeta) {
   }, [context.site, context.source, isDfs, accountRevision]);
 
   useEffect(() => {
-    if (context.season == null || context.week == null || isCaptain) {
+    if (context.season == null || context.week == null) {
       setVegasGames([]);
       setStackWeights({});
       return;
     }
     const abort = new AbortController();
     const epoch = accountEpoch.current;
+    // Captain formats still retain scheduled starts for pre-lock export checks.
+    // Game weighting stays exclusive to multi-game formats.
+    if (isCaptain) setStackWeights({});
     jsonRequest(
       `/api/lineup/vegas?season=${context.season}&week=${context.week}`,
       { signal: abort.signal },
