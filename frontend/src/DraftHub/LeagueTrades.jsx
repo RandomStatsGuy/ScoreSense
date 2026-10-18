@@ -6,7 +6,12 @@ import "../styles/league-trades.css";
 import TradeDiscovery from "./TradeDiscovery";
 import TradeImpactGrid from "./TradeImpactGrid";
 import { positionStrengthRanks, projectedTradeImpact, currentTradeCap } from "./tradeOutlook";
-import { TRADE_DISCOVERY_COPY, tradeForecastStatus, tradePackageHeadline, tradeVersionComparison, tradeCapChangeText } from "./leagueTradesPresentation";
+import { TRADE_DISCOVERY_COPY, tradeForecastStatus, tradePackageHeadline, tradeVersionComparison, tradeCapChangeText,
+  tradeExchangeLedger, tradeAcceptanceLabel, tradeProposalStatus } from "./leagueTradesPresentation";
+import TeamIdentityMark from "./TeamIdentityMark";
+import IdentityCropMedia from "./IdentityCropMedia";
+import { identityFor, useTeamIdentities } from "./TeamIdentityContext";
+import { HUB_MEDIA_HERO_WIDTH, identityMediaUrl, mergeTeamIdentity } from "./atmosphereCatalog";
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
@@ -24,7 +29,7 @@ import { loadTradeBootstrap } from "./tradeBootstrap";
 import { confirmDialog } from "../ui/confirm";
 import { HUB_POS_ORDER, HUB_POSITION_FILTERS, normalizeHubPosition } from "./hubPositions";
 import { contractTypeLabel, fmtSal } from "./rosterFormat";
-import { hubTeamLabel } from "./hubTeamLabel";
+import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel";
 import { clearTradeSeed, readTradeSeed, resolveTradePartnerId } from "./tradeSeed";
 import { formatStatDelta, projectTeamTradeStats } from "./tradeProjection";
 import { formatIdeaCapNet, ideaCapImpact, whyThisHelpsText } from "./tradeIdeaHelpers";
@@ -69,6 +74,53 @@ function TradeDeskDialog({ title, children, onClose }) {
       </section>
     </div>, document.body,
   );
+}
+
+/** Saved team banner (or preset fill) faded behind a Face-off column or duel half. */
+function TradeTeamArt({ identity }) {
+  const look = mergeTeamIdentity(identity);
+  const src = identityMediaUrl(look, "banner", { width: HUB_MEDIA_HERO_WIDTH });
+  return <span className={`hub-trade-team-art hub-banner-fill--${look.banner_preset}`} aria-hidden="true">
+    {src && <IdentityCropMedia key={src} src={src} focus={look.banner_focus} width={HUB_MEDIA_HERO_WIDTH} />}
+  </span>;
+}
+
+/** Team mark, owner name and team nickname. Fantasy single-season identities lead with the team. */
+function TradeTeamHead({ team, identity, isYou, copy, children }) {
+  const parts = hubTeamParts(team);
+  const title = parts.team || parts.owner || hubTeamLabel(team) || "—";
+  const sub = parts.team && parts.owner ? parts.owner : "";
+  return <div className="hub-trade-team-head">
+    <TeamIdentityMark team={team} identity={identity} size="md" />
+    <div className="hub-trade-team-head-text">
+      <strong>{title}{isYou ? ` ${copy.youSuffix}` : ""}</strong>
+      {sub && <small>{sub}</small>}
+    </div>
+    {children}
+  </div>;
+}
+
+/** One leg of the exchange: who, contract facts, weekly points and an optional remove. */
+function TradeDealRow({ leg, row, media, salaryLeague, weekP50, flow, onRemove, copy, busy }) {
+  const name = leg.name || row?.player_name || leg.player_id;
+  const position = leg.position || row?.position;
+  const yrs = row?.contract_years ?? row?.contract?.years_remaining;
+  const meta = leg.deadCap
+    ? [`${fmtSal(leg.amount)} ${copy.dead}`, flow].filter(Boolean)
+    : [leg.drop ? copy.cutVerb : null, salaryLeague ? fmtSal(leg.salary ?? row?.salary) : null,
+      salaryLeague && yrs != null ? `${yrs}y` : null, salaryLeague ? contractTypeLabel(row?.contract_type || row?.contract?.contract_type) : null,
+      flow].filter(Boolean);
+  return <div className={`hub-trade-deal-row${leg.drop ? " is-cut" : ""}${leg.deadCap ? " is-dead-cap" : ""}`}>
+    <div className="hub-trade-deal-who">
+      {leg.deadCap
+        ? <strong className="hub-trade-deal-name">{name}</strong>
+        : <PlayerCell name={name} team={row?.team} playerId={leg.player_id} position={position} media={media} size="sm" showTeam={false} clickable narrativeScope="season" />}
+      {meta.length > 0 && <small className="hub-trade-deal-meta">{meta.join(" · ")}</small>}
+    </div>
+    {!leg.deadCap && <span className="hub-trade-deal-pts"><strong>{weekP50 == null ? "—" : weekP50.toFixed(1)}</strong><small>{copy.weekPtsShort}</small></span>}
+    {onRemove && <button type="button" className="btn-ghost hub-trade-deal-remove" disabled={busy} onClick={onRemove}
+      aria-label={copy.removeMove(name)}><span aria-hidden="true">×</span></button>}
+  </div>;
 }
 
 function Chip({ label, tone }) {
@@ -399,6 +451,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     () => (rosters || []).map((b) => b.team).filter(Boolean),
     [rosters],
   );
+  const { identities } = useTeamIdentities();
+  const teamById = useMemo(() => Object.fromEntries(teams.map(t => [t.id, t])), [teams]);
+  const identityForTeam = (teamId) => identityFor(identities, teamById[teamId]);
   const rosterByTeam = useMemo(() => {
     const m = {};
     (rosters || []).forEach((b) => {
@@ -602,7 +657,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
 
   // Keep develop's cached season/contract forecasts, but read them only on analytical surfaces.
   const needsOutlook = !loading && loadedLeague === leagueId && (tab === "discover"
-    || (tab === "builder" && (dialog === "impact" || phoneView === "impact" || builderStep === "review")));
+    || (tab === "builder" && (dialog === "impact" || builderStep === "review")));
   useEffect(() => {
     if (!needsOutlook) return undefined;
     const controller = new AbortController();
@@ -700,9 +755,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     return incoming;
   }, [parties, rowByPlayer]);
 
-  const packageLegs = useMemo(() => {
+  const buildLegs = useCallback((partyList) => {
     const legs = [];
-    parties.forEach((p) => {
+    partyList.forEach((p) => {
       (p.sends || []).forEach((s) => {
         const row = rowByPlayer[s.player_id];
         legs.push({
@@ -727,12 +782,13 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         });
       });
     });
-    parties.forEach(p => (p.dead_cap_transfers || []).forEach(s => legs.push({
+    partyList.forEach(p => (p.dead_cap_transfers || []).forEach(s => legs.push({
       from: p.team_id, to: s.to_team_id, deadCap: true, amount: s.amount,
       roster_slot_id: s.roster_slot_id, player_id: `dead-${s.roster_slot_id}`, name: deadCapBySlot[s.roster_slot_id]?.player_name || s.player_id,
     })));
     return legs;
-  }, [parties, rowByPlayer, deadCapBySlot]);
+  }, [rowByPlayer, deadCapBySlot]);
+  const packageLegs = useMemo(() => buildLegs(parties), [buildLegs, parties]);
 
   const projectedByTeam = useMemo(() => {
     const out = {};
@@ -1220,8 +1276,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const canPropose = validationStatus === "valid" && validatedPackage === packageKey && hasPartner && hasPackage && !busy;
 
   const renderPartyPlayerColumns = () => (
-    <div className={`hub-trade-parties hub-trade-parties-${Math.min(Math.max(activeParties.length, 2), 4)}`}>
-      {activeParties.map((party) => {
+    <div className={`hub-trade-faceoff${activeParties.length > 2 ? " is-multi" : ""}`}>
+      {activeParties.map((party, order) => {
         const idx = party.idx;
         const others = parties.filter((p, i) => i !== idx && p.team_id).map((p) => p.team_id);
         const defaultTo = activeParties.length > 2 ? "" : others[0] || "";
@@ -1230,17 +1286,17 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         const teamProjected = party.team_id ? projectedByTeam[party.team_id] : null;
         const isYours = party.team_id === myTeamId;
         return (
-          <div key={idx} className="hub-trade-party-col panel" data-party={isYours ? "send" : "receive"}>
+          <React.Fragment key={idx}>
+          {order === 1 && <div className="hub-trade-exchange-col">{renderExchange()}</div>}
+          <div className="hub-trade-party-col panel" data-party={isYours ? "send" : "receive"}>
+            <TradeTeamArt identity={identityForTeam(party.team_id)} />
             <div className="hub-trade-party-direction"><h2>{isYours ? formatCopy.youSend : activeParties.length > 2 ? formatCopy.sendVerb : formatCopy.youReceive}</h2><span>{formatCopy.selectedCount(party.sends.length + party.drops.length)}</span></div>
             <div className="hub-trade-party-head">
-              <strong className="hub-trade-party-name">
-                {teamName(party.team_id)}
-                {isYours ? " (you)" : ""}
-              </strong>
+              <TradeTeamHead team={teamById[party.team_id]} identity={identityForTeam(party.team_id)} isYou={isYours} copy={formatCopy} />
               {!isYours && idx === 1 && !sourceReviewId && <button type="button" className="btn-ghost btn-sm" onClick={() => { setMultiPartner(false); setDialog("partner"); }}>{formatCopy.changePartner}</button>}
             </div>
 
-            <div className="hub-trade-roster-context"><span>{salaryLeague ? `${fmtSal(teamProjected?.committed)} ${formatCopy.currentRoster}` : formatCopy.rosterCount(totalRows)}</span>
+            <div className="hub-trade-roster-context"><span>{salaryLeague ? `${fmtSal(teamProjected?.unspent)} ${formatCopy.free}` : formatCopy.rosterCount(totalRows)}</span>
               <span>{HUB_POS_ORDER.filter(pos => teamProjected?.by_position_count?.[pos]).map(pos => `${pos} ${teamProjected.by_position_count[pos]}`).join(" · ")}</span></div>
 
             <div className="hub-trade-column-key"><span>{formatCopy.currentRoster}</span><span>{formatCopy.weekPoints}{salaryLeague ? ` / ${formatCopy.salary}` : ""}</span></div>
@@ -1369,9 +1425,13 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
             )}
             <footer className="hub-trade-roster-footer"><span>{formatCopy.rosterCount(totalRows)}</span>{totalRows > 7 && !search && posFilter === "ALL" && <button type="button" className="btn-link" onClick={() => setExpandedTeams(prev => ({ ...prev, [party.team_id]: !prev[party.team_id] }))}>{expandedTeams[party.team_id] ? formatCopy.showFewer : formatCopy.viewRoster(totalRows)}</button>}</footer>
           </div>
+          </React.Fragment>
         );
       })}
-      {!hasPartner && myTeamId && <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" onClick={() => { setMultiPartner(false); setDialog("partner"); }}>{formatCopy.choosePartner}</button>}</section>}
+      {!hasPartner && myTeamId && <>
+        <div className="hub-trade-exchange-col">{renderExchange()}</div>
+        <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" onClick={() => { setMultiPartner(false); setDialog("partner"); }}>{formatCopy.choosePartner}</button>}</section>
+      </>}
     </div>
   );
 
@@ -1535,27 +1595,118 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     {renderVersionTools()}
   </div>;
 
-  const renderImpactBand = () => {
-    const mine = projectedByTeam[myTeamId];
-    const partner = projectedByTeam[partnerTeamIds[0]];
+  const rosterSize = projected => projected ? Object.values(projected.by_position_count || {}).reduce((sum, n) => sum + n, 0) : null;
+  const teamFirstName = teamId => {
+    const parts = hubTeamParts(teamById[teamId]);
+    return (parts.owner || parts.team || teamName(teamId)).split(/\s+/)[0];
+  };
+  const legWeekPoints = leg => (weekEligible && !leg.deadCap ? tradeWeekPlayerPoints(leg.player_id, weekCards) : null);
+  const legFlowText = (leg, { multi }) => leg.deadCap
+    ? `${teamName(leg.from)} → ${teamName(leg.to)}`
+    : multi && !leg.drop ? (leg.from === myTeamId ? `→ ${teamName(leg.to)}` : `← ${teamName(leg.from)}`) : "";
+  const legKey = leg => `${leg.drop ? "cut" : leg.deadCap ? "dead" : "send"}-${leg.from}-${leg.player_id}`;
+
+  const renderWeekFigure = (cls = "") => {
     const weekAvailable = hasPackage && weekEligible && myWeekPreview.available;
-    return <section className="hub-trade-impact-band" aria-label={formatCopy.fullImpact}>
-      <div><span>{formatCopy.yourStarters}{weekPayload?.meta?.week ? ` · ${formatCopy.weekLabel(weekPayload.meta.week)}` : ""}</span><strong className={weekAvailable ? `is-${tradeWeekTone(myWeekPreview.delta)}` : ""}>
+    return <div className={`hub-trade-figure ${cls}`}><span>{formatCopy.yourStarters}{weekPayload?.meta?.week ? ` · ${formatCopy.weekLabel(weekPayload.meta.week)}` : ""}</span>
+      <strong className={weekAvailable ? `is-${tradeWeekTone(myWeekPreview.delta)}` : ""}>
         {weekAvailable ? `${myWeekPreview.delta > 0 ? "+" : ""}${myWeekPreview.delta.toFixed(1)}` : "—"}
       </strong><small>{weekAvailable ? `${myWeekPreview.before_p50.toFixed(1)} → ${myWeekPreview.after_p50.toFixed(1)} · ${formatCopy.pprEstimate}`
         : !weekEligible ? formatCopy.weekClosed : !hasPartner ? formatCopy.weekSelect
           : !hasPackage ? formatCopy.emptyAction
-            : weekState.status === "idle" ? formatCopy.weekLoading : weekEmptyCopy}</small></div>
-      <div><span>{salaryLeague ? formatCopy.yourCap : formatCopy.yourRoster}</span><strong>
-        {salaryLeague ? fmtSal(mine?.unspent) : mine ? Object.values(mine.by_position_count).reduce((sum,n) => sum+n,0) : "—"}
+            : weekState.status === "idle" ? formatCopy.weekLoading : weekEmptyCopy}</small></div>;
+  };
+
+  const renderExchangeFigures = () => {
+    const mine = projectedByTeam[myTeamId];
+    const partner = projectedByTeam[partnerTeamIds[0]];
+    return <div className="hub-trade-exchange-result">
+      {renderWeekFigure()}
+      <div className="hub-trade-figure"><span>{salaryLeague ? formatCopy.yourCap : formatCopy.yourRoster}</span><strong>
+        {salaryLeague ? fmtSal(mine?.unspent) : rosterSize(mine) ?? "—"}
       </strong><small>{salaryLeague ? formatCopy.beforeValue(fmtSal(mine?.base?.unspent)) : formatCopy.rosterBalance}</small></div>
-      <div className="hub-trade-impact-partner"><span>{salaryLeague ? formatCopy.partnerCap : formatCopy.partnerRoster}</span><strong>
-        {salaryLeague ? fmtSal(partner?.unspent) : partner ? Object.values(partner.by_position_count).reduce((sum,n) => sum+n,0) : "—"}
+      <div className="hub-trade-figure hub-trade-figure-partner"><span>{salaryLeague ? formatCopy.partnerCap : formatCopy.partnerRoster}</span><strong>
+        {salaryLeague ? fmtSal(partner?.unspent) : rosterSize(partner) ?? "—"}
       </strong><small>{hasPartner ? teamName(partnerTeamIds[0]) : formatCopy.partnerNeeded}</small></div>
-      <button type="button" className="btn-link" onClick={() => setDialog("impact")} disabled={!myTeamId}>{formatCopy.fullImpact} ↗</button>
+    </div>;
+  };
+
+  const renderExchangeLeg = (legs, { title, empty, cls, multi }) => <div className={`hub-trade-exchange-leg ${cls}`}>
+    <p className="hub-trade-exchange-eyebrow">{title}</p>
+    {legs.length ? legs.map(leg => <TradeDealRow key={legKey(leg)} leg={leg} row={rowByPlayer[leg.player_id]} media={media} salaryLeague={salaryLeague}
+      weekP50={legWeekPoints(leg)} flow={legFlowText(leg, { multi })} onRemove={() => removePackageLeg(leg)} copy={formatCopy} busy={Boolean(busy)} />)
+      : empty ? <p className="hub-trade-deal-empty">{empty}</p> : null}
+  </div>;
+
+  const renderExchange = () => {
+    const outgoing = packageLegs.filter(leg => leg.from === myTeamId);
+    const incoming = packageLegs.filter(leg => leg.to === myTeamId);
+    const otherMoves = packageLegs.filter(leg => leg.from !== myTeamId && leg.to !== myTeamId);
+    const multi = activeParties.length > 2;
+    const partnerName = hasPartner ? teamFirstName(partnerTeamIds[0]) : "";
+    const ledgerLeg = leg => { const row = rowByPlayer[leg.player_id]; return { salary: leg.salary, years: row?.contract_years ?? row?.contract?.years_remaining, weekP50: legWeekPoints(leg) }; };
+    const ledger = tradeExchangeLedger({ out: outgoing.filter(leg => !leg.deadCap).map(ledgerLeg), incoming: incoming.filter(leg => !leg.deadCap).map(ledgerLeg),
+      salaryLeague, weekAvailable: weekEligible && weekState.status === "ready", copy: formatCopy });
+    return <section className="hub-trade-exchange" aria-label={formatCopy.exchangeTitle}>
+      <header className="hub-trade-exchange-head"><h2>{formatCopy.exchangeTitle}</h2><span className="hub-trade-exchange-live">{formatCopy.exchangeLive}</span></header>
+      {renderExchangeLeg(outgoing, { title: hasPartner && !multi ? formatCopy.youSendTo(partnerName) : formatCopy.youSend, empty: formatCopy.pickFromYours, cls: "is-out", multi })}
+      <span className="hub-trade-swap" aria-hidden="true">⇄</span>
+      {renderExchangeLeg(incoming, { title: hasPartner && !multi ? formatCopy.youReceiveFrom(partnerName) : formatCopy.youReceive,
+        empty: hasPartner ? formatCopy.pickFromTheirs(partnerName) : formatCopy.partnerNeeded, cls: "is-in", multi })}
+      {otherMoves.length > 0 && renderExchangeLeg(otherMoves, { title: formatCopy.betweenPartners, empty: "", cls: "is-other", multi: true })}
+      {ledger.length > 0 && <dl className="hub-trade-ledger">
+        <div className="hub-trade-ledger-key" aria-hidden="true"><dt /><dd><span>{formatCopy.ledgerOut}</span><span>{formatCopy.ledgerIn}</span></dd></div>
+        {ledger.map(row => <div key={row.label}><dt>{row.label}</dt><dd>
+          <span><span className="sr-only">{formatCopy.ledgerOut} </span>{row.out}</span>
+          <span><span className="sr-only">{formatCopy.ledgerIn} </span>{row.in}</span>
+        </dd></div>)}
+      </dl>}
+      {renderExchangeFigures()}
       {renderDecision()}
+      <button type="button" className="btn-link hub-trade-exchange-more" onClick={() => setDialog("impact")} disabled={!myTeamId}>{formatCopy.fullImpact} ↗</button>
     </section>;
   };
+
+  const renderDuelHalf = ({ teamId, legs, projected, status, cls, multi }) => {
+    const isYou = teamId === myTeamId;
+    const before = projected?.base;
+    return <div key={teamId} className={`hub-trade-duel-half ${cls}`}>
+      <TradeTeamArt identity={identityForTeam(teamId)} />
+      <TradeTeamHead team={teamById[teamId]} identity={identityForTeam(teamId)} isYou={isYou} copy={formatCopy}>
+        {status && <span className={`hub-trade-pill is-${status.tone}`}>{status.text}</span>}
+      </TradeTeamHead>
+      <p className="hub-trade-exchange-eyebrow">{formatCopy.sendsLabel}</p>
+      <div className="hub-trade-duel-rows">
+        {legs.length ? legs.map(leg => <TradeDealRow key={legKey(leg)} leg={leg} row={rowByPlayer[leg.player_id]} media={media} salaryLeague={salaryLeague}
+          weekP50={legWeekPoints(leg)} flow={legFlowText(leg, { multi })} copy={formatCopy} />)
+          : <p className="hub-trade-deal-empty">{formatCopy.nothingSent}</p>}
+      </div>
+      {projected && <footer className="hub-trade-duel-foot">
+        {salaryLeague && <span>{formatCopy.capRoomLabel} {fmtSal(before?.unspent)} → <strong className={projected.unspent < 0 ? "is-blocking" : ""}>{fmtSal(projected.unspent)}</strong></span>}
+        <span>{formatCopy.rosterLabel} {rosterSize(before) === rosterSize(projected) ? rosterSize(projected) : <>{rosterSize(before)} → <strong>{rosterSize(projected)}</strong></>}</span>
+      </footer>}
+    </div>;
+  };
+
+  const renderDuel = ({ parties: list, legsFor, projectedFor, statusFor, center, label }) => {
+    const mine = list.find(p => p.team_id === myTeamId);
+    const others = list.filter(p => p.team_id !== myTeamId);
+    const left = mine || others[0];
+    const right = mine ? others : others.slice(1);
+    const multi = list.length > 2;
+    const half = (party, cls) => party && renderDuelHalf({ teamId: party.team_id, legs: legsFor(party), projected: projectedFor?.(party), status: statusFor?.(party), cls, multi });
+    return <section className={`hub-trade-duel${right.length > 1 ? " is-multi" : ""}`} aria-label={label}>
+      {half(left, "is-you")}
+      <div className="hub-trade-duel-center">{center}</div>
+      <div className="hub-trade-duel-partners">{right.map(party => half(party, "is-them"))}</div>
+    </section>;
+  };
+
+  const renderReviewCenter = () => <>
+    <span className="hub-trade-swap hub-trade-swap-large" aria-hidden="true">⇄</span>
+    {renderWeekFigure("hub-trade-figure-duel")}
+    {renderDecision()}
+  </>;
 
   const renderMoveChip = leg => <button type="button" key={`${leg.from}-${leg.player_id}`} className={`hub-trade-move-chip${leg.drop ? " is-cut" : ""}`}
     disabled={Boolean(busy)} onClick={() => removePackageLeg(leg)} aria-label={formatCopy.removeMove(leg.name)}
@@ -1658,12 +1809,12 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       {tab === "builder" && !loading && loadedLeague === leagueId && <div className="hub-trade-builder" id="trades-panel-builder">
         {!myTeamId ? <HubAlert variant="info">{formatCopy.teamNeeded}</HubAlert> : <>
           {builderStep !== "review" ? <div className="hub-trade-workspace" data-phone-view={phoneView}>
-            {renderImpactBand()}
             <nav className="hub-trade-phone-views" aria-label={formatCopy.buildTab}>
-              {[["send",formatCopy.youSend], ["receive",formatCopy.youReceive], ["impact",formatCopy.impact]].map(([id,label]) =>
-                <button key={id} type="button" aria-label={label} aria-pressed={phoneView === id} onClick={() => setPhoneView(id)}>{label}
-                  {id !== "impact" && <span className="hub-trade-view-count" aria-hidden="true">{packageLegs.filter(leg => id === "send" ? leg.from === myTeamId : leg.to === myTeamId).length}</span>}</button>)}
+              {[["send", formatCopy.sendView, formatCopy.youSend], ["receive", formatCopy.receiveView, formatCopy.youReceive], ["exchange", formatCopy.exchangeView, formatCopy.exchangeTitle]].map(([id, label, aria]) =>
+                <button key={id} type="button" aria-label={aria} aria-pressed={phoneView === id} onClick={() => setPhoneView(id)}>{label}
+                  {id !== "exchange" && <span className="hub-trade-view-count" aria-hidden="true">{packageLegs.filter(leg => id === "send" ? leg.from === myTeamId : leg.to === myTeamId).length}</span>}</button>)}
             </nav>
+            {(packageHeadline || otherDraft) && <div className="hub-trade-phone-decision">{renderDecision()}</div>}
             <div className="hub-trade-roster-workspace">
               <div className="hub-trade-filters">
                 <input ref={builderSearchRef} type="search" className="search-input hub-filter-search" placeholder={formatCopy.playerSearch}
@@ -1675,17 +1826,26 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
               <div className="hub-trade-advanced-actions">
                 <button type="button" className="btn-link" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>{formatCopy.advancedTerms} {advanced ? "−" : "+"}</button>
                 {advanced && !sourceReviewId && <button type="button" className="btn-ghost" onClick={() => { setMultiPartner(true); setDialog("partner"); }}>{formatCopy.addPartners}</button>}
+                {weekEligible && weekPayload?.meta?.week && <span className="hub-trade-week-basis">{formatCopy.weekLabel(weekPayload.meta.week)} · {formatCopy.pprEstimate}</span>}
               </div>
             </div>
-            <div className="hub-trade-phone-impact">{phoneView === "impact" && renderFullImpact()}</div>
           </div> : <section className="hub-trade-review" ref={reviewRef} tabIndex={-1} aria-label={formatCopy.reviewHeading}>
             <header><h2>{formatCopy.reviewHeading}</h2><button type="button" className="btn-link" onClick={() => goBuilderStep("players")}>← {formatCopy.editPackage}</button></header>
-            {renderDecision()}{renderPackageSummary()}{renderFullImpact()}
-            <label className="hub-trade-note-label" htmlFor="trade-propose-note">{formatCopy.proposeNoteLabel}</label>
-            <textarea id="trade-propose-note" className="hub-trade-note" rows={3} value={proposeNote}
-              onChange={e => setProposeNote(e.target.value)} placeholder={formatCopy.proposeNotePlaceholder} />
-            <section className="hub-trade-next"><h3>{formatCopy.afterProposal}</h3><p>{sourceReviewId ? formatCopy.capAgreementNotifyLine : sleeperLinked ? formatCopy.sleeperNotifyLine : formatCopy.nativeNext}</p>
-              {sleeperLinked && <p>{formatCopy.sleeperSupport}</p>}<p>{formatCopy.whatsNext} {formatCopy.privateWeek}</p></section>
+            {renderDuel({ parties: activeParties, legsFor: party => packageLegs.filter(leg => leg.from === party.team_id),
+              projectedFor: party => projectedByTeam[party.team_id], center: renderReviewCenter(), label: formatCopy.tradeReview })}
+            <div className="hub-trade-review-grid">
+              <div className="hub-trade-note-card">
+                <label className="hub-trade-note-label" htmlFor="trade-propose-note">{formatCopy.proposeNoteLabel}</label>
+                <textarea id="trade-propose-note" className="hub-trade-note" rows={4} value={proposeNote}
+                  onChange={e => setProposeNote(e.target.value)} placeholder={formatCopy.proposeNotePlaceholder} />
+              </div>
+              <section className="hub-trade-next"><h3>{formatCopy.afterProposal}</h3><p>{sourceReviewId ? formatCopy.capAgreementNotifyLine : sleeperLinked ? formatCopy.sleeperNotifyLine : formatCopy.nativeNext}</p>
+                {sleeperLinked && <p>{formatCopy.sleeperSupport}</p>}<p>{formatCopy.whatsNext} {formatCopy.privateWeek}</p></section>
+            </div>
+            <details className="hub-trade-review-disclosure">
+              <summary>{formatCopy.fullImpact}</summary>
+              {renderPackageSummary()}{renderFullImpact()}
+            </details>
           </section>}
           {renderDeskBar()}
         </>}
@@ -1704,65 +1864,40 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
               <p>{formatCopy.inboxEmpty}</p>
             </div>
           )}
-          {proposals.map((p) => (
-            <div key={p.id} className="hub-insights-suggestion hub-trade-proposal-card">
-              <div className="hub-trade-proposal-head">
-                <span className={`hub-trade-status hub-trade-status-${p.status}`}>
-                  {p.status === "awaiting_sleeper" ? formatCopy.waitingSleeper
-                    : p.status === "cap_review" ? formatCopy.syncedMoves : p.status}
-                </span>
-                {p.note ? <span className="table-meta">{p.note}</span> : null}
-              </div>
-              {(p.parties || []).map((party) => (
-                <div key={party.team_id} className="hub-trade-proposal-party">
-                  <div className="hub-trade-proposal-party-title">
-                    <strong>{teamName(party.team_id)}</strong>
-                    <span className={`hub-trade-accept hub-trade-accept-${p.acceptances?.[party.team_id] || "pending"}`}>
-                      {p.acceptances?.[party.team_id] || "pending"}
-                    </span>
-                  </div>
-                  {(party.sends || []).length > 0 && (
-                    <ul className="hub-trade-proposal-legs">
-                      {(party.sends || []).map((s) => {
-                        const row = rowByPlayer[s.player_id];
-                        return (
-                          <li key={s.player_id}>
-                            <span className="hub-roster-pos-tag">{row?.position || "?"}</span>
-                            <PlayerCell
-                              name={row?.player_name || s.player_name || s.player_id}
-                              team={row?.team}
-                              playerId={s.player_id}
-                              media={media}
-                              size="sm"
-                              showTeam={false}
-                              narrativeScope="season"
-                            />
-                            {salaryLeague && <span className="hub-trade-salary-inline">{fmtSal(row?.salary)}</span>}
-                            <span className="table-meta">→ {teamName(s.to_team_id)}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                  {(party.drops || []).length > 0 && (
-                    <p className="table-meta">
-                      {formatCopy.cutVerb}: {(party.drops || []).map((pid) => playerLabel(party.team_id, pid)).join(", ")}
-                    </p>
-                  )}
-                  {(party.dead_cap_transfers || []).map(leg => <p key={leg.roster_slot_id} className="table-meta">
-                    {formatCopy.deadCapFlow(deadCapBySlot[leg.roster_slot_id]?.player_name || leg.player_id,
-                      fmtSal(leg.amount), teamName(party.team_id), teamName(leg.to_team_id))}
-                  </p>)}
-                </div>
-              ))}
-              {weekStripReady && p.acceptances?.[myTeamId] === "pending" && (
-                <TradeWeekStrip
-                  preview={inboxWeekPreview(p)}
-                  emptyCopy={weekEmptyCopy}
-                  media={media}
-                />
-              )}
-              <div className="hub-insights-suggestion-actions">
+          {proposals.map((p) => {
+            const partyList = p.parties || [];
+            const legs = buildLegs(partyList);
+            const isParty = partyList.some(x => x.team_id === myTeamId);
+            const mineIsPending = isParty && (p.acceptances?.[myTeamId] || "pending") === "pending" && p.status === "pending";
+            const projectable = ["pending", "awaiting_sleeper"].includes(p.status);
+            const projectedFor = party => projectable ? projectTeamTradeStats({ teamId: party.team_id, statsByTeam, rosterByTeam, rowByPlayer,
+              parties: partyList, deadCapAssignments: p.dead_cap_assignments || [], rules, salaryCap: capLimit }) : null;
+            const preview = weekStripReady && mineIsPending ? inboxWeekPreview(p) : null;
+            const status = tradeProposalStatus(p.status, { yourResponsePending: mineIsPending, copy: formatCopy });
+            // Proposals open with only the proposer accepted; once others accept, the first party is the builder's own team.
+            const accepted = partyList.filter(x => p.acceptances?.[x.team_id] === "accepted");
+            const proposer = accepted.length === 1 ? accepted[0] : partyList[0];
+            const headline = mineIsPending ? tradePackageHeadline({ parties: partyList, myTeamId, projected: projectedFor({ team_id: myTeamId }),
+              weekPreview: weekEligible ? preview : null, rules, salaryLeague }) : null;
+            return <article key={p.id} className="hub-trade-proposal">
+              <p className="hub-trade-proposal-kicker">
+                <strong>{proposer?.team_id === myTeamId ? formatCopy.you : teamName(proposer?.team_id)}</strong>
+                {" "}{formatCopy.proposedVerb}
+                {p.note ? <span className="hub-trade-proposal-note"> · “{p.note}”</span> : null}
+              </p>
+              {renderDuel({ parties: partyList, legsFor: party => legs.filter(leg => leg.from === party.team_id), projectedFor,
+                statusFor: party => tradeAcceptanceLabel(p.acceptances?.[party.team_id] || "pending", { isYou: party.team_id === myTeamId && mineIsPending, copy: formatCopy }),
+                label: `${formatCopy.tradeReview}: ${partyList.map(x => teamName(x.team_id)).join(" · ")}`,
+                center: <>
+                  <span className="hub-trade-swap hub-trade-swap-large" aria-hidden="true">⇄</span>
+                  {preview?.available && <div className="hub-trade-figure hub-trade-figure-duel"><span>{formatCopy.yourStarters}{weekPayload?.meta?.week ? ` · ${formatCopy.weekLabel(weekPayload.meta.week)}` : ""}</span>
+                    <strong className={`is-${tradeWeekTone(preview.delta)}`}>{preview.delta > 0 ? "+" : ""}{preview.delta.toFixed(1)}</strong>
+                    <small>{preview.before_p50.toFixed(1)} → {preview.after_p50.toFixed(1)} · {formatCopy.privateNote}</small></div>}
+                  {preview && !preview.available && <p className="hub-trade-deal-empty">{weekEmptyCopy}</p>}
+                  {headline && <p className={`hub-trade-headline is-${headline.tone}`}>{headline.text}</p>}
+                  <span className={`hub-trade-pill is-${status.tone}`}>{status.text}</span>
+                </> })}
+              <div className="hub-insights-suggestion-actions hub-trade-proposal-actions">
                 {p.status === "awaiting_sleeper" && (isCommissioner || p.parties.some(x => x.team_id === myTeamId)) &&
                   <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)}
                     onClick={() => resolveSleeper(p.id, "settle")}>{formatCopy.settleCap}</button>}
@@ -1774,47 +1909,19 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 </>}
                 {p.status === "pending" && p.acceptances?.[myTeamId] === "pending" && (
                   <>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      disabled={Boolean(busy)}
-                      onClick={() => respond(p.id, true)}
-                    >
-                      Accept
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      disabled={Boolean(busy)}
-                      onClick={() => respond(p.id, false)}
-                    >
-                      Reject
-                    </button>
+                    <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)} onClick={() => respond(p.id, true)}>{formatCopy.acceptAction}</button>
+                    <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)} onClick={() => respond(p.id, false)}>{formatCopy.rejectAction}</button>
                   </>
                 )}
-                {p.status !== "cap_review" && (isCommissioner || (p.parties || []).some((x) => x.team_id === myTeamId)) && (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    disabled={Boolean(busy)}
-                    onClick={() => cancelProp(p.id)}
-                  >
-                    Cancel
-                  </button>
+                {p.status !== "cap_review" && (isCommissioner || isParty) && (
+                  <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)} onClick={() => cancelProp(p.id)}>{formatCopy.cancelAction}</button>
                 )}
                 {isCommissioner && p.status === "pending" && !sleeperLinked && (
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    disabled={Boolean(busy)}
-                    onClick={() => forceApply(p.id)}
-                  >
-                    Force apply
-                  </button>
+                  <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)} onClick={() => forceApply(p.id)}>{formatCopy.forceApplyAction}</button>
                 )}
               </div>
-            </div>
-          ))}
+            </article>;
+          })}
         </div>
       )}
 

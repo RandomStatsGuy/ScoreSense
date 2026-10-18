@@ -66,7 +66,7 @@ The full 45-surface source/brief queue and initial working-snapshot review are c
 
 | Surface ID | Task and approved baseline | Attention order / acceptance focus |
 |---|---|---|
-| `hub.trades` | Assemble and review an exchange in the October 15 A desk | Package → relevant impact → Review/Propose; current verdict, one phone selection state, versions/undo, bounded package bar |
+| `hub.trades` | Assemble and review an exchange in the October 17 C Face-off desk | Package → live exchange consequence → Review/Propose; current verdict, one phone selection state, versions/undo, bounded package bar |
 | `hub.home` | Orient in the October 16 B clubhouse | Matchup → conversation/standings → unresolved attention; same week, phase-aware pre-draft action |
 | `hub.week` | Compatibility entry to the consolidated Home / This Week landing | Preserve selected week/query/hash through redirect; Review lineup opens My team; no separate navigation destination |
 | `hub.roster` | Inspect Room, Lineup and Manage roster within approved room | Selected player → lineup/roster context → legal action; preview resets, missing forecasts, owner-only changes |
@@ -782,7 +782,7 @@ Each row is **accounted for within its named scope**. Links resolve to machine r
 | `hub.roster` | [Recorded family PASS](#follow-up-cap-rosters-and-my-team-context-acceptance) | [Named family captures](#follow-up-cap-rosters-and-my-team-context-acceptance) | Room/Lineup/Manage context and preview boundaries; later Vibes lineup consumer checks |
 | `hub.rosters` | [Recorded family PASS](#follow-up-cap-rosters-and-my-team-context-acceptance) | [Named family captures](#follow-up-cap-rosters-and-my-team-context-acceptance) | Directory → selected roster/player; salary/pick and delayed selection scope |
 | `hub.planner` | [Recorded family PASS](#follow-up-cap-rosters-and-my-team-context-acceptance) | [Named family captures](#follow-up-cap-rosters-and-my-team-context-acceptance) | Current versus preview obligations, filters and revert; no real cap write |
-| `hub.trades` | [Recorded family PASS](#current-branch-verification) | [Retained initial capture](./reviews/design-closeout/trades-retained-initial-1280-dark.png) | Package selection/current verdict/review, versions and modal focus; no real proposal |
+| `hub.trades` | [Face-off fixture PASS](#follow-up-trades-face-off-october-17) | [Face-off captures](#follow-up-trades-face-off-october-17) | Package selection/current verdict/review, versions and modal focus; no real proposal |
 | `hub.rules` | [Recorded family PASS](#follow-up-rules-save-state-and-setup-roles) | [Named family captures](#follow-up-rules-save-state-and-setup-roles) | Unsaved/save/discard scope; #793 also adds bounded actual local SQLite Rules/header reads |
 | `hub.office` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Pane host; inherits current/historic/rosters and later Members/Access/Corrections evidence |
 | `hub.office.current` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Staged contract edits versus immediate actions, retained failures and context ownership |
@@ -822,6 +822,37 @@ Each row is **accounted for within its named scope**. Links resolve to machine r
 The requested instruction activation and 45-surface review/evidence pass are complete within the scopes above, with demonstrated findings fixed. The remaining checks are **unverified**, not silently passed: real authenticated sign-in/enrollment/recovery and provider delivery; persisted parent focus and live scoring/import/acquisition/publication; pending rating synchronization after departure/reload and cross-device behavior; physical touch/mobile keyboards; exhaustive role/host/state, artwork, assistive-technology, contrast and browser/OS zoom coverage. Some initial form entries are render/consent checks only, as labeled. Previous page-family boundaries remain applicable where a later record has not explicitly closed them. Field Core Web Vitals and model quality are not established by these UI fixtures. These limits do not require inventing additional UI changes or adopting hypothetical probe proposals.
 
 Delivery: one scoped draft PR to `develop` containing this evidence, reusable checks and the Admin/audit fixes. Review/ready/full backend merge gate, merge and deployment remain separate actions. Original-checkout work and production data are preserved.
+
+
+## Follow-up: Trades Face-off (October 17)
+
+### Brief
+
+Task: build a package while seeing what it does to both rosters, the viewer's cap and their private weekly starters, then review and propose the exact validated terms. Baseline: the October 15 A desk (compact shared hero, Build/Discover/Ideas/Inbox, package bar primary with adjacent verdict, A/B versions, Advanced terms, Sleeper flow). The user picked option C · Face-off from three static mocks (`docs/mockups/trade-flow-a.html`, `-b.html`, `-c.html`; captures in `docs/mockups/trade-flow-review/`). Attention: the two rosters facing each other → the live exchange between them → Review trade.
+
+Observed friction in A that C addresses: the deal lived in a thin band under the rosters, so a manager scrolled away from the consequence while picking; review and Inbox read as lists rather than as one deal between two teams; Inbox exposed raw acceptance states; phone Impact view dropped the picking context entirely.
+
+### Bounded changes
+
+| Owner | Change |
+|---|---|
+| `LeagueTrades.jsx` | Build renders `.hub-trade-faceoff`: viewer roster column, sticky `.hub-trade-exchange` (send/receive legs with removable rows, Out/In ledger, private starters delta, cap or roster figures, headline + version tools, Full impact link), partner roster column; extra partners wrap with a Between partners leg. Roster headers reuse `TeamIdentityMark`, `IdentityCropMedia` and `identityMediaUrl` banners with preset fallbacks. Review and Inbox share `renderDuel` (per-team Sends, cap room before → after, roster size, acceptance pills, status pill). Phone views are Send / Receive / Exchange with a consequence strip in Send/Receive. The former impact band is removed; the package bar, server verdict, versions/undo, Advanced terms, dialogs and Sleeper/cap-review actions are unchanged. |
+| `leagueTradesPresentation.js` | Face-off, ledger, acceptance and status copy; `tradeExchangeLedger`, `tradeAcceptanceLabel`, `tradeProposalStatus` helpers. Missing forecasts stay `—`; pick leagues show Players instead of salary/deal rows; unknown statuses become plain words, never ids. |
+| `trade-desk.css` | Face-off grid (`minmax(0,1fr) 300px minmax(0,1fr)`, 252px at 769–1120px), banner art clipped on the art element only so inline `HubFilterMenu` menus still overflow, duel grid, pills, review grid, Inbox proposal cards, phone view switching and 44px controls. Light theme lowers banner tint. |
+| `scripts/dev/trade_desk_browser.mjs` | Waits on the exchange column, reads the starters figure from `.hub-trade-figure`, audits the phone Exchange view. |
+| Records | `livingSurfaces.js` `hub.trades` doNot, `docs/PRODUCT.md` Trades row and "Approved Trades Face-off — October 17, 2026", this entry. |
+
+### Machine evidence
+
+`node scripts/dev/trade_desk_browser.mjs` — **PASS at 1280, 390, 320, 1024**: desk flow, lazy Ideas/Inbox requests, three-way routing, partial dead cap, Sleeper and unavailable states, modal focus, and 28 layout audits (`initial`, `populated`, `exchange` on phone widths, `review`, `compare`, `multi-team`, `long-names`, `compare-light`) with zero failing checks. A separate fixture pass over Inbox (Sleeper wait and synced cap review) at 1280/390, multi-team Build and review at 1280, light Build at 1280, and a pick-draft league's Build and review at 1280 also passed with no page errors. Frontend unit tests: `leagueTradesPresentation.test.js` 14/14; the full `src/**/*.test.js` run has one pre-existing failure unrelated to Trades (`availability load does not refetch when the locked night changes`, also failing on clean `develop`).
+
+### Inspected visual evidence
+
+Synthetic data, reduced motion, dark unless named: [Build 1280](./reviews/trades-face-off/build-1280-dark.png), [Build 1280 light](./reviews/trades-face-off/build-1280-light.png), [Review 1280](./reviews/trades-face-off/review-1280-dark.png), [Inbox 1280](./reviews/trades-face-off/inbox-1280-dark.png), [Multi-team Build 1280](./reviews/trades-face-off/multi-team-1280-dark.png), [Send 390](./reviews/trades-face-off/send-390-dark.png), [Exchange 390](./reviews/trades-face-off/exchange-390-dark.png). Inspection led to two fixes before delivery: the light-theme banner tint read heavier than the roster header (lowered) and the synced cap-review status pill ran past the duel centre (now wraps). Raw captures stay in ignored `outputs/`.
+
+### Task evidence and boundary
+
+Exercised: pick from both rosters, remove from the exchange column, Try another version / Compare, Review trade, Full impact dialog focus and return, phone Send / Receive / Exchange switching, three-way recipients, Inbox accept-state rendering with Sleeper wait and cap-review actions. Not exercised: a real proposal, acceptance or Sleeper execution; authenticated banner media (fixtures use preset fills); physical touch. These remain the same limits as the October 15 record.
 
 
 ## Follow-up: My team lineup flow (October 17 A)

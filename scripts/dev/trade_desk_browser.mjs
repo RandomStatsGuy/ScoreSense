@@ -31,7 +31,7 @@ try {
       assert.deepEqual(checks.filter(x=>!x.ok),[],`${state} layout`);
     };
     await open('salary');
-    await page.locator('.hub-trade-impact-band').waitFor();
+    await page.locator('.hub-trade-exchange').waitFor({state:'attached'});
     await audit('initial');
     assert.equal(await page.evaluate(()=>window.fixtureRequests.some(x=>/\/insights|\/trades\?|\/week\?|\/trade-outlook/.test(x))),false,'Cold builder requests only roster/identity/media');
     await page.getByRole('button',{name:'Discover',exact:true}).click();
@@ -46,6 +46,7 @@ try {
     await page.waitForFunction(()=>window.fixtureWrites.at(-1)?.body.parties?.[1]?.sends?.length===1);
     await audit('populated');
     assert.equal(await page.evaluate(()=>window.fixtureRequests.filter(x=>x.includes('/week?')).length),1,'Selections reuse forecasts');
+    if(width<769){await phone('The exchange');await audit('exchange');}
     await page.getByRole('button',{name:/Full impact/}).click();
     assert.equal(await page.getByRole('dialog').count(),1);
     await page.keyboard.press('Shift+Tab');
@@ -171,7 +172,7 @@ try {
     assert.equal(reviewBody.parties[0].dead_cap_transfers[0].amount,10);
     for (const state of ['empty','loading','error','readonly','pick','capabilities-pick','missing','zero','predraft','invalid','slow-ideas']) {
       await open(state);
-      if(!['loading','error','readonly'].includes(state))await page.locator('.hub-trade-impact-band').waitFor();
+      if(!['loading','error','readonly'].includes(state))await page.locator('.hub-trade-exchange').waitFor({state:'attached'});
       const text=await page.locator('body').innerText();
       if(state==='empty')assert.match(text,/No other managers in this league/);
       if(state==='error')await page.getByText('Roster service unavailable',{exact:false}).waitFor();
@@ -182,8 +183,8 @@ try {
         await cols.nth(0).getByRole('button',{name:/^Send Josh Allen to/}).click();
         await page.waitForFunction(()=>window.fixtureWrites.some(x=>x.body.validate_only));
         if(state==='invalid')assert.equal(await page.getByRole('button',{name:/^Review trade/}).isDisabled(),true);
-        if(state==='missing')assert.equal(await page.locator('.hub-trade-impact-band > div > strong').first().innerText(),'—');
-        if(state==='zero')assert.equal(await page.locator('.hub-trade-impact-band > div > strong').first().innerText(),'0.0');
+        if(state==='missing')assert.equal(await page.locator('.hub-trade-figure > strong').first().textContent(),'—');
+        if(state==='zero')assert.equal(await page.locator('.hub-trade-figure > strong').first().textContent(),'0.0');
         if(state==='predraft')assert.equal(await page.evaluate(()=>window.fixtureRequests.filter(x=>x.includes('/week?')).length),0);
         if(state==='slow-ideas') {
           await page.getByRole('button',{name:'Ideas',exact:true}).click();
@@ -195,7 +196,7 @@ try {
     }
     if([1280,390].includes(width))for(const state of ['recovering','forecast-error','missing','saved']) {
       await open(state);
-      await page.locator('.hub-trade-impact-band').waitFor();
+      await page.locator('.hub-trade-exchange').waitFor({state:'attached'});
       assert.equal(await page.evaluate(()=>window.forecastReads),0,'Forecast work waits for an analytical surface');
       await page.getByRole('button',{name:'Discover',exact:true}).click();
       if(state==='recovering') {
@@ -262,7 +263,7 @@ try {
     await choose();
     await cols.nth(0).getByRole('button',{name:/^Send Josh Allen to/}).click();
     await page.waitForFunction(()=>window.fixtureRequests.filter(x=>x.includes('/week?')).length===2);
-    assert.equal(await page.locator('.hub-trade-impact-band > div > strong').first().innerText(),'—','Wrong-context weekly payload cannot cross leagues');
+    assert.equal(await page.locator('.hub-trade-figure > strong').first().textContent(),'—','Wrong-context weekly payload cannot cross leagues');
     assert.deepEqual(errors,[]);
     console.log(`${width}: desk flow, lazy requests, three-way routing, partial dead cap, Sleeper and unavailable-state checks PASS`);
     await page.close();
