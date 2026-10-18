@@ -1,0 +1,770 @@
+[
+  {
+    "width": 1280,
+    "state": "best-board",
+    "audit": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "15 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "14 targets ≥ 32"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=641"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "state": "best-review",
+    "audit": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "18 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "17 targets ≥ 32"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=641"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "state": "best-saved",
+    "audit": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "13 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "12 targets ≥ 32"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "40×40px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=641"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "state": "best-board",
+    "audit": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "15 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "14 targets ≥ 44"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "state": "best-review",
+    "audit": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "18 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "17 targets ≥ 44"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-call-pill.is-start",
+        "detail": "label and delta fit"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "state": "best-saved",
+    "audit": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "13 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "12 targets ≥ 44"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "lineup-controls",
+        "ok": true,
+        "selector": ".hub-wcc-position-button",
+        "detail": "44×44px"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "x=12"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  }
+]

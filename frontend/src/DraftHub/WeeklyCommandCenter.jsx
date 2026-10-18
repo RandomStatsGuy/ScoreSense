@@ -17,6 +17,7 @@ import {
 import WeekLineupBoard from "./WeekLineupBoard";
 import WeekLineupCallSheet from "./WeekLineupCallSheet";
 import WeekLineupPicker from "./WeekLineupPicker";
+import WeekBestLineupReview from "./WeekBestLineupReview";
 import { getWeeklySnapshot, setWeeklySnapshot, weeklySnapshotKey } from "./hubDataCache";
 import { usePlayerMedia } from "../PlayerCell";
 import { loadAura, readAura, saveAura, storageKey, vibeScore } from "./vibeAura";
@@ -28,6 +29,8 @@ import {
   canEditHubLineup,
   lineupPlayerLock,
   decisionSwapIds,
+  bestLineupMoves,
+  indexByPlayerId,
   formatDraftNightShort,
   WEEK_BOARD_COPY,
   LINEUP_PICKER_COPY,
@@ -87,6 +90,8 @@ export default function WeeklyCommandCenter({
   const [lineupBusy, setLineupBusy] = useState(false);
   const [lineupError, setLineupError] = useState("");
   const [auraById, setAuraById] = useState({});
+  const [bestOpen, setBestOpen] = useState(null);
+  const [lastBatch, setLastBatch] = useState(null);
 
   useEffect(() => {
     setPickerSlot(null);
@@ -94,6 +99,8 @@ export default function WeeklyCommandCenter({
     setOpenCall(null);
     setLineupError("");
     setLineupMessage("");
+    setBestOpen(null);
+    setLastBatch(null);
   }, [contextKey, weekOverride]);
 
   const load = useCallback(async (signal, { rebuild = false, background = false } = {}) => {
@@ -368,13 +375,15 @@ export default function WeeklyCommandCenter({
     }
   }, [canEdit, leagueId, load, meta.week, slots, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
 
-  const applySwap = useCallback(async (starterId, benchId) => {
+  // `finalize:false` lets a batch save several swaps before one refresh and one notice.
+  const applySwap = useCallback(async (starterId, benchId, { finalize = true } = {}) => {
     if (!canEdit || !leagueId || !starterId || !benchId) return;
-    const lock = lineupPlayerLock(starters.find(player => String(player.player_id) === String(starterId)))
-      || lineupPlayerLock(bench.find(player => String(player.player_id) === String(benchId)));
+    const current = dataRef.current?.roster || {};
+    const lock = lineupPlayerLock((current.starters || []).find(player => String(player.player_id) === String(starterId)))
+      || lineupPlayerLock((current.bench || []).find(player => String(player.player_id) === String(benchId)));
     if (lock) { setLineupError(lock); return false; }
     const finishAction = startFantasyAction("lineup-swap");
-    setLineupBusy(true);
+    if (finalize) setLineupBusy(true);
     setLineupError("");
     setRevalidating(false);
     readVersion.current += 1;
@@ -392,13 +401,17 @@ export default function WeeklyCommandCenter({
       const result = await res.json();
       if (mutationScopeRef.current !== mutationScope) { finishAction("superseded"); return false; }
       const saved = applySavedLineup(dataRef.current, result);
+      dataRef.current = saved;
       setWeeklySnapshot(snapshotKey, leagueId, saved);
       setDataState({ key: dataKey, payload: saved });
-      setPickerSlot(null);
-      setOpenCall(null);
       finishAction("saved");
-      void load(undefined, { background: true });
-      onLineupChanged?.();
+      if (finalize) {
+        setPickerSlot(null);
+        setOpenCall(null);
+        setLastBatch(null);
+        void load(undefined, { background: true });
+        onLineupChanged?.();
+      }
       return true;
     } catch (e) {
       finishAction("rejected");
@@ -406,9 +419,46 @@ export default function WeeklyCommandCenter({
       setLineupError(connectionErrorMessage(e));
       return false;
     } finally {
-      if (mutationScopeRef.current === mutationScope) setLineupBusy(false);
+      if (finalize && mutationScopeRef.current === mutationScope) setLineupBusy(false);
     }
-  }, [canEdit, starters, bench, leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
+  }, [canEdit, leagueId, load, meta.week, weekOverride, mutationScope, onLineupChanged, snapshotKey, dataKey]);
+
+  // Start best lineup: every suggested swap in one review, saved in sequence, undone together.
+  const best = useMemo(() => (canEdit && !poorCoverage ? bestLineupMoves(decisions, starters, bench) : { moves: [], total: null }), [canEdit, poorCoverage, decisions, starters, bench]);
+  const applyMoves = useCallback(async (moves, { undoing = false } = {}) => {
+    if (!moves?.length || !canEdit) return;
+    setLineupBusy(true);
+    setLineupError("");
+    const done = [];
+    for (const move of moves) {
+      const ok = await applySwap(move.starter_player_id, move.bench_player_id, { finalize: false });
+      if (mutationScopeRef.current !== mutationScope) return;
+      if (!ok) break;
+      done.push(move);
+    }
+    setLineupBusy(false);
+    if (done.length) {
+      setBestOpen(null);
+      setPickerSlot(null);
+      setOpenCall(null);
+      if (undoing) {
+        setLastBatch(null);
+        setLineupMessage(WEEK_BOARD_COPY.undone);
+      } else {
+        setLastBatch(done);
+        const total = done.every((move) => move.delta != null) ? done.reduce((sum, move) => sum + move.delta, 0) : null;
+        setLineupMessage(done.length === moves.length ? WEEK_BOARD_COPY.bestLineupSaved(done.length, total) : WEEK_BOARD_COPY.bestLineupPartial(done.length, moves.length));
+      }
+      void load(undefined, { background: true });
+      onLineupChanged?.();
+    }
+  }, [applySwap, canEdit, load, mutationScope, onLineupChanged]);
+  const undoBatch = useCallback(() => {
+    if (!lastBatch?.length) return;
+    // Each saved swap reverses in the opposite order: the bench player is now the starter.
+    const reversed = [...lastBatch].reverse().map((move) => ({ ...move, starter_player_id: move.bench_player_id, bench_player_id: move.starter_player_id }));
+    return applyMoves(reversed, { undoing: true });
+  }, [applyMoves, lastBatch]);
 
   const runPrimary = () => {
     if (primary.kind === "sync" || primary.kind === "strip-sync") return undefined;
@@ -541,6 +591,9 @@ export default function WeeklyCommandCenter({
     },
     onOpenCall: (decision) => { setPickerSlot(null); setOpenCall(decision); },
     media,
+    bestAction: embedded && canEdit && best.moves.length > 0
+      ? { label: WEEK_BOARD_COPY.bestLineupDelta(best.total), disabled: lineupBusy, onClick: () => { setPickerSlot(null); setOpenCall(null); setLineupError(""); setLineupMessage(""); setBestOpen({ ...best, players: indexByPlayerId([...starters, ...bench]) }); } }
+      : null,
   };
 
   const Page = embedded ? "section" : HubPage;
@@ -595,7 +648,8 @@ export default function WeeklyCommandCenter({
         {syncError && <div className="error">{syncError}</div>}
         {meta.lineup_available === false && <p className="chart-note" role="status">{WEEK_BOARD_COPY.sleeperLineupUnavailable}</p>}
         {lineupError && !pickerSlot && <div className="error" role="alert">{lineupError}</div>}
-        {lineupMessage && <p className="hub-wcc-lineup-saved" role="status">{lineupMessage}</p>}
+        {lineupMessage && <p className="hub-wcc-lineup-saved" role="status"><span>{lineupMessage}</span>
+          {lastBatch?.length > 0 && <button type="button" className="btn-link" disabled={lineupBusy} onClick={undoBatch}>{WEEK_BOARD_COPY.undo}</button>}</p>}
         {!embedded && meta.lineup_default_policy === "weekly_projections" && !meta.lineup_locked && (
           <p className="chart-note">{WEEK_BOARD_COPY.projectionDefaults}</p>
         )}
@@ -622,6 +676,12 @@ export default function WeeklyCommandCenter({
             : await applyFill(slot, player);
           if (saved && mutationScopeRef.current === mutationScope) setLineupMessage(LINEUP_PICKER_COPY.saved(player.player_name || player.player_id, slot.slot));
         }}
+      />}
+      {bestOpen && <WeekBestLineupReview
+        moves={bestOpen.moves} total={bestOpen.total} players={bestOpen.players} media={media}
+        busy={lineupBusy} error={lineupError}
+        onClose={() => { if (!lineupBusy) setBestOpen(null); }}
+        onApply={(moves) => applyMoves(moves)}
       />}
       {openCall ? (
         <WeekLineupCallSheet

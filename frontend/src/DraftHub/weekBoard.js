@@ -82,7 +82,48 @@ export const WEEK_BOARD_COPY = {
   week1PpgNote: "Week 1 shows last season's points per game. Rookies have no prior-season average.",
   laterPpgNote: "Last season's points per game. Rookies have no prior-season average.",
   specialistEmpty: "Specialist",
+  bestLineup: "Start best lineup",
+  bestLineupDelta: (delta) => (Number.isFinite(delta) && delta > 0 ? `Start best lineup · +${delta.toFixed(1)}` : "Start best lineup"),
+  bestLineupTitle: "Start your best lineup?",
+  bestLineupBody: (count) => `${count} ${count === 1 ? "change" : "changes"} from your bench, by projection. Locked slots are left alone.`,
+  bestLineupRow: (slot, incoming, outgoing) => `${slot}: ${incoming} starts, ${outgoing} to the bench`,
+  bestLineupTotal: (delta) => (Number.isFinite(delta) ? `+${delta.toFixed(1)} projected points` : "Projected change unavailable"),
+  startThese: (count) => `Start these ${count}`,
+  bestLineupSaved: (count, delta) => `Lineup updated. ${count} ${count === 1 ? "change" : "changes"} saved${Number.isFinite(delta) && delta > 0 ? ` · +${delta.toFixed(1)} projected` : ""}.`,
+  bestLineupPartial: (done, total) => `Lineup updated. ${done} of ${total} changes saved; the rest could not be applied.`,
+  undo: "Undo",
+  undone: "Undone. Your previous lineup is back.",
+  bestLineupClose: "Close best lineup review",
 };
+
+/** Suggested swaps that can all be saved together: one per starter, one per bench player, nothing locked. */
+export function bestLineupMoves(decisions = [], starters = [], bench = [], { now = Date.now() } = {}) {
+  const usedStarters = new Set();
+  const usedBench = new Set();
+  const moves = [];
+  const ranked = [...(decisions || [])].sort((a, b) => (Number(b?.delta_p50) || 0) - (Number(a?.delta_p50) || 0));
+  for (const decision of ranked) {
+    const ids = decisionSwapIds(decision);
+    if (!ids || usedStarters.has(ids.starter_player_id) || usedBench.has(ids.bench_player_id)) continue;
+    // A suggestion only stands while its players still sit where it found them; a committed swap retires it.
+    const starter = playerById(starters || [], ids.starter_player_id);
+    const incoming = playerById(bench || [], ids.bench_player_id);
+    if (!starter || !incoming) continue;
+    if (lineupPlayerLock(starter, { now }) || lineupPlayerLock(incoming, { now })) continue;
+    usedStarters.add(ids.starter_player_id);
+    usedBench.add(ids.bench_player_id);
+    const delta = Number(decision?.delta_p50);
+    moves.push({
+      ...ids,
+      slot: decision?.starter_slot || starter?.slot || "",
+      starter_name: decision?.starter_player_name || starter?.player_name || ids.starter_player_id,
+      bench_name: decision?.bench_player_name || incoming?.player_name || ids.bench_player_id,
+      delta: Number.isFinite(delta) ? delta : null,
+    });
+  }
+  const total = moves.every((move) => move.delta != null) && moves.length ? moves.reduce((sum, move) => sum + move.delta, 0) : null;
+  return { moves, total };
+}
 
 export const WEEK_BOUNDS = { min: 1, max: 22 };
 export const ROSTER_STALE_HOURS = 48;

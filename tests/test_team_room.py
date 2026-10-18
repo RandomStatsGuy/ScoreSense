@@ -55,7 +55,9 @@ def test_room_payload_is_allowlisted_and_does_not_leak_contracts(hub_db, monkeyp
     monkeypatch.setattr(league_sleeper_sync, "resolve_sleeper_league_id", lambda _: "")
     scoring={"available":True,"week":1,"current_week":1,"season":2026,"matchups":[{"teams":[
         {"hub_team_id":team["id"],"is_viewer":True,"points":0,"starters":[{"player_id":"p","name":"Player","position":"QB","team":"PHI","points":0,"proj":23}]},
-        {"hub_team_id":"other","team_name":"Opponent","points":0,"user_sub":"secret"}]}]}
+        {"hub_team_id":"other","team_name":"Opponent","points":0,"user_sub":"secret",
+         "starters":[{"player_id":"o1","name":"Rival","position":"QB","team":"DAL","points":0,"proj":20.5},
+                     {"player_id":"o2","name":"Rival two","position":"RB","team":"DAL","points":0,"proj":"7.4"}]}]}]}
     monkeypatch.setattr(hub_scoring,"build_hub_live_week",lambda *a,**k:scoring)
     monkeypatch.setattr(hub_scoring,"nfl_game_started",lambda *a,**k:False)
     monkeypatch.setattr(hub_scoring,"nfl_week_slate_complete",lambda *a,**k:False)
@@ -63,6 +65,12 @@ def test_room_payload_is_allowlisted_and_does_not_leak_contracts(hub_db, monkeyp
     room=team_room.build_room(team)
     assert room["theme"] == "cozy"
     assert room["state"] == "pregame" and room["score"] is None
+    # The compact opponent total sums the rival's starter forecasts; a missing forecast leaves it unknown, never zero.
+    assert room["opponent"] == {"name": "Opponent", "score": None, "projection": 27.9}
+    assert team_room._starter_projection_total([{"player_id": "o1", "proj": 20.5}, {"player_id": "o2", "proj": None}]) is None
+    assert team_room._starter_projection_total([{"player_id": "", "proj": 20.5}]) is None
+    assert team_room._starter_projection_total([]) is None
+    assert team_room._starter_projection_total([{"player_id": "o1", "proj": 0}]) == 0
     assert room["starters"][0]["points"] is None
     assert "user_sub" not in json.dumps(room)
     assert "salary" not in json.dumps(room)
