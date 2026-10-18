@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { roomNumber, roomDelta, roomResult } from "./rosterPresentation.js";
-import { roomProjectionTotal, canPreviewRoomSwap, roomPreviewLineup, roomPreviewScope } from "./teamRoomPresentation.js";
+import { roomProjectionTotal, canPreviewRoomSwap, roomPreviewLineup, roomPreviewScope, roomSavesLineup, canMoveRoomPlayer, canPlaceRoomPlayer, roomHeldState, roomBenchEdge, roomAfterSwap, roomOpponentGap } from "./teamRoomPresentation.js";
 test("missing scores stay distinct from zero and negatives", () => {
   assert.equal(roomNumber(null), "—");
   assert.equal(roomNumber(0), "0.0");
@@ -76,4 +76,51 @@ test("incomplete totals remain unknown and preview scope changes with team, week
   const scope = roomPreviewScope(data);
   for (const changed of [{ ...data, team: { id: "other" } }, { ...data, week: 7 }, { ...data, starters: [data.bench[0], data.starters[1]] }]) assert.notEqual(roomPreviewScope(changed), scope);
   assert.equal(roomPreviewScope({ ...data, starters: data.starters.map((p) => ({ ...p, nickname: "New nickname" })) }), scope);
+});
+
+test("native rooms save moves and allow a starter without a forecast; Sleeper rooms only preview", () => {
+  const data = previewRoom(), starter = data.starters[1], missing = data.bench[1];
+  assert.equal(roomSavesLineup(data), true);
+  assert.equal(roomSavesLineup({ ...data, lineup_host: "sleeper" }), false);
+  assert.equal(roomSavesLineup({ ...data, can_edit: false }), false);
+  assert.equal(canMoveRoomPlayer(data, starter, missing, 1), true);
+  assert.equal(canPreviewRoomSwap(data, starter, missing, 1), false);
+  assert.equal(canPlaceRoomPlayer(data, starter, missing, 1), true);
+  assert.equal(canPlaceRoomPlayer({ ...data, lineup_host: "sleeper" }, starter, missing, 1), false);
+  assert.equal(canPlaceRoomPlayer(data, { ...starter, lineup_locked: true }, data.bench[0], 1), false);
+});
+
+test("a held bench jersey lights eligible lockers with the signed change, names locked slots, and dims the rest", () => {
+  const data = previewRoom(), held = data.bench[0];
+  assert.deepEqual(roomHeldState(data, data.starters[1], held, 1), { fit: true, locked: false, delta: 11.6 - 2.4 });
+  assert.deepEqual(roomHeldState(data, data.starters[0], held, 0), { fit: true, locked: false, delta: 11.6 - 12.2 });
+  assert.deepEqual(roomHeldState(data, { ...data.starters[1], projection: null }, held, 1), { fit: true, locked: false, delta: null });
+  assert.deepEqual(roomHeldState(data, { ...data.starters[1], lineup_locked: true }, held, 1), { fit: false, locked: true, delta: null });
+  assert.deepEqual(roomHeldState(data, data.starters[1], { ...held, preview_slots: [0] }, 1), { fit: false, locked: false, delta: null });
+  assert.equal(roomHeldState(data, data.starters[1], null, 1), null);
+});
+
+test("bench captions name the weakest eligible starter beaten by at least a point", () => {
+  const data = previewRoom();
+  const edge = roomBenchEdge(data, data.bench[0], data.starters);
+  assert.equal(edge.index, 1);
+  assert.equal(edge.delta.toFixed(1), "9.2");
+  assert.equal(roomBenchEdge(data, data.bench[1], data.starters), null);
+  assert.equal(roomBenchEdge(data, { ...data.bench[0], projection: 12.9 }, data.starters).index, 1);
+  assert.equal(roomBenchEdge(data, { ...data.bench[0], projection: 3.0 }, data.starters), null);
+});
+
+test("a saved swap moves the players locally without touching eligibility metadata", () => {
+  const data = previewRoom(), next = roomAfterSwap(data, "flex", "downs");
+  assert.deepEqual(next.starters.map((p) => [p.player_id, p.slot]), [["wr", "WR"], ["downs", "FLEX"]]);
+  assert.deepEqual(next.bench.map((p) => [p.player_id, p.slot]), [["flex", null], ["missing", null]]);
+  assert.deepEqual(next.starters[1].preview_slots, [0, 1]);
+  assert.equal(roomAfterSwap(data, "nobody", "downs"), data);
+});
+
+test("the opponent margin needs both projected totals", () => {
+  assert.equal(roomOpponentGap(130.5, { projection: 127.9 }).toFixed(1), "2.6");
+  assert.equal(roomOpponentGap(null, { projection: 127.9 }), null);
+  assert.equal(roomOpponentGap(130.5, { projection: null }), null);
+  assert.equal(roomOpponentGap(130.5, null), null);
 });

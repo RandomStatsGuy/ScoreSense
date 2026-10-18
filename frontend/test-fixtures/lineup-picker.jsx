@@ -36,6 +36,15 @@ if (state === "no-options") data.roster.bench = [data.roster.bench[2]];
 if (state === "locked-player") data.roster.bench[0].locked = true;
 if (state === "locked-starter") data.roster.starters[3].locked = true;
 if (state === "missing") data.roster.bench[0].p50 = null;
+if (state === "best") {
+  // My team → Lineup tab: two suggested swaps reviewed and saved together.
+  data.roster.bench[2].p50 = 24;
+  data.decisions = [
+    { starter_player_id: "waddle", bench_player_id: "smith", starter_player_name: "Jaylen Waddle", bench_player_name: "DeVonta Smith", starter_slot: "FLEX", delta_p50: 2.5 },
+    { starter_player_id: "hurts", bench_player_id: "daniels", starter_player_name: "Jalen Hurts", bench_player_name: "Jayden Daniels", starter_slot: "QB", delta_p50: 1.6 },
+    { starter_player_id: "waddle", bench_player_id: "charbonnet", starter_player_name: "Jaylen Waddle", bench_player_name: "Zach Charbonnet", starter_slot: "FLEX", delta_p50: 0.4 },
+  ];
+}
 window.fixtureWrites = [];
 window.fixtureWeekReads = 0;
 window.fixtureScoreReads = 0;
@@ -80,6 +89,9 @@ window.fetch = async (input, options = {}) => {
   if (path.startsWith("/api/hub/week")) {
     window.fixtureWeekReads += 1;
     const snapshot = structuredClone(data);
+    // Like the server, only advise swaps whose players still sit where the advice found them.
+    snapshot.decisions = snapshot.decisions.filter((d) => data.roster.starters.some((p) => p.player_id === d.starter_player_id)
+      && data.roster.bench.some((p) => p.player_id === d.bench_player_id));
     if (window.fixtureWeekReads > 1 && state === "slow-refresh") await new Promise((resolve) => setTimeout(resolve, 3000));
     if (window.fixtureWeekReads > 1 && state === "refresh-error") return Response.json({ detail: "Unavailable" }, { status: 503 });
     if (state === "loading") await new Promise(() => {});
@@ -94,6 +106,6 @@ window.fetch = async (input, options = {}) => {
 };
 const Component = ["combined", "score-pending", "score-failed"].includes(state) ? WeeklyExperience : WeeklyCommandCenter;
 createRoot(document.getElementById("root")).render(<div className="app"><main id="main-content">
-  <div className="draft-hub"><Component cacheScope="fixture" hubContext={context} onNavigate={(view) => {
+  <div className="draft-hub"><Component cacheScope="fixture" hubContext={context} {...(state === "best" ? { embedded: true, showWeekStepper: true } : {})} onNavigate={(view) => {
     window.fixtureDestination = view;
   }} /></div></main></div>);

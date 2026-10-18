@@ -61,6 +61,18 @@
 .lineup-picker-footer .btn-primary { flex: 1; text-align: center; }
 .lineup-picker-footer button, .lineup-picker-footer a { min-height: var(--control-h-lg); white-space: normal; }
 .lineup-picker-empty { padding: var(--space-4); background: var(--bg-subtle); border-radius: var(--radius-sm); font-size: var(--text-sm); }
+/* Best-lineup review: every suggested swap in one list, one save. */
+.lineup-best-moves { list-style: none; margin: 0; padding: 0; }
+.lineup-best-move { display: flex; align-items: center; gap: var(--space-3); min-height: 4rem; padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
+.lineup-best-move > .lineup-picker-role { width: 3rem; flex: none; }
+.lineup-best-move .lineup-picker-identity > span { overflow-wrap: anywhere; }
+.hub-wcc-board--compact .hub-week-starters-heading .hub-week-best-lineup { min-height: var(--control-h-md); padding: 0 var(--space-3); font-size: var(--text-xs); white-space: nowrap; }
+.hub-wcc-board--compact .hub-week-starters-heading.has-best { grid-template-columns: minmax(0,1fr) auto; }
+.hub-wcc-lineup-saved { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.hub-wcc-lineup-saved .btn-link { display: inline-flex; align-items: center; min-height: var(--control-h-md); padding: 0 var(--space-2); font-size: var(--text-xs); }
+@media (max-width: 768px) {
+  .hub-wcc-board--compact .hub-week-starters-heading .hub-week-best-lineup, .hub-wcc-lineup-saved .btn-link { min-height: var(--control-h-lg); }
+}
 .hub-wcc-lineup-saved { padding: var(--space-3) var(--space-4); color: var(--tone-positive); background: var(--tone-positive-soft); border-radius: var(--radius-sm); }
 @media (max-width: 768px) {
   .hub-wcc-position-button { width: 3rem; }

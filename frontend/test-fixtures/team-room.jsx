@@ -79,6 +79,7 @@ const data = {
   opponent: {
     name: "Sunday Rivals",
     score: state === "pregame" ? null : 118.4,
+    projection: params.has("no-opponent") ? null : 127.9,
   },
   media,
   synced_at: new Date().toISOString(),
@@ -101,8 +102,19 @@ window.fetch = async (url, options = {}) => {
   if (path.includes("/room/nicknames/")) {
     const pid = decodeURIComponent(path.split("/").pop());
     const value = JSON.parse(options.body).nickname;
-    for (const p of players) if (p.player_id === pid) p.nickname = value || "";
+    for (const p of [...players, ...data.starters, ...data.bench]) if (p.player_id === pid) p.nickname = value || "";
     return Response.json({ saved: true });
+  }
+  if (path.endsWith("/lineup/swap")) {
+    // Native leagues save Room moves through the same swap as the Lineup tab.
+    const body = JSON.parse(options.body);
+    const index = data.starters.findIndex((p) => p.player_id === body.starter_player_id);
+    const incoming = data.bench.find((p) => p.player_id === body.bench_player_id);
+    if (index < 0 || !incoming || params.has("swap-fails")) return Response.json({ detail: "The starter's game has started" }, { status: 400 });
+    const outgoing = data.starters[index];
+    data.starters = data.starters.map((p, i) => (i === index ? { ...incoming, slot: outgoing.slot } : p));
+    data.bench = data.bench.map((p) => (p.player_id === incoming.player_id ? { ...outgoing, slot: null } : p));
+    return Response.json({ lineup: [...data.starters.map((p) => ({ player_id: p.player_id, slot: p.slot, lineup_role: "starter" })), ...data.bench.map((p) => ({ player_id: p.player_id, slot: "BN", lineup_role: "bench" }))], locked: false });
   }
   if (path.endsWith("/room/share")) {
     data.share_token = JSON.parse(options.body).enabled
@@ -129,6 +141,7 @@ const context = {
   team_id: "mine",
   league_id: "fixture",
   team_name: "Immaculate Concepcion",
+  sleeper_league_id: params.get("host") === "sleeper" ? "1234567890" : "",
   draft_completed: true,
   capabilities: capabilitiesFromRules({ draft_type: params.get("format") === "pick" ? "snake" : "auction" }),
 };

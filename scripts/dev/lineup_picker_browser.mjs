@@ -134,6 +134,37 @@ try {
     await page.goto(`${base}?state=load-error`);
     await page.getByRole("button", { name: "Retry", exact: true }).first().waitFor();
     assert.equal(await page.locator(".hub-wcc-position-button").count(), 0);
+    // My team → Lineup tab: Start best lineup reviews every suggested swap, saves them in sequence, and undoes together.
+    await page.goto(`${base}?state=best`, { waitUntil: "domcontentloaded" });
+    const bestButton = page.getByRole("button", { name: "Start best lineup · +4.1", exact: true });
+    await bestButton.waitFor();
+    if (width === 1280) assert.equal(await page.locator(".hub-wcc-bench").evaluate((el) => getComputedStyle(el).position), "sticky");
+    await measure("best-board");
+    await page.screenshot({ path: `${output}/best-board-${width}.png`, fullPage: true });
+    await bestButton.click();
+    const review = page.getByRole("dialog", { name: "Start your best lineup?" });
+    await review.waitFor();
+    assert.equal(await review.locator(".lineup-best-move").count(), 2, "one move per starter and bench player");
+    assert.match(await review.textContent(), /FLEX.*DeVonta Smith.*QB.*Jayden Daniels/s);
+    assert.match(await review.locator(".lineup-picker-delta").textContent(), /\+4\.1/);
+    await measure("best-review");
+    await page.screenshot({ path: `${output}/best-review-${width}.png`, fullPage: true });
+    await review.getByRole("button", { name: "Start these 2", exact: true }).click();
+    await page.getByRole("status").filter({ hasText: "Lineup updated. 2 changes saved · +4.1 projected." }).waitFor();
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    let bestWrites = await page.evaluate(() => window.fixtureWrites);
+    assert.deepEqual(bestWrites.map((w) => [w.body.starter_player_id, w.body.bench_player_id]), [["waddle", "smith"], ["hurts", "daniels"]]);
+    await page.getByRole("button", { name: "Change FLEX: DeVonta Smith", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Change QB: Jayden Daniels", exact: true }).waitFor();
+    await measure("best-saved");
+    await page.screenshot({ path: `${output}/best-saved-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await page.getByRole("status").filter({ hasText: "Undone. Your previous lineup is back." }).waitFor();
+    await page.getByRole("button", { name: "Change FLEX: Jaylen Waddle", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Change QB: Jalen Hurts", exact: true }).waitFor();
+    bestWrites = await page.evaluate(() => window.fixtureWrites);
+    assert.deepEqual(bestWrites.slice(2).map((w) => [w.body.starter_player_id, w.body.bench_player_id]), [["daniels", "hurts"], ["smith", "waddle"]]);
+    assert.equal(await page.getByRole("button", { name: "Undo", exact: true }).count(), 0);
     assert.deepEqual(errors, []);
     await page.close();
   }

@@ -258,15 +258,26 @@ if (list) {
           } else if (spec.interaction === "room-locked") {
             assert.equal(await page.locator(".team-room-bench-pick").filter({ hasText: "Josh Downs" }).count(), 0);
           } else if (spec.interaction === "room-missing") {
+            // Native rooms may start a player without a forecast; the total stays unknown rather than zero.
             assert.equal(await page.locator(".team-room-total-number > strong").textContent(), "—");
             await page.locator(".team-room-bench-pick").filter({ hasText: "Josh Downs" }).click();
-            assert.equal(await page.getByRole("button", { name: "Preview swap", exact: true }).isDisabled(), true);
+            const start = page.getByRole("button", { name: "Start Josh Downs at WR", exact: true });
+            assert.equal(await start.isDisabled(), false);
+            await start.click();
+            await page.getByRole("button", { name: "Open Josh Downs's locker", exact: true }).waitFor();
+            assert.equal(await page.locator(".team-room-total-number > strong").textContent(), "—");
+            assert.equal((await page.evaluate(() => window.__requests)).filter(r => r.path.endsWith("/lineup/swap")).length, 1);
+            await page.getByRole("button", { name: "Undo", exact: true }).click();
+            await page.getByRole("button", { name: "Open Malik Nabers's locker", exact: true }).waitFor();
           } else {
+            const sleeper = spec.query.host === "sleeper";
             const original = Number(await page.locator(".team-room-total-number > strong").textContent());
             const outgoing = Number(await page.locator(".team-room-detail-score strong").textContent());
             await page.locator(".team-room-bench-pick").filter({ hasText: "Josh Downs" }).click();
             const requestsBefore = await page.evaluate(() => window.__requests);
-            const requestCount = requestsBefore.length;
+            const writesBefore = requestsBefore.filter(r => r.method !== "GET").length;
+            const actionName = sleeper ? "Preview swap" : "Start Josh Downs at WR";
+            assert.equal(await page.getByRole("button", { name: actionName, exact: true }).count(), 1);
             report.preview_frame_ms = await page.evaluate(async () => {
               const start = performance.now();
               document.querySelector(".team-room-swap-action .btn-primary").click();
@@ -275,9 +286,26 @@ if (list) {
             });
             await page.getByRole("button", { name: "Open Josh Downs's locker", exact: true }).waitFor();
             assert.equal(await page.locator(".team-room-total-number > strong").textContent(), (original - outgoing + 11.6).toFixed(1));
-            assert.equal(await page.evaluate(() => window.__requests.length), requestCount, "Preview added a request");
-            assert.deepEqual((await page.evaluate(() => window.__requests)).filter(r => r.method !== "GET"), requestsBefore.filter(r => r.method !== "GET"), "Preview added a league write");
-            await page.getByRole("button", { name: "Reset preview", exact: true }).click();
+            const writes = (await page.evaluate(() => window.__requests)).filter(r => r.method !== "GET");
+            if (sleeper) {
+              // Sleeper owns the lineup: previews never write.
+              assert.equal(writes.length, writesBefore, "Preview added a league write");
+              assert.equal(await page.locator(".team-room-status.is-preview").count(), 1);
+              assert.equal(await page.getByRole("link", { name: "Set lineup in Sleeper ↗", exact: true }).count() >= 1, true);
+              await page.getByRole("button", { name: "Reset preview", exact: true }).click();
+            } else {
+              // Native leagues save through the Lineup tab's swap endpoint and offer Undo.
+              assert.deepEqual(writes.slice(writesBefore).map(r => [r.method, r.path.split("/").slice(-2).join("/")]), [["POST", "lineup/swap"]]);
+              const status = page.locator(".team-room-status.is-saved");
+              assert.equal(await status.count(), 1);
+              assert.match(await status.textContent(), /Saved.*Josh Downs starts at WR; Malik Nabers moves to the bench\./);
+              assert.equal(await status.evaluate(el => el === document.activeElement), true, "Saved status takes focus");
+              await page.getByRole("button", { name: "Undo", exact: true }).click();
+              await page.getByRole("button", { name: "Open Malik Nabers's locker", exact: true }).waitFor();
+              assert.equal(await page.locator(".team-room-total-number > strong").textContent(), original.toFixed(1));
+              assert.equal((await page.evaluate(() => window.__requests)).filter(r => r.path.endsWith("/lineup/swap")).length, 2);
+              assert.match(await page.locator(".team-room-status").first().textContent(), /Undone\. Malik Nabers starts at WR again\./);
+            }
             await locker.click();
             await page.getByText("Edit nickname", { exact: true }).click();
             await page.getByLabel("Player nickname", { exact: true }).fill("Neighborhood favorite");
@@ -297,16 +325,54 @@ if (list) {
             assert.equal(await locker.locator(".is-swinging").count(), 0);
             await page.emulateMedia({ reducedMotion: "no-preference" });
             await locker.click();
+            if (spec.interaction === "room-preview" && id === "room-native" && width === 390) {
+              // Phone: the sticky bench rack picks a jersey up; a lit locker places it and saves.
+              await page.keyboard.press("Escape");
+              const rack = page.locator(".team-room-rack");
+              assert.equal(await rack.count(), 1);
+              assert.equal(await page.locator(".team-room-bench-section").count(), 0, "Phone shows the rack instead of the bench list");
+              await rack.getByRole("button", { name: "Pick up Josh Downs · 11.6 projected", exact: true }).click();
+              assert.equal(await page.locator(".team-room-locker.is-fit").count(), 4);
+              assert.match(await rack.textContent(), /Holding Josh Downs/);
+              const target = page.getByRole("button", { name: "Start Josh Downs at WR, benching Christian Watson", exact: true });
+              await target.click();
+              await page.getByRole("button", { name: "Open Josh Downs's locker", exact: true }).waitFor();
+              assert.equal(await page.locator(".team-room-locker.is-fit").count(), 0);
+              assert.match(await rack.locator(".team-room-status.is-saved").textContent(), /Josh Downs starts at WR; Christian Watson moves to the bench\./);
+              await rack.getByRole("button", { name: "Undo", exact: true }).click();
+              await page.getByRole("button", { name: "Open Christian Watson's locker", exact: true }).waitFor();
+              await rack.getByRole("button", { name: "Pick up Josh Downs · 11.6 projected", exact: true }).click();
+              await rack.getByRole("button", { name: "Put back", exact: true }).click();
+              assert.equal(await page.locator(".team-room-locker.is-fit").count(), 0);
+              await locker.click();
+            }
             if (spec.interaction === "room-preview" && id === "room-native" && width === 1280) {
               // Keep source and destination visible to exercise the native drag gesture.
               await page.setViewportSize({ width, height: 2400 });
               const flex = page.getByRole("button", { name: "Open Travis Etienne's locker", exact: true });
-              await page.getByRole("button", { name: "Compare Josh Downs with a starter", exact: true }).dragTo(flex);
+              const downs = page.getByRole("button", { name: "Compare Josh Downs with a starter", exact: true });
+              assert.equal(await downs.locator(".team-room-bench-edge").textContent(), "+3.6 over Washington");
+              // Held jersey: eligible lockers light up with the change, the QB locker dims behind a closed door.
+              await downs.hover();
+              await page.mouse.down();
+              await flex.hover();
+              assert.equal(await page.locator(".team-room-locker.is-fit").count(), 4);
+              assert.equal(await page.locator(".team-room-locker.is-dim").count(), 5);
+              assert.equal(await flex.locator(".team-room-held-plate").textContent(), "-1.4");
+              assert.equal(await page.getByRole("button", { name: "Open Christian Watson's locker", exact: true }).locator(".team-room-held-plate").textContent(), "+1.6");
+              await flex.hover();
+              await page.mouse.up();
               await page.getByRole("button", { name: "Open Josh Downs's locker", exact: true }).waitFor();
+              assert.equal(await page.locator(".team-room-locker.is-fit, .team-room-locker.is-dim").count(), 0);
               assert.equal(await page.locator(".team-room-total-number > strong").textContent(), (original - 13 + 11.6).toFixed(1));
-              await page.getByRole("button", { name: "Reset preview", exact: true }).click();
+              assert.match(await page.locator(".team-room-status.is-saved").textContent(), /Josh Downs starts at FLEX; Travis Etienne moves to the bench\./);
+              assert.match(await page.locator(".team-room-stakes").textContent(), /vs Sunday Rivals · projected127\.9pts/);
+              await page.getByRole("button", { name: "Undo", exact: true }).click();
+              await page.getByRole("button", { name: "Open Travis Etienne's locker", exact: true }).waitFor();
+              assert.equal(await page.locator(".team-room-total-number > strong").textContent(), original.toFixed(1));
               await page.setViewportSize({ width, height: 1000 });
               await locker.click();
+              await page.getByRole("heading", { name: "“Neighborhood favorite”", exact: true }).waitFor();
               await locker.scrollIntoViewIfNeeded();
               const box = await locker.boundingBox();
               await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

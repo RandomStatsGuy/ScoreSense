@@ -322,6 +322,7 @@ export default function WeekLineupBoard({
   compact = false,
   scorePlayers = [],
   gameCenterData,
+  bestAction = null,
 }) {
   const mobileLayout = useMobileLayout();
   const wideById = indexByPlayerId(wideRanges);
@@ -460,7 +461,9 @@ export default function WeekLineupBoard({
       {compact && poorCoverage && !hideSlots && <div className="hub-wcc-coverage-block" role="status"><h3>{coverageCopy?.title}</h3><p>{coverageCopy?.body}</p>{coverageActions}</div>}
       {includeStarters ? (
         <div className="hub-wcc-board-stage">
-          {compact && !hideSlots && <header className="hub-week-starters-heading"><h3>{WEEK_BOARD_COPY.startersTitle}</h3><span>{gameCenterData && !gameCenterData.placeholder ? ((gameCenterData.week_complete || gameCenterData.scoring_control?.final) ? GAME_CENTER_COPY.final : GAME_CENTER_COPY.points) : WEEK_BOARD_COPY.projected}</span></header>}
+          {compact && !hideSlots && <header className={`hub-week-starters-heading${bestAction ? " has-best" : ""}`}><h3>{WEEK_BOARD_COPY.startersTitle}</h3>
+            {bestAction ? <button type="button" className="btn-ghost hub-week-best-lineup" disabled={bestAction.disabled} onClick={bestAction.onClick}>{bestAction.label}</button>
+              : <span>{gameCenterData && !gameCenterData.placeholder ? ((gameCenterData.week_complete || gameCenterData.scoring_control?.final) ? GAME_CENTER_COPY.final : GAME_CENTER_COPY.points) : WEEK_BOARD_COPY.projected}</span>}</header>}
           <div className="hub-wcc-slate" id="hub-wcc-calls">
             {hideSlots ? null : slots.map((slot) => renderRow(slot, {
               selected: selectedSlotKey === (slot.key || slot.slot),

@@ -1043,6 +1043,7 @@ function RosterBuilderView({
       <button ref={manageTabRef} type="button" aria-pressed={roomTab === "manage"} onClick={() => setRoomTab("manage")}>{usesSalaries ? MY_TEAM_COPY.manage : MY_TEAM_COPY.playerDetails}</button>
     </div>
     {roomTab === "room" ? <TeamRoom key={`${hubContext.league_id}:${hubContext.team_id}`} cacheScope={cacheScope} leagueId={hubContext.league_id} teamId={hubContext.team_id}
+      sleeperLeagueId={hubContext.sleeper_league_id || ""} onLineupChanged={onChanged}
       onContract={usesSalaries ? (pid) => { setRoomTab("manage"); openContractPanel(pid, manageTabRef.current); } : null}
       onAppearance={canWrite ? () => { setRoomTab("manage"); setLookOpen(true); } : null}
       onLineup={() => setRoomTab("lineup")} /> : roomTab === "lineup" ? <Suspense fallback={<HubLoadingSkeleton rows={4}/>}><MyTeamLineup
