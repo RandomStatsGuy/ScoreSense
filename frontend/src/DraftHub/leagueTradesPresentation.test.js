@@ -107,3 +107,40 @@ test("phone consequence names the position without filling the band with a long 
   assert.equal(headline.compactText, "Adds a projected QB starter");
   assert.match(headline.text, /several surnames/);
 });
+
+
+test("exchange ledger keeps weekly points missing when any leg lacks a forecast and omits money in pick leagues", async () => {
+  const { tradeExchangeLedger } = await import("./leagueTradesPresentation.js");
+  const out = [{ salary: 18, years: 1, weekP50: 14.8 }];
+  const incoming = [{ salary: 24, years: 2, weekP50: 17.3 }, { salary: 4, years: 1, weekP50: null }];
+  assert.deepEqual(tradeExchangeLedger({ out, incoming, weekAvailable: true }), [
+    { label: "Week pts", out: "14.8", in: "—" },
+    { label: "Salary", out: "$18", in: "$28" },
+    { label: "Longest deal", out: "1y", in: "2y" },
+  ]);
+  assert.deepEqual(tradeExchangeLedger({ out, incoming: [], salaryLeague: false, weekAvailable: false }), [{ label: "Players", out: "1", in: "—" }]);
+  assert.deepEqual(tradeExchangeLedger({ out: [], incoming: [] }), []);
+  assert.doesNotMatch(JSON.stringify(tradeExchangeLedger({ out, incoming, salaryLeague: false })), /\$|deal/i);
+});
+
+test("acceptance and proposal pills use plain words and never raw status ids", async () => {
+  const { tradeAcceptanceLabel, tradeProposalStatus } = await import("./leagueTradesPresentation.js");
+  assert.deepEqual(tradeAcceptanceLabel("pending", { isYou: true }), { text: "Your call", tone: "attention" });
+  assert.deepEqual(tradeAcceptanceLabel("pending"), { text: "Waiting", tone: "attention" });
+  assert.equal(tradeAcceptanceLabel("accepted").tone, "positive");
+  assert.doesNotMatch(tradeAcceptanceLabel("rejected").text, /reject/i);
+  assert.equal(tradeProposalStatus("pending", { yourResponsePending: true }).text, "Waiting for your response");
+  assert.equal(tradeProposalStatus("awaiting_sleeper").text, TRADES_COPY.waitingSleeper);
+  assert.equal(tradeProposalStatus("cap_review").text, TRADES_COPY.syncedMoves);
+  assert.deepEqual(tradeProposalStatus("some_future_state"), { text: "Some future state", tone: "muted" });
+  assert.doesNotMatch(tradeProposalStatus("executed").text, /_/);
+});
+
+test("face-off copy keeps the exchange private and free of banned labels", () => {
+  const visible = [TRADES_COPY.exchangeTitle, TRADES_COPY.sendView, TRADES_COPY.receiveView, TRADES_COPY.exchangeView,
+    TRADES_COPY.youSendTo("Jordan"), TRADES_COPY.youReceiveFrom("Jordan"), TRADES_COPY.pickFromTheirs("Jordan"), TRADES_COPY.privateNote].join(" ");
+  assert.doesNotMatch(visible, /Submit|Draft Hub|permission|Available players|fair|odds/i);
+  assert.equal(TRADES_COPY.youSendTo("Jordan"), "You send → Jordan");
+  const pick = tradesCopyForFormat(true);
+  assert.equal(pick.ledgerPlayers, "Players");
+});
