@@ -155,6 +155,46 @@ export const TRADES_COPY = {
   whatsNext: "They can accept or reject. You can cancel from Inbox until it executes.",
   extendable: "Extendable",
   expiring: "Expiring",
+  // Approved October 17 C · Face-off
+  exchangeTitle: "The exchange",
+  exchangeLive: "Live",
+  sendView: "Send",
+  receiveView: "Receive",
+  exchangeView: "Exchange",
+  youSendTo: (name) => `You send → ${name}`,
+  youReceiveFrom: (name) => `You receive ← ${name}`,
+  betweenPartners: "Between partners",
+  pickFromYours: "Pick from your roster",
+  pickFromTheirs: (name) => `Pick from ${name}’s roster`,
+  ledgerOut: "Out",
+  ledgerIn: "In",
+  ledgerWeek: "Week pts",
+  ledgerSalary: "Salary",
+  ledgerLongest: "Longest deal",
+  ledgerPlayers: "Players",
+  weekPtsShort: "wk pts",
+  sendsLabel: "Sends",
+  nothingSent: "Nothing",
+  you: "You",
+  youSuffix: "· You",
+  capRoomLabel: "Cap room",
+  rosterLabel: "Roster",
+  privateNote: "private to you",
+  tradeReview: "Trade review",
+  proposedVerb: "proposed",
+  acceptAction: "Accept",
+  rejectAction: "Reject",
+  cancelAction: "Cancel",
+  forceApplyAction: "Force apply",
+  acceptanceAccepted: "Accepted",
+  acceptanceRejected: "Declined",
+  acceptanceWaiting: "Waiting",
+  acceptanceYours: "Your call",
+  statusPending: "Waiting for acceptances",
+  statusYourResponse: "Waiting for your response",
+  statusExecuted: "Executed",
+  statusRejected: "Declined",
+  statusCancelled: "Cancelled",
 };
 
 export function tradesCopyForFormat(pickDraft) {
@@ -292,4 +332,51 @@ export function tradeCapChangeText(before, after) {
   if (!finiteValue(before) || !finiteValue(after)) return null;
   const delta = Number(after) - Number(before);
   return Math.abs(delta) < 1 ? null : `${delta > 0 ? "+" : "−"}${money(delta)}`;
+}
+
+/**
+ * Out / In ledger for the live exchange column. Each leg: { salary, years, weekP50 }.
+ * Weekly points stay missing when any leg on a side lacks a forecast.
+ */
+export function tradeExchangeLedger({ out = [], incoming = [], salaryLeague = true, weekAvailable = false, copy = TRADES_COPY }) {
+  if (!out.length && !incoming.length) return [];
+  const dash = "—";
+  const points = legs => {
+    if (!legs.length) return dash;
+    if (legs.some(leg => !finiteValue(leg.weekP50))) return dash;
+    return legs.reduce((sum, leg) => sum + Number(leg.weekP50), 0).toFixed(1);
+  };
+  const salary = legs => legs.length ? money(legs.reduce((sum, leg) => sum + (Number(leg.salary) || 0), 0)) : dash;
+  const longest = legs => {
+    const years = legs.map(leg => Number(leg.years)).filter(Number.isFinite);
+    return years.length ? `${Math.max(...years)}y` : dash;
+  };
+  const rows = [];
+  if (weekAvailable) rows.push({ label: copy.ledgerWeek, out: points(out), in: points(incoming) });
+  if (salaryLeague) {
+    rows.push({ label: copy.ledgerSalary, out: salary(out), in: salary(incoming) });
+    rows.push({ label: copy.ledgerLongest, out: longest(out), in: longest(incoming) });
+  } else {
+    rows.push({ label: copy.ledgerPlayers, out: out.length ? String(out.length) : dash, in: incoming.length ? String(incoming.length) : dash });
+  }
+  return rows;
+}
+
+/** One party's acceptance pill. Amber waits, teal accepted, muted declined. */
+export function tradeAcceptanceLabel(state, { isYou = false, copy = TRADES_COPY } = {}) {
+  if (state === "accepted") return { text: copy.acceptanceAccepted, tone: "positive" };
+  if (state === "rejected") return { text: copy.acceptanceRejected, tone: "muted" };
+  return { text: isYou ? copy.acceptanceYours : copy.acceptanceWaiting, tone: "attention" };
+}
+
+/** Proposal-level status for the duel centre. Unknown statuses read as plain words. */
+export function tradeProposalStatus(status, { yourResponsePending = false, copy = TRADES_COPY } = {}) {
+  if (status === "pending") return { text: yourResponsePending ? copy.statusYourResponse : copy.statusPending, tone: "attention" };
+  if (status === "awaiting_sleeper") return { text: copy.waitingSleeper, tone: "attention" };
+  if (status === "cap_review") return { text: copy.syncedMoves, tone: "attention" };
+  if (status === "executed") return { text: copy.statusExecuted, tone: "positive" };
+  if (status === "rejected") return { text: copy.statusRejected, tone: "muted" };
+  if (status === "cancelled" || status === "canceled") return { text: copy.statusCancelled, tone: "muted" };
+  const plain = String(status || "").replace(/_/g, " ").trim();
+  return { text: plain ? plain[0].toUpperCase() + plain.slice(1) : "—", tone: "muted" };
 }
