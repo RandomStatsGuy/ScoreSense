@@ -823,6 +823,7 @@ The requested instruction activation and 45-surface review/evidence pass are com
 
 Delivery: one scoped draft PR to `develop` containing this evidence, reusable checks and the Admin/audit fixes. Review/ready/full backend merge gate, merge and deployment remain separate actions. Original-checkout work and production data are preserved.
 
+
 ## Follow-up: Trades Face-off (October 17)
 
 ### Brief
@@ -852,3 +853,21 @@ Synthetic data, reduced motion, dark unless named: [Build 1280](./reviews/trades
 ### Task evidence and boundary
 
 Exercised: pick from both rosters, remove from the exchange column, Try another version / Compare, Review trade, Full impact dialog focus and return, phone Send / Receive / Exchange switching, three-way recipients, Inbox accept-state rendering with Sleeper wait and cap-review actions. Not exercised: a real proposal, acceptance or Sleeper execution; authenticated banner media (fixtures use preset fills); physical touch. These remain the same limits as the October 15 record.
+
+
+## Follow-up: My team lineup flow (October 17 A)
+
+Task: make the My team Room the fun landing editor for a lineup while the Lineup tab keeps the traditional list. Approved baseline: the October 17 lineup-editing approval and [option A](mockups/my-team-room-edit-a.html), Lockers answer the drag. Attention order: the projected lineup total and the opponent's projected total, the lit lockers while a bench jersey is held, then the saved status with Undo. Observed friction before the change: a drop in the Room only previewed, so the fun path never finished the job; bench rows gave no hint of who they beat; phone had no way to drag at all; the Lineup tab required one picker per slot.
+
+Bounded changes:
+
+- `TeamRoom.jsx` posts the existing `/lineup/swap` command for owner drops in native-scoring rooms, applies the move locally, invalidates the shared weekly snapshot and reloads in the background. Sleeper rooms keep previews and Set lineup in Sleeper. Failures keep the saved lineup and name the miss.
+- `TeamRoomView.jsx` adds held states (lit with the signed change or Fits, Locked, dimmed behind a closed door), bench captions naming the weakest eligible starter beaten by at least a point, a saved/preview status with Undo that moves focus, the opponent projected total with lead/trail wording, and a phone bench rack (pick up a chip, tap a lit locker, Put back). `team_room.py` adds the opponent starter projection total, unknown when any starter forecast is missing.
+- `WeeklyCommandCenter.jsx` adds Start best lineup: `bestLineupMoves` collects one saveable suggestion per starter and bench player, `WeekBestLineupReview.jsx` lists them, saves run in sequence, and one Undo reverses the batch. Suggestions retire once their players have traded places. The compact bench column stays in view on desktop.
+- Copy lives in `rosterPresentation.js` and `weekBoard.js`; styles in `team-room.css`, `lineup-picker.css`, `weekly-experience.css` using shared tokens.
+
+Machine evidence: `team_room_preview_browser.mjs` **18/18 PASS** (native, Sleeper, pick light, live, read-only, missing, locked, empty, error at 1280/390) with layout audits; the Start best lineup block **6/6 audits PASS** at 1280/390 with sequential-write and batch-Undo assertions; frontend units **75 PASS**; `test_team_room` + `test_hub_scoring` **80 PASS**; production build PASS.
+
+Visual evidence: inspected [held lockers](./reviews/my-team-room-edit/room-held-1280.png), [saved swap](./reviews/my-team-room-edit/room-saved-1280.png), [phone rack](./reviews/my-team-room-edit/room-rack-390.png), [Sleeper preview](./reviews/my-team-room-edit/room-sleeper-1280.png), [best lineup review](./reviews/my-team-room-edit/lineup-best-review-1280.png) and [phone saved batch](./reviews/my-team-room-edit/lineup-best-saved-390.png). Details in [`reviews/my-team-room-edit/README.md`](./reviews/my-team-room-edit/README.md).
+
+Boundary: fixtures return synthetic rosters, projections and swap replies; the server's slot, lock and ownership validation is covered by the existing `/lineup/swap` tests, not re-exercised here. Authenticated chrome, real Sleeper hand-off, physical touch and assistive technology remain unverified. The older combined-state section of `lineup_picker_browser.mjs` predates the This Week overview change and still fails before the new block; it was not repaired in this scope.

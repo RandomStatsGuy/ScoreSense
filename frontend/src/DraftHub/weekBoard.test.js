@@ -44,7 +44,39 @@ import {
   weekPrimaryAction,
   weekRailItems,
   weekRailNote,
+  bestLineupMoves,
 } from "./weekBoard.js";
+
+test("best lineup collects one saveable swap per starter and bench player, skipping locked players", () => {
+  const starters = [
+    { player_id: "s1", player_name: "Kyle Pitts", slot: "TE", lineup_locked: false },
+    { player_id: "s2", player_name: "Christian Watson", slot: "WR", lineup_locked: false },
+    { player_id: "s3", player_name: "Jalen Hurts", slot: "QB", lineup_locked: true },
+  ];
+  const bench = [
+    { player_id: "b1", player_name: "Josh Downs", lineup_locked: false },
+    { player_id: "b2", player_name: "Jayden Daniels", lineup_locked: false },
+  ];
+  const decisions = [
+    { starter_player_id: "s2", bench_player_id: "b1", starter_player_name: "Christian Watson", bench_player_name: "Josh Downs", starter_slot: "WR", delta_p50: 7.5 },
+    { starter_player_id: "s1", bench_player_id: "b1", starter_player_name: "Kyle Pitts", bench_player_name: "Josh Downs", starter_slot: "TE", delta_p50: 3.4 },
+    { starter_player_id: "s3", bench_player_id: "b2", starter_player_name: "Jalen Hurts", bench_player_name: "Jayden Daniels", starter_slot: "QB", delta_p50: 1.2 },
+    { starter_player_id: "", bench_player_id: "b2", delta_p50: 9 },
+  ];
+  const best = bestLineupMoves(decisions, starters, bench);
+  assert.deepEqual(best.moves.map((m) => [m.slot, m.bench_name, m.starter_name, m.delta]), [["WR", "Josh Downs", "Christian Watson", 7.5]]);
+  assert.equal(best.total, 7.5);
+  assert.equal(WEEK_BOARD_COPY.bestLineupDelta(best.total), "Start best lineup · +7.5");
+  assert.equal(WEEK_BOARD_COPY.bestLineupDelta(null), "Start best lineup");
+  assert.equal(bestLineupMoves([], starters, bench).total, null);
+  const unknown = bestLineupMoves([{ starter_player_id: "s2", bench_player_id: "b1", starter_slot: "WR" }], starters, bench);
+  assert.equal(unknown.moves[0].delta, null);
+  assert.equal(unknown.total, null);
+  // Once the swap is committed the players have traded places, so the stale suggestion retires itself.
+  const swapped = bestLineupMoves(decisions, [starters[0], bench[0], starters[2]], [starters[1], bench[1]]);
+  assert.deepEqual(swapped.moves, []);
+  assert.equal(WEEK_BOARD_COPY.bestLineupSaved(2, 9.05), "Lineup updated. 2 changes saved · +9.1 projected.");
+});
 
 const PRESET_RULES = {
   roster: {

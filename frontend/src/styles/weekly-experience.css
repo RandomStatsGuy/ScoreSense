@@ -38,6 +38,7 @@
 .hub-week-freshness { grid-column:1 / -1; }
 .hub-week-freshness .btn-link, .hub-week-lineup-footer .btn-link { display:inline-flex; align-items:center; justify-content:center; min-height:var(--control-h-md); padding:var(--space-2); color:var(--text-secondary); font-size:var(--text-xs); }
 .hub-week-lineup-footer p { margin:0; }
+@media(min-width:769px) { .hub-wcc-board--compact .hub-wcc-bench { position:sticky; top:var(--space-4); } }
 @media(max-width:768px) { .hub-wcc-board--compact { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:768px) {
   .hub-week-room .gc-room-page-title { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }

@@ -248,4 +248,22 @@ def build_room(team: dict, week: int | None = None) -> dict[str, Any]:
             "available": bool(scoring.get("available")), "placeholder": placeholder,
             "starters": starters, "bench": bench, "media": media,
             "score": None if state == "pregame" else mine.get("points"),
-            "opponent": {"name": opponent.get("team_name"), "score": None if state == "pregame" else opponent.get("points")} if opponent else None}
+            "opponent": {"name": opponent.get("team_name"), "score": None if state == "pregame" else opponent.get("points"),
+                         "projection": _starter_projection_total(opponent.get("starters") or [])} if opponent else None}
+
+
+def _starter_projection_total(starters: list[dict]) -> float | None:
+    """Sum the opponent's current starter forecasts; any missing forecast leaves the total unknown, never zero."""
+    values = []
+    for p in starters:
+        if not p.get("player_id"):
+            return None
+        proj = p.get("proj")
+        try:
+            value = float(proj)
+        except (TypeError, ValueError):
+            return None
+        if value != value:  # NaN
+            return None
+        values.append(value)
+    return round(sum(values), 2) if values else None
