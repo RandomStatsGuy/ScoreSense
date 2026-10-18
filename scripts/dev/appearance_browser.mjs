@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { measureScript, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX, COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS, livingSurfaceRoutes } from "./layout_audit.mjs";
 import { LIVING_SURFACES } from "../../frontend/src/livingSurfaces.js";
+import { ATMOSPHERE_THEMES } from "../../frontend/src/DraftHub/atmosphereCatalog.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const dist = path.join(root, "frontend/dist");
@@ -19,6 +20,15 @@ let prefs = { ...defaults };
 let gets = 0;
 let failPatch = false;
 let failLoad = false;
+// Mirror merge_atmosphere_prefs: unknown themes are stored as Classic.
+// legacyServer simulates an API started before the newest themes shipped.
+const LEGACY_THEMES = ["none", "cozy", "snow", "leaves", "footballs"];
+let legacyServer = false;
+const accepted = (patch) => {
+  if (!("atmosphere" in patch)) return patch;
+  const known = legacyServer ? LEGACY_THEMES : ATMOSPHERE_THEMES;
+  return { ...patch, atmosphere: known.includes(patch.atmosphere) ? patch.atmosphere : "none" };
+};
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ serviceWorkers: "block", viewport: { width: 1280, height: 900 } });
 await fs.mkdir(out, { recursive: true });
@@ -32,7 +42,7 @@ await context.route(`${origin}/**`, async (route) => {
     let loadedPrefs;
     if (route.request().method() === "PATCH") {
       if (failPatch) { failPatch = false; return route.fulfill({ status: 503, json: { detail: "Could not save appearance. Please try again." } }); }
-      prefs = { ...prefs, ...route.request().postDataJSON() };
+      prefs = { ...prefs, ...accepted(route.request().postDataJSON()) };
     } else {
       gets++;
       if (failLoad) return route.fulfill({ status: 503, json: { detail: "Could not load appearance." } });
@@ -160,6 +170,27 @@ try {
   }
   assert.equal(gets, getCount, "Navigating destinations must not refetch appearance");
   console.log("PASS System, explicit mode, native radio keyboard, persistence, cross-tab sync, independent effects, reduced motion, rollback, load/retry, shared state, clear drafts");
+  await navigate("/account#appearance");
+  for (const theme of ["kickoff", "redzone", "press"]) {
+    await selectTheme(theme);
+    await page.waitForTimeout(300);
+    assert.equal(prefs.atmosphere, theme, `${theme} saved`);
+    await page.reload();
+    await themeRadio(theme).waitFor();
+    await page.waitForFunction(() => !document.querySelector('#appearance input[name="appearance-theme"]:disabled'));
+    assert.equal(await themeRadio(theme).isChecked(), true, `${theme} survives reload`);
+    assert.equal(await page.locator("html").getAttribute("data-experience-theme"), theme);
+  }
+  legacyServer = true;
+  await themeRadio("kickoff").click();
+  await page.getByRole("alert").filter({ hasText: "isn't available on the server" }).waitFor();
+  assert.equal(await page.locator("html").getAttribute("data-experience-theme"), "press");
+  legacyServer = false;
+  prefs = { ...prefs, atmosphere: "leaves" };
+  await page.reload();
+  await themeRadio("leaves").waitFor();
+  await page.waitForFunction(() => !document.querySelector('#appearance input[name="appearance-theme"]:disabled'));
+  console.log("PASS new themes save + reload; older server reports unavailable theme");
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
     await navigate("/account#appearance");

@@ -71,6 +71,7 @@ export const APPEARANCE_COPY = Object.freeze({
   saving: "Saving appearance…",
   loading: "Loading your appearance…",
   failed: "Could not save appearance. Your previous settings are restored.",
+  unavailable: "That theme isn't available on the server yet. Your previous theme is restored.",
   loadFailed: "Could not load your saved appearance. Try again before changing it.",
   retry: "Try again",
   still: "Keep just the falling decorations, a still companion scene, or only the colors. Reduced motion keeps every scene still. Draft workspaces stay clear.",
