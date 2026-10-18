@@ -72,6 +72,13 @@ export function AppearanceProvider({ children }) {
       if (!response.ok) throw new Error(await parseApiError(response));
       const data = await response.json();
       if (epoch.current !== generation) return;
+      // An older server coerces themes it does not know to Classic. Say so
+      // instead of silently snapping the picker back with "saved".
+      if (patch.atmosphere && mergeAtmospherePrefs(data.prefs).atmosphere !== patch.atmosphere) {
+        if (appearanceStore.getSnapshot() === optimistic) appearanceStore.set(previous);
+        setError(APPEARANCE_COPY.unavailable);
+        return;
+      }
       if (appearanceStore.getSnapshot() === optimistic) appearanceStore.set(serializeAtmospherePrefs(mergeAtmospherePrefs(data.prefs)));
       setMessage(APPEARANCE_COPY.saved);
     } catch (err) {
