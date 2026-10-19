@@ -16,6 +16,11 @@ test("league invite path opens Draft with the token", () => {
   assert.equal(leagueInvitePath(""), "/hub/draft");
 });
 
+test("Admin Connections has a bookmarkable route", () => {
+  assert.equal(parseAppPath("/admin/connections").adminTab, "connections");
+  assert.equal(buildAppPath({ view: "admin", adminTab: "connections" }), "/admin/connections");
+});
+
 test("stripProjectionParams drops projections filters but keeps hub params", () => {
   const params = stripProjectionParams(new URLSearchParams(
     "pos=qb&season=2026&week=1&fromWeek=1&teams=KC,BUF&q=hill&movers=1&cmp=1&compare=a,b&draftSeason=2026&rosSeason=2026&player=00-123",

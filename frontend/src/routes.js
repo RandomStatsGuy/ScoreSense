@@ -96,6 +96,7 @@ export const ADMIN_TABS = new Set([
   "jobs",
   "sessions",
   "settings",
+  "connections",
   "activity",
   "users",
   "leagues",

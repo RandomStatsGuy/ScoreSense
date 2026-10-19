@@ -455,6 +455,15 @@ export const LIVING_SURFACES = Object.freeze({
     also: ["frontend/src/AdminOps.jsx", "frontend/src/styles/admin.css"],
     doNot: "Account-only. Do not add Admin to top-level nav. Owner-to-team attach after signup lives here until a Fantasy flow exists. Never render .env secret values; show set/not set. Mutating admin actions write to Activity. Temporary-password deactivation is manual and requires successful sign-in after issuance. Keep current sessions open and preserve any password the user has already chosen.",
   }),
+  "account.admin.connections": S({
+    label: "Connections",
+    chrome: "account",
+    route: "/admin/connections",
+    page: "frontend/src/AdminPortal.jsx",
+    copy: "frontend/src/adminPresentation.js",
+    also: ["frontend/src/AdminOps.jsx", "frontend/src/styles/admin.css"],
+    doNot: "Site-admin only. Use the registered connection schema for service fields. Never render saved token values or add an arbitrary environment editor. Blank fields retain their existing values. Checks do not create tickets. Activity records actions without credential values.",
+  }),
   "account.account": S({
     label: "Account",
     chrome: "account",
@@ -684,6 +693,8 @@ export const SURFACE_ALIASES = Object.freeze({
   dfs: "tools.dfs",
   lineup: "tools.dfs",
   admin: "account.admin",
+  "admin connections": "account.admin.connections",
+  "service keys": "account.admin.connections",
   account: "account.account",
   "report a bug": "account.report",
   "bug report": "account.report",
@@ -713,6 +724,7 @@ export function resolveLivingSurface({
   toolsTab = null,
   projectionsTab = null,
   officeTab = null,
+  adminTab = null,
   draftLive = false,
   inspector = false,
 } = {}) {
@@ -734,7 +746,7 @@ export function resolveLivingSurface({
     return getLivingSurface(`hub.${hubView}`);
   }
   if (section === "model") return getLivingSurface("account.model");
-  if (section === "admin") return getLivingSurface("account.admin");
+  if (section === "admin") return getLivingSurface(adminTab === "connections" ? "account.admin.connections" : "account.admin");
   if (section === "account") return getLivingSurface("account.account");
   if (section === "report") return getLivingSurface("account.report");
   return null;

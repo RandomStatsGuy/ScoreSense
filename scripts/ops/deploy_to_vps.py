@@ -47,6 +47,7 @@ EXCLUDE_PREFIXES = (
     "data/raw/",
     "data/cache/",
     "data/auth/",  # live accounts DB — never overwrite production users
+    "data/admin_ops/",  # encrypted service credentials, encryption key and admin settings
     "data/draft_hub/",  # SQLite league state — volume-mounted on VPS; never overwrite
     "data/processed/",  # ETL output from VPS refresh — do not clobber with laptop copies
     "artifacts/analytics/",

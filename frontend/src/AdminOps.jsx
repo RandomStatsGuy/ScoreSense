@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
 import { parseApiError } from "./format";
 import { HubFilterMenu } from "./DraftHub/HubUILayout";
+import { confirmDialog } from "./ui/confirm";
+import { allowUnsavedNavigation, setUnsavedNavigationBlocker } from "./unsavedNavigation";
 import {
   ADMIN_ENV_LABELS,
   ADMIN_OPS_COPY,
@@ -1084,6 +1086,124 @@ export function AdminSettingsPane({ refreshKey, notify }) {
           </Card>
         </aside>
       </div>
+    </div>
+  );
+}
+
+// --- Connections --------------------------------------------------------------
+
+function ConnectionForm({ connection, onSaved }) {
+  const copy = C.connections;
+  const initialForm = () => Object.fromEntries(connection.fields.map(field => [field.id, field.secret ? "" : field.value]));
+  const [form, setForm] = useState(initialForm);
+  const [busy, setBusy] = useState("");
+  const [result, setResult] = useState(null);
+  const dirty = connection.fields.some(field => field.secret ? Boolean(form[field.id]?.trim()) : form[field.id]?.trim() !== field.value);
+  const savedOverride = connection.fields.some(field => field.source === "saved");
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const onLeave = event => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", onLeave);
+    setUnsavedNavigationBlocker(async () => !busy && confirmDialog({
+      title: copy.leaveTitle, message: copy.leaveHelp, confirmLabel: copy.discard, cancelLabel: copy.keepEditing,
+    }));
+    return () => { window.removeEventListener("beforeunload", onLeave); setUnsavedNavigationBlocker(null); };
+  }, [dirty, busy, copy]);
+
+  const run = async (action) => {
+    setBusy(action);
+    setResult(null);
+    try {
+      const path = `/api/admin/connections/${encodeURIComponent(connection.id)}`;
+      if (action === "check") {
+        setResult(await postJson(`${path}/check`));
+      } else {
+        const updated = action === "reset"
+          ? await postJson(path, undefined, "DELETE")
+          : await postJson(path, { values: Object.fromEntries(Object.entries(form).filter(([, value]) => value.trim())) }, "PUT");
+        onSaved(updated);
+        setForm(Object.fromEntries(updated.fields.map(field => [field.id, field.secret ? "" : field.value])));
+        setResult({ ok: true, message: action === "reset" ? copy.resetDone : copy.saved });
+      }
+    } catch (err) {
+      setResult({ ok: false, message: err.message || C.loadFailed });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  return (
+    <Card title={connection.label}>
+      <form className="admin-stack admin-connection-form" onSubmit={(event) => { event.preventDefault(); if (!busy && dirty) run("save"); }}>
+        <p>{connection.purpose}</p>
+        <p className={connection.configured ? "admin-tone-ok" : "admin-muted"}>
+          {connection.configured ? copy.stored : copy.missing}
+        </p>
+        {connection.error ? <p className="error" role="alert">{connection.error}</p> : null}
+        {connection.fields.map(field => (
+          <label className="admin-connection-field" key={field.id}>
+            <span className="admin-setting-what">{field.label}</span>
+            <input
+              className="admin-input"
+              type={field.secret ? "password" : field.id === "email" ? "email" : "text"}
+              name={`${connection.id}-${field.id}`}
+              aria-label={field.label}
+              value={form[field.id] || ""}
+              onChange={event => { setForm(current => ({ ...current, [field.id]: event.target.value })); setResult(null); }}
+              autoComplete={field.secret ? "new-password" : "off"}
+              spellCheck={false}
+              maxLength={8192}
+              disabled={Boolean(busy)}
+              aria-describedby={`${connection.id}-${field.id}-help`}
+            />
+            <span id={`${connection.id}-${field.id}-help`} className="admin-setting-why">
+              {field.secret ? field.configured ? copy.secretSaved : copy.secretNew : copy.source[field.source]}
+            </span>
+          </label>
+        ))}
+        <p className="admin-card-note">{copy.protected}</p>
+        <div className="admin-actions">
+          <button type="submit" className="btn-primary btn-sm" disabled={Boolean(busy) || !dirty}>
+            {busy === "save" ? copy.saving : copy.save}
+          </button>
+          {connection.can_check ? (
+            <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy) || dirty || !connection.configured}
+              onClick={() => run("check")}>
+              {busy === "check" ? copy.checking : copy.check}
+            </button>
+          ) : null}
+          {savedOverride || connection.error ? (
+            <button type="button" className="btn-ghost btn-sm" disabled={Boolean(busy)}
+              onClick={async () => { if (await confirmDialog({ title: copy.reset, message: copy.resetConfirm,
+                confirmLabel: copy.reset, cancelLabel: copy.keepEditing, danger: true })) run("reset"); }}>
+              {copy.reset}
+            </button>
+          ) : null}
+        </div>
+        {dirty ? <p className="admin-card-note">{copy.saveFirst}</p> : null}
+        {result ? <p role={result.ok ? "status" : "alert"} className={result.ok ? "admin-tone-ok" : "error"}>{result.message}</p> : null}
+      </form>
+    </Card>
+  );
+}
+
+export function AdminConnectionsPane({ refreshKey }) {
+  const { data, error, loading } = useAdminFetch("/api/admin/connections", refreshKey);
+  const [connections, setConnections] = useState([]);
+  const [selected, setSelected] = useState("");
+  useEffect(() => { if (data) setConnections(data.connections || []); }, [data]);
+  if (!data) return <LoadState error={error} loading={loading} data={data} />;
+  const active = connections.find(row => row.id === selected) || connections[0];
+  return (
+    <div className="admin-pane">
+      <PaneTitle title={C.connections.title} support={C.connections.support} />
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      {connections.length > 1 ? <HubFilterMenu label={C.connections.choose} value={active?.id || ""}
+        options={connections.map(row => ({ id: row.id, label: row.label }))}
+        onChange={async id => { if (await allowUnsavedNavigation("/admin/connections")) setSelected(id); }} /> : null}
+      {active ? <ConnectionForm key={active.id} connection={active}
+        onSaved={updated => setConnections(rows => rows.map(row => row.id === updated.id ? updated : row))} />
+        : <p>{C.connections.empty}</p>}
     </div>
   );
 }

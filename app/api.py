@@ -152,6 +152,7 @@ from app.admin_routes import router as admin_router
 from app.admin_ops_routes import public_router as site_router, router as admin_ops_router
 from app.request_stats import RequestStatsMiddleware
 from app.support_routes import router as support_router
+from app.admin_connection_routes import router as admin_connection_router
 from src.draft_hub.value_snapshot import PoolSnapshotUnavailable
 from app.auth import admin_configured
 
@@ -239,6 +240,7 @@ app.include_router(admin_router)
 app.include_router(admin_ops_router)
 app.include_router(site_router)
 app.include_router(support_router)
+app.include_router(admin_connection_router)
 app.include_router(dfs_results_router)
 app.include_router(dfs_evidence_router)
 app.include_router(dfs_shared_outcomes_router)

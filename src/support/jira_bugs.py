@@ -7,6 +7,7 @@ from typing import Any
 import requests
 
 from src import config
+from src.ops.connection_store import ConnectionStoreError, connection_values
 
 USER_REPORT_LABELS = ("user-reported", "pickup")
 REPORT_AREAS = ("Projections", "Fantasy", "Tools", "Account", "Sign in", "Other")
@@ -21,7 +22,34 @@ class JiraCreateError(RuntimeError):
 
 
 def jira_configured() -> bool:
-    return bool(config.JIRA_EMAIL and config.JIRA_API_TOKEN)
+    try:
+        return all(connection_values("jira").values())
+    except ConnectionStoreError:
+        return False
+
+
+def check_jira_connection() -> dict:
+    """Read project permissions without creating a test ticket."""
+    values = connection_values("jira")
+    if not all(values.values()):
+        return {"ok": False, "message": "Save the Jira account email and API token first."}
+    try:
+        res = requests.get(_issue_url().removesuffix("/issue") + "/mypermissions",
+                           params={"projectKey": config.JIRA_PROJECT_KEY,
+                                   "permissions": "BROWSE_PROJECTS,CREATE_ISSUES"},
+                           auth=(values["email"], values["api_token"]),
+                           headers={"Accept": "application/json"}, timeout=12, allow_redirects=False)
+        if res.status_code in (401, 403):
+            return {"ok": False, "message": "Jira rejected these credentials or their access. Check the email, token and project access."}
+        if res.status_code != 200:
+            return {"ok": False, "message": "Could not check Jira right now. Try again later."}
+        permissions = res.json().get("permissions", {})
+        if not all(permissions.get(key, {}).get("havePermission") is True
+                   for key in ("BROWSE_PROJECTS", "CREATE_ISSUES")):
+            return {"ok": False, "message": "This Jira account needs Browse Projects and Create Issues access to the report project."}
+    except (requests.RequestException, ValueError, AttributeError):
+        return {"ok": False, "message": "Could not check Jira right now. Try again later."}
+    return {"ok": True, "message": "Jira connection checked. This account can create issues in the report project. No test report was sent."}
 
 
 def _issue_url() -> str:
@@ -98,7 +126,11 @@ def create_user_bug(
     timeout_seconds: float = 12.0,
 ) -> dict[str, str]:
     """POST a Bug to SCORE. Returns {key, id, url}."""
-    if not jira_configured():
+    try:
+        credentials = connection_values("jira")
+    except ConnectionStoreError:
+        raise JiraNotConfiguredError("Saved Jira connection unavailable") from None
+    if not all(credentials.values()):
         raise JiraNotConfiguredError("Jira is not configured")
 
     payload = {
@@ -114,7 +146,7 @@ def create_user_bug(
         res = requests.post(
             _issue_url(),
             json=payload,
-            auth=(config.JIRA_EMAIL, config.JIRA_API_TOKEN),
+            auth=(credentials["email"], credentials["api_token"]),
             headers={"Accept": "application/json", "Content-Type": "application/json"},
             timeout=timeout_seconds,
         )
