@@ -18,6 +18,11 @@ test("nav-style lookup distinguishes idle draft from live draft", () => {
   assert.equal(live.chrome, "draft-live");
 });
 
+test("Admin Connections resolves the registered credential page", () => {
+  assert.equal(resolveLivingSurfaceFromText("manage admin connections").route, "/admin/connections");
+  assert.equal(resolveLivingSurface({ section: "admin", adminTab: "connections" }).route, "/admin/connections");
+});
+
 test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   const fa = resolveLivingSurfaceFromText("Tighten the Free agents filter chips");
   assert.equal(fa.label, "Free agents");

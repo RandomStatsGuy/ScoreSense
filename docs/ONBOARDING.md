@@ -94,6 +94,14 @@ See `.env.example` and `deploy/env.production.example`:
 - `FRONTEND_URL` (must match public app URL for email links)
 - `JIRA_EMAIL`, `JIRA_API_TOKEN` (optional — Account → Report a bug files a SCORE Bug; without them the form says the board is closed)
 
+## Service keys in Admin
+
+Open **Admin → Connections** to save or replace keys for registered integrations. Jira accepts the account email and API token. Save applies immediately; Check connection reads the report project's Browse Projects and Create Issues permissions without creating a ticket. Blank fields keep the existing value. Use server defaults removes the Admin override and falls back to the deployment environment. No saved token is returned to the browser or written to Activity.
+
+Credentials are encrypted in `data/admin_ops/admin_ops.db`; back up it and `data/admin_ops/connections.key` together. The key is generated on the first save, stays in the persistent data volume, and is independent of JWT_SECRET. Losing it requires restoring the key backup or resetting/re-entering credentials.
+
+To add a service, register its fields and config defaults in `src/ops/connection_store.py`, wire its server consumer through `connection_values(service_id)`, and add its optional check handler. The shared Admin form discovers the registered schema automatically. Never add session-signing secrets or arbitrary environment-variable editing to this registry.
+
 ## Report a bug
 
 `/report` is an account-menu side option, not a product area. Signed-in reports become SCORE Jira Bugs with labels `user-reported` and `pickup`. Board access and pickup JQL are below.

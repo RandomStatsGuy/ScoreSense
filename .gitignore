@@ -22,6 +22,7 @@ frontend/dist/
 *.log
 .streamlit/secrets.toml
 data/auth/*.db
+data/admin_ops/
 ssh
 .pytest_collect.txt
 .pytest_full_result.txt

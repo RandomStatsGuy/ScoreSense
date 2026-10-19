@@ -9,6 +9,12 @@ import {
   openAdminFranchises,
 } from "./adminPresentation.js";
 
+test("Connections is an Admin destination with clear key handling", () => {
+  assert.ok(ADMIN_TAB_ITEMS.some(tab => tab.id === "connections" && tab.label === "Connections"));
+  assert.match(ADMIN_OPS_COPY.connections.protected, /encrypted.*never shown again/i);
+  assert.match(ADMIN_OPS_COPY.connections.secretSaved, /blank.*keep/i);
+});
+
 test("temporary password deactivation explains ongoing access and future sign-in", () => {
   assert.match(ADMIN_COPY.tempPassword.awaitingSignIn, /after they sign in/);
   assert.match(ADMIN_COPY.tempPassword.deactivateHint, /current sessions open/);
@@ -47,6 +53,7 @@ test("open admin franchises hides claimed and bot seats", () => {
 
 import {
   ADMIN_OPS_COPY,
+  ADMIN_TAB_ITEMS,
   adminAttentionCopy,
   adminAttentionSummary,
   adminBytes,
