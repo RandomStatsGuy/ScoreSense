@@ -1,0 +1,278 @@
+[
+  {
+    "name": "a-initial",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-shopping",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-sheet",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-saved",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-claims",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-sleeper",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-pre",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-initial",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-shopping",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-sheet",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-saved",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-claims",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-sleeper",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-pre",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "a-long",
+    "width": 320,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-initial",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-shopping",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-sheet",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-saved",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-claims",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-sleeper",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-pre",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-initial",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-shopping",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-sheet",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-saved",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-claims",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-sleeper",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-pre",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "b-long",
+    "width": 320,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-initial",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-slip",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-sheet",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-inline",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-claims",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-sleeper",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-pre",
+    "width": 1280,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-initial",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-slip",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-rack",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-sheet",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-inline",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-claims",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-sleeper",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-pre",
+    "width": 390,
+    "ok": true,
+    "failures": []
+  },
+  {
+    "name": "c-long",
+    "width": 320,
+    "ok": true,
+    "failures": []
+  }
+]

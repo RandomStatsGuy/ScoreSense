@@ -1,0 +1,206 @@
+/* Free agents flow A/B/C. Loads after fantasy-free-agents.css (approved September 29 list). Tokens only. */
+body[data-flow] .fa-main { gap: var(--space-4); }
+.fa-poolside { display: grid; gap: var(--space-4); min-width: 0; }
+/* Sheet: content scrolls, the primary stays in reach (matches the production .fa-sheet). */
+body[data-flow] .fa-dialog[open] { display: flex; flex-direction: column; }
+body[data-flow] .fa-dialog .fa-dialog-content { flex: 1; min-height: 0; overflow-y: auto; align-content: start; }
+body[data-flow] .fa-dialog .fa-dialog-head, body[data-flow] .fa-dialog .fa-dialog-footer { flex: none; }
+body[data-flow] .fa-dialog .fa-dialog-footer .btn { flex: 1; justify-content: center; }
+
+/* Headshot tile takes a matte team tint (mixed into the surface — no glow). */
+body[data-flow] .fa-face { background: color-mix(in srgb, var(--team, var(--surface-raised)) 30%, var(--surface-raised)); }
+
+/* Row edge: what the player does to your lineup. Amber only when he is a real upgrade. */
+.fa-edge { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--text-muted); }
+.fa-edge.is-up { color: var(--tone-caution); font-weight: 600; }
+.fa-edge.is-open { color: var(--text-secondary); }
+.fa-name .fa-edge { margin-top: var(--space-1); }
+.fa-tag { display: inline-block; margin-left: var(--space-2); padding: 1px var(--space-2); border-radius: var(--radius-pill); background: var(--tone-caution-soft); color: var(--tone-caution); font-size: var(--text-xs); font-weight: 600; letter-spacing: .02em; white-space: nowrap; vertical-align: middle; }
+.fa-outlook strong.is-up { color: var(--tone-caution); }
+.fa-group { margin: 0; padding: var(--space-3) 0 0; line-height: 1; font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.fa-group + .fa-player { padding-top: var(--space-3); }
+.fa-group.is-up { color: var(--tone-caution); font-weight: 600; }
+
+/* Range bar: a tick where your starter sits; the part of the range above him is amber. */
+.fa-range-track .fa-beat { position: absolute; top: 0; bottom: 0; left: var(--beat); right: calc(100% - var(--high)); border-radius: var(--radius-pill); background: var(--tone-caution); opacity: .9; }
+.fa-range-track .fa-tick { position: absolute; top: -4px; bottom: -4px; left: calc(var(--tick) - 1px); width: 2px; border-radius: 1px; background: var(--text-primary); }
+.fa-tick-key { font-style: normal; color: var(--text-secondary); white-space: nowrap; }
+.fa-tick-key::before { content: ''; display: inline-block; width: 2px; height: .7em; margin-right: var(--space-1); border-radius: 1px; background: var(--text-primary); vertical-align: -1px; }
+
+/* Scoreboard: your lineup per game, the change pending moves make, and the best upgrade left in the pool. */
+.fa-board { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: var(--space-3) var(--space-5); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--bg-elevated); }
+.fa-board-now, .fa-board-delta { display: grid; gap: 1px; }
+.fa-board-now small, .fa-board-delta small { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; }
+.fa-board-now strong { font-size: 1.75rem; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.fa-board-now strong .fa-unit { font-size: var(--text-sm); font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+body[data-flow] .fa-range-copy strong { white-space: nowrap; }
+.fa-board-now .fa-board-from { text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.fa-board-delta { text-align: center; padding: 0 var(--space-4); border-left: 1px solid var(--border); }
+.fa-board-delta strong { font-size: 2.25rem; line-height: 1; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.fa-board.is-up .fa-board-delta strong, .fa-board-delta.is-up strong, .fa-slip-board.is-up .fa-board-delta strong { color: var(--tone-caution); }
+.fa-board-verdict { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); }
+
+/* Status line: saved (teal) / preview (muted). Same shape as the Room status. */
+.fa-status { display: flex; align-items: center; gap: var(--space-3); margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-subtle); font-size: var(--text-sm); color: var(--text-secondary); }
+.fa-status.is-saved { border-left-color: var(--tone-positive); }
+.fa-status .fa-kicker { flex: none; font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--tone-positive); }
+.fa-status > span:not(.fa-kicker) { min-width: 0; flex: 1; }
+.fa-status .btn-link { flex: none; min-height: var(--control-h-sm); border: 0; background: transparent; color: var(--accent-muted); padding: 0 var(--space-2); text-decoration: underline; text-underline-offset: 3px; }
+.fa-status:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Sleeper-hosted leagues: outlooks here, moves in Sleeper. */
+.fa-sleeper { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); min-height: var(--control-h-lg); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--accent-muted); background: transparent; text-decoration: none; font-size: var(--text-sm); white-space: nowrap; }
+.fa-window-copy a { color: var(--accent-muted); }
+
+/* The duel inside the sheet: incoming beside the starter he pushes out, the change in the middle. */
+.fa-versus { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--bg-subtle); }
+.fa-duel { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.fa-duel-side { display: grid; gap: 1px; min-width: 0; justify-items: start; }
+.fa-duel-side.is-out { justify-items: end; text-align: right; }
+.fa-duel-side .fa-face { width: 64px; height: 68px; margin-bottom: var(--space-2); }
+.fa-duel-side strong { max-width: 100%; font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-duel-side span { font-size: var(--text-xs); color: var(--text-muted); }
+.fa-duel-side b { font-size: 1.5rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.fa-duel-side.is-out b { color: var(--text-secondary); }
+.fa-duel-center { align-self: center; display: grid; gap: 1px; text-align: center; }
+.fa-duel-center strong { font-size: 2.5rem; line-height: 1; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.fa-versus.is-up .fa-duel-center strong { color: var(--tone-caution); }
+.fa-duel-center span { font-size: var(--text-xs); color: var(--text-muted); }
+.fa-duel-head { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); text-align: center; }
+.fa-versus.is-up .fa-duel-head { color: var(--text-primary); font-weight: 600; }
+.fa-versus .fa-range-track { height: 6px; }
+.fa-versus-note { margin: 0; font-size: var(--text-xs); color: var(--text-muted); }
+.fa-versus-lineup { margin: 0; padding-top: var(--space-3); border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.fa-versus-lineup strong { color: var(--text-primary); }
+.fa-spot-field { display: grid; gap: var(--space-2); }
+.fa-spot-field > span { font-size: var(--text-sm); color: var(--text-secondary); }
+
+/* A · Fills the hole: a shortlist of your weak spots that filters the pool. */
+.fa-spots { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); scrollbar-width: none; }
+.fa-spots::-webkit-scrollbar { display: none; }
+.fa-spot { flex: none; display: grid; gap: 1px; min-height: var(--control-h-lg); padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-elevated); color: var(--text-secondary); text-align: left; }
+.fa-spot small { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; }
+.fa-spot strong { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+.fa-spot em { font-style: normal; font-size: var(--text-xs); color: var(--text-muted); }
+.fa-spot.has-upgrades em { color: var(--tone-caution); font-weight: 600; }
+.fa-spot[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); color: var(--text-primary); }
+.fa-spot[aria-pressed=true] small { color: var(--accent-muted); }
+.fa-spot.is-open strong { color: var(--text-secondary); }
+
+/* B · Face-off: your roster beside the pool. */
+body[data-flow=b] .fa-faceoff { display: grid; gap: var(--space-4); align-items: start; }
+.fa-roster { display: grid; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-lg); background: var(--bg-elevated); }
+.fa-roster-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: 0 var(--space-2); }
+.fa-roster-head h2 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.fa-roster-head > span { font-size: var(--text-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.fa-roster-head .btn-link { min-height: var(--control-h-sm); border: 0; background: transparent; color: var(--accent-muted); padding: 0 var(--space-2); font-size: var(--text-xs); }
+.fa-roster-shopping { margin: 0 var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
+.fa-roster-shopping strong { color: var(--accent-muted); }
+.fa-roster-list { display: grid; gap: 2px; }
+.fa-roster-row { display: grid; grid-template-columns: 2.6rem minmax(0,1fr) auto; align-items: center; gap: var(--space-2); min-height: var(--control-h-lg); padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); text-align: left; }
+.fa-roster-row small { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .04em; }
+.fa-roster-row .fa-roster-name { display: grid; gap: 1px; min-width: 0; }
+.fa-roster-row .fa-roster-name strong { font-size: var(--text-sm); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-roster-row .fa-roster-name span { font-size: var(--text-xs); color: var(--text-muted); }
+.fa-roster-row .fa-roster-name em { font-style: normal; color: var(--tone-caution); font-weight: 600; }
+.fa-roster-row.is-swapping .fa-roster-name em { color: var(--tone-positive); }
+.fa-roster-row b { font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fa-roster-row b s, .fa-tile b s { color: var(--text-muted); font-weight: 500; margin-right: 2px; }
+.fa-roster-row.is-swapping b { color: var(--tone-positive); }
+.fa-roster-row.is-weak .fa-roster-name strong::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: var(--space-2); border-radius: 50%; background: var(--tone-caution); vertical-align: middle; }
+.fa-roster-row[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); }
+.fa-roster-row.is-open { color: var(--text-secondary); }
+.fa-roster-row.is-open b { color: var(--text-muted); font-weight: 500; }
+.fa-roster-divider { margin: var(--space-2) var(--space-2) 0; font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .08em; text-transform: uppercase; }
+.fa-rail-tiles { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); scrollbar-width: none; }
+.fa-rail-tiles::-webkit-scrollbar { display: none; }
+.fa-tile { flex: none; display: grid; gap: 1px; width: 6.6rem; min-height: 3.6rem; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-elevated); color: var(--text-primary); text-align: left; }
+.fa-tile small { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; }
+.fa-tile strong { font-size: var(--text-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-tile b { font-size: var(--text-xs); font-weight: 500; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fa-tile em { font-style: normal; color: var(--tone-caution); font-weight: 600; }
+.fa-tile.is-weak small::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: var(--space-1); border-radius: 50%; background: var(--tone-caution); vertical-align: middle; }
+.fa-tile.is-swapping { border-color: color-mix(in srgb, var(--tone-positive) 45%, var(--border)); }
+.fa-tile.is-swapping b { color: var(--tone-positive); }
+.fa-tile[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); }
+.fa-tile.is-open { color: var(--text-secondary); }
+
+/* C · The slip: inline bids and one Wednesday slip. */
+.fa-inline { display: inline-flex; align-items: center; gap: var(--space-1); }
+.fa-inline .fa-acquire { min-width: 0; }
+.fa-acquire.is-in { color: var(--tone-positive); border-color: color-mix(in srgb, var(--tone-positive) 40%, var(--border)); background: var(--tone-positive-soft); }
+.fa-acquire.is-in:disabled { opacity: 1; }
+.fa-slip { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--bg-elevated); }
+.fa-slip-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.fa-slip-head h2 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.fa-slip-head span { font-size: var(--text-xs); color: var(--text-muted); }
+.fa-slip-board { display: grid; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-subtle); }
+.fa-slip-board .fa-board-delta { display: flex; align-items: baseline; gap: var(--space-2); padding: 0; border: 0; text-align: left; }
+.fa-slip-board .fa-board-delta strong { font-size: 1.75rem; }
+.fa-slip-board p { margin: 0; font-size: var(--text-xs); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.fa-slip-board p strong { color: var(--text-primary); }
+.fa-slip-total strong [data-count], .fa-slip-board p [data-count] { font-size: inherit; color: inherit; }
+.fa-slip-empty { margin: 0; font-size: var(--text-sm); color: var(--text-muted); }
+.fa-slip-lines { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.fa-slip-line { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: var(--space-2) var(--space-3); align-items: center; padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-subtle); }
+.fa-slip-line > div { display: grid; gap: 1px; min-width: 0; }
+.fa-slip-line strong { font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-slip-line span { font-size: var(--text-xs); color: var(--text-muted); }
+.fa-slip-line .fa-slip-amount { display: inline-flex; align-items: center; gap: var(--space-1); }
+.fa-slip-line .fa-slip-amount b { min-width: 2.6rem; text-align: center; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.fa-slip-step, .fa-slip-remove, .fa-slip-move { display: inline-grid; place-items: center; width: var(--control-h-sm); height: var(--control-h-sm); border: 1px solid var(--border); border-radius: var(--radius-pill); background: transparent; color: var(--text-secondary); padding: 0; font-size: var(--text-sm); }
+.fa-slip-tools { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.fa-slip-tools .btn-link { min-height: var(--control-h-sm); border: 0; background: transparent; color: var(--accent-muted); padding: 0 var(--space-2); font-size: var(--text-xs); }
+.fa-slip-total { display: grid; gap: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--text-secondary); }
+.fa-slip-total strong { font-size: 1.25rem; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.fa-slip-total span { font-size: var(--text-xs); color: var(--text-muted); }
+.fa-slip-total .is-caution { color: var(--tone-caution); }
+.fa-gauge { height: 6px; margin: var(--space-1) 0; border-radius: var(--radius-pill); background: var(--border); overflow: hidden; }
+.fa-gauge i { display: block; height: 100%; width: var(--fill, 0%); border-radius: inherit; background: var(--tone-positive); transition: width .4s var(--ease-standard); }
+.fa-slip-order { font-size: var(--text-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 1.4rem; }
+.fa-rack { display: none; }
+.fa-cap-after { font-size: var(--text-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.fa-player.is-in .fa-name strong::after { content: ' · in slip'; color: var(--tone-positive); font-weight: 500; font-size: var(--text-xs); }
+
+/* Rhythm: rows arrive when the list changes, a save flashes teal once, numbers count to their new value (JS). */
+@media (prefers-reduced-motion: no-preference) {
+  .fa-pool.is-fresh .fa-player { animation: fa-appear .3s var(--ease-standard) both; animation-delay: calc(var(--i, 0) * 28ms); }
+  .fa-player.is-just-saved { animation: fa-saved 1.6s var(--ease-standard) both; }
+  .fa-slip-line.is-new { animation: fa-appear .3s var(--ease-standard) both; }
+  @keyframes fa-appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes fa-saved { 0% { box-shadow: inset 3px 0 0 var(--tone-positive); background: var(--tone-positive-soft); } 100% { box-shadow: inset 3px 0 0 transparent; background: transparent; } }
+}
+
+@media (min-width: 769px) {
+  body[data-flow=b] .fa-faceoff { grid-template-columns: 300px minmax(0,1fr); gap: var(--space-5); }
+  body[data-flow=b] .fa-roster { position: sticky; top: var(--space-4); }
+  body[data-flow=b] .fa-rail-tiles { display: none; }
+  body[data-flow=c] .fa-slipwrap { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: var(--space-5); align-items: start; }
+  body[data-flow=c] .fa-slip { position: sticky; top: var(--space-4); }
+  body[data-flow=a] .fa-player, body[data-flow=b] .fa-player, body[data-flow=c] .fa-player { grid-template-columns: minmax(0,1fr) minmax(20rem,.8fr); }
+  body[data-flow=b] .fa-outlook { width: 112px; }
+  .fa-name .fa-edge { white-space: nowrap; }
+  .fa-group { grid-column: 1 / -1; }
+}
+@media (max-width: 768px) {
+  body[data-flow=b] .fa-roster { display: none; }
+  body[data-flow=c] #fa-slip { display: none; }
+  body[data-flow=c] .fa-rack { position: sticky; bottom: calc(var(--mobile-nav-clearance) - var(--space-3) + env(safe-area-inset-bottom, 0px)); z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--bg-elevated) 92%, transparent); backdrop-filter: blur(10px); color: var(--text-primary); text-align: left; }
+  .fa-rack > div { display: grid; gap: 1px; min-width: 0; }
+  .fa-rack strong { font-size: var(--text-sm); }
+  .fa-rack span { font-size: var(--text-xs); color: var(--text-muted); }
+  .fa-rack span b { font-weight: 600; color: var(--text-secondary); }
+  .fa-rack span b.is-up { color: var(--tone-caution); }
+  .fa-rack .control-caret { color: var(--text-secondary); }
+  .fa-board { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2) var(--space-4); }
+  .fa-board-delta { padding-right: 0; text-align: left; }
+  .fa-board-delta strong { font-size: 2rem; }
+  .fa-board-verdict { grid-column: 1 / -1; }
+  .fa-status { flex-wrap: wrap; }
+  .fa-status .btn-link, .fa-roster-head .btn-link, .fa-slip-tools .btn-link { min-height: var(--control-h-lg); }
+  .fa-slip-step, .fa-slip-remove, .fa-slip-move { width: var(--control-h-lg); height: var(--control-h-lg); }
+  .fa-duel-side b { font-size: 1.25rem; }
+  .fa-duel-center strong { font-size: 2rem; }
+  .fa-duel-side .fa-face { width: 56px; height: 60px; }
+  .fa-dialog .fa-slip { display: grid; padding: 0; background: transparent; }
+}

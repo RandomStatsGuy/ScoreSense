@@ -70,7 +70,7 @@ The full 45-surface source/brief queue and initial working-snapshot review are c
 | `hub.home` | Orient in the October 16 B clubhouse | Matchup → conversation/standings → unresolved attention; same week, phase-aware pre-draft action |
 | `hub.week` | Compatibility entry to the consolidated Home / This Week landing | Preserve selected week/query/hash through redirect; Review lineup opens My team; no separate navigation destination |
 | `hub.roster` | Inspect Room, Lineup and Manage roster within approved room | Selected player → lineup/roster context → legal action; preview resets, missing forecasts, owner-only changes |
-| `hub.available` | Scout and acquire through compact list/details/bid flow | Identity/forecast scale → restrictions/cost → Add/Bid; locked window, personal ceiling, preserved failed input |
+| `hub.available` | Scout the pool against your own lineup in the October 19 B Face-off list | Your roster with soft spots → per-game edge against the starter he replaces → scoreboard verdict and Add/Bid/Claim; locked window, personal ceiling, preserved failed input |
 | `hub.game` | Follow approved player-spotlight matchup | Score/forecast → selected duel → starters/league detail; selected team/week, live/final/baseline truth |
 | `projections.weekly` | Scan the approved tier board | Rank/player/P50 → range/context → compare/inspector; aligned numbers, filters, phone windowing |
 | `projections.season` | Compare approved preseason/live-season boards | Timeframe → forecast/recorded production → details; remaining-season estimates stay distinct |
@@ -773,7 +773,7 @@ Each row is **accounted for within its named scope**. Links resolve to machine r
 |---|---|---|---|
 | `hub.home` | [Recorded family PASS](#follow-up-home-and-game-center-context-acceptance) | [Named family captures](#follow-up-home-and-game-center-context-acceptance) | Selected week/league, phase and scoring-host context; shared conversation; synthetic reads/writes |
 | `hub.value` | [Recorded family PASS](#follow-up-strategy-mock-launch-and-best-ball) | [Named family captures](#follow-up-strategy-mock-launch-and-best-ball) | Face-off choice/Undo, rankings/private queue and stale league-save suppression |
-| `hub.available` | [Recorded family PASS](#follow-up-roster-management-and-acquisition-context-acceptance) | [Named family captures](#follow-up-roster-management-and-acquisition-context-acceptance) | Bid/claim/instant-add restrictions, retained failure and context invalidation |
+| `hub.available` | [Face-off fixture PASS](#follow-up-free-agents-face-off-october-19) | [Face-off captures](#follow-up-free-agents-face-off-october-19) | Spot choice → edge sort/groups → duel sheet → saved bid/claim with pending landing; bid/claim/instant-add restrictions, retained failure and context invalidation carried from the [earlier family](#follow-up-roster-management-and-acquisition-context-acceptance) |
 | `hub.room` | [Recorded family PASS](#follow-up-current-draft-lobby-and-room-tasks) | [Named family captures](#follow-up-current-draft-lobby-and-room-tasks) | Calendar/readiness and failed availability-save retention/retry |
 | `hub.room.live` | [Recorded family PASS](#follow-up-current-draft-lobby-and-room-tasks) | [Named family captures](#follow-up-current-draft-lobby-and-room-tasks) | Bid/pick, stale rejection, queue, pause, full-board focus; synthetic socket |
 | `hub.week` | [Recorded family PASS](#follow-up-home-and-game-center-context-acceptance) | [Named family captures](#follow-up-home-and-game-center-context-acceptance) | Compatibility redirect to Home; query/hash URL contract plus inherited Home visuals |
@@ -822,6 +822,39 @@ Each row is **accounted for within its named scope**. Links resolve to machine r
 The requested instruction activation and 45-surface review/evidence pass are complete within the scopes above, with demonstrated findings fixed. The remaining checks are **unverified**, not silently passed: real authenticated sign-in/enrollment/recovery and provider delivery; persisted parent focus and live scoring/import/acquisition/publication; pending rating synchronization after departure/reload and cross-device behavior; physical touch/mobile keyboards; exhaustive role/host/state, artwork, assistive-technology, contrast and browser/OS zoom coverage. Some initial form entries are render/consent checks only, as labeled. Previous page-family boundaries remain applicable where a later record has not explicitly closed them. Field Core Web Vitals and model quality are not established by these UI fixtures. These limits do not require inventing additional UI changes or adopting hypothetical probe proposals.
 
 Delivery: one scoped draft PR to `develop` containing this evidence, reusable checks and the Admin/audit fixes. Review/ready/full backend merge gate, merge and deployment remain separate actions. Original-checkout work and production data are preserved.
+
+
+## Follow-up: Free agents Face-off (October 19)
+
+### Brief
+
+Task: read the free-agent pool against your own lineup, so every row answers "who does he beat on my team and by how much", and finish the bid, claim or add without losing that answer. Baseline: the approved September 29 A list (flat scouting list, `.fa-window` banner, Pos / Sort / Search, compact headshots, per-game pace, season median, common-scale floor–ceiling bar, one outlook-plus-acquisition sheet). The user picked option B · Face-off from three static mocks (`docs/mockups/free-agents-flow-a.html`, `-b.html`, `-c.html`; captures in `docs/mockups/free-agents-flow-review/`) after a second pass that added consequence and rhythm to all three. Attention: your roster beside the pool with the softest spots dotted → the per-game change each row makes against the starter he would replace → the scoreboard verdict and Bid / Claim / Add.
+
+Observed friction in A that B addresses: the pool read as a ranking with no reference to the viewer's team, so a manager had to remember their own starters' pace; nothing said what a pickup would change; after a bid the page gave no sense of where the player would land; phone had no roster context at all.
+
+### Bounded changes
+
+| Owner | Change |
+|---|---|
+| `freeAgentFaceoff.js` (new) | Pure model: `buildFaceoffRoster` (saved weekly slots first, then best pace per slot with FLEX last; cuts excluded; open spots from `roster_size_max` or summed position maxes), `weakestFaceoffStarter`, `faceoffCompare`, `faceoffWeakSpots` (one per position group, no K/DEF), `faceoffBeats`, `faceoffLineupTotal` (unknown when a filled starter has no forecast), `faceoffPending` (one swap per starter, in order), `faceoffBestUpgrade`, `faceoffRangeMarks`, `buildFaceoffModel`. Reuses `weekBoard.js` slot helpers. 13 node tests. |
+| `ValueSheetTable.jsx` | Face-off on for in-league bid / claim / add views: fetches `/api/hub/week` once per league (shared weekly snapshot cache) for saved slots, reads `/api/hub/fa-market` in bid mode too so pending bids land in the roster column, keeps `my_bids` locally after a bid, `fa_edge` sort key with target-aware position options and `vs Surname` sort label, group headers for the edge sort, saved notice with Undo for claims, Reset filters clears the spot. Pre-draft/locked, Strategy and draft-console views are unchanged. |
+| `FreeAgentsBoard.jsx` | `.fa-faceoff` grid: sticky `RosterColumn` (desktop) and `SpotRail` tiles (phone), `Scoreboard` with count-up numbers, row edge captions, delta outlook when a spot is chosen, Best upgrade tag, group labels, range tick and amber beat region with a `Surname 160` key, `Duel` and Roster spot note in the sheet, teal saved status, pending `Bid in` action state, team-tinted `Face` via `nflTeamColors`. Place bid stays the only auction primary; walk-away, cap checks, claim drop menu, locked stars and virtualization are unchanged. |
+| `acquisitionWindow.js` | `FACEOFF_COPY`: roster column, spot rail, verdicts, edge captions, group labels, duel, roster spot, saved/undo, range-guide and How adds work additions. No money words in claim/add copy. |
+| `FreeAgentsBoard.css` | Face-off grid (`300px minmax(0,1fr)` at ≥769px, rail only on phone), roster rows/tiles with amber weak dots and teal swapping, scoreboard, edge/tag/group, range tick/beat, duel, status; motion only under `prefers-reduced-motion: no-preference`. Tokens only. |
+| `free-agents-mobile.jsx` / `check_free_agents_mobile.mjs` | Fixture gains a slotted roster with pool rows, a `/api/hub/week` mock (`noweek`, `full`, `pending`, `noroster` variants) and `my_bids`; the check asserts spot choice, groups, delta outlook, duel copy, saved status, pending landing, full-roster note and empty-roster verdict, and writes review captures. `FIXTURE_ORIGIN` selects the Vite origin. The shared phone header shell's `phone-chrome` finding (also failing on clean `develop`) is excluded from this page's count and left for the header owner. |
+| Records | `livingSurfaces.js` `hub.available` doNot, `docs/PRODUCT.md` Free agents row and "Approved Free agents Face-off — October 19, 2026", mock chooser card, this entry. |
+
+### Machine evidence
+
+`FIXTURE_ORIGIN=http://127.0.0.1:5175 node scripts/dev/check_free_agents_mobile.mjs` — **73 layout audits PASS across 320, 390 and 1280** with zero failing checks and zero horizontal overflow (`bid`, `target`, `target-sheet`, `bid-sheet`, `saved`, `noroster`, `filters`, `claim`, `claim-sheet`, `queued-claim`, `add`, `add-sheet`, `predraft`, `priority`, `readonly`, `loading`, `empty`, `missing`, `write-error`, `write-error-sheet`, `claim-error`, `claim-error-sheet`, `market-error`, `long-names`, `virtualized-end`) plus the Face-off assertions above and every earlier assertion (walk-away block, cap block, claim drop, priority confirm, protected claim, 20/40 phone reveal, <100 desktop rows). Frontend unit tests: `freeAgentFaceoff.test.js` 13/13; `src/**/*.test.js` 1348/1349 with the one pre-existing failure unrelated to Free agents (`availability load does not refetch when the locked night changes`, also failing on clean `develop`). Production build PASS.
+
+### Inspected visual evidence
+
+Synthetic data, reduced motion, dark: [Board 1280](./reviews/free-agents-face-off/board-1280.png), [Board 390](./reviews/free-agents-face-off/board-390.png), [Spot chosen 1280](./reviews/free-agents-face-off/target-1280.png), [Spot chosen 390](./reviews/free-agents-face-off/target-390.png), [Duel sheet 1280](./reviews/free-agents-face-off/duel-1280.png), [Duel sheet 390](./reviews/free-agents-face-off/duel-390.png), [Saved bid 1280](./reviews/free-agents-face-off/saved-1280.png), [Saved bid 390](./reviews/free-agents-face-off/saved-390.png). Raw captures stay in ignored `outputs/free-agents-implementation/`.
+
+### Task evidence and boundary
+
+Exercised: choose a starter from the column and the rail, read the grouped edge sort and delta outlook, clear the spot, open the duel, place a bid and see the saved status, roster swap and scoreboard change, pending market bids landing on load, no-saved-lineup fill, full roster note, empty roster verdict, claim with conditional drop, add, pre-draft stars, read-only, errors. Not exercised: a real `/api/hub/week` payload or market against the API, bid withdrawal (no route exists; Undo is claims-only), authenticated headshots, light theme, physical touch.
 
 
 ## Follow-up: Trades Face-off (October 17)
