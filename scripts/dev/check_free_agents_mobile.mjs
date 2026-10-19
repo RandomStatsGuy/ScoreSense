@@ -5,16 +5,20 @@ import {measureScript,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_
 const require=createRequire(new URL('../../frontend/package.json',import.meta.url));
 const {chromium}=require('playwright');
 const out='outputs/free-agents-implementation';
+const review='docs/reviews/free-agents-face-off';
 await fs.mkdir(out,{recursive:true});
+await fs.mkdir(review,{recursive:true});
 const browser=await chromium.launch({headless:true});
 const report=[];
-const base='http://127.0.0.1:5173/test-fixtures/free-agents-mobile.html';
+const base=`${process.env.FIXTURE_ORIGIN||'http://127.0.0.1:5173'}/test-fixtures/free-agents-mobile.html`;
+// The shared phone header shell is audited with its own fixtures; this check reads the Free agents content.
+const SHARED_CHROME=r=>r.rule==='phone-chrome'&&r.selector==='.app-header-shell';
 try {
  for(const width of [320,390,1280]) {
-  const page=await browser.newPage({viewport:{width,height:900}});
+  const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const audit=async(state)=>{
-    const results=await page.evaluate(measureScript(),{minTarget:width<=768?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
+    const results=(await page.evaluate(measureScript(),{minTarget:width<=768?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS})).filter(r=>!SHARED_CHROME(r));
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
     report.push({width,state,overflow,results});
     const bad=results.filter(r=>!r.ok);if(overflow||bad.length)console.log(JSON.stringify({width,state,overflow,bad}));
@@ -23,8 +27,42 @@ try {
     await page.goto(`${base}?state=${state}${extra}`,{waitUntil:'networkidle'});
     await page.locator('.fa-main').waitFor();
   };
+  const shot=async(name,full=width===1280)=>{await page.screenshot({path:`${out}/${name}-${width}.png`,fullPage:full});if(width!==320)await page.screenshot({path:`${review}/${name}-${width}.png`,fullPage:full});};
   await go();await audit('bid');
-  await page.screenshot({path:`${out}/a-${width}.png`,fullPage:width===1280});
+  await shot('board');
+  // Face-off: the roster sits beside the pool; each row reads against the starter he would replace.
+  const main=await page.locator('.fa-main').innerText();
+  assert.match(main,/Your lineup/i);assert.match(main,/Josh Downs is your best upgrade: \+1\.4 \/ game at FLEX over Warren/);
+  assert.match(await page.locator('.fa-player',{hasText:'Josh Downs'}).innerText(),/\+1\.4 over Warren · FLEX/);
+  assert.match(await page.locator('.fa-player',{hasText:'Sam Darnold'}).innerText(),/Depth behind Hurts/);
+  assert.equal(await page.locator('.fa-player',{hasText:'Josh Downs'}).locator('.fa-tag').innerText(),'Best upgrade');
+  assert.equal(await page.locator('.fa-player',{hasText:'Josh Downs'}).locator('.fa-tick').count(),1);
+  if(width>768) {
+    const flex=page.locator('.fa-roster-row',{hasText:'Jaylen Warren'});
+    assert.match(await flex.innerText(),/FLEX[\s\S]*2 beat him/);
+    assert.ok(await page.locator('.fa-roster-row.is-weak').count()>=2);
+    await flex.click();
+  } else {
+    assert.ok(await page.locator('.fa-rail-tiles .fa-tile.is-weak').count()>=2);
+    await page.locator('.fa-tile',{hasText:'Warren'}).click();
+  }
+  await page.locator('.fa-group').first().waitFor();
+  await audit('target');await shot('target');
+  assert.equal(await page.locator('.fa-player').count(),7);
+  assert.equal(await page.locator('.fa-group').first().textContent(),'2 beat Warren at FLEX');
+  assert.equal(await page.locator('.fa-group').nth(1).textContent(),'Depth');
+  assert.equal(await page.locator('.fa-player').first().locator('.fa-outlook strong').innerText(),'+1.4');
+  assert.match(await page.locator('.fa-board').innerText(),/2 free agents beat Warren \(9\.4 \/ game\)\. Downs gains the most\./);
+  assert.match(await page.locator('.fa-toolbar').innerText(),/vs Warren/);
+  await page.getByRole('button',{name:'Open Josh Downs details',exact:true}).click();
+  await audit('target-sheet');await shot('duel',false);
+  const duel=await page.locator('.fa-versus').innerText();
+  assert.match(duel,/Downs starts at FLEX, Warren to the bench/);assert.match(duel,/Lineup 109\.5 → 110\.9 \/ game if the bid wins/);
+  assert.match(await page.getByRole('dialog').innerText(),/1 open roster spot · no drop needed/);
+  await page.keyboard.press('Escape');
+  await (width>768?page.getByRole('button',{name:'Show all positions',exact:true}):page.locator('.fa-tile',{hasText:'All spots'})).click();
+  assert.equal(await page.locator('.fa-group').count(),0);
+  assert.equal(await page.locator('.fa-player').count(),8);
   await page.getByRole('button',{name:'Open Josh Downs details',exact:true}).click();
   await audit('bid-sheet');await page.screenshot({path:`${out}/sheet-${width}.png`});
   await page.getByRole('spinbutton',{name:'Your bid',exact:true}).fill('10');
@@ -34,10 +72,31 @@ try {
   await page.getByRole('button',{name:'Place bid',exact:true}).click();
   await page.getByRole('dialog').waitFor({state:'detached'});
   assert.equal(await page.evaluate(()=>window.fixtureWrites[0].body.bid_amount),10);
+  // Saved: teal status, the pending bid shows where it lands, and the board reads the new lineup.
+  await page.locator('.fa-status.is-saved').waitFor();
+  assert.match(await page.locator('.fa-status').innerText(),/Saved[\s\S]*Bid \$10 on Josh Downs\. High bid is \$10\. \+1\.4 \/ game if it wins\./i);
+  assert.match(await page.locator('.fa-board').innerText(),/110\.9[\s\S]*was 109\.5[\s\S]*\+1\.4[\s\S]*Downs in at FLEX, Warren to the bench\./);
+  assert.equal(await page.locator('.fa-player',{hasText:'Josh Downs'}).locator('.fa-acquire').innerText(),'Bid in');
+  if(width>768) assert.match(await page.locator('.fa-roster-row.is-swapping').innerText(),/Downs in if the bid wins[\s\S]*9\.4 10\.8/);
+  else assert.match(await page.locator('.fa-tile.is-swapping').innerText(),/Downs[\s\S]*9\.4 10\.8/);
+  await audit('saved');await shot('saved');
   await page.getByRole('button',{name:'Open Josh Downs details',exact:true}).click();
   assert.equal(await page.getByRole('spinbutton',{name:'Walk-away',exact:true}).inputValue(),'12');
   await page.keyboard.press('Escape');assert.equal(await page.getByRole('dialog').count(),0);
   assert.equal(await page.evaluate(()=>document.activeElement.getAttribute('aria-label')),'Open Josh Downs details');
+  // Pending bids from the market land in the roster column on load.
+  await go('bid','&pending=1');
+  assert.match(await page.locator('.fa-board').innerText(),/Shaheed in at FLEX, Warren to the bench\./);
+  assert.equal(await page.locator('.fa-player',{hasText:'Rashid Shaheed'}).locator('.fa-acquire').innerText(),'Bid in');
+  // Without a saved weekly lineup the best pace fills each slot; a full roster says so in the sheet.
+  await go('bid','&noweek=1&full=1');
+  assert.match(await page.locator('.fa-main').innerText(),/Your lineup/i);
+  await page.getByRole('button',{name:'Open Josh Downs details',exact:true}).click();
+  assert.match(await page.getByRole('dialog').innerText(),/Your roster is full/);
+  await page.keyboard.press('Escape');
+  await go('noroster');
+  assert.match(await page.locator('.fa-board').innerText(),/Your roster is empty/);
+  await audit('noroster');
   await page.getByRole('button',{name:'Search and filters',exact:true}).click();
   await page.getByRole('searchbox',{name:'Search players',exact:true}).fill('Spears');
   assert.equal(await page.locator('.fa-player').count(),1);

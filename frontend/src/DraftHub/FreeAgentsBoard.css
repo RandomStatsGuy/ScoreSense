@@ -105,3 +105,129 @@
 .fa-range-guide { margin:0 0 var(--space-3); font-size:var(--text-xs); color:var(--text-secondary); }
 .fa-range-guide summary { min-height:var(--control-h-lg); display:list-item; align-content:center; cursor:pointer; }
 .fa-range-guide p { margin:var(--space-2) 0; max-width:65ch; line-height:1.5; }
+
+/* Face-off (approved October 19 B): your roster beside the pool; every row reads against the spot he would take. */
+.fa-faceoff { display: grid; gap: var(--space-4); align-items: start; min-width: 0; }
+.fa-poolside { display: grid; gap: var(--space-4); min-width: 0; }
+.fa-face { background: color-mix(in srgb, var(--team, var(--surface-raised)) 30%, var(--surface-raised)); }
+.fa-face.is-empty { border: 1px dashed var(--border-strong); background: transparent; }
+.fa-link { min-height: var(--control-h-sm); border: 0; background: transparent; color: var(--accent-muted); padding: 0 var(--space-2); font-size: var(--text-xs); text-decoration: underline; text-underline-offset: 3px; }
+.fa-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Row edge: what the player does to your lineup. Amber only when he is a real upgrade. */
+.fa-edge { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--text-muted); }
+.fa-edge.is-up { color: var(--tone-caution); font-weight: 600; }
+.fa-edge.is-open { color: var(--text-secondary); }
+.fa-tag { display: inline-block; margin-left: var(--space-2); padding: 1px var(--space-2); border-radius: var(--radius-pill); background: var(--tone-caution-soft); color: var(--tone-caution); font-size: var(--text-xs); font-weight: 600; letter-spacing: .02em; white-space: nowrap; vertical-align: middle; }
+.fa-outlook strong.is-up { color: var(--tone-caution); }
+.fa-group { margin: 0; padding: var(--space-3) 0 0; line-height: 1; font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.fa-group + .fa-player { padding-top: var(--space-3); }
+.fa-group.is-up { color: var(--tone-caution); font-weight: 600; }
+/* Range bar: a tick where your starter sits; the part of the range above him is amber. */
+.fa-range-track .fa-beat { position: absolute; top: 0; bottom: 0; left: var(--beat); right: calc(100% - var(--high)); border-radius: var(--radius-pill); background: var(--tone-caution); opacity: .9; }
+.fa-range-track .fa-tick { position: absolute; top: -4px; bottom: -4px; left: calc(var(--tick) - 1px); width: 2px; border-radius: 1px; background: var(--text-primary); }
+.fa-tick-key { font-style: normal; color: var(--text-secondary); white-space: nowrap; }
+.fa-tick-key::before { content: ''; display: inline-block; width: 2px; height: .7em; margin-right: var(--space-1); border-radius: 1px; background: var(--text-primary); vertical-align: -1px; }
+/* Scoreboard: your lineup per game, the change pending moves make, and the best upgrade left in the pool. */
+.fa-board { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: var(--space-3) var(--space-5); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--bg-elevated); }
+.fa-board-now, .fa-board-delta { display: grid; gap: 1px; }
+.fa-board-now small, .fa-board-delta small { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; }
+.fa-board-now strong { font-size: 1.75rem; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.fa-board-now strong .fa-unit { font-size: var(--text-sm); font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.fa-board-now .fa-board-from { text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.fa-board-delta { text-align: center; padding: 0 var(--space-4); border-left: 1px solid var(--border); }
+.fa-board-delta strong { font-size: 2.25rem; line-height: 1; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.fa-board.is-up .fa-board-delta strong { color: var(--tone-caution); }
+.fa-board-verdict { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); }
+/* Status line: saved (teal) with Undo when the move can be reversed here. */
+.fa-status { display: flex; align-items: center; gap: var(--space-3); margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-subtle); font-size: var(--text-sm); color: var(--text-secondary); }
+.fa-status.is-saved { border-left-color: var(--tone-positive); }
+.fa-status .fa-kicker { flex: none; font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--tone-positive); }
+.fa-status > span:not(.fa-kicker) { min-width: 0; flex: 1; }
+.fa-status .fa-link { flex: none; }
+.fa-status:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Roster column (desktop). */
+.fa-roster { display: grid; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-lg); background: var(--bg-elevated); min-width: 0; }
+.fa-roster-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: 0 var(--space-2); min-height: var(--control-h-sm); }
+.fa-roster-head h2 { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.fa-roster-head > span { font-size: var(--text-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.fa-roster-shopping { margin: 0 var(--space-2); font-size: var(--text-xs); color: var(--text-muted); line-height: 1.5; }
+.fa-roster-list { display: grid; gap: 2px; }
+.fa-roster-row { display: grid; grid-template-columns: 2.6rem minmax(0,1fr) auto; align-items: center; gap: var(--space-2); min-height: var(--control-h-lg); padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); text-align: left; font: inherit; }
+.fa-roster-row small { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .04em; }
+.fa-roster-row .fa-roster-name { display: grid; gap: 1px; min-width: 0; }
+.fa-roster-row .fa-roster-name strong { font-size: var(--text-sm); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-roster-row .fa-roster-name span { font-size: var(--text-xs); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-roster-row .fa-roster-name em { font-style: normal; color: var(--tone-caution); font-weight: 600; }
+.fa-roster-row.is-swapping .fa-roster-name em { color: var(--tone-positive); }
+.fa-roster-row b { font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fa-roster-row b s, .fa-tile b s { color: var(--text-muted); font-weight: 500; margin-right: 2px; }
+.fa-roster-row.is-swapping b { color: var(--tone-positive); }
+.fa-roster-row.is-weak .fa-roster-name strong::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: var(--space-2); border-radius: 50%; background: var(--tone-caution); vertical-align: middle; }
+.fa-roster-row[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); }
+.fa-roster-row.is-open, .fa-roster-row.is-bench { color: var(--text-secondary); }
+.fa-roster-row.is-open b, .fa-roster-row.is-bench b { color: var(--text-muted); font-weight: 500; }
+.fa-roster-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fa-roster-divider { margin: var(--space-2) var(--space-2) 0; font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .08em; text-transform: uppercase; }
+/* Spot rail (phone). */
+.fa-rail-tiles { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); scrollbar-width: none; }
+.fa-rail-tiles::-webkit-scrollbar { display: none; }
+.fa-tile { flex: none; display: grid; gap: 1px; width: 6.6rem; min-height: 3.6rem; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-elevated); color: var(--text-primary); text-align: left; font: inherit; }
+.fa-tile small { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; }
+.fa-tile strong { font-size: var(--text-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-tile b { font-size: var(--text-xs); font-weight: 500; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fa-tile em { font-style: normal; color: var(--tone-caution); font-weight: 600; }
+.fa-tile.is-weak small::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: var(--space-1); border-radius: 50%; background: var(--tone-caution); vertical-align: middle; }
+.fa-tile.is-swapping { border-color: color-mix(in srgb, var(--tone-positive) 45%, var(--border)); }
+.fa-tile.is-swapping b { color: var(--tone-positive); }
+.fa-tile[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); }
+.fa-tile.is-open { color: var(--text-secondary); }
+.fa-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The duel inside the sheet. */
+.fa-versus { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--bg-subtle); }
+.fa-duel { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.fa-duel-side { display: grid; gap: 1px; min-width: 0; justify-items: start; }
+.fa-duel-side.is-out { justify-items: end; text-align: right; }
+.fa-duel-side .fa-face { width: 64px; height: 68px; margin-bottom: var(--space-2); }
+.fa-duel-side strong { max-width: 100%; font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-duel-side span { font-size: var(--text-xs); color: var(--text-muted); }
+.fa-duel-side b { font-size: 1.5rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.fa-duel-side.is-out b { color: var(--text-secondary); }
+.fa-duel-center { align-self: center; display: grid; gap: 1px; text-align: center; }
+.fa-duel-center strong { font-size: 2.5rem; line-height: 1; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.fa-versus.is-up .fa-duel-center strong { color: var(--tone-caution); }
+.fa-duel-center span { font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; }
+.fa-duel-head { margin: 0; font-size: var(--text-sm); color: var(--text-secondary); text-align: center; }
+.fa-versus.is-up .fa-duel-head { color: var(--text-primary); font-weight: 600; }
+.fa-versus .fa-range-track { height: 6px; }
+.fa-versus-note { margin: 0; font-size: var(--text-xs); color: var(--text-muted); line-height: 1.5; }
+.fa-versus-lineup { margin: 0; padding-top: var(--space-3); border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.fa-spot-field { display: grid; gap: var(--space-1); }
+.fa-spot-field > span { font-size: var(--text-sm); color: var(--text-secondary); }
+/* Rhythm: rows arrive when the list changes; a save flashes teal once. */
+@media (prefers-reduced-motion: no-preference) {
+  .fa-pool.is-fresh .fa-player { animation: fa-appear .3s var(--ease-standard) both; animation-delay: calc(var(--i, 0) * 28ms); }
+  .fa-player.is-just-saved { animation: fa-saved 1.6s var(--ease-standard) both; }
+  @keyframes fa-appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes fa-saved { 0% { box-shadow: inset 3px 0 0 var(--tone-positive); background: var(--tone-positive-soft); } 100% { box-shadow: inset 3px 0 0 transparent; background: transparent; } }
+}
+@media (min-width: 769px) {
+  .fa-faceoff { grid-template-columns: 300px minmax(0,1fr); gap: var(--space-5); }
+  .fa-roster { position: sticky; top: var(--space-4); }
+  .fa-rail-tiles { display: none; }
+  .has-faceoff .fa-player { grid-template-columns: minmax(0,1fr) minmax(20rem,.8fr); }
+  .has-faceoff .fa-outlook { width: 112px; }
+  .fa-name .fa-edge { white-space: nowrap; }
+  .fa-range-copy strong { white-space: nowrap; }
+}
+@media (max-width: 768px) {
+  .fa-roster { display: none; }
+  .fa-board { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2) var(--space-4); }
+  .fa-board-delta { padding-right: 0; text-align: left; }
+  .fa-board-delta strong { font-size: 2rem; }
+  .fa-board-verdict { grid-column: 1 / -1; }
+  .fa-status { flex-wrap: wrap; }
+  .fa-status .fa-link { min-height: var(--control-h-lg); }
+  .fa-duel-side b { font-size: 1.25rem; }
+  .fa-duel-center strong { font-size: 2rem; }
+  .fa-duel-side .fa-face { width: 56px; height: 60px; }
+}
