@@ -25,6 +25,7 @@ import {
   AdminServerPane,
   AdminSessionsPane,
   AdminSettingsPane,
+  AdminConnectionsPane,
 } from "./AdminOps";
 
 const LEGACY_TABS = new Set(["users", "leagues"]);
@@ -690,6 +691,7 @@ export default function AdminPortal({ adminTab = "overview", onAdminTabChange })
 
       {tab === "overview" && <AdminOverviewPane {...paneProps} legacy={overview} />}
       {tab === "server" && <AdminServerPane {...paneProps} />}
+      {tab === "connections" && <AdminConnectionsPane {...paneProps} />}
       {tab === "jobs" && <AdminJobsPane {...paneProps} />}
       {tab === "sessions" && <AdminSessionsPane {...paneProps} />}
       {tab === "settings" && <AdminSettingsPane {...paneProps} />}

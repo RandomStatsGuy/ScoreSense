@@ -97,6 +97,7 @@ test("pageTitleForPath matches product areas", () => {
   assert.equal(pageTitleForPath("/model"), "Model accuracy");
   assert.equal(pageTitleForPath("/admin"), "Admin · Overview");
   assert.equal(pageTitleForPath("/admin/users"), "Admin · Users");
+  assert.equal(pageTitleForPath("/admin/connections"), "Admin · Connections");
   assert.equal(pageTitleForPath("/privacy"), "Privacy");
   assert.equal(pageTitleForPath("/sms-alerts"), "Draft alert texts");
   assert.equal(pageTitleForPath("/login"), "Sign in");

@@ -18,6 +18,7 @@ legacy/
 terminals
 data/raw/
 data/cache/
+data/admin_ops/
 *.md
 !README.md
 
