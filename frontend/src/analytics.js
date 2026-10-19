@@ -230,6 +230,7 @@ export function pageTitleForPath(pathname, hubContext) {
       jobs: "Jobs",
       sessions: "Sessions",
       settings: "Settings",
+      connections: "Connections",
       activity: "Activity",
       users: "Users",
       leagues: "Leagues",
