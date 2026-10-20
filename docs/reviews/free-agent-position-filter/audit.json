@@ -1,0 +1,694 @@
+[
+  {
+    "width": 1280,
+    "theme": "dark",
+    "overflow": false,
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "43 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "44 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "theme": "dark",
+    "state": "prefilled-drop",
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "3 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "47 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "overflow": false,
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "43 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "44 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "theme": "light",
+    "state": "prefilled-drop",
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "3 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "47 targets ≥ 32"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "overflow": false,
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "40 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "45 targets ≥ 44"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-shell",
+        "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-mobile-top",
+        "detail": "44px; single header"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      },
+      {
+        "rule": "nav-clearance",
+        "ok": true,
+        "selector": ".app-with-bottom-nav",
+        "detail": "content clearance 80px; navigation 63px"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "state": "prefilled-drop",
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "3 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "48 targets ≥ 44"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-shell",
+        "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-mobile-top",
+        "detail": "44px; single header"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "overflow": false,
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "40 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "45 targets ≥ 44"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-shell",
+        "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-mobile-top",
+        "detail": "44px; single header"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      },
+      {
+        "rule": "nav-clearance",
+        "ok": true,
+        "selector": ".app-with-bottom-nav",
+        "detail": "content clearance 80px; navigation 63px"
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "state": "prefilled-drop",
+    "results": [
+      {
+        "rule": "cursors",
+        "ok": true,
+        "selector": "interactive targets",
+        "detail": "3 targets use pointer or drag cursors"
+      },
+      {
+        "rule": "bars",
+        "ok": true,
+        "selector": "",
+        "detail": "0 bars"
+      },
+      {
+        "rule": "collisions",
+        "ok": true,
+        "selector": "",
+        "detail": "no overlapping block siblings"
+      },
+      {
+        "rule": "tables",
+        "ok": true,
+        "selector": "",
+        "detail": "no tables or all aligned"
+      },
+      {
+        "rule": "grids",
+        "ok": true,
+        "selector": "",
+        "detail": "auto-fill card grids even or none"
+      },
+      {
+        "rule": "targets",
+        "ok": true,
+        "selector": "",
+        "detail": "48 targets ≥ 44"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-shell",
+        "detail": "62px; corners 18/18/18/18; title 21.6px; shared hierarchy"
+      },
+      {
+        "rule": "phone-chrome",
+        "ok": true,
+        "selector": ".app-header-mobile-top",
+        "detail": "44px; single header"
+      },
+      {
+        "rule": "primaries",
+        "ok": true,
+        "selector": "",
+        "detail": "1 visible primary"
+      },
+      {
+        "rule": "type",
+        "ok": true,
+        "selector": "",
+        "detail": "≥ 12px"
+      },
+      {
+        "rule": "gutters",
+        "ok": true,
+        "selector": "",
+        "detail": "no band set"
+      },
+      {
+        "rule": "selects",
+        "ok": true,
+        "selector": "",
+        "detail": "0 visible native selects"
+      },
+      {
+        "rule": "overflow",
+        "ok": true,
+        "selector": "",
+        "detail": "no horizontal overflow"
+      },
+      {
+        "rule": "menus",
+        "ok": true,
+        "selector": "",
+        "detail": "strip menus stack above later hub siblings"
+      }
+    ]
+  }
+]

@@ -158,6 +158,7 @@ export const FACEOFF_COPY = {
   rosterSpot: "Roster spot",
   rosterSpotOpen: "Open spot · no drop",
   rosterSpotOpenCount: (count) => (count === 1 ? "1 open roster spot · no drop needed." : `${count} open roster spots · no drop needed.`),
+  rosterSpotDrop: (name) => `${name} leaves only if this claim succeeds.`,
   rosterSpotHint: "Your roster is full. Choose who leaves if the claim clears.",
   rosterSpotFullBid: "Your roster is full. You will choose who leaves if the bid wins.",
   rosterSpotFullAdd: "Your roster is full. Make room on My team first.",

@@ -167,7 +167,7 @@ function Duel({ row, media, scale, faceoff, mode }) {
 function ActionSheet({ draft, media, scale, mode, canAct, busy, error, onClose, onChange, onConfirm,
   remainingCap, pickDraft, rules, riskTolerance, roster, priority, onHistory, onWatch, watched, reason, faceoff }) {
   const ref = useRef(null);
-  const [drop, setDrop] = useState("");
+  const [drop, setDrop] = useState(() => mode === "claim" ? String(faceoff?.targetSlot?.player?.player_id || "") : "");
   useModalFocus(true, ref, () => { if (!busy) onClose(); });
   const row = draft.row, band = resolveSeasonBand(row);
   const bid = parseWalkaway(draft.amount), ceiling = parseWalkaway(draft.ceiling);
@@ -178,7 +178,8 @@ function ActionSheet({ draft, media, scale, mode, canAct, busy, error, onClose, 
   const suggested = effectiveAuctionBid(row, riskTolerance, rules);
   const pricing = suggestedBidSubLabel({ scoringProfile: rules?.scoring_profile || rules?.scoring, riskTolerance });
   const open = faceoff?.lineup.openSpots;
-  const spotNote = !faceoff || mode === "locked" ? null : open == null ? null : open > 0 ? FO.rosterSpotOpenCount(open) : mode === "claim" ? FO.rosterSpotHint : mode === "bid" ? FO.rosterSpotFullBid : FO.rosterSpotFullAdd;
+  const dropPlayer = mode === "claim" && drop ? roster.find(p => String(p.player_id) === drop) : null;
+  const spotNote = dropPlayer ? FO.rosterSpotDrop(dropPlayer.player_name || dropPlayer.player || drop) : !faceoff || mode === "locked" ? null : open == null ? null : open > 0 ? FO.rosterSpotOpenCount(open) : mode === "claim" ? FO.rosterSpotHint : mode === "bid" ? FO.rosterSpotFullBid : FO.rosterSpotFullAdd;
   return createPortal(<div className="fa-sheet-overlay" onClick={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <section ref={ref} role="dialog" aria-modal="true" aria-labelledby="fa-sheet-name" tabIndex={-1} className="fa-sheet">
       <header className="fa-dialog-head"><h2>{COPY.playerDetails}</h2><button className="fa-icon" aria-label={COPY.close} onClick={onClose} disabled={busy}>×</button></header>
