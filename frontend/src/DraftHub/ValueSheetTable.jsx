@@ -40,6 +40,7 @@ import { rulesUseContracts } from "./leagueCapabilities";
 import { columnsForDraftMode, positionalRanks, sortLabelForKey } from "./valueSheetColumns";
 import {
   CLAIM_QUEUE_COPY,
+  FACEOFF_COPY,
   PLAYERS_TAB_COPY,
   playersTabAddDisabledReason,
   playersTabAddLabel,
@@ -68,7 +69,10 @@ import {
 import RaavBidCell from "./RaavBidCell";
 import { suggestedBidSubLabel } from "./suggestedBidLabel.js";
 import { AVAILABLE_ROW_HEIGHT, useWindowedRows, WINDOW_AFTER } from "./useWindowedRows";
+import { buildFaceoffModel, faceoffSurname, faceoffSlotAccepts } from "./freeAgentFaceoff";
+import { getWeeklySnapshot, setWeeklySnapshot, weeklySnapshotKey } from "./hubDataCache";
 
+const FACEOFF_SORT_KEY = "fa_edge";
 const TIERS = ["ALL", "Elite", "Tier 1", "Tier 2", "Tier 3", "Depth"];
 const POSITIONS = HUB_POSITION_FILTERS;
 const AVAILABILITY_FILTERS = [
@@ -88,7 +92,8 @@ const DEFAULT_SORT_KEY = "fair_value";
 const PICK_DRAFT_SORT_KEY = "season_proj";
 const DEFAULT_SORT_DIR = "desc";
 
-function defaultSortKeyForBoard(pickDraft) {
+function defaultSortKeyForBoard(pickDraft, isAvailableView) {
+  if (isAvailableView) return "per_game_proj";
   return pickDraft ? PICK_DRAFT_SORT_KEY : DEFAULT_SORT_KEY;
 }
 
@@ -185,7 +190,7 @@ function ValueSheetTableView({
   const playersBanner = !draftConsole && inLeague ? playersTabBanner(acquisitionWindow) : null;
   const valueColLabel = "Suggested bid";
   const isAvailableView = mode === "available";
-  const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft));
+  const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft, isAvailableView));
   const [sortDir, setSortDir] = useState(DEFAULT_SORT_DIR);
   useFantasyReady("available", "player-board", !loading && Array.isArray(rows));
   const [posFilter, setPosFilter] = useState(defaultPosFilter);
@@ -206,6 +211,13 @@ function ValueSheetTableView({
   const [mobileListLimit, setMobileListLimit] = useState(20);
   const [bidDraft, setBidDraft] = useState(null);
   const [walkawayRev, setWalkawayRev] = useState(0);
+  // Face-off: your lineup beside the pool (available view in a league, once adds are possible).
+  const faceoffOn = isAvailableView && !draftConsole && inLeague && (addMode === "bid" || addMode === "claim" || addMode === "add");
+  const [faceoffTarget, setFaceoffTargetState] = useState(null);
+  const [myBids, setMyBids] = useState([]);
+  const [weekRoster, setWeekRoster] = useState(null);
+  const [savedNotice, setSavedNotice] = useState(null);
+  const [justSavedId, setJustSavedId] = useState(null);
 
   const MOBILE_LIST_PAGE = 20;
 
@@ -254,21 +266,35 @@ function ValueSheetTableView({
   }, [defaultPosFilter]);
 
   useEffect(() => {
-    if (!pickDraft) return;
+    if (!pickDraft || isAvailableView) return;
     setSortKey((key) => (key === "fair_value" || key === "value_delta" ? PICK_DRAFT_SORT_KEY : key));
-  }, [pickDraft]);
+  }, [pickDraft, isAvailableView]);
 
   useEffect(() => {
     setMobileListLimit(MOBILE_LIST_PAGE);
   }, [posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, rows]);
 
   const rankMap = useMemo(() => positionalRanks(rows), [rows]);
+  const availableRows = useMemo(() => filterAndSortRows(rows, { pool: "available" }), [rows]);
+  // Pending moves read from the pool rows so both sides of a comparison share one outlook.
+  const pendingRows = useMemo(() => {
+    if (!faceoffOn) return [];
+    const ids = addMode === "bid" ? myBids.map((b) => String(b.player_id)) : addMode === "claim" ? claimQueue.map((c) => String(c.player_id)) : [];
+    if (!ids.length) return [];
+    const byId = new Map((rows || []).map((r) => [String(r.player_id), r]));
+    return ids.map((id) => byId.get(id)).filter(Boolean);
+  }, [faceoffOn, addMode, myBids, claimQueue, rows]);
+  const faceoff = useMemo(
+    () => (faceoffOn ? buildFaceoffModel({ roster, rows, availableRows, rules, weekRoster, pendingRows, target: faceoffTarget }) : null),
+    [faceoffOn, roster, rows, availableRows, rules, weekRoster, pendingRows, faceoffTarget],
+  );
   const rankedRows = useMemo(
     () => (rows || []).map((r) => ({
       ...r,
       pos_rank: rankMap.get(String(r.player_id)) ?? r.pos_rank ?? null,
+      ...(faceoff ? { fa_edge: faceoff.compare(r).delta } : {}),
     })),
-    [rows, rankMap],
+    [rows, rankMap, faceoff],
   );
 
   const sorted = useMemo(() => {
@@ -283,6 +309,7 @@ function ValueSheetTableView({
       sortDir,
       watchIds,
     });
+    if (faceoff?.targetSlot) list = list.filter(faceoff.eligible);
     const pins = [...new Set((needPositions || []).map((p) => String(p || "").toUpperCase()).filter(Boolean))];
     if (needsOnly && pins.length) {
       const pinSet = new Set(pins);
@@ -297,7 +324,51 @@ function ValueSheetTableView({
       if (hit) list = [hit, ...list.filter((row) => String(row.player_id) !== focusId)];
     }
     return pinNeedPositions(list, pins, maxRows);
-  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly, watchIds, selectedPlayerId]);
+  }, [rankedRows, isAvailableView, posFilter, statusFilter, tierFilter, riskProfile, search, sortKey, sortDir, maxRows, needPositions, needsOnly, watchIds, selectedPlayerId, faceoff]);
+
+  // Group headers for the edge sort: who beats the chosen starter, then depth.
+  const groupStarts = useMemo(() => {
+    const slot = faceoff?.targetSlot;
+    if (!slot || sortKey !== FACEOFF_SORT_KEY) return null;
+    const beating = sorted.filter((r) => r.fa_edge != null && r.fa_edge > 0).length;
+    const map = new Map();
+    let section = null;
+    for (const r of sorted) {
+      const up = r.fa_edge != null && r.fa_edge > 0;
+      const label = up
+        ? (slot.player ? FACEOFF_COPY.groupBeat(beating, faceoffSurname(slot.player.name), slot.slot) : FACEOFF_COPY.groupFits(beating, slot.slot))
+        : FACEOFF_COPY.groupDepth;
+      if (label !== section) { section = label; map.set(String(r.player_id), { label, up }); }
+    }
+    return map;
+  }, [faceoff, sortKey, sorted]);
+  const faceoffListKey = [faceoffTarget, posFilter, sortKey, sortDir, search, tierFilter, riskProfile, addMode].join("|");
+
+  const setFaceoffTarget = useCallback((next) => {
+    setFaceoffTargetState(next || null);
+    setPosFilter(defaultPosFilter);
+    if (next && next !== "open") { setSortKey(FACEOFF_SORT_KEY); setSortDir("desc"); }
+    else setSortKey((key) => (key === FACEOFF_SORT_KEY ? defaultSortKeyForBoard(pickDraft, isAvailableView) : key));
+  }, [defaultPosFilter, pickDraft, isAvailableView]);
+
+  useEffect(() => {
+    if (!faceoffOn || !leagueId || preDraft) { setWeekRoster(null); return undefined; }
+    const key = weeklySnapshotKey("fa", `faceoff:${leagueId}`);
+    const cached = getWeeklySnapshot(key);
+    if (cached) { setWeekRoster(cached); return undefined; }
+    const controller = new AbortController();
+    apiFetch("/api/hub/week", { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (controller.signal.aborted || !data?.roster) return;
+        if (data.hub_context?.league_id && String(data.hub_context.league_id) !== String(leagueId)) return;
+        const snapshot = { starters: data.roster.starters || [], bench: data.roster.bench || [] };
+        setWeeklySnapshot(key, leagueId, snapshot);
+        setWeekRoster(snapshot);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [faceoffOn, leagueId, preDraft]);
 
   useEffect(() => {
     if (!selectedPlayerId) return undefined;
@@ -393,17 +464,19 @@ function ValueSheetTableView({
   }, [pageBoard]);
 
   const sheetPlayerIds = useMemo(
-    () => (mobileLayout && isAvailableView ? mobileRows : windowed ? visibleRows : sorted).map((r) => r.player_id).filter(Boolean),
-    [mobileLayout, isAvailableView, mobileRows, windowed, visibleRows, sorted],
+    () => [
+      ...(mobileLayout && isAvailableView ? mobileRows : windowed ? visibleRows : sorted).map((r) => r.player_id),
+      ...(faceoff ? faceoff.lineup.starters.map((slot) => slot.player?.player_id) : []),
+      faceoff?.targetSlot?.player?.player_id,
+    ].filter(Boolean),
+    [mobileLayout, isAvailableView, mobileRows, windowed, visibleRows, sorted, faceoff],
   );
   const playerMedia = usePlayerMedia(sheetPlayerIds);
 
-  const totalAvailable = useMemo(
-    () => filterAndSortRows(rows, { pool: "available" }).length,
-    [rows],
-  );
+  const totalAvailable = availableRows.length;
 
   const onSort = (col) => {
+    if (col === FACEOFF_SORT_KEY && sortKey !== col) { setSortKey(col); setSortDir("desc"); return; }
     const next = nextSortState(sortKey, sortDir, col);
     setSortKey(next.sortKey);
     setSortDir(next.sortDir);
@@ -465,10 +538,15 @@ function ValueSheetTableView({
   useEffect(() => {
     setClaimsReady(false);
     setClaimLoadError("");
-    if (addMode !== "claim" || !leagueId) {
+    const claimMode = addMode === "claim";
+    if (!claimMode) {
       setClaimQueue([]);
       setWaiverPriority(null);
+    }
+    // Claims need the market before any action; bids only read it so pending bids can show where they land.
+    if (!leagueId || !(claimMode || (addMode === "bid" && faceoffOn))) {
       setProtectedIds([]);
+      setMyBids([]);
       return undefined;
     }
     const controller = new AbortController();
@@ -480,19 +558,21 @@ function ValueSheetTableView({
       })
       .then((result) => {
         if (controller.signal.aborted || !isCurrent()) return;
+        setMyBids(result?.market?.my_bids || []);
+        setProtectedIds(result?.market?.protected_player_ids || []);
+        if (!claimMode) return;
         setClaimQueue(result?.market?.my_claims || []);
         setWaiverPriority(result?.market?.waiver_priority || null);
-        setProtectedIds(result?.market?.protected_player_ids || []);
         setClaimsReady(true);
       })
       .catch((failure) => {
-        if (!controller.signal.aborted && isCurrent() && failure.name !== "AbortError") {
+        if (claimMode && !controller.signal.aborted && isCurrent() && failure.name !== "AbortError") {
           setClaimLoadError(failure.message || CLAIM_QUEUE_COPY.loadError);
           setAddError(failure.message || CLAIM_QUEUE_COPY.loadError);
         }
       });
     return () => controller.abort();
-  }, [addMode, leagueId, actionScope, captureAction]);
+  }, [addMode, leagueId, actionScope, captureAction, faceoffOn]);
 
   const updateClaims = useCallback(async (next) => {
     const isCurrent = captureAction();
@@ -586,11 +666,20 @@ function ValueSheetTableView({
       const result = await postBid(row, amount);
       if (!isCurrent()) return;
       const high = result?.high_bid?.high_bid;
-      setAddError(
-        high != null
-          ? `Bid in. High bid on ${row.player || "this player"} is $${Number(high).toFixed(0)}.`
-          : `Bid in on ${row.player || "this player"}.`,
-      );
+      setMyBids((prev) => [
+        ...prev.filter((b) => String(b.player_id) !== String(row.player_id)),
+        { player_id: row.player_id, player_name: row.player, position: row.position, nfl_team: row.team, bid_amount: Number(amount) },
+      ]);
+      if (faceoff) {
+        setSavedNotice({ saved: true, text: FACEOFF_COPY.savedBid(row.player || "this player", Number(amount), high, faceoff.compare(row).delta) });
+        setJustSavedId(row.player_id);
+      } else {
+        setAddError(
+          high != null
+            ? `Bid in. High bid on ${row.player || "this player"} is $${Number(high).toFixed(0)}.`
+            : `Bid in on ${row.player || "this player"}.`,
+        );
+      }
       onAddToRoster?.();
       setBidDraft(null);
     } catch (e) {
@@ -598,7 +687,7 @@ function ValueSheetTableView({
     } finally {
       if (isCurrent()) setAddingId(null);
     }
-  }, [onAddToRoster, persistCeiling, postBid, remainingCap, captureAction, actionsDisabled, addEnabled, addMode]);
+  }, [onAddToRoster, persistCeiling, postBid, remainingCap, captureAction, actionsDisabled, addEnabled, addMode, faceoff]);
 
   const addPlayer = useCallback(async (row) => {
     const isCurrent = captureAction();
@@ -647,6 +736,10 @@ function ValueSheetTableView({
     try {
       await postAddPlayer(row, { force: taken && isCommissioner });
       if (!isCurrent()) return;
+      if (faceoff) {
+        setSavedNotice({ saved: true, text: FACEOFF_COPY.savedAdd(row.player || "Player", faceoff.compare(row).delta) });
+        setJustSavedId(row.player_id);
+      }
       onAddToRoster?.();
       setBidDraft(null);
     } catch (e) {
@@ -654,7 +747,14 @@ function ValueSheetTableView({
     } finally {
       if (isCurrent()) setAddingId(null);
     }
-  }, [addMode, claimQueue, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer, protectedIds, updateClaims, captureAction, actionsDisabled, addEnabled]);
+  }, [addMode, claimQueue, isCommissioner, onAddToRoster, openBidDraft, postAddPlayer, protectedIds, updateClaims, captureAction, actionsDisabled, addEnabled, faceoff]);
+
+  const claimQueueRef = useRef(claimQueue);
+  claimQueueRef.current = claimQueue;
+  const undoClaim = useCallback(async (row) => {
+    const saved = await updateClaims(claimQueueRef.current.filter((claim) => String(claim.player_id) !== String(row.player_id)));
+    if (saved) setSavedNotice({ saved: false, text: FACEOFF_COPY.undone(row.player || "Player") });
+  }, [updateClaims]);
 
   const panelTitle = title || (isAvailableView ? "Free agents" : "Strategy");
   const panelSub = loading && !rows?.length ? "Loading players…" : subtitle || (
@@ -678,23 +778,32 @@ function ValueSheetTableView({
     () => availabilityFilters.map((f) => ({ id: f.id, label: f.label })),
     [availabilityFilters],
   );
-  const positionOptions = useMemo(() => POSITIONS.map((p) => ({ id: p, label: p })), []);
+  const positionOptions = useMemo(() => {
+    const slot = faceoff?.targetSlot;
+    const list = slot ? POSITIONS.filter((p) => p === "ALL" || faceoffSlotAccepts(slot, p, rules)) : POSITIONS;
+    return list.map((p) => ({ id: p, label: p }));
+  }, [faceoff, rules]);
   const tierOptions = useMemo(() => TIERS.map((t) => ({ id: t, label: t })), []);
   const riskOptions = useMemo(
     () => RISK_PROFILE_FILTERS.map((f) => ({ id: f.id, label: f.label })),
     [],
   );
   const sortMenuOptions = useMemo(() => {
-    if (pickDraft) return schema.sortOptions;
-    let opts = schema.sortOptions.map((o) => (
-      o.id === "fair_value" ? { ...o, label: valueColLabel } : o
-    ));
-    if (!showCostDelta) opts = opts.filter((o) => o.id !== "value_delta");
+    let opts = isAvailableView ? [{ id: "per_game_proj", label: PLAYERS_TAB_COPY.projectedPerGame }, ...schema.sortOptions] : schema.sortOptions;
+    if (!pickDraft) {
+      opts = opts.map((o) => (o.id === "fair_value" ? { ...o, label: valueColLabel } : o));
+      if (!showCostDelta) opts = opts.filter((o) => o.id !== "value_delta");
+    }
+    const slot = faceoff?.targetSlot;
+    if (slot) {
+      const label = slot.player ? FACEOFF_COPY.compareTo(faceoffSurname(slot.player.name)) : FACEOFF_COPY.compareToOpen(slot.slot);
+      opts = [{ id: FACEOFF_SORT_KEY, label }, ...opts];
+    }
     return opts;
-  }, [schema.sortOptions, showCostDelta, valueColLabel, pickDraft]);
+  }, [schema.sortOptions, showCostDelta, valueColLabel, pickDraft, faceoff, isAvailableView]);
 
   const resetBoard = useCallback(() => {
-    setSortKey(defaultSortKeyForBoard(pickDraft));
+    setSortKey(defaultSortKeyForBoard(pickDraft, isAvailableView));
     setSortDir(DEFAULT_SORT_DIR);
     setPosFilter(defaultPosFilter);
     setStatusFilter(isAvailableView ? "AVAILABLE" : "ALL");
@@ -703,11 +812,13 @@ function ValueSheetTableView({
     setSearch("");
     setNeedsOnly(false);
     setShowAdvancedLocal(false);
+    setFaceoffTargetState(null);
   }, [defaultPosFilter, isAvailableView, pickDraft]);
 
   const boardDirty = Boolean(
-    sortKey !== defaultSortKeyForBoard(pickDraft)
+    sortKey !== defaultSortKeyForBoard(pickDraft, isAvailableView)
     || sortDir !== DEFAULT_SORT_DIR
+    || faceoffTarget
     || posFilter !== defaultPosFilter
     || (!isAvailableView && statusFilter !== "ALL")
     || (showTierFilters && tierFilter !== "ALL")
@@ -836,7 +947,7 @@ function ValueSheetTableView({
         </section>
       ) : null;
 
-  useEffect(() => { setBidDraft(null); setAddingId(null); setAddError(""); }, [leagueId, actionScope]);
+  useEffect(() => { setBidDraft(null); setAddingId(null); setAddError(""); setSavedNotice(null); setJustSavedId(null); setFaceoffTargetState(null); }, [leagueId, actionScope]);
 
   if (isAvailableView && !draftConsole) {
     const priority = !claimsReady ? (claimLoadError || CLAIM_QUEUE_COPY.loading) : waiverPriority?.confirmed
@@ -854,6 +965,7 @@ function ValueSheetTableView({
       tierFilter={tierFilter} tierOptions={tierOptions} setTierFilter={setTierFilter} riskProfile={riskProfile} riskOptions={riskOptions} setRiskProfile={setRiskProfile}
       needsOnly={needsOnly} needPositions={needPositions} setNeedsOnly={setNeedsOnly} boardDirty={boardDirty} resetBoard={resetBoard} emptyMessage={emptyMessage}
       draft={bidDraft} onOpen={openBidDraft} onClose={closeBidDraft} onChange={patch => setBidDraft(prev => prev ? { ...prev, ...patch } : prev)}
+      faceoff={faceoff} onTarget={setFaceoffTarget} groupStarts={groupStarts} listKey={faceoffListKey} notice={savedNotice} justSavedId={justSavedId}
       busy={addingId != null} error={addError} onConfirm={async drop => {
         if (!bidDraft || addingId != null || actionsDisabled || !addEnabled || (addMode === "claim" && !claimsReady)) return;
         const row = bidDraft.row;
@@ -861,7 +973,13 @@ function ValueSheetTableView({
         else if (addMode === "claim") {
           if (claimQueue.some(c => String(c.player_id) === String(row.player_id)) || protectedIds.some(id => String(id) === String(row.player_id))) return;
           const saved = await updateClaims([...claimQueue, { player_id: row.player_id, player_name: row.player, nfl_team: row.team, position: row.position, drop_player_id: drop || null }]);
-          if (saved) { setBidDraft(null); setAddError(PLAYERS_TAB_COPY.claimInQueue); }
+          if (saved) {
+            setBidDraft(null);
+            if (faceoff) {
+              setSavedNotice({ saved: true, text: FACEOFF_COPY.savedClaim(row.player || "Player", claimQueue.length + 1, faceoff.compare(row).delta), onUndo: () => undoClaim(row) });
+              setJustSavedId(row.player_id);
+            } else setAddError(PLAYERS_TAB_COPY.claimInQueue);
+          }
         } else await addPlayer(row);
       }} />;
   }

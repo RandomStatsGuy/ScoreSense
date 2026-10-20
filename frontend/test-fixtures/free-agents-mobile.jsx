@@ -4,26 +4,34 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import ValueSheetTable from "../src/DraftHub/ValueSheetTable";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
-import { LeagueChromeProvider } from "../src/DraftHub/LeagueChromeContext";
+import { LeagueChromeProvider } from "../src/DraftHub/leagueChromeContext";
 import MobileHeader from "../src/layout/MobileHeader";
 import MobileShell from "../src/layout/MobileShell";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";
 import MobileMenuSheet from "../src/layout/MobileMenuSheet";
 import HubSubnav from "../src/DraftHub/HubSubnav.jsx";
 import useMobileLayout from "../src/useMobileLayout";
-import "../src/styles/fantasy-header.css";
 import "../src/styles.css";
 import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
+import "../src/styles/fantasy-header.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/standalone-dialogs.css";
 
 const params = new URLSearchParams(location.search), state = params.get("state") || "bid";
 const pick = ["claim", "priority", "claim-error", "market-error", "add"].includes(state) || params.has("pick");
 const mode = ["claim", "priority", "claim-error", "market-error"].includes(state) ? "claim" : ["predraft", "locked"].includes(state) ? "locked" : state === "add" ? "add" : "bid";
-const rules = { draft_type: pick ? "snake" : "auction", scoring_profile: "hub_ppr", risk_tolerance: 0, salary_cap: 200 };
+const rules = { draft_type: pick ? "snake" : "auction", scoring_profile: "hub_ppr", risk_tolerance: 0, salary_cap: 200, roster_size_max: params.has("full") ? 11 : 13,
+  roster: { qb: { starter: 1 }, rb: { starter: 2 }, wr: { starter: 2 }, te: { starter: 1 }, flex: { starter: 1 }, k: { starter: 1 }, def: { starter: 1 } } };
+// Your roster: the same pool rows carry its per-game pace, so both sides of every comparison share one outlook.
+const myTeam = [
+  ["6904", "Jalen Hurts", "QB", "PHI", 20.1, "QB"], ["8155", "Breece Hall", "RB", "NYJ", 15.2, "RB1"], ["9224", "Chase Brown", "RB", "CIN", 13.4, "RB2"],
+  ["7569", "Nico Collins", "WR", "HOU", 14.8, "WR1"], ["8148", "Jameson Williams", "WR", "DET", 12.1, "WR2"], ["7553", "Kyle Pitts Sr.", "TE", "ATL", 9.6, "TE"],
+  ["8228", "Jaylen Warren", "RB", "PIT", 9.4, "FLEX"], ["11539", "Cade York", "K", "CLE", 7.8, "K"], ["def-min", "Vikings D/ST", "DEF", "MIN", 7.1, "DEF"],
+  ["11563", "Bo Nix", "QB", "DEN", 16.0, "BN"], ["7090", "Darius Slayton", "WR", "NYG", 6.2, "BN"],
+];
 const acquisition = { add_mode: mode, label: mode === "bid" ? "Waivers · Bidding" : mode === "claim" ? "Waivers" : mode === "add" ? "Free agency" : "Pre-draft", message: mode === "locked" ? "Adds open after the draft" : "Player additions follow the league calendar." };
 let rows = [
   ["9500", "Josh Downs", "WR", "IND", 172, 128, 224, 10.8, 9],
@@ -35,12 +43,27 @@ let rows = [
   ["4943", "Sam Darnold", "QB", "SEA", 264, 210, 313, 16.5, 3],
   ["8134", "Khalil Shakir", "WR", "BUF", 122, 90, 166, 7.6, 2],
 ].map(([player_id, player, position, team, season_p50, season_p10, season_p90, per_game_proj, fair_value], i) => ({ player_id, player: params.has("long") && !i ? "An Exceptionally Long Player Name With Several Surnames" : player, position, team, season_p50, season_proj: season_p50, season_p10, season_p90, per_game_proj, fair_value, tier: "Tier 3", status: "available", season_quantile_method: "mc_schedule_v1" }));
-const photos = Object.fromEntries(rows.map(r => [r.player_id, { headshot_url: `https://sleepercdn.com/content/nfl/players/thumb/${r.player_id}.jpg` }]));
+if (params.has("aliases")) myTeam[4] = ["sleeper-8167", "Christian Watson", "WR", "GB", 10.8, "WR2"];
+const rosterRows = myTeam.map(([player_id, player, position, team, per_game_proj]) => ({ player_id, player, position, team, per_game_proj, season_p50: Math.round(per_game_proj * 17), season_proj: Math.round(per_game_proj * 17), season_p10: Math.round(per_game_proj * 12), season_p90: Math.round(per_game_proj * 22), fair_value: 12, tier: "Tier 2", status: "taken", season_quantile_method: "mc_schedule_v1" }));
+if (params.has("aliases")) {
+  const watson = rosterRows.find(r => r.player_id === "sleeper-8167");
+  watson.roster_player_id = watson.player_id;
+  watson.player_id = "00-0038124";
+}
+if (state === "fallbacks") rows.push(
+  { player_id: "fb", player: "Fallback Fullback", position: "FB", fair_value: 31, per_game_proj: 0, season_proj: 0, season_p50: 0, status: "available" },
+  { player_id: "unknown", player: "Missing Forecast", position: "WR", fair_value: null, per_game_proj: null, season_proj: null, season_p50: null, status: "available" },
+);
+const photos = Object.fromEntries([...rows, ...rosterRows].filter(r => /^\d+$/.test(r.player_id)).map(r => [r.player_id, { headshot_url: `https://sleepercdn.com/content/nfl/players/thumb/${r.player_id}.jpg` }]));
 if (["empty", "loading"].includes(state)) rows = [];
 if (state === "missing") rows = [{ ...rows[0], season_p50: null, season_proj: null, season_p10: null, season_p90: null, per_game_proj: null, fair_value: null }];
 if (state === "large") rows = Array.from({ length: 240 }, (_, i) => ({ ...rows[i % 8], player_id: `sample-${i}`, player: `Player ${String(i).padStart(3, "0")}`, fair_value: 240 - i }));
+if (!["empty", "loading", "noroster"].includes(state)) rows = [...rows, ...rosterRows];
 let claims = [], priority = { confirmed: state !== "priority", current_team_id: "mine", teams: [{ team_id: "mine", team_name: "Maya Chen", priority: 1 }, { team_id: "other", team_name: "Jordan Davis", priority: 2 }] };
-const roster = [{ player_id: "bench", player_name: "Bench Player", position: "WR", team: "BUF" }];
+const roster = state === "noroster" ? [] : [...myTeam.map(([player_id, player_name, position, team]) => ({ player_id, player_name, position, team })), { player_id: "bench", player_name: "Bench Player", position: "WR", team: "BUF" }];
+// Saved weekly lineup: Warren holds FLEX even though Nix out-paces him on the bench (QB cannot flex).
+const weekRoster = params.has("noweek") ? null : { starters: myTeam.filter(([, , , , , slot]) => slot !== "BN").map(([player_id, , , , p50, slot]) => ({ player_id, slot, p50 })), bench: myTeam.filter(([, , , , , slot]) => slot === "BN").map(([player_id, , , , p50]) => ({ player_id, slot: "BN", p50 })) };
+let myBids = params.has("pending") ? [{ player_id: "8676", player_name: "Rashid Shaheed", position: "WR", nfl_team: "SEA", bid_amount: 9, team_id: "mine" }] : [];
 window.fixtureWrites = [];
 window.fetch = async (input, options = {}) => {
   const path = String(input);
@@ -50,9 +73,11 @@ window.fetch = async (input, options = {}) => {
     if (["write-error", "claim-error"].includes(state)) return Response.json({ detail: "The league could not save this move. Try again." }, { status: 503 });
     if (path.endsWith("/claims")) claims = body.claims;
     if (path.endsWith("/priority")) priority = { ...priority, confirmed: true, teams: body.team_ids.map((id, i) => ({ ...priority.teams.find(t => t.team_id === id), priority: i + 1 })) };
+    if (path.endsWith("/bid")) myBids = [...myBids.filter(b => b.player_id !== body.player_id), { ...body, nfl_team: body.team, team_id: "mine" }];
     return Response.json({ claims, priority, high_bid: { high_bid: body.bid_amount } });
   }
-  if (path.includes("/fa-market")) return state === "market-error" ? Response.json({ detail: "Could not load waiver claims" }, { status: 503 }) : Response.json({ market: { my_claims: claims, waiver_priority: priority, protected_player_ids: params.has("protected") ? ["9500"] : [] } });
+  if (path.includes("/fa-market")) return state === "market-error" ? Response.json({ detail: "Could not load waiver claims" }, { status: 503 }) : Response.json({ market: { my_claims: claims, my_bids: myBids, waiver_priority: priority, protected_player_ids: params.has("protected") ? ["9500"] : [] } });
+  if (path.includes("/hub/week")) return weekRoster ? Response.json({ hub_context: { league_id: "fixture", team_id: "mine" }, roster: weekRoster }) : Response.json({ detail: "No week yet" }, { status: 404 });
   if (path.includes("/players/media")) return Response.json({ media: photos });
   if (path.includes("freshness")) return Response.json({ sleeper: { linked: false }, projections: { available: true } });
   return Response.json({});

@@ -82,6 +82,26 @@ def test_pick_draft_marks_your_own_players_rostered():
     assert _status(sheet, "00-0000001") == "rostered"
 
 
+def test_comparison_exposes_resolved_roster_id_without_changing_forecast_identity():
+    pool = {"season": 2026, "team_count": 6, "rows": [{
+        "player_id": "00-0038124", "player": "Christian Watson", "position": "WR",
+        "per_game_proj": 10.8, "fair_value": 10,
+    }]}
+    roster = [_slot("sleeper-8167", player_name="Christian Watson", position="WR", sleeper_player_id="8167")]
+    sheet = build_value_overlay(pool, SNAKE, roster, league_roster=roster,
+                                my_team_id="team-a", draft_completed=True)
+    row = sheet["rows"][0]
+    assert row["player_id"] == "00-0038124"
+    assert row["roster_player_id"] == "sleeper-8167"
+    assert row["per_game_proj"] == 10.8
+    assert row["is_available"] is False
+    # The reusable pool must not retain a league-specific identity.
+    assert "roster_player_id" not in pool["rows"][0]
+    other = build_value_overlay(pool, SNAKE, [], league_roster=[],
+                                my_team_id="another", draft_completed=True)
+    assert other["rows"][0]["roster_player_id"] is None
+
+
 def test_pick_draft_ignores_a_cut_row():
     """Only active rows are ownership — a cut player is available again."""
     sheet = build_value_overlay(
