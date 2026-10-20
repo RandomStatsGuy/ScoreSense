@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import time
+import threading
+from concurrent.futures import Future
 from datetime import datetime, timezone
 from typing import Any
 
@@ -27,6 +29,11 @@ FD_FIXTURE_LISTS_URL = "https://api.fanduel.com/fixture-lists"
 FD_PLAYERS_URL = "https://api.fanduel.com/fixture-lists/{fixture_id}/players"
 
 SLATE_CATEGORIES = ("main", "primetime", "showdown", "all")
+# Only simultaneous public lobby reads share a response. Completed requests
+# are never retained: provider revisions and kickoff/lobby transitions remain
+# visible on the next read without inventing a freshness TTL.
+_DK_LOBBY_LOCK = threading.Lock()
+_DK_LOBBY_INFLIGHT: dict[tuple[str, str], Future] = {}
 REQUEST_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -409,10 +416,33 @@ def _classify_fd_slate(fixture: dict) -> str:
     return "main"
 
 
+def _dk_lobby(sport: str) -> dict:
+    """Share an in-flight fetch, treating its raw response as read-only."""
+    key = (DK_LOBBY_URL, sport)
+    with _DK_LOBBY_LOCK:
+        future = _DK_LOBBY_INFLIGHT.get(key)
+        owner = future is None
+        if owner:
+            future = Future()
+            _DK_LOBBY_INFLIGHT[key] = future
+    if not owner:
+        return future.result()
+    try:
+        payload = _dk_get(DK_LOBBY_URL, params={"sport": sport})
+        if not isinstance(payload, dict):
+            raise ValueError(f"Unexpected DraftKings payload type: {type(payload)}")
+        future.set_result(payload)
+        return payload
+    except BaseException as exc:
+        future.set_exception(exc)
+        raise
+    finally:
+        with _DK_LOBBY_LOCK:
+            del _DK_LOBBY_INFLIGHT[key]
+
+
 def list_dk_slates(category: str = "all", sport: str = "NFL") -> list[dict]:
-    payload = _dk_get(DK_LOBBY_URL, params={"sport": sport})
-    if not isinstance(payload, dict):
-        raise ValueError(f"Unexpected DraftKings payload type: {type(payload)}")
+    payload = _dk_lobby(sport)
     return parse_dk_lobby_slates(payload, category=category)
 
 
@@ -475,6 +505,23 @@ def pick_default_slate(site: str, category: str = "main") -> dict | None:
     if category != "all":
         return pick_default_slate(site, category="all")
     return None
+
+
+def list_slates_with_default(
+    site: str, category: str = "all", sport: str = "NFL",
+) -> tuple[list[dict], dict | None]:
+    """Resolve the displayed list and default against one provider revision."""
+    default_category = "main" if category in ("all", "main") else category
+    if site.lower() == "draftkings":
+        payload = _dk_lobby(sport)
+        slates = parse_dk_lobby_slates(payload, category=category)
+        defaults = (slates if default_category == category else
+                    parse_dk_lobby_slates(payload, category=default_category))
+        if not defaults and default_category != "all":
+            defaults = parse_dk_lobby_slates(payload, category="all")
+        return slates, defaults[0] if defaults else None
+    slates = list_slates(site, category=category, sport=sport)
+    return slates, pick_default_slate(site, category=default_category) or (slates[0] if slates else None)
 
 
 def fetch_dk_salaries(
