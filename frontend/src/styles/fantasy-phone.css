@@ -222,7 +222,7 @@
 
   .hub-rules-sticky-save {
     position: sticky;
-    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    bottom: var(--bottom-nav-height);
     z-index: var(--z-sticky);
     display: flex;
     flex-direction: column;

@@ -1,7 +1,7 @@
 // Real DOM regression checks for table-audit geometry. No app/API is required.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { auditRoute, measureScript, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX, COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS } from "./layout_audit.mjs";
+import { auditRoute, auditHighlightInsets, measureScript, NUMERIC_RE, BAR_CONTROL_SELECTOR, TABLE_DEAD_ZONE_PX, COLUMN_PACK_RATIO, GUTTER_EDGE_SELECTORS } from "./layout_audit.mjs";
 const require = createRequire(new URL("../../frontend/package.json", import.meta.url));
 const { chromium } = require("playwright");
 const channel = process.env.PLAYWRIGHT_CHANNEL || (process.platform === "win32" ? "msedge" : undefined);
@@ -47,6 +47,33 @@ try {
   await page.setViewportSize({width:390,height:900});
   await page.locator(".hub-toolbar").evaluate(el=>{el.style.flexDirection="column";});
   assert.equal((await page.evaluate(measureScript(),{minTarget:44,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR})).some(row=>row.rule==="targets"&&!row.ok),true,"Stacking does not exempt undersized phone controls");
+  await page.setContent('<style>body{margin:0}.app-with-bottom-nav{padding-bottom:20px}.app-bottom-nav{position:fixed;bottom:0;height:60px}</style><div class="app-with-bottom-nav"><main id="main-content">Page</main><nav class="app-bottom-nav">Navigation</nav></div>');
+  assert.ok((await measure()).some(row=>row.rule==='nav-clearance'&&!row.ok),'undersized content clearance fails');
+  await page.locator('.app-with-bottom-nav').evaluate(el=>{el.style.paddingBottom='76px';});
+  assert.ok((await measure()).some(row=>row.rule==='nav-clearance'&&row.ok),'measured navigation plus a gap passes');
+  await page.locator('.app-with-bottom-nav').evaluate(el=>{el.dataset.bottomClearance='';const bar=document.createElement('div');bar.dataset.bottomActions='';bar.id='detached';bar.style.cssText='position:fixed;bottom:60px;height:96px;width:100%';bar.textContent='Save changes';el.append(bar);});
+  assert.ok((await measure()).some(row=>row.rule==='fixed-action-clearance'&&!row.ok),'navigation-only padding cannot pass when a detached action is present');
+  await page.locator('.app-with-bottom-nav').evaluate(el=>{el.style.paddingBottom='172px';});
+  assert.ok((await measure()).some(row=>row.rule==='fixed-action-clearance'&&row.ok),'measured action extent plus a gap passes');
+  await page.locator('#detached').evaluate(el=>{el.style.bottom='20px';});
+  assert.ok((await measure()).some(row=>row.rule==='action-nav-clearance'&&!row.ok),'actions overlapping bottom navigation fail independently of content padding');
+  await page.setContent('<style>:root{--space-4:16px;--bottom-nav-height:64px;--floating-control-gap:16px}body{margin:0}.fantasy-chat-launcher-a{position:fixed;right:16px;bottom:80px;width:56px;height:56px}</style><main id="main-content"><button id="flowing" style="position:absolute;right:16px;bottom:80px;width:56px;height:56px">Scrolling action</button></main><div class="fantasy-chat-launcher-a">Chat</div>');
+  assert.ok((await measure()).some(row=>row.rule==='chat-anchor'&&row.ok),'the fixed bottom-right navigation offset passes');
+  await page.evaluate(()=>{document.documentElement.style.setProperty('--space-4','1rem');document.documentElement.style.setProperty('--floating-control-gap','1rem');});
+  assert.ok((await measure()).some(row=>row.rule==='chat-anchor'&&row.ok),'rem spacing tokens resolve to viewport pixels');
+  assert.ok((await measure()).some(row=>row.rule==='overlay-clearance'&&row.ok),'ordinary scrolling content does not force the launcher to dodge');
+  await page.locator('#flowing').focus();
+  assert.ok((await measure()).some(row=>row.rule==='overlay-clearance'&&!row.ok),'focused controls must still be exposed');
+  await page.locator('#flowing').evaluate(el=>{el.blur();el.style.position='fixed';});
+  assert.ok((await measure()).some(row=>row.rule==='overlay-clearance'&&!row.ok),'fixed page actions must reserve the chat lane');
+  await page.locator('.fantasy-chat-launcher-a').evaluate(el=>{el.style.bottom='240px';});
+  assert.ok((await measure()).some(row=>row.rule==='chat-anchor'&&!row.ok),'lifting the launcher to dodge content fails');
+  await page.locator('.fantasy-chat-launcher-a').evaluate(el=>{el.style.bottom='80px';el.style.right='auto';el.style.left='16px';});
+  assert.ok((await measure()).some(row=>row.rule==='chat-anchor'&&!row.ok),'switching the launcher to the left corner fails');
+  await page.setContent('<button aria-label="Open chat, 3 unread messages" style="width:56px;height:56px"><svg></svg><span aria-hidden="true" style="position:absolute;top:0;right:0">3</span></button>');
+  assert.deepEqual((await auditHighlightInsets(page)).filter(row=>!row.ok),[], 'decorative unread badges do not turn icon controls into text labels');
+  await page.setContent('<button style="padding:0">Readable action</button>');
+  assert.ok((await auditHighlightInsets(page)).some(row=>!row.ok), 'visible text labels still require insets');
   let pending, measuredWidth;
   const context=await browser.newContext();
   await context.route("http://127.0.0.1:5173/**", async route=>{

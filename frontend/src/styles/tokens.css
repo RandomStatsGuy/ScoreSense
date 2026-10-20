@@ -4,6 +4,13 @@
   background: #070d17;
   color: #eef3fb;
 
+  /* Measured by MobileShell, including the bottom navigation's safe area. */
+  --bottom-nav-height: 0px;
+  --bottom-action-height: 0px;
+  --floating-control-gap: var(--space-4);
+  --chat-launcher-size: 3.5rem;
+  --chat-launcher-clearance: 0px;
+
   /* Layout breakpoints */
   --bp-mobile-shell: 768px;
   --bp-mobile-dense: 768px;

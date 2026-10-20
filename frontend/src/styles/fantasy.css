@@ -10803,7 +10803,7 @@ button.hub-locker {
   }
 
   .hub-office-pending-tray {
-    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    bottom: var(--bottom-nav-height);
   }
 
   .hub-office-player-title .mobile-player-card-name {
