@@ -8,6 +8,7 @@ import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
+import "../src/styles/color-theme.css";
 
 const params = new URLSearchParams(location.search);
 const state = params.get("state") || "ready";
@@ -44,6 +45,16 @@ if (state === "best") {
     { starter_player_id: "hurts", bench_player_id: "daniels", starter_player_name: "Jalen Hurts", bench_player_name: "Jayden Daniels", starter_slot: "QB", delta_p50: 1.6 },
     { starter_player_id: "waddle", bench_player_id: "charbonnet", starter_player_name: "Jaylen Waddle", bench_player_name: "Zach Charbonnet", starter_slot: "FLEX", delta_p50: 0.4 },
   ];
+}
+if (state === "bye") {
+  data.meta.week = 7;
+  data.roster.bench = [
+    { ...player("moore", "DJ Moore", "WR", "BUF", 3.1), on_bye: true, injured: true, injury_status: "Out" },
+    { ...player("lawrence", "Trevor Lawrence", "QB", "JAX", 15.9), on_bye: true },
+    { ...player("missing", "Missing Forecast", "WR", "KC", null), has_projection: false },
+    player("zero", "Real Zero", "RB", "KC", 0),
+  ];
+  data.wide_ranges = data.roster.bench.slice(0, 2).map(p => ({player_id:p.player_id, p10:6, p90:28}));
 }
 window.fixtureWrites = [];
 window.fixtureWeekReads = 0;
@@ -106,6 +117,9 @@ window.fetch = async (input, options = {}) => {
 };
 const Component = ["combined", "score-pending", "score-failed"].includes(state) ? WeeklyExperience : WeeklyCommandCenter;
 createRoot(document.getElementById("root")).render(<div className="app"><main id="main-content">
-  <div className="draft-hub"><Component cacheScope="fixture" hubContext={context} {...(state === "best" ? { embedded: true, showWeekStepper: true } : {})} onNavigate={(view) => {
+  <div className="draft-hub"><Component cacheScope="fixture" hubContext={context} {...(["best", "bye"].includes(state) ? { embedded: true, showWeekStepper: true } : {})} {...(state === "bye" ? {
+      scorePlayers: [...data.roster.starters, ...data.roster.bench].map(p => ({...p, name:p.player_name, proj:p.p50})),
+      gameCenterData: {placeholder:true},
+    } : {})} onNavigate={(view) => {
     window.fixtureDestination = view;
   }} /></div></main></div>);

@@ -233,6 +233,8 @@ def overlay_k_def_week_projections(
         card
         for card in cards
         if normalize_position(card.get("position")) in _PROJ_CURVE
+        and not card.get("on_bye")
+        and str(card.get("opponent") or "").upper() != "BYE"
         and _positive(card.get("p50")) is None
     ]
     if not need:
@@ -242,6 +244,8 @@ def overlay_k_def_week_projections(
         return cards
     games_n = max(1, int(games or GAMES_PER_SEASON))
     for card in cards:
+        if card.get("on_bye") or str(card.get("opponent") or "").upper() == "BYE":
+            continue
         if normalize_position(card.get("position")) not in _PROJ_CURVE:
             continue
         if _positive(card.get("p50")) is not None:

@@ -18,6 +18,7 @@ export const WEEK_BOARD_COPY = {
   lineupTitle: "Your lineup",
   startersTitle: "Your starters",
   projected: "Projected",
+  byeWeek: "BYE",
   benchTitle: "Bench",
   benchCount: (count) => `${count} ${count === 1 ? "player" : "players"}`,
   compactCalls: (count) => count ? `${count} lineup ${count === 1 ? "call" : "calls"}` : "",
