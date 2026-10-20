@@ -47,6 +47,37 @@ test("surname drops suffixes", () => {
   assert.equal(faceoffSurname(""), "");
 });
 
+test("server-resolved roster IDs connect Sleeper roster slots to GSIS forecasts", () => {
+  const roster = [{ player_id: "sleeper-8167", player_name: "Christian Watson", position: "WR" }];
+  const rows = [{ player_id: "00-0038124", roster_player_id: "sleeper-8167", position: "WR", per_game_proj: 10.8 }];
+  const lineup = buildFaceoffRoster({ roster, rows, rules });
+  assert.equal(lineup.starters.find(s => s.player)?.player.pg, 10.8);
+  assert.equal(faceoffLineupTotal(lineup.starters).total, 10.8);
+  const saved = buildFaceoffRoster({ roster, rows, rules, weekRoster: { starters: [{ player_id: "00-0038124", slot: "FLEX" }] } });
+  assert.equal(saved.starters.find(s => s.slot === "FLEX").player.player_id, "sleeper-8167");
+  const absent = buildFaceoffRoster({ roster, rows: [], rules });
+  assert.equal(absent.starters.find(s => s.player)?.player.pg, null);
+  const zero = buildFaceoffRoster({ roster, rows: [{ ...rows[0], per_game_proj: 0 }], rules });
+  assert.equal(zero.starters.find(s => s.player)?.player.pg, 0);
+});
+
+test("bench selection compares same-position waivers without changing the lineup", () => {
+  const benchReceiver = { player_id: "bench-wr", player_name: "Bench Receiver", position: "WR" };
+  const model = buildFaceoffModel({ roster: [...roster, benchReceiver], rows: [...rows, { player_id: "bench-wr", per_game_proj: 6.2 }], availableRows: available, rules, target: "bench:bench-wr" });
+  assert.equal(model.targetSlot.bench, true);
+  assert.equal(model.targetSlot.player.name, "Bench Receiver");
+  assert.equal(model.eligible(available[0]), true);
+  assert.equal(model.eligible(available[1]), false);
+  assert.equal(model.compare(available[0]).delta, 6.2);
+  assert.equal(model.compare(available[3]).delta, null);
+  assert.equal(model.beats.get("bench:bench-wr"), 1);
+  assert.equal(model.total.total, 94.6);
+  assert.equal(model.pending.swaps.size, 0);
+  const qb = buildFaceoffModel({ roster, rows, availableRows: available, rules, target: "bench:bn1" });
+  assert.equal(qb.targetSlot.player.name, "Bo Nix");
+  assert.equal(qb.eligible(available[0]), false);
+});
+
 test("roster limit reads the explicit max, then the sum of position maxes", () => {
   assert.equal(faceoffRosterLimit(rules), 10);
   assert.equal(faceoffRosterLimit({ roster: { QB: { max: 2 }, RB: { max: 4 } } }), 6);

@@ -4,19 +4,19 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import ValueSheetTable from "../src/DraftHub/ValueSheetTable";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
-import { LeagueChromeProvider } from "../src/DraftHub/LeagueChromeContext";
+import { LeagueChromeProvider } from "../src/DraftHub/leagueChromeContext";
 import MobileHeader from "../src/layout/MobileHeader";
 import MobileShell from "../src/layout/MobileShell";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";
 import MobileMenuSheet from "../src/layout/MobileMenuSheet";
 import HubSubnav from "../src/DraftHub/HubSubnav.jsx";
 import useMobileLayout from "../src/useMobileLayout";
-import "../src/styles/fantasy-header.css";
 import "../src/styles.css";
 import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
 import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
+import "../src/styles/fantasy-header.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/standalone-dialogs.css";
 
@@ -43,7 +43,17 @@ let rows = [
   ["4943", "Sam Darnold", "QB", "SEA", 264, 210, 313, 16.5, 3],
   ["8134", "Khalil Shakir", "WR", "BUF", 122, 90, 166, 7.6, 2],
 ].map(([player_id, player, position, team, season_p50, season_p10, season_p90, per_game_proj, fair_value], i) => ({ player_id, player: params.has("long") && !i ? "An Exceptionally Long Player Name With Several Surnames" : player, position, team, season_p50, season_proj: season_p50, season_p10, season_p90, per_game_proj, fair_value, tier: "Tier 3", status: "available", season_quantile_method: "mc_schedule_v1" }));
+if (params.has("aliases")) myTeam[4] = ["sleeper-8167", "Christian Watson", "WR", "GB", 10.8, "WR2"];
 const rosterRows = myTeam.map(([player_id, player, position, team, per_game_proj]) => ({ player_id, player, position, team, per_game_proj, season_p50: Math.round(per_game_proj * 17), season_proj: Math.round(per_game_proj * 17), season_p10: Math.round(per_game_proj * 12), season_p90: Math.round(per_game_proj * 22), fair_value: 12, tier: "Tier 2", status: "taken", season_quantile_method: "mc_schedule_v1" }));
+if (params.has("aliases")) {
+  const watson = rosterRows.find(r => r.player_id === "sleeper-8167");
+  watson.roster_player_id = watson.player_id;
+  watson.player_id = "00-0038124";
+}
+if (state === "fallbacks") rows.push(
+  { player_id: "fb", player: "Fallback Fullback", position: "FB", fair_value: 31, per_game_proj: 0, season_proj: 0, season_p50: 0, status: "available" },
+  { player_id: "unknown", player: "Missing Forecast", position: "WR", fair_value: null, per_game_proj: null, season_proj: null, season_p50: null, status: "available" },
+);
 const photos = Object.fromEntries([...rows, ...rosterRows].filter(r => /^\d+$/.test(r.player_id)).map(r => [r.player_id, { headshot_url: `https://sleepercdn.com/content/nfl/players/thumb/${r.player_id}.jpg` }]));
 if (["empty", "loading"].includes(state)) rows = [];
 if (state === "missing") rows = [{ ...rows[0], season_p50: null, season_proj: null, season_p10: null, season_p90: null, per_game_proj: null, fair_value: null }];

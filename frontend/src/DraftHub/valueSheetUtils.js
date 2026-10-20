@@ -1,5 +1,5 @@
-import { upsideSkew } from "../seasonQuantiles";
-import { normalizeHubPosition } from "./hubPositions";
+import { upsideSkew } from "../seasonQuantiles.js";
+import { normalizeHubPosition } from "./hubPositions.js";
 
 export const TIER_ORDER = {
   Elite: 0,
@@ -20,7 +20,7 @@ export const STATUS_ORDER = {
   taken: 5,
 };
 
-export { fmtSal } from "./rosterFormat";
+export { fmtSal } from "./rosterFormat.js";
 
 const STATUS_LABELS = {
   available: "Free agent",
@@ -68,6 +68,10 @@ export function pinWatchedPlayers(list, watchIds) {
 export function compareRows(a, b, sortKey, sortDir) {
   const av = sortValue(a, sortKey);
   const bv = sortValue(b, sortKey);
+  // Missing metrics stay at the end in either direction.
+  if (av == null && bv == null) return 0;
+  if (av == null) return 1;
+  if (bv == null) return -1;
   let cmp = 0;
   if (typeof av === "string" || typeof bv === "string") {
     cmp = String(av).localeCompare(String(bv), undefined, { sensitivity: "base" });
