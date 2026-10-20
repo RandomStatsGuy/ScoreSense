@@ -11,6 +11,10 @@ from __future__ import annotations
 
 import re
 import time
+import hashlib
+import threading
+from collections import OrderedDict
+from concurrent.futures import Future
 from typing import Any, Mapping
 
 import pandas as pd
@@ -32,6 +36,11 @@ DROP_STATUSES = frozenset({"CUT", "RET"})
 SLEEPER_EXCLUDED = frozenset({"Inactive", "Retired"})
 IDENTITY_CACHE_TTL_SECONDS = 300
 _OVERLAY_CACHE: dict[str, tuple[str, float, pd.DataFrame]] = {}
+_SLEEPER_INDEX_COLUMNS = ("gsis_id", "full_name", "team", "position", "status")
+_SLEEPER_INDEX_LOCK = threading.Lock()
+_SLEEPER_INDEX_CACHE: OrderedDict[tuple, tuple[dict, dict]] = OrderedDict()
+_SLEEPER_INDEX_PENDING: dict[tuple, Future] = {}
+_SLEEPER_INDEX_CACHE_SIZE = 4
 
 
 def cell_text(value: Any) -> str:
@@ -129,6 +138,58 @@ def _index_nflverse(roster: pd.DataFrame) -> dict[str, dict[str, Any]]:
 
 
 def _index_sleeper(
+    sleeper_df: pd.DataFrame,
+) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+    """Reuse the private lookup by its exact ordered identity inputs.
+
+    Source content, rather than a file timestamp or frame identity, also handles
+    explicit caller frames, in-memory edits, source replacement and row-order
+    changes (duplicate names use stable ordering). Time/season/scoring are not
+    inputs to this lookup; the existing overlay freshness policy still applies.
+    """
+    if sleeper_df is None or sleeper_df.empty:
+        return {}, {}
+    columns = [col for col in _SLEEPER_INDEX_COLUMNS if col in sleeper_df.columns]
+    if not columns:
+        return {}, {}
+    frame = sleeper_df.loc[:, columns].copy(deep=True)
+    try:
+        revision = hashlib.sha256(
+            pd.util.hash_pandas_object(frame, index=False).to_numpy().tobytes()
+        ).digest()
+    except (TypeError, ValueError):
+        # Preserve the existing tolerant lookup for unusual non-scalar cells.
+        return _build_sleeper_index(frame)
+    key = (tuple(columns), tuple(map(str, frame.dtypes)), len(frame), revision)
+    with _SLEEPER_INDEX_LOCK:
+        cached = _SLEEPER_INDEX_CACHE.get(key)
+        if cached is not None:
+            _SLEEPER_INDEX_CACHE.move_to_end(key)
+            return cached
+        future = _SLEEPER_INDEX_PENDING.get(key)
+        owner = future is None
+        if owner:
+            future = Future()
+            _SLEEPER_INDEX_PENDING[key] = future
+    if not owner:
+        return future.result()
+    try:
+        indexes = _build_sleeper_index(frame)
+        with _SLEEPER_INDEX_LOCK:
+            _SLEEPER_INDEX_CACHE[key] = indexes
+            while len(_SLEEPER_INDEX_CACHE) > _SLEEPER_INDEX_CACHE_SIZE:
+                _SLEEPER_INDEX_CACHE.popitem(last=False)
+        future.set_result(indexes)
+        return indexes
+    except BaseException as exc:
+        future.set_exception(exc)
+        raise
+    finally:
+        with _SLEEPER_INDEX_LOCK:
+            del _SLEEPER_INDEX_PENDING[key]
+
+
+def _build_sleeper_index(
     sleeper_df: pd.DataFrame,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     by_gsis: dict[str, dict[str, Any]] = {}

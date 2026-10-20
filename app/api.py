@@ -142,6 +142,7 @@ from src.integrations.dfs_slates import (
     SLATE_CATEGORIES,
     fetch_slate_salaries,
     list_slates,
+    list_slates_with_default,
     pick_default_slate,
 )
 from src.core.schedule_utils import teams_on_bye
@@ -2097,15 +2098,9 @@ def lineup_slates(
             detail=f"category must be one of: {', '.join(SLATE_CATEGORIES)}",
         )
     try:
-        slates = list_slates(site=site, category=category, sport=sport)
+        slates, default_slate = list_slates_with_default(site=site, category=category, sport=sport)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    # Default within the requested category — a showdown filter must not
-    # fall back to the main classic slate.
-    default_category = "main" if category in ("all", "main") else category
-    default_slate = pick_default_slate(site, category=default_category) or (
-        slates[0] if slates else None
-    )
     return {
         "site": site,
         "category": category,
