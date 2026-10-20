@@ -10,7 +10,7 @@ import pandas as pd
 
 from src.config import CACHE_DIR, DATA_DIR
 from src.core.projection_context import REGULAR_SEASON_MAX_WEEK
-from src.core.team_codes import normalize_team_to_mlready, normalize_team_to_schedule
+from src.core.team_codes import normalize_team_for_match, normalize_team_to_mlready, normalize_team_to_schedule
 
 SCHEDULE_CACHE = CACHE_DIR / "nfl_schedules.parquet"
 
@@ -169,8 +169,27 @@ def teams_playing_week(season: int, week: int) -> frozenset[str]:
     return frozenset(t for t in teams if t and t != "NAN")
 
 
-def teams_on_bye(season: int, week: int) -> set[str]:
+def teams_on_bye(season: int, week: int, *, allow_fetch: bool = True) -> set[str]:
     """Teams without a scheduled game in this regular-season week."""
+    if not allow_fetch:
+        schedules = _load_schedules([season], allow_fetch=False)
+        required = {"season", "week", "home_team", "away_team"}
+        max_week = REGULAR_SEASON_MAX_WEEK if int(season) >= 2021 else 17
+        if schedules.empty or not required.issubset(schedules.columns) or not 1 <= int(week) <= max_week:
+            return set()
+        weeks = pd.to_numeric(schedules["week"], errors="coerce")
+        regular = schedules[(schedules["season"] == season) & weeks.between(1, max_week)].copy()
+        regular["week"] = weeks.loc[regular.index]
+        appearances = pd.concat([
+            regular[[side, "week"]].rename(columns={side: "team"})
+            for side in ("home_team", "away_team")
+        ], ignore_index=True)
+        appearances["team"] = appearances["team"].map(normalize_team_for_match)
+        # Missing rows in an incomplete cache are not proof of a bye.
+        games = 17 if int(season) >= 2021 else 16
+        complete = set(appearances.groupby("team")["week"].nunique().loc[lambda counts: counts >= games].index)
+        playing = set(appearances.loc[appearances["week"] == int(week), "team"])
+        return complete - playing
     playing = teams_playing_week(season, week)
     if not playing:
         return set()

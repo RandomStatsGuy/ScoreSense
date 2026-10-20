@@ -17,6 +17,7 @@ from src.draft_hub.weekly_command_center import (
     _enrich_roster_players,
     _load_projection_index,
     _sync_metadata,
+    cached_bye_teams,
     resolve_week_context,
 )
 
@@ -382,6 +383,7 @@ def _load_week_players(
     players = _enrich_roster_players(
         roster_rows,
         proj_index,
+        bye_teams=cached_bye_teams(season, week),
         by_name_team=proj_meta.pop("_by_name_team", {}) or {},
         by_name=proj_meta.pop("_by_name", {}) or {},
     )

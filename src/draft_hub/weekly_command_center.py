@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.projection_context import resolve_projection_context
-from src.core.team_codes import normalize_team_to_mlready
+from src.core.team_codes import normalize_team_for_match, normalize_team_to_mlready
 from src.config import PROCESSED_DATA_DIR
 from src.draft_hub import storage
 from src.draft_hub.hub_context import list_roster_for_context
@@ -161,8 +161,27 @@ def _is_on_bye(opponent: str | None, team: str | None, bye_teams: set[str] | Non
     if opp == "BYE":
         return True
     if bye_teams and team:
-        return str(team).strip().upper() in bye_teams
+        return normalize_team_for_match(team) in {normalize_team_for_match(t) for t in bye_teams}
     return False
+
+
+def cached_bye_teams(season: int, week: int) -> set[str]:
+    """Only a complete saved team schedule can establish a bye on a read."""
+    from src.core.schedule_utils import teams_on_bye
+    try:
+        return teams_on_bye(int(season), int(week), allow_fetch=False)
+    except (OSError, ValueError, KeyError, TypeError):
+        return set()
+
+
+def apply_bye_week_projections(cards: Iterable[dict[str, Any]], bye_teams: set[str]) -> None:
+    """A confirmed no-game week contributes zero, never a cached game forecast."""
+    for card in cards:
+        if not (card.get("on_bye") or _is_on_bye(card.get("opponent"), card.get("team"), bye_teams)):
+            continue
+        card.update(on_bye=True, opponent="BYE", p10=0.0, p50=0.0, p90=0.0,
+                    spread=0.0, volatility=None, position_rank=None,
+                    has_projection=True, projection_missing=False)
 
 
 def _load_projection_index(
@@ -174,6 +193,7 @@ def _load_projection_index(
     """Read prepared public player data; roster and lineup writes never invalidate it."""
     from src.draft_hub.prepared_week_context import load_week_context
     index, meta, _facts = load_week_context(season, week, apply_injury_adjustments)
+    apply_bye_week_projections(index.values(), cached_bye_teams(season, week))
     return index, meta
 
 
@@ -394,6 +414,7 @@ def _enrich_roster_players(
             "proj_player_id": proj.get("player_id") or None,
         }
         cards.append(card)
+    apply_bye_week_projections(cards, bye_teams or set())
     return cards
 
 
@@ -1118,10 +1139,13 @@ def build_weekly_command_center(
         resolved_week,
         apply_injury_adjustments,
     )
+    bye_teams = cached_bye_teams(resolved_season, resolved_week)
+    apply_bye_week_projections(proj_index.values(), bye_teams)
     mark_phase("projections")
     players = _enrich_roster_players(
         roster_rows,
         proj_index,
+        bye_teams=bye_teams,
         by_name_team=proj_meta.pop("_by_name_team", {}) or {},
         by_name=proj_meta.pop("_by_name", {}) or {},
         by_roster_name=proj_meta.pop("_by_roster_name", None),
