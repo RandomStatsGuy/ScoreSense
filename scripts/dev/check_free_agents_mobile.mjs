@@ -8,17 +8,16 @@ const out='outputs/free-agents-implementation';
 const review='docs/reviews/free-agents-face-off';
 await fs.mkdir(out,{recursive:true});
 await fs.mkdir(review,{recursive:true});
-const browser=await chromium.launch({headless:true});
+const browser=await chromium.launch({headless:true, ...(process.env.PLAYWRIGHT_CHANNEL ? {channel:process.env.PLAYWRIGHT_CHANNEL} : {})});
 const report=[];
 const base=`${process.env.FIXTURE_ORIGIN||'http://127.0.0.1:5173'}/test-fixtures/free-agents-mobile.html`;
-// The shared phone header shell is audited with its own fixtures; this check reads the Free agents content.
-const SHARED_CHROME=r=>r.rule==='phone-chrome'&&r.selector==='.app-header-shell';
 try {
  for(const width of [320,390,1280]) {
   const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});
+  await page.route('**/*', route => new URL(route.request().url()).origin === new URL(base).origin ? route.continue() : route.abort());
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const audit=async(state)=>{
-    const results=(await page.evaluate(measureScript(),{minTarget:width<=768?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS})).filter(r=>!SHARED_CHROME(r));
+    const results=(await page.evaluate(measureScript(),{minTarget:width<=768?44:32,numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS}));
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
     report.push({width,state,overflow,results});
     const bad=results.filter(r=>!r.ok);if(overflow||bad.length)console.log(JSON.stringify({width,state,overflow,bad}));
@@ -27,7 +26,7 @@ try {
     await page.goto(`${base}?state=${state}${extra}`,{waitUntil:'networkidle'});
     await page.locator('.fa-main').waitFor();
   };
-  const shot=async(name,full=width===1280)=>{await page.screenshot({path:`${out}/${name}-${width}.png`,fullPage:full});if(width!==320)await page.screenshot({path:`${review}/${name}-${width}.png`,fullPage:full});};
+  const shot=async(name,full=width===1280)=>{await page.screenshot({path:`${out}/${name}-${width}.png`,fullPage:full});if(width!==320 && ['bench','bench-sheet','identity'].includes(name))await page.screenshot({path:`${review}/${name}-${width}.png`,fullPage:full});};
   await go();await audit('bid');
   await shot('board');
   // Face-off: the roster sits beside the pool; each row reads against the starter he would replace.
@@ -142,6 +141,30 @@ try {
     if(state==='missing') assert.equal(await page.locator('.fa-outlook strong').innerText(),'—');
     if(['readonly','market-error'].includes(state)) assert.equal(await page.locator('.fa-acquire').first().isEnabled(),false);
   }
+  // Bench is a selectable comparison on desktop and phone, without a lineup claim or drop.
+  await go('bid');
+  const bench = width > 768 ? page.locator('.fa-roster-row', {hasText:'Darius Slayton'}) : page.locator('.fa-tile', {hasText:'Slayton'});
+  await bench.click();
+  assert.equal(await bench.getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('.fa-player').count(),4);
+  assert.match(await page.locator('.fa-board').innerText(),/Comparing Slayton/i);
+  await page.getByRole('button',{name:'Open Josh Downs details',exact:true}).click();
+  assert.match(await page.getByRole('dialog').innerText(),/Downs vs Slayton on your bench/);
+  assert.equal(await page.locator('.fa-versus-lineup').count(),0);
+  assert.deepEqual(await page.evaluate(()=>window.fixtureWrites),[]);
+  await audit('bench-sheet');await shot('bench-sheet');await page.keyboard.press('Escape');
+  await shot('bench');
+  // The production Watson/Sleeper ID mismatch must retain his existing forecast.
+  await go('bid','&aliases=1');
+  const watson = width > 768 ? page.locator('.fa-roster-row',{hasText:'Christian Watson'}) : page.locator('.fa-tile',{hasText:'Watson'});
+  assert.match(await watson.innerText(),/10\.8/);
+  await watson.click();
+  assert.match(await page.locator('.fa-player',{hasText:'Josh Downs'}).innerText(),/0\.0/);
+  await audit('identity');await shot('identity');
+  await go('fallbacks');
+  assert.match(await page.locator('.fa-player').first().innerText(),/Sam Darnold/);
+  assert.match(await page.locator('.fa-player').last().innerText(),/Missing Forecast/);
+  await audit('fallbacks');
   await go('bid','&long=1');await audit('long-names');
   await go('bid','&lowcap=1');await page.getByRole('button',{name:'Open Josh Downs details',exact:true}).click();
   assert.equal(await page.getByRole('button',{name:'Place bid',exact:true}).isEnabled(),false);
@@ -151,7 +174,7 @@ try {
   if(width>768) {
     assert.ok(await page.locator('.fa-player').count()<100);
     await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));
-    await page.getByRole('button',{name:'Open Player 239 details',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Open Player 007 details',exact:true}).waitFor();
     assert.ok(await page.locator('.fa-player').count()<100);await audit('virtualized-end');
   } else {
     assert.equal(await page.locator('.fa-player').count(),20);

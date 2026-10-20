@@ -51,12 +51,26 @@ function activeRoster(roster = []) {
   return (roster || []).filter((row) => row?.player_id && ACTIVE_STATUSES.has(String(row.roster_status || "").toLowerCase()));
 }
 
+const identityKey = (id) => String(id || "").replace(/^sleeper-/, "");
+
+export function faceoffSlotAccepts(slot, position, rules) {
+  return slot?.bench
+    ? posOf(position) === slot.player.position
+    : slotAcceptsPosition(slot?.slot, position, rules);
+}
+
 /** Starter slots with players, the bench, and open roster spots. */
 export function buildFaceoffRoster({ roster = [], rows = [], rules = null, weekRoster = null } = {}) {
   const pace = new Map();
+  const projectionIds = new Map();
   for (const row of rows || []) {
     const id = String(row?.player_id || "");
-    if (id) pace.set(id, num(row.per_game_proj));
+    for (const alias of [id, row.roster_player_id, row.sleeper_player_id]) {
+      if (alias) {
+        pace.set(identityKey(alias), num(row.per_game_proj));
+        projectionIds.set(identityKey(alias), identityKey(id));
+      }
+    }
   }
   const players = activeRoster(roster).map((row) => {
     const id = String(row.player_id);
@@ -65,19 +79,20 @@ export function buildFaceoffRoster({ roster = [], rows = [], rules = null, weekR
       name: row.player_name || row.player || id,
       position: posOf(row.position),
       team: row.team || row.nfl_team || "",
-      pg: pace.has(id) ? pace.get(id) : num(row.per_game_proj),
+      pg: pace.get(identityKey(id)) ?? pace.get(identityKey(row.sleeper_player_id)) ?? num(row.per_game_proj),
     };
   });
   const plan = buildStarterSlotPlan(rules);
+  const lineupId = (id) => projectionIds.get(identityKey(id)) || identityKey(id);
   const savedSlots = new Map();
   for (const entry of weekRoster?.starters || []) {
     const id = String(entry?.player_id || "");
     const slot = String(entry?.slot || "");
-    if (id && slot && slotBase(slot) !== "BN") savedSlots.set(id, slot);
+    if (id && slot && slotBase(slot) !== "BN") savedSlots.set(lineupId(id), slot);
   }
   const used = new Set();
   const starters = plan.map((slot) => {
-    const hit = players.find((p) => !used.has(p.player_id) && savedSlots.get(p.player_id) === slot.slot) || null;
+    const hit = players.find((p) => !used.has(p.player_id) && savedSlots.get(lineupId(p.player_id)) === slot.slot) || null;
     if (hit) used.add(hit.player_id);
     return { key: slot.key, slot: slot.slot, position: slot.position, player: hit };
   });
@@ -117,7 +132,7 @@ export function weakestFaceoffStarter(position, starters = [], rules) {
 export function faceoffCompare(row, { starters = [], target = null, rules = null } = {}) {
   const pg = num(row?.per_game_proj);
   const position = posOf(row?.position);
-  const against = target && target !== "open" && slotAcceptsPosition(target.slot, position, rules)
+  const against = target && target !== "open" && faceoffSlotAccepts(target, position, rules)
     ? target
     : weakestFaceoffStarter(position, starters, rules);
   if (!against) return { against: null, delta: null };
@@ -152,7 +167,7 @@ export function faceoffBeats(slot, rows = [], { exclude = new Set(), rules = nul
   for (const row of rows || []) {
     if (exclude.has(String(row?.player_id))) continue;
     const pg = num(row?.per_game_proj);
-    if (pg == null || !slotAcceptsPosition(slot.slot, row.position, rules)) continue;
+    if (pg == null || !faceoffSlotAccepts(slot, row.position, rules)) continue;
     if (!slot.player || (slot.player.pg != null && pg > slot.player.pg)) n += 1;
   }
   return n;
@@ -198,7 +213,7 @@ export function faceoffBestUpgrade(rows = [], { starters = [], target = null, ru
   let best = null;
   for (const row of rows || []) {
     if (exclude.has(String(row?.player_id))) continue;
-    if (target && target !== "open" && !slotAcceptsPosition(target.slot, row.position, rules)) continue;
+    if (target && target !== "open" && !faceoffSlotAccepts(target, row.position, rules)) continue;
     const { against, delta } = faceoffCompare(row, { starters, target, rules });
     if (against && delta != null && delta > 0 && (!best || delta > best.delta)) best = { row, against, delta };
   }
@@ -212,21 +227,23 @@ export function buildFaceoffModel({
   const lineup = buildFaceoffRoster({ roster, rows, rules, weekRoster });
   const pool = availableRows || rows || [];
   const pendingIds = new Set((pendingRows || []).map((row) => String(row?.player_id)));
-  const targetSlot = target && target !== "open" ? lineup.starters.find((slot) => slot.key === target) || null : null;
+  const benchSlots = lineup.bench.map((player) => ({ key: `bench:${player.player_id}`, slot: "BN", position: player.position, player, bench: true }));
+  const selectableSlots = [...lineup.starters, ...benchSlots];
+  const targetSlot = target && target !== "open" ? selectableSlots.find((slot) => slot.key === target) || null : null;
   const targetOpen = target === "open" && (lineup.openSpots ?? 0) > 0;
   const compare = (row) => faceoffCompare(row, { starters: lineup.starters, target: targetSlot, rules });
-  const eligible = (row) => !targetSlot || slotAcceptsPosition(targetSlot.slot, row?.position, rules);
+  const eligible = (row) => !targetSlot || faceoffSlotAccepts(targetSlot, row?.position, rules);
   const weak = faceoffWeakSpots(lineup.starters);
   const weakKeys = new Set(weak.map((slot) => slot.key));
   const beats = new Map();
-  for (const slot of lineup.starters) {
+  for (const slot of selectableSlots) {
     if (!isSpecialistSlot(slot)) beats.set(slot.key, faceoffBeats(slot, pool, { exclude: pendingIds, rules }));
   }
   const pending = faceoffPending(lineup.starters, pendingRows, rules);
   const total = faceoffLineupTotal(lineup.starters);
   const best = faceoffBestUpgrade(pool, { starters: lineup.starters, target: targetSlot, rules, exclude: pendingIds });
   return {
-    lineup, targetSlot, targetOpen, target: targetSlot ? targetSlot.key : targetOpen ? "open" : null,
+    lineup, benchSlots, targetSlot, targetOpen, target: targetSlot ? targetSlot.key : targetOpen ? "open" : null,
     compare, eligible, weakKeys, beats, pending, total, best, pendingIds,
     hasStarters: lineup.starters.some((slot) => slot.player),
   };

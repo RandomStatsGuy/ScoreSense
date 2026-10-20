@@ -74,7 +74,7 @@ function Scoreboard({ faceoff, mode }) {
   let now = total.total, from = null, delta = null, label = FO.labelNone, verdict = FO.verdictSet, up = false;
   if (!hasStarters) {
     verdict = FO.verdictNoRoster; now = null;
-  } else if (pending.swaps.size) {
+  } else if (pending.swaps.size && !targetSlot?.bench) {
     const swaps = [...pending.swaps.values()];
     verdict = swaps.length === 1
       ? FO.verdictPending(faceoffSurname(swaps[0].row.player || swaps[0].row.player_name), swaps[0].slot, swaps[0].from ? faceoffSurname(swaps[0].from.name) : "")
@@ -83,15 +83,17 @@ function Scoreboard({ faceoff, mode }) {
   } else if (targetSlot) {
     const n = beats.get(targetSlot.key) ?? 0, surname = targetSlot.player ? faceoffSurname(targetSlot.player.name) : "";
     if (!targetSlot.player) verdict = FO.verdictOpen(n, slotName(targetSlot));
-    else if (targetSlot.player.pg == null) verdict = FO.verdictMissing;
+    else if (targetSlot.player.pg == null) verdict = FO.verdictPlayerMissing;
     else verdict = n ? `${FO.verdictTarget(n, surname, targetSlot.player.pg)}${best ? ` ${FO.verdictGains(faceoffSurname(best.row.player))}` : ""}` : FO.verdictTargetNone(surname, targetSlot.player.pg);
     delta = best?.delta ?? 0; label = FO.labelBestAt(slotName(targetSlot)); up = best != null && best.delta >= 1;
+    if (targetSlot.bench) { now = targetSlot.player.pg; label = FO.benchBest(targetSlot.player.position); }
+    if (targetSlot.player && targetSlot.player.pg == null) delta = null;
   } else if (best) {
     verdict = best.against.player ? FO.verdictBest(best.row.player, best.delta, slotName(best.against), faceoffSurname(best.against.player.name)) : FO.verdictBestEmpty(best.row.player, best.delta, slotName(best.against));
     delta = best.delta; label = FO.labelBest; up = best.delta >= 1;
   } else if (total.total == null && total.missing) verdict = FO.verdictMissing;
   return <section className={`fa-board${up ? " is-up" : ""}`} aria-label={FO.board}>
-    <div className="fa-board-now"><small>{FO.board}</small><strong><Count value={now} /><span className="fa-unit"> {FO.perGameUnit}</span></strong>{from != null && <small className="fa-board-from">{FO.was(from)}</small>}</div>
+    <div className="fa-board-now"><small>{targetSlot?.bench ? FO.comparing(faceoffSurname(targetSlot.player.name)) : FO.board}</small><strong><Count value={now} /><span className="fa-unit"> {COPY.perGame}</span></strong>{from != null && <small className="fa-board-from">{FO.was(from)}</small>}</div>
     <div className="fa-board-delta"><strong><Count value={delta} signed /></strong><small>{label}</small></div>
     <p className="fa-board-verdict">{verdict}</p>
   </section>;
@@ -101,10 +103,10 @@ function pendingLabelFor(swap, mode) { return FO.pendingIn(faceoffSurname(swap.r
 
 /** Desktop column: every starter is a spot you can shop for; amber dots mark the softest. */
 function RosterColumn({ faceoff, mode, onTarget, busy }) {
-  const { lineup, target, pending, beats, weakKeys, total, targetSlot } = faceoff;
+  const { lineup, benchSlots, target, pending, beats, weakKeys, total, targetSlot } = faceoff;
   const row = slot => {
     const swap = pending.swaps.get(slot.key), n = beats.get(slot.key) ?? 0, p = slot.player;
-    const cls = `fa-roster-row${weakKeys.has(slot.key) && p ? " is-weak" : ""}${swap ? " is-swapping" : ""}${!p ? " is-open" : ""}`;
+    const cls = `fa-roster-row${slot.bench ? " is-bench" : ""}${weakKeys.has(slot.key) && p ? " is-weak" : ""}${swap ? " is-swapping" : ""}${!p ? " is-open" : ""}`;
     const inner = <><small>{slotName(slot)}</small><span className="fa-roster-name"><strong>{p ? p.name : FO.openSpot}</strong><span>{swap ? <em>{pendingLabelFor(swap, mode)}</em> : p ? <>{[p.position, p.team].filter(Boolean).join(" · ")}{n > 0 && <> · <em>{FO.beatCount(n)}</em></>}</> : FO.beatSlotCount(n, slotName(slot))}</span></span><b>{swap ? <><s>{pts(p?.pg, 1)}</s> {pts(swap.row.per_game_proj, 1)}</> : pts(p?.pg, 1)}</b></>;
     const label = p ? `${slotName(slot)}: ${p.name}, ${pts(p.pg, 1)} ${FO.perGameUnit}${n ? `, ${FO.beatCount(n)}` : ""}` : `${slotName(slot)}: ${FO.openSpot}`;
     return <button type="button" key={slot.key} className={cls} aria-pressed={target === slot.key} aria-label={label} disabled={busy} onClick={() => onTarget(target === slot.key ? null : slot.key)}>{inner}</button>;
@@ -115,7 +117,7 @@ function RosterColumn({ faceoff, mode, onTarget, busy }) {
     <div className="fa-roster-list">
       {lineup.starters.map(row)}
       {lineup.bench.length > 0 && <p className="fa-roster-divider">{FO.bench}</p>}
-      {lineup.bench.map(p => <div className="fa-roster-row is-bench" key={p.player_id}><small>BN</small><span className="fa-roster-name"><strong>{p.name}</strong><span>{[p.position, p.team].filter(Boolean).join(" · ")}</span></span><b>{pts(p.pg, 1)}</b></div>)}
+      {benchSlots.map(row)}
       {lineup.openSpots > 0 && <button type="button" className="fa-roster-row is-open" aria-pressed={target === "open"} disabled={busy} onClick={() => onTarget(target === "open" ? null : "open")}><small>BN</small><span className="fa-roster-name"><strong>{FO.openSpots(lineup.openSpots)}</strong><span>{FO.rosterSpotOpen}</span></span><b>—</b></button>}
     </div>
   </aside>;
@@ -123,11 +125,11 @@ function RosterColumn({ faceoff, mode, onTarget, busy }) {
 
 /** Phone rail: the same spots as swipeable tiles. */
 function SpotRail({ faceoff, mode, onTarget, busy }) {
-  const { lineup, target, pending, beats, weakKeys } = faceoff;
+  const { lineup, benchSlots, target, pending, beats, weakKeys } = faceoff;
   const ref = useRef(null);
   useEffect(() => { ref.current?.querySelector("[aria-pressed=true]")?.scrollIntoView({ inline: "center", block: "nearest" }); }, [target]);
   return <div className="fa-rail-tiles" ref={ref} role="group" aria-label={FO.spotsLabel}>
-    {lineup.starters.filter(slot => !isSpecialistSlot(slot)).map(slot => {
+    {[...lineup.starters.filter(slot => !isSpecialistSlot(slot)), ...benchSlots].map(slot => {
       const swap = pending.swaps.get(slot.key), n = beats.get(slot.key) ?? 0, p = slot.player;
       return <button type="button" key={slot.key} className={`fa-tile${weakKeys.has(slot.key) && p ? " is-weak" : ""}${swap ? " is-swapping" : ""}${!p ? " is-open" : ""}`} aria-pressed={target === slot.key} disabled={busy}
         aria-label={p ? `${slotName(slot)}: ${p.name}, ${pts(p.pg, 1)} ${FO.perGameUnit}${n ? `, ${FO.beatCount(n)}` : ""}` : `${slotName(slot)}: ${FO.openSpot}`} onClick={() => onTarget(target === slot.key ? null : slot.key)}>
@@ -146,8 +148,8 @@ function Duel({ row, media, scale, faceoff, mode }) {
   if (!against) return null;
   const band = resolveSeasonBand(row), out = against.player, pg = row.per_game_proj;
   const up = delta != null && delta >= 1;
-  const head = pg == null ? FO.duelUnavailable : !out ? FO.duelHeadEmpty(faceoffSurname(row.player), slotName(against)) : FO.duelHead(faceoffSurname(row.player), delta, faceoffSurname(out.name), slotName(against));
-  const now = faceoff.total.total, after = now != null && delta != null && delta > 0 ? now + delta : null;
+  const head = pg == null || (out && out.pg == null) ? FO.duelUnavailable : !out ? FO.duelHeadEmpty(faceoffSurname(row.player), slotName(against)) : against.bench ? FO.duelBench(faceoffSurname(row.player), faceoffSurname(out.name), delta) : FO.duelHead(faceoffSurname(row.player), delta, faceoffSurname(out.name), slotName(against));
+  const now = faceoff.total.total, after = !against.bench && now != null && delta != null && delta > 0 ? now + delta : null;
   const marks = faceoffRangeMarks(band, against, scale);
   return <div className={`fa-versus${up ? " is-up" : ""}`}>
     <div className="fa-duel">

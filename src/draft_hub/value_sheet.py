@@ -406,6 +406,7 @@ def build_value_overlay(
             sleeper_counts_as_owned=sleeper_counts_as_owned,
         )
         on_roster = mine_row is not None or league_row is not None
+        matched_roster = mine_row or league_row
         if roster_sal is None and mine_row is not None:
             roster_sal = float(mine_row["salary"])
         value_delta = (
@@ -422,6 +423,9 @@ def build_value_overlay(
         rows.append(
             {
                 **base,
+                # Preserve the resolved roster identity for read-only comparisons.
+                # Pool forecasts use GSIS IDs; linked roster slots may use Sleeper IDs.
+                "roster_player_id": str(matched_roster["player_id"]) if matched_roster else None,
                 "value_delta": value_delta,
                 "status": status,
                 "is_available": is_available,

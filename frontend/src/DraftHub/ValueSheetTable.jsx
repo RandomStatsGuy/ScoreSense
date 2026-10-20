@@ -69,8 +69,7 @@ import {
 import RaavBidCell from "./RaavBidCell";
 import { suggestedBidSubLabel } from "./suggestedBidLabel.js";
 import { AVAILABLE_ROW_HEIGHT, useWindowedRows, WINDOW_AFTER } from "./useWindowedRows";
-import { buildFaceoffModel, faceoffSurname } from "./freeAgentFaceoff";
-import { slotAcceptsPosition } from "./weekBoard";
+import { buildFaceoffModel, faceoffSurname, faceoffSlotAccepts } from "./freeAgentFaceoff";
 import { getWeeklySnapshot, setWeeklySnapshot, weeklySnapshotKey } from "./hubDataCache";
 
 const FACEOFF_SORT_KEY = "fa_edge";
@@ -93,7 +92,8 @@ const DEFAULT_SORT_KEY = "fair_value";
 const PICK_DRAFT_SORT_KEY = "season_proj";
 const DEFAULT_SORT_DIR = "desc";
 
-function defaultSortKeyForBoard(pickDraft) {
+function defaultSortKeyForBoard(pickDraft, isAvailableView) {
+  if (isAvailableView) return "per_game_proj";
   return pickDraft ? PICK_DRAFT_SORT_KEY : DEFAULT_SORT_KEY;
 }
 
@@ -190,7 +190,7 @@ function ValueSheetTableView({
   const playersBanner = !draftConsole && inLeague ? playersTabBanner(acquisitionWindow) : null;
   const valueColLabel = "Suggested bid";
   const isAvailableView = mode === "available";
-  const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft));
+  const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft, isAvailableView));
   const [sortDir, setSortDir] = useState(DEFAULT_SORT_DIR);
   useFantasyReady("available", "player-board", !loading && Array.isArray(rows));
   const [posFilter, setPosFilter] = useState(defaultPosFilter);
@@ -266,9 +266,9 @@ function ValueSheetTableView({
   }, [defaultPosFilter]);
 
   useEffect(() => {
-    if (!pickDraft) return;
+    if (!pickDraft || isAvailableView) return;
     setSortKey((key) => (key === "fair_value" || key === "value_delta" ? PICK_DRAFT_SORT_KEY : key));
-  }, [pickDraft]);
+  }, [pickDraft, isAvailableView]);
 
   useEffect(() => {
     setMobileListLimit(MOBILE_LIST_PAGE);
@@ -348,8 +348,8 @@ function ValueSheetTableView({
     setFaceoffTargetState(next || null);
     setPosFilter(defaultPosFilter);
     if (next && next !== "open") { setSortKey(FACEOFF_SORT_KEY); setSortDir("desc"); }
-    else setSortKey((key) => (key === FACEOFF_SORT_KEY ? defaultSortKeyForBoard(pickDraft) : key));
-  }, [defaultPosFilter, pickDraft]);
+    else setSortKey((key) => (key === FACEOFF_SORT_KEY ? defaultSortKeyForBoard(pickDraft, isAvailableView) : key));
+  }, [defaultPosFilter, pickDraft, isAvailableView]);
 
   useEffect(() => {
     if (!faceoffOn || !leagueId || preDraft) { setWeekRoster(null); return undefined; }
@@ -467,6 +467,7 @@ function ValueSheetTableView({
     () => [
       ...(mobileLayout && isAvailableView ? mobileRows : windowed ? visibleRows : sorted).map((r) => r.player_id),
       ...(faceoff ? faceoff.lineup.starters.map((slot) => slot.player?.player_id) : []),
+      faceoff?.targetSlot?.player?.player_id,
     ].filter(Boolean),
     [mobileLayout, isAvailableView, mobileRows, windowed, visibleRows, sorted, faceoff],
   );
@@ -779,7 +780,7 @@ function ValueSheetTableView({
   );
   const positionOptions = useMemo(() => {
     const slot = faceoff?.targetSlot;
-    const list = slot ? POSITIONS.filter((p) => p === "ALL" || slotAcceptsPosition(slot.slot, p, rules)) : POSITIONS;
+    const list = slot ? POSITIONS.filter((p) => p === "ALL" || faceoffSlotAccepts(slot, p, rules)) : POSITIONS;
     return list.map((p) => ({ id: p, label: p }));
   }, [faceoff, rules]);
   const tierOptions = useMemo(() => TIERS.map((t) => ({ id: t, label: t })), []);
@@ -788,7 +789,7 @@ function ValueSheetTableView({
     [],
   );
   const sortMenuOptions = useMemo(() => {
-    let opts = schema.sortOptions;
+    let opts = isAvailableView ? [{ id: "per_game_proj", label: PLAYERS_TAB_COPY.projectedPerGame }, ...schema.sortOptions] : schema.sortOptions;
     if (!pickDraft) {
       opts = opts.map((o) => (o.id === "fair_value" ? { ...o, label: valueColLabel } : o));
       if (!showCostDelta) opts = opts.filter((o) => o.id !== "value_delta");
@@ -799,10 +800,10 @@ function ValueSheetTableView({
       opts = [{ id: FACEOFF_SORT_KEY, label }, ...opts];
     }
     return opts;
-  }, [schema.sortOptions, showCostDelta, valueColLabel, pickDraft, faceoff]);
+  }, [schema.sortOptions, showCostDelta, valueColLabel, pickDraft, faceoff, isAvailableView]);
 
   const resetBoard = useCallback(() => {
-    setSortKey(defaultSortKeyForBoard(pickDraft));
+    setSortKey(defaultSortKeyForBoard(pickDraft, isAvailableView));
     setSortDir(DEFAULT_SORT_DIR);
     setPosFilter(defaultPosFilter);
     setStatusFilter(isAvailableView ? "AVAILABLE" : "ALL");
@@ -815,7 +816,7 @@ function ValueSheetTableView({
   }, [defaultPosFilter, isAvailableView, pickDraft]);
 
   const boardDirty = Boolean(
-    sortKey !== defaultSortKeyForBoard(pickDraft)
+    sortKey !== defaultSortKeyForBoard(pickDraft, isAvailableView)
     || sortDir !== DEFAULT_SORT_DIR
     || faceoffTarget
     || posFilter !== defaultPosFilter
