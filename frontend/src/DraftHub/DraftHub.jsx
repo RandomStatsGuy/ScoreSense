@@ -70,8 +70,16 @@ const TABS_NEED_CAP_SHEET = new Set(["planner", "roster", "rosters"]);
 const TABS_NEED_ROSTER = new Set(["setup", "value", "available", "roster", "planner", "room", "rules"]);
 
 export default function DraftHub({ subView, onSubViewChange, onHubContextChange, insightTab, onInsightTabChange, officeTab, onOfficeTabChange, onOpenContractHistory, active = true }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const availablePosFilter = (searchParams.get("needPos") || "ALL").toUpperCase();
+  const setAvailablePosFilter = useCallback((position) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (position && position !== "ALL") next.set("needPos", position);
+      else next.delete("needPos");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const availablePlayerId = (searchParams.get("player") || "").trim();
   const { authenticated, refreshAuth, hubAuthRequired, hubDemo, ready: authReady, user, termsUrl, privacyUrl, patreonConfigured } = useAuth();
   const [demoMode, setDemoMode] = useState(() => {
@@ -888,6 +896,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           onWatchPlayer={toggleWatch}
           watchIds={watchIds}
           defaultPosFilter={availablePosFilter}
+          onPosFilterChange={setAvailablePosFilter}
           selectedPlayerId={availablePlayerId}
           remainingCap={capSheet?.summary?.remaining ?? capSheet?.remaining}
           preDraft={!Boolean(effectiveCtx?.draft_completed)}

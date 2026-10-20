@@ -138,9 +138,9 @@ test("season projections deep-link without a mode lands on Season, not Weekly", 
   );
 });
 
-test("opening Free agents without extras clears a leftover player focus", () => {
-  assert.deepEqual(hubSubViewFilterUpdates("available"), { player: "" });
-  assert.deepEqual(hubSubViewFilterUpdates("available", null), { player: "" });
+test("opening Free agents without extras clears leftover player and position focus", () => {
+  assert.deepEqual(hubSubViewFilterUpdates("available"), { needPos: "", player: "" });
+  assert.deepEqual(hubSubViewFilterUpdates("available", null), { needPos: "", player: "" });
   assert.equal(hubSubViewFilterUpdates("planner"), null);
   assert.equal(hubSubViewFilterUpdates("room"), null);
 });
@@ -156,8 +156,18 @@ test("Free agents extras can set or clear the focused player", () => {
   );
   assert.deepEqual(
     hubSubViewFilterUpdates("available", { player_id: "fit" }),
-    { player: "fit" },
+    { needPos: "", player: "fit" },
   );
+});
+
+test("Free agents navigation clears an old defense search but explicit Find DEF still filters", () => {
+  const stale = new URLSearchParams("needPos=DEF&player=old&league=kept");
+  const ordinary = buildFilterSearchParams({ ...hubSubViewFilterUpdates("available"), preserveParams: stale });
+  assert.equal(ordinary.has("needPos"), false);
+  assert.equal(ordinary.has("player"), false);
+  assert.equal(ordinary.get("league"), "kept");
+  const targeted = buildFilterSearchParams({ ...hubSubViewFilterUpdates("available", { pos: "def" }), preserveParams: ordinary });
+  assert.equal(targeted.get("needPos"), "DEF");
 });
 
 test("strategy and free-agent hub tabs round-trip, with legacy players alias", () => {

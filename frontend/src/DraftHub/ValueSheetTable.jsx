@@ -150,6 +150,7 @@ function ValueSheetTableView({
   maxRows,
   loading = false,
   defaultPosFilter = "ALL",
+  onPosFilterChange,
   showTierFilters = true,
   hideHeader = false,
   hideIntro = false,
@@ -193,7 +194,12 @@ function ValueSheetTableView({
   const [sortKey, setSortKey] = useState(() => defaultSortKeyForBoard(pickDraft, isAvailableView));
   const [sortDir, setSortDir] = useState(DEFAULT_SORT_DIR);
   useFantasyReady("available", "player-board", !loading && Array.isArray(rows));
-  const [posFilter, setPosFilter] = useState(defaultPosFilter);
+  const [posFilter, setPosFilterState] = useState(defaultPosFilter);
+  const resetPosFilter = isAvailableView ? "ALL" : defaultPosFilter;
+  const setPosFilter = useCallback((value) => {
+    setPosFilterState(value);
+    onPosFilterChange?.(value);
+  }, [onPosFilterChange]);
   const [statusFilter, setStatusFilter] = useState(isAvailableView ? "AVAILABLE" : "ALL");
   const [tierFilter, setTierFilter] = useState("ALL");
   const [riskProfile, setRiskProfile] = useState("ALL");
@@ -262,7 +268,7 @@ function ValueSheetTableView({
   const sleeperLinked = Boolean(sleeper?.sleeper_league_id && sleeper?.sleeper_roster_id);
 
   useEffect(() => {
-    setPosFilter(defaultPosFilter);
+    setPosFilterState(defaultPosFilter);
   }, [defaultPosFilter]);
 
   useEffect(() => {
@@ -346,10 +352,12 @@ function ValueSheetTableView({
 
   const setFaceoffTarget = useCallback((next) => {
     setFaceoffTargetState(next || null);
-    setPosFilter(defaultPosFilter);
+    // The selected roster slot owns eligibility; a previous deep-link filter
+    // must not intersect it (for example, WR replacements inside DEF only).
+    setPosFilter("ALL");
     if (next && next !== "open") { setSortKey(FACEOFF_SORT_KEY); setSortDir("desc"); }
     else setSortKey((key) => (key === FACEOFF_SORT_KEY ? defaultSortKeyForBoard(pickDraft, isAvailableView) : key));
-  }, [defaultPosFilter, pickDraft, isAvailableView]);
+  }, [setPosFilter, pickDraft, isAvailableView]);
 
   useEffect(() => {
     if (!faceoffOn || !leagueId || preDraft) { setWeekRoster(null); return undefined; }
@@ -805,7 +813,7 @@ function ValueSheetTableView({
   const resetBoard = useCallback(() => {
     setSortKey(defaultSortKeyForBoard(pickDraft, isAvailableView));
     setSortDir(DEFAULT_SORT_DIR);
-    setPosFilter(defaultPosFilter);
+    setPosFilter(resetPosFilter);
     setStatusFilter(isAvailableView ? "AVAILABLE" : "ALL");
     setTierFilter("ALL");
     setRiskProfile("ALL");
@@ -813,13 +821,13 @@ function ValueSheetTableView({
     setNeedsOnly(false);
     setShowAdvancedLocal(false);
     setFaceoffTargetState(null);
-  }, [defaultPosFilter, isAvailableView, pickDraft]);
+  }, [resetPosFilter, setPosFilter, isAvailableView, pickDraft]);
 
   const boardDirty = Boolean(
     sortKey !== defaultSortKeyForBoard(pickDraft, isAvailableView)
     || sortDir !== DEFAULT_SORT_DIR
     || faceoffTarget
-    || posFilter !== defaultPosFilter
+    || posFilter !== resetPosFilter
     || (!isAvailableView && statusFilter !== "ALL")
     || (showTierFilters && tierFilter !== "ALL")
     || riskProfile !== "ALL"
@@ -829,7 +837,7 @@ function ValueSheetTableView({
   );
   const activeSortLabel = sortLabelForKey(sortMenuOptions, sortKey);
   const emptyMessage = (() => {
-    const extraFilters = posFilter !== defaultPosFilter
+    const extraFilters = posFilter !== resetPosFilter
       || (showTierFilters && tierFilter !== "ALL")
       || riskProfile !== "ALL"
       || search.trim()

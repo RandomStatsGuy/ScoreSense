@@ -87,6 +87,14 @@ function Preview() {
   const [ctx, setContext] = useState({ mode: "league", league_id: "fixture", team_id: "mine", owner_name: "Maya Chen", league_name: params.has("long") ? "The Extremely Long Fantasy Football League Name" : "Bottom to Top", draft_completed: mode !== "locked", rules, acquisition_window: acquisition, is_commissioner: state === "priority", capabilities: { uses_salaries: !pick, uses_contracts: !pick } });
   const [watch, setWatch] = useState([]), [picker, setPicker] = useState(false), [more, setMore] = useState(false), [version, setVersion] = useState(0);
   const mobile = useMobileLayout();
+  const [position, setPosition] = useState((params.get("needPos") || "ALL").toUpperCase());
+  const changePosition = value => {
+    setPosition(value);
+    const url = new URL(location.href);
+    if (value === "ALL") url.searchParams.delete("needPos");
+    else url.searchParams.set("needPos", value);
+    history.replaceState(null, "", url);
+  };
   const navigate = view => { window.fixtureDestination = view; setPicker(false); };
   return <LeagueChromeProvider><MobileShell className="app--compact-league" section="hub" onSectionChange={navigate} onMoreOpen={() => setMore(true)} hrefForSection={id => "#" + id}>
     <a className="app-skip-link" href="#main-content">Skip to content</a>
@@ -97,7 +105,7 @@ function Preview() {
     </div></header>
     <main id="main-content"><div className="draft-hub">
       <LeagueContextBanner hubContext={ctx} memberships={[{ league_id: "fixture", league_name: ctx.league_name, team: { id: "mine", name: "Sunday Roster" } }]} onLeagueSwitch={() => setContext(c => ({ ...c, league_id: "second" }))} onCreateLeague={() => {}} onLeagueSync={() => {}} showAttention={false} currentView="available" />
-      <ValueSheetTable key={ctx.league_id} mode="available" rows={rows} loading={state === "loading"} season={2026} inLeague leagueId={ctx.league_id} acquisitionWindow={acquisition} rules={rules} pickDraft={pick} preDraft={mode === "locked"} remainingCap={params.has("lowcap") ? 3 : 42} roster={roster} rosterIds={new Set()} watchIds={watch} onWatchPlayer={r => setWatch(ids => ids.includes(r.player_id) ? ids.filter(id => id !== r.player_id) : [...ids, r.player_id])} onAddToRoster={() => { setVersion(version + 1); }} onOpenContractHistory={payload => { window.fixtureHistory = payload; }} isCommissioner={ctx.is_commissioner} actionsDisabled={state === "readonly"} />
+      <ValueSheetTable key={ctx.league_id} mode="available" defaultPosFilter={position} onPosFilterChange={changePosition} rows={rows} loading={state === "loading"} season={2026} inLeague leagueId={ctx.league_id} acquisitionWindow={acquisition} rules={rules} pickDraft={pick} preDraft={mode === "locked"} remainingCap={params.has("lowcap") ? 3 : 42} roster={roster} rosterIds={new Set()} watchIds={watch} onWatchPlayer={r => setWatch(ids => ids.includes(r.player_id) ? ids.filter(id => id !== r.player_id) : [...ids, r.player_id])} onAddToRoster={() => { setVersion(version + 1); }} onOpenContractHistory={payload => { window.fixtureHistory = payload; }} isCommissioner={ctx.is_commissioner} actionsDisabled={state === "readonly"} />
     </div></main>
     <MobileMenuSheet open={more} onClose={() => setMore(false)} authReady authenticated user={{ name: "Maya Chen" }} onGoToAccount={() => navigate("account")} view="hub" />
   </MobileShell></LeagueChromeProvider>;
