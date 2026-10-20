@@ -839,7 +839,7 @@ export default function RulesWizard({
           )}
 
           {!readOnlyRules && activeCategory !== "managers" && (
-            <div className="hub-rules-sticky-save">
+            <div data-bottom-actions className="hub-rules-sticky-save">
               <div>
                 <strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong>
                 <p className="hub-rules-summary-note">{activeCategory === "scoring" ? SCORING_COPY.effect : formatCopy.saveFootnote}</p>
