@@ -3,6 +3,11 @@
 
 :root { --form-control-height: var(--control-h-sm); }
 
+/* Detached actions and chat leave enough page scroll to expose the last control. */
+.app[data-bottom-clearance] {
+  padding-bottom: calc(var(--bottom-nav-height) + max(var(--bottom-action-height), var(--chat-launcher-clearance)) + var(--space-4));
+}
+
 .projection-refresh-status {
   display: flex;
   align-items: center;

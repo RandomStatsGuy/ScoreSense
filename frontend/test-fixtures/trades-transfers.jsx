@@ -3,6 +3,8 @@ import React, {useState} from "react";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
 import {LeagueChromeProvider} from "../src/DraftHub/leagueChromeContext";
 import MobileHeader from "../src/layout/MobileHeader";
+import ChatLauncher from "../src/DraftHub/ChatLauncher";
+import {CommunicationProvider} from "../src/DraftHub/CommunicationContext";
 import MobileShell from "../src/layout/MobileShell";
 import MobileMenuSheet from "../src/layout/MobileMenuSheet";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";
@@ -19,6 +21,7 @@ import "../src/styles/product-rhythm.css";
 import "../src/styles/fantasy-phone.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/fantasy-header.css";
+import "../src/styles/fantasy-chat.css";
 
 
 const params=new URLSearchParams(location.search),state=params.get('state')||'salary';
@@ -39,6 +42,7 @@ blocks[0].roster.push({id:1000,player_id:'cut-player',player_name:'Former Player
 window.fixtureWrites=[];window.fixtureRequests=[];window.forecastReads=0;
 window.fetch=async(input,options={})=>{
  const path=String(input);window.fixtureRequests.push(path);
+ if(path.endsWith("/chat/summary"))return Response.json({members:[],threads:[],notifications:[],unread:3,preferences:{}});
  if(path.includes('/week?'))return Response.json({hub_context:{league_id:context.league_id,team_id:context.team_id},meta:{season:2026,week:6,projections_available:state!=='missing'},cards:state==='missing'?{}:Object.fromEntries(blocks.flatMap((block,i)=>block.roster.filter(r=>r.roster_status==='active').map((r,j)=>[r.player_id,{...r,p50:state==='zero'?0:10+j*2+i}]))),roster:{starters:[0,1,3,5,2].map((index,i)=>({ ...blocks[0].roster[index],slot:['QB','RB','WR','TE','FLEX'][i] }))}});
  if(path.endsWith('/trade-outlook')){
   window.forecastReads++;
@@ -67,7 +71,7 @@ function Preview(){
  const mobile=useMobileLayout(),[picker,setPicker]=useState(false),[more,setMore]=useState(false),[scope,setScope]=useState(false),[revision,setRevision]=useState(0);
  const previewContext={...context,league_id:scope?'trades-other-fixture':context.league_id};
  const navigate=id=>{window.fixtureDestination=id;setPicker(false);};
- return <LeagueChromeProvider><MobileShell className="app--compact-league" section="hub" onSectionChange={navigate} onMoreOpen={()=>setMore(true)} hrefForSection={id=>'#'+id}>
+ return <CommunicationProvider enabled={params.has("chat")} identity="trades-anchor-fixture" hubContext={previewContext}><LeagueChromeProvider><MobileShell className="app--compact-league" section="hub" onSectionChange={navigate} onMoreOpen={()=>setMore(true)} hrefForSection={id=>'#'+id}>
  <a className="app-skip-link" href="#main-content">Skip to content</a><header className="app-header app-header--hub app-header--product app-header--compact-league"><div className="app-header-shell app-header-shell--hub">
  <MobileHeader title="Trades" hasMenu menuOpen={picker} onTitleClick={()=>setPicker(true)} compactLeague onMoreOpen={()=>setMore(true)}/>
  <DesktopPrimaryHeader productName="ScoreSense" studioName="4th Down Labs" sections={[{id:'projections',label:'Projections'},{id:'hub',label:'Fantasy'},{id:'tools',label:'Tools'}]} view="hub" pathForSection={id=>'#'+id} onNavigate={navigate}/>
@@ -76,6 +80,6 @@ function Preview(){
  <LeagueContextBanner hubContext={context} memberships={[{league_id:context.league_id,league_name:context.league_name,team:{id:'mine',name:'Sunday Roster'}}]} onLeagueSwitch={()=>{}} onCreateLeague={()=>{}} showAttention={false} currentView="trades"/>
  <LeagueTrades key={`${previewContext.league_id}:${previewContext.team_id}`} leagueId={previewContext.league_id} hubContext={previewContext} onNavigate={navigate} cacheScope="fixture" revisionToken={revision} onChanged={()=>{window.fixtureChanges=(window.fixtureChanges||0)+1;}}/>
  </TeamIdentityProvider></div></main><MobileMenuSheet open={more} onClose={()=>setMore(false)} authReady authenticated user={{name:'Maya Chen'}} onGoToAccount={()=>navigate('account')} view="hub"/>
- </MobileShell></LeagueChromeProvider>;
+ {params.has("chat")&&<ChatLauncher leagueId={previewContext.league_id}/>}</MobileShell></LeagueChromeProvider></CommunicationProvider>;
 }
 createRoot(document.getElementById('root')).render(<MemoryRouter><Preview/></MemoryRouter>);

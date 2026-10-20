@@ -1729,7 +1729,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     const incoming = packageLegs.filter(leg => leg.to === myTeamId);
     const otherMoves = packageLegs.filter(leg => leg.from !== myTeamId && leg.to !== myTeamId);
     const capChange = salaryLeague ? tradeCapChangeText(projectedByTeam[myTeamId]?.base?.unspent, projectedByTeam[myTeamId]?.unspent) : null;
-    return <div className="hub-trade-desk-bar" ref={deskBarRef}>
+    return <div data-bottom-actions className="hub-trade-desk-bar" ref={deskBarRef}>
       <div className="hub-trade-package-mini" aria-label={formatCopy.packageTitle}>
         {[{ label: formatCopy.youSend, legs: outgoing }, { label: formatCopy.youReceive, legs: incoming }].map(side =>
           <div key={side.label}><div className="hub-trade-mini-label"><span>{side.label}</span><span>{side.legs.length}</span></div>

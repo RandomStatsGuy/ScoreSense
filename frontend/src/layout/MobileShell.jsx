@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useRef } from "react";
 import AppBottomNav from "../AppBottomNav";
 import useMobileLayout from "../useMobileLayout";
+import useBottomClearance from "../ui/useBottomClearance";
 
 export default function MobileShell({
   children,
@@ -11,8 +12,10 @@ export default function MobileShell({
   className = "",
 }) {
   const mobileLayout = useMobileLayout();
+  const root = useRef(null);
+  useBottomClearance(root, mobileLayout);
   return (
-    <div className={`app${mobileLayout ? " app-with-bottom-nav" : ""} ${className}`.trim()}>
+    <div ref={root} data-bottom-clearance className={`app${mobileLayout ? " app-with-bottom-nav" : ""} ${className}`.trim()}>
       {children}
       <AppBottomNav
         section={section}

@@ -1079,6 +1079,50 @@ export function measureScript() {
       results.push({rule:"navigation", ok:destinationButton.scrollWidth <= destinationButton.clientWidth + 1,
         selector:".hub-subnav-picker-btn", detail:"destination label fits its button"});
     }
+    const visibleBox = el => {
+      if (!el || el.closest('[hidden], [inert]') || (el.checkVisibility && !el.checkVisibility())) return null;
+      const box=el.getBoundingClientRect();
+      return box.width && box.height && getComputedStyle(el).visibility === 'visible' ? box : null;
+    };
+    const overlaps = (a, b) => Math.min(a.right,b.right) - Math.max(a.left,b.left) > 1 && Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top) > 1;
+    const viewportAttached = el => {
+      for(let node=el;node;node=node.parentElement) if(getComputedStyle(node).position==='fixed' || (node.matches('[data-bottom-actions]') && getComputedStyle(node).position==='sticky'))return true;
+      return false;
+    };
+    document.querySelectorAll('.fantasy-chat-launcher-a').forEach(overlay => {
+      const box = visibleBox(overlay);
+      if (!box) return;
+      const rootStyle=getComputedStyle(document.documentElement), style=getComputedStyle(overlay);
+      const cssPixels=value=>parseFloat(value)*(value.trim().endsWith('rem')?parseFloat(rootStyle.fontSize):1);
+      const gap=cssPixels(rootStyle.getPropertyValue('--floating-control-gap')) || cssPixels(rootStyle.getPropertyValue('--space-4')) || 16;
+      const inset=cssPixels(rootStyle.getPropertyValue('--space-4')) || 16;
+      const nav=document.querySelector('.app-bottom-nav'), navBox=nav && visibleBox(nav);
+      const navHeight=navBox?.height ?? parseFloat(rootStyle.getPropertyValue('--bottom-nav-height'));
+      const right=document.documentElement.clientWidth-box.right, bottom=innerHeight-box.bottom;
+      const anchored=style.position==='fixed' && style.transform==='none' && Math.abs(parseFloat(style.right)-inset)<=1 && (!Number.isFinite(navHeight) || Math.abs(bottom-navHeight-gap)<=1);
+      results.push({rule:'chat-anchor',ok:anchored,selector:classNameOf(overlay),detail:`right ${px(right)}px; bottom ${px(bottom)}px; fixed above navigation`});
+      // Scrolling content passes behind a fixed launcher. Protect other fixed
+      // chrome, sticky actions, and the currently focused control instead.
+      const blocked = [...document.querySelectorAll('#main-content button, #main-content a[href], #main-content summary, #main-content input, #main-content textarea, #main-content [role="button"], #main-content [role="tab"], #main-content [data-bottom-actions], #main-content [data-float-avoid], #main-content .hub-alert, .site-alert-toast')]
+        .filter(el => !overlay.contains(el) && visibleBox(el) && (viewportAttached(el) || el===document.activeElement || el.contains(document.activeElement)) && overlaps(box, el.getBoundingClientRect()));
+      results.push({ rule:'overlay-clearance', ok:!blocked.length, selector:classNameOf(overlay), detail:blocked.length ? `obscures ${blocked.slice(0,3).map(el => (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0,50)).join('; ')}` : 'chat clears fixed actions and keyboard focus' });
+    });
+    const shell = document.querySelector('.app-with-bottom-nav'), nav = document.querySelector('.app-bottom-nav');
+    if (shell && nav && visibleBox(nav)) {
+      const clearance = parseFloat(getComputedStyle(shell).paddingBottom), height = nav.getBoundingClientRect().height;
+      results.push({ rule:'nav-clearance', ok:clearance >= height + 1, selector:'.app-with-bottom-nav', detail:`content clearance ${px(clearance)}px; navigation ${px(height)}px` });
+    }
+    document.querySelectorAll('[data-bottom-actions]').forEach(action => {
+      const box=visibleBox(action), position=getComputedStyle(action).position;
+      if (!box || !['fixed','sticky'].includes(position)) return;
+      const navBox=nav && visibleBox(nav), navTop=navBox?.top ?? innerHeight;
+      if (box.top < innerHeight && box.bottom > 0) results.push({rule:'action-nav-clearance',ok:box.bottom <= navTop+1,selector:classNameOf(action),detail:`action bottom ${px(box.bottom)}px; nav top ${px(navTop)}px`});
+      const owner=action.closest('[data-bottom-clearance]');
+      if (position==='fixed' && owner) {
+        const actual=parseFloat(getComputedStyle(owner).paddingBottom), required=innerHeight-box.top;
+        results.push({rule:'fixed-action-clearance',ok:actual >= required+1,selector:classNameOf(action),detail:`content clearance ${px(actual)}px; detached actions require ${px(required)}px`});
+      }
+    });
     return results;
   };
 }
@@ -1272,7 +1316,7 @@ export async function auditHighlightInsets(page) {
           && !/\/\s*0(?:\.0+)?\s*\)$/.test(style.backgroundColor));
     };
     const visible = el => {
-      if (!el.getClientRects().length || el.closest('[hidden], [inert], svg, canvas, [role="img"]')) return false;
+      if (!el.getClientRects().length || el.closest('[hidden], [inert], [aria-hidden="true"], svg, canvas, [role="img"]')) return false;
       const style = getComputedStyle(el);
       if (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0') return false;
       for (let parent=el.parentElement; parent; parent=parent.parentElement) {

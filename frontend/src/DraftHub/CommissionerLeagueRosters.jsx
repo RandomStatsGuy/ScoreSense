@@ -1529,7 +1529,7 @@ function CommissionerLeagueRostersView({ leagueId, season, workspace, hubContext
         </>
       )}
       {showsMoney && showPendingTray && (
-        <div className="hub-office-pending-tray" role="region" aria-label="Pending contract changes">
+        <div data-bottom-actions className="hub-office-pending-tray" role="region" aria-label="Pending contract changes">
           <p className="hub-office-pending-summary">{pendingTraySummary(pendingSummary)}</p>
           <div className="hub-office-pending-actions">
             <button
