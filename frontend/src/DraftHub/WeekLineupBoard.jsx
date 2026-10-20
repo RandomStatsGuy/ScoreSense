@@ -166,13 +166,13 @@ function SlateRow({
   const tone = highlighted && !decision
     ? "swap"
     : slotTone(slot, { decision, wide: false, injured, onBye });
-  const moveLabel = formatP50Move(movement?.p50_delta ?? movement?.delta_p50);
+  const moveLabel = onBye ? "" : formatP50Move(movement?.p50_delta ?? movement?.delta_p50);
   const label = empty
     ? `${slot.slot} slot, empty`
     : `${slot.slot} ${player.player_name || player.player_id}`;
-  const showVibe = showVibePts(player, vibePts);
+  const showVibe = !onBye && showVibePts(player, vibePts);
   const marks = [];
-  if (wide && !missing && player) {
+  if (wide && !missing && player && !onBye) {
     marks.push(`${fmtPts(player.p10)}–${fmtPts(player.p90)}`);
   }
   if (showVibe) marks.push(`${WEEK_BOARD_COPY.vibePts} ${fmtPts(vibePts)}`);
@@ -210,11 +210,11 @@ function SlateRow({
           <div className="hub-week-player-identity">{compact && <NflTeamMark team={player.team} />}<strong>{player.player_name || player.player_id}</strong></div>
           <span>{compact ? <>{decision && <em className="hub-wcc-sit-mark">{WEEK_BOARD_COPY.sitRole} · </em>}{[player.team, player.on_bye ? "BYE" : formatKickoffFact(player)].filter(Boolean).join(" · ")}</> : slatePlayerMeta(player)}{lockLabel ? ` · ${lockLabel}` : ""}</span>
           {compact && <PlayerFlags player={player} />}
-          {compact && wide && !missing && <span className="hub-wcc-range-mark" title={marks.join(" · ")}>{WEEK_BOARD_COPY.legendWide}</span>}
+          {compact && wide && !missing && !onBye && <span className="hub-wcc-range-mark" title={marks.join(" · ")}>{WEEK_BOARD_COPY.legendWide}</span>}
         </div>
       )}
       <div className={`hub-wcc-row-pts${missing ? " is-quiet" : ""}`}>
-        {metric ? <span title={`${metric.label} · ${metric.secondary}`}>{metric.value}<small>{metric.state === "pregame" ? "" : metric.secondary}</small></span> : empty || missing ? (
+        {onBye && (!metric || metric.state === "pregame") ? WEEK_BOARD_COPY.byeWeek : metric ? <span title={`${metric.label} · ${metric.secondary}`}>{metric.value}<small>{metric.state === "pregame" ? "" : metric.secondary}</small></span> : empty || missing ? (
           empty ? null : WEEK_BOARD_COPY.noProjection
         ) : (
           <>

@@ -1490,7 +1490,8 @@ def build_hub_live_week(
     except Exception:
         proj_index = {}
     if proj_index:
-        attach_matchup_analytics(matchup_payloads, proj_index)
+        from src.draft_hub.weekly_command_center import cached_bye_teams
+        attach_matchup_analytics(matchup_payloads, proj_index, bye_teams=cached_bye_teams(int(season_n), int(resolved_week)))
     for matchup in matchup_payloads:
         for team in matchup["teams"]:
             if scoring_run:

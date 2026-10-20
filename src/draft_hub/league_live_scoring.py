@@ -287,12 +287,14 @@ def win_probability(team_a: dict[str, Any], team_b: dict[str, Any]) -> float:
 def attach_matchup_analytics(
     matchup_payloads: list[dict[str, Any]],
     proj_index: dict[str, dict[str, Any]] | None,
+    *,
+    bye_teams: set[str] | None = None,
 ) -> None:
     """Per-starter projections, estimated finals, and win probability per matchup."""
     index = proj_index or {}
     # Sleeper no longer provides gsis_id for many current players. Reuse the
     # weekly board's guarded name/team resolver rather than guessing identities.
-    from src.draft_hub.weekly_command_center import _lookup_projection, name_key
+    from src.draft_hub.weekly_command_center import _lookup_projection, name_key, apply_bye_week_projections
     from src.draft_hub.roster_identity_match import roster_name_key
     from src.draft_hub.k_def_pool_cache import overlay_k_def_week_projections
     by_name_team, by_name, by_roster_name, seen = {}, {}, {}, set()
@@ -317,8 +319,15 @@ def attach_matchup_analytics(
                     {**starter, "player_name": starter.get("name")},
                     index, by_name_team, by_name, by_roster_name,
                 )
-                starter["proj"] = entry.get("p50") if entry else None
+                forecast = {**entry, "team": starter.get("team") or entry.get("team"),
+                            "on_bye": starter.get("on_bye") or entry.get("on_bye"),
+                            "opponent": starter.get("opponent") or entry.get("opponent")}
+                apply_bye_week_projections([forecast], bye_teams or set())
+                starter["proj"] = forecast.get("p50")
+                starter["on_bye"] = bool(forecast.get("on_bye"))
                 starter.pop("projection_source", None)
+                if starter["on_bye"]:
+                    starter["projection_source"] = "bye"
                 if starter["proj"] is None and starter.get("position") in {"K", "DEF"}:
                     specialist_cards.append({
                         "player_id": str(starter.get("sleeper_player_id") or starter.get("player_id") or "").removeprefix("sleeper-"),
@@ -551,7 +560,9 @@ def build_sleeper_live_week(
 
     # Game center analytics: starter projections from materialized weekly
     # artifacts (never live compute), estimated finals, and win probability.
-    attach_matchup_analytics(matchup_payloads, _load_projection_lookup(season, int(week)))
+    from src.draft_hub.weekly_command_center import cached_bye_teams
+    attach_matchup_analytics(matchup_payloads, _load_projection_lookup(season, int(week)),
+                             bye_teams=cached_bye_teams(season, int(week)))
 
     has_points = any(t["points"] > 0 for m in matchup_payloads for t in m["teams"])
     if preseason or (not has_points and status in ("pre_draft", "drafting")):
