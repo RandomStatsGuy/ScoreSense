@@ -506,9 +506,9 @@ export function buildFilterSearchParams({
   return params;
 }
 
-/** Filter writes for Fantasy destination switches. Opening Free agents without a focus extra clears a leftover `player` from Cut and open bid. */
+/** Free agents focus is explicit: ordinary navigation clears an old player or position deep link. */
 export function hubSubViewFilterUpdates(subView, extra) {
-  const updates = {};
+  const updates = subView === "available" ? { needPos: "" } : {};
   if (extra && typeof extra === "object") {
     if (subView === "roster" && extra.lineup != null) updates.lineup = extra.lineup ? "1" : "";
     if (Number.isInteger(Number(extra.week)) && Number(extra.week) >= 1 && Number(extra.week) <= 18) updates.week = Number(extra.week);
