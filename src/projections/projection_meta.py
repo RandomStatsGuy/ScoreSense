@@ -9,6 +9,7 @@ import pandas as pd
 
 from src.config import PROCESSED_DATA_DIR
 from src.core.projection_context import (
+    REGULAR_SEASON_MAX_WEEK,
     is_nfl_offseason,
     nfl_calendar_season,
     resolve_projection_context,
@@ -79,16 +80,21 @@ def get_projection_meta(position: str, data_dir: Path | None = None) -> dict:
 
     upcoming = upcoming_season(data_season)
     offseason = is_nfl_offseason()
-    preseason_mode = False
     if upcoming not in seasons:
         seasons = sorted(set(seasons + [upcoming]))
-        weeks_by_season[str(upcoming)] = regular_season_weeks(upcoming)
-        preseason_mode = True
+        # The future-season option does not require a published schedule.
+        weeks_by_season[str(upcoming)] = list(range(1, REGULAR_SEASON_MAX_WEEK + 1))
 
     teams = sorted(t for t in df["team"].dropna().unique().tolist() if t)
 
     default_season, default_week = resolve_projection_context(df)
-    preseason_mode = preseason_mode or not season_in_mlready(df, default_season)
+    preseason_mode = offseason or not season_in_mlready(df, default_season)
+    # Played weeks are historical observations; the current board also needs
+    # the upcoming regular-season slate and future forecast weeks as options.
+    weeks_by_season[str(default_season)] = sorted(
+        set(weeks_by_season.get(str(default_season), []))
+        | set(regular_season_weeks(default_season))
+    )
 
     result = {
         "position": position,

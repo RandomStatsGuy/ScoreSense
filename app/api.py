@@ -49,6 +49,7 @@ from app.auth import (
     google_configured,
     hub_auth_enabled,
     native_user_id_from_sub,
+    native_session_current,
     optional_user,
     patreon_authorize_url,
     patreon_configured,
@@ -59,6 +60,7 @@ from app.auth import (
     require_data_refresh,
     require_signups_open,
     is_admin_user,
+    is_guest_user,
     resend_verification_email,
     reset_password_with_token,
     resolve_native_user_id,
@@ -88,6 +90,7 @@ from src.jobs.accuracy_rebuild import (
 )
 from src.config import FRONTEND_DIST, FRONTEND_ASSET_ARCHIVE, TWA_PACKAGE_NAME, TWA_SHA256_FINGERPRINT
 from src.auth import user_store
+from src.core.projection_read_scope import anonymous_projection_read, projection_read_scope
 from src.integrations.sleeper import get_nfl_state, injured_players
 from src.integrations.injury_snapshot import injured_players_from_disk
 from src.integrations.injury_poll import (
@@ -215,14 +218,16 @@ class _ForecastPreparing(FileNotFoundError):
 
 @app.exception_handler(_ForecastPreparing)
 async def unavailable_forecast_snapshot(_request, exc):
-    return _projection_unavailable(exc.kind, exc.season, exc.week, None)
+    with projection_read_scope(anonymous=bool(getattr(_request.state, "projection_anonymous", False))):
+        return _projection_unavailable(exc.kind, exc.season, exc.week, None)
 
 
 @app.exception_handler(PoolSnapshotUnavailable)
 async def unavailable_pool_snapshot(_request, exc):
     from app.projection_recovery import queue_projection_recovery
     tasks = BackgroundTasks()
-    recovery = queue_projection_recovery(tasks, exc.season, 1, ["draft"])
+    with projection_read_scope(anonymous=bool(getattr(_request.state, "projection_anonymous", False))):
+        recovery = queue_projection_recovery(tasks, exc.season, 1, ["draft"])
     return JSONResponse(status_code=503, content={"detail": str(exc), "projection_recovery": recovery},
                         background=tasks, headers={"Retry-After": "60"})
 
@@ -394,10 +399,21 @@ def health() -> dict:
     }
 
 
-@app.get("/api/players/media")
+async def public_projection_read(request: Request):
+    """Identify an optional valid session and scope only anonymous read work."""
+    user = optional_user(request)
+    if is_guest_user(user):
+        user = None
+    if user and user.get("auth_type") == "native" and not native_session_current(user):
+        user = None
+    request.state.projection_anonymous = user is None
+    with projection_read_scope(anonymous=user is None):
+        yield user
+
+
+@app.get("/api/players/media", dependencies=[Depends(public_projection_read)])
 def players_media(
     ids: str = Query("", description="Comma-separated player_id values"),
-    _user=Depends(require_patron),
 ) -> dict:
     from src.draft_hub.draft_enrichment import build_player_media_batch
 
@@ -406,7 +422,7 @@ def players_media(
     return {"media": build_player_media_batch(hints)}
 
 
-@app.get("/api/player/{player_id}/explanation")
+@app.get("/api/player/{player_id}/explanation", dependencies=[Depends(public_projection_read)])
 def player_explanation_get(
     player_id: str,
     season: Optional[int] = None,
@@ -417,7 +433,6 @@ def player_explanation_get(
         False,
         description="Opt in to older media narrative when current week has none (SCORE-28)",
     ),
-    _user=Depends(require_patron),
 ) -> dict:
     """Structured \"Why this projection?\" panel — artifact signals + sentiment overlay."""
     from fastapi.encoders import jsonable_encoder
@@ -445,7 +460,7 @@ def player_explanation_get(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/player/{player_id}/context")
+@app.get("/api/player/{player_id}/context", dependencies=[Depends(public_projection_read)])
 def player_context_get(
     player_id: str,
     season: Optional[int] = None,
@@ -461,7 +476,6 @@ def player_context_get(
             "older aliases include_historical=true. Cached only — no live LLM/YouTube."
         ),
     ),
-    _user=Depends(require_patron),
 ) -> dict:
     """Full cached player-context detail (SCORE-23/30) — artifact only, zero live work."""
     from fastapi.encoders import jsonable_encoder
@@ -482,14 +496,13 @@ def player_context_get(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/player/{player_id}/latest")
+@app.get("/api/player/{player_id}/latest", dependencies=[Depends(public_projection_read)])
 def player_latest_get(
     player_id: str,
     season: Optional[int] = None,
     week: Optional[int] = None,
     player_name: Optional[str] = None,
     team: Optional[str] = None,
-    _user=Depends(require_patron),
 ) -> dict:
     """One this-week note. Locker / practice first; never 503s when context is cold."""
     from fastapi.encoders import jsonable_encoder
@@ -509,7 +522,7 @@ def player_latest_get(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/players/context")
+@app.get("/api/players/context", dependencies=[Depends(public_projection_read)])
 def players_context_list(
     season: Optional[int] = None,
     week: Optional[int] = None,
@@ -533,7 +546,6 @@ def players_context_list(
             "/api/player/{id}/context."
         ),
     ),
-    _user=Depends(require_patron),
 ) -> dict:
     """List/card variant of the cached player-context read model (compact by default)."""
     from fastapi.encoders import jsonable_encoder
@@ -574,7 +586,7 @@ async def players_context_refresh_status(job_id: str, _user=Depends(require_patr
     return status
 
 
-@app.get("/api/player/{player_id}/card")
+@app.get("/api/player/{player_id}/card", dependencies=[Depends(public_projection_read)])
 def player_card_get(
     player_id: str,
     background_tasks: BackgroundTasks,
@@ -587,7 +599,6 @@ def player_card_get(
         False,
         description="Opt in to older fantasy narrative when current week has none",
     ),
-    _user=Depends(require_patron),
 ) -> dict:
     from fastapi.encoders import jsonable_encoder
     from src.projections.player_card import build_player_card
@@ -986,7 +997,7 @@ def auth_delete_account(body: DeleteAccountRequest, request: Request, response: 
 @app.get("/api/auth/me")
 def auth_me(request: Request) -> dict:
     user = optional_user(request)
-    if user:
+    if user and not is_guest_user(user):
         return {
             "authenticated": True,
             "auth_required": auth_enabled(),
@@ -1021,8 +1032,8 @@ def nfl_state(_user=Depends(require_patron)) -> dict:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.get("/api/meta/projections/{position}")
-def projection_meta(position: str, _user=Depends(require_patron)) -> dict:
+@app.get("/api/meta/projections/{position}", dependencies=[Depends(public_projection_read)])
+def projection_meta(position: str) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
@@ -1037,7 +1048,7 @@ def injuries(
     team: Optional[str] = None,
     position: Optional[str] = None,
     background_tasks: BackgroundTasks = None,
-    _user=Depends(require_patron),
+    _user=Depends(public_projection_read),
 ) -> dict:
     """Serve cached Sleeper injuries (SCORE-33).
 
@@ -1047,7 +1058,8 @@ def injuries(
     try:
         from src.integrations.injury_timeline import attach_return_estimates
 
-        tick = maybe_tick_injury_poll(enqueue=True)
+        can_poll = not anonymous_projection_read()
+        tick = maybe_tick_injury_poll(enqueue=True) if can_poll else {}
         if tick.get("should_enqueue") and tick.get("tick") == "due":
             queue_injury_refresh(background_tasks, trigger="stale_while_revalidate")
 
@@ -1063,7 +1075,7 @@ def injuries(
             if allowed:
                 df = df[df["position"].isin(allowed)]
         players = attach_return_estimates(df.to_dict(orient="records"))
-        poll = get_injury_poll_status()
+        poll = get_injury_poll_status() if can_poll else {}
         return {
             "count": len(players),
             "players": players,
@@ -1214,8 +1226,8 @@ def injury_overlays_recompute(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/accuracy/season-long")
-def season_long_accuracy(position: Optional[str] = None, _user=Depends(require_patron)) -> dict:
+@app.get("/api/accuracy/season-long", dependencies=[Depends(public_projection_read)])
+def season_long_accuracy(position: Optional[str] = None) -> dict:
     report = load_season_long_report()
     if not report:
         raise HTTPException(
@@ -1230,8 +1242,8 @@ def season_long_accuracy(position: Optional[str] = None, _user=Depends(require_p
     return report
 
 
-@app.get("/api/accuracy")
-def accuracy_report(position: Optional[str] = None, _user=Depends(require_patron)) -> dict:
+@app.get("/api/accuracy", dependencies=[Depends(public_projection_read)])
+def accuracy_report(position: Optional[str] = None) -> dict:
     report = load_accuracy_report()
     if not report:
         raise HTTPException(
@@ -1311,8 +1323,8 @@ async def rebuild_accuracy(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@app.get("/api/upside")
-def upside_report(position: Optional[str] = None, _user=Depends(require_patron)) -> dict:
+@app.get("/api/upside", dependencies=[Depends(public_projection_read)])
+def upside_report(position: Optional[str] = None) -> dict:
     report = load_upside_report()
     if not report:
         raise HTTPException(
@@ -1346,10 +1358,13 @@ async def rebuild_upside(_user=Depends(require_admin)) -> dict:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@app.get("/api/refresh/status")
-def refresh_status(_user=Depends(require_patron)) -> dict:
+@app.get("/api/refresh/status", dependencies=[Depends(public_projection_read)])
+def refresh_status() -> dict:
+    status = public_refresh_status()
+    if anonymous_projection_read():
+        return {key: status[key] for key in ("status", "completed_at", "last_completed_at") if key in status}
     from src.projections.automatic_status import automatic_refresh_status
-    return {**public_refresh_status(), "automatic": automatic_refresh_status()}
+    return {**status, "automatic": automatic_refresh_status()}
 
 
 @app.post("/api/refresh")
@@ -1655,13 +1670,12 @@ def predict(request: ProjectionRequest, background_tasks: BackgroundTasks = None
     )
 
 
-@app.get("/api/predict/compare")
+@app.get("/api/predict/compare", dependencies=[Depends(public_projection_read)])
 def predict_compare(
     ids: str = Query(..., description="Comma-separated player_id values (2–4)"),
     season: Optional[int] = None,
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
-    _user=Depends(require_patron),
 ) -> dict:
     """Start/sit comparison for 2–4 players from weekly projection artifacts."""
     player_ids = parse_compare_player_ids(ids)
@@ -1685,7 +1699,7 @@ def predict_compare(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/predict/{position}/changes")
+@app.get("/api/predict/{position}/changes", dependencies=[Depends(public_projection_read)])
 def predict_changes_get(
     position: str,
     season: Optional[int] = None,
@@ -1697,7 +1711,6 @@ def predict_changes_get(
         None,
         description="Optional comma-separated player_id filter",
     ),
-    _user=Depends(require_patron),
 ) -> dict:
     """Biggest movers / What Changed — serve-only projection movement artifact."""
     position = position.lower()
@@ -1732,7 +1745,7 @@ def predict_changes_get(
     )
 
 
-@app.get("/api/predict/{position}")
+@app.get("/api/predict/{position}", dependencies=[Depends(public_projection_read)])
 def predict_get(
     position: str,
     season: Optional[int] = None,
@@ -1743,7 +1756,6 @@ def predict_get(
         description="Optional comma-separated player_id filter (SCORE-4)",
     ),
     background_tasks: BackgroundTasks = None,
-    _user=Depends(require_patron),
 ) -> dict:
     return _predict_response(
         position,
@@ -1798,7 +1810,7 @@ def _resolve_fantasy_narrative_context(
     return resolve_projection_context(df, season, week)
 
 
-@app.get("/api/fantasy-narrative/{position}/weekly")
+@app.get("/api/fantasy-narrative/{position}/weekly", dependencies=[Depends(public_projection_read)])
 def fantasy_narrative_weekly_get(
     position: str,
     season: Optional[int] = None,
@@ -1814,7 +1826,6 @@ def fantasy_narrative_weekly_get(
             "Cached features only."
         ),
     ),
-    _user=Depends(require_patron),
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
@@ -1832,12 +1843,11 @@ def fantasy_narrative_weekly_get(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/fantasy-narrative/{position}/season")
+@app.get("/api/fantasy-narrative/{position}/season", dependencies=[Depends(public_projection_read)])
 def fantasy_narrative_season_get(
     position: str,
     season: Optional[int] = None,
     week: Optional[int] = None,
-    _user=Depends(require_patron),
 ) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
@@ -1849,8 +1859,8 @@ def fantasy_narrative_season_get(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/meta/draft/{position}")
-def draft_meta(position: str, _user=Depends(require_patron)) -> dict:
+@app.get("/api/meta/draft/{position}", dependencies=[Depends(public_projection_read)])
+def draft_meta(position: str) -> dict:
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise HTTPException(status_code=400, detail="position must be qb, rb, or wr")
@@ -1914,24 +1924,22 @@ def _draft_response(position: str, season: Optional[int] = None, background_task
     }
 
 
-@app.get("/api/draft/{position}")
+@app.get("/api/draft/{position}", dependencies=[Depends(public_projection_read)])
 def draft_get(
     position: str,
     season: Optional[int] = None,
     background_tasks: BackgroundTasks = None,
-    _user=Depends(require_patron),
 ) -> dict:
     return _draft_response(position, season, background_tasks)
 
 
-@app.get("/api/ros/{position}")
+@app.get("/api/ros/{position}", dependencies=[Depends(public_projection_read)])
 def ros_get(
     position: str,
     season: Optional[int] = None,
     week: Optional[int] = None,
     apply_injury_adjustments: bool = True,
     background_tasks: BackgroundTasks = None,
-    _user=Depends(require_patron),
 ) -> dict:
     return _ros_response(position, season, week, apply_injury_adjustments, background_tasks)
 

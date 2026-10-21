@@ -164,6 +164,9 @@ test("season board filters use starter cutoff and upside spread", () => {
 test("this-week inspector copy is locker plus delta, not a show recap", () => {
   assert.equal(CONTEXT_COPY.title, "This week");
   assert.match(CONTEXT_COPY.support, /locker note/i);
+  assert.match(CONTEXT_COPY.olderMediaEmpty, /older commentary/i);
+  assert.doesNotMatch(CONTEXT_COPY.olderMediaEmpty, /this week|current|locker/i);
+  assert.match(CONTEXT_COPY.mediaEmpty, /this week/i);
   assert.doesNotMatch(JSON.stringify(CONTEXT_COPY), /YouTube|Draft Hub|Submit/i);
 });
 
@@ -369,4 +372,12 @@ test("player card read identity tracks server scope while ignoring preview/label
   const base={playerId:"one",season:2026,week:6,scope:"weekly",position:"qb"};
   assert.equal(key(base),key({...base,playerName:"Mapped name",preview:{p50:0},applyInjuryAdjustments:true}));
   for (const patch of [{playerId:"two"},{season:2025},{week:7},{scope:"season"},{position:"wr"},{applyInjuryAdjustments:false}]) assert.notEqual(key(base),key({...base,...patch}));
+});
+
+test("public read-only context status never offers a protected rebuild", () => {
+  assert.equal(staleRefreshLabel({ stale: true, canRefresh: false }), "Stale");
+  assert.equal(staleRefreshLabel({ unavailable: true, canRefresh: false }), "Notes missing");
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  assert.match(staleRefreshLabel({ stale: true, canRefresh: false, updatedAt: hourAgo }), /^Stale · /);
+  assert.equal(staleRefreshLabel({ stale: true }), "Stale · Refresh");
 });

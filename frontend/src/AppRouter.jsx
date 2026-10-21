@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import App from "./App";
+const App = lazy(() => import("./App"));
+const LandingPage = lazy(() => import("./LandingPage"));
 const SharedTeamRoom = lazy(() => import("./DraftHub/SharedTeamRoom"));
 import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
 const AccountSettingsPage = lazy(() => import("./AccountSettingsPage"));
@@ -15,6 +16,8 @@ const SmsAlertsPage = lazy(() => import("./legal/SmsAlertsPage"));
 const TermsPage = lazy(() => import("./legal/TermsPage"));
 import { joinLandingPath, joinLandingSearch, withLocationSearch } from "./redirectSearch";
 import { HUB_SLUG_TO_ID } from "./routes";
+import { useAuth } from "./AuthContext";
+import { publicRootRedirect } from "./publicEntry";
 
 const LobbyJoinPage = lazy(() => import("./DraftHub/LobbyJoinPage"));
 
@@ -44,11 +47,25 @@ function RootRedirect() {
   );
 }
 
+function RootEntry() {
+  const location = useLocation();
+  const { ready, authenticated } = useAuth();
+  const redirect = publicRootRedirect({
+    search: location.search,
+    hash: location.hash,
+    ready,
+    authenticated,
+  });
+  return redirect ? <Navigate to={redirect} replace /> : <LandingPage />;
+}
+
 export default function AppRouter() {
   return (
     <Suspense fallback={<div className="app"><HubLoadingSkeleton rows={4} /></div>}>
     <Routes>
-      <Route path="/" element={<RootRedirect />} />
+      <Route path="/" element={<RootEntry />} />
+      <Route path="/projections" element={<LandingPage />} />
+      <Route path="/fantasy" element={<LandingPage />} />
       <Route path="/team-room/:token" element={<Suspense fallback={<p className="chart-note">Opening the team room…</p>}><SharedTeamRoom /></Suspense>} />
       <Route path="/login" element={<AuthSessionPage mode="login" />} />
       <Route path="/register" element={<AuthSessionPage mode="register" />} />
@@ -96,7 +113,7 @@ export default function AppRouter() {
       <Route path="/hub/:tab" element={<HubTabOrHome />} />
       <Route path="/hub" element={<Navigate to="/hub/home" replace />} />
       <Route path="/tools/:tab" element={<App />} />
-      <Route path="/tools" element={<Navigate to="/tools/dfs" replace />} />
+      <Route path="/tools" element={<LandingPage />} />
       <Route path="/model" element={<App />} />
       <Route path="/admin/:adminTab?" element={<App />} />
       <Route path="*" element={<RootRedirect />} />

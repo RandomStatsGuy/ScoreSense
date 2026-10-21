@@ -45,7 +45,7 @@ export default function WeeklyStickyBar({
       <div className="weekly-sticky-bar-meta">
         <span className="weekly-sticky-count">{resultLabel}</span>
         <span className="weekly-sticky-range">{BOARD_COPY.floorCeiling}</span>
-        {stale ? (
+        {stale && onRefresh ? (
           <button
             type="button"
             className="weekly-sticky-stale"
@@ -54,7 +54,7 @@ export default function WeeklyStickyBar({
           >
             {staleLabel || BOARD_COPY.staleRefresh}
           </button>
-        ) : null}
+        ) : stale ? <span className="weekly-sticky-stale" role="status">{staleLabel || BOARD_COPY.stale}</span> : null}
       </div>
     </div>
   );

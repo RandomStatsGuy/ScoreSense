@@ -2,17 +2,33 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import lru_cache, wraps
 from pathlib import Path
 from uuid import uuid4
 
 import pandas as pd
 
 from src.config import CACHE_DIR, DATA_DIR
+from src.core.projection_read_scope import anonymous_projection_read
 from src.core.projection_context import REGULAR_SEASON_MAX_WEEK
 from src.core.team_codes import normalize_team_for_match, normalize_team_to_mlready, normalize_team_to_schedule
 
 SCHEDULE_CACHE = CACHE_DIR / "nfl_schedules.parquet"
+
+
+def _cache_account_reads(maxsize):
+    """Public cache misses must not become later account/job schedule answers."""
+    def decorate(function):
+        cached = lru_cache(maxsize=maxsize)(function)
+        @wraps(function)
+        def read(*args, **kwargs):
+            if anonymous_projection_read():
+                return function(*args, **kwargs)
+            return cached(*args, **kwargs)
+        read.cache_clear = cached.cache_clear
+        read.cache_info = cached.cache_info
+        return read
+    return decorate
 
 
 @lru_cache(maxsize=2)
@@ -63,6 +79,10 @@ def _read_schedule_snapshot() -> pd.DataFrame:
 
 def _load_schedules(seasons: list[int] | None = None, *, allow_fetch: bool = True) -> pd.DataFrame:
     cached = _read_schedule_snapshot()
+    if anonymous_projection_read():
+        if not cached.empty and "season" in cached:
+            return cached.copy() if not seasons else cached[cached["season"].isin(seasons)].copy()
+        return pd.DataFrame(columns=["season", "week", "home_team", "away_team", "gameday", "gametime", "game_type", "spread_line", "total_line"])
     requested = list(dict.fromkeys(int(s) for s in seasons)) if seasons else None
     if not cached.empty and "season" in cached:
         available = cached if requested is None else cached[cached["season"].isin(requested)]
@@ -153,7 +173,7 @@ def attach_schedule_context(roster: pd.DataFrame, season: int, week: int) -> pd.
     return out
 
 
-@lru_cache(maxsize=128)
+@_cache_account_reads(maxsize=128)
 def teams_playing_week(season: int, week: int) -> frozenset[str]:
     schedules = _load_schedules([season])
     reg = schedules[
@@ -202,7 +222,7 @@ def teams_on_bye(season: int, week: int, *, allow_fetch: bool = True) -> set[str
     return all_teams - set(playing)
 
 
-@lru_cache(maxsize=8)
+@_cache_account_reads(maxsize=8)
 def team_bye_weeks(season: int) -> dict[str, int]:
     """Map schedule team code -> bye week for one season (do not mutate)."""
     byes: dict[str, int] = {}
@@ -310,7 +330,7 @@ def map_publish_time_to_week(team: str, published_at: pd.Timestamp, season: int)
     return None
 
 
-@lru_cache(maxsize=64)
+@_cache_account_reads(maxsize=64)
 def _league_week_windows(season: int) -> tuple[tuple[int, pd.Timestamp, pd.Timestamp], ...]:
     """Per-week [start, end) windows for league-wide fantasy content (Tue before -> last kickoff)."""
     schedules = _load_schedules([season])

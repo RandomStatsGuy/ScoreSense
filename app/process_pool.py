@@ -16,6 +16,7 @@ from typing import Callable, TypeVar
 from threading import Lock
 
 from src.ops.job_diagnostics import execute_job, future_observed, queue_job
+from src.core.projection_read_scope import initialize_projection_worker
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def _cpu_finished(future):
 def init_process_executor(max_workers: int = 1) -> ProcessPoolExecutor:
     global _executor
     if _executor is None:
-        _executor = ProcessPoolExecutor(max_workers=max_workers, mp_context=_WORKER_CONTEXT)
+        _executor = ProcessPoolExecutor(max_workers=max_workers, mp_context=_WORKER_CONTEXT, initializer=initialize_projection_worker)
     return _executor
 
 
@@ -69,7 +70,7 @@ def get_process_executor() -> ProcessPoolExecutor:
 def get_live_executor() -> ProcessPoolExecutor:
     global _live_executor
     if _live_executor is None:
-        _live_executor = ProcessPoolExecutor(max_workers=1, mp_context=_WORKER_CONTEXT)
+        _live_executor = ProcessPoolExecutor(max_workers=1, mp_context=_WORKER_CONTEXT, initializer=initialize_projection_worker)
     return _live_executor
 
 

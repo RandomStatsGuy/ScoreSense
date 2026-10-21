@@ -12,6 +12,8 @@ import {
 import { isLeavingContractsPath } from "./DraftHub/officeContractsPresentation";
 import { allowOfficeNavigation } from "./DraftHub/officeUnsavedGuard";
 import { allowUnsavedNavigation } from "./unsavedNavigation";
+import { useAuth } from "./AuthContext";
+import { publicSectionPath } from "./publicEntry";
 import {
   destinationForSection,
   rememberDestination,
@@ -22,6 +24,7 @@ export default function useAppNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { authenticated } = useAuth();
 
   const route = useMemo(
     () => parseAppPath(location.pathname) || {
@@ -87,8 +90,21 @@ export default function useAppNavigation() {
     [navigate, route, location.search, searchParams, location.pathname],
   );
 
+  const pathForSection = useCallback(
+    (section) => publicSectionPath(section, { authenticated, currentView: route.view }) || buildAppPath({
+      view: section,
+      ...destinationForSection(section, { current: route }),
+    }),
+    [authenticated, route],
+  );
+
   const goToSection = useCallback(
-    (section) => {
+    async (section) => {
+      const publicPath = publicSectionPath(section, { authenticated, currentView: route.view });
+      if (publicPath) {
+        if (await allowUnsavedNavigation(publicPath)) navigate(publicPath);
+        return;
+      }
       if (section === route.view) {
         if (typeof window !== "undefined") {
           window.dispatchEvent(reopenDestinationEvent(section));
@@ -100,7 +116,7 @@ export default function useAppNavigation() {
         ...destinationForSection(section, { current: route }),
       });
     },
-    [navigateTo, route],
+    [authenticated, navigate, navigateTo, route],
   );
 
   const setProjectionsTab = useCallback(
@@ -224,6 +240,7 @@ export default function useAppNavigation() {
     filtersFromUrl,
     searchParams,
     goToSection,
+    pathForSection,
     setProjectionsTab,
     setProjectionsMobilePanel,
     setSeasonMode,

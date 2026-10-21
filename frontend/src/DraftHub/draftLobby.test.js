@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   altLockSummary,
+  canResumeLobbyRoom,
   lobbyAbsoluteUrl,
   lobbyChipLabel,
   lobbyChipTone,
@@ -13,6 +14,14 @@ import {
   slotHint,
   slotLabel,
 } from "./draftLobby.js";
+
+test("lobby previews cannot resume a seat without an account", () => {
+  const member = { team_id: "fixture-team", is_guest: false };
+  assert.equal(canResumeLobbyRoom({ viewer: member }), false);
+  assert.equal(canResumeLobbyRoom({ authenticated: true, viewer: member }), true);
+  assert.equal(canResumeLobbyRoom({ authenticated: true, viewer: { ...member, is_guest: true } }), false);
+  assert.equal(canResumeLobbyRoom({ authenticated: true, viewer: {} }), false);
+});
 
 test("lobbyPath uppercases the room code", () => {
   assert.equal(lobbyPath("ab12cd"), "/lobby/AB12CD");

@@ -11,6 +11,8 @@ from typing import Any
 
 import requests
 
+from src.core.projection_read_scope import anonymous_projection_read
+
 from src.config import (
     BEAT_DIGEST_CACHE_VERSION,
     CACHE_DIR,
@@ -350,7 +352,7 @@ def _llm_beat_digest(
     chapter_notes: str = "",
     top_sentence: str = "",
 ) -> str | None:
-    if not BEAT_DIGEST_LLM_ENABLED:
+    if anonymous_projection_read() or not BEAT_DIGEST_LLM_ENABLED:
         return None
     api_key = OPENAI_API_KEY.strip()
     brief = snippet_to_brief(
@@ -458,7 +460,8 @@ def beat_digest_for_player(
             source_labels=sources,
         )
 
-    _cache_set(cache_key, digest)
+    if not anonymous_projection_read():
+        _cache_set(cache_key, digest)
     if return_meta:
         return {"beat_digest": digest, "beat_digest_source": source}
     return digest

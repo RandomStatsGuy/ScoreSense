@@ -27,8 +27,8 @@ createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <FantasyPerformanceListener />
-      <AnalyticsListener />
       <PageRecoveryBoundary><AuthGate>
+        <AnalyticsListener />
         <AppearanceProvider><AppAppearanceLayer><AppRouter /></AppAppearanceLayer></AppearanceProvider>
       </AuthGate></PageRecoveryBoundary>
     </BrowserRouter>

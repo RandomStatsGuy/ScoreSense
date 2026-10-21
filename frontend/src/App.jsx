@@ -94,8 +94,6 @@ import {
   defaultSeasonMode,
 } from "./appNavigation";
 import { pageTitleForPath } from "./analytics";
-import { buildAppPath } from "./routes";
-import { destinationForSection } from "./lastDestinations";
 import { apiFetch } from "./auth";
 import { loadAccuracyReports } from "./accuracyReports";
 import { isAbortError } from "./fetchAbort";
@@ -147,6 +145,7 @@ export default function App() {
     adminTab,
     filtersFromUrl,
     goToSection,
+    pathForSection,
     setProjectionsTab,
     setProjectionsMobilePanel,
     setSeasonMode,
@@ -289,7 +288,7 @@ export default function App() {
     const targetSeason = override?.season ?? season;
     const targetWeek = override?.week ?? week;
     const meta = override?.projMeta ?? projMetaRef.current;
-    if (targetSeason == null || targetWeek == null) return;
+    if (targetSeason == null || targetWeek == null || meta == null) return;
     const live =
       meta != null && targetSeason === meta.default_season && targetWeek === meta.default_week;
     setProjectionsLoading(true);
@@ -346,7 +345,7 @@ export default function App() {
     } finally {
       setProjectionsLoading(false);
     }
-  }, [modelPosition, season, week]);
+  }, [modelPosition, season, week, projMeta]);
 
   const fetchSentiment = useCallback(async (signal, override = null) => {
     const targetSeason = override?.season ?? season;
@@ -428,6 +427,7 @@ export default function App() {
   const fetchRos = useCallback(async (signal) => {
     if (rosSeason == null || rosFromWeek == null) return;
     const meta = projMetaRef.current;
+    if (meta == null) return;
     const gen = ++rosFetchGen.current;
     setRosLoading(true);
     setError("");
@@ -456,7 +456,7 @@ export default function App() {
         setRosLoading(false);
       }
     }
-  }, [modelPosition, rosSeason, rosFromWeek]);
+  }, [modelPosition, rosSeason, rosFromWeek, projMeta]);
 
   const fetchAccuracy = useCallback(async () => {
     setAccuracyLoading(true);
@@ -1053,6 +1053,25 @@ export default function App() {
     [syncFiltersToUrl],
   );
 
+  const handleWeeklySignal = useCallback((signal) => {
+    if (signal.id === "attention") {
+      handleMovementFilterChange("attention");
+      return;
+    }
+    if (!signal.row?.Player) return;
+    const search = searchQuery === signal.row.Player ? "" : signal.row.Player;
+    setMovementFilter("all");
+    setSearchQuery(search);
+    syncFiltersToUrl({ movementFilter: "all", search });
+  }, [handleMovementFilterChange, searchQuery, syncFiltersToUrl]);
+
+  const handleSeasonSignal = useCallback((signal) => {
+    if (!signal.row?.Player) return;
+    const search = searchQuery === signal.row.Player ? "" : signal.row.Player;
+    setSearchQuery(search);
+    syncFiltersToUrl({ search });
+  }, [searchQuery, syncFiltersToUrl]);
+
   const urlFiltersBootstrapped = useRef(false);
   useEffect(() => {
     if (!projMeta || urlFiltersBootstrapped.current) return;
@@ -1108,7 +1127,7 @@ export default function App() {
 
   const hubNeedsSignIn = hubAuthRequired !== false && !authenticated;
   const isAdmin = Boolean(user?.is_admin);
-  const showDataRefresh = isProjectionsDataView && !isWeeklyProjections;
+  const showDataRefresh = authenticated && isProjectionsDataView && !isWeeklyProjections;
   const dataRefreshLoading = pipelineRefreshing || refreshStatus?.status === "running" || (isSeasonPreseason
     ? draftLoading
     : isWeeklyProjections
@@ -1118,6 +1137,7 @@ export default function App() {
         : loading);
   const weeklyNeedsRefresh = weeklyContextNeedsRefresh(weeklyContextMeta || {});
   const weeklyStaleLabel = staleRefreshLabel({
+    canRefresh: authenticated,
     stale: Boolean(weeklyContextMeta?.stale),
     unavailable: Boolean(weeklyContextMeta?.unavailable),
     updatedAt: weeklyContextMeta?.updatedAt || successfulRefreshRevision(refreshStatus),
@@ -1129,20 +1149,6 @@ export default function App() {
     goToSection("hub");
   }, [goToSection]);
 
-  const pathForSection = useCallback((id) => buildAppPath({
-    view: id,
-    ...destinationForSection(id, {
-      current: {
-        view,
-        hubSubView,
-        projectionsTab,
-        seasonMode,
-        toolsTab,
-        officeTab,
-        insightTab,
-      },
-    }),
-  }), [hubSubView, insightTab, officeTab, projectionsTab, seasonMode, toolsTab, view]);
 
   useEffect(() => {
     const onReopen = (event) => {
@@ -1445,7 +1451,7 @@ export default function App() {
       resetKey={`${projectionsTab}:${seasonMode}:${position}`}
     >
     <LeagueChromeProvider>
-    <CommunicationProvider hubContext={hubContext} enabled={authReady && (!hubAuthRequired || authenticated)} identity={user?.sub || user?.id || "dev"}>
+    <CommunicationProvider hubContext={hubContext} enabled={authReady && authenticated} identity={user?.sub || user?.id || "dev"}>
     <MobileShell
       section={view}
       className={view === "hub" && ["home", "week", "game", "roster", "available", "trades", "planner", "insights", "vibes"].includes(hubSubView) ? "app--compact-league" : ""}
@@ -1646,7 +1652,7 @@ export default function App() {
             filterActive={weeklyFilterChips.length > 0}
             stale={weeklyNeedsRefresh}
             staleLabel={weeklyStaleLabel}
-            onRefresh={triggerWeeklyContextRefresh}
+            onRefresh={authenticated ? triggerWeeklyContextRefresh : undefined}
             refreshing={contextRefreshing}
           />
         )}
@@ -1748,13 +1754,7 @@ export default function App() {
                   applyInjuryAdjustments: isLiveContext,
                   scope: "weekly",
                 }}
-                onActivate={(signal) => {
-                  if (signal.id === "attention") handleMovementFilterChange("attention");
-                  else if (signal.row?.Player) {
-                    handleMovementFilterChange("all");
-                    setSearchQuery(current => current === signal.row.Player ? "" : signal.row.Player);
-                  }
-                }}
+                onActivate={handleWeeklySignal}
               />
             ) : null}
             <section className={`panel wide panel-projections proj-board-surface projections-mobile-panel${projectionsMobilePanel === "projections" ? " is-mobile-active" : ""}`}>
@@ -1769,13 +1769,7 @@ export default function App() {
                       applyInjuryAdjustments: isLiveContext,
                       scope: "weekly",
                     }}
-                    onActivate={(signal) => {
-                      if (signal.id === "attention") handleMovementFilterChange("attention");
-                  else if (signal.row?.Player) {
-                    handleMovementFilterChange("all");
-                    setSearchQuery(current => current === signal.row.Player ? "" : signal.row.Player);
-                  }
-                    }}
+                    onActivate={handleWeeklySignal}
                   />
               ) : null}
               {!isLiveContext && projMeta && !meta?.preseason_mode && (
@@ -1818,7 +1812,7 @@ export default function App() {
                 onRemoveCompare={handleRemoveComparePlayer}
                 compareSelectionMeta={compareSelectionMeta}
                 hideMovementFilters
-                onRefreshData={triggerWeeklyContextRefresh}
+                onRefreshData={authenticated ? triggerWeeklyContextRefresh : undefined}
                 dataRefreshLoading={contextRefreshing}
                 contextReloadToken={contextReloadToken}
                 onContextMeta={setWeeklyContextMeta}
@@ -1935,7 +1929,7 @@ export default function App() {
           <ProjectionBoardSignals
             signals={seasonSignals}
             swipe={mobileLayout}
-            onActivate={signal => { if (signal.row?.Player) setSearchQuery(current => current === signal.row.Player ? "" : signal.row.Player); }}
+            onActivate={handleSeasonSignal}
             playerParams={{
               position,
               season: isSeasonPreseason ? draftSeason : (rosSeason ?? season),

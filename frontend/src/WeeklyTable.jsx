@@ -352,6 +352,7 @@ export default function WeeklyTable({
             ) : (
               <span className="table-meta table-meta-context-stale" role="status">
                 {staleRefreshLabel({
+                  canRefresh: false,
                   stale: Boolean(playersContext.meta?.stale),
                   unavailable: Boolean(playersContext.unavailable),
                   updatedAt: playersContext.meta?.updated_at,

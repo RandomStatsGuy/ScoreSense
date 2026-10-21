@@ -26,6 +26,7 @@ LIVE_MEMBERS_ONLY_MESSAGE = (
     "This live draft is for league members. "
     "Ask your commissioner for a league invite or room code first."
 )
+ACCOUNT_REQUIRED_MESSAGE = "Sign in or create an account to join a practice draft."
 
 
 def build_lobby_url(room_code: str) -> str:
@@ -171,15 +172,14 @@ def join_lobby(
     *,
     user: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Seat a practice guest, or let a live-league member re-enter the room."""
-    from app.auth import create_guest_access_token, is_guest_user
+    """Seat an account in practice, or re-enter a live room as a league member."""
+    from app.auth import is_guest_user
     from src.draft_hub.storage import user_sub_from_patron
 
     league = storage.get_league_by_room_code(room_code)
     if not league:
         raise ValueError("Lobby not found")
     name = clean_display_name(display_name)
-    guest_token = None
     if is_live_league(league):
         if not user or is_guest_user(user):
             raise ValueError(LIVE_MEMBERS_ONLY_MESSAGE)
@@ -199,33 +199,14 @@ def join_lobby(
             "lobby": preview,
             "state": get_room_state(league["id"], sub),
         }
-    if user and is_guest_user(user) and str(user.get("league_id") or "") == str(league["id"]):
-        sub = str(user.get("sub") or "")
-        team = _claim_or_create_seat(league, sub, name)
-        guest_id = sub.split(":", 1)[1] if sub.startswith(storage.GUEST_SUB_PREFIX) else None
-        guest_token, sub = create_guest_access_token(
-            league_id=str(league["id"]),
-            team_id=str(team["id"]),
-            name=name,
-            guest_id=guest_id,
-        )
-    elif user and not is_guest_user(user):
-        sub = user_sub_from_patron(user)
-        team = _claim_or_create_seat(league, sub, name)
-    else:
-        guest_id = str(uuid.uuid4())
-        sub = f"{storage.GUEST_SUB_PREFIX}{guest_id}"
-        team = _claim_or_create_seat(league, sub, name)
-        guest_token, sub = create_guest_access_token(
-            league_id=str(league["id"]),
-            team_id=str(team["id"]),
-            name=name,
-            guest_id=guest_id,
-        )
+    if not user or is_guest_user(user):
+        raise ValueError(ACCOUNT_REQUIRED_MESSAGE)
+    sub = user_sub_from_patron(user)
+    team = _claim_or_create_seat(league, sub, name)
     preview = build_lobby_preview(str(league.get("room_code") or room_code))
     return {
-        "token": guest_token,
-        "auth_type": "guest" if guest_token else (user or {}).get("auth_type") or "native",
+        "token": None,
+        "auth_type": user.get("auth_type") or "native",
         "league_id": league["id"],
         "room_code": league.get("room_code"),
         "team": team,

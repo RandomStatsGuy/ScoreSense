@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   forgotPassword,
@@ -10,8 +10,8 @@ import {
   setToken,
 } from "./auth";
 import { useAuth } from "./AuthContext";
-import { AUTH_COPY, authOauthNext } from "./authPresentation";
-import LegalLinks, { TermsCheckbox } from "./LegalLinks";
+import { AUTH_COPY, authModeHref, authOauthNext, rememberLandingAuthIntent } from "./authPresentation";
+import LegalLinks, { LegalAnchor, TermsCheckbox } from "./LegalLinks";
 
 function GoogleMark() {
   return (
@@ -24,7 +24,7 @@ function GoogleMark() {
   );
 }
 
-function SocialOptions({ oauthNext, onError, showGoogle, showPatreon }) {
+function SocialOptions({ oauthNext, onError, showGoogle, showPatreon, companion = false, termsUrl, privacyUrl }) {
   const startGoogle = () => {
     loginWithGoogle(oauthNext).catch((e) => onError?.(e.message || AUTH_COPY.googleUnavailable));
   };
@@ -49,12 +49,17 @@ function SocialOptions({ oauthNext, onError, showGoogle, showPatreon }) {
           <p className="chart-note account-auth-patreon-note">{AUTH_COPY.patreonNote}</p>
         </>
       ) : null}
-      <p className="chart-note account-auth-social-terms">{AUTH_COPY.socialTerms}</p>
+      {companion ? (
+        <p className="account-auth-social-consent">
+          {AUTH_COPY.companion.socialConsent}{" "}<LegalAnchor href={termsUrl || "/terms"}>{AUTH_COPY.companion.terms}</LegalAnchor>{" "}
+          {AUTH_COPY.companion.and}{" "}<LegalAnchor href={privacyUrl || "/privacy"}>{AUTH_COPY.companion.privacy}</LegalAnchor>.
+        </p>
+      ) : <p className="chart-note account-auth-social-terms">{AUTH_COPY.socialTerms}</p>}
     </div>
   );
 }
 
-function ModeSwitch({ mode, compact, nextPath, onMode }) {
+function ModeSwitch({ mode, compact, nextPath, onMode, sessionContext }) {
   const copy = mode === "register" ? AUTH_COPY.register : AUTH_COPY.login;
   const other = mode === "login" ? "register" : "login";
   if (compact) {
@@ -67,9 +72,7 @@ function ModeSwitch({ mode, compact, nextPath, onMode }) {
       </p>
     );
   }
-  const href = other === "register"
-    ? `/register?next=${encodeURIComponent(nextPath)}`
-    : `/login?next=${encodeURIComponent(nextPath)}`;
+  const href = authModeHref(other, nextPath, sessionContext);
   return (
     <p className="account-auth-switch">
       {copy.switchPrompt}{" "}
@@ -93,9 +96,11 @@ export default function AccountAuth({
   googleConfigured: googleProp,
   patreonNext,
   nextPath,
+  sessionContext,
 }) {
   const auth = useAuth();
-  const session = layout === "session" || (!compact && !title);
+  const companion = layout === "companion";
+  const session = companion || layout === "session" || (!compact && !title);
   const patreonConfigured = patreonProp ?? auth.patreonConfigured;
   const googleConfigured = googleProp ?? auth.googleConfigured;
   const [mode, setMode] = useState(initialMode);
@@ -106,6 +111,13 @@ export default function AccountAuth({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailExpanded, setEmailExpanded] = useState(!googleConfigured);
+  const passwordId = useId();
+
+  useEffect(() => {
+    if (companion) setEmailExpanded(!googleConfigured);
+  }, [companion, googleConfigured]);
 
   useEffect(() => {
     if (defaultEmail) setEmail(defaultEmail);
@@ -115,6 +127,7 @@ export default function AccountAuth({
     setMode(initialMode);
     setError("");
     setInfo("");
+    setShowPassword(false);
   }, [initialMode]);
 
   const oauthNext = authOauthNext(
@@ -139,6 +152,9 @@ export default function AccountAuth({
           ? await registerAccount({ email, password, displayName, acceptTerms })
           : await loginAccount({ email, password });
       if (data.token) setToken(data.token);
+      if (mode === "register" && companion && sessionContext?.fromLanding) {
+        rememberLandingAuthIntent(sessionContext.intent);
+      }
       notifyAuthChanged();
       onAuthed?.(data.user);
     } catch (err) {
@@ -152,6 +168,7 @@ export default function AccountAuth({
     "account-auth",
     compact ? "account-auth-compact" : "",
     session ? "account-auth-session" : "panel auth-panel",
+    companion ? "account-auth-companion" : "",
   ].filter(Boolean).join(" ");
 
   if (mode === "forgot") {
@@ -192,34 +209,11 @@ export default function AccountAuth({
     );
   }
 
-  return (
-    <section className={className}>
-      {!session ? (
-        <>
-          <h2>{title || copy.heading}</h2>
-          {!compact && (
-            <p className="chart-note">{subtitle || copy.support}</p>
-          )}
-        </>
-      ) : null}
-
-      <SocialOptions
-        oauthNext={oauthNext}
-        onError={setError}
-        showGoogle={Boolean(googleConfigured)}
-        showPatreon={Boolean(patreonConfigured)}
-      />
-
-      {googleConfigured || patreonConfigured ? (
-        <div className="account-auth-divider">
-          <span>{AUTH_COPY.emailDivider}</span>
-        </div>
-      ) : null}
-
-      <form className="account-auth-form" onSubmit={submit}>
+  const emailForm = (
+      <form className="account-auth-form" onSubmit={submit} aria-busy={busy}>
         {mode === "register" && (
           <label>
-            <span className="hub-field-label">{AUTH_COPY.displayName}</span>
+            <span className="hub-field-label">{AUTH_COPY.displayName}{companion ? <small>{AUTH_COPY.companion.optional}</small> : null}</span>
             <input
               type="text"
               value={displayName}
@@ -240,7 +234,24 @@ export default function AccountAuth({
             required
           />
         </label>
-        <label>
+        {companion ? <div className="account-auth-password-field">
+          <label htmlFor={passwordId}><span className="hub-field-label">{AUTH_COPY.password}</span></label>
+          <div className={companion ? "account-auth-password-wrap" : undefined}>
+          <input
+            id={passwordId}
+            type={companion && showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={mode === "register" ? AUTH_COPY.passwordHint : AUTH_COPY.passwordCurrent}
+            autoComplete={mode === "register" ? "new-password" : "current-password"}
+            required
+            minLength={mode === "register" ? 8 : 1}
+            aria-describedby={companion && mode === "register" ? `${passwordId}-hint` : undefined}
+          />
+          {companion ? <button type="button" className="account-auth-show-password" aria-label={showPassword ? AUTH_COPY.companion.hidePassword : AUTH_COPY.companion.showPassword} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? AUTH_COPY.companion.hide : AUTH_COPY.companion.show}</button> : null}
+          </div>
+          {companion && mode === "register" ? <p id={`${passwordId}-hint`} className="account-auth-password-hint">{AUTH_COPY.companion.passwordHint}</p> : null}
+        </div> : <label>
           <span className="hub-field-label">{AUTH_COPY.password}</span>
           <input
             type="password"
@@ -251,7 +262,7 @@ export default function AccountAuth({
             required
             minLength={mode === "register" ? 8 : 1}
           />
-        </label>
+        </label>}
         {mode === "register" && (
           <TermsCheckbox
             checked={acceptTerms}
@@ -268,8 +279,9 @@ export default function AccountAuth({
           {busy ? copy.submitBusy : copy.submit}
         </button>
       </form>
+  );
 
-      {mode === "login" && (
+  const recoveryLink = mode === "login" && (
         session ? (
           <Link
             className="account-auth-forgot"
@@ -286,7 +298,44 @@ export default function AccountAuth({
             {AUTH_COPY.forgotLink}
           </button>
         )
+      );
+
+  return (
+    <section className={className}>
+      {!session ? (
+        <>
+          <h2>{title || copy.heading}</h2>
+          {!compact && (
+            <p className="chart-note">{subtitle || copy.support}</p>
+          )}
+        </>
+      ) : null}
+
+      <SocialOptions
+        oauthNext={oauthNext}
+        onError={setError}
+        showGoogle={Boolean(googleConfigured)}
+        showPatreon={!companion && Boolean(patreonConfigured)}
+        companion={companion}
+        termsUrl={termsUrl || auth.termsUrl}
+        privacyUrl={privacyUrl || auth.privacyUrl}
+      />
+
+      {companion ? (
+        <details className="account-auth-email-option" open={emailExpanded} onToggle={(event) => setEmailExpanded(event.currentTarget.open)}>
+          <summary><span className="account-auth-email-summary"><span>{AUTH_COPY.companion.email}</span><span className="account-auth-email-caret" aria-hidden="true">＋</span></span></summary>
+          {emailForm}
+          {recoveryLink}
+        </details>
+      ) : (
+        <>
+          {googleConfigured || patreonConfigured ? <div className="account-auth-divider"><span>{AUTH_COPY.emailDivider}</span></div> : null}
+          {emailForm}
+          {recoveryLink}
+        </>
       )}
+
+      {companion && patreonConfigured ? <p className="account-auth-patron-option">{AUTH_COPY.companion.patronPrompt}{" "}<button type="button" onClick={() => loginWithPatreon(oauthNext).catch((err) => setError(err.message || AUTH_COPY.defaultError))}>{AUTH_COPY.patreon} <span aria-hidden="true">↗</span></button></p> : null}
 
       {error && <div className="error" role="alert">{error}</div>}
       {mode === "register" && info && <p className="chart-note">{info}</p>}
@@ -296,6 +345,7 @@ export default function AccountAuth({
         compact={compact}
         nextPath={oauthNext}
         onMode={setMode}
+        sessionContext={sessionContext}
       />
 
       {!session && !compact && mode === "register" && (

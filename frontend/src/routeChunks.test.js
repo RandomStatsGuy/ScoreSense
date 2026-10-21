@@ -27,6 +27,10 @@ test("heavy Fantasy and Tools screens load through React.lazy", () => {
   assert.match(app, /lazy\(\(\) => import\("\.\/DraftHub\/DraftHub"\)\)/);
   assert.match(app, /lazy\(\(\) => import\("\.\/LineupOptimizer"\)\)/);
   assert.match(app, /lazy\(\(\) => import\("\.\/DraftHub\/MockDraftTool"\)\)/);
+  assert.match(router, /lazy\(\(\) => import\("\.\/App"\)\)/);
+  assert.match(router, /lazy\(\(\) => import\("\.\/LandingPage"\)\)/);
+  assert.doesNotMatch(router, /import App from/);
+  assert.doesNotMatch(router, /import LandingPage from/);
   assert.match(router, /lazy\(\(\) => import\("\.\/DraftHub\/LobbyJoinPage"\)\)/);
   assert.doesNotMatch(router, /import LobbyJoinPage from/);
   for (const [view, module] of [["room", "DraftRoom"], ["vibes", "VibeRankings"], ["insights", "LeagueInsights"]]) {
