@@ -13,6 +13,7 @@ import pandas as pd
 import requests
 
 from src.config import CACHE_DIR
+from src.core.projection_read_scope import anonymous_projection_read
 
 SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl"
 SLEEPER_STATE_URL = "https://api.sleeper.app/v1/state/nfl"
@@ -335,6 +336,8 @@ def get_nfl_state(use_cache: bool = True, *, allow_stale: bool = True) -> dict:
     must keep this on. Pass `allow_stale=False` or `use_cache=False` only for
     jobs that need a live calendar.
     """
+    if anonymous_projection_read():
+        return _read_nfl_state_cache() or {}
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     if not use_cache:
         state = _fetch_json(SLEEPER_STATE_URL)
@@ -359,6 +362,17 @@ def get_nfl_state(use_cache: bool = True, *, allow_stale: bool = True) -> dict:
 def load_sleeper_players(force_refresh: bool = False, *, allow_refresh: bool = True) -> dict:
     """Load Sleeper player dictionary, cached on disk (24h) and in-process by mtime."""
     global _PLAYERS_RAW_CACHE, _PLAYERS_RAW_MTIME
+    if anonymous_projection_read():
+        try:
+            mtime = PLAYERS_CACHE.stat().st_mtime
+            if _PLAYERS_RAW_CACHE is not None and mtime == _PLAYERS_RAW_MTIME:
+                return _PLAYERS_RAW_CACHE
+            cached = json.loads(PLAYERS_CACHE.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {}
+        _PLAYERS_RAW_CACHE = cached if isinstance(cached, dict) else {}
+        _PLAYERS_RAW_MTIME = mtime
+        return _PLAYERS_RAW_CACHE
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     if not force_refresh and PLAYERS_CACHE.exists():

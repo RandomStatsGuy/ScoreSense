@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from app.auth import (
     hub_auth_enabled,
     optional_user,
+    require_account_user,
     require_hub_user,
     ws_cookie_origin_trusted,
     ws_handshake_uses_cookie_auth,
@@ -6171,11 +6172,10 @@ def hub_lobby_preview(room_code: str) -> dict:
 
 
 @router.post("/lobby/{room_code}/join")
-async def hub_lobby_join(room_code: str, body: LobbyJoinRequest, request: Request) -> dict:
+async def hub_lobby_join(room_code: str, body: LobbyJoinRequest, user=Depends(require_account_user)) -> dict:
     """Claim a practice seat, or re-enter a live room as a league member."""
     from src.draft_hub.lobby import join_lobby
 
-    user = optional_user(request)
     try:
         result = join_lobby(room_code, body.display_name, user=user)
     except ValueError as exc:

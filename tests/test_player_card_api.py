@@ -15,10 +15,13 @@ def client():
     return TestClient(app)
 
 
-def test_player_card_requires_auth(client):
+def test_player_card_is_public_when_site_auth_is_required(client, monkeypatch):
     from fastapi import HTTPException
 
     from app.auth import require_patron
+
+    monkeypatch.setattr("src.config.AUTH_REQUIRED", True)
+    monkeypatch.setattr("src.projections.player_card.build_player_card", lambda *a, **k: {"player_id": "12345", "fixture": "public card"})
 
     def _deny():
         raise HTTPException(status_code=401, detail="auth required")
@@ -26,7 +29,8 @@ def test_player_card_requires_auth(client):
     app.dependency_overrides[require_patron] = _deny
     try:
         res = client.get("/api/player/12345/card")
-        assert res.status_code == 401
+        assert res.status_code == 200
+        assert res.json() == {"player_id": "12345", "fixture": "public card", "recovery": {"status": "idle"}}
     finally:
         app.dependency_overrides.pop(require_patron, None)
 

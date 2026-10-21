@@ -301,7 +301,7 @@ function PlayerContextView({
           </>
         ) : (
           <p className="state-empty-text player-context-empty">
-            {CONTEXT_COPY.mediaEmpty}
+            {CONTEXT_COPY.olderMediaEmpty}
           </p>
         )}
       </div>

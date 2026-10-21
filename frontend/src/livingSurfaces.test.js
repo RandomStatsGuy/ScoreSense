@@ -23,6 +23,21 @@ test("Admin Connections resolves the registered credential page", () => {
   assert.equal(resolveLivingSurface({ section: "admin", adminTab: "connections" }).route, "/admin/connections");
 });
 
+test("approved public landing resolves independently of Fantasy Home and account pages", () => {
+  const landing = LIVING_SURFACES["public.landing"];
+  assert.equal(landing.route, "/");
+  assert.equal(landing.page, "frontend/src/LandingPage.jsx");
+  assert.equal(landing.copy, "frontend/src/landingPresentation.js");
+  assert.equal(landing.chrome, "account");
+  assert.match(landing.doNot, /refined B/);
+  assert.match(landing.doNot, /invite\/claim/);
+  assert.equal(resolveLivingSurface({ section: "landing" }), landing);
+  assert.equal(resolveLivingSurfaceFromText("connect the landing page to signup"), landing);
+  assert.equal(resolveLivingSurfaceFromText("public landing signup and login"), landing);
+  assert.equal(resolveLivingSurfaceFromText("Home"), LIVING_SURFACES["hub.home"]);
+  assert.equal(surfacesForFile("frontend/src/styles/landing.css")[0].id, "public.landing");
+});
+
 test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   const fa = resolveLivingSurfaceFromText("Tighten the Free agents filter chips");
   assert.equal(fa.label, "Free agents");
@@ -78,6 +93,17 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(phone.page, "frontend/src/WeeklyTable.jsx");
   const mobileWeekly = resolveLivingSurfaceFromText("mobile weekly compare checkbox");
   assert.equal(mobileWeekly.page, "frontend/src/WeeklyTable.jsx");
+});
+
+test("each product landing has its own public route while keeping the approved composition", () => {
+  for (const [area, route] of [["projections", "/projections"], ["fantasy", "/fantasy"], ["tools", "/tools"]]) {
+    const row = LIVING_SURFACES[`public.${area}`];
+    assert.equal(row.route, route);
+    assert.equal(row.page, "frontend/src/LandingPage.jsx");
+    assert.equal(row.auditRoot, ".ss-landing");
+    assert.equal(resolveLivingSurfaceFromText(`${area} landing page`), row);
+    assert.ok(livingSurfaceRoutes().some(item => item.id === `public.${area}` && item.route === route));
+  }
 });
 
 test("delete league and excel download resolve to living surfaces", () => {
@@ -207,6 +233,7 @@ test("audit routes come from the registry and skip overlays", () => {
   assert.ok(paths.includes("/hub/free-agents"));
   assert.ok(paths.includes("/hub/insights/overview"));
   assert.ok(paths.includes("/projections/weekly"));
+  assert.ok(paths.includes("/"));
   assert.ok(!paths.includes("/hub/insights"));
   assert.equal(new Set(paths).size, paths.length);
   assert.equal(LIVING_SURFACES["hub.room.live"].overlay, true);

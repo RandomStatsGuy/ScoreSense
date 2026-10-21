@@ -7,6 +7,7 @@ import {
   SLEEPER_UNLINK_COPY,
   sleeperSyncPaused,
   sleeperUnlinkSummary,
+  PRACTICE_DRAFT_AUTH_COPY,
   SOLO_VALUE,
   interpretLeagueSwitcherValue,
   draftInviteLabel,
@@ -95,9 +96,14 @@ test("live draft invite copy is members-only", () => {
 });
 
 test("practice draft invite copy keeps the real league untouched", () => {
+  assert.match(PRACTICE_DRAFT_AUTH_COPY.title, /sign in.*mock draft/i);
+  assert.match(PRACTICE_DRAFT_AUTH_COPY.subtitle, /ScoreSense account.*seat/i);
   const mock = draftInviteExplainer({ testMode: true });
   assert.match(mock, /practice/i);
   assert.match(mock, /real league is unchanged/i);
+  assert.match(mock, /account is required/i);
+  assert.match(draftInviteWhatHappens({ testMode: true }), /sign in or create/i);
+  assert.doesNotMatch([mock, draftInviteWhatHappens({ testMode: true }), draftLobbyHeroSupport({ testMode: true }), draftJoinSupport({ testMode: true })].join(" "), /no account|no ScoreSense account|account needed/i);
   assert.equal(draftInviteLabel({ testMode: true }), "Practice draft link");
   assert.match(draftInviteRailHint({ testMode: true }), /practice room/i);
 });
@@ -135,6 +141,8 @@ test("join account note blocks guests on live drafts", () => {
   assert.match(draftJoinAccountNote({ membersOnly: true, authenticated: false }), /guests cannot/i);
   assert.match(draftJoinAccountNote({ membersOnly: true, authenticated: true }), /on the league/i);
   assert.match(draftJoinAccountNote({ authenticated: false }), /practice draft/i);
+  assert.match(draftJoinAccountNote({ authenticated: false }), /sign in or create/i);
+  assert.match(draftJoinAccountNote({ authenticated: true, testMode: true }), /does not change your real league/i);
 });
 
 test("member email invite is how people join the league", () => {

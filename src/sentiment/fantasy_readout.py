@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.core.projection_read_scope import anonymous_projection_read
+
 from pathlib import Path
 from typing import Any
 
@@ -392,6 +394,7 @@ def build_fantasy_weekly_response(
     media_mode: str | None = None,
     allow_generate: bool = True,
 ) -> dict:
+    allow_generate = allow_generate and not anonymous_projection_read()
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise ValueError("position must be qb, rb, or wr")
@@ -403,6 +406,8 @@ def build_fantasy_weekly_response(
         f"mode={mode or 'default'}"
     )
     cache_key += f":generate{int(allow_generate)}"
+    if anonymous_projection_read():
+        cache_key += ":anonymous"
     cached = _FANTASY_RESPONSE_CACHE.get(cache_key)
     if cached is not None and cached[0] == fp:
         return cached[1]
@@ -658,12 +663,15 @@ def build_fantasy_season_response(
     sentiment_path: Path | None = None,
     *, allow_generate: bool = True,
 ) -> dict:
+    allow_generate = allow_generate and not anonymous_projection_read()
     position = position.lower()
     if position not in ("qb", "rb", "wr"):
         raise ValueError("position must be qb, rb, or wr")
 
     fp = _fantasy_fingerprint()
     cache_key = f"season:{position}:{season}:{week}:generate{int(allow_generate)}"
+    if anonymous_projection_read():
+        cache_key += ":anonymous"
     cached = _FANTASY_RESPONSE_CACHE.get(cache_key)
     if cached is not None and cached[0] == fp:
         return cached[1]

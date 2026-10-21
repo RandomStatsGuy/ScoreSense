@@ -4,6 +4,7 @@ import {
   GA_MEASUREMENT_ID,
   analyticsEnabled,
   buildPageViewPayload,
+  canTrackSessionPageView,
   initAnalytics,
   productionGtagHtmlSnippet,
   pageGroupForPath,
@@ -21,6 +22,18 @@ test("analyticsEnabled only on production hostnames", () => {
   assert.equal(analyticsEnabled("localhost"), false);
   assert.equal(analyticsEnabled("127.0.0.1"), false);
   assert.equal(analyticsEnabled("scoresense-git-preview.vercel.app"), false);
+});
+
+test("landing analytics waits for anonymous identity and excludes signed-in root redirects", () => {
+  assert.equal(canTrackSessionPageView({ pathname: "/" }), false);
+  assert.equal(canTrackSessionPageView({ pathname: "/", ready: false, authenticated: true }), false);
+  assert.equal(canTrackSessionPageView({ pathname: "/", ready: true, authenticated: false }), true);
+  assert.equal(canTrackSessionPageView({ pathname: "/", ready: true, authenticated: true }), false);
+  for (const pathname of ["/login", "/register", "/projections/weekly", "/hub/home", "/privacy"]) {
+    assert.equal(canTrackSessionPageView({ pathname, ready: false, authenticated: false }), true);
+    assert.equal(canTrackSessionPageView({ pathname, ready: true, authenticated: false }), true);
+    assert.equal(canTrackSessionPageView({ pathname, ready: true, authenticated: true }), true);
+  }
 });
 
 test("shared room capability tokens never enter analytics", () => {
@@ -46,6 +59,7 @@ test("sanitizeSearch drops secrets and keeps filters", () => {
   );
   assert.equal(sanitizeSearch("?invite=abc&code=oauth"), "");
   assert.equal(sanitizeSearch("?claim=secret-token"), "");
+  assert.equal(sanitizeSearch("?next=%2Fhub%2Fdraft%3Finvite%3Dsecret&intent=fantasy&from=landing"), "");
   assert.equal(
     sanitizeSearch("?season=2026&teams=KC,BUF&movers=risers&draftSeason=2026"),
     "?season=2026&teams=KC%2CBUF&movers=risers&draftSeason=2026",
@@ -53,11 +67,15 @@ test("sanitizeSearch drops secrets and keeps filters", () => {
 });
 
 test("shouldSkipPageView skips redirects, callback, and unknown paths", () => {
-  assert.equal(shouldSkipPageView("/"), true);
+  assert.equal(shouldSkipPageView("/"), false);
+  assert.equal(shouldSkipPageView("/", "?intent=fantasy"), false);
+  assert.equal(shouldSkipPageView("/", "?invite=secret"), true);
+  assert.equal(shouldSkipPageView("/", "?claim=secret"), true);
+  assert.equal(shouldSkipPageView("/", "?invite=%20&claim="), false);
   assert.equal(shouldSkipPageView("/auth/callback"), true);
   assert.equal(shouldSkipPageView("/hub"), true);
   assert.equal(shouldSkipPageView("/hub/insights"), true);
-  assert.equal(shouldSkipPageView("/tools"), true);
+  assert.equal(shouldSkipPageView("/tools"), false);
   assert.equal(shouldSkipPageView("/not-a-real-page"), true);
   assert.equal(shouldSkipPageView("/projections/weekly"), false);
   assert.equal(shouldSkipPageView("/hub/draft"), false);
@@ -69,6 +87,7 @@ test("shouldSkipPageView skips redirects, callback, and unknown paths", () => {
 });
 
 test("pageTitleForPath matches product areas", () => {
+  assert.equal(pageTitleForPath("/"), "Fantasy football");
   assert.equal(pageTitleForPath("/projections/weekly"), "Projections · Weekly");
   assert.equal(pageTitleForPath("/projections/weekly/injuries"), "Projections · Weekly · Injuries");
   assert.equal(pageTitleForPath("/projections/weekly/fantasy"), "Projections · Weekly · Fantasy");
@@ -106,6 +125,7 @@ test("pageTitleForPath matches product areas", () => {
 });
 
 test("pageGroupForPath buckets by top-level area", () => {
+  assert.equal(pageGroupForPath("/"), "marketing");
   assert.equal(pageGroupForPath("/projections/weekly"), "projections");
   assert.equal(pageGroupForPath("/hub/draft"), "fantasy");
   assert.equal(pageGroupForPath("/tools/dfs"), "tools");
@@ -128,6 +148,36 @@ test("buildPageViewPayload sanitizes location and sets title/group", () => {
   assert.equal(payload.page_path, "/projections/weekly?pos=rb");
   assert.equal(payload.page_location, "https://example.com/projections/weekly?pos=rb");
   assert.equal(payload.page_group, "projections");
+});
+
+test("product landings have distinct page views without carrying account return context", () => {
+  for (const [path, group] of [["/projections", "projections"], ["/fantasy", "fantasy"], ["/tools", "tools"]]) {
+    assert.equal(shouldSkipPageView(path), false);
+    assert.equal(pageGroupForPath(path), group);
+    assert.match(pageTitleForPath(path), /Explore/);
+    const payload = buildPageViewPayload({ pathname: path, search: "?next=%2Fhub%2Fdraft%3Finvite%3Dprivate&from=landing&intent=fantasy", origin: "https://example.invalid" });
+    assert.equal(payload.page_path, path);
+  }
+});
+
+test("landing page views track the public page without signup context or join redirects", () => {
+  const events = [];
+  const win = {
+    location: { hostname: "app.fourthdownlabs.com", origin: "https://app.fourthdownlabs.com" },
+    gtag: (...args) => events.push(args),
+  };
+  const doc = { title: "ScoreSense" };
+  assert.equal(trackPageView({ pathname: "/", search: "?invite=secret" }, { win, doc }), false);
+  assert.equal(trackPageView({ pathname: "/", search: "?claim=secret" }, { win, doc }), false);
+  assert.equal(events.length, 0);
+  assert.equal(trackPageView({ pathname: "/", search: "?intent=fantasy&next=%2Fhub%2Fdraft%3Finvite%3Dsecret" }, { win, doc }), true);
+  assert.deepEqual(events, [["event", "page_view", {
+    page_title: "Fantasy football",
+    page_path: "/",
+    page_location: "https://app.fourthdownlabs.com/",
+    page_group: "marketing",
+  }]]);
+  assert.equal(doc.title, "Fantasy football · ScoreSense");
 });
 
 test("productionGtagHtmlSnippet is the official tag Google's HTML crawler looks for", () => {
