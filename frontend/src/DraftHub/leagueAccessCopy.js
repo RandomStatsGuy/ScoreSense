@@ -27,6 +27,11 @@ export const SHEET_IMPORT_COPY = {
 };
 export const SOLO_VALUE = "__solo__";
 
+export const PRACTICE_DRAFT_AUTH_COPY = {
+  title: "Sign in to join this mock draft",
+  subtitle: "Use your ScoreSense account to take a seat.",
+};
+
 /** Create/join remains an action, placed in the compact league picker footer. */
 export const LEAGUE_CREATE_COPY = {
   newLeague: "New league",
@@ -49,14 +54,14 @@ export function draftInviteLabel({ testMode = false } = {}) {
 
 export function draftInviteExplainer({ testMode = false } = {}) {
   if (testMode) {
-    return "Friends open this link, type a name, and sit in the practice room. No ScoreSense account needed. Your real league is unchanged.";
+    return "Friends open this link, sign in, and sit in the practice room. A ScoreSense account is required. Your real league is unchanged.";
   }
   return "This link is for people already on this league. They sign in and walk into the draft room. It does not let strangers take a seat.";
 }
 
 export function draftInviteWhatHappens({ testMode = false } = {}) {
   if (testMode) {
-    return "They land on a join page, enter a display name, and sit down. No team setup or account is required.";
+    return "They preview the room, sign in or create a ScoreSense account, then choose a display name and sit down.";
   }
   return "Members land in the lobby with the account that already has their team. Add managers first with a room code or email invite.";
 }
@@ -75,7 +80,7 @@ export function draftLobbyHeroSupport({
   usesContracts = true,
 } = {}) {
   if (testMode) {
-    return "Send the practice link. Friends sit down with a name — no ScoreSense account. This room does not write real contracts.";
+    return "Send the practice link. Friends sign in with a ScoreSense account and take a seat. This room does not write real contracts.";
   }
   if (locked && roomFull) {
     return usesContracts
@@ -178,21 +183,22 @@ export function draftJoinSupport({
   }
   if (!canJoin) return "This draft is already underway.";
   if (testMode) {
-    return `Enter a name to sit in ${league}'s practice draft. No account needed.`;
+    return `Sign in with a ScoreSense account, then choose a name to sit in ${league}'s practice draft.`;
   }
   return `You are joining ${league} — the same league as the commissioner, not a one-night side room. Enter a team name to take a seat.`;
 }
 
-export function draftJoinAccountNote({ authenticated = false, membersOnly = false } = {}) {
+export function draftJoinAccountNote({ authenticated = false, membersOnly = false, testMode = false } = {}) {
   if (membersOnly) {
     return authenticated
       ? "If this account is on the league, you can enter the room. If not, ask your commissioner for an invite."
       : "Sign in to enter. Guests cannot join a live draft.";
   }
   if (authenticated) {
+    if (testMode) return "You are signed in. This practice seat does not change your real league.";
     return "You are signed in. This seat becomes your team in the league after the draft.";
   }
-  return "No account needed for this practice draft. Guests stay in the room.";
+  return "Sign in or create a ScoreSense account to join this practice draft.";
 }
 
 export function shareableAppUrl(url, origin) {

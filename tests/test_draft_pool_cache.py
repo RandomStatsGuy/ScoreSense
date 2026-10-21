@@ -149,3 +149,38 @@ def test_compute_pool_preserves_te_position(monkeypatch):
 
     wr_te = pool[pool["player_id"].isin(["00-0036970", "w1"])]
     assert set(wr_te["Position"].tolist()) == {"TE", "WR"}
+
+
+@pytest.mark.parametrize(("position", "expected_ids"), [
+    ("wr", ["wr-1", "te-1"]),
+    ("WR", ["wr-1", "te-1"]),
+    ("rec", ["wr-1", "te-1"]),
+    ("wr_te", ["wr-1", "te-1"]),
+    ("te", ["te-1"]),
+    ("qb", ["qb-1"]),
+    ("rb", ["rb-1"]),
+])
+def test_position_slice_keeps_receiver_model_family_and_metadata(monkeypatch, position, expected_ids):
+    pool = pd.DataFrame({
+        "player_id": ["qb-1", "wr-1", "te-1", "rb-1"],
+        "Position": ["QB", "WR", "TE", "RB"],
+    }, index=[10, 20, 30, 40])
+    pool.attrs["built_at"] = "fixture-build"
+    meta = {
+        "feature_season": 2025,
+        "games_per_season": 17,
+        "roster_overlay": {"applied": True},
+        "depth_chart": {"applied": True},
+        "season_quantile_method": "mc_schedule_v1",
+        "season_coverage_meta": {"n_sims": 1000},
+    }
+    with patch.object(draft_pool_cache, "load_draft_pool", return_value=pool) as load_pool, \
+         patch.object(draft_pool_cache, "load_pool_meta", return_value=meta), \
+         patch.object(draft_pool_cache, "_compute_pool", side_effect=AssertionError("Fixture slice must not run inference")) as compute:
+        part = draft_pool_cache.draft_pool_for_position(position, 2026)
+    assert part["player_id"].tolist() == expected_ids
+    assert part.index.tolist() == list(range(len(expected_ids)))
+    assert part.attrs == {"built_at": "fixture-build", **meta}
+    assert pool["player_id"].tolist() == ["qb-1", "wr-1", "te-1", "rb-1"]
+    load_pool.assert_called_once_with(2026, allow_compute=True, allow_stale=True)
+    compute.assert_not_called()

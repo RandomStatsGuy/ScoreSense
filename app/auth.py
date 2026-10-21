@@ -53,20 +53,6 @@ PATREON_API = "https://www.patreon.com/api/oauth2/v2"
 _NATIVE_SUB_PREFIX = "ss:"
 _GUEST_SUB_PREFIX = "guest:"
 _GUEST_JWT_DAYS = 7
-_GUEST_LEAGUE_PATH = re.compile(r"^/api/hub/league/([^/]+)(.*)$")
-_GUEST_WS_PATH = re.compile(r"^/api/hub/ws/([^/]+)")
-_GUEST_LEAGUE_RESTS = {
-    "",
-    "/nomination-pool",
-    "/nomination-queue",
-    "/bid",
-    "/nominate",
-    "/pick",
-    "/draft-recap",
-    "/lobby/slot",
-    "/lobby/name",
-    "/trades",
-}
 
 
 def auth_enabled() -> bool:
@@ -522,22 +508,11 @@ def create_guest_access_token(
 
 
 def guest_request_allowed(request: Request, user: dict[str, Any]) -> bool:
-    """Guests may only touch the room they joined — not the rest of Draft Hub."""
+    """Legacy guest tokens can view a public lobby, not enter its draft room."""
+    if str(getattr(request, "method", "GET")).upper() not in {"GET", "HEAD", "OPTIONS"}:
+        return False
     path = str(getattr(request.url, "path", "") or "")
-    league_id = str(user.get("league_id") or "")
-    if path.startswith("/api/hub/lobby/"):
-        return True
-    if path.startswith("/api/hub/draft-room/"):
-        return True
-    ws = _GUEST_WS_PATH.match(path)
-    if ws:
-        return bool(league_id) and ws.group(1) == league_id
-    match = _GUEST_LEAGUE_PATH.match(path)
-    if not match:
-        return False
-    if not league_id or match.group(1) != league_id:
-        return False
-    return (match.group(2) or "") in _GUEST_LEAGUE_RESTS
+    return path.startswith("/api/hub/lobby/")
 
 
 def google_authorize_url(state: str | None = None) -> str:
@@ -802,9 +777,13 @@ def ws_user_from_token(token: str | None) -> dict[str, Any] | None:
     if hub_auth_enabled():
         if not token:
             return None
-        return decode_token_or_none(token)
+        user = decode_token_or_none(token)
+        return None if is_guest_user(user) else user
     if token:
-        return decode_token_or_none(token) or {"sub": "dev", "auth_type": "dev", "name": "Dev"}
+        user = decode_token_or_none(token)
+        if is_guest_user(user):
+            return None
+        return user or {"sub": "dev", "auth_type": "dev", "name": "Dev"}
     return {"sub": "dev", "auth_type": "dev", "name": "Dev"}
 
 
@@ -813,7 +792,13 @@ def ws_user_from_handshake(
     cookie_token: str | None = None,
 ) -> dict[str, Any] | None:
     """Query token first, then the HttpOnly session cookie (same as HTTP routes)."""
-    return ws_user_from_token(token) or ws_user_from_token(cookie_token)
+    if token:
+        user = ws_user_from_token(token)
+        if user is not None:
+            return user
+    if cookie_token:
+        return ws_user_from_token(cookie_token)
+    return None if token else ws_user_from_token(None)
 
 
 def ws_handshake_uses_cookie_auth(
@@ -821,7 +806,8 @@ def ws_handshake_uses_cookie_auth(
     cookie_token: str | None = None,
 ) -> bool:
     """True when the socket authenticates via the session cookie, not ?token=."""
-    if token and decode_token_or_none(token) is not None:
+    token_user = decode_token_or_none(token) if token else None
+    if token_user is not None and not is_guest_user(token_user):
         return False
     return bool(cookie_token)
 
@@ -867,12 +853,36 @@ def optional_user(request: Request) -> dict[str, Any] | None:
 
 def require_patron(request: Request) -> dict[str, Any] | None:
     if not auth_enabled():
-        return optional_user(request)
+        user = optional_user(request)
+        if is_guest_user(user):
+            raise HTTPException(status_code=401, detail="Sign in or create an account to use this feature.")
+        return user
     token = token_from_request(request)
     if not token:
         raise HTTPException(status_code=401, detail="Login required")
     user = decode_access_token(token)
+    if is_guest_user(user):
+        raise HTTPException(status_code=401, detail="Sign in or create an account to use this feature.")
     _verify_native_session(user)
+    return user
+
+
+def require_account_user(request: Request) -> dict[str, Any]:
+    """Actual account identity even when the local development gates are off."""
+    token = token_from_request(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Sign in or create an account to join a draft.")
+    user = decode_access_token(token)
+    if is_guest_user(user) or user.get("auth_type") == "dev" or not user.get("sub"):
+        raise HTTPException(status_code=403, detail="Sign in or create an account to join a draft.")
+    _verify_native_session(user)
+    if user.get("auth_type") == "native" and not native_email_verified(user):
+        raise HTTPException(status_code=403, detail="Verify your email before joining a draft. Check your inbox or resend from account settings.")
+    if user.get("auth_type") == "native" and native_must_change_password(user):
+        raise HTTPException(
+            status_code=403,
+            detail="Choose a new password before joining a draft. Update it in account settings.",
+        )
     return user
 
 
@@ -883,8 +893,8 @@ def require_hub_user(request: Request) -> dict[str, Any]:
         if user:
             if is_guest_user(user) and not guest_request_allowed(request, user):
                 raise HTTPException(
-                    status_code=403,
-                    detail="Guest sessions can only use the draft room they joined.",
+                    status_code=401,
+                    detail="Sign in or create an account to enter the draft room.",
                 )
             return user
         return {"sub": "dev", "auth_type": "dev", "name": "Dev"}
@@ -898,8 +908,8 @@ def require_hub_user(request: Request) -> dict[str, Any]:
     if is_guest_user(user):
         if not guest_request_allowed(request, user):
             raise HTTPException(
-                status_code=403,
-                detail="Guest sessions can only use the draft room they joined.",
+                status_code=401,
+                detail="Sign in or create an account to enter the draft room.",
             )
         return user
     _verify_native_session(user)

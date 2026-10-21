@@ -29,6 +29,8 @@ export const DROP_QUERY_KEYS = new Set([
   "cmp",
   "email",
   "state",
+  "next",
+  "intent",
 ]);
 
 /** Filter keys that are useful in GA and safe to keep on page_path. */
@@ -45,7 +47,6 @@ export const KEEP_QUERY_KEYS = new Set([
 
 /** Routes that immediately <Navigate> elsewhere — skip to avoid double hits. */
 export const SKIP_PATHS = new Set([
-  "/",
   "/auth/callback",
   "/signup",
   "/hub",
@@ -57,10 +58,13 @@ export const SKIP_PATHS = new Set([
   "/hub/insights/contracts",
   "/hub/live",
   "/hub/teams",
-  "/tools",
 ]);
 
 const STANDALONE_TITLES = {
+  "/": "Fantasy football",
+  "/projections": "Projections · Explore",
+  "/fantasy": "Fantasy · Explore",
+  "/tools": "Tools · Explore",
   "/privacy": "Privacy",
   "/terms": "Terms",
   "/sms-alerts": "Draft alert texts",
@@ -121,6 +125,11 @@ export function analyticsEnabled(hostname) {
   return TRACKED_HOSTNAMES.has(String(hostname || "").toLowerCase());
 }
 
+/** Count the public landing only after identity settles and it will remain visible. */
+export function canTrackSessionPageView({ pathname, ready = false, authenticated = false }) {
+  return pathname !== "/" || (ready && !authenticated);
+}
+
 /**
  * Official gtag snippet for production `index.html`.
  * GA's stream-setup crawler only inspects HTML (it does not run the SPA bundle),
@@ -164,8 +173,12 @@ export function sanitizeSearch(search) {
   return qs ? `?${qs}` : "";
 }
 
-export function shouldSkipPageView(pathname) {
+export function shouldSkipPageView(pathname, search = "") {
   if (!pathname) return true;
+  if (pathname === "/") {
+    const params = new URLSearchParams(search);
+    if (params.get("invite")?.trim() || params.get("claim")?.trim()) return true;
+  }
   if (pathname.startsWith("/team-room/")) return true;
   if (SKIP_PATHS.has(pathname)) return true;
   if (pathname.startsWith("/auth/callback")) return true;
@@ -175,9 +188,10 @@ export function shouldSkipPageView(pathname) {
 }
 
 export function pageGroupForPath(pathname) {
+  if (pathname === "/") return "marketing";
   const root = String(pathname || "").split("/").filter(Boolean)[0] || "";
   if (root === "projections") return "projections";
-  if (root === "hub") return "fantasy";
+  if (root === "hub" || root === "fantasy") return "fantasy";
   if (root === "tools") return "tools";
   if (root === "model") return "model";
   if (root === "admin") return "admin";
@@ -303,7 +317,7 @@ export function trackPageView(locationLike, {
   const host = win.location?.hostname ?? "";
   if (!analyticsEnabled(host)) return false;
   const pathname = locationLike?.pathname || "";
-  if (shouldSkipPageView(pathname)) return false;
+  if (shouldSkipPageView(pathname, locationLike?.search || "")) return false;
 
   const payload = buildPageViewPayload({
     pathname,

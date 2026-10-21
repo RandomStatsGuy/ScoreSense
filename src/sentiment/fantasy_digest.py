@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 import requests
 
+from src.core.projection_read_scope import anonymous_projection_read
+
 from src.config import (
     BEAT_DIGEST_CACHE_VERSION,
     BEAT_DIGEST_LLM_ENABLED,
@@ -220,7 +222,7 @@ def _llm_fantasy_digest(
     mention_trend: float | None = None,
     weeks_with_mentions: int | None = None,
 ) -> str | None:
-    if not BEAT_DIGEST_LLM_ENABLED:
+    if anonymous_projection_read() or not BEAT_DIGEST_LLM_ENABLED:
         return None
     api_key = OPENAI_API_KEY.strip()
     brief = snippet_to_brief(
@@ -348,7 +350,7 @@ def fantasy_digest_for_player(
             weeks_with_mentions=int(weeks_with_mentions) if weeks_with_mentions is not None else None,
         )
 
-    if cache_fallback or source == "llm":
+    if (cache_fallback or source == "llm") and not anonymous_projection_read():
         _cache_set(scope, cache_key, digest)
     if return_meta:
         return {

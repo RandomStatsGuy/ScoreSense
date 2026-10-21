@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { notifyAuthChanged, resetPassword, setToken } from "./auth";
 import AccountAuth from "./AccountAuth";
 import { AuthSessionChrome } from "./AuthSessionPage";
-import { AUTH_COPY, safeAuthNext } from "./authPresentation";
+import { AUTH_COPY, AUTH_DESTINATIONS, clearLandingAuthIntent, readLandingAuthIntent, safeAuthNext } from "./authPresentation";
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -28,6 +28,8 @@ export function AuthVerifyPage() {
   const error = params.get("error");
   const token = params.get("token");
   const confirming = token && !success && !error;
+  const [pendingIntent] = useState(() => readLandingAuthIntent());
+  const next = safeAuthNext(params.get("next"), pendingIntent ? AUTH_DESTINATIONS[pendingIntent].path : "/hub/home");
 
   useEffect(() => {
     if (confirming) {
@@ -40,6 +42,7 @@ export function AuthVerifyPage() {
   useEffect(() => {
     if (success) {
       notifyAuthChanged();
+      clearLandingAuthIntent();
     }
   }, [success]);
 
@@ -63,8 +66,8 @@ export function AuthVerifyPage() {
     >
       {error ? <p className="error">{AUTH_COPY.verify.error}</p> : null}
       <p className="hub-toolbar">
-        <Link className="btn-primary account-auth-submit" to="/hub/home">
-          {AUTH_COPY.verify.openFantasy}
+        <Link className="btn-primary account-auth-submit" to={next}>
+          {next === "/hub/home" ? AUTH_COPY.verify.openFantasy : AUTH_COPY.verify.continue}
         </Link>
         <Link className="btn-ghost account-auth-patreon" to="/projections/weekly">
           {AUTH_COPY.verify.browse}

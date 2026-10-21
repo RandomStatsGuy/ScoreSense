@@ -339,10 +339,13 @@ def test_refresh_player_context_skips_mlready_when_slate_is_known():
     assert season_week_context(2026, 1) == (2026, 1)
 
 
-def test_player_context_requires_auth(client):
+def test_player_context_is_public_with_site_auth_enabled(client, monkeypatch):
     from fastapi import HTTPException
 
     from app.auth import require_patron
+
+    monkeypatch.setattr("src.config.AUTH_REQUIRED", True)
+    monkeypatch.setattr("app.api.get_player_context", lambda *a, **k: {"player_id": "x", "fixture": "public context"})
 
     def _deny():
         raise HTTPException(status_code=401, detail="auth required")
@@ -350,7 +353,8 @@ def test_player_context_requires_auth(client):
     app.dependency_overrides[require_patron] = _deny
     try:
         res = client.get("/api/player/x/context")
-        assert res.status_code == 401
+        assert res.status_code == 200
+        assert res.json()["fixture"] == "public context"
     finally:
         app.dependency_overrides.pop(require_patron, None)
 

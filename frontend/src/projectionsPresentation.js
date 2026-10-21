@@ -140,6 +140,7 @@ export const CONTEXT_COPY = {
   projection: "Week vs healthy",
   media: "Older notes",
   mediaEmpty: "No usable note this week.", notesEmpty: "No current player notes.",
+  olderMediaEmpty: "No older commentary available.",
   loading: "Loading this week's note…",
   cold: "No locker note yet. The week number is unchanged.",
   missing: "No cached note for this player.",
@@ -697,14 +698,15 @@ export function staleRefreshLabel({
   unavailable = false,
   updatedAt = null,
   refreshing = false,
+  canRefresh = true,
 } = {}) {
   if (refreshing) return BOARD_COPY.refreshing;
   const rel = formatRelativeTime(updatedAt);
   const time = rel ? String(rel).replace(/^Updated /, "") : "";
   if (unavailable) {
-    return time ? `${BOARD_COPY.contextMissing} · ${time}` : BOARD_COPY.contextMissingRefresh;
+    return time ? `${BOARD_COPY.contextMissing} · ${time}` : canRefresh ? BOARD_COPY.contextMissingRefresh : BOARD_COPY.contextMissing;
   }
-  if (stale) return time ? `${BOARD_COPY.stale} · ${time}` : BOARD_COPY.staleRefresh;
+  if (stale) return time ? `${BOARD_COPY.stale} · ${time}` : canRefresh ? BOARD_COPY.staleRefresh : BOARD_COPY.stale;
   return rel || "";
 }
 

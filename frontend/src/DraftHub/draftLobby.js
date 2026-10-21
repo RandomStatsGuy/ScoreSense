@@ -1,5 +1,9 @@
 /** Helpers for the shared mock / live draft lobby. */
 
+export function canResumeLobbyRoom({ authenticated = false, viewer } = {}) {
+  return Boolean(authenticated && viewer?.team_id && !viewer?.is_guest);
+}
+
 export function lobbyPath(roomCode) {
   const code = String(roomCode || "").trim().toUpperCase();
   return code ? `/lobby/${code}` : "/lobby";

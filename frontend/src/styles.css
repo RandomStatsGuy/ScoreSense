@@ -9788,6 +9788,9 @@ td.col-rank.col-rank-top {
   }
 
   .weekly-sticky-stale {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     margin-left: auto;
     min-height: var(--touch-target);
     padding: 0.2rem 0.55rem;

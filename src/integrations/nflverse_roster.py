@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.config import CACHE_DIR
+from src.core.projection_read_scope import anonymous_projection_read
 
 ROSTER_TTL_SECONDS = 12 * 3600
 _ROSTER_CACHE: dict[int, tuple[float, pd.DataFrame]] = {}
@@ -44,6 +45,17 @@ def _normalize_roster(raw: pd.DataFrame) -> pd.DataFrame:
 def load_seasonal_roster(season: int, *, force_refresh: bool = False, allow_refresh: bool = True) -> pd.DataFrame:
     """Latest nflverse seasonal roster for ``season``, disk-cached for 12h."""
     season = int(season)
+    cached = _ROSTER_CACHE.get(season)
+    if anonymous_projection_read():
+        if cached is not None:
+            return cached[1].copy()
+        path = CACHE_DIR / f"nflverse_roster_{season}.parquet"
+        if path.exists():
+            try:
+                return _normalize_roster(pd.read_parquet(path))
+            except (OSError, ValueError):
+                pass
+        return _normalize_roster(pd.DataFrame())
     if not allow_refresh:
         path = roster_cache_path(season)
         return _normalize_roster(pd.read_parquet(path)) if path.exists() else pd.DataFrame()

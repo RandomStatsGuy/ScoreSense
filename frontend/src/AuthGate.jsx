@@ -10,38 +10,15 @@ import {
 import { AuthContext } from "./AuthContext";
 import { safeAuthNext } from "./authPresentation";
 import { bootstrapAuth } from "./authBootstrap";
-
-const PUBLIC_PATH_PREFIXES = [
-  "/terms",
-  "/privacy",
-  "/sms-alerts",
-  "/auth/",
-  "/lobby",
-  "/team-room/",
-  "/login",
-  "/register",
-  "/signup",
-];
-
-function isPublicAuthPath(pathname, search) {
-  if (pathname === "/login" || pathname === "/register" || pathname === "/signup") {
-    return true;
-  }
-  if (PUBLIC_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))) {
-    return true;
-  }
-  if (new URLSearchParams(search).has("invite")) {
-    return true;
-  }
-  return false;
-}
+import { authRouteState } from "./publicEntry";
 
 export default function AuthGate({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
-  const [hubAuthRequired, setHubAuthRequired] = useState(true);
+  // Public join previews never grant access to a local anonymous workspace.
+  const hubAuthRequired = true;
   const [patreonConfigured, setPatreonConfigured] = useState(false);
   const [googleConfigured, setGoogleConfigured] = useState(false);
   const [termsUrl, setTermsUrl] = useState("");
@@ -67,7 +44,6 @@ export default function AuthGate({ children }) {
           refreshUser: refreshMe,
           applyConfig: (config) => {
             setAuthRequired(config.auth_required);
-            setHubAuthRequired(config.hub_auth_required !== false);
             setPatreonConfigured(config.patreon_configured);
             setGoogleConfigured(Boolean(config.google_configured));
             setTermsUrl(config.terms_url || "");
@@ -138,13 +114,19 @@ export default function AuthGate({ children }) {
     ],
   );
 
-  if (!ready) {
+  const routeState = authRouteState({
+    pathname: location.pathname,
+    search: location.search,
+    ready,
+    authRequired,
+    authenticated,
+  });
+
+  if (routeState === "loading") {
     return <div className="panel muted">Loading…</div>;
   }
 
-  const allowPublic = isPublicAuthPath(location.pathname, location.search);
-
-  if (authRequired && !authenticated && !allowPublic) {
+  if (routeState === "signin") {
     const next = `${location.pathname}${location.search}`;
     return (
       <Navigate

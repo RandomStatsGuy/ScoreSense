@@ -59,6 +59,31 @@ export const SHARED = Object.freeze({
 const S = (row) => Object.freeze(row);
 
 export const LIVING_SURFACES = Object.freeze({
+  "public.landing": S({
+    auditRoot: ".ss-landing",
+    label: "ScoreSense landing",
+    chrome: "account",
+    route: "/",
+    page: "frontend/src/LandingPage.jsx",
+    copy: "frontend/src/landingPresentation.js",
+    also: ["frontend/src/styles/landing.css"],
+    doNot: "Approved October 20 refined B in frontend/src/LandingPage.jsx: standalone public marketing composition with quiet interactive light and contours and three product samples. Each sample leads to its own public product landing. Projections opens the full free boards without an account; Fantasy and Tools require an account after their open samples. No subscription or accuracy superiority claim. Do not add a fourth product area or Fantasy experience chrome. Visitors see this page; signed-in root opens Weekly by default; invite/claim entry retains its Draft route. Keep illustrative data explicitly labeled and preview interactions local. Raster artwork belongs only inside feature previews, never the hero background. Preserve keyboard choices, reduced motion, readable contrast and phone reflow. Account creation is real auth, never a simulated preview completion.",
+  }),
+  "public.projections": S({
+    auditRoot: ".ss-landing", label: "Projections landing", chrome: "account", route: "/projections",
+    page: "frontend/src/LandingPage.jsx", copy: "frontend/src/landingPresentation.js", also: ["frontend/src/styles/landing.css"],
+    doNot: "Reuse the approved B composition with the projection sample. Open the full weekly and season boards, comparisons and player details freely without an account. Clearly distinguish illustrative sample values from available forecasts. Do not promise accuracy or guaranteed bounds; uncertainty stays visible. No signup interstitial before the projection payoff.",
+  }),
+  "public.fantasy": S({
+    auditRoot: ".ss-landing", label: "Fantasy landing", chrome: "account", route: "/fantasy",
+    page: "frontend/src/LandingPage.jsx", copy: "frontend/src/landingPresentation.js", also: ["frontend/src/styles/landing.css"],
+    doNot: "Reuse the approved B composition with the league and room sample. Sample is public; full Fantasy requires an account. Keep signup/login/back context and signed-in direct entry. Contracts and salary cap are optional. Preserve native versus Sleeper ownership. No future subscription claim or simulated account completion.",
+  }),
+  "public.tools": S({
+    auditRoot: ".ss-landing", label: "Tools landing", chrome: "account", route: "/tools",
+    page: "frontend/src/LandingPage.jsx", copy: "frontend/src/landingPresentation.js", also: ["frontend/src/styles/landing.css"],
+    doNot: "Reuse the approved B composition with the draft-choice sample. Sample is public; full mock drafts, DFS and best ball require an account. Keep signup/login/back context and signed-in direct entry. Changing sample picks is not a full simulation. No future subscription, guaranteed outcome or profit claim.",
+  }),
   "hub.home": S({
     label: "Home",
     chrome: "action-center",
@@ -561,7 +586,7 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/DraftHub/LobbyJoinPage.jsx",
     copy: "frontend/src/DraftHub/leagueAccessCopy.js",
     also: ["frontend/src/DraftHub/DraftRoom.jsx"],
-    doNot: "Keep real-member entry separate from practice walk-in. Show room identity and loading/invalid/full/entry failures. Joining a practice room never writes saved league focus. Verify joins with fixtures.",
+    doNot: "Public links preview the room; taking or resuming a practice or real-league seat requires an actual account. Never auto-resume or create a guest session, and do not permit old guest tokens to participate. Keep real-member access separate from practice seat selection. Use the existing inline account form and retain safe return context. Show room identity and loading/invalid/full/entry failures. Joining a practice room never writes saved league focus. Verify joins with fixtures.",
   }),
   "hub.create-join": S({
     label: "Create or join league",
@@ -593,6 +618,11 @@ export const LIVING_SURFACES = Object.freeze({
 
 /** Longer aliases win so "mock draft" beats "draft". */
 export const SURFACE_ALIASES = Object.freeze({
+  "landing page": "public.landing",
+  "projections landing": "public.projections",
+  "fantasy landing": "public.fantasy",
+  "tools landing": "public.tools",
+  "public landing": "public.landing",
   "sign-in return": "account.auth-callback",
   "verify email": "account.verify",
   "email verification": "account.verify",
@@ -731,6 +761,7 @@ export function resolveLivingSurface({
   inspector = false,
 } = {}) {
   if (inspector) return getLivingSurface("projections.inspector");
+  if (section === "landing") return getLivingSurface("public.landing");
   if (section === "projections") {
     return getLivingSurface(`projections.${projectionsTab || "weekly"}`);
   }

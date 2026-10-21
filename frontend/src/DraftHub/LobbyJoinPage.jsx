@@ -3,9 +3,7 @@ import React, { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   apiFetch,
-  getGuestSession,
   getToken,
-  setGuestSession,
 } from "../auth";
 import { useAuth } from "../AuthContext";
 import AccountAuth from "../AccountAuth";
@@ -13,8 +11,9 @@ import { PRODUCT_NAME } from "../brand";
 import { parseApiError } from "../format";
 import Button from "../ui/Button";
 import { draftFormatLabel } from "./draftEntryStatus";
-import { lobbyChipLabel } from "./draftLobby";
+import { canResumeLobbyRoom, lobbyChipLabel } from "./draftLobby";
 import {
+  PRACTICE_DRAFT_AUTH_COPY,
   draftJoinAccountNote,
   draftJoinSupport,
   liveDraftMembersOnlyMessage,
@@ -40,6 +39,7 @@ export default function LobbyJoinPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setLeagueId("");
       setError("");
       try {
         const res = await fetch(`/api/hub/lobby/${encodeURIComponent(code)}`);
@@ -47,11 +47,7 @@ export default function LobbyJoinPage() {
         const data = await res.json();
         if (cancelled) return;
         setPreview(data);
-        const guest = getGuestSession();
-        const alreadyGuest = guest?.league_id && guest.league_id === data.league_id;
-        if (alreadyGuest && data.test_mode) {
-          setLeagueId(data.league_id);
-        } else {
+        if (authenticated) {
           const token = getToken();
           const room = await fetch(`/api/hub/league/${data.league_id}`, {
             credentials: "include",
@@ -59,9 +55,8 @@ export default function LobbyJoinPage() {
           });
           if (room.ok) {
             const state = await room.json();
-            if (state?.viewer?.team_id && !state?.viewer?.is_guest) {
-              setLeagueId(data.league_id);
-            } else if (state?.viewer?.team_id && data.test_mode) {
+            if (cancelled) return;
+            if (canResumeLobbyRoom({ authenticated, viewer: state?.viewer })) {
               setLeagueId(data.league_id);
             }
           }
@@ -77,6 +72,7 @@ export default function LobbyJoinPage() {
 
   const join = async (event) => {
     event?.preventDefault();
+    if (!authenticated) return;
     setJoining(true);
     setError("");
     try {
@@ -86,13 +82,6 @@ export default function LobbyJoinPage() {
       });
       if (!res.ok) throw new Error(await parseApiError(res));
       const data = await res.json();
-      if (data.token) {
-        setGuestSession({
-          token: data.token,
-          leagueId: data.league_id,
-          roomCode: data.room_code,
-        });
-      }
       setLeagueId(data.league_id);
       setPreview(data.lobby || preview);
     } catch (e) {
@@ -102,7 +91,7 @@ export default function LobbyJoinPage() {
     }
   };
 
-  if (leagueId) {
+  if (leagueId && authenticated) {
     return (
       <div className="draft-lobby-page">
         <a className="app-skip-link" href="#main-content">Skip to content</a>
@@ -111,7 +100,6 @@ export default function LobbyJoinPage() {
           <DraftRoom
             leagueId={leagueId}
             toolMode
-            guestMode={!authenticated && Boolean(preview?.test_mode)}
             toolLabel={preview?.test_mode ? "Mock lobby" : "Draft lobby"}
             onExitRoom={() => setLeagueId("")}
             valueRows={[]}
@@ -158,7 +146,7 @@ export default function LobbyJoinPage() {
           {error ? <p className="hub-alert hub-alert--danger" role="alert">{error}</p> : null}
           <div className="draft-lobby-join-grid">
             <section className="hub-experience-section">
-              {canWalkIn ? (
+              {canWalkIn && authenticated ? (
                 <>
                   <form onSubmit={join} className="draft-lobby-join-form">
                     <label htmlFor="lobby-join-name">Your name in this room</label>
@@ -173,9 +161,24 @@ export default function LobbyJoinPage() {
                     <Button type="submit" disabled={joining || !name.trim()}>
                       {joining ? "Joining…" : "Take a seat"}
                     </Button>
-                    <p className="chart-note">{draftJoinAccountNote({ authenticated })}</p>
+                    <p className="chart-note">{draftJoinAccountNote({ authenticated, testMode: true })}</p>
                   </form>
                 </>
+              ) : preview?.test_mode && !authenticated ? (
+                <div className="draft-lobby-join-form">
+                  <p className="chart-note">{draftJoinAccountNote({ testMode: true })}</p>
+                  <AccountAuth
+                    compact
+                    mode="login"
+                    title={PRACTICE_DRAFT_AUTH_COPY.title}
+                    subtitle={PRACTICE_DRAFT_AUTH_COPY.subtitle}
+                    termsUrl={termsUrl}
+                    privacyUrl={privacyUrl}
+                    patreonConfigured={patreonConfigured}
+                    patreonNext={`/lobby/${code}`}
+                    onAuthed={() => window.dispatchEvent(new Event("scoresense-auth-changed"))}
+                  />
+                </div>
               ) : membersOnly ? (
                 <div className="draft-lobby-join-form">
                   <p className="chart-note">{liveDraftMembersOnlyMessage()}</p>
