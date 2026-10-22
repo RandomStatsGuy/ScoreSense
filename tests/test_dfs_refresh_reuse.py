@@ -34,7 +34,7 @@ def _assert_forecasts_equivalent_with_fresh_provenance(actual, original):
 
 @pytest.fixture
 def prediction_env(tmp_path, monkeypatch):
-    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "availability"))
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda *a, **k: ("identity", "availability"))
     weekly_dir = tmp_path / "weekly"
     monkeypatch.setattr(weekly_cache, "WEEKLY_PREDICTIONS_DIR", weekly_dir)
     monkeypatch.setattr(weekly_cache, "weekly_fingerprint", lambda: "fresh-inputs")
@@ -130,7 +130,7 @@ def test_weekly_worker_reuses_only_dfs_frames_with_current_availability(predicti
     prediction_env.reset_mock()
     season_refresh._save({"weekly:2026:4": {"status": "ok", "player_availability": "older-feed"}})
     if changed_availability:
-        monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "new-injury"))
+        monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda *a, **k: ("identity", "new-injury"))
     assert season_refresh.run_season_refresh()["prepared"] == 1
     published = season_refresh.read_status()["weekly:2026:4"]
     if changed_availability:
@@ -153,7 +153,7 @@ def test_reused_dfs_frames_do_not_acquire_a_new_availability_proof(prediction_en
     assert original["status"] == "ok"
     prediction_env.reset_mock()
     now[0] += dfs_refresh.DFS_REFRESH_SECONDS
-    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", "new-injury"))
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda *a, **k: ("identity", "new-injury"))
     reused = dfs_refresh.run_dfs_refresh()
     assert reused["status"] == "ok" and reused["forecasts_reused"] is True
     prediction_env.assert_not_called()
@@ -169,7 +169,7 @@ def test_availability_change_during_dfs_inference_preserves_previous_pools(predi
     monkeypatch.setattr("src.integrations.injury_poll.run_injury_poll", lambda **k: {"status": "ok"})
     monkeypatch.setattr("src.integrations.sleeper.get_nfl_state", lambda **k: {"season": 2026, "week": 4, "season_type": "regular"})
     availability = ["availability"]
-    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda: ("identity", availability[0]))
+    monkeypatch.setattr("src.integrations.sleeper.forecast_player_revisions", lambda *a, **k: ("identity", availability[0]))
     original = prediction_env.side_effect
     def change_availability(*args, **kwargs):
         availability[0] = "new-injury"

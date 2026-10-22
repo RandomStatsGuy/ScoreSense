@@ -90,7 +90,7 @@ See `.cursor/rules/frontend-craft.mdc`, `.cursor/rules/frontend-draft-hub.mdc`, 
 .venv\Scripts\python -m src.jobs.preseason_refresh --draft-season 2026
 ```
 
-First visit to **Available players** or **Live draft** is slow locally when `artifacts/draft_pool/pool_{season}.parquet` is cold or fingerprint-stale (live ML inference). Run preseason refresh above, or `python scripts/ops/fix_artifact_fingerprints.py` after mlready changes.
+First visit to **Available players** or **Live draft** is slow locally when `artifacts/draft_pool/pool_{season}.parquet` is cold or fingerprint-stale (live ML inference). Run a real preseason refresh after source/model changes. `python scripts/ops/fix_artifact_fingerprints.py` is a read-only integrity audit; it does not rebuild or relabel forecasts.
 
 ## Draft Hub perf debugging
 

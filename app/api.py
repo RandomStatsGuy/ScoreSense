@@ -613,11 +613,13 @@ def player_card_get(
             apply_injury_adjustments=apply_injury_adjustments,
             include_historical=include_historical,
         )
-        from app.projection_recovery import queue_projection_recovery
+        from app.projection_recovery import card_projection_recovery
         meta = payload.get("meta") or {}
-        payload["recovery"] = queue_projection_recovery(
-            background_tasks, meta.get("season"), meta.get("week"), meta.pop("rebuild_kinds", []),
-        )
+        recovery = card_projection_recovery(background_tasks, meta)
+        # Keep the existing top-level field for current production consumers.
+        payload["recovery"] = recovery
+        if meta.get("artifacts"):
+            meta["recovery"] = recovery
         return jsonable_encoder(payload)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail="Player data is not ready yet.") from exc

@@ -38,10 +38,12 @@ def test_load_ros_prediction_uses_artifact(monkeypatch, tmp_path):
 
     sample = pd.DataFrame(
         {
+            "player_id": ["00-0000001"],
             "Player": ["Test Player"],
             "Season": [season],
             "From Week": [week],
             "Weeks Remaining": [8],
+            "ROS P50": [100.0],
             "Season P50": [200.0],
         }
     )
@@ -55,6 +57,7 @@ def test_load_ros_prediction_uses_artifact(monkeypatch, tmp_path):
     assert loaded.iloc[0]["Player"] == "Test Player"
 
 
+
 def test_artifact_invalidates_on_fingerprint_change(monkeypatch, tmp_path):
     season, week = 2025, 10
     ros_dir = tmp_path / "ros"
@@ -62,20 +65,19 @@ def test_artifact_invalidates_on_fingerprint_change(monkeypatch, tmp_path):
     monkeypatch.setattr(ros_cache, "PROCESSED_DATA_DIR", tmp_path)
     monkeypatch.setattr(ros_cache, "MODEL_DIR", tmp_path)
 
-    sample = pd.DataFrame({"Player": ["A"], "Season": [season]})
+    sample = pd.DataFrame({"player_id": ["00-0000001"], "Player": ["A"], "Season": [season], "ROS P50": [100.0], "Season P50": [200.0]})
     ros_cache.save_ros_artifact("qb", season, week, True, sample)
 
-    _, meta_path = ros_cache._artifact_paths("qb", season, week, True)
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    meta["fingerprint"] = "stale-fingerprint"
-    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+    # Staleness follows the source revision, not a forged compatibility sidecar.
+    monkeypatch.setattr(ros_cache, "ros_fingerprint", lambda: "new-input-fingerprint")
 
-    recomputed = pd.DataFrame({"Player": ["B"], "Season": [season]})
+    recomputed = pd.DataFrame({"player_id": ["00-0000002"], "Player": ["B"], "Season": [season], "ROS P50": [100.0], "Season P50": [200.0]})
     with patch.object(ros_cache, "predict_rest_of_season", return_value=recomputed):
         ros_cache.invalidate_ros_cache()
         loaded = ros_cache.load_ros_prediction("qb", season=season, week=week)
 
     assert loaded.iloc[0]["Player"] == "B"
+
 
 
 def test_legacy_ros_recovers_receiver_identity_without_rebuilding_or_rewriting(monkeypatch, tmp_path):

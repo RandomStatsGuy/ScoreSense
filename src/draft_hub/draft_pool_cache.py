@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 import threading
@@ -15,9 +16,13 @@ from src.core.artifact_revision import artifact_revision, file_content_revision
 
 from src.config import DRAFT_POOL_DIR, MODEL_DIR, PROCESSED_DATA_DIR, SEASON_QUANTILE_METHOD
 from src.draft_hub.auction_values import RISK_WEIGHT
-from src.projections.artifact_snapshot import read_cached_frame, read_cached_metadata
+from src.projections.artifact_store import feature_source_cutoff, prediction_identity_revision, publish_prediction_artifact, read_prediction_artifact
 
-_POOL_CACHE: dict[int, tuple[tuple, pd.DataFrame]] = {}
+_POOL_VIEW_METADATA = ("feature_season", "games_per_season", "roster_overlay", "depth_chart",
+                       "season_quantile_method", "season_coverage_meta")
+
+
+_POOL_CACHE: dict[int, tuple[tuple, pd.DataFrame, dict]] = {}
 _POOL_COMPUTE_LOCK = threading.Lock()
 
 # Bump when WR/TE label handling or other position post-processing changes.
@@ -174,46 +179,39 @@ def _artifact_is_current(meta: dict[str, Any], fp: str, pool: pd.DataFrame | Non
     return True
 
 
-def save_pool_artifact(season: int, pool: pd.DataFrame | None = None, sidecar: dict[str, Any] | None = None) -> Path:
-    """Write pool parquet + meta sidecar; refresh in-process cache."""
+def save_pool_artifact(season: int, pool: pd.DataFrame | None = None, sidecar: dict[str, Any] | None = None, *, source_fingerprint: str | None = None) -> Path:
+    """Atomically publish pool data and metadata in one parquet replacement."""
+    fp = source_fingerprint or pool_fingerprint()
     if pool is None:
         pool, sidecar = _compute_pool(season)
     else:
         sidecar = sidecar or {}
-    if pool.empty:
-        raise ValueError("Empty draft projection output; previous artifact preserved")
     parquet_path, meta_path = _artifact_paths(season)
     counts = position_counts(pool)
     # Sidecar first so a stale attrs built_at cannot clobber the refresh time.
     meta: dict[str, Any] = {
         **(sidecar or {}),
+        "artifact_kind": "draft_pool",
         "season": season,
-        "fingerprint": pool_fingerprint(),
+        "fingerprint": fp,
         "pos_logic": POSITION_LOGIC_VERSION,
         "position_counts": counts,
         "missing_tight_ends": int(counts.get("TE") or 0) == 0,
         "rows": int(len(pool)),
         "built_at": datetime.now(timezone.utc).isoformat(),
+        "feature_source_cutoff": {pos: feature_source_cutoff(pos, PROCESSED_DATA_DIR) for pos in ("qb", "rb", "wr")},
+        "attrs": {key: value for key, value in pool.attrs.items() if key not in {"artifact_status", "_scoresense_prediction_artifact", "built_at"}},
     }
-    from uuid import uuid4
-
-    for path, write in (
-        (parquet_path, lambda temp: pool.to_parquet(temp, index=False)),
-        (meta_path, lambda temp: temp.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")),
-    ):
-        temp = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
-        try:
-            write(temp)
-            temp.replace(path)
-        finally:
-            temp.unlink(missing_ok=True)
-    snapshot = pool.copy()
-    snapshot.attrs.update(built_at=meta["built_at"], projection_stale=False,
-                          artifact_fingerprint=meta["fingerprint"])
-    # A source update during publication must not tag the saved forecast with
-    # a later fingerprint than the metadata actually published beside it.
-    _POOL_CACHE[season] = ((meta["fingerprint"], artifact_revision(parquet_path, meta_path)), snapshot)
+    if pool_fingerprint() != fp:
+        raise RuntimeError("prediction_inputs_changed_during_publication")
+    publish_prediction_artifact(parquet_path, meta_path, pool, meta)
+    saved, saved_meta, diagnostic = read_prediction_artifact(
+        parquet_path, meta_path, artifact_kind="draft_pool", season=season, fingerprint=fp,
+    )
+    if diagnostic["status"] == "ready":
+        _POOL_CACHE[season] = ((fp, str(parquet_path.resolve()), diagnostic["artifact_revision"], diagnostic["current_identity_revision"]), saved, saved_meta)
     return parquet_path
+
 
 
 def _load_draft_pool(
@@ -223,67 +221,53 @@ def _load_draft_pool(
     Load merged QB/RB/WR draft pool.
 
     Order: in-process cache → valid parquet artifact → live inference (persisted).
-    Artifact-only readers also use local identity snapshots without fetching.
+    Set both flags false for artifact-only readers: the serve-time identity
+    overlay can refresh external rosters even when model computation is disabled.
     """
     fp = pool_fingerprint()
     parquet_path, meta_path = _artifact_paths(season)
-    memory_fp = (fp, artifact_revision(parquet_path, meta_path))
+    memory_fp = (fp, str(parquet_path.resolve()), artifact_revision(parquet_path, meta_path), prediction_identity_revision(season))
 
-    def finish(pool: pd.DataFrame) -> pd.DataFrame:
+    def finish(pool: pd.DataFrame, meta: dict[str, Any]) -> pd.DataFrame:
         copied = pool.copy()
+        for key in _POOL_VIEW_METADATA:
+            copied.attrs[key] = deepcopy(meta.get(key))
         if not apply_identity:
             return copied
-        return _with_roster_identity(copied, season, cache_key=f"pool:{season}:{memory_fp}", allow_refresh=allow_compute)
+        revision = (copied.attrs.get("artifact_status") or {}).get("artifact_revision", memory_fp[2])
+        return _with_roster_identity(copied, season, allow_refresh=allow_compute, cache_key=f"pool:{season}:{parquet_path.resolve()}:{revision}:{fp}")
 
     cached = _POOL_CACHE.get(season)
     if cached is not None and cached[0] == memory_fp:
-        return finish(cached[1])
+        return finish(cached[1], cached[2])
 
-    parquet_path, meta_path = _artifact_paths(season)
-    if parquet_path.exists() and meta_path.exists():
-        meta = read_cached_metadata(meta_path)
-        if meta.get("season") == season and _artifact_is_current(meta, fp):
-            pool = read_cached_frame(parquet_path)
-            if not pool.empty and _artifact_is_current(meta, fp, pool):
-                pool.attrs.update(built_at=meta.get("built_at"), projection_stale=False,
-                                  artifact_fingerprint=meta.get("fingerprint"))
-                _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
-                return finish(pool)
+    pool, meta, diagnostic = read_prediction_artifact(
+        parquet_path, meta_path, artifact_kind="draft_pool", season=season, fingerprint=fp,
+    )
+    if diagnostic["status"] == "ready" and not _artifact_is_current(meta, fp, pool):
+        diagnostic.update(status="stale", reason="pool_position_logic_changed")
+    if diagnostic["status"] == "ready":
+        _POOL_CACHE[season] = ((fp, str(parquet_path.resolve()), diagnostic["artifact_revision"], diagnostic["current_identity_revision"]), pool, meta)
+        return finish(pool, meta)
+
+    if allow_stale and diagnostic["status"] == "stale":
+        return finish(pool, meta)
 
     if not allow_compute:
-        if allow_stale and parquet_path.exists() and meta_path.exists():
-            try:
-                meta = read_cached_metadata(meta_path)
-                if meta.get("season") == season and meta.get("pos_logic") == POSITION_LOGIC_VERSION:
-                    previous = read_cached_frame(parquet_path)
-                    required = {"Player", "Position", "Season Proj", "Per-Game Proj"}
-                    if (not previous.empty and required.issubset(previous.columns)
-                            and pd.to_numeric(previous["Season Proj"], errors="coerce").replace(
-                                [float("inf"), -float("inf")], float("nan")).notna().any()):
-                        previous.attrs.update(projection_stale=True, built_at=meta.get("built_at"),
-                                              artifact_fingerprint=meta.get("fingerprint"))
-                        return finish(previous)
-            except (OSError, ValueError):
-                pass
-        return pd.DataFrame()
+        empty = pd.DataFrame()
+        empty.attrs["artifact_status"] = diagnostic
+        return empty
 
     with _POOL_COMPUTE_LOCK:
-        cached = _POOL_CACHE.get(season)
-        if cached is not None and cached[0] == memory_fp:
-            return finish(cached[1])
-        if parquet_path.exists() and meta_path.exists():
-            meta = read_cached_metadata(meta_path)
-            if meta.get("season") == season and _artifact_is_current(meta, fp):
-                pool = read_cached_frame(parquet_path)
-                if not pool.empty and _artifact_is_current(meta, fp, pool):
-                    pool.attrs.update(built_at=meta.get("built_at"), projection_stale=False,
-                                      artifact_fingerprint=meta.get("fingerprint"))
-                    _POOL_CACHE[season] = ((fp, artifact_revision(parquet_path, meta_path)), pool)
-                    return finish(pool)
+        existing = load_draft_pool(season, allow_compute=False, apply_identity=apply_identity)
+        if not existing.empty:
+            return existing
 
         pool, sidecar = _compute_pool(season)
-        save_pool_artifact(season, pool, sidecar)
-        return finish(_POOL_CACHE[season][1])
+        save_pool_artifact(season, pool, sidecar, source_fingerprint=fp)
+        # Return the same committed version/metadata that a separate reader sees.
+        return load_draft_pool(season, allow_compute=False, apply_identity=apply_identity)
+
 
 
 def load_draft_pool(
@@ -301,13 +285,17 @@ def load_draft_pool(
 
 
 def load_pool_meta(season: int) -> dict[str, Any]:
-    _, meta_path = _artifact_paths(season)
-    if not meta_path.exists():
-        return {}
-    try:
-        return json.loads(meta_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {}
+    parquet_path, meta_path = _artifact_paths(season)
+    fp = pool_fingerprint()
+    memory_fp = (fp, str(parquet_path.resolve()), artifact_revision(parquet_path, meta_path), prediction_identity_revision(season))
+    cached = _POOL_CACHE.get(season)
+    if cached is not None and cached[0] == memory_fp:
+        return deepcopy(cached[2])
+    _, meta, diagnostic = read_prediction_artifact(
+        parquet_path, meta_path, artifact_kind="draft_pool", season=season, fingerprint=fp,
+    )
+    return meta if diagnostic["status"] in {"ready", "stale"} else {}
+
 
 
 def draft_pool_for_position(position: str, season: int, *, allow_compute: bool = True, allow_stale: bool = True) -> pd.DataFrame:
@@ -321,7 +309,10 @@ def draft_pool_for_position(position: str, season: int, *, allow_compute: bool =
         return pd.DataFrame()
     labels = {"WR", "TE"} if pos in {"wr", "rec", "wr_te"} else {label}
     part = pool[pool["Position"].astype(str).str.upper().isin(labels)].copy()
-    meta = load_pool_meta(season)
+    # Keep the metadata attached to these rows. Another process may publish a
+    # replacement between the pool read and a separate metadata read.
+    meta = ({key: pool.attrs[key] for key in _POOL_VIEW_METADATA}
+            if all(key in pool.attrs for key in _POOL_VIEW_METADATA) else load_pool_meta(season))
     if meta:
         part.attrs["feature_season"] = meta.get("feature_season")
         part.attrs["games_per_season"] = meta.get("games_per_season")
@@ -330,6 +321,7 @@ def draft_pool_for_position(position: str, season: int, *, allow_compute: bool =
         part.attrs["season_quantile_method"] = meta.get("season_quantile_method")
         part.attrs["season_coverage_meta"] = meta.get("season_coverage_meta") or {}
     return part.reset_index(drop=True)
+
 
 
 def invalidate_pool_cache(season: int | None = None) -> None:
@@ -348,14 +340,11 @@ def pool_artifact_status(season: int) -> dict[str, Any]:
     fp = pool_fingerprint()
     if not parquet_path.exists():
         return {"season": season, "cached": False, "fingerprint": fp}
-    meta: dict[str, Any] = {}
-    if meta_path.exists():
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            meta = {}
-    counts = meta.get("position_counts") or {}
-    stale = not _artifact_is_current(meta, fp)
+    pool, meta, diagnostic = read_prediction_artifact(
+        parquet_path, meta_path, artifact_kind="draft_pool", season=season, fingerprint=fp,
+    )
+    counts = meta.get("position_counts") if isinstance(meta.get("position_counts"), dict) else {}
+    stale = diagnostic["status"] != "ready" or not _artifact_is_current(meta, fp, pool)
     missing_te = bool(meta.get("missing_tight_ends")) or int(counts.get("TE") or 0) == 0
     return {
         "season": season,
@@ -369,4 +358,5 @@ def pool_artifact_status(season: int) -> dict[str, Any]:
         "rows": meta.get("rows"),
         "built_at": meta.get("built_at"),
         "path": str(parquet_path),
+        "artifact_status": diagnostic,
     }

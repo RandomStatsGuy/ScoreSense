@@ -12,6 +12,7 @@ from src.draft_hub import draft_pool_cache as pools, value_sheet as values, stor
 from src.draft_hub.schemas import LeagueRules
 from src.draft_hub.value_snapshot import PoolSnapshotUnavailable
 from src.draft_hub.value_snapshot_warmup import warm_fantasy_value_snapshots
+from src.projections.artifact_store import METADATA_ATTR, publish_prediction_artifact
 
 
 @pytest.fixture
@@ -90,13 +91,17 @@ def test_wrong_context_or_damaged_snapshot_never_becomes_a_fallback(forecasts, d
     make_stale(feature)
     parquet, metadata = pools._artifact_paths(2026)
     if damage == "wrong_season":
-        meta = json.loads(metadata.read_text())
-        meta.update(season=2025, fingerprint=pools.pool_fingerprint())
-        metadata.write_text(json.dumps(meta))
+        saved = pd.read_parquet(parquet)
+        saved.attrs[METADATA_ATTR] = {**saved.attrs[METADATA_ATTR], "season": 2025,
+                                      "fingerprint": pools.pool_fingerprint()}
+        saved.to_parquet(parquet, index=False)
     elif damage == "parquet":
         parquet.write_bytes(b"corrupt")
     elif damage == "metadata":
-        metadata.write_text("[]")
+        saved = pd.read_parquet(parquet)
+        # Corrupt the authoritative footer, not its compatibility mirror.
+        saved.attrs[METADATA_ATTR] = {"malformed": True}
+        saved.to_parquet(parquet, index=False)
     else:
         frame.drop(columns="Per-Game Proj").to_parquet(parquet, index=False)
     pools.invalidate_pool_cache()
@@ -111,17 +116,17 @@ def test_wrong_context_or_damaged_snapshot_never_becomes_a_fallback(forecasts, d
 def test_fantasy_http_keeps_rows_available_and_respects_daily_cadence(hub_db, forecasts, monkeypatch, path, age_minutes):
     from app.api import app
     from app import projection_recovery as recovery
-    feature, _, before, compute = forecasts
+    feature, frame, before, compute = forecasts
     monkeypatch.setattr("app.auth.hub_auth_enabled", lambda: False)
     submitted = []
     async def submit(*args):
         submitted.append(args)
         return {"status": "error", "failed": ["draft"]}
     monkeypatch.setattr(recovery, "submit_cpu_job", submit)
+    # Establish an actually aged coherent publication before its inputs change.
+    before = publish_prediction_artifact(*pools._artifact_paths(2026), frame,
+        {**before, "built_at": (datetime.now(timezone.utc)-timedelta(minutes=age_minutes)).isoformat()})
     make_stale(feature)
-    metadata = pools._artifact_paths(2026)[1]
-    before["built_at"] = (datetime.now(timezone.utc)-timedelta(minutes=age_minutes)).isoformat()
-    metadata.write_text(json.dumps(before))
     pools.invalidate_pool_cache()
     response = TestClient(app).get("/api/hub" + path)
     assert response.status_code == 200
@@ -203,6 +208,7 @@ def test_publication_source_change_does_not_relabel_memory_as_a_new_forecast(for
     feature, frame, _, _ = forecasts
     original = pools.pool_fingerprint
     captured = original()
+    previous_bytes = [path.read_bytes() for path in pools._artifact_paths(2026)]
     # Simulate a source replacement after metadata construction, before the
     # in-memory result would formerly be stamped with the next fingerprint.
     calls = []
@@ -212,7 +218,9 @@ def test_publication_source_change_does_not_relabel_memory_as_a_new_forecast(for
             make_stale(feature)
         return original()
     monkeypatch.setattr(pools, "pool_fingerprint", fingerprint)
-    pools.save_pool_artifact(2026, frame)
+    with pytest.raises(RuntimeError, match="prediction_inputs_changed_during_publication"):
+        pools.save_pool_artifact(2026, frame)
+    assert [path.read_bytes() for path in pools._artifact_paths(2026)] == previous_bytes
     assert pools.load_pool_meta(2026)["fingerprint"] == captured
     assert pools.load_draft_pool(2026, allow_compute=False, apply_identity=False).empty
 

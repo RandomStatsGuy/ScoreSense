@@ -32,7 +32,8 @@ def artifacts(tmp_path, monkeypatch):
     feature.write_bytes(b"old")
     frame = pd.DataFrame({"Player": ["Test TE"], "player_id": ["te"], "Position": ["TE"],
                           "Team": ["BUF"], "Projected Points": [12.],
-                          "Season Proj": [180.], "ROS P10": [60.], "ROS P50": [120.], "ROS P90": [180.]})
+                          "Season Proj": [180.], "Season P50": [180.],
+                          "ROS P10": [60.], "ROS P50": [120.], "ROS P90": [180.]})
     calls = []
     def predict(*a, **k):
         calls.append((a, k))

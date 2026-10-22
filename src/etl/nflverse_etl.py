@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 
-from src.config import DEFAULT_ETL_SEASONS, DEFAULT_TRAIN_SEASONS, PROCESSED_DATA_DIR, write_parquet
+from src.etl.season_selection import default_ingestion_seasons
+from src.config import DEFAULT_TRAIN_SEASONS, PROCESSED_DATA_DIR, write_parquet
 from src.core.memory_utils import release_memory
 from src.core.features import (
     FEATURE_REGISTRY,
@@ -283,11 +284,15 @@ def build_all_datasets(
     enrich_analytics: bool = True,
     candidate_dir: Path | None = None,
 ) -> dict[str, Path]:
-    seasons = seasons or DEFAULT_ETL_SEASONS
+    seasons = list(seasons) if seasons is not None else default_ingestion_seasons()
+    if not seasons:
+        raise ValueError("At least one ingestion season is required")
     output_dir = output_dir or PROCESSED_DATA_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
     weekly = load_weekly_player_stats(seasons)
     schedules = load_schedules(seasons)
+    from src.etl.recorded_games import RECORDED_GAMES_FILENAME, build_recorded_games, publish_recorded_games
+    publish_recorded_games(build_recorded_games(weekly, schedules), output_dir / RECORDED_GAMES_FILENAME)
     # Save the same fresh game context used by ETL for gated training and
     # upcoming inference. An isolated research rebuild keeps its own snapshot.
     schedule_targets = [output_dir / "nfl_schedules.parquet"]
@@ -353,7 +358,7 @@ def main() -> None:
         "--seasons",
         type=int,
         nargs="+",
-        default=DEFAULT_ETL_SEASONS,
+        default=None,
         help="Seasons to include",
     )
     parser.add_argument(

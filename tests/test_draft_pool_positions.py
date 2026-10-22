@@ -101,19 +101,25 @@ def test_zero_te_legacy_artifact_rebuilds(monkeypatch, tmp_path):
     monkeypatch.setattr(draft_pool_cache, "MODEL_DIR", tmp_path)
 
     stale = pd.DataFrame(
-        {"player_id": ["w1", "w2"], "Player": ["A", "B"], "Position": ["WR", "WR"]}
+        {"player_id": ["w1", "w2"], "Player": ["A", "B"],
+         "Position": ["WR", "WR"], "Season Proj": [180.0, 300.0]}
     )
-    draft_pool_cache.save_pool_artifact(season, stale)
-    _, meta_path = draft_pool_cache._artifact_paths(season)
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    meta["pos_logic"] = "legacy_all_wr"
-    meta["position_counts"] = {"QB": 0, "RB": 0, "WR": 2, "TE": 0, "K": 0, "DEF": 0}
-    meta["missing_tight_ends"] = True
+    # This is a real pre-v1 artifact, whose metadata lived only in its sidecar.
+    # Editing a modern sidecar cannot change its embedded publication metadata.
+    parquet_path, meta_path = draft_pool_cache._artifact_paths(season)
+    stale.to_parquet(parquet_path, index=False)
+    meta = {
+        "season": season, "fingerprint": draft_pool_cache.pool_fingerprint(),
+        "rows": len(stale), "pos_logic": "legacy_all_wr",
+        "position_counts": {"QB": 0, "RB": 0, "WR": 2, "TE": 0, "K": 0, "DEF": 0},
+        "missing_tight_ends": True,
+    }
     meta_path.write_text(json.dumps(meta), encoding="utf-8")
     draft_pool_cache.invalidate_pool_cache(season)
 
     rebuilt = pd.DataFrame(
-        {"player_id": ["te1", "w1"], "Player": ["Pitts", "Puka"], "Position": ["TE", "WR"]}
+        {"player_id": ["te1", "w1"], "Player": ["Pitts", "Puka"],
+         "Position": ["TE", "WR"], "Season Proj": [180.0, 300.0]}
     )
     with patch.object(draft_pool_cache, "_compute_pool", return_value=(rebuilt, {"pos_logic": "wr_te_v1"})):
         loaded = draft_pool_cache.load_draft_pool(season)

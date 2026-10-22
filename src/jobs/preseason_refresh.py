@@ -14,6 +14,7 @@ from src.projections.projection_meta import get_projection_meta
 from src.projections.weekly_cache import prewarm_weekly_predictions
 from src.projections.ros_cache import prewarm_ros_predictions
 from src.etl.nflverse_etl import build_all_datasets
+from src.etl.season_selection import default_ingestion_seasons
 
 REFRESH_STATUS = CACHE_DIR / "last_preseason_refresh.json"
 
@@ -32,7 +33,7 @@ def run_preseason_refresh(
     draft_season: int | None = None,
 ) -> dict:
     """Rebuild datasets and write draft projection CSVs for upcoming season."""
-    seasons = seasons or DEFAULT_TRAIN_SEASONS + DEFAULT_TEST_SEASONS
+    seasons = list(seasons) if seasons is not None else default_ingestion_seasons()
     started = datetime.now(timezone.utc).isoformat()
 
     build_all_datasets(seasons=seasons)

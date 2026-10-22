@@ -8,6 +8,7 @@ import pytest
 from fastapi import BackgroundTasks
 
 from src.projections.artifact_snapshot import read_snapshot
+from src.projections.artifact_store import METADATA_ATTR
 from src.projections import weekly_cache, ros_cache
 from src.draft_hub import trade_outlook
 
@@ -18,7 +19,7 @@ def snapshot(tmp_path, fingerprint="old", week=4, injury=True):
                    "Projected Points":20, "Low (P10)":10, "High (P90)":30}]).to_parquet(parquet)
     meta.write_text(json.dumps({"season":2026, "week":week, "position":"qb",
                                "apply_injury_adjustments":injury, "fingerprint":fingerprint,
-                               "built_at":"2026-09-30T00:00:00+00:00"}))
+                               "built_at":"2026-09-30T00:00:00+00:00", "rows":1}))
     return parquet, meta
 
 
@@ -66,10 +67,10 @@ def test_weekly_failed_replacement_retains_saved_forecast_only_when_opted_in(tmp
 
 def test_empty_ros_refresh_preserves_previous_artifact(tmp_path,monkeypatch):
     monkeypatch.setattr(ros_cache,"ROS_PREDICTIONS_DIR",tmp_path)
-    ros_cache.save_ros_artifact("qb",2026,4,True,pd.DataFrame([{"ROS P50":200}]))
+    ros_cache.save_ros_artifact("qb",2026,4,True,pd.DataFrame([{"player_id":"x", "ROS P50":200, "Season P50":250}]))
     paths=ros_cache._artifact_paths("qb",2026,4,True)
     before=[path.read_bytes() for path in paths]
-    with pytest.raises(ValueError,match="Empty ROS"):
+    with pytest.raises(ValueError,match="artifact_empty"):
         ros_cache.save_ros_artifact("qb",2026,4,True,pd.DataFrame())
     assert [path.read_bytes() for path in paths]==before
 
@@ -82,7 +83,7 @@ def test_damaged_current_cache_is_a_miss_and_can_rebuild(tmp_path, monkeypatch, 
     frame = pd.DataFrame([{'player_id':'x', 'Player':'Test QB', 'Position':'QB', 'Team':'BUF',
                            'Projected Points':20, 'Low (P10)':10, 'High (P90)':30,
                            'ROS P10':100, 'ROS P50':200, 'ROS P90':300,
-                           'Season P10':150, 'Season P50':250, 'Season P90':350}])
+                           'Season Proj':250, 'Season P10':150, 'Season P50':250, 'Season P90':350}])
     if service == 'draft':
         module = draft_pool_cache
         monkeypatch.setattr(module, 'DRAFT_POOL_DIR', tmp_path)
@@ -108,7 +109,16 @@ def test_damaged_current_cache_is_a_miss_and_can_rebuild(tmp_path, monkeypatch, 
     if damage == 'parquet':
         paths[0].write_bytes(b'broken parquet')
     else:
-        paths[1].write_text('[]', encoding='utf-8')
+        paths[1].write_text('not valid json', encoding='utf-8')
+        clear()
+        # The compatibility mirror can be damaged while the embedded generation
+        # remains usable. Only genuinely corrupt authoritative metadata is a miss.
+        saved = load(False)
+        assert saved.iloc[0]['player_id'] == 'x'
+        assert saved.attrs['artifact_status']['sidecar_status'] == 'invalid'
+        damaged = pd.read_parquet(paths[0])
+        damaged.attrs[METADATA_ATTR]['rows'] += 1
+        damaged.to_parquet(paths[0], index=False)
     clear()
     assert load(False).empty
     compute.assert_not_called()
@@ -121,10 +131,10 @@ def test_empty_draft_refresh_preserves_previous_artifact(tmp_path, monkeypatch):
     from src.draft_hub import draft_pool_cache
 
     monkeypatch.setattr(draft_pool_cache, 'DRAFT_POOL_DIR', tmp_path)
-    draft_pool_cache.save_pool_artifact(2026, pd.DataFrame([{'Season P50':200}]))
+    draft_pool_cache.save_pool_artifact(2026, pd.DataFrame([{'player_id':'x', 'Season Proj':200, 'Season P50':200}]))
     paths = draft_pool_cache._artifact_paths(2026)
     before = [path.read_bytes() for path in paths]
-    with pytest.raises(ValueError, match='Empty draft'):
+    with pytest.raises(ValueError, match='artifact_empty'):
         draft_pool_cache.save_pool_artifact(2026, pd.DataFrame())
     assert [path.read_bytes() for path in paths] == before
     draft_pool_cache.invalidate_pool_cache()
@@ -132,7 +142,7 @@ def test_empty_draft_refresh_preserves_previous_artifact(tmp_path, monkeypatch):
 
 def test_ros_failed_replacement_keeps_only_requested_context(tmp_path,monkeypatch):
     monkeypatch.setattr(ros_cache,'ROS_PREDICTIONS_DIR',tmp_path)
-    ros_cache.save_ros_artifact('qb',2026,4,True,pd.DataFrame([{'ROS P10':100,'ROS P50':200,'ROS P90':300}]))
+    ros_cache.save_ros_artifact('qb',2026,4,True,pd.DataFrame([{'player_id':'x','ROS P10':100,'ROS P50':200,'ROS P90':300,'Season P50':250}]))
     monkeypatch.setattr(ros_cache,'_load_ros_prediction',Mock(side_effect=RuntimeError('feed failed')))
     frame=ros_cache.load_ros_prediction('qb',2026,4,allow_stale=True)
     assert frame.iloc[0]['ROS P50']==200 and frame.attrs['projection_stale']

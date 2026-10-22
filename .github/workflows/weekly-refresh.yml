@@ -1,4 +1,4 @@
-name: Weekly Refresh
+name: Weekly Refresh (runner artifacts)
 
 on:
   schedule:
@@ -27,11 +27,18 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: PYTHONPATH=. python -m src.jobs.weekly_refresh
 
-      - name: Upload artifacts
+      # This runner does not update the production VPS or its mounted data.
+      - name: Upload runner outputs (no production publishing)
         uses: actions/upload-artifact@v4
         with:
           name: scoresense-outputs
           path: |
             artifacts/predictions/
+            artifacts/draft_pool/
+            artifacts/weekly_predictions/
+            artifacts/ros_predictions/
             artifacts/models/v2/
+            data/processed/*_mlready.parquet
+            data/processed/*_mlready.csv
+            data/processed/recorded_player_games.parquet
             data/cache/last_refresh.json

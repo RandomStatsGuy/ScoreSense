@@ -7,6 +7,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.draft_hub.player_name_match import roster_name_key
 from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.schemas import LeagueRules
 
@@ -242,6 +243,11 @@ def build_player_values(
     if pool.empty:
         return out
 
+    from src.draft_hub.player_identity import PlayerIdentityError, read_player_identity
+    if "player_id" in pool:
+        canonical_ids = [read_player_identity(str(pid))["canonical_id"] for pid in pool["player_id"]]
+        if len(canonical_ids) != len(set(canonical_ids)):
+            raise PlayerIdentityError("Duplicate canonical player identities in valuation pool.")
     df = pool.copy()
     if pos_col not in df.columns:
         df[pos_col] = "UNK"
@@ -360,6 +366,56 @@ def build_player_values(
     return out
 
 
+def _value_for_roster_row(
+    row: dict[str, Any],
+    pool: pd.DataFrame,
+    values: dict[str, dict[str, Any]],
+    *,
+    pos_col: str,
+) -> dict[str, Any] | None:
+    """Resolve a roster row across GSIS/Sleeper ids, then canonical name + position."""
+    from src.draft_hub.player_identity import player_identity_aliases
+    raw_ids = {
+        str(row.get("player_id") or "").strip(),
+        str(row.get("sleeper_player_id") or "").strip(),
+    }
+    ids: set[str] = player_identity_aliases(row)
+    for raw in raw_ids:
+        if not raw:
+            continue
+        ids.add(raw)
+        if raw.startswith("sleeper-"):
+            ids.add(raw.removeprefix("sleeper-"))
+        elif raw.isdigit():
+            ids.add(f"sleeper-{raw}")
+    matched_ids = ids.intersection(values)
+    if len(matched_ids) > 1:
+        raise ValueError("Duplicate player aliases in valuation pool.")
+    if matched_ids:
+        return values[next(iter(matched_ids))]
+
+    wanted_name = roster_name_key(
+        str(row.get("player_name") or row.get("Player") or row.get("player") or "")
+    )
+    wanted_pos = normalize_position(row.get("position") or row.get("Position"))
+    if not wanted_name or pool.empty:
+        return None
+    matches: list[tuple[float, str]] = []
+    for _, candidate in pool.iterrows():
+        candidate_name = roster_name_key(
+            str(candidate.get("Player") or candidate.get("player_name") or "")
+        )
+        candidate_pos = normalize_position(candidate.get(pos_col))
+        if candidate_name != wanted_name or candidate_pos != wanted_pos:
+            continue
+        pid = str(candidate.get("player_id") or candidate.get("Player") or "")
+        if pid in values:
+            matches.append((float(candidate.get("Season Proj") or 0.0), pid))
+    if len(matches) != 1:
+        return None
+    return values[matches[0][1]]
+
+
 def fair_value_for_row(
     row: dict[str, Any],
     pool: pd.DataFrame,
@@ -369,27 +425,8 @@ def fair_value_for_row(
     proj_col: str = "Season Proj",
     pos_col: str = "Position",
 ) -> float | None:
-    """Lookup fair value for a single roster row using pool rank."""
-    pid = str(row.get("player_id") or "")
-    pos = normalize_position(row.get("position"))
+    """Lookup fair value across provider ids; unknown players stay unavailable."""
     if pool.empty:
-        return None
-    sub = pool[pool[pos_col].astype(str).str.upper() == pos.upper()].sort_values(proj_col, ascending=False)
-    ids = [str(x) for x in sub.get("player_id", sub.get("Player", []))]
-    if pid not in ids and pos == "TE":
-        wr_sub = pool[pool[pos_col].astype(str).str.upper() == "WR"].sort_values(proj_col, ascending=False)
-        sub = wr_sub
-        ids = [str(x) for x in sub.get("player_id", sub.get("Player", []))]
-
-    matched_pid = pid if pid in ids else None
-    if matched_pid is None:
-        name_key = _player_name_key(row.get("player_name") or row.get("player") or row.get("Player"))
-        if name_key and "Player" in sub.columns:
-            matches = sub[sub["Player"].map(_player_name_key) == name_key]
-            if len(matches) == 1:
-                matched_pid = str(matches.iloc[0].get("player_id") or matches.iloc[0].get("Player") or "")
-
-    if not matched_pid or matched_pid not in ids:
         return None
     values = build_player_values(
         pool,
@@ -398,5 +435,6 @@ def fair_value_for_row(
         proj_col=proj_col,
         pos_col=pos_col,
     )
-    fair = values.get(matched_pid, {}).get("fair_value")
+    hit = _value_for_roster_row(row, pool, values, pos_col=pos_col)
+    fair = hit.get("fair_value") if hit else None
     return float(fair) if fair is not None else None

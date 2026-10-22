@@ -117,7 +117,8 @@ def test_real_multiseason_finalization_keeps_all_forecasts_and_valuations_readab
     monkeypatch.setattr("src.projections.projection_movement.save_projection_movement_artifact", lambda *a, **k: None)
     frame = pd.DataFrame({"Player": ["Test TE"], "player_id": ["te"], "Position": ["TE"],
                           "Team": ["BUF"], "Projected Points": [12.], "Per-Game Proj": [12.],
-                          "Season Proj": [180.], "ROS P10": [60.], "ROS P50": [120.], "ROS P90": [180.]})
+                          "Season Proj": [180.], "Season P50": [180.],
+                          "ROS P10": [60.], "ROS P50": [120.], "ROS P90": [180.]})
     def predict(*args, season, **kwargs):
         schedule._load_schedules([season])
         if season == 2025:

@@ -33,9 +33,13 @@ def test_ros_artifact_and_fingerprint(monkeypatch,tmp_path):
     monkeypatch.setattr('src.core.schedule_utils.current_projection_week',lambda season:4)
     monkeypatch.setattr('src.projections.ros_cache.ros_fingerprint',lambda:'current')
     stem=tmp_path/'2026_w4_qb'
-    meta={'fingerprint':'current','season':2026,'week':4,'position':'qb','apply_injury_adjustments':True}
+    # Legacy saved forecasts retain their original sidecar contract, including
+    # a row-count attestation. New publications use embedded metadata instead.
+    meta={'fingerprint':'current','season':2026,'week':4,'position':'qb',
+          'apply_injury_adjustments':True,'rows':1,'built_at':'2026-09-30T00:00:00+00:00'}
     stem.with_suffix('.meta.json').write_text(json.dumps(meta))
-    pd.DataFrame([{'player_id':'x','ROS P50':220}]).to_parquet(stem.with_suffix('.parquet'))
+    pd.DataFrame([{'player_id':'x','Player':'Test QB','Position':'QB','Team':'BUF',
+                   'ROS P10':180,'ROS P50':220,'ROS P90':260,'Season P50':300}]).to_parquet(stem.with_suffix('.parquet'))
     assert trade.build_trade_outlook(overview([{'player_id':'x'}]))['players']['x']['remaining_points']==220
     stem.with_suffix('.meta.json').write_text(json.dumps({**meta,'fingerprint':'stale'}))
     result=trade.build_trade_outlook(overview([{'player_id':'x'}]))
