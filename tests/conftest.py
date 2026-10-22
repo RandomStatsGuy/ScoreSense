@@ -55,6 +55,22 @@ def _reset_hub_db_init_flag(tmp_path, monkeypatch):
 
 
 @pytest.fixture()
+def cap_sheet_catalog(monkeypatch):
+    """Use recorded provider identities, including suffixes and competing names."""
+    import json
+    from pathlib import Path
+
+    import pandas as pd
+
+    from src.draft_hub import cap_sheet_import
+
+    payload = json.loads((Path(__file__).parent / "fixtures/cap_sheet_players.json").read_text(encoding="utf-8"))
+    frame = pd.DataFrame(payload["players"])
+    monkeypatch.setattr(cap_sheet_import, "players_dataframe", lambda: frame.copy())
+    return frame
+
+
+@pytest.fixture()
 def hub_db(tmp_path, monkeypatch):
     """Isolated Draft Hub SQLite — never touches data/draft_hub/draft_hub.db."""
     from src.draft_hub import storage

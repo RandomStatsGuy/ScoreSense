@@ -9,6 +9,7 @@ from typing import Any
 import pandas as pd
 
 from src.draft_hub.contracts import build_contract_from_roster_edit
+from src.draft_hub.player_name_match import roster_name_key
 from src.draft_hub.schemas import LeagueRules
 from src.integrations.external_projections import _normalize_name
 from src.integrations.sleeper import players_dataframe
@@ -225,6 +226,10 @@ def _match_player_pos(clean: str, pos: str, df: pd.DataFrame) -> dict[str, Any] 
         if _normalize_name(row.get("full_name")) == norm:
             return _row_hit(row, pos)
 
+    without_suffix = pool[pool["full_name"].map(roster_name_key) == roster_name_key(clean)]
+    if len(without_suffix) == 1:
+        return _row_hit(without_suffix.iloc[0], pos)
+
     parts = [p.strip(".") for p in re.sub(r"[^\w\s'.-]", " ", clean).split() if p.strip(".")]
     if len(parts) < 1:
         return None
@@ -234,17 +239,16 @@ def _match_player_pos(clean: str, pos: str, df: pd.DataFrame) -> dict[str, Any] 
         return None
     last = parts[-1]
     first = parts[0]
-    by_last = pool[pool["last_name"].astype(str).str.lower() == last.lower()]
+    # Provider surnames may include Jr./Sr./III while the sheet omits them.
+    surname_keys = pool["last_name"].map(roster_name_key)
+    by_last = pool[surname_keys == roster_name_key(last)]
     if by_last.empty:
         # compound last names: St Brown
         if len(parts) >= 3:
             last2 = f"{parts[-2]} {parts[-1]}"
-            by_last = pool[pool["last_name"].astype(str).str.lower() == last2.lower()]
+            by_last = pool[surname_keys == roster_name_key(last2)]
     if by_last.empty:
         return None
-    if len(by_last) == 1:
-        return _row_hit(by_last.iloc[0], pos)
-
     # "B. Robinson" is Brian once Bijan is written out as Bijan on the same sheet.
     if pos == "RB" and last.lower() == "robinson" and first.lower() in {"b"}:
         brian = by_last[by_last["first_name"].astype(str).str.lower() == "brian"]

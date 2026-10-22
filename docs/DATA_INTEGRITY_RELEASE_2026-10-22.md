@@ -76,3 +76,23 @@ All **13 model files and SHA-256 hashes remain unchanged** after the no-retrain 
 Rendered verification of the **actual running production app** passed through the SSH loopback (`127.0.0.1:18080`): weekly **10.3**, ROS **113.5**, YTD **81.8**, displayed PPG **13.6**, and six game rows. All **13 layout checks pass at both 1280 and 390**, with no runtime errors and correct dialog close/focus behavior. All six `pickens-{weekly,ros,history}-{1280,390}.png` screenshots in `outputs/agent/production-card-verification/` were inspected. The report identifies frontend build `8b9de425-4adf-46cb-a1c7-b01fc02f22e5`.
 
 The **public Cloudflare origin also passed full acceptance in actual Edge**, using same-origin browser requests: all three IDs returned matching **10.338 weekly P50 / 113.5 ROS P50**, identical complete Weeks 1–6 history and **81.8** recorded points. The browser verified the new completed refresh timestamp and release build. All **13 layout checks passed at 1280 and 390**, with correct close/focus behavior and no JavaScript errors. All six public-origin screenshots were inspected. Authoritative public-browser evidence is `outputs/agent/production-card-verification/public-origin-retry/report.json` and its adjacent screenshots. The 28 synthetic component scenarios remain separate evidence; the live results above exercise the released app and real backfilled production data.
+
+
+## Cap-sheet follow-up — local repair, not deployed
+
+The subsequent request to fix the remaining cap-sheet failure uncovered an actual pre-existing parser defect, rather than only an unstable test dependency. **This cap-sheet change is not part of deployed release `eb7880e73f9c79bedfcff48aa63d4875535b726b` and has not been deployed in this follow-up.** The production release, backfill and source-hash observations above remain historical evidence for that deployed version.
+
+The sheet omits generational suffixes while the provider's `last_name` can contain `Thomas Jr.`, `Walker III`, `Richardson Sr.`, `Robinson Jr.` or `Gordon II`. The old parser compared those provider surnames literally after stripping the suffix only from the sheet input. It therefore missed three players, mapped Brian Robinson to Bijan, and could map Ollie Gordon to Melvin when only the unsuffixed surname candidate was considered.
+
+The local fix uses the shared suffix-aware name key for unique full-name matches and surname candidates, retains the position boundary, and requires a matching first initial even for a unique surname. Returned provider names and IDs remain intact. The existing ranking and abbreviated Brian/Bijan policy are unchanged. Tests now assert Brian Robinson **8154** separately from Bijan **9509**, and Ollie Gordon **12495** rather than Melvin **2320**. Wrong initials, wrong positions and missing Ollie remain unmatched.
+
+The cap import/validation tests use a deterministic fixture of **508 recorded public provider identities**, including competing and historical names, without fetching a provider or changing the runtime catalog. Against that same fixture, an independent in-memory comparison of the exact baseline and repaired parser produced:
+
+| Parser | Matched | Unmatched | Duplicates | Identity check |
+|---|---:|---:|---:|---|
+| Baseline | 152 | 3 | 1 | Brian → Bijan; Ollie → Melvin |
+| Repaired | **156** | **0** | **0** | Brian → 8154; Bijan → 9509; Ollie → 12495 |
+
+Focused verification passed **31 tests** (`outputs/release-tests/cap-sheet-targeted.{log,xml}`); the final cap import/validation gate passed **25 tests** (`outputs/release-tests/cap-sheet-final-targeted.log`). These suites overlap and are not additive. The full-sheet salary assertions were retained and strengthened with exact Brian/Bijan/Ollie identity checks.
+
+**Fresh complete backend suite: 4,428 passed, 2 skipped, 0 failed**, exit 0, in **1,259.39 seconds (20:59)**. The complete `pytest tests/ -q` run finished without a failure-count cutoff. Both skips are existing environment conditions: the draft Excel workbook is not present locally, and Hub authentication is disabled for the WebSocket-auth case. The seven warnings are existing dependency deprecations. Evidence is `outputs/release-tests/full-cap-sheet-fix.log`, `full-cap-sheet-fix.xml` and `full-cap-sheet-fix.outcome.json`. This successful full run supersedes the earlier failing validation as the current branch result; the historical production-release counts above remain preserved. The cap-sheet fix is on `codex/data-integrity-release` in draft PR #818 and remains undeployed.
