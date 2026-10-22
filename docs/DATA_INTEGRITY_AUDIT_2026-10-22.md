@@ -1,5 +1,7 @@
 # Data integrity audit — October 22, 2026
 
+> Historical initial audit. See the [reconciled release and backfill report](DATA_INTEGRITY_RELEASE_2026-10-22.md) for subsequent deployment facts and final acceptance status. The original findings below are preserved as a point-in-time record.
+
 Local repairs are implemented. Production still requires a reviewed release and source backfill. This audit does not certify the whole architecture or claim that every empty card has the same cause.
 
 ## Actual state and evidence boundaries
