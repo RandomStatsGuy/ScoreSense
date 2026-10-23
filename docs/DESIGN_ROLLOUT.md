@@ -1060,3 +1060,154 @@ branch; a draft PR does not alter master. The runbook explains explicit baseline
 updates and bypass limitations. Local evidence lives under the task worktree's
 `outputs/agent/release-regressions/` and primary workspace's
 `outputs/agent/deploy-guards/`.
+
+### Tessa's Touchdown Memorial League family guide — October 23, 2026
+
+Task: turn the finished three-page family PDF into a phone-friendly website page
+that the user can text to the family. Members have already joined the league.
+Approved baseline: the completed PDF's simple instructions and screenshot
+examples, adapted into standalone reading content rather than another Fantasy
+destination. The user explicitly approved this web adaptation.
+
+Attention order:
+
+1. Set the week's starters and understand the next action and kickoff lock.
+2. Follow the matchup and make the core roster moves: pickups, claims, drops,
+   and trades.
+3. Enjoy the room, nicknames, conversation, weekly awards, and Vibes.
+
+Observed friction: the approved PDF fixes text and pictures onto three print
+pages; sharing it on a phone requires opening a document and zooming. This is a
+format constraint, not an asserted defect in the live Fantasy pages. The guide
+should let readers jump to a task and read its steps without zooming. Screenshots
+remain optional examples beside real webpage text.
+
+Bounded change: `public.tessa-guide`, backed by
+`frontend/public/api-guide/tessas-touchdown.html`, its dedicated
+`tessa-guide.css`, and the accompanying illustrative assets. Use the existing
+product palette and spacing roles in standalone Account chrome, one reading
+column, an anchor jump list, native screenshot disclosures, and Copy link with
+visible outcome feedback. No new app navigation item or shared app layout change.
+The static `/api-guide/` route preserves the existing service-worker fallback
+boundary and uses the server's exact-file serving path.
+
+Behavior and privacy invariants: Tessa's is a native, non-salary, full-PPR league
+with a 16-player roster and priority waiver claims. Both Lineup and Room save
+starters; Room tap/drop saves immediately with Undo, while Lineup uses the Start
+confirmation. Kickoff locks, projected versus actual points, claims versus
+completed pickups, conditional drops, and drops versus bench moves stay explicit.
+Drop player is under My team → Player details. Guide visits do not create an
+account, join or switch a league, request private data, or mutate league state.
+Direct site links use the signed-in current league. The approved screenshot
+crops show example NFL players and ordinary team names without credentials,
+account details, or private chat; their changing numbers are labeled examples.
+
+Acceptance: verify readable reflow at 390 and 1280, with 320 and laptop widths for
+long headings and link labels. Core steps and consequences stay visible when all
+examples are collapsed. Check anchor navigation, keyboard focus, disclosure
+controls, screenshot loading and reserved dimensions, Copy link success/fallback,
+and the signed-out guide. Direct Fantasy links must lead to the intended existing
+destination without selecting a league or executing a team action. Preserve the
+approved light reading treatment, relevant reduced-motion behavior, sufficient
+contrast, and 44px phone targets.
+
+Machine evidence: the scoped living-surface Node suite passed 28 tests; the
+living-surface and product-constitution Python suites passed 37 tests. The final
+production build passed and copied all six guide files byte-for-byte, with no
+obsolete WebP images. The standalone document's heading, landmark, fragment,
+local-asset and image-dimension checks passed. After the final PNG and native-list
+refinement, all 11 applicable layout rules passed at both 390 and 1280. Offline
+contrast calculations passed all 20 requested light/dark text pairs against the
+4.5:1 normal-text threshold; the light minimum is 5.11:1 and the dark minimum is
+8.15:1. These scoped checks are not an accessibility conformance assessment.
+
+| Guide route | 390 | 1280 |
+|---|---|---|
+| `/api-guide/tessas-touchdown.html` | PASS (11 rules) | PASS (11 rules) |
+
+Visual evidence: inspected the live public guide in dark mode at 320, 390, 1024,
+and 1280 with no horizontal overflow. Screenshots in the original checkout's
+`outputs/tessa-guide-site-checks/screenshots/` include `guide-390-dark.png`,
+`guide-1280-dark.png`, `guide-320-dark.png`, and `guide-1024-dark.png`, plus the
+expanded picture, Room, and fun-section captures. Light mode was not visually
+inspected; its evidence is limited to the contrast calculations above.
+
+Task evidence: anchor jumps, all four native screenshot disclosures and their PNG
+loads, Enter-key operation and visible keyboard focus passed on the live guide.
+Copy guide link displayed its success feedback; the clipboard payload was not
+independently confirmed and the fallback was not exercised. Open My team reached
+`/hub/roster` while preserving the focused league. An anonymous request returned
+HTTP 200. No real lineup, roster, claim, or trade was changed during verification.
+
+Publication: the final six static guide files were published while the protected
+application baseline remained unchanged. No production app rebuild/restart or
+league-state change was part of this publication. Deployment evidence is in the
+original checkout's `outputs/tessa-guide-site-checks/deployment-v2.json`; build
+evidence is `production-build-v2.log` and `production-build-check-v2.json` in the
+same evidence directory.
+
+October 23 opening-copy refinement: the user found the introduction too much like
+marketing and asked for a more personal voice. Keep the approved layout and league
+title; replace the eyebrow, slogan and explanatory introduction with a short note
+to the family and an invitation to ask in the family chat. Match the description
+and link-preview description to that voice. No invented personal memories or
+changes to instructions, controls, styling, league data or permissions.
+
+Refinement machine evidence: Node living-surface tests passed 28; Python product
+and living-surface tests passed 37. Layout audit passed at 1280 on the live route
+and at 390 on the local static preview of the revised HTML. The separate test
+browser's live 390 requests failed to load with ERR_SSL_PROTOCOL_ERROR twice;
+the local check is explicitly a geometry check, not a live-phone result.
+
+Refinement task evidence: the live browser's DOM contains the new greeting,
+supporting paragraph and link-preview description. Publication changed only HTML;
+CSS, all four PNGs and the protected application baseline stayed unchanged. See
+`outputs/tessa-guide-site-checks/deployment-v3.json` in the original checkout.
+
+Refinement visual evidence: not visually verified. The browser screenshot API
+could not capture the updated page, including after refreshing the tab and
+showing it. The viewport override did not apply to the rendered tab, so its DOM
+width is not claimed as a 390 or 1280 visual check. The earlier screenshots show
+the prior introduction and are not evidence for this revised copy. Other guide
+sections and league transactions were not re-exercised for this copy-only change.
+
+October 23 question-led refinement supersedes the family-note voice above. The
+user wants colloquial answers to the questions less experienced fantasy players
+have: set a lineup, start players based on their own judgment, trade for players,
+view other matchups and chat. Preserve the approved reading layout, existing
+screenshots and anchors, add Vibes and Chat sections and shortcuts, and explain
+basic terms where readers need them. Keep the league title and actual native PPR
+rules; remove family greetings and marketing-style section copy.
+
+Attention order: set and verify starters (including the Vibes Save lineup path),
+find the next concrete move or game, then communicate and explore team extras.
+Production source inspection confirmed that Vibes ratings alone save only ratings;
+Save lineup commits the entire suggested native lineup after permission/week/lock
+checks. Review before saving and recheck My team. No application behavior or
+league transaction changes are included. Acceptance: conversational steps with
+accurate live labels, valid shortcuts, 390/1280 reflow, and explicit saved-versus-
+suggested lineup consequences.
+
+Question-led machine evidence: Node living-surface tests passed 28 and Python
+living-surface/product tests passed 37. Layout audits of the static preview passed
+at 390 and 1280; the published HTML matches the reviewed source. Live DOM checks
+found eight question sections, no missing fragment targets or duplicate IDs, and
+no horizontal overflow at 390 or 1280. No new styles or application code changed.
+
+Question-led visual evidence: inspected live dark-mode screenshots at 390 and
+1280, including the introduction, Vibes and Chat. A fresh temporary browser tab
+supported viewport overrides and screenshots, resolving the previous tab's capture
+limitation. Captures in the original checkout's
+`outputs/tessa-guide-site-checks/screenshots/` are `guide-v4-390-live.png`,
+`guide-v4-390-vibes.png`, `guide-v4-390-chat.png` and `guide-v4-1280-live.png`.
+Light mode and other application surfaces were not re-inspected for this change.
+
+Question-led task evidence: the two new anchor shortcuts reached Vibes and Chat;
+Back to top worked. Copy link showed the new generic sharing confirmation.
+Clipboard payload/fallback were not independently tested. Vibes save behavior and
+labels were checked against production source, while matchup, chat and trade
+instructions were checked against the current source. No lineup was saved and no
+trade or chat message was sent. All six public resources returned 200; publication
+replaced only HTML and preserved CSS, PNGs and the protected running-app baseline.
+Evidence: `outputs/tessa-guide-site-checks/deployment-v4.json` and
+`live-vibes-factcheck.txt` in the original checkout. No app rebuild/restart.
