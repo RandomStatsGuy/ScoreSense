@@ -1,3 +1,10 @@
+import {MemoryRouter} from "react-router-dom";
+import {CommunicationProvider} from "../src/DraftHub/CommunicationContext";
+import ChatLauncher from "../src/DraftHub/ChatLauncher";
+import CommunicationPanel from "../src/DraftHub/CommunicationPanel";
+import "../src/styles/fantasy-chat.css";
+import MobileShell from "../src/layout/MobileShell";
+import MobileHeader from "../src/layout/MobileHeader";
 // Production components with deterministic API responses; excluded from Vite production entry.
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -145,8 +152,9 @@ const context = {
   draft_completed: true,
   capabilities: capabilitiesFromRules({ draft_type: params.get("format") === "pick" ? "snake" : "auction" }),
 };
-createRoot(document.getElementById("root")).render(
-  <div className="app">
+const fixtureRoot = (node) => <MemoryRouter><CommunicationProvider enabled identity="mobile-spacing" hubContext={{mode:"league",league_id:"fixture",team_id:"mine"}}>{node}<ChatLauncher leagueId="fixture" hidden={params.has("nochat")}/><CommunicationPanel/></CommunicationProvider></MemoryRouter>;
+createRoot(document.getElementById("root")).render(fixtureRoot(
+  <MobileShell section="hub" onSectionChange={()=>{}} onMoreOpen={()=>{}} hrefForSection={()=>"#"}>
     <header className="app-header app-header--hub">
       <div className="app-header-shell">
         <DesktopPrimaryHeader
@@ -178,5 +186,4 @@ createRoot(document.getElementById("root")).render(
         )}
       </div>
     </main>
-  </div>,
-);
+  </MobileShell>));

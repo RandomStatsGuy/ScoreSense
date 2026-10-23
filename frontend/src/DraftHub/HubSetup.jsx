@@ -8,6 +8,7 @@ import LeagueSetup from "./LeagueSetup";
 import HubSetupChecklist, { hasSleeper } from "./HubSetupChecklist";
 import useMobileLayout from "../useMobileLayout";
 import { effectiveHubContext } from "./hubContext";
+import { HubDisclosureSummary } from "./HubUILayout";
 
 /**
  * Collapsible setup section (desktop and mobile). Sections that still need
@@ -32,10 +33,7 @@ function SetupSection({
   }
   return (
     <details className={`hub-setup-accordion panel ${className}`} open={defaultOpen}>
-      <summary>
-        {title}
-        {hint ? <span className="hub-setup-accordion-hint">{hint}</span> : null}
-      </summary>
+      <HubDisclosureSummary title={title} meta={hint} />
       <div className="hub-setup-accordion-body">{children}</div>
     </details>
   );
@@ -69,7 +67,7 @@ export default function HubSetup({
   const sleeperLinked = hasSleeper(workspace, ctx);
 
   return (
-    <div className={`hub-setup hub-setup-compact${mobileLayout ? " hub-setup--mobile" : ""}`}>
+    <div className={`hub-setup hub-setup-compact hub-stack${mobileLayout ? " hub-setup--mobile" : ""}`} data-layout-stack>
       <div className="hub-setup-home-link">
         {onNavigate ? (
           <button type="button" className="btn-link" onClick={() => onNavigate("home")}>

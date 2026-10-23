@@ -1,5 +1,7 @@
 """Execute the actual deployment script against a fake Docker CLI, never Docker."""
 import os
+import hashlib
+import json
 from pathlib import Path
 import shutil
 import sys
@@ -9,7 +11,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _run_deploy(posix_shell, tmp_path, state, *, archive_fails=False, healthy=True):
+def _run_deploy(posix_shell, tmp_path, state, *, archive_fails=False, healthy=True, guard_present=True, stale_source=False):
     script = tmp_path / 'deploy/server/deploy-on-server.sh'
     script.parent.mkdir(parents=True)
     script.write_bytes((ROOT / 'deploy/server/deploy-on-server.sh').read_bytes().replace(b'\r\n', b'\n'))
@@ -17,6 +19,20 @@ def _run_deploy(posix_shell, tmp_path, state, *, archive_fails=False, healthy=Tr
     archiver.parent.mkdir(parents=True)
     shutil.copyfile(ROOT / 'scripts/ops/archive_frontend_assets.py', archiver)
     (tmp_path / '.env').write_text('')
+    # Run the real independent guard against a synthetic approved source floor.
+    # HOME is isolated so these tests cannot consult or install a host policy.
+    home = tmp_path / 'home'
+    guard = home / '.local/share/scoresense-release-guard'
+    guard.mkdir(parents=True)
+    source = tmp_path / 'approved.py'
+    source.write_bytes(b'approved fixture source\n')
+    if guard_present:
+        shutil.copyfile(ROOT / 'scripts/ops/release_guard.py', guard / 'release_guard.py')
+        policy = {'schema': 1, 'protected_sources': {'approved.py': hashlib.sha256(source.read_bytes()).hexdigest()}}
+        (guard / 'approved-release.json').write_text(json.dumps(policy), encoding='utf-8')
+    if stale_source:
+        source.write_bytes(b'stale fixture source\n')
+
     previous = tmp_path / 'previous-assets'
     previous.mkdir()
     (previous / 'DraftHub-old.js').write_text('exact retired JavaScript')
@@ -64,12 +80,15 @@ esac
 printf '%s\\n' "$*" >> "$FAKE_HEALTH_LOG"
 exit "$FAKE_HEALTH_EXIT"
 '''
-    for name, content in [('docker', fake_docker), ('sleep', '#!/usr/bin/env bash\nexit 0\n'), ('curl', curl)]:
+    for name, content in [('docker', fake_docker), ('sleep', '#!/usr/bin/env bash\nexit 0\n'), ('curl', curl),
+                           ('python3', '#!/usr/bin/env bash\nexec "$FAKE_PYTHON" "$@"\n'),
+                           ('flock', '#!/usr/bin/env bash\nprintf "lock %s\\n" "$*" >> "$FAKE_DOCKER_LOG"\n') ]:
         file = binaries / name
         file.write_text(content, newline='\n')
         file.chmod(0o755)
     log = tmp_path / 'docker.log'
-    env = {**os.environ,
+    env = {**os.environ, 'HOME': posix_shell.path(home),
+           'SCORESENSE_DEPLOY_LOCK_HELD': '',
            'FAKE_DOCKER_LOG': posix_shell.path(log), 'FAKE_ASSET_SOURCE': posix_shell.path(previous),
            'FAKE_CONTAINER_STATE': state, 'FAKE_PYTHON': posix_shell.path(sys.executable),
            'FAKE_IMAGE_DIR': posix_shell.path(tmp_path / 'built-images'),
@@ -80,7 +99,7 @@ exit "$FAKE_HEALTH_EXIT"
     # Set PATH after Bash startup, which otherwise prepends its own curl/sleep.
     result = posix_shell.script(script, cwd=tmp_path, env=env,
                                 path=[binaries, '/usr/bin', '/bin'])
-    return result, log.read_text(), tmp_path / 'artifacts/frontend_assets/DraftHub-old.js'
+    return result, log.read_text() if log.exists() else "", tmp_path / 'artifacts/frontend_assets/DraftHub-old.js'
 
 
 @pytest.mark.parametrize('state', ['running', 'stopped', 'absent'])
@@ -122,3 +141,12 @@ def test_deployment_rebuilds_optional_refresh_image_without_running_refresh(tmp_
     assert result.returncode == 0, result.stdout + result.stderr
     assert {p.name for p in (tmp_path / 'built-images').iterdir()} == {'api', 'refresh'}
     assert not any('run ' in line and line.endswith(' refresh') for line in log.splitlines())
+
+
+@pytest.mark.parametrize('guard_present,stale_source', [(False, False), (True, True)])
+def test_missing_or_stale_release_guard_blocks_before_docker(tmp_path, posix_shell, guard_present, stale_source):
+    result, log, asset = _run_deploy(posix_shell, tmp_path, 'running',
+                                    guard_present=guard_present, stale_source=stale_source)
+    assert result.returncode != 0
+    assert log == ''
+    assert not asset.exists()

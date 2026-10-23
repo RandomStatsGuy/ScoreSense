@@ -235,7 +235,7 @@ export default function TeamRoomView({ data, onWeek, onTeam, onContract, onNickn
         <JerseySvg detailed colors={colors.jersey} number={data.media?.[p.player_id]?.jersey_number} gradientId={`${id}-bench-${i}`} /><span className="team-room-bench-identity"><b>{p.name}</b><small>{p.position} · {p.team}</small>{p.nickname && <small>“{p.nickname}”</small>}{p.lineup_locked ? <small>{p.kickoff_available === false ? COPY.roomKickoffMissing : COPY.roomLocked}</small> : edge ? <small className="team-room-bench-edge">{COPY.roomBeats(edge.delta, edge.surname)}</small> : data.can_edit && !usable && ["pregame", "live"].includes(data.state) ? <small>{COPY.roomNoOpenSlot}</small> : null}</span><span className="team-room-bench-projection"><strong>{roomNumber(p.projection)}</strong><small>{COPY.roomProjectionLabel}</small></span>
       </button>; })}
     </div></section>}
-    {showRack && <div className="team-room-rack" aria-label={COPY.roomRackLabel}>
+    {showRack && <div className="team-room-rack" data-bottom-actions aria-label={COPY.roomRackLabel}>
       {heldPlayer && carry ? <div className="team-room-rack-carry"><JerseySvg detailed colors={nflTeamColors(heldPlayer.team).jersey} number={data.media?.[heldPlayer.player_id]?.jersey_number} gradientId={`${id}-carry`} /><span>{COPY.roomHolding(heldPlayer.name)}</span><button type="button" className="btn-ghost" onClick={() => setCarry(null)}>{COPY.roomPutBack}</button></div>
         : <div className="team-room-rack-head"><span>{COPY.roomBenchHeading} · {lineup.bench.length}</span><span>{COPY.roomRackHint}</span></div>}
       <div className="team-room-rack-chips">

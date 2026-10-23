@@ -2,7 +2,7 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pandas as pd
 import pytest
@@ -16,6 +16,7 @@ def identity_catalog(tmp_path, monkeypatch):
     path.write_text(json.dumps({"4046": {"full_name": "Patrick Mahomes", "position": "QB", "team": "KC", "gsis_id": "00-0033873"}}))
     monkeypatch.setattr(sleeper, "PLAYERS_CACHE", path)
     monkeypatch.setattr(identity, "DRAFT_POOL_DIR", tmp_path / "pools")
+    monkeypatch.setattr(identity, "CACHE_DIR", tmp_path / "official_rosters")
     identity.clear_player_identity_cache()
     yield path
     identity.clear_player_identity_cache()
@@ -28,7 +29,10 @@ def test_identity_read_scope_checks_sources_once_and_reloads_next_request(identi
     with identity.identity_read_scope(2026):
         for _ in range(100):
             assert identity.cached_player_identity("4046", season=2026)["team"] == "KC"
-        assert stamp.call_count == 2
+        from src.integrations.sleeper import PLAYERS_CACHE
+        sources = [call(PLAYERS_CACHE), call(identity.DRAFT_POOL_DIR / "pool_2026.parquet"),
+                   call(identity.CACHE_DIR / "nflverse_roster_2026.parquet")]
+        assert stamp.call_args_list == sources  # Each source once, even after 100 reads.
         raw = json.loads(identity_catalog.read_text())
         raw["4046"]["team"] = "BUF"
         identity_catalog.write_text(json.dumps(raw))
@@ -36,7 +40,7 @@ def test_identity_read_scope_checks_sources_once_and_reloads_next_request(identi
         with pytest.raises(identity.PlayerIdentityError):
             identity.cached_player_identity("4046", season=2026, sleeper_player_id="unrelated")
     assert identity.cached_player_identity("4046", season=2026)["team"] == "BUF"
-    assert stamp.call_count == 4
+    assert stamp.call_args_list == sources * 2  # Next request checks all three revisions once.
 
 
 def test_identity_scope_resets_after_exception_and_does_not_leak_to_other_threads(identity_catalog):
