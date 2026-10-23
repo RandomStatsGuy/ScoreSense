@@ -12,6 +12,17 @@ guard_dir="$HOME/.local/share/scoresense-release-guard"
 test -f "$guard_dir/release_guard.py" && test -f "$guard_dir/approved-release.json"
 python3 "$guard_dir/release_guard.py" tree --root "$ROOT" --policy "$guard_dir/approved-release.json"
 
+# Outer upload/CI paths retain the same descriptors across source replacement.
+# Direct invocation also waits, without interrupting a refresh worker.
+if [ "${SCORESENSE_DEPLOY_LOCK_HELD:-}" != 1 ]; then
+  exec 9>>"$guard_dir/deploy.lock"
+  flock -x -w 1800 9
+  mkdir -p data/cache
+  exec 8>>data/cache/last_refresh.lock
+  flock -x -w 1800 8
+  export SCORESENSE_DEPLOY_LOCK_HELD=1
+fi
+
 if [ -d /root/pricebot ]; then
   echo "==> Stopping legacy PriceBot on port 8000..."
   (cd /root/pricebot && docker compose down) || true

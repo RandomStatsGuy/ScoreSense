@@ -172,3 +172,14 @@ def test_installed_floor_cannot_be_lowered_without_explicit_approval(tmp_path):
     assert (host / "approved-release.json").read_bytes() == previous
     installer.install(root, host, replace_policy=True)
     assert (host / "approved-release.previous.json").read_bytes() == previous
+
+
+def test_releases_wait_for_refresh_before_source_or_service_mutation():
+    workflow = (ROOT / ".github/workflows/deploy.yml").read_text(encoding="utf-8")
+    assert workflow.index("flock -x -w 1800 8") < workflow.index("stop api")
+    assert workflow.index("flock -x -w 1800 8") < workflow.index("git reset --hard")
+    client = (ROOT / "scripts/ops/deploy_to_vps.py").read_text(encoding="utf-8")
+    assert client.index("flock -x -w 1800 8") < client.index("tar -xzf")
+    server = (ROOT / "deploy/server/deploy-on-server.sh").read_text(encoding="utf-8")
+    assert server.index("flock -x -w 1800 8") < server.index("build --pull")
+    assert "SCORESENSE_DEPLOY_LOCK_HELD" in server

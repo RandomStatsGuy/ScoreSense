@@ -203,6 +203,12 @@ set -euo pipefail
 guard_dir="$HOME/.local/share/scoresense-release-guard"
 test -f "$guard_dir/release_guard.py" && test -f "$guard_dir/approved-release.json"
 python3 "$guard_dir/release_guard.py" archive --policy "$guard_dir/approved-release.json" --archive {remote_tar}
+exec 9>>"$guard_dir/deploy.lock"
+flock -x -w 1800 9
+mkdir -p {quoted_root}/data/cache
+exec 8>>{quoted_root}/data/cache/last_refresh.lock
+flock -x -w 1800 8
+export SCORESENSE_DEPLOY_LOCK_HELD=1
 mkdir -p {quoted_root}
 tar -xzf {remote_tar} -C {quoted_root}
 rm -f {remote_tar}

@@ -425,3 +425,5 @@ guarded workflow reaches master, its old automatic deploy path remains unguarded
 Do not merge/release an older branch in that window. Raw tar extraction, old
 copies of scripts, or direct Docker commands bypass the supported entry points;
 this guard is a release control, not a security boundary against an administrator.
+
+The guarded entry points serialize deployments and wait up to 30 minutes for the existing projection-refresh lock before replacing source or stopping services. They retain that lock through the release; a timeout fails before mutation instead of interrupting a publishing worker.

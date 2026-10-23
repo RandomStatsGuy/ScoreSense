@@ -86,6 +86,14 @@ jobs:
             test -f "$guard_dir/release_guard.py" && test -f "$guard_dir/approved-release.json"
             python3 "$guard_dir/release_guard.py" git --root "$PWD" --revision "$RELEASE_COMMIT" --policy "$guard_dir/approved-release.json"
 
+            # Serialize manual/automatic releases and wait for active refresh publication.
+            exec 9>>"$guard_dir/deploy.lock"
+            flock -x -w 1800 9
+            mkdir -p data/cache
+            exec 8>>data/cache/last_refresh.lock
+            flock -x -w 1800 8
+            export SCORESENSE_DEPLOY_LOCK_HELD=1
+
             # Preserve host runtime state that must not be wiped by a hard reset.
             # .env is gitignored (survives reset). draft_hub.db is tracked in git
             # but the live league DB on the VPS must not be replaced by the repo copy.
