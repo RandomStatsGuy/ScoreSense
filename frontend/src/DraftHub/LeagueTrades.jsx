@@ -1747,16 +1747,17 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     const incoming = packageLegs.filter(leg => leg.to === myTeamId);
     const otherMoves = packageLegs.filter(leg => leg.from !== myTeamId && leg.to !== myTeamId);
     const capChange = salaryLeague ? tradeCapChangeText(projectedByTeam[myTeamId]?.base?.unspent, projectedByTeam[myTeamId]?.unspent) : null;
-    return <div data-bottom-actions className="hub-trade-desk-bar" ref={deskBarRef}>
-      <div className="hub-trade-package-mini" aria-label={formatCopy.packageTitle}>
+    return <div data-bottom-actions className="hub-trade-desk-bar hub-mobile-action-panel" ref={deskBarRef}>
+      <div className="hub-trade-package-mini hub-mobile-action-panel__summary" aria-label={formatCopy.packageTitle}>
         {[{ label: formatCopy.youSend, legs: outgoing }, { label: formatCopy.youReceive, legs: incoming }].map(side =>
-          <div key={side.label}><div className="hub-trade-mini-label"><span>{side.label}</span><span>{side.legs.length}</span></div>
-            <div className="hub-trade-chip-track">{side.legs.length ? <>{renderMoveChip(side.legs[0])}
+          <div key={side.label}><div className="hub-trade-mini-label hub-mobile-action-panel__label"><span>{side.label}</span><span>{side.legs.length}</span></div>
+            <div className="hub-trade-chip-track hub-mobile-action-panel__detail">{side.legs.length ? <>{renderMoveChip(side.legs[0])}
               {side.legs.length > 1 && <button type="button" className="btn-link hub-trade-more-moves" onClick={() => setDialog("package")}
                 aria-label={formatCopy.viewMoves(packageLegs.length)}>{formatCopy.moreMoves(side.legs.length - 1)}</button>}</> : <span className="hub-trade-empty-chip">—</span>}</div>
           </div>)}
+        <button type="button" className="btn-ghost hub-mobile-action-panel__more" aria-label={formatCopy.viewMoves(packageLegs.length)} disabled={!hasPackage} onClick={() => setDialog("package")}>…</button>
       </div>
-      <div className="hub-trade-bar-status">
+      <div className="hub-trade-bar-status hub-mobile-action-panel__status">
         {hasPackage ? <div className="hub-trade-action-status">
           {proposalError ? <HubAlert variant="danger" role="alert">{proposalError}</HubAlert>
             : <TradeVerdict status={validationStatus} errors={validationErrors} message={validationMessage} compact copy={formatCopy} />}

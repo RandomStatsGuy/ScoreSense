@@ -11,7 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.config import DRAFT_POOL_DIR
+from src.config import CACHE_DIR, DRAFT_POOL_DIR
 from src.core.team_codes import normalize_team_for_match
 from src.draft_hub.rules_engine import normalize_position
 from src.draft_hub.player_name_match import roster_name_key
@@ -85,6 +85,51 @@ def _put(index: dict[str, dict[str, Any] | None], identity: dict[str, Any]) -> N
             index[alias] = identity
 
 
+def _join_cached_roster(index: dict[str, dict[str, Any] | None], path: Path) -> None:
+    """Bridge missing provider IDs from a saved official roster, without polling.
+
+    Known GSIS IDs win. Shared names require one compatible position and, when
+    needed, one matching current NFL team; ambiguous identities remain unjoined.
+    """
+    try:
+        rows = pd.read_parquet(path).to_dict(orient="records")
+    except (OSError, ValueError, ImportError):
+        return
+    by_name: dict[tuple[str, str], dict[str, dict[str, Any]]] = {}
+    for identity in index.values():
+        if identity:
+            key = (roster_name_key(identity["player_name"]), identity["position"])
+            by_name.setdefault(key, {})[identity["player_id"]] = identity
+    official: dict[tuple[str, str], dict[str, dict[str, Any]]] = {}
+    for row in rows:
+        pid = _text(row.get("player_id"))
+        name = _text(row.get("player_name"))
+        position = normalize_position(row.get("position"))
+        if _GSIS.fullmatch(pid) and name and position in POSITIONS:
+            official.setdefault((roster_name_key(name), position), {})[pid] = row
+    for key, records in official.items():
+        if len(records) != 1:
+            continue  # Multiple official players cannot establish a name crosswalk.
+        pid, row = next(iter(records.items()))
+        if pid in index:
+            continue  # Never repair an explicit ID conflict by guessing.
+        matches = [identity for identity in by_name.get(key, {}).values()
+                   if not _GSIS.fullmatch(identity["player_id"])]
+        if len(matches) > 1:
+            team = normalize_team_for_match(_text(row.get("team")))
+            matches = [identity for identity in matches
+                       if team in NFL_TEAMS and identity["team"] == team]
+        if len(matches) != 1:
+            continue
+        previous = matches[0]
+        identity = {**previous, "player_id": pid,
+                    "aliases": tuple(sorted(set(previous["aliases"]) | {pid}))}
+        for alias in previous["aliases"]:
+            if index.get(alias) and index[alias]["player_id"] == previous["player_id"]:
+                index[alias] = identity
+        _put(index, identity)
+
+
 def _cached_index(season: int | None) -> dict[str, dict[str, Any] | None]:
     scoped = _READ_INDEX.get()
     if scoped is not None and scoped[0] == season:
@@ -92,7 +137,9 @@ def _cached_index(season: int | None) -> dict[str, dict[str, Any] | None]:
     from src.integrations.sleeper import PLAYERS_CACHE
 
     pool_path = DRAFT_POOL_DIR / f"pool_{int(season)}.parquet" if season is not None else None
-    stamp = (_stamp(PLAYERS_CACHE), _stamp(pool_path) if pool_path else None)
+    roster_path = CACHE_DIR / f"nflverse_roster_{int(season)}.parquet" if season is not None else None
+    stamp = (_stamp(PLAYERS_CACHE), _stamp(pool_path) if pool_path else None,
+             _stamp(roster_path) if roster_path else None)
     with _LOCK:
         if stamp in _INDEX:
             return _INDEX[stamp]
@@ -110,6 +157,8 @@ def _cached_index(season: int | None) -> dict[str, dict[str, Any] | None]:
                                  _text(info.get("position")), sid=str(sid), gsis=_text(info.get("gsis_id")))
             if identity:
                 _put(index, identity)
+        if roster_path and roster_path.exists():
+            _join_cached_roster(index, roster_path)
         if pool_path and pool_path.exists():
             try:
                 rows = pd.read_parquet(pool_path).to_dict(orient="records")

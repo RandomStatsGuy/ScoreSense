@@ -6,6 +6,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
+# The installed known-good floor is independent of this incoming checkout.
+# Missing policy fails closed, including when this entry point is invoked directly.
+guard_dir="$HOME/.local/share/scoresense-release-guard"
+test -f "$guard_dir/release_guard.py" && test -f "$guard_dir/approved-release.json"
+python3 "$guard_dir/release_guard.py" tree --root "$ROOT" --policy "$guard_dir/approved-release.json"
+
 if [ -d /root/pricebot ]; then
   echo "==> Stopping legacy PriceBot on port 8000..."
   (cd /root/pricebot && docker compose down) || true

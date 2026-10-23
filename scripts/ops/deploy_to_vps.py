@@ -21,6 +21,7 @@ Requires OpenSSH client (ssh/scp) on your machine. .env is NOT uploaded — crea
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,8 @@ import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "ops"))
+from release_guard import check_archive, check_tree, load_policy
 
 # Directory *names* skipped anywhere in the relative path (tooling / caches only).
 EXCLUDE_DIR_NAMES = {
@@ -40,10 +43,14 @@ EXCLUDE_DIR_NAMES = {
     ".pytest_cache",
     ".cursor",
     "terminals",
+    "outputs",
+    ".agents",
+    ".codex",
 }
 # Path prefixes (posix) skipped — mutable runtime data / heavy research blobs.
 # Do NOT put "draft_hub" or "auth" here as bare names: that would skip src/draft_hub and src/auth.
 EXCLUDE_PREFIXES = (
+    "frontend/dist/",
     "data/raw/",
     "data/cache/",
     "data/auth/",  # live accounts DB — never overwrite production users
@@ -105,7 +112,7 @@ def _should_skip(rel: Path) -> bool:
     rel_posix = rel.as_posix()
     if any(rel_posix == p.rstrip("/") or rel_posix.startswith(p) for p in EXCLUDE_PREFIXES):
         return True
-    if rel.name in EXCLUDE_FILES:
+    if rel.name in EXCLUDE_FILES or rel.name.startswith(".env") or rel.name.endswith((".db", ".db-wal", ".db-shm", ".sqlite", ".sqlite3")):
         return True
     if rel.suffix in {".pyc", ".log"}:
         return True
@@ -166,6 +173,16 @@ def main() -> int:
         print("OpenSSH (ssh/scp) not found on PATH.", file=sys.stderr)
         return 1
 
+    # Validate before any upload, and verify the actual immutable package again.
+    policy = load_policy(PROJECT_ROOT / "deploy" / "approved-release.json")
+    check_tree(PROJECT_ROOT, policy)
+    subprocess.run([sys.executable, "-m", "pytest", "tests/test_release_guard.py", "tests/test_cached_roster_crosswalk.py", "-q"], cwd=PROJECT_ROOT, env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)}, check=True)
+    npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
+    if not npm:
+        raise RuntimeError("npm is required for release regression checks")
+    for command in ("test", "test:release-layout", "build"):
+        subprocess.run([npm, "run", command], cwd=PROJECT_ROOT / "frontend", check=True)
+
     print(f"==> SSH preflight to {user}@{host} ...")
     verify_ssh(user, host, port, key)
 
@@ -173,20 +190,26 @@ def main() -> int:
         tarball = Path(tmp) / "scoresense-deploy.tar.gz"
         print(f"==> Packaging {PROJECT_ROOT} ...")
         build_tarball(tarball)
+        check_archive(tarball, policy)
         remote_tar = f"/tmp/scoresense-deploy-{os.getpid()}.tar.gz"
 
         scp_cmd = _scp_base(user, host, port, key) + [str(tarball), f"{user}@{host}:{remote_tar}"]
         run(scp_cmd)
 
+        quoted_root = shlex.quote(remote_path)
         remote_script = f"""
 set -euo pipefail
-mkdir -p {remote_path}
-tar -xzf {remote_tar} -C {remote_path}
+# The installed policy is outside the checkout; an uploaded bundle cannot lower it.
+guard_dir="$HOME/.local/share/scoresense-release-guard"
+test -f "$guard_dir/release_guard.py" && test -f "$guard_dir/approved-release.json"
+python3 "$guard_dir/release_guard.py" archive --policy "$guard_dir/approved-release.json" --archive {remote_tar}
+mkdir -p {quoted_root}
+tar -xzf {remote_tar} -C {quoted_root}
 rm -f {remote_tar}
 if [ -d /root/pricebot ]; then
   (cd /root/pricebot && docker compose down) || true
 fi
-cd {remote_path}
+cd {quoted_root}
 bash deploy/server/deploy-on-server.sh
 """
         ssh_cmd = _ssh_base(user, host, port, key) + [remote_script]

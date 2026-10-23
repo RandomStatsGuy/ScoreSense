@@ -342,3 +342,86 @@ Hidden pages, protected editable routes, focused inputs, open dialogs, and pendi
 API writes block automatic reloads. The page recovery screen retains its manual
 reload action. A same-build failure after the one recovery remains manual; an
 offline version request never triggers a reload loop.
+
+
+## Protected spacing, player identity, and Bye behavior
+
+The October 23 release was reconciled into maintained source. Production-only
+patches under `outputs/` are evidence, not a deployable source of truth. Deploy
+from the reconciled branch or its descendants; do not upload an old laptop tree.
+
+`deploy/approved-release.json` pins the inspected source for shared section
+spacing, stationary trade rows/actions, compact phone docks/chat clearance,
+official cached player crosswalks, and confirmed Bye presentation. The SHA256
+comparison normalizes CRLF/LF only. It intentionally refuses **any** changed or
+missing protected file, including a legitimate edit, until that edit is reviewed
+and explicitly approved as the next baseline. Passing hashes is proof of source
+preservation, not proof of behavior or visual quality.
+
+Before a release, run from a clean, reconciled checkout:
+
+```powershell
+$env:PYTHONPATH="."
+.venv\Scripts\python -m pytest tests/test_release_guard.py tests/test_deploy_packaging.py tests/test_cached_roster_crosswalk.py -q
+cd frontend
+npm test
+npm run test:release-layout
+npm run build
+```
+
+`test:release-layout` uses production components with synthetic responses only.
+It covers 40 shared-spacing cases, 24 phone/desktop cases (320/390/768/1280 in
+both themes), and four bench/trade workflows. It injects the actual conflicting
+late CSS selectors, checks stable row/Review geometry, and verifies that the
+overlay check rejects an intentionally unclipped bench. Chromium must already
+be installed for Playwright on Linux; Windows defaults to the installed Edge.
+CI installs its own browser. Reports/screenshots live under
+`outputs/agent/release-regressions/`; unavailable cases fail the release job.
+
+The backend regression uses temporary provider/official roster caches and checks
+Frank Gore Jr., Antonio Williams, Kyle Williams, Brandon Smith, and James Cook
+III, plus ambiguity, conflicting IDs, season boundaries, and cache replacement.
+Bye tests distinguish confirmed bye flags/sources from missing projections,
+empty slots, and genuine zero scores. No test uses the live league database.
+
+On the VPS, an independently installed guard and approved policy live in
+`$HOME/.local/share/scoresense-release-guard/`, outside `/root/scoresense`. A new
+checkout cannot lower this policy by shipping its own copy. Initial installation
+is an explicit operational step, after checking the source against the approved
+policy:
+
+```bash
+cd /root/scoresense
+python3 scripts/ops/install_release_guard.py
+```
+
+The standard Windows/Python deployment validates before uploading, rechecks the
+actual archive locally, then uses the installed host policy **before extraction**.
+Outputs, compiled frontend files, environment files, credentials, live databases,
+processed data and refreshed projection/model artifacts are excluded. The server
+entry point checks again before changing `.env`, building, or restarting. Missing
+policy fails closed. The master deployment workflow runs the regression suite
+before SSH and checks the **exact event commit** against the host policy before
+stopping the API, resetting source, or backing up/restoring runtime data.
+
+For an intentional protected-source change: keep all regression tests, make the
+bounded change, inspect its screenshots/interactions, update only the affected
+hashes in `deploy/approved-release.json`, review the source and policy diffs
+together, and run the gates above. Stage that reviewed source separately on the
+host, then explicitly install its next policy:
+
+```bash
+python3 /path/to/reviewed-release/scripts/ops/install_release_guard.py \
+  --root /path/to/reviewed-release --replace-policy
+```
+
+The previous policy is retained as `approved-release.previous.json`. Policy
+installation does not deploy app code, refresh projections, or restart services.
+Keep the existing runtime-data preservation and rollback steps. Never stamp
+fingerprints onto stale artifacts to satisfy a check.
+
+Activation matters: a draft PR does not change the master workflow. Until the
+guarded workflow reaches master, its old automatic deploy path remains unguarded.
+Do not merge/release an older branch in that window. Raw tar extraction, old
+copies of scripts, or direct Docker commands bypass the supported entry points;
+this guard is a release control, not a security boundary against an administrator.

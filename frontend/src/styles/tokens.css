@@ -97,7 +97,7 @@
   --content-block-min: var(--space-1);
   --inset-cell: 0.55rem 0.7rem;
   --gutter: var(--space-sm);
-  --gutter-section: var(--space-md);
+  --gutter-section: var(--space-4);
 
   /* Slate scale — structural surfaces, borders, muted text.
      Use these instead of one-off #hex values scattered through styles.css. */

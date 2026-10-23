@@ -839,10 +839,11 @@ export default function RulesWizard({
           )}
 
           {!readOnlyRules && activeCategory !== "managers" && (
-            <div data-bottom-actions className="hub-rules-sticky-save">
-              <div>
+            <>
+            <p id="rules-save-context" className="hub-rules-summary-note">{activeCategory === "scoring" ? SCORING_COPY.effect : formatCopy.saveFootnote}</p>
+            <div data-bottom-actions className="hub-rules-sticky-save hub-mobile-action-panel" aria-describedby="rules-save-context">
+              <div className="hub-mobile-action-panel__heading">
                 <strong>{dirty ? RULES_COPY.unsavedChanges : RULES_COPY.noChanges}</strong>
-                <p className="hub-rules-summary-note">{activeCategory === "scoring" ? SCORING_COPY.effect : formatCopy.saveFootnote}</p>
                 {saveReason && dirty ? <p className="hub-rules-save-reason">{saveReason}</p> : null}
                 {status.text && (
                   <p className={`hub-rules-status is-${status.kind || "ok"}`} role="status" aria-live="polite">
@@ -855,6 +856,7 @@ export default function RulesWizard({
                 {saving ? RULES_COPY.saving : RULES_COPY.save}
               </button>
             </div>
+            </>
           )}
 
         </div>

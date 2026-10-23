@@ -89,7 +89,7 @@ function PlayerName({ player, away = false }) {
 }
 function Points({ player, placeholder, data }) {
   const metric = gameCenterPlayerScore(player, data, placeholder);
-  return <span className="gc-room-player-points" title={`${metric.label} · ${metric.secondary}`}>
+  return <span className="gc-room-player-points" title={[metric.label, metric.secondary].filter(Boolean).join(" · ") || metric.value}>
     <b>{metric.value}</b>
     <small>{metric.state === "pregame" ? COPY.currentForecast : metric.secondary}</small>
   </span>;
@@ -361,7 +361,7 @@ export default function GameCenterMatchup({
                 <strong>{gameCenterPlayerScore(player, data, placeholder).value}</strong>
                 <small>{gameCenterPlayerScore(player, data, placeholder).label}</small>
               </div>
-              <p>{gameCenterPlayerScore(player, data, placeholder).label} · {gameCenterPlayerScore(player, data, placeholder).secondary}</p>
+              <p>{[gameCenterPlayerScore(player, data, placeholder).label, gameCenterPlayerScore(player, data, placeholder).secondary].filter(Boolean).join(" · ")}</p>
               <p>{COPY.forecastNote}</p>
             </section>
           )}

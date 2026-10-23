@@ -1,3 +1,6 @@
+import {CommunicationProvider} from "../src/DraftHub/CommunicationContext";
+import ChatLauncher from "../src/DraftHub/ChatLauncher";
+import CommunicationPanel from "../src/DraftHub/CommunicationPanel";
 // Production lineup components with isolated, deterministic writes; never contacts a league.
 import React, {useState} from "react";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
@@ -12,7 +15,6 @@ import LeagueTrades from "../src/DraftHub/LeagueTrades";
 import HubSubnav from "../src/DraftHub/HubSubnav.jsx";
 import {MemoryRouter} from "react-router-dom";
 import {TeamIdentityProvider} from "../src/DraftHub/TeamIdentityContext";
-import "../src/styles/fantasy-header.css";
 import "../src/styles.css";
 import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
@@ -21,6 +23,8 @@ import "../src/styles/fantasy-phone.css";
 import "../src/styles/color-theme.css";
 
 
+import "../src/styles/fantasy-header.css";
+import "../src/styles/fantasy-chat.css";
 const params=new URLSearchParams(location.search),state=params.get('state')||'salary';
 const salary=state!=='pick';
 const rules={salary_cap:200,draft_type:salary?'auction':'snake',contracts:{cut_refund_pct:.5},roster:{qb:{starter:1},rb:{starter:1},wr:{starter:1},te:{starter:1},flex:{starter:1,positions:['RB','WR','TE']},k:{starter:0},def:{starter:0}}};
@@ -36,7 +40,7 @@ window.fixtureWrites=[];window.fixtureRequests=[];
 window.fetch=async(input,options={})=>{
  const path=String(input);window.fixtureRequests.push(path);
  if(path.endsWith('/trade-outlook'))return Response.json({players:state==='missing'?{}:players,basis:'PPR',week:4,season:2026});
- if(path.endsWith('/rosters')){
+ if(new URL(path,location.origin).pathname.endsWith('/rosters')){
   if(state==='loading')return new Promise(()=>{});
   if(state==='error')return Response.json({detail:'Roster service unavailable'},{status:503});
   return Response.json({league:{season:2026,draft_completed:true,rules},teams:blocks,salary_cap:200});
@@ -64,4 +68,5 @@ function Preview(){
  </TeamIdentityProvider></div></main><MobileMenuSheet open={more} onClose={()=>setMore(false)} authReady authenticated user={{name:'Maya Chen'}} onGoToAccount={()=>navigate('account')} view="hub"/>
  </MobileShell></LeagueChromeProvider>;
 }
-createRoot(document.getElementById('root')).render(<MemoryRouter><Preview/></MemoryRouter>);
+const fixtureRoot = (node) => <MemoryRouter><CommunicationProvider enabled identity="mobile-spacing" hubContext={{mode:"league",league_id:"fixture",team_id:"mine"}}>{node}<ChatLauncher leagueId="fixture" hidden={params.has("nochat")}/><CommunicationPanel/></CommunicationProvider></MemoryRouter>;
+createRoot(document.getElementById('root')).render(fixtureRoot(<Preview/>));
