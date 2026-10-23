@@ -5,7 +5,7 @@ import json
 import pstats
 import time
 from datetime import datetime, timezone
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 from src.draft_hub import hub_scoring, native_stats, storage
 from src.draft_hub.presets import load_preset
@@ -55,7 +55,10 @@ def test_native_league_read_profile(hub_db, tmp_path, monkeypatch):
         elapsed.append(round((time.perf_counter() - started) * 1000, 1))
         assert len(payload["matchups"]) == 6
     assert team_reads.call_count == 3  # Once per response, rather than per consumer.
-    assert identity_stats.call_count == 6  # Two source revisions per response, not per player.
+    from src.integrations.sleeper import PLAYERS_CACHE
+    sources = [call(PLAYERS_CACHE), call(player_identity.DRAFT_POOL_DIR / "pool_2026.parquet"),
+               call(player_identity.CACHE_DIR / "nflverse_roster_2026.parquet")]
+    assert identity_stats.call_args_list == sources * 3  # Each revision once per response, not per player.
     output = io.StringIO()
     pstats.Stats(profile, stream=output).sort_stats("cumulative").print_stats(12)
     print(f"\nNative 12-team / 192-player reads, profile enabled (ms): {elapsed}\n{output.getvalue()}")
