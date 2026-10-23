@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import LeagueHome from "../src/DraftHub/LeagueHome";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
-import { LeagueChromeProvider } from "../src/DraftHub/LeagueChromeContext";
+import { LeagueChromeProvider } from "../src/DraftHub/leagueChromeContext";
 import { TeamIdentityProvider } from "../src/DraftHub/TeamIdentityContext";
 import MobileHeader from "../src/layout/MobileHeader";
 import MobileShell from "../src/layout/MobileShell";
