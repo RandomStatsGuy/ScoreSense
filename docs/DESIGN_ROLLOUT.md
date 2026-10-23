@@ -1145,3 +1145,28 @@ league-state change was part of this publication. Deployment evidence is in the
 original checkout's `outputs/tessa-guide-site-checks/deployment-v2.json`; build
 evidence is `production-build-v2.log` and `production-build-check-v2.json` in the
 same evidence directory.
+
+October 23 opening-copy refinement: the user found the introduction too much like
+marketing and asked for a more personal voice. Keep the approved layout and league
+title; replace the eyebrow, slogan and explanatory introduction with a short note
+to the family and an invitation to ask in the family chat. Match the description
+and link-preview description to that voice. No invented personal memories or
+changes to instructions, controls, styling, league data or permissions.
+
+Refinement machine evidence: Node living-surface tests passed 28; Python product
+and living-surface tests passed 37. Layout audit passed at 1280 on the live route
+and at 390 on the local static preview of the revised HTML. The separate test
+browser's live 390 requests failed to load with ERR_SSL_PROTOCOL_ERROR twice;
+the local check is explicitly a geometry check, not a live-phone result.
+
+Refinement task evidence: the live browser's DOM contains the new greeting,
+supporting paragraph and link-preview description. Publication changed only HTML;
+CSS, all four PNGs and the protected application baseline stayed unchanged. See
+`outputs/tessa-guide-site-checks/deployment-v3.json` in the original checkout.
+
+Refinement visual evidence: not visually verified. The browser screenshot API
+could not capture the updated page, including after refreshing the tab and
+showing it. The viewport override did not apply to the rendered tab, so its DOM
+width is not claimed as a 390 or 1280 visual check. The earlier screenshots show
+the prior introduction and are not evidence for this revised copy. Other guide
+sections and league transactions were not re-exercised for this copy-only change.
