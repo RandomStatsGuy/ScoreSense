@@ -24,6 +24,7 @@ from src.core.projection_context import is_nfl_offseason
 from src.projections.weekly_cache import invalidate_weekly_cache, prewarm_weekly_predictions
 from src.projections.ros_cache import invalidate_ros_cache, prewarm_ros_predictions
 from src.etl.nflverse_etl import build_all_datasets
+from src.etl.season_selection import default_ingestion_seasons
 from src.integrations.sleeper import get_nfl_state, injured_players
 from src.projections.predict import predict_all_positions
 from src.pipeline.train import train_all
@@ -78,7 +79,7 @@ def _progress(stage: str) -> None:
     print(f"Projection refresh stage: {stage}", file=sys.stderr, flush=True)
 
 
-def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False) -> dict:
+def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False, ingest: bool = False) -> dict:
     """Persist a running marker so the UI can wait instead of refetching stale artifacts."""
     started = datetime.now(timezone.utc).isoformat()
     payload = {
@@ -87,6 +88,7 @@ def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False) -> d
         "started_at": started,
         "retrain": retrain,
         "draft_only": draft_only,
+        "ingest": ingest,
     }
     existing = get_refresh_status()
     prev = existing.get("last_completed_at") or (existing.get("completed_at") if existing.get("status") == "completed" else None)
@@ -99,9 +101,9 @@ def mark_refresh_started(*, retrain: bool = True, draft_only: bool = False) -> d
 @observe_job("weekly_refresh")
 def run_weekly_refresh(
     retrain=True, seasons=None, draft_only=False, started_at=None,
-    *, lock_timeout=0, on_lock_wait=None,
+    *, lock_timeout=0, on_lock_wait=None, ingest=False,
 ) -> dict:
-    annotate_job(retrain=bool(retrain))
+    annotate_job(retrain=bool(retrain), ingest=bool(ingest))
     for attempt in range(50):
         with ExitStack() as locks:
             try:
@@ -125,7 +127,7 @@ def run_weekly_refresh(
             current = get_refresh_status()
             if started_at and current.get("started_at") != started_at:
                 return current  # a newer request superseded this queued task
-            return _execute_weekly_refresh(retrain, seasons, draft_only, started_at)
+            return _execute_weekly_refresh(retrain, seasons, draft_only, started_at, ingest=ingest)
 
 
 
@@ -156,9 +158,10 @@ def _execute_weekly_refresh(
     seasons: list[int] | None = None,
     draft_only: bool = False,
     started_at: str | None = None,
+    *, ingest: bool = False,
 ) -> dict:
-    seasons = seasons or DEFAULT_TRAIN_SEASONS + DEFAULT_TEST_SEASONS
-    started = started_at or mark_refresh_started(retrain=retrain, draft_only=draft_only)["started_at"]
+    seasons = list(seasons) if seasons is not None else default_ingestion_seasons()
+    started = started_at or mark_refresh_started(retrain=retrain, draft_only=draft_only, ingest=ingest)["started_at"]
     # A queued job can outlive the status reader's startup grace period while
     # another CPU job occupies the shared pool. Reclaim its own marker when it
     # actually starts; the run-id check above already excludes superseded jobs.
@@ -172,6 +175,7 @@ def _execute_weekly_refresh(
             seasons=seasons,
             draft_only=draft_only,
             started=started,
+            ingest=ingest,
         )
     except Exception as exc:
         _write_refresh_status(
@@ -182,6 +186,7 @@ def _execute_weekly_refresh(
                 "error": str(exc),
                 "retrain": retrain,
                 "draft_only": draft_only,
+                "ingest": ingest,
             }
         )
         raise
@@ -193,9 +198,11 @@ def _run_weekly_refresh(
     seasons: list[int],
     draft_only: bool,
     started: str,
+    ingest: bool = False,
 ) -> dict:
-    # UI / --no-retrain reuses existing mlready. Full ETL is the hang on Refresh.
-    if retrain or draft_only:
+    # Ordinary no-retrain requests reuse inputs; explicit ingestion backfills
+    # recorded statistics and features while preserving fitted models.
+    if retrain or draft_only or ingest:
         _progress("datasets")
         call_phase("etl", build_all_datasets, seasons=seasons)
     invalidate_weekly_cache()
@@ -234,6 +241,11 @@ def _run_weekly_refresh(
         season = int(state.get("season", seasons[-1]))
         week = int(state.get("week", 1)) or 1
     draft_season = int(get_draft_meta("qb")["default_season"])
+    source_backfill = None
+    if ingest:
+        from src.projections.data_integrity import validate_recorded_backfill
+        _progress("source_coverage")
+        source_backfill = call_phase("source_coverage", validate_recorded_backfill, season=season, week=week)
     _progress("inputs")
     fp_status = None
     fp_draft_ecr = None
@@ -349,6 +361,9 @@ def _run_weekly_refresh(
 
     status = {
         "started_at": started,
+        "retrain": retrain, "draft_only": draft_only, "ingest": ingest,
+        "ingestion_seasons": seasons if retrain or draft_only or ingest else None,
+        "source_backfill": source_backfill,
         "completed_at": datetime.now(timezone.utc).isoformat(),
         "season": season,
         "week": week,
@@ -395,6 +410,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Weekly ScoreSense refresh")
     parser.add_argument("--no-retrain", action="store_true", help="Skip model retraining")
+    parser.add_argument("--ingest", action="store_true", help="Backfill recorded statistics and model inputs before forecasts, including with --no-retrain")
     parser.add_argument(
         "--draft-only",
         action="store_true",
@@ -419,7 +435,7 @@ def main() -> None:
 
     status = run_weekly_refresh(
         retrain=not args.no_retrain, draft_only=args.draft_only,
-        lock_timeout=args.lock_timeout, on_lock_wait=waiting,
+        lock_timeout=args.lock_timeout, on_lock_wait=waiting, ingest=args.ingest,
     )
     print(json.dumps(status, indent=2))
     if status.get("status") != "completed":

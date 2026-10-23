@@ -1,6 +1,6 @@
 ---
 name: refresh-draft-pool
-description: Rebuild or re-fingerprint the draft-pool and weekly prediction artifacts. Use when Available players or Draft is cold, after a model or mlready change, or when hub routes start live predict_*.
+description: Audit and rebuild the draft-pool and weekly prediction artifacts. Use when Available players or Draft is cold, after a model or mlready change, or when hub routes start live predict_*.
 ---
 
 # Refresh the draft pool
@@ -17,7 +17,7 @@ First visit to **Free agents** or **Draft** is slow when `artifacts/draft_pool/p
 
 From repo root, `PYTHONPATH=.`:
 
-Fingerprint-only (after mlready / cache key drift, artifacts already built):
+Read-only integrity audit (the deprecated script name remains for compatibility):
 
 ```bash
 PYTHONPATH=. .venv/bin/python scripts/ops/fix_artifact_fingerprints.py
@@ -34,6 +34,8 @@ Windows: `.venv\Scripts\python`.
 ## Rules
 
 - Hot hub reads use `build_draft_pool_payload()` then `build_value_overlay()` (`src/draft_hub/value_sheet.py`). Do not call `predict_*` from `app/hub_routes.py`.
-- Weekly boards read `artifacts/weekly_predictions/`. Same fingerprint script covers weekly + ROS + pool.
+- Weekly boards read `artifacts/weekly_predictions/`. The same read-only audit covers weekly + ROS + pool; rebuilding uses the existing refresh jobs.
 - Do not commit huge new parquets unless the user asked to refresh artifacts in git.
 - After refresh, hit `/hub/free-agents` or `/hub/strategy` once and confirm it is a cache read, not a multi-minute predict.
+
+This audit never rewrites metadata or runs inference. Never assign current fingerprints to outputs generated from older inputs; rebuild them with the existing refresh jobs.

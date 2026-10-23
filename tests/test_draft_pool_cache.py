@@ -91,20 +91,18 @@ def test_artifact_invalidates_on_fingerprint_change(monkeypatch, tmp_path):
     monkeypatch.setattr(draft_pool_cache, "PROCESSED_DATA_DIR", tmp_path)
     monkeypatch.setattr(draft_pool_cache, "MODEL_DIR", tmp_path)
 
-    sample = pd.DataFrame({"player_id": ["p1"], "Player": ["A"], "Position": ["QB"]})
+    sample = pd.DataFrame({"player_id": ["p1"], "Player": ["A"], "Position": ["QB"], "Season Proj": [300.0]})
     draft_pool_cache.save_pool_artifact(season, sample)
 
-    _, meta_path = draft_pool_cache._artifact_paths(season)
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    meta["fingerprint"] = "stale-fingerprint"
-    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+    monkeypatch.setattr(draft_pool_cache, "pool_fingerprint", lambda: "new-input-fingerprint")
 
-    recomputed = pd.DataFrame({"player_id": ["p2"], "Player": ["B"], "Position": ["RB"]})
+    recomputed = pd.DataFrame({"player_id": ["p2"], "Player": ["B"], "Position": ["RB"], "Season Proj": [200.0]})
     with patch.object(draft_pool_cache, "_compute_pool", return_value=(recomputed, {})):
         draft_pool_cache.invalidate_pool_cache(season)
         loaded = draft_pool_cache.load_draft_pool(season)
 
     assert loaded.iloc[0]["Player"] == "B"
+
 
 
 def test_save_pool_artifact_built_at_wins_over_sidecar(monkeypatch, tmp_path):
@@ -114,7 +112,7 @@ def test_save_pool_artifact_built_at_wins_over_sidecar(monkeypatch, tmp_path):
     monkeypatch.setattr(draft_pool_cache, "PROCESSED_DATA_DIR", tmp_path)
     monkeypatch.setattr(draft_pool_cache, "MODEL_DIR", tmp_path)
 
-    sample = pd.DataFrame({"player_id": ["p1"], "Player": ["A"], "Position": ["QB"]})
+    sample = pd.DataFrame({"player_id": ["p1"], "Player": ["A"], "Position": ["QB"], "Season Proj": [300.0]})
     draft_pool_cache.save_pool_artifact(
         season,
         sample,
@@ -123,6 +121,7 @@ def test_save_pool_artifact_built_at_wins_over_sidecar(monkeypatch, tmp_path):
     meta = json.loads(draft_pool_cache._artifact_paths(season)[1].read_text(encoding="utf-8"))
     assert meta["feature_season"] == 2025
     assert not str(meta["built_at"]).startswith("2026-06-25")
+
 
 
 def test_compute_pool_preserves_te_position(monkeypatch):

@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory() as folder:
     ros_cache.ROS_PREDICTIONS_DIR = Path(folder)
     ros_cache.ros_fingerprint = lambda: 'saved'
     ros_cache._with_roster_identity = lambda df, *a, **kw: df
-    frame = pd.DataFrame([{'player_id':'p1', 'Player':'Saved Player', 'Team':'KC', 'ROS P10':100.0, 'ROS P50':123.5, 'ROS P90':150.0}])
+    frame = pd.DataFrame([{'player_id':'p1', 'Player':'Saved Player', 'Team':'KC', 'ROS P10':100.0, 'ROS P50':123.5, 'ROS P90':150.0, 'Season P50':150.0}])
     ros_cache.save_ros_artifact('qb', 2026, 6, True, frame)
     ros_cache._ROS_CACHE.clear()
     saved = ros_cache.load_ros_prediction('qb', 2026, 6, allow_compute=False)

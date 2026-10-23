@@ -15,7 +15,7 @@ alwaysApply: false
 - CPU-heavy work uses `app/process_pool.py`. Do not start a per-route process pool.
 - Secrets and paths go through `src/config.py`, not raw `os.environ` in routes.
 - `HUB_TIMING=true` logs slow hub routes (>500ms) and may set `X-Hub-Timing-MS`.
-- After mlready or model changes, refresh the draft-pool fingerprint (`preseason_refresh` or `scripts/ops/fix_artifact_fingerprints.py`). Do not leave first-visit Fantasy pages on cold live inference.
+- After mlready or model changes, rebuild the draft pool with `preseason_refresh`. `scripts/ops/fix_artifact_fingerprints.py` only audits saved data; never relabel an old forecast as current. Do not leave first-visit Fantasy pages on cold live inference.
 
 ## Measurement and perceived speed
 

@@ -125,7 +125,9 @@ def test_snap_feed_maps_pfr_ids_to_gsis_without_name_guessing(monkeypatch):
 def test_normal_etl_import_does_not_silently_disable_enrichment(monkeypatch, tmp_path):
     from src.etl import nflverse_etl as etl
     from src.analytics import candidate_etl, historical_injury
-    base = pd.DataFrame({"player_id": ["a"], "season": [2026], "week": [1], "Fpts": [10.]})
+    base = pd.DataFrame({"player_id": ["a"], "season": [2026], "week": [1],
+                         "team": ["KC"], "position": ["QB"],
+                         "fantasy_points_ppr": [10.], "Fpts": [10.]})
     calls = []
     monkeypatch.setattr("src.config.CANDIDATE_DATA_DIR", tmp_path)
     def build(pos, seasons, **kwargs):
@@ -134,7 +136,10 @@ def test_normal_etl_import_does_not_silently_disable_enrichment(monkeypatch, tmp
     monkeypatch.setattr(candidate_etl, "build_candidate_features", build)
     monkeypatch.setattr(historical_injury, "add_historical_injury_features", lambda d: d.assign(injury_opportunity_boost_hist_avg=.1))
     monkeypatch.setattr(etl, "load_weekly_player_stats", lambda s: base)
-    monkeypatch.setattr(etl, "load_schedules", lambda s: pd.DataFrame())
+    monkeypatch.setattr(etl, "load_schedules", lambda s: pd.DataFrame({
+        "season": [2026], "week": [1], "game_type": ["REG"],
+        "home_team": ["KC"], "away_team": ["LV"],
+    }))
     monkeypatch.setattr(etl, "load_play_by_play", lambda s: pd.DataFrame())
     monkeypatch.setattr(etl, "load_team_epa", lambda s, **kw: pd.DataFrame())
     monkeypatch.setattr(candidate_etl, "_load_snap_counts", lambda s: pd.DataFrame())
@@ -150,12 +155,17 @@ def test_normal_etl_import_does_not_silently_disable_enrichment(monkeypatch, tmp
 
 def test_failed_etl_publication_preserves_last_good_processed_file(monkeypatch, tmp_path):
     from src.etl import nflverse_etl as etl
-    data = pd.DataFrame({"player_id": ["a"], "season": [2026], "week": [1], "Fpts": [10.]})
+    data = pd.DataFrame({"player_id": ["a"], "season": [2026], "week": [1],
+                         "team": ["KC"], "position": ["QB"],
+                         "fantasy_points_ppr": [10.], "Fpts": [10.]})
     path = tmp_path / "qb_mlready.parquet"
     data.assign(routes_avg=24.).to_parquet(path)
     original = path.read_bytes()
     monkeypatch.setattr(etl, "load_weekly_player_stats", lambda s: data)
-    monkeypatch.setattr(etl, "load_schedules", lambda s: pd.DataFrame())
+    monkeypatch.setattr(etl, "load_schedules", lambda s: pd.DataFrame({
+        "season": [2026], "week": [1], "game_type": ["REG"],
+        "home_team": ["KC"], "away_team": ["LV"],
+    }))
     monkeypatch.setattr(etl, "load_play_by_play", lambda s: pd.DataFrame())
     monkeypatch.setattr(etl, "load_team_epa", lambda s, **kw: pd.DataFrame())
     monkeypatch.setattr(etl, "merge_target_quality_into_wr_features", None)

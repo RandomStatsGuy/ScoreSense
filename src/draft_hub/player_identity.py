@@ -191,6 +191,27 @@ def cached_player_identity(player_id: str, *, season: int | None = None,
 
 
 
+def read_player_identity(player_id: str, *, season: int | None = None) -> dict[str, Any]:
+    """Resolve read aliases without changing stored roster/transaction keys.
+
+    An unknown ID remains an exact lookup, never a name-based guess. Ambiguous
+    crosswalks raise the same explicit error used at competitive write boundaries.
+    File revisions in the shared index make corrected mappings visible immediately.
+    """
+    requested = _text(player_id)
+    identity = cached_player_identity(requested, season=season)
+    return {
+        "requested_id": requested,
+        "canonical_id": identity["player_id"] if identity else requested,
+        "status": "resolved" if identity else "unresolved",
+        "position": identity["position"] if identity else None,
+        "player_name": identity["player_name"] if identity else None,
+        "team": identity["team"] if identity else None,
+        "aliases": list(identity["aliases"]) if identity else [requested],
+        "reason": None if identity else "identity_not_in_cached_crosswalk",
+    }
+
+
 def cached_unique_name_identity(name: str, position: str, *, season: int | None = None) -> dict[str, Any] | None:
     """Join an exact provider full name to one cached canonical player only.
 

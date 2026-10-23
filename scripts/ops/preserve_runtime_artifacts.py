@@ -33,6 +33,7 @@ RUNTIME_FILES = (
     "data/processed/qb_mlready.parquet",
     "data/processed/rb_mlready.parquet",
     "data/processed/wr_mlready.parquet",
+    "data/processed/recorded_player_games.parquet",
     "data/processed/qb_mlready.csv",
     "data/processed/rb_mlready.csv",
     "data/processed/wr_mlready.csv",

@@ -22,6 +22,7 @@ export function PlayerCardProvider({
   onToggleCompare,
   maxCompare = 4,
   resetKey,
+  context = null,
 }) {
   const [request, setRequest] = useState(null);
 
@@ -36,8 +37,8 @@ export function PlayerCardProvider({
         playerName: params.name || params.playerName,
         team: params.team,
         position: params.position,
-        season: params.season,
-        week: params.week,
+        season: params.season ?? context?.season,
+        week: params.week ?? context?.week,
         scope: params.scope || "weekly",
         applyInjuryAdjustments: params.applyInjuryAdjustments,
         rank: params.rank ?? candidate?.rank ?? null,
@@ -47,7 +48,7 @@ export function PlayerCardProvider({
         boardKey: resetKey,
       });
     },
-    [candidates, peers, seasonMode, resetKey],
+    [candidates, peers, seasonMode, resetKey, context?.season, context?.week],
   );
 
   const closePlayerCard = useCallback(() => setRequest(null), []);
@@ -124,4 +125,18 @@ export function usePlayerCard() {
 
 export function usePlayerCardOptional() {
   return useContext(PlayerCardContext);
+}
+
+/** Give cards opened on a Fantasy surface the same saved period as its numbers. */
+export function PlayerCardReadScope({ context, children }) {
+  const parent = useContext(PlayerCardContext);
+  const value = useMemo(() => parent ? {
+    ...parent,
+    openPlayerCard: params => parent.openPlayerCard({
+      ...params,
+      season: params?.season ?? context?.season,
+      week: params?.week ?? context?.week,
+    }),
+  } : null, [parent, context?.season, context?.week]);
+  return <PlayerCardContext.Provider value={value}>{children}</PlayerCardContext.Provider>;
 }

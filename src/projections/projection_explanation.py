@@ -14,9 +14,10 @@ import pandas as pd
 
 from src.config import PROCESSED_DATA_DIR, SENTIMENT_FEATURES_PATH
 from src.core.opportunity import pick_opportunity_adjustment
-from src.core.projection_context import resolve_projection_context
+from src.draft_hub.player_identity import read_player_identity
 from src.projections.player_compare import volatility
 from src.projections.weekly_cache import load_weekly_prediction
+from src.projections.projection_meta import resolve_projection_read_context
 from src.sentiment.aggregate import load_sentiment_features
 from src.sentiment.display import sentiment_label, sentiment_label_text, sentiment_summary
 from src.sentiment.fantasy_digest import extractive_fantasy_digest, fantasy_digest_for_player
@@ -89,9 +90,7 @@ def _pick_num(row: dict[str, Any] | pd.Series, keys: Iterable[str]) -> float | N
 
 
 def season_week_context(season: int | None, week: int | None) -> tuple[int, int]:
-    path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
-    df = pd.read_parquet(path, columns=["season", "week"])
-    return resolve_projection_context(df, season, week)
+    return resolve_projection_read_context(season, week)
 
 
 def _signal(
@@ -142,27 +141,25 @@ def _ensure_weekly_pool(
         )
         if not preds.empty:
             return preds
-    return load_weekly_prediction(
-        position,
-        season=season,
-        week=week,
-        apply_injury_adjustments=apply_injury_adjustments,
-        allow_compute=True,
-    )
+    raise FileNotFoundError(f"Weekly projections are unavailable for {position} {season} week {week}.")
 
 
 def _find_player_in_pools(
     pools: dict[str, pd.DataFrame],
     player_id: str,
+    aliases=None,
 ) -> tuple[str, pd.Series] | None:
     pid = str(player_id)
+    found = None
     for pos, pool in pools.items():
         if pool.empty or "player_id" not in pool.columns:
             continue
-        match = pool[pool["player_id"].astype(str) == pid]
+        match = pool[pool["player_id"].astype(str).isin(aliases or [pid])]
+        if len(match) > 1 or (not match.empty and found is not None):
+            raise ValueError(f"Duplicate projection rows for player {pid}.")
         if not match.empty:
-            return pos, match.iloc[0]
-    return None
+            found = (pos, match.iloc[0])
+    return found
 
 
 def _load_usage_features(
@@ -632,7 +629,12 @@ def build_projection_explanation(
         raise ValueError("player_id is required")
 
     resolved_season, resolved_week = season_week_context(season, week)
-    preferred = (position or "").lower().strip()
+    identity = read_player_identity(pid, season=resolved_season)
+    pid = identity["canonical_id"]
+    true_position = str(identity.get("position") or position or "").lower().strip()
+    preferred = {"te": "wr", "fb": "rb"}.get(true_position, true_position)
+    if true_position and preferred not in POSITIONS:
+        raise ValueError("Projection explanation is unavailable for this position.")
     position_order = (
         [preferred] + [p for p in POSITIONS if p != preferred]
         if preferred in POSITIONS
@@ -653,12 +655,14 @@ def build_projection_explanation(
             allow_compute=False,
         )
         pools[pos] = pool
-    hit = _find_player_in_pools(pools, pid)
+    hit = _find_player_in_pools(pools, pid, identity["aliases"])
 
     # Pass 2: warm empty preferred / remaining pools until found.
     if hit is None:
         for pos in position_order:
             if not pools.get(pos, pd.DataFrame()).empty:
+                continue
+            if identity["status"] != "resolved" or pos != preferred:
                 continue
             try:
                 pool = _ensure_weekly_pool(
@@ -672,7 +676,7 @@ def build_projection_explanation(
                 service_error = exc
                 continue
             pools[pos] = pool
-            hit = _find_player_in_pools(pools, pid)
+            hit = _find_player_in_pools(pools, pid, identity["aliases"])
             if hit is not None:
                 break
 
@@ -712,7 +716,7 @@ def build_projection_explanation(
     return {
         "player_id": pid,
         "player_name": player_name,
-        "position": str(projection.get("Position") or pos).upper(),
+        "position": str(identity.get("position") or projection.get("Position") or pos).upper(),
         "position_key": pos,
         "team": projection.get("Team") or (usage or {}).get("team"),
         "meta": {
@@ -722,6 +726,8 @@ def build_projection_explanation(
             "sentiment_is_model_input": False,
             "projection_movement_available": False,
             "artifact_driven": True,
+            "identity": identity,
+            "scoring": "ppr",
         },
         "note": (
             "Projection signals are derived from ScoreSense weekly artifacts and "

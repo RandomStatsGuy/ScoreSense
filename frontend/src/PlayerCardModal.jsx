@@ -2,7 +2,7 @@ import "./styles/player-details.css";
 import "./styles/player-profile.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
-import { isAbortError } from "./fetchAbort";
+import { playerCardUrl, readPlayerCardWithRecovery } from "./playerCardRead";
 import PlayerCell from "./PlayerCell";
 import ProjectionExplanationPanel from "./ProjectionExplanationPanel";
 import PlayerContextPanel from "./PlayerContextPanel";
@@ -11,7 +11,7 @@ import PlayerCardFrame from "./PlayerCardFrame";
 import {isByeWeek} from "./weeklyAvailability";
 import Chip, { injuryChipTone } from "./Chip";
 import { BOARD_COPY, PLAYER_CARD_COPY as COPY, filterInspectorCandidates, playerCardInjuryCode,
-  playerCardNumber as number, playerCardPace, playerCardRequestKey, positionShort, weeklyQuantiles } from "./projectionsPresentation";
+  playerCardNumber as number, playerCardPace, playerCardRequestKey, playerCardStatus, playerHistoryStatus, positionShort, weeklyQuantiles } from "./projectionsPresentation";
 import { HubLoadingSkeleton } from "./DraftHub/HubUILayout";
 
 function ForecastRange({ band }) {
@@ -28,6 +28,7 @@ function PlayerGameLog({ data, position }) {
   const [expanded, setExpanded] = useState(false);
   useEffect(() => setExpanded(false), [data?.player_id, data?.meta?.season]);
   const rows = data?.game_log || [];
+  const historyStatus = playerHistoryStatus(data);
   const qb = String(position).toLowerCase() === "qb";
   const rb = String(position).toLowerCase() === "rb";
   const columns = qb ? [[COPY.pass, "passing_yards"], [COPY.rush, "rushing_yards"]]
@@ -45,18 +46,19 @@ function PlayerGameLog({ data, position }) {
         {columns.map(([, key]) => <td className="num" key={key}>{number(row[key], 0)}</td>)}<td className="num">{number(row.touchdowns, 0)}</td><td className="num">{number(row.points)}</td>
       </tr>)}</tbody></table>
       {rows.length > 5 ? <button className="btn-ghost player-profile-more" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}>{expanded ? COPY.fewerGames : `${COPY.allGames} (${rows.length})`}</button> : null}
-    </> : <p className="player-profile-empty">{COPY.noGames}</p>}
+    </> : <p className="player-profile-empty">{historyStatus || COPY.noGames}</p>}
+    {rows.length && historyStatus ? <p className="player-profile-unit">{historyStatus}</p> : null}
   </section>;
 }
 
-function PlayerCardBody({ data, loading, error, fallbackName, request, onRetry }) {
+function PlayerCardBody({ data, loading, error, recovery, fallbackName, request, onRetry }) {
   const [timeframe, setTimeframe] = useState("week");
   const [notesOpen, setNotesOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const preseason = data?.meta?.preseason_mode === true;
   useEffect(() => { setTimeframe(preseason ? "preseason" : "week"); setNotesOpen(false); setDetailsOpen(false); }, [request?.playerId, request?.season, request?.week, preseason]);
   const playerId = data?.player_id || request?.playerId;
-  const position = request?.position || data?.position;
+  const position = data?.position || request?.position;
   const summary = data?.season_to_date;
   const pace = playerCardPace(summary, data?.preseason_baseline);
   const code = playerCardInjuryCode(data?.injury?.injury_status);
@@ -70,6 +72,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request, onRetry }
   const selected = preseason ? "preseason" : timeframe;
   const label = selected === "season" ? `${season} · ${COPY.recorded}` : selected === "ros" ? COPY.ros : selected === "preseason" ? `${season} ${COPY.preseason.toLowerCase()}` : `${COPY.week} ${week ?? "—"}${bye ? "" : ` ${COPY.projection}`}`;
   const tabs = COPY.tabs;
+  const status = playerCardStatus(data, { timeframe: selected, recovery });
   const changeTab = (index, focus = false) => {
     const tab = tabs[(index + tabs.length) % tabs.length];
     setTimeframe(tab.id); setDetailsOpen(false);
@@ -92,7 +95,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request, onRetry }
         const next = event.key === "ArrowRight" ? index + 1 : event.key === "ArrowLeft" ? index - 1 : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : null;
         if (next != null) { event.preventDefault(); changeTab(next, true); }
       }}>{tab.label}</button>)}</div> : null}
-    {loading && !data && !preview ? <HubLoadingSkeleton rows={3} /> : <section id="player-timeframe-panel" className="player-profile-forecast"
+    {!data && error ? null : loading && !data && !preview ? <HubLoadingSkeleton rows={3} /> : <section id="player-timeframe-panel" className="player-profile-forecast"
       role={preseason ? undefined : "tabpanel"} aria-labelledby={preseason ? undefined : `player-timeframe-${selected}`}>
       <p className="player-profile-eyebrow">{label}</p>
       {selected === "season" ? <>
@@ -110,6 +113,7 @@ function PlayerCardBody({ data, loading, error, fallbackName, request, onRetry }
       </>}
     </section>}
     {error ? <div className="error" role="alert"><span>{error}</span> <button type="button" className="btn-ghost" onClick={onRetry}>{COPY.retry}</button></div> : null}
+    {!error && status ? <p className="player-profile-unit" role="status">{status}</p> : null}
     {data ? <PlayerGameLog data={data} position={position} /> : null}
     {data ? <details className="player-profile-disclosure" open={notesOpen} onToggle={event => setNotesOpen(event.currentTarget.open)}>
       <summary><span>{COPY.notes}</span><span className="player-profile-plus" aria-hidden="true" /></summary>
@@ -183,33 +187,29 @@ export default function PlayerCardModal({
   onSelectPlayer,
 }) {
   const requestKey = playerCardRequestKey(request);
-  const [snapshot, setSnapshot] = useState({key:"", data:null, loading:false, error:""});
+  const [snapshot, setSnapshot] = useState({key:"", data:null, loading:false, error:"", recovery:null});
   const [retry, setRetry] = useState(0);
   const current = snapshot.key === requestKey;
   const data = current ? snapshot.data : null;
   const error = current ? snapshot.error : "";
+  const recovery = current ? snapshot.recovery : null;
   const loading = Boolean(request?.playerId && (!current || snapshot.loading));
   useEffect(() => {
     if (!request?.playerId) return undefined;
     const controller = new AbortController();
-    setSnapshot({key:requestKey, data:null, loading:true, error:""});
-    (async () => {
-      try {
-        const params = new URLSearchParams();
-        if (request.season != null) params.set("season", String(request.season));
-        if (request.week != null) params.set("week", String(request.week));
-        if (request.scope) params.set("scope", request.scope);
-        if (request.position) params.set("position", request.position);
-        params.set("apply_injury_adjustments", (request.applyInjuryAdjustments ?? true) ? "true" : "false");
-        const res = await apiFetch(`/api/player/${encodeURIComponent(request.playerId)}/card?${params}`, {signal:controller.signal});
-        if (!res.ok) throw new Error(await parseApiError(res, "Failed to load player card"));
-        const payload = await res.json();
-        if (!controller.signal.aborted) setSnapshot({key:requestKey, data:payload, loading:false, error:""});
-      } catch (err) {
-        if (isAbortError(err) || controller.signal.aborted) return;
-        setSnapshot({key:requestKey, data:null, loading:false, error:connectionErrorMessage(err, "Failed to load player card")});
-      }
-    })();
+    setSnapshot(previous => ({key:requestKey, data:previous.key === requestKey ? previous.data : null, loading:true, error:"", recovery:null}));
+    readPlayerCardWithRecovery({
+      request, signal: controller.signal,
+      readCard: async (context, signal) => {
+        const res = await apiFetch(playerCardUrl(context), {signal});
+        if (!res.ok) throw new Error(await parseApiError(res, COPY.loadFailed));
+        return res.json();
+      },
+      onData: data => setSnapshot(previous => ({...previous, data, loading:false, error:""})),
+      onRecovery: recovery => setSnapshot(previous => ({...previous, recovery})),
+      onError: err => setSnapshot(previous => ({...previous, error:connectionErrorMessage(err, COPY.loadFailed), recovery:null})),
+      onSettled: () => setSnapshot(previous => ({...previous, loading:false})),
+    });
     return () => controller.abort();
   }, [requestKey, retry]);
 
@@ -222,8 +222,8 @@ export default function PlayerCardModal({
       name: hit.name,
       team: hit.team,
       position: hit.position || request.position,
-      season: request.season,
-      week: request.week,
+      season: request.season ?? data?.meta?.season,
+      week: request.week ?? data?.meta?.week,
       scope: request.scope,
       applyInjuryAdjustments: request.applyInjuryAdjustments,
       seasonMode: request.seasonMode,
@@ -250,6 +250,7 @@ export default function PlayerCardModal({
           data={data}
           loading={loading}
           error={error}
+          recovery={recovery}
           fallbackName={request.playerName}
           request={request}
           onRetry={() => setRetry(value => value + 1)}

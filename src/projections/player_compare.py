@@ -11,9 +11,9 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 import pandas as pd
 
-from src.config import PROCESSED_DATA_DIR
-from src.core.projection_context import resolve_projection_context
+from src.draft_hub.player_identity import PlayerIdentityError, read_player_identity
 from src.projections.weekly_cache import load_weekly_prediction
+from src.projections.projection_meta import resolve_projection_read_context
 
 POSITIONS = ("qb", "rb", "wr")
 FLEX_POSITIONS = frozenset({"rb", "wr"})
@@ -97,9 +97,7 @@ def _pick_num(row: dict[str, Any] | pd.Series, keys: Iterable[str]) -> float | N
 
 
 def season_week_context(season: int | None, week: int | None) -> tuple[int, int]:
-    path = PROCESSED_DATA_DIR / "qb_mlready.parquet"
-    df = pd.read_parquet(path, columns=["season", "week"])
-    return resolve_projection_context(df, season, week)
+    return resolve_projection_read_context(season, week)
 
 
 def volatility(p10: float | None, p50: float | None, p90: float | None) -> float | None:
@@ -116,13 +114,14 @@ def position_rank_map(preds: pd.DataFrame) -> dict[str, int]:
     if preds.empty or "player_id" not in preds.columns:
         return {}
     metric_col = next((c for c in _P50_KEYS if c in preds.columns), None)
-    if metric_col is None:
+    if metric_col is None or "Position" not in preds:
         return {}
     ranked = preds.copy()
     ranked["_pid"] = ranked["player_id"].astype(str)
     ranked["_metric"] = pd.to_numeric(ranked[metric_col], errors="coerce")
-    ranked = ranked.dropna(subset=["_metric"]).sort_values("_metric", ascending=False)
-    ranks = ranked["_metric"].rank(method="min", ascending=False).astype(int)
+    ranked["_position"] = ranked["Position"].astype("string").str.strip().str.upper().replace({"FB": "RB", "DST": "DEF"})
+    ranked = ranked[ranked["_position"].isin({"QB", "RB", "WR", "TE", "K", "DEF"}) & np.isfinite(ranked["_metric"])].sort_values("_metric", ascending=False)
+    ranks = ranked.groupby("_position")["_metric"].rank(method="min", ascending=False).astype(int)
     return dict(zip(ranked["_pid"], ranks, strict=False))
 
 
@@ -216,19 +215,13 @@ def _ensure_weekly_pool(
         )
         if not preds.empty:
             return preds
-    # Last resort: allow in-process compute (tests / cold local without pool).
-    return load_weekly_prediction(
-        position,
-        season=season,
-        week=week,
-        apply_injury_adjustments=apply_injury_adjustments,
-        allow_compute=True,
-    )
+    raise FileNotFoundError(f"Weekly projections are unavailable for {position} {season} week {week}.")
 
 
 def _index_compare_players(
     pools: dict[str, pd.DataFrame],
     ids: Sequence[str],
+    aliases: dict[str, str] | None = None,
 ) -> dict[str, tuple[str, pd.Series]]:
     """Map requested player_id → (position, row) from loaded weekly pools."""
     wanted = set(ids)
@@ -238,7 +231,10 @@ def _index_compare_players(
             continue
         for _, row in pool.iterrows():
             pid = str(row["player_id"])
-            if pid in wanted and pid not in index:
+            pid = (aliases or {}).get(pid, pid)
+            if pid in wanted and pid in index:
+                raise PlayerIdentityError(f"Duplicate projection rows for player {pid}.")
+            if pid in wanted:
                 index[pid] = (pos, row)
     return index
 
@@ -252,8 +248,12 @@ def build_player_compare(
     compute_fn: Any | None = None,
 ) -> dict[str, Any]:
     """Build a side-by-side weekly comparison payload for 2–4 player IDs."""
-    ids = validate_compare_player_ids(parse_compare_player_ids(list(player_ids)))
+    requested = validate_compare_player_ids(parse_compare_player_ids(list(player_ids)))
     resolved_season, resolved_week = season_week_context(season, week)
+    identities = [read_player_identity(pid, season=resolved_season) for pid in requested]
+    ids = validate_compare_player_ids(parse_compare_player_ids([i["canonical_id"] for i in identities]))
+    aliases = {alias: identity["canonical_id"] for identity in identities for alias in identity["aliases"]}
+    identity_by_id = {identity["canonical_id"]: identity for identity in identities}
 
     pools: dict[str, pd.DataFrame] = {}
     rank_maps: dict[str, dict[str, int]] = {}
@@ -269,7 +269,7 @@ def build_player_compare(
         pools[pos] = pool
         rank_maps[pos] = position_rank_map(pool)
 
-    index = _index_compare_players(pools, ids)
+    index = _index_compare_players(pools, ids, aliases)
     unresolved = [pid for pid in ids if pid not in index]
 
     # Pass 2: warm only empty pools until requested IDs resolve.
@@ -280,6 +280,13 @@ def build_player_compare(
                 break
             if not pools[pos].empty:
                 continue
+            required_positions = {
+                {"te": "wr", "fb": "rb"}.get(str(identity_by_id[pid].get("position") or "").lower(),
+                                                str(identity_by_id[pid].get("position") or "").lower())
+                for pid in unresolved if identity_by_id[pid]["status"] == "resolved"
+            }
+            if pos not in required_positions:
+                continue  # Unknown IDs cannot be repaired by rebuilding a model pool.
             try:
                 pool = _ensure_weekly_pool(
                     pos,
@@ -294,7 +301,7 @@ def build_player_compare(
                 continue
             pools[pos] = pool
             rank_maps[pos] = position_rank_map(pool)
-            index = _index_compare_players(pools, ids)
+            index = _index_compare_players(pools, ids, aliases)
             unresolved = [pid for pid in ids if pid not in index]
 
     players: list[dict[str, Any]] = []
@@ -315,7 +322,7 @@ def build_player_compare(
             {
                 "player_id": pid,
                 "player_name": raw.get("Player"),
-                "position": str(raw.get("Position") or pos).upper(),
+                "position": str(identity_by_id[pid].get("position") or raw.get("Position") or pos).upper(),
                 "position_key": pos,
                 "team": raw.get("Team"),
                 "opponent": raw.get("Opponent"),
@@ -324,7 +331,7 @@ def build_player_compare(
                 "p90": None if p90 is None else round(p90, 2),
                 "spread": spread,
                 "volatility": None if vol is None else round(vol, 4),
-                "position_rank": rank_maps.get(pos, {}).get(pid),
+                "position_rank": rank_maps.get(pos, {}).get(str(row["player_id"])),
                 "injury_status": raw.get("Injury Status") or None,
                 "projection": raw,
             }
@@ -358,6 +365,8 @@ def build_player_compare(
             "season": resolved_season,
             "week": resolved_week,
             "apply_injury_adjustments": apply_injury_adjustments,
+            "identities": identities,
+            "scoring": "ppr",
         },
         "note": note,
         "players": players,
@@ -393,14 +402,20 @@ def _pairwise_p50_deltas(players: Sequence[dict[str, Any]]) -> list[dict[str, An
 def filter_projections_by_ids(
     projections: Sequence[dict[str, Any]],
     player_ids: Sequence[str],
+    *,
+    season: int | None = None,
 ) -> list[dict[str, Any]]:
     """Preserve request order when filtering a `/api/predict` projection list."""
     wanted = parse_compare_player_ids(list(player_ids))
     if not wanted:
         return list(projections)
-    by_id = {
-        str(rec.get("player_id")): rec
-        for rec in projections
-        if rec.get("player_id") is not None
-    }
+    wanted = parse_compare_player_ids([read_player_identity(pid, season=season)["canonical_id"] for pid in wanted])
+    by_id = {}
+    for rec in projections:
+        if rec.get("player_id") is None:
+            continue
+        pid = read_player_identity(str(rec["player_id"]), season=season)["canonical_id"]
+        if pid in by_id:
+            raise PlayerIdentityError(f"Duplicate projection rows for player {pid}.")
+        by_id[pid] = rec
     return [by_id[pid] for pid in wanted if pid in by_id]

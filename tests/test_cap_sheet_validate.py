@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
+
 from src.draft_hub import storage
 from src.draft_hub.cap_sheet_import import parse_cap_sheet_tsv, validate_cap_sheet_for_league
 from src.draft_hub.schemas import LeagueRules
+
+pytestmark = pytest.mark.usefixtures("cap_sheet_catalog")
 
 
 def _sample_tsv(*rows: str) -> bytes:

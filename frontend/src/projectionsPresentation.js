@@ -106,11 +106,41 @@ export const PLAYER_CARD_COPY = {
   bye: "Bye", byeNote: "No game this week", injuryDetails: "Open injury details",
   injuryAdjustment: "Injury adjustment", close: "Close player details", compare: "Compare player",
   retry: "Retry player details",
+  loadFailed: "Failed to load player card",
+  recovering: "Updating projections…", recoveryFailed: "Projection update failed.", recoveryUnsupported: "Projection update is unavailable for this period.",
+  recoveryTimedOut: "Projection update is taking longer than expected. Reopen player details to check again.",
+  unresolved: "Player identity could not be matched.",
+  unsupported: "Projections are unavailable for this position.", staleProjection: "Projection is stale.",
+  historyUnavailable: "Recorded games are unavailable.", historyPartial: "Some recorded games are unavailable.",
+  historyUnverified: "Recorded game coverage could not be verified.", historyUnsupported: "Recorded games are unavailable for this position.",
   removeCompare: "Remove from compare", updated: "Updated", through: "Through week",
   baselineExplanation: "Saved preseason points are prorated through the same number of games played. This is a pace comparison, not a comparison with the full-year total.",
   remainingExplanation: "The rest-of-season forecast covers remaining games only. Recorded points are shown on Season so far.",
   regularSeason: "Regular season", incomplete: "Some recorded scores are unavailable; the total and PPG are not shown.",
 };
+
+export function playerCardStatus(data, { timeframe = "week", recovery } = {}) {
+  if (["unresolved", "ambiguous"].includes(data?.meta?.identity?.status)) return PLAYER_CARD_COPY.unresolved;
+  const state = recovery?.status ?? data?.meta?.recovery?.status;
+  if (["queued", "running"].includes(state)) return PLAYER_CARD_COPY.recovering;
+  if (state === "failed") return PLAYER_CARD_COPY.recoveryFailed;
+  if (state === "timed_out") return PLAYER_CARD_COPY.recoveryTimedOut;
+  if (state === "unsupported") return (recovery?.reason ?? data?.meta?.recovery?.reason) === "unsupported_position" ? PLAYER_CARD_COPY.unsupported : PLAYER_CARD_COPY.recoveryUnsupported;
+  const artifact = data?.meta?.artifacts?.[timeframe === "ros" ? "ros" : timeframe === "week" ? "weekly" : "preseason"];
+  if (artifact?.status === "unsupported") return PLAYER_CARD_COPY.unsupported;
+  if (artifact?.status === "stale") return PLAYER_CARD_COPY.staleProjection;
+  return "";
+}
+
+export function playerHistoryStatus(data) {
+  const coverage = data?.history_coverage;
+  if (!coverage || coverage.status === "complete") return "";
+  if (coverage.status === "unsupported") return PLAYER_CARD_COPY.historyUnsupported;
+  if (["schedule_unavailable", "unverified_participation", "legacy_source_provenance", "game_completion_unverified", "schedule_mismatch", "duplicate_recorded_games"].includes(coverage.reason)) return PLAYER_CARD_COPY.historyUnverified;
+  if (coverage.status === "partial") return PLAYER_CARD_COPY.historyPartial;
+  if (coverage.reason === "no_recorded_games") return PLAYER_CARD_COPY.noGames;
+  return PLAYER_CARD_COPY.historyUnavailable;
+}
 
 export function playerCardNumber(value, digits = 1) {
   return Number.isFinite(value) ? value.toFixed(digits) : "—";
