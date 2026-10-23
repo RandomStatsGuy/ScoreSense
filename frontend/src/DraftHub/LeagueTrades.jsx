@@ -15,6 +15,7 @@ import { HUB_MEDIA_HERO_WIDTH, identityMediaUrl, mergeTeamIdentity } from "./atm
 import { apiFetch } from "../auth";
 import { connectionErrorMessage, parseApiError } from "../format";
 import PlayerCell, { usePlayerMedia } from "../PlayerCell";
+import { PlayerCardReadScope } from "../PlayerCardContext";
 import {
   HubAlert,
   HubExperienceHero,
@@ -411,6 +412,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const [expandedTeams, setExpandedTeams] = useState({});
   const reviewRef = useRef(null);
   const builderSearchRef = useRef(null);
+  const partnerHeadingRef = useRef(null);
   const pendingBuilderFocus = useRef(false);
   const deskBarRef = useRef(null);
   const [loadedLeague, setLoadedLeague] = useState(null);
@@ -431,6 +433,9 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const [validationStatus, setValidationStatus] = useState("idle");
   const [validationErrors, setValidationErrors] = useState([]);
   const [validationMessage, setValidationMessage] = useState("");
+  const [validationRetryable, setValidationRetryable] = useState(false);
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  const [proposalError, setProposalError] = useState("");
   const [validatedPackage, setValidatedPackage] = useState(null);
   const [proposeNote, setProposeNote] = useState("");
   const [sourceReviewId, setSourceReviewId] = useState(null);
@@ -973,6 +978,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   payloadRef.current = buildPayload;
 
   useEffect(() => {
+    setProposalError("");
+    setValidationRetryable(false);
     if (!leagueId || !hasPartner || !hasPackage) {
       validateSeq.current += 1;
       setValidationStatus("idle");
@@ -1023,15 +1030,17 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       } catch (e) {
         if (seq !== validateSeq.current) return;
         setValidationStatus("invalid");
+        setValidationRetryable(true);
         setValidationErrors([e.message || formatCopy.invalidFallback]);
       }
     }, 350);
     return () => clearTimeout(timer);
-  }, [leagueId, hasPartner, hasPackage, packageKey, revisionToken]);
+  }, [leagueId, hasPartner, hasPackage, packageKey, revisionToken, validationAttempt]);
 
   const propose = async () => {
     if (validationStatus !== "valid" || validatedPackage !== packageKey || !hasPartner || !hasPackage) return;
     setBusy("propose");
+    setProposalError("");
     setError("");
     setMsg("");
     try {
@@ -1061,7 +1070,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         setSecondaryError(prev => ({ ...prev, inbox: connectionErrorMessage(error) }));
       });
     } catch (e) {
-      setError(e.message || "Could not propose");
+      setProposalError(connectionErrorMessage(e));
     } finally {
       setBusy("");
     }
@@ -1231,6 +1240,11 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
     });
   };
 
+  const openPartnerPicker = (multiple = false) => {
+    setPartnerSearch("");
+    setMultiPartner(multiple);
+    setDialog("partner");
+  };
   const goBuilderStep = (stepId) => {
     setBuilderStep(stepId);
     setPhoneView("send");
@@ -1241,7 +1255,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   useEffect(() => {
     if (tab === "builder" && !dialog && pendingBuilderFocus.current) {
       pendingBuilderFocus.current = false;
-      builderSearchRef.current?.focus({ preventScroll: true });
+      partnerHeadingRef.current?.focus({ preventScroll: true });
     }
   }, [dialog, tab]);
   useEffect(() => {
@@ -1291,9 +1305,10 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           <div className="hub-trade-party-col panel" data-party={isYours ? "send" : "receive"}>
             <TradeTeamArt identity={identityForTeam(party.team_id)} />
             <div className="hub-trade-party-direction"><h2>{isYours ? formatCopy.youSend : activeParties.length > 2 ? formatCopy.sendVerb : formatCopy.youReceive}</h2><span>{formatCopy.selectedCount(party.sends.length + party.drops.length)}</span></div>
-            <div className="hub-trade-party-head">
+            <div className="hub-trade-party-head" ref={idx === 1 ? partnerHeadingRef : undefined}
+              tabIndex={idx === 1 ? -1 : undefined}>
               <TradeTeamHead team={teamById[party.team_id]} identity={identityForTeam(party.team_id)} isYou={isYours} copy={formatCopy} />
-              {!isYours && idx === 1 && !sourceReviewId && <button type="button" className="btn-ghost btn-sm" onClick={() => { setMultiPartner(false); setDialog("partner"); }}>{formatCopy.changePartner}</button>}
+              {!isYours && idx === 1 && !sourceReviewId && <button type="button" className="btn-ghost btn-sm" onClick={() => openPartnerPicker()}>{formatCopy.changePartner}</button>}
             </div>
 
             <div className="hub-trade-roster-context"><span>{salaryLeague ? `${fmtSal(teamProjected?.unspent)} ${formatCopy.free}` : formatCopy.rosterCount(totalRows)}</span>
@@ -1430,7 +1445,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
       })}
       {!hasPartner && myTeamId && <>
         <div className="hub-trade-exchange-col">{renderExchange()}</div>
-        <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" onClick={() => { setMultiPartner(false); setDialog("partner"); }}>{formatCopy.choosePartner}</button>}</section>
+        <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" onClick={() => openPartnerPicker()}>{formatCopy.choosePartner}</button>}</section>
       </>}
     </div>
   );
@@ -1559,7 +1574,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                   setMsg("");
                 }
                 pendingBuilderFocus.current = true;
-                setTab("builder"); setBuilderStep("players"); setPhoneView("send"); setDialog(null);
+                setSearch(""); setPosFilter("ALL");
+                setTab("builder"); setBuilderStep("players"); setPhoneView("receive"); setDialog(null);
               }
             }}>
             <strong>{teamName(t.id)}</strong>
@@ -1569,6 +1585,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           </button></li>;
         })}
       </ul>
+      {otherTeams.length > 0 && !otherTeams.some(t => teamName(t.id).toLowerCase().includes(partnerSearch.toLowerCase()))
+        && <p role="status">{formatCopy.noPartnerMatches}</p>}
       {!otherTeams.length && <p>{formatCopy.noPartners}</p>}
     </>
   );
@@ -1739,7 +1757,12 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           </div>)}
       </div>
       <div className="hub-trade-bar-status">
-        {hasPackage ? <TradeVerdict status={validationStatus} errors={validationErrors} message={validationMessage} compact copy={formatCopy} />
+        {hasPackage ? <div className="hub-trade-action-status">
+          {proposalError ? <HubAlert variant="danger" role="alert">{proposalError}</HubAlert>
+            : <TradeVerdict status={validationStatus} errors={validationErrors} message={validationMessage} compact copy={formatCopy} />}
+          {validationRetryable && !proposalError && <button type="button" className="btn-link"
+            onClick={() => setValidationAttempt(attempt => attempt + 1)}>{formatCopy.retryCheck}</button>}
+        </div>
           : <span className="hub-trade-bar-hint">{!otherTeams.length ? formatCopy.noPartners : !hasPartner ? formatCopy.partnerNeeded : formatCopy.emptyAction}</span>}
         {capChange && <span className="hub-trade-net-cap" aria-label={`${formatCopy.netCap}: ${capChange}`}><span className="hub-trade-net-cap-prefix">{formatCopy.netCap}</span><strong>{capChange}</strong><span className="hub-trade-net-cap-suffix" aria-hidden="true">{formatCopy.capShort}</span></span>}
         {otherMoves.length > 0 && <button type="button" className="btn-link" onClick={() => setDialog("package")}>{formatCopy.otherMoves(otherMoves.length)}</button>}
@@ -1747,7 +1770,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           disabled={Boolean(busy)} onClick={() => { undoPackageRemoval(); builderSearchRef.current?.focus({ preventScroll: true }); }}>{formatCopy.undoRemove}</button>}
       </div>
       {!otherTeams.length ? <button type="button" className="btn-ghost" disabled={!myTeamId} onClick={() => onNavigate?.("office-members")}>{formatCopy.inviteManagers}</button>
-        : !hasPartner ? <button type="button" className="btn-ghost" disabled={!myTeamId} onClick={() => { setMultiPartner(false); setDialog("partner"); }}>{formatCopy.choosePartner}</button>
+        : !hasPartner ? <button type="button" className="btn-ghost" disabled={!myTeamId} onClick={() => openPartnerPicker()}>{formatCopy.choosePartner}</button>
           : builderStep === "review" ? <button type="button" className="btn-primary" disabled={!canPropose} onClick={propose}>
             {busy === "propose" ? formatCopy.proposing : formatCopy.proposeTrade}</button>
             : <button type="button" className="btn-primary" disabled={!canPropose} onClick={() => goBuilderStep("review")}>{formatCopy.reviewTrade} →</button>}
@@ -1755,6 +1778,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   };
 
   return (
+    <PlayerCardReadScope context={weekPayload?.meta}>
     <HubPage className="hub-experience-page hub-trade-desk">
       <HubExperienceHero
         eyebrow={formatCopy.eyebrow}
@@ -1802,13 +1826,20 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           search={partnerSearch} onSearch={setPartnerSearch} onChoose={id => {
             if (!myTeamId) return;
             resetComparison(); setSourceReviewId(null); setParties([emptyParty(myTeamId), emptyParty(id)]); setDeadCapAssignments([]);
-            setProposeNote(""); setSearch(""); pendingBuilderFocus.current = true;
-            setTab("builder"); setBuilderStep("players"); setPhoneView("send");
+            setProposeNote(""); setSearch(""); setPosFilter("ALL"); pendingBuilderFocus.current = true;
+            setTab("builder"); setBuilderStep("players"); setPhoneView("receive");
           }} />
       </section>}
       {tab === "builder" && !loading && loadedLeague === leagueId && <div className="hub-trade-builder" id="trades-panel-builder">
         {!myTeamId ? <HubAlert variant="info">{formatCopy.teamNeeded}</HubAlert> : <>
           {builderStep !== "review" ? <div className="hub-trade-workspace" data-phone-view={phoneView}>
+            {!sourceReviewId && otherTeams.length > 0 && <div className="hub-trade-phone-partner">
+              <span>{formatCopy.tradePartner}</span>
+              <button type="button" className="btn-ghost" onClick={() => openPartnerPicker()}
+                aria-label={hasPartner ? formatCopy.partnerButton(teamName(partnerTeamIds[0])) : formatCopy.choosePartner}>
+                <span>{hasPartner ? teamName(partnerTeamIds[0]) : formatCopy.choosePartner}</span><span aria-hidden="true">▾</span>
+              </button>
+            </div>}
             <nav className="hub-trade-phone-views" aria-label={formatCopy.buildTab}>
               {[["send", formatCopy.sendView, formatCopy.youSend], ["receive", formatCopy.receiveView, formatCopy.youReceive], ["exchange", formatCopy.exchangeView, formatCopy.exchangeTitle]].map(([id, label, aria]) =>
                 <button key={id} type="button" aria-label={aria} aria-pressed={phoneView === id} onClick={() => setPhoneView(id)}>{label}
@@ -1825,7 +1856,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
               {renderPartyPlayerColumns()}
               <div className="hub-trade-advanced-actions">
                 <button type="button" className="btn-link" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>{formatCopy.advancedTerms} {advanced ? "−" : "+"}</button>
-                {advanced && !sourceReviewId && <button type="button" className="btn-ghost" onClick={() => { setMultiPartner(true); setDialog("partner"); }}>{formatCopy.addPartners}</button>}
+                {advanced && !sourceReviewId && <button type="button" className="btn-ghost" onClick={() => openPartnerPicker(true)}>{formatCopy.addPartners}</button>}
                 {weekEligible && weekPayload?.meta?.week && <span className="hub-trade-week-basis">{formatCopy.weekLabel(weekPayload.meta.week)} · {formatCopy.pprEstimate}</span>}
               </div>
             </div>
@@ -2050,5 +2081,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         </div>
       )}
     </HubPage>
+    </PlayerCardReadScope>
   );
 }

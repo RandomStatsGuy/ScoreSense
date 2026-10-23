@@ -77,7 +77,8 @@ def test_pre_identity_fix_artifacts_are_stale_without_recomputing_or_overwriting
     parquet, metadata = weekly._artifact_paths("wr", 2026, 5, True)
     frame.to_parquet(parquet, index=False)
     metadata.write_text(json.dumps({"position": "wr", "season": 2026, "week": 5,
-        "apply_injury_adjustments": True, "fingerprint": old_fingerprint, "built_at": "2026-10-12T12:00:00Z"}))
+        "apply_injury_adjustments": True, "fingerprint": old_fingerprint, "rows": len(frame),
+        "built_at": "2026-10-12T12:00:00Z"}))
     before = (parquet.read_bytes(), metadata.read_bytes())
     weekly.invalidate_weekly_cache()
     stale = weekly.load_weekly_prediction("wr", 2026, 5, allow_compute=False, allow_stale=True, apply_identity=False)

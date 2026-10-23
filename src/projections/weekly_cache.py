@@ -1,4 +1,4 @@
-"""Materialized weekly predictions — parquet artifact + in-process cache."""
+"""Materialized weekly predictions â€” parquet artifact + in-process cache."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from src.core.artifact_revision import artifact_revision, file_content_revision
 
 from src.config import MODEL_DIR, PROCESSED_DATA_DIR, WEEKLY_PREDICTIONS_DIR
 from src.core.opportunity import ensure_opportunity_adjustment_columns
-from src.projections.artifact_snapshot import read_cached_frame, read_cached_metadata
+from src.projections.artifact_store import feature_source_cutoff, prediction_identity_revision, publish_prediction_artifact, read_prediction_artifact
 
 _WEEKLY_CACHE: dict[str, tuple[tuple, pd.DataFrame]] = {}
 
@@ -92,10 +92,15 @@ def _load_weekly_prediction(
     apply_injury_adjustments: bool = True,
     allow_compute: bool = True,
     force: bool = False,
+    allow_stale: bool = False,
     apply_identity: bool = True,
 ) -> pd.DataFrame:
     """Load cached weekly predictions or compute and persist."""
     if season is None or week is None:
+        if not allow_compute:
+            empty = pd.DataFrame()
+            empty.attrs["artifact_status"] = {"status": "missing", "reason": "incomplete_projection_context"}
+            return empty
         return ensure_opportunity_adjustment_columns(
             predict_upcoming_week(
                 position,
@@ -105,23 +110,17 @@ def _load_weekly_prediction(
             )
         )
 
-    pos = position.lower()
-    fp = weekly_fingerprint()
-    annotate_job(season=int(season), week=int(week), apply_injury=bool(apply_injury_adjustments),
-                 force=force, input_revision=fp, cache_hit=False)
-    key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
-    parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
-
-    def with_identity(frame: pd.DataFrame) -> pd.DataFrame:
+    def finish(frame, *args, **kwargs):
         if not apply_identity:
             return frame
-        return _with_roster_identity(
-            frame, pos, int(season), int(week),
-            cache_key=f"weekly:{key}:{artifact_revision(parquet_path, meta_path)}:{fp}",
-            allow_refresh=allow_compute,
-        )
+        return _with_roster_identity(frame, *args, allow_refresh=allow_compute, **kwargs)
 
-    memory_fp = (fp, artifact_revision(parquet_path, meta_path))
+    pos = position.lower()
+    fp = weekly_fingerprint()
+    annotate_job(season=int(season), week=int(week), apply_injury=bool(apply_injury_adjustments), force=force, input_revision=fp, cache_hit=False)
+    key = _cache_key(pos, int(season), int(week), apply_injury_adjustments)
+    parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
+    memory_fp = (fp, str(parquet_path.resolve()), artifact_revision(parquet_path, meta_path), prediction_identity_revision(int(season)))
     if not force:
         cached = _WEEKLY_CACHE.get(key)
         if cached is not None and cached[0] == memory_fp:
@@ -130,26 +129,38 @@ def _load_weekly_prediction(
             for k, v in cached[1].attrs.items():
                 out.attrs[k] = v
             return ensure_opportunity_adjustment_columns(
-                with_identity(out)
+                finish(
+                    out,
+                    pos,
+                    int(season),
+                    int(week),
+                    cache_key=f"weekly:{key}:{memory_fp}",
+                )
             )
 
-        parquet_path, meta_path = _artifact_paths(pos, int(season), int(week), apply_injury_adjustments)
-        if parquet_path.exists() and meta_path.exists():
-            meta = read_cached_metadata(meta_path)
-            if (meta.get("fingerprint") == fp
-                and (meta.get('season'),meta.get('week'),meta.get('position'),meta.get('apply_injury_adjustments'))
-                    == (int(season),int(week),pos,apply_injury_adjustments)):
-                df = ensure_opportunity_adjustment_columns(read_cached_frame(parquet_path))
-                _apply_saved_attrs(df, meta)
-                if meta.get("built_at"):
-                    df.attrs["built_at"] = meta["built_at"]
-                if not df.empty:
-                    _WEEKLY_CACHE[key] = (memory_fp, df.copy())
-                    annotate_job(cache_hit=True)
-                    return with_identity(df)
+        df, _meta, diagnostic = read_prediction_artifact(
+            parquet_path, meta_path, position=pos, season=int(season), week=int(week),
+            apply_injury_adjustments=apply_injury_adjustments, fingerprint=fp,
+        )
+        if diagnostic["status"] == "ready" or (allow_stale and diagnostic["status"] == "stale"):
+            annotate_job(cache_hit=True)
+            df = ensure_opportunity_adjustment_columns(df)
+            if diagnostic["status"] == "ready":
+                _WEEKLY_CACHE[key] = ((fp, str(parquet_path.resolve()), diagnostic["artifact_revision"], diagnostic["current_identity_revision"]), df.copy())
+            return finish(df, pos, int(season), int(week), cache_key=f"weekly:{key}:{parquet_path.resolve()}:{diagnostic['artifact_revision']}:{fp}")
+        if allow_stale and cached is not None and cached[0][1] == str(parquet_path.resolve()):
+            # Keep a validated same-context frame if a replacement is corrupt.
+            out = cached[1].copy()
+            out.attrs["projection_stale"] = True
+            out.attrs["artifact_status"] = {**(out.attrs.get("artifact_status") or {}), **diagnostic, "last_known_good": True, "built_at": out.attrs.get("built_at")}
+            return finish(out, pos, int(season), int(week), cache_key=f"weekly:lkg:{key}:{cached[0]}:{diagnostic.get('artifact_revision')}")
+    else:
+        diagnostic = {"status": "missing", "reason": "force_rebuild_requested"}
 
     if not allow_compute:
-        return pd.DataFrame()
+        empty = pd.DataFrame()
+        empty.attrs["artifact_status"] = diagnostic
+        return empty
 
     annotate_job(computation_performed=True)
     df = ensure_opportunity_adjustment_columns(
@@ -160,13 +171,20 @@ def _load_weekly_prediction(
             apply_injury_adjustments=apply_injury_adjustments,
         )
     )
-    if df.empty:
-        raise ValueError(f"Empty {pos} projection output; previous artifact retained")
-    save_weekly_artifact(pos, int(season), int(week), apply_injury_adjustments, df)
+    if weekly_fingerprint() != fp:
+        raise RuntimeError("prediction_inputs_changed_during_compute")
+    save_weekly_artifact(pos, int(season), int(week), apply_injury_adjustments, df, source_fingerprint=fp)
     # Mirror the artifact timestamp onto the in-process frame for API freshness.
     if "built_at" not in df.attrs:
         df.attrs["built_at"] = datetime.now(timezone.utc).isoformat()
-    return with_identity(df)
+    return finish(
+        df,
+        pos,
+        int(season),
+        int(week),
+        cache_key=f"weekly:{key}:{parquet_path.resolve()}:{artifact_revision(parquet_path, meta_path)}:{fp}",
+    )
+
 
 
 def load_weekly_prediction(
@@ -184,7 +202,7 @@ def load_weekly_prediction(
     try:
         frame = _load_weekly_prediction(
             position, season, week, apply_injury_adjustments=apply_injury_adjustments,
-            allow_compute=allow_compute, force=force,
+            allow_compute=allow_compute, force=force, allow_stale=allow_stale,
             apply_identity=apply_identity,
         )
         if not frame.empty or not allow_stale:
@@ -236,32 +254,26 @@ def save_weekly_artifact(
     week: int,
     apply_injury_adjustments: bool,
     df: pd.DataFrame,
+    *,
+    source_fingerprint: str | None = None,
 ) -> Path:
     parquet_path, meta_path = _artifact_paths(position, season, week, apply_injury_adjustments)
 
     # Capture prior artifact before overwrite so refresh can emit movement (SCORE-7).
     previous_df = None
     previous_meta: dict[str, Any] | None = None
-    if parquet_path.exists() and meta_path.exists():
-        try:
-            previous_meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            previous_df = pd.read_parquet(parquet_path)
-        except (json.JSONDecodeError, OSError, ValueError):
-            previous_df = None
-            previous_meta = None
+    if parquet_path.exists():
+        prior, prior_meta, prior_status = read_prediction_artifact(
+            parquet_path, meta_path, position=position.lower(), season=season, week=week,
+            apply_injury_adjustments=apply_injury_adjustments, fingerprint=weekly_fingerprint(),
+        )
+        if prior_status["status"] in {"ready", "stale"}:
+            previous_df, previous_meta = prior, prior_meta
 
-    import os
-    from uuid import uuid4
-    temp_parquet = parquet_path.with_name(f"{parquet_path.name}.{os.getpid()}.{uuid4().hex}.tmp")
-    try:
-        df.to_parquet(temp_parquet, index=False)
-        temp_parquet.replace(parquet_path)
-    finally:
-        temp_parquet.unlink(missing_ok=True)
     built_at = datetime.now(timezone.utc).isoformat()
-    df.attrs["built_at"] = built_at
-    fingerprint = weekly_fingerprint()
+    fingerprint = source_fingerprint or weekly_fingerprint()
     meta: dict[str, Any] = {
+        "artifact_kind": "weekly",
         "position": position.lower(),
         "season": season,
         "week": week,
@@ -269,22 +281,26 @@ def save_weekly_artifact(
         "fingerprint": fingerprint,
         "rows": int(len(df)),
         "built_at": built_at,
+        "feature_source_cutoff": feature_source_cutoff(position, PROCESSED_DATA_DIR),
         "attrs": {
             k: df.attrs[k]
             for k in ("inference_meta", "projection_note", "preseason_mode", "input_quality")
             if k in df.attrs
         },
     }
-    temp_meta = meta_path.with_name(f"{meta_path.name}.{os.getpid()}.{uuid4().hex}.tmp")
-    try:
-        temp_meta.write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
-        temp_meta.replace(meta_path)
-    finally:
-        temp_meta.unlink(missing_ok=True)
+    if weekly_fingerprint() != fingerprint:
+        raise RuntimeError("prediction_inputs_changed_during_publication")
+    meta = publish_prediction_artifact(parquet_path, meta_path, df, meta)
     key = _cache_key(position, season, week, apply_injury_adjustments)
-    _WEEKLY_CACHE[key] = ((meta["fingerprint"], artifact_revision(parquet_path, meta_path)), df.copy())
+    # Reload restores authoritative metadata exactly as the next API process sees it.
+    saved, saved_meta, diagnostic = read_prediction_artifact(
+        parquet_path, meta_path, position=position.lower(), season=season, week=week,
+        apply_injury_adjustments=apply_injury_adjustments, fingerprint=fingerprint,
+    )
+    if diagnostic["status"] == "ready":
+        _WEEKLY_CACHE[key] = ((saved_meta["fingerprint"], str(parquet_path.resolve()), diagnostic["artifact_revision"], diagnostic["current_identity_revision"]), saved)
 
-    # Movement is best-effort — never block weekly artifact writes.
+    # Movement is best-effort â€” never block weekly artifact writes.
     try:
         from src.projections.projection_movement import (
             projection_content_fingerprint,
@@ -315,6 +331,7 @@ def save_weekly_artifact(
         pass
 
     return parquet_path
+
 
 
 def _apply_saved_attrs(df: pd.DataFrame, meta: dict[str, Any]) -> None:

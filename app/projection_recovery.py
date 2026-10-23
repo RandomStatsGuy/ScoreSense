@@ -14,6 +14,8 @@ _LOCK = Lock()
 _ACTIVE: set[tuple] = set()
 _RESULTS: dict[tuple, tuple[float, dict]] = {}
 RETRY_SECONDS = 900
+MAX_ACTIVE_TARGETS = 8
+PUBLICATION_GRACE_SECONDS = 5
 
 
 def _keys(season, week, kinds, *, anonymous=False):
@@ -131,7 +133,60 @@ def queue_projection_recovery(background_tasks, season, week, kinds):
             pending.append(key)
         if not pending:
             return next((item for item in held if item["status"] == "running"), held[0])
+        if len(_ACTIVE) + len(pending) > MAX_ACTIVE_TARGETS:
+            return {"status": "error", "reason": "recovery_queue_full"}
         _ACTIVE.update(pending)
         key = (int(season), int(week), tuple(item[2][0] for item in pending))
     background_tasks.add_task(_rebuild, key, anonymous=anonymous_projection_read())
     return {"status": "queued"}
+
+
+def card_projection_recovery(background_tasks, meta):
+    """Use the shared recovery worker while reporting what the card can read.
+
+    The existing worker owns full-context coalescing, scheduled cadence, anonymous
+    restrictions and process ownership. A player miss is never an inference trigger.
+    Completion alone cannot claim that an unreadable artifact has been repaired.
+    """
+    artifacts = meta.get("artifacts") or {}
+    requested = meta.pop("rebuild_kinds", [])
+    if not artifacts:
+        return queue_projection_recovery(background_tasks, meta.get("season"), meta.get("week"), requested)
+    if (meta.get("identity") or {}).get("status") != "resolved":
+        return {"status": "unsupported", "reason": "unresolved_identity"}
+    if not meta.get("model_position"):
+        return {"status": "unsupported", "reason": "unsupported_position"}
+    season, week = meta.get("season"), meta.get("week")
+    if not season or not week or not 1 <= int(week) <= 18:
+        return {"status": "unsupported", "reason": "unsupported_context"}
+    kinds = [kind for kind in ("weekly", "ros")
+             if artifacts.get(kind, {}).get("status") in {"missing", "stale", "invalid"}]
+    if not kinds:
+        return {"status": "idle"}
+    result = queue_projection_recovery(background_tasks, season, week, kinds)
+    status = result.get("status")
+    if status == "ok":
+        # The card snapshot may precede atomic publication by a few milliseconds.
+        keys = _keys(season, week, kinds, anonymous=anonymous_projection_read())
+        with _LOCK:
+            finished = [item[0] for key in keys if (item := _RESULTS.get(key))]
+        if finished and time.monotonic() - max(finished) < PUBLICATION_GRACE_SECONDS:
+            return {"status": "running", "reason": "awaiting_artifact_reread", "retry_after_seconds": 2}
+        return {"status": "failed", "reason": "artifact_unavailable_after_recovery"}
+    if status == "error":
+        return {"status": "failed", "reason": result.get("reason", "artifact_rebuild_failed")}
+    if status in {"queued", "running", "busy"}:
+        return {"status": "running" if status == "busy" else status, "retry_after_seconds": 2}
+    return result
+
+
+def projection_recovery_snapshot():
+    """Bounded process-local diagnostic facts; never enqueue or inspect providers."""
+    with _LOCK:
+        active = [{"kind": key[2][0], "season": key[0], "week": key[1],
+                   "status": "running", "anonymous": len(key) > 3} for key in _ACTIVE]
+        finished = [{"kind": key[2][0], "season": key[0], "week": key[1],
+                     "status": {"ok": "completed", "error": "failed"}.get(result.get("status"), result.get("status")),
+                     "failed": list(result.get("failed", [])), "anonymous": len(key) > 3}
+                    for key, (_, result) in _RESULTS.items()]
+    return active + finished

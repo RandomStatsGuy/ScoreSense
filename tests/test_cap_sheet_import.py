@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from src.draft_hub import storage
 from src.draft_hub.cap_sheet_import import (
     import_cap_sheet_to_league,
@@ -11,6 +13,8 @@ from src.draft_hub.cap_sheet_import import (
     parse_contract_term,
 )
 from src.draft_hub.schemas import LeagueRules
+
+pytestmark = pytest.mark.usefixtures("cap_sheet_catalog")
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "data" / "draft_hub" / "cap_sheet_test.tsv"
 
@@ -32,7 +36,7 @@ def test_fixture_matches_2025_sheet_salaries():
     parsed = parse_cap_sheet_tsv(_FIXTURE.read_text(encoding="utf-8"), season=2025, rules=LeagueRules())
     assert parsed["stats"]["unmatched"] == 0
     assert parsed["stats"]["duplicates"] == 0
-    assert parsed["stats"]["matched"] >= 150
+    assert parsed["stats"]["matched"] == 156
 
     by_name = {(r["manager_team"], r["player_name"]): r for r in parsed["rows"]}
     stroud = by_name[("Aaron D", "C.J. Stroud")]
@@ -51,14 +55,56 @@ def test_fixture_matches_2025_sheet_salaries():
     assert dolphins["player_name"].strip()
     assert "dolphin" in dolphins["player_name"].lower() or dolphins["team"] == "MIA"
 
-    brian = by_name[("Andrew M", "Brian Robinson")]
+    brian = by_name[("Andrew M", "Brian Robinson Jr.")]
+    assert brian["player_id"] == "sleeper-8154"
     assert brian["salary"] == 0
     bijan = by_name[("Andrew M", "Bijan Robinson")]
     assert bijan["salary"] == 37
+    assert bijan["player_id"] == "sleeper-9509"
 
-    gordon = next(r for r in parsed["rows"] if "Gordon" in str(r["player_name"]) and r["manager_team"] == "Andrew M")
+    gordon = by_name[("Andrew M", "Ollie Gordon II")]
+    assert gordon["player_id"] == "sleeper-12495"
     assert gordon["salary"] == 0
     assert gordon["roster_status"] == "active"
+
+
+@pytest.mark.parametrize(("name", "position", "sleeper_id"), [
+    ("B. Thomas", "WR", "11631"),
+    ("B. Thomas Jr.", "WR", "11631"),
+    ("Brian Thomas", "WR", "11631"),
+    ("K. Walker", "RB", "8151"),
+    ("Kenneth Walker III", "RB", "8151"),
+    ("A. Richardson", "QB", "9229"),
+    ("Anthony Richardson", "QB", "9229"),
+    ("B. Robinson", "RB", "8154"),
+    ("Brian Robinson", "RB", "8154"),
+    ("Bijan Robinson", "RB", "9509"),
+    ("O. Gordon", "RB", "12495"),
+    ("Ollie Gordon", "RB", "12495"),
+])
+def test_sheet_names_resolve_provider_suffixes(cap_sheet_catalog, name, position, sleeper_id):
+    from src.draft_hub.cap_sheet_import import _match_player
+
+    hit = _match_player(name, position, cap_sheet_catalog)
+    assert hit is not None
+    assert hit["sleeper_player_id"] == sleeper_id
+    assert hit["position"] == position
+    source = cap_sheet_catalog[cap_sheet_catalog.sleeper_id.eq(sleeper_id)].iloc[0]
+    assert hit["player_name"] == source.full_name
+
+
+@pytest.mark.parametrize(("name", "position"), [("X. Walker", "RB"), ("B. Thomas", "QB")])
+def test_sheet_names_do_not_override_initial_or_position(cap_sheet_catalog, name, position):
+    from src.draft_hub.cap_sheet_import import _match_player
+
+    assert _match_player(name, position, cap_sheet_catalog) is None
+
+
+def test_missing_ollie_gordon_does_not_match_melvin(cap_sheet_catalog):
+    from src.draft_hub.cap_sheet_import import _match_player
+
+    historical_only = cap_sheet_catalog[cap_sheet_catalog.sleeper_id.ne("12495")]
+    assert _match_player("O. Gordon", "RB", historical_only) is None
 
 
 def test_import_keeps_active_when_cut_exists_elsewhere(hub_db):

@@ -18,6 +18,7 @@ def isolate_movement_artifacts(monkeypatch, tmp_path):
 def _sample_frame() -> pd.DataFrame:
     return pd.DataFrame(
         {
+            "player_id": ["00-0000001"],
             "Player": ["Test QB"],
             "Team": ["KC"],
             "Projected Points": [18.0],
@@ -59,6 +60,7 @@ def test_force_reload_updates_built_at(monkeypatch, tmp_path):
         assert forced.attrs.get("built_at") != first_built
 
 
+
 def test_weekly_fingerprint_includes_pool_policy(monkeypatch, tmp_path):
     monkeypatch.setattr(wc, "PROCESSED_DATA_DIR", tmp_path)
     monkeypatch.setattr(wc, "MODEL_DIR", tmp_path)
@@ -70,10 +72,11 @@ def test_weekly_fingerprint_includes_pool_policy(monkeypatch, tmp_path):
 def test_empty_refresh_preserves_previous_artifact(monkeypatch, tmp_path):
     monkeypatch.setattr(wc, "WEEKLY_PREDICTIONS_DIR", tmp_path)
     monkeypatch.setattr(wc, "weekly_fingerprint", lambda: "test")
-    wc.save_weekly_artifact("qb", 2026, 4, True, _sample_frame())
+    frame = _sample_frame().assign(Week=4)
+    wc.save_weekly_artifact("qb", 2026, 4, True, frame)
     path, meta = wc._artifact_paths("qb", 2026, 4, True)
     before = (path.read_bytes(), meta.read_bytes())
     monkeypatch.setattr(wc, "predict_upcoming_week", lambda *a, **k: pd.DataFrame())
-    with pytest.raises(ValueError, match="Empty"):
+    with pytest.raises(ValueError, match="artifact_empty"):
         wc.load_weekly_prediction("qb", 2026, 4, force=True)
     assert (path.read_bytes(), meta.read_bytes()) == before

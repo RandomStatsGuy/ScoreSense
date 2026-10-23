@@ -130,9 +130,11 @@ def test_refresh_saves_fresh_schedule_without_losing_prior_training_seasons(tmp_
     monkeypatch.setattr(input_policy, "CACHE_DIR", cache)
     schedule().assign(season=2018).to_parquet(schedule_utils.SCHEDULE_CACHE)
     before = input_policy.projection_input_revisions()
-    data = pd.DataFrame({"player_id": ["a"], "season": [2025], "week": [1], "Fpts": [10.]})
+    data = pd.DataFrame({"player_id": ["a"], "season": [2025], "week": [1],
+                         "team": ["KC"], "position": ["QB"],
+                         "fantasy_points_ppr": [10.], "Fpts": [10.]})
     monkeypatch.setattr(etl, "load_weekly_player_stats", lambda s: data)
-    monkeypatch.setattr(etl, "load_schedules", lambda s: schedule())
+    monkeypatch.setattr(etl, "load_schedules", lambda s: schedule().assign(game_type="REG"))
     monkeypatch.setattr(etl, "load_play_by_play", lambda s: pd.DataFrame())
     monkeypatch.setattr(etl, "load_team_epa", lambda s, **kw: pd.DataFrame())
     monkeypatch.setattr(etl, "merge_target_quality_into_wr_features", None)
@@ -145,6 +147,12 @@ def test_refresh_saves_fresh_schedule_without_losing_prior_training_seasons(tmp_
     assert input_policy.projection_input_revisions() != before
     assert not list(cache.glob("*.tmp"))
     previous = schedule_utils.SCHEDULE_CACHE.read_bytes()
+    recorded = processed / "recorded_player_games.parquet"
+    previous_recorded = recorded.read_bytes()
     monkeypatch.setattr(etl, "load_schedules", lambda s: pd.DataFrame())
-    etl.build_all_datasets([2025], enrich_analytics=False)
+    # Missing event context cannot publish a new recorded source. Both previous
+    # coherent source and shared schedule must survive the failed ingestion.
+    with pytest.raises(ValueError, match="schedules with explicit game type"):
+        etl.build_all_datasets([2025], enrich_analytics=False)
     assert schedule_utils.SCHEDULE_CACHE.read_bytes() == previous
+    assert recorded.read_bytes() == previous_recorded

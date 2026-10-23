@@ -19,15 +19,15 @@ if [ ! -f .env ]; then
 fi
 
 # Admin > Server shows which commit is live; the image has no .git to read.
-if git rev-parse HEAD >/dev/null 2>&1; then
+if [ -n "${SCORESENSE_RELEASE_COMMIT:-}" ] || git rev-parse HEAD >/dev/null 2>&1; then
   python3 - <<'PY' || true
-import json, subprocess, datetime
+import json, subprocess, datetime, os
 def git(*args):
     return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
 json.dump({
-    "commit": git("rev-parse", "HEAD"),
-    "subject": git("log", "-1", "--format=%s"),
-    "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+    "commit": os.environ.get("SCORESENSE_RELEASE_COMMIT") or git("rev-parse", "HEAD"),
+    "subject": os.environ.get("SCORESENSE_RELEASE_SUBJECT") or git("log", "-1", "--format=%s"),
+    "branch": os.environ.get("SCORESENSE_RELEASE_BRANCH") or git("rev-parse", "--abbrev-ref", "HEAD"),
     "deployed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
 }, open("build_info.json", "w"))
 PY
@@ -57,7 +57,10 @@ docker compose -f deploy/docker-compose.prod.yml up -d --force-recreate
 echo "==> Health check..."
 sleep 3
 if ls artifacts/weekly_predictions/*.meta.json >/dev/null 2>&1 || ls artifacts/draft_pool/*.meta.json >/dev/null 2>&1; then
-  docker compose -f deploy/docker-compose.prod.yml exec -T api python scripts/ops/fix_artifact_fingerprints.py || true
+  echo "==> Auditing saved projection fingerprints and source coverage (read-only)..."
+  if ! docker compose -f deploy/docker-compose.prod.yml exec -T api python scripts/ops/artifact_fingerprint_audit.py; then
+    echo " WARN: saved projection integrity needs attention; deployment did not refresh or relabel the data"
+  fi
 fi
 if curl -sf "${SCORESENSE_HEALTH_URL:-http://127.0.0.1:8000/api/health}"; then
   echo " OK"

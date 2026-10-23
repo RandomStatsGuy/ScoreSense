@@ -1,8 +1,11 @@
-"""An API process must see artifacts rewritten by a refresh process."""
-import os
+"""An API process must see coherently published artifacts from a refresh process."""
+import json
+
 import pandas as pd
 import pytest
+
 from src.projections import weekly_cache, ros_cache
+from src.projections.artifact_store import METADATA_ATTR, publish_prediction_artifact
 from src.draft_hub import draft_pool_cache
 
 
@@ -15,20 +18,37 @@ def test_external_rewrite_invalidates_memory_without_feature_changes(kind, monke
     monkeypatch.setattr(mod, "_with_roster_identity", lambda frame, *args, **kwargs: frame)
     fingerprint = {"weekly": "weekly_fingerprint", "ros": "ros_fingerprint", "pool": "pool_fingerprint"}[kind]
     monkeypatch.setattr(mod, fingerprint, lambda: "unchanged")
-    frame = pd.DataFrame({"Player": ["Test TE"], "Position": ["TE"], "Projected Points": [12.0], "Season Proj": [180.0]})
+    metric = {"weekly": "Projected Points", "ros": "ROS P50", "pool": "Season Proj"}[kind]
+    values = {"player_id": ["00-0000001"], "Player": ["Test TE"], "Position": ["TE"], metric: [12.0]}
+    if kind == "ros":
+        values["Season P50"] = [180.0]
+    frame = pd.DataFrame(values)
     if kind == "pool":
         mod.invalidate_pool_cache()
         mod.save_pool_artifact(2026, frame)
         load = lambda: mod.load_draft_pool(2026, allow_compute=False, apply_identity=False)
-        artifact = mod._artifact_paths(2026)[0]
+        artifact, sidecar = mod._artifact_paths(2026)
     else:
         getattr(mod, f"invalidate_{kind}_cache")()
         getattr(mod, f"save_{kind}_artifact")("wr", 2026, 1, True, frame)
         load = lambda: getattr(mod, f"load_{kind}_prediction")("wr", 2026, 1, allow_compute=False)
-        artifact = mod._artifact_paths("wr", 2026, 1, True)[0]
-    assert load().iloc[0]["Projected Points"] == 12.0
-    stamp = artifact.stat().st_mtime_ns
-    frame["Projected Points"] = 24.0
-    frame.to_parquet(artifact, index=False)  # another process cannot clear this process's dictionary
-    os.utime(artifact, ns=(stamp + 1_000_000, stamp + 1_000_000))
-    assert load().iloc[0]["Projected Points"] == 24.0
+        artifact, sidecar = mod._artifact_paths("wr", 2026, 1, True)
+    assert load().iloc[0][metric] == 12.0
+    embedded = pd.read_parquet(artifact).attrs[METADATA_ATTR]
+
+    # A compatibility sidecar cannot replace the parquet's authoritative generation.
+    sidecar.write_text(json.dumps({**embedded, "publication_id": "sidecar-only-edit"}), encoding="utf-8")
+    unchanged = load()
+    assert unchanged.iloc[0][metric] == 12.0
+    assert unchanged.attrs["artifact_status"]["publication_id"] == embedded["publication_id"]
+    assert unchanged.attrs["artifact_status"]["sidecar_status"] == "out_of_date"
+
+    # Simulate another producer without touching this module's in-memory cache.
+    replacement = frame.copy()
+    replacement[metric] = 24.0
+    published = publish_prediction_artifact(artifact, sidecar, replacement, embedded)
+    assert published["publication_id"] != embedded["publication_id"]
+    refreshed = load()
+    assert refreshed.iloc[0][metric] == 24.0
+    assert refreshed.attrs["artifact_status"]["publication_id"] == published["publication_id"]
+    assert refreshed.attrs["artifact_status"]["sidecar_status"] == "matching"

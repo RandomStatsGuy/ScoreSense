@@ -1448,7 +1448,11 @@ export default function App() {
       compareIds={compareIds}
       onToggleCompare={handleToggleCompare}
       maxCompare={MAX_COMPARE_PLAYERS}
-      resetKey={`${projectionsTab}:${seasonMode}:${position}`}
+      context={isProjectionsDataView ? {
+        season: isSeasonPreseason ? draftSeason : isSeasonLive ? (rosSeason ?? season) : season,
+        week: isSeasonPreseason ? undefined : isSeasonLive ? (rosFromWeek ?? week) : week,
+      } : null}
+      resetKey={`${view}:${projectionsTab}:${seasonMode}:${position}:${isProjectionsDataView ? (isSeasonPreseason ? draftSeason : isSeasonLive ? rosSeason : season) : ""}:${isProjectionsDataView ? (isSeasonPreseason ? "" : isSeasonLive ? rosFromWeek : week) : ""}`}
     >
     <LeagueChromeProvider>
     <CommunicationProvider hubContext={hubContext} enabled={authReady && authenticated} identity={user?.sub || user?.id || "dev"}>

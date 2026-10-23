@@ -197,6 +197,32 @@ python scripts/ops/deploy_to_vps.py
 
 ---
 
+## Source backfill without retraining
+
+Code deployment preserves live models, recorded results and saved projections.
+To ingest completed games and rebuild projections with the fitted models:
+
+```bash
+cd /root/scoresense
+docker compose -f deploy/docker-compose.prod.yml --profile cron run --rm refresh \
+  python -m src.jobs.weekly_refresh --no-retrain --ingest
+```
+
+This explicit command overrides the normal production service command for a source-only backfill. The production service retains its existing full refresh/retraining default.
+`--no-retrain` alone reuses saved input data and cannot repair missing games.
+For an intentionally qualified model retrain, use the existing production service default, `python -m src.jobs.weekly_refresh`.
+
+Use the module command in the existing VPS cron rather than an inline function
+call that discards its returned job result. Preserve the installed schedule and
+lock. Capture the attempt's exit status and verify its new completed timestamp,
+source cutoff, recorded-game coverage and artifact context. Container creation
+does not establish refresh completion. The GitHub runner workflow uploads a
+bundle only; it does not publish sources or predictions to this VPS.
+
+The deployment script builds both the API and the profiled refresh image and
+performs a read-only artifact audit. Deprecated fingerprint repair scripts now
+report problems without changing metadata or running inference. A fingerprint
+mismatch requires an actual rebuild from the intended inputs.
 ## Troubleshooting
 
 | Symptom | Fix |
@@ -231,7 +257,8 @@ on the VPS:
 
 ```bash
 cd /root/scoresense
-docker compose -f deploy/docker-compose.prod.yml run --rm --build refresh
+docker compose -f deploy/docker-compose.prod.yml --profile cron run --rm --build refresh \
+  python -m src.jobs.weekly_refresh
 ```
 
 `--build` also protects manual runs after deployments made outside the supported

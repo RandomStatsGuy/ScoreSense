@@ -246,3 +246,14 @@ def test_player_card_json_serializable():
     json.dumps(payload)
     assert payload["weekly_projection"]["Season"] == 2026
     assert isinstance(payload["weekly_projection"]["Season"], int)
+
+
+def test_card_api_exposes_recovery_under_meta_and_keeps_legacy_field(client, monkeypatch):
+    payload={"player_id":"00-0037247","meta":{"season":2026,"week":7,"identity":{"status":"resolved"},
+        "model_position":"wr","artifacts":{"weekly":{"status":"ready"},"ros":{"status":"ready"}},"rebuild_kinds":[]}}
+    monkeypatch.setattr("src.projections.player_card.build_player_card",lambda *a,**k:payload)
+    result=client.get("/api/player/8137/card?season=2026&week=7")
+    assert result.status_code == 200
+    body=result.json()
+    assert body["recovery"] == body["meta"]["recovery"] == {"status":"idle"}
+    assert "rebuild_kinds" not in body["meta"]

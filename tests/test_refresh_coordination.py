@@ -61,7 +61,7 @@ def test_ros_repaired_while_waiting_does_not_repeat_inference(tmp_path, monkeypa
     monkeypatch.setattr(ros_cache, "_with_roster_identity", lambda frame, *a, **kw: frame)
     producer = Mock(side_effect=AssertionError("duplicate inference after another refresh published"))
     monkeypatch.setattr(ros_cache, "predict_rest_of_season", producer)
-    frame = pd.DataFrame([{"ROS P10": 10, "ROS P50": 20, "ROS P90": 30}])
+    frame = pd.DataFrame([{"player_id": "fixture", "Season P50": 20, "ROS P10": 10, "ROS P50": 20, "ROS P90": 30}])
     for pos in ("qb", "rb", "wr"):
         for injury in (True, False):
             ros_cache.save_ros_artifact(pos, 2026, 5, injury, frame)

@@ -30,6 +30,6 @@ services:
       - ../artifacts:/app/artifacts
     environment:
       - PYTHONPATH=/app
-    command: python -m src.jobs.weekly_refresh --no-retrain
+    command: python -m src.jobs.weekly_refresh --no-retrain --ingest
     profiles:
       - cron
