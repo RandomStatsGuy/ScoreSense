@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import CapPlanner from "../src/DraftHub/CapPlanner";
-import { LeagueChromeProvider } from "../src/DraftHub/LeagueChromeContext";
+import { LeagueChromeProvider } from "../src/DraftHub/leagueChromeContext";
 import MobileHeader from "../src/layout/MobileHeader";
 import MobileShell from "../src/layout/MobileShell";
 import DesktopPrimaryHeader from "../src/layout/DesktopPrimaryHeader";

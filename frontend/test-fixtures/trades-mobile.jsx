@@ -4,7 +4,7 @@ import CommunicationPanel from "../src/DraftHub/CommunicationPanel";
 // Production lineup components with isolated, deterministic writes; never contacts a league.
 import React, {useState} from "react";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
-import {LeagueChromeProvider} from "../src/DraftHub/LeagueChromeContext";
+import {LeagueChromeProvider} from "../src/DraftHub/leagueChromeContext";
 import MobileHeader from "../src/layout/MobileHeader";
 import MobileShell from "../src/layout/MobileShell";
 import MobileMenuSheet from "../src/layout/MobileMenuSheet";
