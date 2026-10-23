@@ -1170,3 +1170,44 @@ showing it. The viewport override did not apply to the rendered tab, so its DOM
 width is not claimed as a 390 or 1280 visual check. The earlier screenshots show
 the prior introduction and are not evidence for this revised copy. Other guide
 sections and league transactions were not re-exercised for this copy-only change.
+
+October 23 question-led refinement supersedes the family-note voice above. The
+user wants colloquial answers to the questions less experienced fantasy players
+have: set a lineup, start players based on their own judgment, trade for players,
+view other matchups and chat. Preserve the approved reading layout, existing
+screenshots and anchors, add Vibes and Chat sections and shortcuts, and explain
+basic terms where readers need them. Keep the league title and actual native PPR
+rules; remove family greetings and marketing-style section copy.
+
+Attention order: set and verify starters (including the Vibes Save lineup path),
+find the next concrete move or game, then communicate and explore team extras.
+Production source inspection confirmed that Vibes ratings alone save only ratings;
+Save lineup commits the entire suggested native lineup after permission/week/lock
+checks. Review before saving and recheck My team. No application behavior or
+league transaction changes are included. Acceptance: conversational steps with
+accurate live labels, valid shortcuts, 390/1280 reflow, and explicit saved-versus-
+suggested lineup consequences.
+
+Question-led machine evidence: Node living-surface tests passed 28 and Python
+living-surface/product tests passed 37. Layout audits of the static preview passed
+at 390 and 1280; the published HTML matches the reviewed source. Live DOM checks
+found eight question sections, no missing fragment targets or duplicate IDs, and
+no horizontal overflow at 390 or 1280. No new styles or application code changed.
+
+Question-led visual evidence: inspected live dark-mode screenshots at 390 and
+1280, including the introduction, Vibes and Chat. A fresh temporary browser tab
+supported viewport overrides and screenshots, resolving the previous tab's capture
+limitation. Captures in the original checkout's
+`outputs/tessa-guide-site-checks/screenshots/` are `guide-v4-390-live.png`,
+`guide-v4-390-vibes.png`, `guide-v4-390-chat.png` and `guide-v4-1280-live.png`.
+Light mode and other application surfaces were not re-inspected for this change.
+
+Question-led task evidence: the two new anchor shortcuts reached Vibes and Chat;
+Back to top worked. Copy link showed the new generic sharing confirmation.
+Clipboard payload/fallback were not independently tested. Vibes save behavior and
+labels were checked against production source, while matchup, chat and trade
+instructions were checked against the current source. No lineup was saved and no
+trade or chat message was sent. All six public resources returned 200; publication
+replaced only HTML and preserved CSS, PNGs and the protected running-app baseline.
+Evidence: `outputs/tessa-guide-site-checks/deployment-v4.json` and
+`live-vibes-factcheck.txt` in the original checkout. No app rebuild/restart.
