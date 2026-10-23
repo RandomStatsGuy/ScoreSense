@@ -1060,3 +1060,88 @@ branch; a draft PR does not alter master. The runbook explains explicit baseline
 updates and bypass limitations. Local evidence lives under the task worktree's
 `outputs/agent/release-regressions/` and primary workspace's
 `outputs/agent/deploy-guards/`.
+
+### Tessa's Touchdown Memorial League family guide — October 23, 2026
+
+Task: turn the finished three-page family PDF into a phone-friendly website page
+that the user can text to the family. Members have already joined the league.
+Approved baseline: the completed PDF's simple instructions and screenshot
+examples, adapted into standalone reading content rather than another Fantasy
+destination. The user explicitly approved this web adaptation.
+
+Attention order:
+
+1. Set the week's starters and understand the next action and kickoff lock.
+2. Follow the matchup and make the core roster moves: pickups, claims, drops,
+   and trades.
+3. Enjoy the room, nicknames, conversation, weekly awards, and Vibes.
+
+Observed friction: the approved PDF fixes text and pictures onto three print
+pages; sharing it on a phone requires opening a document and zooming. This is a
+format constraint, not an asserted defect in the live Fantasy pages. The guide
+should let readers jump to a task and read its steps without zooming. Screenshots
+remain optional examples beside real webpage text.
+
+Bounded change: `public.tessa-guide`, backed by
+`frontend/public/api-guide/tessas-touchdown.html`, its dedicated
+`tessa-guide.css`, and the accompanying illustrative assets. Use the existing
+product palette and spacing roles in standalone Account chrome, one reading
+column, an anchor jump list, native screenshot disclosures, and Copy link with
+visible outcome feedback. No new app navigation item or shared app layout change.
+The static `/api-guide/` route preserves the existing service-worker fallback
+boundary and uses the server's exact-file serving path.
+
+Behavior and privacy invariants: Tessa's is a native, non-salary, full-PPR league
+with a 16-player roster and priority waiver claims. Both Lineup and Room save
+starters; Room tap/drop saves immediately with Undo, while Lineup uses the Start
+confirmation. Kickoff locks, projected versus actual points, claims versus
+completed pickups, conditional drops, and drops versus bench moves stay explicit.
+Drop player is under My team → Player details. Guide visits do not create an
+account, join or switch a league, request private data, or mutate league state.
+Direct site links use the signed-in current league. The approved screenshot
+crops show example NFL players and ordinary team names without credentials,
+account details, or private chat; their changing numbers are labeled examples.
+
+Acceptance: verify readable reflow at 390 and 1280, with 320 and laptop widths for
+long headings and link labels. Core steps and consequences stay visible when all
+examples are collapsed. Check anchor navigation, keyboard focus, disclosure
+controls, screenshot loading and reserved dimensions, Copy link success/fallback,
+and the signed-out guide. Direct Fantasy links must lead to the intended existing
+destination without selecting a league or executing a team action. Preserve the
+approved light reading treatment, relevant reduced-motion behavior, sufficient
+contrast, and 44px phone targets.
+
+Machine evidence: the scoped living-surface Node suite passed 28 tests; the
+living-surface and product-constitution Python suites passed 37 tests. The final
+production build passed and copied all six guide files byte-for-byte, with no
+obsolete WebP images. The standalone document's heading, landmark, fragment,
+local-asset and image-dimension checks passed. After the final PNG and native-list
+refinement, all 11 applicable layout rules passed at both 390 and 1280. Offline
+contrast calculations passed all 20 requested light/dark text pairs against the
+4.5:1 normal-text threshold; the light minimum is 5.11:1 and the dark minimum is
+8.15:1. These scoped checks are not an accessibility conformance assessment.
+
+| Guide route | 390 | 1280 |
+|---|---|---|
+| `/api-guide/tessas-touchdown.html` | PASS (11 rules) | PASS (11 rules) |
+
+Visual evidence: inspected the live public guide in dark mode at 320, 390, 1024,
+and 1280 with no horizontal overflow. Screenshots in the original checkout's
+`outputs/tessa-guide-site-checks/screenshots/` include `guide-390-dark.png`,
+`guide-1280-dark.png`, `guide-320-dark.png`, and `guide-1024-dark.png`, plus the
+expanded picture, Room, and fun-section captures. Light mode was not visually
+inspected; its evidence is limited to the contrast calculations above.
+
+Task evidence: anchor jumps, all four native screenshot disclosures and their PNG
+loads, Enter-key operation and visible keyboard focus passed on the live guide.
+Copy guide link displayed its success feedback; the clipboard payload was not
+independently confirmed and the fallback was not exercised. Open My team reached
+`/hub/roster` while preserving the focused league. An anonymous request returned
+HTTP 200. No real lineup, roster, claim, or trade was changed during verification.
+
+Publication: the final six static guide files were published while the protected
+application baseline remained unchanged. No production app rebuild/restart or
+league-state change was part of this publication. Deployment evidence is in the
+original checkout's `outputs/tessa-guide-site-checks/deployment-v2.json`; build
+evidence is `production-build-v2.log` and `production-build-check-v2.json` in the
+same evidence directory.

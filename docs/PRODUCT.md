@@ -120,6 +120,8 @@ Keep ScoreSense visibly identified in the landing header and hero through the es
 **Report a bug** (`/report`) is a side option in the account / More menu. Signed-in filing and SCORE labels live in [ONBOARDING.md](./ONBOARDING.md). Do not add it to top-level nav.
 **Public legal (not top-level):** Terms · Privacy · Draft alert texts (`/sms-alerts`). The SMS card is content for A2P consent, not a new product area.
 
+**Public family guide (not top-level):** Tessa's Touchdown Memorial League has a shareable, phone-first guide at `/api-guide/tessas-touchdown.html`. The approved October 23 adaptation of the finished family PDF uses simple steps, anchor navigation, collapsible illustrative screenshots, and a Copy link control. It assumes members have already joined this native, non-salary, full-PPR league; explain starters, weekly scores, priority waiver claims, drops, trades, and the league's social features without account creation or league setup. Both Lineup and Room save native lineup changes. This is standalone reading content with Account chrome and the existing product palette, not a new app navigation item. Opening the guide never signs in, changes the selected league, or performs a league action. Links into Fantasy use the signed-in member's current league; screenshots are examples, not live or private league data.
+
 ### Fantasy destinations
 
 Source of truth: `frontend/src/DraftHub/hubSubnav.js`.

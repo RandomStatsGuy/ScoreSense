@@ -84,6 +84,16 @@ export const LIVING_SURFACES = Object.freeze({
     page: "frontend/src/LandingPage.jsx", copy: "frontend/src/landingPresentation.js", also: ["frontend/src/styles/landing.css"],
     doNot: "Reuse the approved B composition with the draft-choice sample. Sample is public; full mock drafts, DFS and best ball require an account. Keep signup/login/back context and signed-in direct entry. Changing sample picks is not a full simulation. No future subscription, guaranteed outcome or profit claim.",
   }),
+  "public.tessa-guide": S({
+    auditRoot: ".league-guide",
+    label: "Tessa's Touchdown Memorial League guide",
+    chrome: "account",
+    route: "/api-guide/tessas-touchdown.html",
+    page: "frontend/public/api-guide/tessas-touchdown.html",
+    copy: "frontend/public/api-guide/tessas-touchdown.html",
+    also: ["frontend/public/api-guide/tessa-guide.css", "frontend/public/api-guide/tessa/lineup.png", "frontend/public/api-guide/tessa/free-agents.png", "frontend/public/api-guide/tessa/room.png", "frontend/public/api-guide/tessa/trades.png"],
+    doNot: "Approved October 23 phone-first adaptation of the finished family PDF. Standalone public reading for already-joined members of Tessa's native non-salary full-PPR league; no app navigation item, signup flow, league switch, or league mutation. Keep simple steps, anchor navigation, collapsible illustrative screenshots and Copy link. Both Lineup and Room save starters; Room saves immediately with Undo, Lineup uses Start confirmation, and kickoff locks apply. Explain priority waiver claims, never FAAB bids or salary concepts. Drop player lives under My team Player details and releases a player, unlike benching. Preserve projected versus actual points and claim versus completed pickup. Direct Fantasy links use the signed-in current league. Screenshots are illustrative, contain no private chat or account details, and never imply live values.",
+  }),
   "hub.home": S({
     label: "Home",
     chrome: "action-center",
@@ -618,6 +628,8 @@ export const LIVING_SURFACES = Object.freeze({
 
 /** Longer aliases win so "mock draft" beats "draft". */
 export const SURFACE_ALIASES = Object.freeze({
+  "tessa's touchdown": "public.tessa-guide",
+  "tessa’s touchdown": "public.tessa-guide",
   "landing page": "public.landing",
   "projections landing": "public.projections",
   "fantasy landing": "public.fantasy",
