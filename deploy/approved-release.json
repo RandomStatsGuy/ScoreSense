@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "approved_release": "2026-10-23 spacing, canonical identities, confirmed Bye presentation",
+  "protected_sources": {
+    "frontend/src/DraftHub/TeamRoomView.jsx": "7e98a87441268ed0abf6550eac1b8de802fa9b67516158d3b0e09385a7e2f6f5",
+    "frontend/src/DraftHub/RulesWizard.jsx": "71bceda03ab6b5ae9a251d51f0fec59616e1852d0ee53710b4ee2e5f7712ba0d",
+    "frontend/src/DraftHub/LeagueTrades.jsx": "5a2d67e8446befd27972293bc3120ad67b65a4a3a33da0bc4e69877c07a41c60",
+    "frontend/src/styles/product-rhythm.css": "18c288516b06dbc8253ed6ab8d05a268957f1fadd80945bbf70a7f8a95005e74",
+    "src/draft_hub/player_identity.py": "b286aa7ac86dd572054cbf7e09e742a8edfddca4d514822e1cc6a7fc4d32d865",
+    "frontend/src/DraftHub/gameCenterPresentation.js": "96e82c18890d2304c8c5c8820012e6491dd3c32e55a0984c3d8e5bbec18857f7",
+    "frontend/src/DraftHub/GameCenterMatchup.jsx": "712c95d661d7acd336686a781f6a9464f1a0155bed072fdbc23ef17c06fb0a6d",
+    "frontend/src/DraftHub/HubSetup.jsx": "042ee5f7024bee359c12e6804e4fea79fe8434b42859185d15934e3f57e366bd",
+    "frontend/src/DraftHub/HubUILayout.jsx": "907de4d0f16dff5c7aad1e2e4a9f1ed3a871ecdc99e72f9ea5d64c3928d3c40b",
+    "frontend/src/DraftHub/StrategyBoard.jsx": "b1b73acc2da27a409331d07f8a92e1724765c510dbc811cb6050e4ad488f1614",
+    "frontend/src/styles/fantasy.css": "8711f5910a411616ed62b7c35b78ed4233d01c96ce256b9368c15e81e957647c",
+    "frontend/src/styles/tokens.css": "aafa83894dfb629c5658c973282141a4c64261339ebbb8c48f9fcd287ced32d1",
+    "frontend/src/styles/trade-desk.css": "21a76ef739bef75d89aad8b61bd92ac3d77e7bb02d7849c83dfee2b484dd881b"
+  }
+}

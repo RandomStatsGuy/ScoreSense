@@ -1005,3 +1005,58 @@ Visual evidence: all six actual-production screenshots were inspected: `outputs/
 Interaction evidence: actual tab navigation, dialog close and focus restoration pass at both widths. No real league, contract or roster writes are part of this verification.
 
 Public-origin follow-through: actual Edge navigation and same-origin browser requests to the Cloudflare production origin PASS. All three Pickens aliases return identical 10.338 weekly P50 / 113.5 ROS P50, complete Weeks 1–6 history and 81.8 recorded points. The browser confirms the new completed refresh timestamp and the same release build. All 13 layout checks PASS at 1280 and 390, close/focus behavior passes and there are no JavaScript errors. All six public-origin screenshots were inspected. Evidence: `outputs/agent/production-card-verification/public-origin-retry/report.json` and the six screenshots beside it. This completes actual public-production verification separately from both the loopback check and synthetic fixtures. Physical Safari and assistive-technology behavior are not recertified by this browser check.
+
+
+### Durable spacing, identity and Bye release guards — October 23, 2026
+
+Task: prevent subsequent deployments from undoing the approved spacing/mobile,
+player mapping, and confirmed Bye fixes. Baseline: verified live build
+`14e4723d-eced-4f63-8ab5-3313276a5fa0`, image
+`sha256:feccbaf85d90ae8e52cb7605c9128e31b34d65cfb9e3426b0cef036bf4671227`.
+Attention order remains identity/value, stationary repeat controls, and reachable
+actions. This pass restores the approved source to a branch from current develop;
+it introduces no design or league-rule change. A complete source comparison found
+exactly 13 runtime files different between develop and the live release. Those
+fixes previously existed only in deployed source and ignored release evidence.
+
+Bounded change: preserve those files, add mapping/Bye/layout regressions, fix
+portable Node test discovery, and gate the laptop/server/master release paths
+before mutation. The host's independent policy rejects changed or missing
+protected files until explicitly re-approved after regression checks. Preserve
+auth, league state, cached artifacts, and source ownership. The dirty laptop
+product files remain intact; its deploy command now rejects that stale source.
+
+Machine evidence: 144 targeted Python checks pass (one existing dependency
+warning), 1,443 frontend tests pass, and the production build passes.
+`npm run test:release-layout` passes 40 shared-spacing cases, 24 responsive cases
+across both themes at 320/390/768/1280, and four bench/trade workflows. Coverage
+includes actual late CSS conflicts, parent-owned gutters, empty alerts, quiet
+Strategy choices, chat/bench clearance, stationary rows/Review, package removal/
+Undo, and cap blockers. Negative checks cover unsafe/stale archives, missing or
+lowered policies, each protected source removal, and validation before mutation.
+The actual older laptop checkout is rejected by the installed source floor.
+
+| Isolated canonical route | 390 | 1280 |
+|---|---|---|
+| My team | PASS | PASS |
+| Rules | PASS | PASS |
+| Trades | PASS | PASS |
+
+Visual evidence: inspected new fixture screenshots of phone bench at 390,
+desktop Trades at 1280, and setup spacing/disclosure at 390. Responses are
+synthetic; external portraits are blocked. The restored source is identical to
+the previously verified live UI. No new real-device or live-route interaction
+coverage is claimed. Task evidence: bench pickup/put-back, chat open/Escape,
+trade partner/add/remove/Undo, stationary Review/row geometry, review/back and
+salary/pick/cap-blocked workflows pass. No real proposal or lineup is written.
+
+Activation: installed the guard and policy outside `/root/scoresense`, and added
+the guard to the existing server deployment entry point. Rechecked all 13 source
+hashes, healthy origin, and unchanged running image. No app rebuild/restart, data
+refresh, or environment/database write. The prior server script is backed up
+beside the installed policy. Laptop preflight is active. Automatic deployment
+protection awaits merge of `codex/release-regression-guards` into the release
+branch; a draft PR does not alter master. The runbook explains explicit baseline
+updates and bypass limitations. Local evidence lives under the task worktree's
+`outputs/agent/release-regressions/` and primary workspace's
+`outputs/agent/deploy-guards/`.

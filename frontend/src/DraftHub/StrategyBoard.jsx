@@ -358,7 +358,7 @@ export default function StrategyBoard({
   );
 
   return (
-    <HubPage className="hub-strategy">
+    <HubPage className="hub-strategy" stack>
       {loading && !siteBoard.length ? (
         <p className="hub-page-meta">{COPY.loading}</p>
       ) : null}

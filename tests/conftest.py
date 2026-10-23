@@ -194,6 +194,7 @@ def trusted_native_catalog(tmp_path, monkeypatch):
     path.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(sleeper, "PLAYERS_CACHE", path)
     monkeypatch.setattr(player_identity, "DRAFT_POOL_DIR", tmp_path / "draft_pool")
+    monkeypatch.setattr(player_identity, "CACHE_DIR", tmp_path / "official_rosters")
     player_identity.clear_player_identity_cache()
 
     def register(player_id, *, name=None, team="KC", position="WR",

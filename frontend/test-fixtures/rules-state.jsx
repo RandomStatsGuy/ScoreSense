@@ -1,3 +1,9 @@
+import {CommunicationProvider} from "../src/DraftHub/CommunicationContext";
+import ChatLauncher from "../src/DraftHub/ChatLauncher";
+import CommunicationPanel from "../src/DraftHub/CommunicationPanel";
+import "../src/styles/fantasy-chat.css";
+import MobileShell from "../src/layout/MobileShell";
+import MobileHeader from "../src/layout/MobileHeader";
 // Production Rules/setup components. Only queued synthetic Rules saves are allowed.
 import React,{useState} from "react";
 import {createRoot} from "react-dom/client";
@@ -47,9 +53,10 @@ function Harness(){
   const {context,workspace}=fixture.leagues[leagueId];
   const presets=[{id:"pick-template",label:"Pick template",rules:{...DEFAULT_RULES,draft_type:"snake"}}];
   const onSaved=(data,meta)=>{fixture.callbacks.push({data,meta,current:leagueId});if(meta.boundLeagueId===leagueId)setRevision(value=>value+1);};
-  return <div className="app"><main id="main-content"><div className="draft-hub">
+  return <MobileShell section="hub" onSectionChange={()=>{}} onMoreOpen={()=>{}} hrefForSection={()=>"#"}><main id="main-content"><div className="draft-hub">
     {page==="rules"?<RulesWizard workspace={workspace} hubContext={context} presets={presets} readOnlyRules={role!=="commissioner"} onSaved={onSaved}/>:<HubSetup workspace={workspace} hubContext={context} memberships={[{league_id:leagueId,league_name:context.league_name,team:{id:context.team_id,name:context.team_name},is_commissioner:context.is_commissioner}]} roster={[]} presets={presets} onNavigate={target=>fixture.navigate(target)}/>}
-  </div></main></div>;
+  </div></main></MobileShell>;
 }
 const auth={ready:true,authenticated:true,user:{sub:"fixture-user",name:"Example manager",email_verified:true,auth_type:"native"},refreshAuth:async()=>{}};
-createRoot(document.getElementById("root")).render(<BrowserRouter><AuthContext.Provider value={auth}><Harness/></AuthContext.Provider></BrowserRouter>);
+const fixtureRoot = (node) => <BrowserRouter><CommunicationProvider enabled identity="mobile-spacing" hubContext={{mode:"league",league_id:"fixture",team_id:"mine"}}>{node}<ChatLauncher leagueId="fixture" hidden={params.has("nochat")}/><CommunicationPanel/></CommunicationProvider></BrowserRouter>;
+createRoot(document.getElementById("root")).render(fixtureRoot(<AuthContext.Provider value={auth}><Harness/></AuthContext.Provider>));

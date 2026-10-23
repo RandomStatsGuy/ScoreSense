@@ -5,6 +5,7 @@ import { hubTeamLabel, hubTeamParts } from "./hubTeamLabel.js";
 export const GAME_CENTER_COPY = {
   pregameProjection: "Pregame projection",
   projectionNotSaved: "Pregame projection not saved",
+  bye: "Bye",
   live: "Live",
   final: "Final",
   scorePending: "Score pending",
@@ -570,8 +571,11 @@ export function gameCenterLead(viewer, opponent, placeholder = false) {
     ? "Tied"
     : `${Math.abs(margin).toFixed(1)} point ${margin > 0 ? "lead" : "deficit"}`;
 }
+const isByePlayer = (player) => player?.on_bye === true || player?.projection_source === "bye";
+
 export function gameCenterProjection(player) {
   if (!duelSlotFilled(player)) return GAME_CENTER_COPY.noPlayer;
+  if (isByePlayer(player)) return GAME_CENTER_COPY.bye;
   const value = player?.proj;
   return value != null && Number.isFinite(Number(value))
     ? `${GAME_CENTER_COPY.currentForecast}: ${Number(value).toFixed(1)}`
@@ -593,6 +597,7 @@ export function playerGameState(player, data = {}) {
 
 export function gameCenterPlayerScore(player, data = {}, placeholder = false) {
   if (!duelSlotFilled(player)) return { value: "—", label: GAME_CENTER_COPY.emptySlot, secondary: "", state: "empty" };
+  if (isByePlayer(player)) return { value: GAME_CENTER_COPY.bye, label: "", secondary: "", state: "bye" };
   const state = playerGameState(player, data);
   const forecast = knownNumber(player.proj);
   const baseline = knownNumber(player.pregame_projection);

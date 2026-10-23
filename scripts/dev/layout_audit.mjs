@@ -1082,7 +1082,15 @@ export function measureScript() {
     const visibleBox = el => {
       if (!el || el.closest('[hidden], [inert]') || (el.checkVisibility && !el.checkVisibility())) return null;
       const box=el.getBoundingClientRect();
-      return box.width && box.height && getComputedStyle(el).visibility === 'visible' ? box : null;
+      if (!box.width || !box.height || getComputedStyle(el).visibility !== 'visible') return null;
+      // Scroll tracks paint only inside their clip; off-track chips cannot cover chat.
+      let {left,right,top,bottom}=box;
+      for(let parent=el.parentElement;parent;parent=parent.parentElement){
+        const style=getComputedStyle(parent),clip=parent.getBoundingClientRect();
+        if(/^(auto|scroll|hidden|clip)$/.test(style.overflowX)){left=Math.max(left,clip.left);right=Math.min(right,clip.right);}
+        if(/^(auto|scroll|hidden|clip)$/.test(style.overflowY)){top=Math.max(top,clip.top);bottom=Math.min(bottom,clip.bottom);}
+      }
+      return right>left && bottom>top ? {left,right,top,bottom,width:right-left,height:bottom-top} : null;
     };
     const overlaps = (a, b) => Math.min(a.right,b.right) - Math.max(a.left,b.left) > 1 && Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top) > 1;
     const viewportAttached = el => {
@@ -1104,7 +1112,7 @@ export function measureScript() {
       // Scrolling content passes behind a fixed launcher. Protect other fixed
       // chrome, sticky actions, and the currently focused control instead.
       const blocked = [...document.querySelectorAll('#main-content button, #main-content a[href], #main-content summary, #main-content input, #main-content textarea, #main-content [role="button"], #main-content [role="tab"], #main-content [data-bottom-actions], #main-content [data-float-avoid], #main-content .hub-alert, .site-alert-toast')]
-        .filter(el => !overlay.contains(el) && visibleBox(el) && (viewportAttached(el) || el===document.activeElement || el.contains(document.activeElement)) && overlaps(box, el.getBoundingClientRect()));
+        .filter(el => !overlay.contains(el) && visibleBox(el) && (viewportAttached(el) || el===document.activeElement || el.contains(document.activeElement)) && overlaps(box, visibleBox(el)));
       results.push({ rule:'overlay-clearance', ok:!blocked.length, selector:classNameOf(overlay), detail:blocked.length ? `obscures ${blocked.slice(0,3).map(el => (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0,50)).join('; ')}` : 'chat clears fixed actions and keyboard focus' });
     });
     const shell = document.querySelector('.app-with-bottom-nav'), nav = document.querySelector('.app-bottom-nav');
@@ -1389,7 +1397,7 @@ async function main() {
 
   const { chromium } = await importPlaywright();
   const channel = process.env.PLAYWRIGHT_CHANNEL || (process.platform === "win32" ? "msedge" : undefined);
-  const browser = await chromium.launch({ headless: true, ...(channel ? {channel} : {}) });
+  const browser = await chromium.launch({ headless: true, args: process.platform === "win32" ? ["--no-proxy-server"] : [], ...(channel ? {channel} : {}) });
   const context = await browser.newContext();
   const report = [];
   try {

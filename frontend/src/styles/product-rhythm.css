@@ -202,3 +202,64 @@ button.btn-link.hub-league-switcher-create,
 .hub-table.hub-table--packed .num:last-child {
   padding-inline-end: var(--content-edge-inset);
 }
+
+/* A stack owns inter-section spacing; its children do not add margins. */
+.hub-stack { display:flex; flex-direction:column; gap:var(--stack-gap,var(--space-4)); }
+.hub-stack > *,
+:root .hub-stack[data-layout-stack] > * { margin-block:0; min-width:0; }
+
+/* Compact metadata disclosures keep the indicator and text in one row.
+   Opt in rather than changing the approved full-card disclosures. */
+.hub-inline-disclosure { margin:0; padding:0; border:0; background:transparent; min-width:0; }
+.hub-inline-disclosure > summary { padding:0; }
+.hub-inline-disclosure > summary,
+.hub-inline-disclosure-summary { display:list-item; list-style:none; cursor:pointer; }
+.hub-inline-disclosure > summary::marker,
+.hub-inline-disclosure-summary::marker { content:""; }
+.hub-inline-disclosure > summary::-webkit-details-marker,
+.hub-inline-disclosure-summary::-webkit-details-marker { display:none; }
+.hub-inline-disclosure__row { display:grid; grid-template-columns:minmax(0,1fr) auto var(--form-control-height); align-items:center; gap:var(--space-2); min-height:var(--form-control-height); }
+.hub-inline-disclosure__identity { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); min-width:0; overflow-wrap:anywhere; }
+.hub-inline-disclosure__meta { color:var(--text-secondary); font-size:var(--text-xs); }
+.hub-inline-disclosure__toggle { display:grid; place-items:center; grid-column:-2 / -1; width:var(--form-control-height); height:var(--form-control-height); font-size:var(--text-lg); }
+.hub-inline-disclosure__toggle::before { content:"+"; }
+.hub-inline-disclosure[open] > summary .hub-inline-disclosure__toggle::before,
+details[open] > .hub-inline-disclosure-summary .hub-inline-disclosure__toggle::before { content:"−"; }
+.hub-inline-disclosure > summary:focus-visible,
+.hub-inline-disclosure-summary:focus-visible { outline:2px solid var(--accent); outline-offset:var(--space-1); border-radius:var(--radius-sm); }
+.hub-inline-disclosure[open] > summary { margin-bottom:var(--space-3); }
+/* Compact page headings align controls with the title, not the eyebrow. */
+.hub-heading-row { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:var(--space-4); }
+.hub-heading-row > * { min-width:0; margin-block:0; }
+
+/* Compact, opt-in mobile action panels retain their task's status and actions.
+   Chat keeps its fixed anchor; data-bottom-actions reserves its adjacent lane. */
+.hub-mobile-action-panel__more { display:none; }
+@media (max-width:768px) {
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] {
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center;
+    gap:var(--space-2); padding:var(--space-2) var(--space-3);
+  }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] > * { margin-block:0; min-width:0; }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] > button {
+    width:100%; min-height:var(--control-h-lg); padding-inline:var(--space-2); align-self:end;
+    font-size:var(--text-xs); white-space:normal; overflow-wrap:anywhere;
+  }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] .hub-mobile-action-panel__heading { grid-column:1/-1; }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] .hub-mobile-action-panel__heading > strong { font-size:var(--text-sm); }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] .hub-mobile-action-panel__summary {
+    grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)) var(--control-h-lg);
+    align-items:center; gap:var(--space-2); min-height:var(--control-h-lg);
+  }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] .hub-mobile-action-panel__label {
+    display:flex; align-items:center; gap:var(--space-1); min-height:var(--control-h-lg); margin:0;
+  }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] .hub-mobile-action-panel__detail { display:none; }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] .hub-mobile-action-panel__more {
+    display:grid; place-items:center; width:var(--control-h-lg); min-width:var(--control-h-lg);
+    height:var(--control-h-lg); padding:0;
+  }
+  :root .hub-mobile-action-panel[data-bottom-actions][data-bottom-position] .hub-mobile-action-panel__status {
+    align-self:stretch; align-content:center; min-height:var(--control-h-lg); font-size:var(--text-xs);
+  }
+}

@@ -48,12 +48,27 @@ export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = 
   );
 }
 
-export function HubPage({ className = "", children, style, frameless = false, inset = false }) {
+export function HubPage({ className = "", children, style, frameless = false, inset = false, stack = false }) {
   return (
-    <section className={`hub-page panel wide hub-panel${inset ? " hub-page--inset" : ""}${frameless ? " hub-page--frameless" : ""}${className ? ` ${className}` : ""}`} style={style}>
+    <section className={`hub-page panel wide hub-panel${stack ? " hub-stack" : ""}${inset ? " hub-page--inset" : ""}${frameless ? " hub-page--frameless" : ""}${className ? ` ${className}` : ""}`} style={style} data-layout-stack={stack || undefined}>
       {children}
     </section>
   );
+}
+
+export function HubStack({ children, className = "" }) {
+  return <div className={`hub-stack ${className}`.trim()} data-layout-stack>{children}</div>;
+}
+
+/** Shared summary row for framed or inline disclosures; the caller owns its card. */
+export function HubDisclosureSummary({ title, meta, className = "" }) {
+  return <summary className={`hub-inline-disclosure-summary ${className}`.trim()}>
+    <span className="hub-inline-disclosure__row">
+      <span className="hub-inline-disclosure__identity">{title}</span>
+      {meta && <span className="hub-inline-disclosure__meta">{meta}</span>}
+      <span className="hub-inline-disclosure__toggle" aria-hidden="true" />
+    </span>
+  </summary>;
 }
 
 export function HubPageMeta({ children }) {
@@ -84,7 +99,9 @@ export function rosterAlertVariant(message) {
 
 export function HubAlertStack({ children }) {
   if (!children) return null;
-  return <div className="hub-alert-stack">{children}</div>;
+  const alerts = React.Children.toArray(children);
+  if (!alerts.length) return null;
+  return <div className="hub-alert-stack">{alerts}</div>;
 }
 
 export function HubAlert({ variant = "warn", children, action, live, role }) {
@@ -379,7 +396,7 @@ export function HubExperienceHero({
 export function HubExperienceLayout({ children, summary, summaryLabel = "At a glance", footer }) {
   return (
     <div className={`hub-experience-layout${footer ? " has-footer" : ""}`}>
-      <div className="hub-experience-main">{children}</div>
+      <HubStack className="hub-experience-main">{children}</HubStack>
       {summary ? (
         <aside className="hub-experience-summary" aria-label={summaryLabel}>
           {summary}
