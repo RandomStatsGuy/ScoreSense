@@ -294,11 +294,11 @@ export function InsightsDisclosure({ summary, meta, children, onOpen, open }) {
         if (event.currentTarget.open) onOpen?.();
       }}
     >
-      <summary className="hub-insights-disclosure-summary">
+      <summary className="hub-insights-disclosure-summary" data-chat-safe-actions="control">
         {summary}
         {meta ? <span className="table-meta">{meta}</span> : null}
       </summary>
-      <div className="hub-insights-disclosure-body">{children}</div>
+      <div className="hub-insights-disclosure-body" data-chat-safe-actions>{children}</div>
     </details>
   );
 }

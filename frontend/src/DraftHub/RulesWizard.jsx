@@ -48,6 +48,7 @@ function PolicyToggle({ checked, disabled, title, description, onChange }) {
     <button
       type="button"
       role="switch"
+      data-chat-safe-actions="control"
       aria-checked={checked}
       className={`hub-rules-policy${checked ? " is-on" : ""}`}
       disabled={disabled}
@@ -542,7 +543,7 @@ export default function RulesWizard({
                   <strong>Bid strategy</strong>
                   <span>How projection uncertainty influences suggested bids.</span>
                 </div>
-                <div className="hub-rules-risk-options" role="radiogroup" aria-label="Bid strategy">
+                <div className="hub-rules-risk-options hub-wrap-actions" data-chat-safe-actions role="radiogroup" aria-label="Bid strategy">
                   {RISK_TOLERANCE_OPTIONS.map((option) => (
                     <button
                       key={option.id}
@@ -708,7 +709,7 @@ export default function RulesWizard({
                 {warningList.map((warning) => <p key={warning}>{warning}</p>)}
               </div>
             )}
-            <label className="hub-rules-roster-cap">
+            <label className="hub-rules-roster-cap" data-chat-safe-actions>
               <span><strong>Total roster size</strong><small>Maximum active players per team. Leave empty to let position limits set the cap.</small></span>
               <input
                 type="number"
@@ -726,14 +727,14 @@ export default function RulesWizard({
               />
               <RuleError id="rules-roster-cap-error">{errors.roster_size_max}</RuleError>
             </label>
-            <div className="hub-rules-roster-table" role="table" aria-label="Position limits">
-              <div className="hub-rules-roster-heading" role="row">
+            <div className="hub-rules-roster-table" data-chat-safe-actions role="table" aria-label="Position limits">
+              <div className="hub-rules-roster-heading hub-numeric-row" role="row">
                 <span role="columnheader">{RULES_COPY.rosterPosition}</span>
                 <span role="columnheader">{RULES_COPY.rosterMin}</span>
                 <span role="columnheader">{RULES_COPY.rosterMax}</span>
               </div>
               {ROSTER_LIMIT_KEYS.map((position) => (
-                <div className="hub-rules-roster-row" role="row" key={position}>
+                <div className="hub-rules-roster-row hub-numeric-row" role="row" key={position}>
                   <strong role="rowheader">{position === "def" ? "DEF" : position.toUpperCase()}</strong>
                   <label>
                     <span className="sr-only">{position.toUpperCase()} minimum</span>

@@ -42,6 +42,7 @@ window.fetch=async(input,options={})=>{
   const url=new URL(typeof input==="string"?input:input.url,location.origin);
   if(!url.pathname.startsWith('/api/'))return originalFetch(input,options);
   if((options.method||'GET')!=='GET'){window.fixtureWrites.push(url.pathname);return Response.json({detail:"Fixture write rejected"},{status:409});}
+  if(url.pathname.endsWith('/manager-accounts'))return Response.json({accounts:[{account_sub:'mine',display_name:'Maya Chen',team_name:'Sunday Rivals'},{account_sub:'other',display_name:'Jordan Davis',team_name:'Midnight Crew'}],sources:Array.from({length:6},(_,i)=>({source_kind:'import_label',label:'Saved manager '+i,seasons:[2024,2025]})),mappings:Array.from({length:6},(_,i)=>({id:i+1,account_sub:i%2?'other':'mine',manager_name:'Saved manager '+i,source_label:'Imported manager '+i,display_name:i%2?'Jordan Davis':'Maya Chen',source_kind:'import_label',season_year:0}))});
   if(url.pathname.endsWith('/members'))return Response.json({teams,commissioner_sub:"mine",team_count:6,capacity:6,claimed_humans:2});
   if(url.pathname.endsWith('/rosters'))return Response.json({teams:teams.map(team=>({team,roster:team.id==='mine'?rows:rows.slice(0,2),stats:{unspent:65,committed:126,dead_cap:9}})),rules,season:2026,source_version:'fixture'});
   if(url.pathname.includes('/draft-availability'))return Response.json({available:false,closed:true,teams:[],slots:[],timezone:"America/New_York"});

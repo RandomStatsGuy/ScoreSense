@@ -52,7 +52,7 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
           const next = event.key === "Home" ? "record" : event.key === "End" ? "points" : sort === "record" ? "points" : "record";
           setSort(next);
           event.currentTarget.querySelectorAll("button")[next === "record" ? 0 : 1].focus();
-        }}><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "record"} tabIndex={sort === "record" ? 0 : -1} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "points"} tabIndex={sort === "points" ? 0 : -1} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost btn-sm hub-insights-open-scoring" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
+        }}><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "record"} tabIndex={sort === "record" ? 0 : -1} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "points"} tabIndex={sort === "points" ? 0 : -1} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost btn-sm hub-insights-open-scoring hub-wrap-copy" data-chat-safe-actions="control" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
         {sort === "record" && records.length > 1 && <p className="chart-note">{copy.recordTies}</p>}
         <ol className="hub-insights-record-list">{records.map((row, index) => {
           const owner = teamDisplayName(row, ownerMap, false);
