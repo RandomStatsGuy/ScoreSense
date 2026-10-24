@@ -271,7 +271,7 @@ function RosterBoard({
     {disabledReason && <p id="rosters-trade-reason" className="rosters-help">{disabledReason}</p>}
     {usesContracts && <ContractHistoryLink playerId={selected.player_id} playerName={selected.player_name} onOpen={onOpenContractHistory} className="rosters-history">{C.history}</ContractHistoryLink>}
   </aside>;
-  return <section className={`rosters-board${view === "teams" ? " is-team-view" : ""}${!usesSalaries ? " is-player-view" : ""}`} aria-labelledby="rosters-heading">
+  return <section className={`rosters-board${view === "teams" ? " is-team-view" : ""}${!usesSalaries ? " is-player-view" : ""}`} aria-labelledby="rosters-heading" data-chat-safe-actions>
     <header className="rosters-header"><div><h1 id="rosters-heading">{ROSTERS_COPY.heading}</h1><p>{usesSalaries ? ROSTERS_COPY.support : C.playerSupport}</p></div><div className="rosters-header-actions"><button className="rosters-control" disabled={!leagueId || loading} onClick={() => load(true)} aria-label={ROSTERS_COPY.refreshLeague}><span aria-hidden="true">↻</span>{loading && overview ? C.refreshing : C.refresh}</button><button className="rosters-control" disabled={!leagueId || exporting} onClick={exportWorkbook}><span aria-hidden="true">↓</span>{exporting ? ROSTERS_COPY.exportBusy : ROSTERS_COPY.exportExcel}</button></div></header>
     {(error || exportError) && <p className="rosters-error" role="alert">{error || exportError}</p>}
     {!leagueId ? <p className="rosters-empty">{C.noLeague}</p> : <>

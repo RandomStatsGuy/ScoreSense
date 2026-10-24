@@ -45,7 +45,7 @@ window.fetch=async(input,options={})=>{
   if(url.pathname.endsWith('/members'))return Response.json({teams,commissioner_sub:"mine",team_count:6,capacity:6,claimed_humans:2});
   if(url.pathname.endsWith('/rosters'))return Response.json({teams:teams.map(team=>({team,roster:team.id==='mine'?rows:rows.slice(0,2),stats:{unspent:65,committed:126,dead_cap:9}})),rules,season:2026,source_version:'fixture'});
   if(url.pathname.includes('/draft-availability'))return Response.json({available:false,closed:true,teams:[],slots:[],timezone:"America/New_York"});
-  if(url.pathname==='/api/hub/week')return Response.json({meta:{season:2026,week:6},starters:rows.slice(0,3).map((p,index)=>({slot:`WR${index+1}`,player_id:p.player_id,player_name:p.player_name,team:p.team,position:p.position,p50:p.p50,proj:p.p50})),bench:rows.slice(3,5),counts:{roster:5},hub_context:context});
+  if(url.pathname==='/api/hub/week')return Response.json({roster:{starters:rows.slice(0,3).map((p,i)=>({...p,slot:`WR${i+1}`})),bench:rows.slice(3,5)},meta:{season:2026,week:6},starters:rows.slice(0,3).map((p,index)=>({slot:`WR${index+1}`,player_id:p.player_id,player_name:p.player_name,team:p.team,position:p.position,p50:p.p50,proj:p.p50})),bench:rows.slice(3,5),counts:{roster:5},hub_context:context});
   if(url.pathname.includes('/chat/summary'))return Response.json({threads:[],members:[],notifications:[],preferences:{},unread:0});
   return Response.json({identities:{},media:{},players:[],teams:[],rosters:{},preferences:{},messages:[],history:[],slots:{},rules});
 };

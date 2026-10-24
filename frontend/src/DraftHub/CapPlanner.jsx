@@ -298,9 +298,9 @@ function CapPlannerView({
   return <HubPage frameless className="cap-planner-page">
     {around ? <section className="cap-planner-discovery" aria-labelledby="cap-league-title">
       <header><h1 id="cap-league-title" ref={headingRef} tabIndex={-1}>{C.around}</h1><button className="btn-ghost" onClick={closeAround}>← {C.back}</button></header>
-      <input type="search" aria-label={C.search} placeholder={C.search} value={query} onChange={e => setQuery(e.target.value)} />
+      <input type="search" data-chat-safe-actions="control" aria-label={C.search} placeholder={C.search} value={query} onChange={e => setQuery(e.target.value)} />
       <p className="cap-planner-meta">{base} · {C.available}</p>
-      {loading ? <div className="cap-planner-teams" aria-label={C.loading}>{[0, 1].map(i => <div className="cap-planner-team-loading" key={i}><HubLoadingSkeleton label={C.loading} rows={2} /></div>)}</div> : loadError ? <HubAlert variant="danger">{loadError}<button className="btn-ghost" onClick={loadTeams}>{C.retry}</button></HubAlert> : <div className="cap-planner-teams">
+      {loading ? <div className="cap-planner-teams" data-chat-safe-actions aria-label={C.loading}>{[0, 1].map(i => <div className="cap-planner-team-loading" key={i}><HubLoadingSkeleton label={C.loading} rows={2} /></div>)}</div> : loadError ? <HubAlert variant="danger">{loadError}<button className="btn-ghost" onClick={loadTeams}>{C.retry}</button></HubAlert> : <div className="cap-planner-teams" data-chat-safe-actions>
         {teams.filter(t => `${hubTeamParts(t.team).team} ${hubTeamParts(t.team).owner}`.toLowerCase().includes(query.toLowerCase())).map(block => {
           const team = block.team,
             look = mergeTeamIdentity(identityFor(identities, team)),
@@ -328,7 +328,7 @@ function CapPlannerView({
             width: `${Math.min(100, Math.max(0, sumDead / cap * 100))}%`
           }} /></div>
         <p className="cap-planner-meta">{fmtSal(salary)} {C.salary} · {fmtSal(sumDead)} {C.dead} · {fmtSal(current.total_committed)} {C.used}</p>
-        <div className="cap-planner-years" role="group" aria-label="Cap season">{projection.years.map((_, i) => <button key={i} aria-pressed={i === offset} onClick={() => {
+        <div className="cap-planner-years" data-chat-safe-actions role="group" aria-label="Cap season">{projection.years.map((_, i) => <button key={i} aria-pressed={i === offset} onClick={() => {
             setYear(i);
             setEditor("");
             setCutId("");
@@ -336,7 +336,7 @@ function CapPlannerView({
       </section>
       <div className="cap-planner-columns"><div className="cap-planner-main"><section className="cap-planner-card">
         <header><h2>{C.sheet}</h2><span className="cap-planner-meta">{activeRows.length} players · {base + offset}</span></header>
-        <div className="cap-planner-list">{activeRows.map(row => {
+        <div className="cap-planner-list" data-chat-safe-actions>{activeRows.map(row => {
                 const id = String(row.player_id),
                   added = Number(chosenPlans[id] || 0),
                   saved = queued.find(q => String(q.player_id) === id);
@@ -355,7 +355,7 @@ function CapPlannerView({
           </div>;
               })}{!activeRows.length && <p>{C.noRoster}</p>}</div>
       </section>
-      <details className="cap-planner-card cap-planner-disclosure"><summary><span className="cap-planner-disclosure-title">{C.contracts}<i aria-hidden="true" /></span></summary><div className="cap-planner-details">
+      <details className="cap-planner-card cap-planner-disclosure" data-chat-safe-actions><summary><span className="cap-planner-disclosure-title">{C.contracts}<i aria-hidden="true" /></span></summary><div className="cap-planner-details">
         {own && projection.rows.filter(r => chosenPlans[r.player_id] && canManagerRookieExtend(r, {
                 draftCompleted,
                 rules
@@ -364,7 +364,7 @@ function CapPlannerView({
         {cuts.map(c => <div key={c.player_id}><span>{c.player_name} · {contractDeadCapStory(c, rules).cutBullet}</span>{own && c.can_undo_cut !== false && <button className="btn-ghost" disabled={Boolean(cutBusyId) || !canWrite} onClick={() => undoCut(c.player_id)}>{C.removeCut}</button>}</div>)}
         {projection.rows.map(r => <ContractHistoryLink key={r.id || r.player_id} playerId={r.player_id} playerName={r.player_name} onOpen={onOpenContractHistory}>{r.player_name}</ContractHistoryLink>)}
       </div></details></div>
-      <aside className="cap-planner-side" aria-label="Move preview"><section className="cap-planner-card cap-planner-move"><h2>{C.move}</h2>
+      <aside className="cap-planner-side" aria-label="Move preview"><section className="cap-planner-card cap-planner-move" data-chat-safe-actions><h2>{C.move}</h2>
         <div className="cap-planner-modes" role="group" aria-label="Move preview">{[['add', C.add], ['cut', C.cutAdd]].map(([id, label]) => <button key={id} aria-pressed={mode === id} onClick={() => {
                 setMode(id);
                 setCutId("");
@@ -383,7 +383,7 @@ function CapPlannerView({
         {own ? mode === 'cut' && cutRow && offset === 0 ? <><p className="cap-planner-meta">{cutAction.support}</p>{moveBanner && <p className="cap-planner-meta">{moveBanner.text || moveBanner}</p>}<button className="btn-primary" disabled={!canWrite || Boolean(cutBusyId) || !cutPreview || cutPreview.is_cut || after < 0} onClick={cutAndHandoff}>{cutAction.label || C.reviewCut}</button></> : <button className="btn-primary" disabled={after < 0} onClick={() => onNavigate?.('available')}>{C.freeAgents} →</button> : <button className="btn-ghost" onClick={() => selectTeam(ownId)}>{C.myCap} →</button>}
         <button className="btn-ghost cap-planner-reset" onClick={reset}>{C.reset}</button><p className="cap-planner-meta">{C.previewOnly}</p>
         {own && needLine && <p className="cap-planner-meta">{needLine}</p>}
-      </section><details className="cap-planner-card cap-planner-disclosure"><summary><span className="cap-planner-disclosure-title">{C.rules}<i aria-hidden="true" /></span></summary><div className="cap-planner-details"><p>{capStepUpLine({
+      </section><details className="cap-planner-card cap-planner-disclosure" data-chat-safe-actions><summary><span className="cap-planner-disclosure-title">{C.rules}<i aria-hidden="true" /></span></summary><div className="cap-planner-details"><p>{capStepUpLine({
                   rookieStatic: rules?.contracts?.rookie_salary_static !== false,
                   veteranStatic: rules?.contracts?.veteran_salary_static !== false,
                   stepUp: rules?.contracts?.extension_step_up

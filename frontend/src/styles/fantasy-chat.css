@@ -126,7 +126,7 @@
 .chat-thread.is-compact .chat-message-list { min-height:8rem; max-height:14rem; }
 .chat-thread.is-compact .chat-compose-field { padding:var(--space-2); }
 @media(max-width:768px) {
- .app-header--hub .app-header-mobile-top--league { grid-template-columns:fit-content(50%) minmax(0,1fr) auto; gap:var(--space-2); }
+ :root .app-header--hub .app-header-mobile-top--league { grid-template-columns:fit-content(50%) minmax(0,1fr) auto; gap:var(--space-2); padding:0; }
  .chat-icon-btn { min-width:44px; width:44px; height:44px; }
  .communication-head { padding:var(--space-3) var(--space-4); }
  .communication-identity .communication-mark { display:none; }

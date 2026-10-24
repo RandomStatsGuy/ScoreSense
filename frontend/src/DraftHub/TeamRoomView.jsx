@@ -206,7 +206,7 @@ export default function TeamRoomView({ data, onWeek, onTeam, onContract, onNickn
     </div>}
     {hasStarters && !showRack && status}
     {!hasStarters && section === "starters" && data.bench.length > 0 && <div className="team-room-empty"><p>{COPY.lineupEmpty}</p>{onLineup && <button className="btn-link" onClick={onLineup}>{COPY.manageLineup}</button>}</div>}
-    {!players.length ? <p className="team-room-empty">{COPY.roomEmpty}</p> : <div className="team-room-wall" style={{ "--room-columns": Math.min(12, players.length), "--room-detail-row-phone": Math.floor(players.findIndex((p) => p.player_id === selected) / 2) + 2, "--room-detail-row-medium": Math.floor(players.findIndex((p) => p.player_id === selected) / 3) + 2 }}>
+    {!players.length ? <p className="team-room-empty">{COPY.roomEmpty}</p> : <div className="team-room-wall" data-chat-safe-actions style={{ "--room-columns": Math.min(12, players.length), "--room-detail-row-phone": Math.floor(players.findIndex((p) => p.player_id === selected) / 2) + 2, "--room-detail-row-medium": Math.floor(players.findIndex((p) => p.player_id === selected) / 3) + 2 }}>
       {players.map((p, i) => { const held = section === "starters" && heldPlayer ? { ...roomHeldState(data, p, heldPlayer, i), name: heldPlayer.name } : null;
         return <RoomLocker key={`${p.player_id}-${i}`} player={p} media={data.media?.[p.player_id]} index={i} columns={players.length} id={id} chosen={selected === p.player_id} top={winner != null && p.points === winner && winner > 0} state={data.state} onOpen={open}
           held={held} onDrop={() => place(heldPlayer.player_id, i)} onPlace={carry ? () => place(carry, i) : null} />; })}
@@ -228,7 +228,7 @@ export default function TeamRoomView({ data, onWeek, onTeam, onContract, onNickn
         </div>}</div>
       </section>}
     </div>}
-    {section === "starters" && hasStarters && lineup.bench.length > 0 && !showRack && <section className="team-room-bench-section"><div className="team-room-bench-heading"><h2>{COPY.roomBenchHeading} · {lineup.bench.length}</h2>{data.can_edit && <span>{COPY.roomBenchHint}</span>}</div><div className="team-room-bench-players">
+    {section === "starters" && hasStarters && lineup.bench.length > 0 && !showRack && <section className="team-room-bench-section"><div className="team-room-bench-heading"><h2>{COPY.roomBenchHeading} · {lineup.bench.length}</h2>{data.can_edit && <span>{COPY.roomBenchHint}</span>}</div><div className="team-room-bench-players" data-chat-safe-actions>
       {lineup.bench.map((p, i) => { const colors = nflTeamColors(p.team), usable = usableBench(p), edge = usable ? roomBenchEdge(data, p, lineup.starters) : null; return <button type="button" className={`team-room-bench-player${dragging === p.player_id ? " is-held" : ""}`} key={p.player_id} draggable={usable} aria-pressed={candidate === p.player_id} aria-label={COPY.roomDragPlayer(p.name)}
         onDragStart={(e) => { if (!usable) { e.preventDefault(); return; } setDragging(p.player_id); e.dataTransfer.setData("text/plain", p.player_id); e.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDragging(null)}
         onClick={(e) => { trigger.current = e.currentTarget; if (data.can_edit) compareBench(p); else { setSection("bench"); setSelected(p.player_id); } }}>
