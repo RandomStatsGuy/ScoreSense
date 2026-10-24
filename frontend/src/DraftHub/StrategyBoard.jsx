@@ -91,7 +91,7 @@ function FaceCard({ row, media, pickDraft, ctx, riskTolerance, onTake }) {
     stats.push({
       label: COPY.bid,
       sub: suggestedBidSubLabel({ scoringProfile: ctx.scoringProfile, riskTolerance }),
-      value: bid != null ? fmtSal(bid) : "â€”",
+      value: bid != null ? fmtSal(bid) : "—",
     });
   }
   stats.push(
@@ -106,7 +106,7 @@ function FaceCard({ row, media, pickDraft, ctx, riskTolerance, onTake }) {
         <div className="hub-strategy-identity">
           <h3 className="hub-strategy-name">{playerName(row)}</h3>
           <p className="hub-strategy-meta">
-            {[row.position, row.team, COPY.siteRank(row.site_rank)].filter(Boolean).join(" Â· ")}
+            {[row.position, row.team, COPY.siteRank(row.site_rank)].filter(Boolean).join(" · ")}
           </p>
         </div>
         <div className="hub-strategy-stats" data-count={stats.length}>
@@ -131,13 +131,13 @@ function RankRow({ row, media, pickDraft, showMove = false }) {
   const trailing = move
     || (showMove ? COPY.siteRank(row.site_rank) : (pickDraft
       ? formatSeasonPts(row.season_p50 ?? row.season_proj)
-      : (bid != null ? fmtSal(bid) : "â€”")));
+      : (bid != null ? fmtSal(bid) : "—")));
   return (
     <div className="hub-strategy-row">
       <span className="hub-strategy-n">{showMove ? row.personal_rank : row.site_rank}</span>
       <StrategyPhoto row={row} media={media} className="hub-strategy-photo--avatar" />
       <div className="hub-strategy-row-name">{playerName(row)}</div>
-      <span className={`hub-strategy-delta${move?.startsWith("â–²") ? " is-up" : move?.startsWith("â–¼") ? " is-down" : ""}`}>
+      <span className={`hub-strategy-delta${move?.startsWith("▲") ? " is-up" : move?.startsWith("▼") ? " is-down" : ""}`}>
         {trailing}
       </span>
     </div>
@@ -411,7 +411,7 @@ export default function StrategyBoard({
             </div>
             <span className="hub-strategy-progress">
               {COPY.moved(movedCount)}
-              {seenKeys.length ? ` Â· ${COPY.compared(seenKeys.length)}` : ""}
+              {seenKeys.length ? ` · ${COPY.compared(seenKeys.length)}` : ""}
             </span>
           </div>
           {!siteBoard.length ? (
@@ -442,8 +442,8 @@ export default function StrategyBoard({
               <p className="hub-strategy-kicker">
                 {pair
                   ? (pair.a?.position && pair.b?.position && pair.a.position !== pair.b.position
-                    ? `${COPY.closeCall} Â· ${pair.a.position} vs ${pair.b.position}`
-                    : `${COPY.closeCall}${pair.a?.position ? ` Â· ${pair.a.position}` : ""}`)
+                    ? `${COPY.closeCall} · ${pair.a.position} vs ${pair.b.position}`
+                    : `${COPY.closeCall}${pair.a?.position ? ` · ${pair.a.position}` : ""}`)
                   : COPY.eyebrow}
               </p>
               <p className="hub-strategy-context">{line}</p>
@@ -505,7 +505,7 @@ export default function StrategyBoard({
               </div>
               <p className="hub-strategy-progress">
                 {seenKeys.length ? COPY.compared(seenKeys.length) : COPY.heading}
-                <span> Â· {COPY.keyboardHint}</span>
+                <span> · {COPY.keyboardHint}</span>
               </p>
             </>
           ) : (
