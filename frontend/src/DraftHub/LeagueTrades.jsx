@@ -306,6 +306,7 @@ function TradePlayerRow({
     : `Drop ${row.player_name || row.player_id} for roster space`;
   return (
     <li
+      data-chat-safe-row
       className={[
         "hub-trade-player-row",
         sending ? "is-sending" : "",
@@ -351,7 +352,7 @@ function TradePlayerRow({
           </div>
         </div>
       </div>
-      <div className="hub-trade-player-actions">
+      <div className="hub-trade-player-actions" data-chat-safe-actions>
         {multiTeam && <HubFilterMenu
           label="To"
           ariaLabel={copy.recipientFor(row.player_name || row.player_id)}
@@ -1290,7 +1291,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const canPropose = validationStatus === "valid" && validatedPackage === packageKey && hasPartner && hasPackage && !busy;
 
   const renderPartyPlayerColumns = () => (
-    <div className={`hub-trade-faceoff${activeParties.length > 2 ? " is-multi" : ""}`} data-chat-safe-actions>
+    <div className={`hub-trade-faceoff${activeParties.length > 2 ? " is-multi" : ""}`}>
       {activeParties.map((party, order) => {
         const idx = party.idx;
         const others = parties.filter((p, i) => i !== idx && p.team_id).map((p) => p.team_id);
@@ -1305,7 +1306,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           <div className="hub-trade-party-col panel" data-party={isYours ? "send" : "receive"}>
             <TradeTeamArt identity={identityForTeam(party.team_id)} />
             <div className="hub-trade-party-direction"><h2>{isYours ? formatCopy.youSend : activeParties.length > 2 ? formatCopy.sendVerb : formatCopy.youReceive}</h2><span>{formatCopy.selectedCount(party.sends.length + party.drops.length)}</span></div>
-            <div className="hub-trade-party-head" ref={idx === 1 ? partnerHeadingRef : undefined}
+            <div className="hub-trade-party-head" data-chat-safe-actions={!isYours || undefined} ref={idx === 1 ? partnerHeadingRef : undefined}
               tabIndex={idx === 1 ? -1 : undefined}>
               <TradeTeamHead team={teamById[party.team_id]} identity={identityForTeam(party.team_id)} isYou={isYours} copy={formatCopy} />
               {!isYours && idx === 1 && !sourceReviewId && <button type="button" className="btn-ghost btn-sm" onClick={() => openPartnerPicker()}>{formatCopy.changePartner}</button>}
@@ -1438,14 +1439,14 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 })}
               </div>
             )}
-            <footer className="hub-trade-roster-footer"><span>{formatCopy.rosterCount(totalRows)}</span>{totalRows > 7 && !search && posFilter === "ALL" && <button type="button" className="btn-link" onClick={() => setExpandedTeams(prev => ({ ...prev, [party.team_id]: !prev[party.team_id] }))}>{expandedTeams[party.team_id] ? formatCopy.showFewer : formatCopy.viewRoster(totalRows)}</button>}</footer>
+            <footer className="hub-trade-roster-footer" data-chat-safe-actions><span>{formatCopy.rosterCount(totalRows)}</span>{totalRows > 7 && !search && posFilter === "ALL" && <button type="button" className="btn-link" onClick={() => setExpandedTeams(prev => ({ ...prev, [party.team_id]: !prev[party.team_id] }))}>{expandedTeams[party.team_id] ? formatCopy.showFewer : formatCopy.viewRoster(totalRows)}</button>}</footer>
           </div>
           </React.Fragment>
         );
       })}
       {!hasPartner && myTeamId && <>
         <div className="hub-trade-exchange-col">{renderExchange()}</div>
-        <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" onClick={() => openPartnerPicker()}>{formatCopy.choosePartner}</button>}</section>
+        <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" data-chat-safe-actions="control" onClick={() => openPartnerPicker()}>{formatCopy.choosePartner}</button>}</section>
       </>}
     </div>
   );
