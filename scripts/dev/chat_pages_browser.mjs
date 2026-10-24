@@ -76,6 +76,11 @@ else {
     await page.addStyleTag({content:'.app-header--hub .app-header-mobile-top--league {grid-template-columns:fit-content(55%) minmax(0,1fr);gap:var(--space-3);padding:var(--space-2);}'});
     assert.ok(await page.locator('.app-header-shell').evaluate(e=>e.getBoundingClientRect().height<=72),'phone header stays compact after late phone styles');
    }
+   if(c.id==='setup'&&c.width===320){
+    const title=page.locator('.hub-inline-disclosure__identity').filter({hasText:'Sleeper connection'});
+    const titleMetrics=await title.evaluate(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return {width:r.width,height:r.height,lineHeight:s.lineHeight,fontSize:s.fontSize};});
+    assert.ok(titleMetrics.height<=3*(parseFloat(titleMetrics.lineHeight)||parseFloat(titleMetrics.fontSize)*1.2),`narrow disclosure title retains readable words within three lines: ${JSON.stringify(titleMetrics)}`);
+   }
    const max=await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight),samples=[];
    for(let y=0;y<=max+200;y+=200){await page.evaluate(y=>scrollTo(0,y),Math.min(y,max));const checks=await audit();const failures=checks.filter(x=>['overlay-clearance','chat-anchor','overflow'].includes(x.rule)&&!x.ok);assert.deepEqual(failures,[],`scroll ${y}: ${JSON.stringify(failures)}`);samples.push(Math.min(y,max));}
    report.scrollSamples=samples.length;

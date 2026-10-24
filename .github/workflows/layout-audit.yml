@@ -11,6 +11,7 @@ on:
       - "frontend/src/DraftHub/HubUILayout.jsx"
       - "frontend/src/DraftHub/LeagueTrades.jsx"
       - "scripts/dev/release_interactions.mjs"
+      - "scripts/dev/chat_pages_browser.mjs"
       - "scripts/dev/layout_audit.mjs"
       - "frontend/src/livingSurfaces.js"
       - ".github/workflows/layout-audit.yml"
@@ -46,6 +47,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify bench and trade interaction anchors
         run: node scripts/dev/release_interactions.mjs
+      - name: Verify shared chat clearance across Fantasy
+        run: node scripts/dev/chat_pages_browser.mjs
       - name: Save interaction evidence
         if: always()
         uses: actions/upload-artifact@v4
