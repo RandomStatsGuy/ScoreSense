@@ -50,20 +50,20 @@ try{
  reports.push({id:'room-bye',width,status:'pass'});await page.close();
  }
  for(const width of [320,390,1280])for(const state of ['salary','pick','invalid']){
- const trade=await open('trades-mobile',{state},width);await trade.locator('.hub-trade-desk-bar').waitFor();
+ const trade=await open('trades-mobile',{state,fullRoster:'1'},width);await trade.locator('.hub-trade-desk-bar').waitFor();
  await trade.locator('.hub-trade-desk-bar').getByRole('button',{name:'Choose partner',exact:true}).click();await trade.getByRole('button',{name:/Sunday Rivals.*Select/}).click();
  const review=trade.locator('.hub-trade-desk-bar').getByRole('button',{name:/Review trade/});await review.waitFor();const before=await review.boundingBox();
  const row=trade.locator('.hub-trade-player-row:visible').filter({hasText:'Josh Allen'}).first();const rowBefore=await row.boundingBox();
- const scrollBefore=await trade.evaluate(()=>scrollY);
+ const scrollBefore=await trade.evaluate(()=>scrollY);const context=trade.locator('.hub-trade-party-col[data-party=send] .hub-trade-roster-context');const contextBefore=await context.innerText();
  const get=trade.locator('.hub-trade-player-row:visible').filter({hasText:'Josh Allen'}).locator('.hub-trade-player-actions > button').first();await get.click();await trade.waitForTimeout(450);
- const rowAfter=await row.boundingBox();
+ assert.equal(await context.innerText(),contextBefore,'current-roster context stays current through selection');const rowAfter=await row.boundingBox();
  assert.equal(rowAfter.height,rowBefore.height,'selection retains row height');
  assert.ok(Math.abs(rowAfter.y-rowBefore.y)<1,'selection retains row viewport position');
  assert.equal(await trade.evaluate(()=>scrollY),scrollBefore,'selection retains page scroll');
  const after=await review.boundingBox();assert.ok(Math.abs(before.y-after.y)<1,`Review stays vertically anchored: ${JSON.stringify({width,state,before,after,bar:await trade.locator('.hub-trade-desk-bar').boundingBox()})}`);
  await get.click();await trade.waitForTimeout(450);
  assert.ok(Math.abs((await row.boundingBox()).y-rowBefore.y)<1,'removal retains row viewport position');
- assert.equal(await trade.evaluate(()=>scrollY),scrollBefore,'removal retains page scroll');
+ assert.equal(await trade.evaluate(()=>scrollY),scrollBefore,'removal retains page scroll');assert.ok(Math.abs((await review.boundingBox()).y-before.y)<1,'removal retains Review position');
  await get.click();await trade.waitForTimeout(450);
  if(width<=768){await trade.getByRole('button',{name:'View all 1 moves',exact:true}).click();await trade.getByRole('dialog',{name:'Edit package',exact:true}).waitFor();await trade.getByRole('button',{name:'Remove Josh Allen from package',exact:true}).click();await trade.keyboard.press('Escape');}else{await trade.locator('.hub-trade-desk-bar').getByRole('button',{name:'Remove Josh Allen from package',exact:true}).click();}await trade.getByRole('button',{name:'Undo last package removal',exact:true}).click();await trade.waitForTimeout(450);
  if(state==='invalid'){assert.equal(await review.isEnabled(),false);assert.ok(await trade.getByText('Your team is over the cap.',{exact:true}).count());}
