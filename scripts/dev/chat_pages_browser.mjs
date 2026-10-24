@@ -101,6 +101,7 @@ else {
     const titleMetrics=await title.evaluate(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return {width:r.width,height:r.height,lineHeight:s.lineHeight,fontSize:s.fontSize};});
     assert.ok(titleMetrics.height<=3*(parseFloat(titleMetrics.lineHeight)||parseFloat(titleMetrics.fontSize)*1.2),`narrow disclosure title retains readable words within three lines: ${JSON.stringify(titleMetrics)}`);
    }
+   if(c.id.startsWith('insights-')&&c.width<=768)assert.deepEqual((await audit()).filter(x=>['insights-mobile','insights-tabs'].includes(x.rule)&&!x.ok),[],'phone Insights controls retain the approved row and balanced tab insets');
    const max=await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight),samples=[];
    for(let y=0;y<=max+200;y+=200){await page.evaluate(y=>scrollTo(0,y),Math.min(y,max));const checks=await audit();const failures=checks.filter(x=>['overlay-clearance','chat-anchor','overflow'].includes(x.rule)&&!x.ok);assert.deepEqual(failures,[],`scroll ${y}: ${JSON.stringify(failures)}`);samples.push(Math.min(y,max));}
    // Scroll every horizontally at-risk control through chat, including unmarked ones.
