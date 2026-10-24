@@ -36,6 +36,7 @@ const myTeam = [
   ["8228", "Jaylen Warren", "RB", "PIT", 9.4, "FLEX"], ["11539", "Cade York", "K", "CLE", 7.8, "K"], ["def-min", "Vikings D/ST", "DEF", "MIN", 7.1, "DEF"],
   ["11563", "Bo Nix", "QB", "DEN", 16.0, "BN"], ["7090", "Darius Slayton", "WR", "NYG", 6.2, "BN"],
 ];
+if (params.has("longStarter")) myTeam[4][1] = "Jaxon Smith-Njigba";
 const acquisition = { add_mode: mode, label: mode === "bid" ? "Waivers · Bidding" : mode === "claim" ? "Waivers" : mode === "add" ? "Free agency" : "Pre-draft", message: mode === "locked" ? "Adds open after the draft" : "Player additions follow the league calendar." };
 let rows = [
   ["9500", "Josh Downs", "WR", "IND", 172, 128, 224, 10.8, 9],

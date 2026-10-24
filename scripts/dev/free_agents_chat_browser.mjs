@@ -47,18 +47,21 @@ async function alignWithChat(page,index=2){
 }
 try{
  const jobs=[320,390,768,1024,1280,1440].flatMap(width=>['dark','light'].flatMap(theme=>['add','bid','claim','locked'].map(state=>({width,theme,state}))));
+ jobs.push(...[320,390].flatMap(width=>['dark','light'].map(theme=>({width,theme,state:'bid',target:true}))));
  let next=0;
  async function worker(){while(next<jobs.length){
-  const {width,theme,state}=jobs[next++],id=`${state}-${width}-${theme}`;
+  const {width,theme,state,target}=jobs[next++],id=`${state}-${width}-${theme}${target?'-target':''}`;
   const page=await browser.newPage({viewport:{width,height:900},serviceWorkers:'block',reducedMotion:'reduce'}),errors=[];
   let report={id,width,theme,state};page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(12000);
   try{
    await page.addInitScript(theme=>localStorage.setItem('scoresense-color-theme',theme),theme);
    await page.route('**/*',r=>new URL(r.request().url()).origin===base&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());
-   await page.goto(`${base}/hub/free-agents?state=${state}&chat=1&long=1`,{waitUntil:'domcontentloaded'});
+   await page.goto(`${base}/hub/free-agents?state=${state}&chat=1&long=1${target?'&longStarter=1':''}`,{waitUntil:'domcontentloaded'});
    await page.locator('.fa-acquire').first().waitFor();await page.locator('.fantasy-chat-bubble-a').waitFor();await page.evaluate(()=>document.fonts.ready);
+   if(target) await page.getByRole('button',{name:/^WR2: Jaxon Smith-Njigba/}).click();
    await alignWithChat(page);
    const g=await geometry(page);report.geometry=g;
+   if(target) assert.ok(await page.locator('.fa-player').evaluateAll(rows=>rows.every(row=>{const text=row.querySelector('.fa-tick-key'),action=row.querySelector('.fa-acquire');return !text||!action||text.getBoundingClientRect().right<action.getBoundingClientRect().left;})),'long comparison label clears acquisition action');
    assert.equal(g.theme,theme);assert.equal(g.overflow,false,'horizontal overflow');
    assert.ok(g.actions.every(a=>!overlaps(a,g.chat)),'chat covers a scrolling player action');
    assert.ok(g.actions.every(a=>a.h>=43.5),'acquisition targets stay 44px');
@@ -88,8 +91,8 @@ try{
    assert.equal(await page.evaluate(()=>window.fixtureWrites.length),0,'no acquisition writes');
    assert.deepEqual(errors,[]);report.status='pass';
   }catch(e){report.status='fail';report.error=e.message;await page.screenshot({path:path.join(out,id+'-fail.png')}).catch(()=>{});}
-  reports.push(report);await fs.writeFile(path.join(out,'report.json'),JSON.stringify(reports,null,2));console.log(id,report.status,report.error||'');await page.close();
+  reports.push(report);console.log(id,report.status,report.error||'');await page.close();
  }}
  await Promise.all([worker(),worker(),worker()]);
-}finally{await browser.close();server.close();}
-assert.ok(reports.length===48&&reports.every(r=>r.status==='pass'),'all 48 chat-clearance scenarios must pass');
+}finally{await fs.writeFile(path.join(out,'report.json'),JSON.stringify(reports,null,2));await browser.close();server.close();}
+assert.ok(reports.length===52&&reports.every(r=>r.status==='pass'),'all 52 chat-clearance scenarios must pass');
