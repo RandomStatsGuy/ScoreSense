@@ -381,6 +381,8 @@ CI installs its own browser. Reports/screenshots live under
 The backend regression uses temporary provider/official roster caches and checks
 Frank Gore Jr., Antonio Williams, Kyle Williams, Brandon Smith, and James Cook
 III, plus ambiguity, conflicting IDs, season boundaries, and cache replacement.
+Trade interactions assert row coordinates, page scroll, and Review placement through add/remove at 320, 390, and 1280. Player-loading workflows cover failed reads, explicit Retry, shared navigation, and the real 30-second deadline.
+
 Bye tests distinguish confirmed bye flags/sources from missing projections,
 empty slots, and genuine zero scores. No test uses the live league database.
 

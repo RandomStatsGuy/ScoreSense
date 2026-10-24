@@ -1846,7 +1846,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 <button key={id} type="button" aria-label={aria} aria-pressed={phoneView === id} onClick={() => setPhoneView(id)}>{label}
                   {id !== "exchange" && <span className="hub-trade-view-count" aria-hidden="true">{packageLegs.filter(leg => id === "send" ? leg.from === myTeamId : leg.to === myTeamId).length}</span>}</button>)}
             </nav>
-            {(packageHeadline || otherDraft) && <div className="hub-trade-phone-decision">{renderDecision()}</div>}
             <div className="hub-trade-roster-workspace">
               <div className="hub-trade-filters">
                 <input ref={builderSearchRef} type="search" className="search-input hub-filter-search" placeholder={formatCopy.playerSearch}

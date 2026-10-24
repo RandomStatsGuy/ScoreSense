@@ -38,6 +38,7 @@ import {
 } from "./hubDataCache";
 import { effectiveHubContext, focusedLeagueId, shouldApplyHubContext } from "./hubContext";
 import { fetchHubMemberships, setHubFocus, effectiveMemberships } from "./hubLeagues";
+import { PLAYERS_TAB_COPY } from "./acquisitionWindow";
 import { isPickDraft } from "./draftEntryStatus";
 import { loadWatchIds, toggleWatchId } from "./draftLiveConsole";
 import { TeamIdentityProvider } from "./TeamIdentityContext";
@@ -123,6 +124,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     setWeekReloadToken((n) => n + 1);
   }, [dataRevision]);
   const [valueSheetLoading, setValueSheetLoading] = useState(false);
+  const [valueSheetError, setValueSheetError] = useState("");
+  const valueSheetRequest = React.useRef(0);
   const insightTabRef = React.useRef(insightTab);
   insightTabRef.current = insightTab;
   const subViewRef = React.useRef(subView);
@@ -267,66 +270,49 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
 
   const refreshValueSheet = useCallback(async (season, rules, { forcePool = false, signal, throwOnError = false } = {}) => {
     setValueSheetLoading(true);
+    setValueSheetError("");
     const generation = hubCacheGeneration();
+    const request = ++valueSheetRequest.current;
     const key = valueSheetRequestKey(season, rules, { forcePool, scope: poolScope });
     try {
-      const sheet = await runValueSheetRequest(key, async () => {
+      const sheet = await runValueSheetRequest(key, async (requestSignal) => {
         const cachedPool = !forcePool ? getCachedPool(season, rules, poolScope) : null;
         if (cachedPool) {
-          const overlay = await loadValueOverlay(season);
+          const overlay = await loadValueOverlay(season, requestSignal);
+          if (requestSignal.aborted) throw requestSignal.reason;
           const merged = mergePoolAndOverlay(cachedPool, overlay);
           merged.sleeper = overlay.sleeper;
-          if (overlay.hub_context) applyHubContext(overlay.hub_context);
           return merged;
         }
         const q = season ? `?season=${season}` : "";
-        const res = await apiFetch(`/api/hub/value-sheet${q}`);
+        const res = await apiFetch(`/api/hub/value-sheet${q}`, { signal: requestSignal });
         if (!res.ok) throw new Error(await parseApiError(res));
         const next = await res.json();
+        if (requestSignal.aborted) throw requestSignal.reason;
         if (generation !== hubCacheGeneration()) return null;
         setCachedPool(season, rules, poolPayloadFromSheet(next), poolScope);
         setCachedOverlay(season, next);
-        if (next.hub_context) applyHubContext(next.hub_context);
         return next;
       });
-      if (signal?.aborted || generation !== hubCacheGeneration()) return sheet;
+      if (signal?.aborted || request !== valueSheetRequest.current || generation !== hubCacheGeneration()) return sheet;
       setValueSheet(sheet);
+      if (sheet?.hub_context) applyHubContext(sheet.hub_context);
       return sheet;
     } catch (e) {
-      if (isAbortError(e) || signal?.aborted) return null;
+      if (isAbortError(e) || signal?.aborted || request !== valueSheetRequest.current) return null;
       if (throwOnError) throw e;
-      const msg = connectionErrorMessage(e);
+      const msg = e.name === "TimeoutError" ? PLAYERS_TAB_COPY.loadTimeout : connectionErrorMessage(e);
       if (!/sign in|login required|401/i.test(msg)) {
-        setError(msg);
+        setValueSheetError(msg);
       }
       return null;
     } finally {
-      if (!signal?.aborted) setValueSheetLoading(false);
+      if (request === valueSheetRequest.current) setValueSheetLoading(false);
     }
   }, [loadValueOverlay, applyHubContext, poolScope]);
 
-  const refreshOverlayOnly = useCallback(async (season, rules, signal) => {
-    setValueSheetLoading(true);
-    try {
-      const pool = getCachedPool(season, rules, poolScope);
-      const overlay = await loadValueOverlay(season, signal);
-      if (signal?.aborted) return null;
-      const sheet = mergePoolAndOverlay(pool, overlay);
-      sheet.sleeper = overlay.sleeper;
-      if (overlay.hub_context) applyHubContext(overlay.hub_context);
-      setValueSheet(sheet);
-      return sheet;
-    } catch (e) {
-      if (isAbortError(e)) return null;
-      const msg = connectionErrorMessage(e);
-      if (!/sign in|login required|401/i.test(msg)) {
-        setError(msg);
-      }
-      return null;
-    } finally {
-      setValueSheetLoading(false);
-    }
-  }, [loadValueOverlay, applyHubContext, poolScope]);
+  const refreshOverlayOnly = useCallback((season, rules, signal) =>
+    refreshValueSheet(season, rules, { signal }), [refreshValueSheet]);
 
   const refreshRoster = useCallback(async (signal, { quiet = false } = {}) => {
     if (!quiet) setRosterLoading(true);
@@ -472,7 +458,7 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
     const controller = new AbortController();
     refreshValueSheet(workspace.season, workspace.rules, { signal: controller.signal });
     return () => controller.abort();
-  }, [subView, workspace, loading, valueSheet, refreshValueSheet]);
+  }, [subView, workspace, loading, valueSheet, refreshValueSheet, dataRevision]);
 
   useEffect(() => {
     if (!authReady) return undefined;
@@ -804,7 +790,9 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
         />
       )}
 
-      {error && <div className="error">{error}</div>}
+      {(error || (subView !== "available" && TABS_NEED_VALUE_SHEET.has(subView) && valueSheetError)) && <div className="error" role="alert">{error || valueSheetError}
+        {!error && <button type="button" className="btn-ghost" onClick={() => refreshValueSheet(workspace?.season, workspace?.rules)}>{PLAYERS_TAB_COPY.loadRetry}</button>}
+      </div>}
 
       <Suspense fallback={<ValueSheetTableSkeleton rows={8} colSpan={8} />}>
       {(subView === "home" || subView === "week") && !demoMode && (
@@ -874,6 +862,8 @@ export default function DraftHub({ subView, onSubViewChange, onHubContextChange,
           teamId={effectiveCtx?.team_id}
           actionsDisabled={leagueSwitchBusy || effectiveCtx?.readonly === true || (effectiveCtx?.mode === "league" && !effectiveCtx?.team_id)}
           title="Free agents"
+          loadError={valueSheetError}
+          onRetryLoad={() => refreshValueSheet(workspace?.season, workspace?.rules)}
           rows={valueRows}
           season={valueSheet?.season || workspace?.season}
           onAddToRoster={onRosterChanged}
