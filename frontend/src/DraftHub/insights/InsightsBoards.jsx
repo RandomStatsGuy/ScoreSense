@@ -51,7 +51,7 @@ export function ScoringBoards({ scoring, ownerMap, yearSpecific, label }) {
         {!mobile && <div className={`hub-insights-score-track${index === 0 ? " is-leader" : ""}`} aria-hidden="true"><span style={{ width: `${leader.total_points > 0 ? Math.max(0, row.total_points / leader.total_points * 100) : 0}%` }} /></div>}
       </li>)}</ol>
     </section>
-    {mobile && <details className="hub-insights-board-panel hub-insights-support-details"><summary>{copy.weeklyHighlights}</summary><SmallScoringAwards summary={summary} ownerMap={ownerMap} yearSpecific={yearSpecific} awards={scoring.awards} /></details>}
+    {mobile && <details className="hub-insights-board-panel hub-insights-support-details"><summary data-chat-safe-actions="control">{copy.weeklyHighlights}</summary><SmallScoringAwards summary={summary} ownerMap={ownerMap} yearSpecific={yearSpecific} awards={scoring.awards} /></details>}
   </div>;
 }
 

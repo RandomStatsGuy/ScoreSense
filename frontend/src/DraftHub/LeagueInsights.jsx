@@ -1488,6 +1488,8 @@ function LeagueInsightsView({
                       <button
                         type="button"
                         className={`hub-insights-player-btn hub-player-history-row${selectedPlayerId === p.player_id ? " active" : ""}`}
+                        data-chat-safe-actions={mobileLayout ? "control" : undefined}
+                        data-chat-safe-row
                         aria-current={selectedPlayerId === p.player_id ? "true" : undefined}
                         onClick={() => setSelectedPlayerId(p.player_id)}
                       >

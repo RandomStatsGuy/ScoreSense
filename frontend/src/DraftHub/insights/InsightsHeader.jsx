@@ -3,6 +3,7 @@ import { formatRelativeTime } from "../../format";
 import { periodLabel, periodYears } from "./insightsPeriods";
 import { INSIGHTS_COPY } from "./insightsPresentation";
 import { InsightsProgress } from "./InsightsChrome";
+import { HubFilterScroll } from "../HubUILayout";
 
 export default function InsightsHeader({ tabs, active, onTab, landing, years, period, onPeriod, onRefresh, busy, showPeriod = true, seasonControl = null, refreshLabel = INSIGHTS_COPY.overview.refresh, titleMeta = null }) {
   const details = useRef(null);
@@ -36,14 +37,14 @@ export default function InsightsHeader({ tabs, active, onTab, landing, years, pe
       <p className="table-meta">{titleMeta || (landing?.available ? `${range} · ${landing.record_leaders?.length || 0} managers` : "Saved league history")}</p>
     </div>
     <div className="hub-insights-header-tabs">
-      <nav className="hub-insights-tabs" aria-label="Insights">{tabs.map((tab) => <button key={tab.id} type="button" aria-current={active === tab.id ? "true" : undefined} onClick={() => onTab(tab.id)}>{tab.label}</button>)}</nav>
+      <HubFilterScroll as="nav" rail className="hub-insights-tabs" label="Insights">{tabs.map((tab) => <button key={tab.id} type="button" aria-current={active === tab.id ? "true" : undefined} onClick={() => onTab(tab.id)}>{tab.label}</button>)}</HubFilterScroll>
       <InsightsProgress active={busy} />
     </div>
     {seasonControl && <div className="hub-insights-period-toolbar">{seasonControl}</div>}
     {showPeriod && <div className="hub-insights-period-toolbar">
       <details className="hub-insights-period" ref={details}>
         <summary aria-label={`Period: ${periodLabel(period)}`}><span>Period</span><strong>{periodLabel(period)}</strong><span aria-hidden="true">⌄</span></summary>
-        <div className="hub-insights-period-menu">
+        <div className="hub-insights-period-menu" data-chat-safe-actions>
           <div className="hub-insights-period-presets">
             <button type="button" className="btn-ghost" aria-pressed={period.mode === "all"} onClick={() => choose({ mode: "all" })}>All time</button>
             <button type="button" className="btn-ghost" disabled={!choices.length} aria-pressed={period.mode === "last3"} onClick={() => choose({ mode: "last3" })}>Last 3 years</button>

@@ -46,13 +46,13 @@ export default function InsightsOverview({ landing, ownerMap, loading, error, on
             </article>;
           })}
         </div>}
-        <div className="hub-insights-record-controls"><div className="hub-insights-record-sort" role="radiogroup" aria-label={copy.rankBy} onKeyDown={(event) => {
+        <div className="hub-insights-record-controls hub-action-row"><div className="hub-insights-record-sort" role="radiogroup" aria-label={copy.rankBy} onKeyDown={(event) => {
           if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
           event.preventDefault();
           const next = event.key === "Home" ? "record" : event.key === "End" ? "points" : sort === "record" ? "points" : "record";
           setSort(next);
           event.currentTarget.querySelectorAll("button")[next === "record" ? 0 : 1].focus();
-        }}><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "record"} tabIndex={sort === "record" ? 0 : -1} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "points"} tabIndex={sort === "points" ? 0 : -1} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost btn-sm hub-insights-open-scoring" onClick={() => onOpenTab("scoring")}>{copy.openScoring}</button></div>
+        }}><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "record"} tabIndex={sort === "record" ? 0 : -1} onClick={() => setSort("record")}>{copy.recordSort}</button><button type="button" className="btn-ghost" role="radio" aria-checked={sort === "points"} tabIndex={sort === "points" ? 0 : -1} onClick={() => setSort("points")}>{copy.pointsSort}</button></div><button type="button" className="btn-ghost hub-insights-open-scoring hub-wrap-copy hub-icon-on-narrow" data-chat-safe-actions="control" aria-label={copy.openScoring} title={copy.openScoring} onClick={() => onOpenTab("scoring")}><span className="hub-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M4 20h16M7 16V9m5 7V4m5 12v-5" /></svg></span><span className="hub-action-label">{copy.openScoring}</span></button></div>
         {sort === "record" && records.length > 1 && <p className="chart-note">{copy.recordTies}</p>}
         <ol className="hub-insights-record-list">{records.map((row, index) => {
           const owner = teamDisplayName(row, ownerMap, false);

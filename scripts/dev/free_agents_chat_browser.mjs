@@ -48,9 +48,10 @@ async function alignWithChat(page,index=2){
 try{
  const jobs=[320,390,768,1024,1280,1440].flatMap(width=>['dark','light'].flatMap(theme=>['add','bid','claim','locked'].map(state=>({width,theme,state}))));
  jobs.push(...[320,390].flatMap(width=>['dark','light'].map(theme=>({width,theme,state:'bid',target:true}))));
+ jobs.push(...[320,390].flatMap(width=>['dark','light'].map(theme=>({width,theme,state:'large',pagination:true}))));
  let next=0;
  async function worker(){while(next<jobs.length){
-  const {width,theme,state,target}=jobs[next++],id=`${state}-${width}-${theme}${target?'-target':''}`;
+  const {width,theme,state,target,pagination}=jobs[next++],id=`${state}-${width}-${theme}${target?'-target':''}`;
   const page=await browser.newPage({viewport:{width,height:900},serviceWorkers:'block',reducedMotion:'reduce'}),errors=[];
   let report={id,width,theme,state};page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(12000);
   try{
@@ -62,6 +63,18 @@ try{
     await page.getByRole('button',{name:/^WR2: Jaxon Smith-Njigba/}).click();
     // Wider platform font metrics must not let nowrap context hit the action.
     await page.addStyleTag({content:'.fa-tick-key {font-family:Arial,sans-serif;font-size:14px;}'});
+   }
+   if(pagination){
+    const more=page.getByRole('button',{name:'Show more players',exact:true});await more.waitFor();
+    const align=()=>more.evaluate(e=>{const b=document.querySelector('.fantasy-chat-launcher-a').getBoundingClientRect(),r=e.getBoundingClientRect();scrollBy(0,r.y+r.height/2-b.y-b.height/2);});
+    const clear=async()=>!overlaps(await more.boundingBox().then(r=>({...r,w:r.width,h:r.height,right:r.x+r.width,bottom:r.y+r.height})),(await geometry(page)).chat);
+    await align();assert.ok(await clear(),'pagination action clears chat while scrolling');
+    const unsafe=await page.addStyleTag({content:'button[data-chat-safe-actions="control"]{max-inline-size:none!important;margin-inline-end:0!important}'});
+    await align();assert.equal(await clear(),false,'negative control recreates the live pagination overlap');
+    await unsafe.evaluate(e=>e.remove());await align();assert.ok(await clear(),'restoring the shared control lane clears pagination');
+    assert.ok((await audit(page)).filter(x=>['overlay-clearance','chat-anchor'].includes(x.rule)).every(x=>x.ok),'pagination uses the shared overlay audit');
+    report.paginationScreenshot=id+'-pagination.png';await page.screenshot({path:path.join(out,report.paginationScreenshot)});
+    const before=await page.locator('.fa-player').count();await more.click();assert.ok(await page.locator('.fa-player').count()>before,'pagination reveals more players');
    }
    await alignWithChat(page);
    const g=await geometry(page);report.geometry=g;
@@ -108,4 +121,4 @@ try{
  }}
  await Promise.all([worker(),worker(),worker()]);
 }finally{await fs.writeFile(path.join(out,'report.json'),JSON.stringify(reports,null,2));await browser.close();server.close();}
-assert.ok(reports.length===52&&reports.every(r=>r.status==='pass'),'all 52 chat-clearance scenarios must pass');
+assert.ok(reports.length===56&&reports.every(r=>r.status==='pass'),'all 56 chat-clearance scenarios must pass');
