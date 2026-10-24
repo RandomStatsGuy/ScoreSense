@@ -1136,3 +1136,6 @@ The final bounded matrix covers all six Rules categories and expanded award-name
 
 
 The extra all-rule 320-pixel pass found the pre-existing wrapped Insights tabs and unequal Record book button heights. Insights now opts into the existing filter-scroll primitive as a navigation rail; it reveals the active tab with horizontal scrolling only, without moving the page. Protected wrapped phone controls use shared tight leading so both lines fit the 44px row. The final candidate must rerun affected all-rule audits and exact-head Linux checks after this narrow refinement.
+
+
+Linux retained the strict 320-pixel Record book alignment failure where the text label exhausted the available row. The shared narrow icon-action pattern now renders Open scoring as a standard chart icon only at 360 pixels and below, with the same accessible name and title. Wider screens retain its visible label; write actions never use this pattern. This preserves three 44px controls, the chat lane and the approved single row across font metrics. The mobile composition assertions remain unchanged.

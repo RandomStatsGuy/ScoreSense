@@ -74,6 +74,14 @@
   grid-template-columns: minmax(var(--control-h-lg), 1fr) repeat(2, minmax(var(--control-h-lg), min(5.5rem, 30%)));
 }
 
+/* Secondary navigation actions can keep their full accessible name at narrow widths. */
+.hub-icon-on-narrow > .hub-action-icon { display: none; }
+@media (max-width: 360px) {
+  :root .app .hub-icon-on-narrow { flex: none; inline-size: var(--control-h-lg); padding-inline: var(--space-2); }
+  .hub-icon-on-narrow > .hub-action-label { display: none; }
+  .hub-icon-on-narrow > .hub-action-icon { display: inline-flex; align-items: center; justify-content: center; }
+}
+
 /* Compact rows retain one line of controls with the shared small gap. */
 :root .app .hub-action-row { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: var(--space-2); }
 

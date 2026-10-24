@@ -52,6 +52,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify bench and trade interaction anchors
         run: node scripts/dev/release_interactions.mjs
+      - name: Verify narrow Insights composition
+        run: node scripts/dev/chat_pages_browser.mjs --only=insights-overview,insights-period-expanded
       - name: Verify shared chat clearance across Fantasy
         run: node scripts/dev/chat_pages_browser.mjs
       - name: Verify Free agents rows and pagination
