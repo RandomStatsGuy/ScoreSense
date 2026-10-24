@@ -13,6 +13,9 @@
   padding-inline-end: var(--chat-launcher-clearance);
 }
 
+/* Compact action context wraps within its column across font metrics. */
+:root .hub-wrap-copy { white-space: normal; overflow-wrap: anywhere; }
+
 .projection-refresh-status {
   display: flex;
   align-items: center;

@@ -58,10 +58,23 @@ try{
    await page.route('**/*',r=>new URL(r.request().url()).origin===base&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());
    await page.goto(`${base}/hub/free-agents?state=${state}&chat=1&long=1${target?'&longStarter=1':''}`,{waitUntil:'domcontentloaded'});
    await page.locator('.fa-acquire').first().waitFor();await page.locator('.fantasy-chat-bubble-a').waitFor();await page.evaluate(()=>document.fonts.ready);
-   if(target) await page.getByRole('button',{name:/^WR2: Jaxon Smith-Njigba/}).click();
+   if(target) {
+    await page.getByRole('button',{name:/^WR2: Jaxon Smith-Njigba/}).click();
+    // Wider platform font metrics must not let nowrap context hit the action.
+    await page.addStyleTag({content:'.fa-tick-key {font-family:Arial,sans-serif;font-size:14px;}'});
+   }
    await alignWithChat(page);
    const g=await geometry(page);report.geometry=g;
-   if(target) assert.ok(await page.locator('.fa-player').evaluateAll(rows=>rows.every(row=>{const text=row.querySelector('.fa-tick-key'),action=row.querySelector('.fa-acquire');return !text||!action||text.getBoundingClientRect().right<action.getBoundingClientRect().left;})),'long comparison label clears acquisition action');
+   const contextFits=()=>page.locator('.fa-player').evaluateAll(rows=>rows.every(row=>{const text=row.querySelector('.fa-tick-key'),action=row.querySelector('.fa-acquire');return !text||!action||text.getBoundingClientRect().right<action.getBoundingClientRect().left;}));
+   if(target) {
+    assert.ok(await contextFits(),'long comparison label clears acquisition action');
+    if(width===320){
+     await page.locator('.fa-tick-key').evaluateAll(labels=>labels.forEach(e=>e.classList.remove('hub-wrap-copy')));
+     assert.equal(await contextFits(),false,'negative control recreates the nowrap collision');
+     await page.locator('.fa-tick-key').evaluateAll(labels=>labels.forEach(e=>e.classList.add('hub-wrap-copy')));
+     assert.ok(await contextFits(),'restored shared wrapping clears the action');
+    }
+   }
    assert.equal(g.theme,theme);assert.equal(g.overflow,false,'horizontal overflow');
    assert.ok(g.actions.every(a=>!overlaps(a,g.chat)),'chat covers a scrolling player action');
    assert.ok(g.actions.every(a=>a.h>=43.5),'acquisition targets stay 44px');
