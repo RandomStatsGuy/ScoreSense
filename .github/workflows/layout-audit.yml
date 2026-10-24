@@ -10,8 +10,10 @@ on:
       - "frontend/src/styles/**"
       - "frontend/src/DraftHub/HubUILayout.jsx"
       - "frontend/src/DraftHub/LeagueTrades.jsx"
+      - "frontend/src/DraftHub/FreeAgentsBoard.jsx"
       - "scripts/dev/release_interactions.mjs"
       - "scripts/dev/chat_pages_browser.mjs"
+      - "scripts/dev/free_agents_chat_browser.mjs"
       - "scripts/dev/layout_audit.mjs"
       - "frontend/src/livingSurfaces.js"
       - ".github/workflows/layout-audit.yml"
@@ -49,6 +51,8 @@ jobs:
         run: node scripts/dev/release_interactions.mjs
       - name: Verify shared chat clearance across Fantasy
         run: node scripts/dev/chat_pages_browser.mjs
+      - name: Verify Free agents rows and pagination
+        run: node scripts/dev/free_agents_chat_browser.mjs
       - name: Save interaction evidence
         if: always()
         uses: actions/upload-artifact@v4

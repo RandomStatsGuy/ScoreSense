@@ -16,7 +16,7 @@
     "frontend/src/styles/tokens.css": "aafa83894dfb629c5658c973282141a4c64261339ebbb8c48f9fcd287ced32d1",
     "frontend/src/styles/trade-desk.css": "4a88c4b50e5f00d6d4d3aeab4a3b9ed07e6857c81105137b64f57464fbd9e378",
     "frontend/src/DraftHub/DraftHub.jsx": "4e3ddb7c53f728148f6a9d227e32e52880fd6e0e9a1a244727cca515e8292821",
-    "frontend/src/DraftHub/FreeAgentsBoard.jsx": "884ec864cf214e6cd2959ef46b09b54d156b3a407dbb96b46efed8785547caae",
+    "frontend/src/DraftHub/FreeAgentsBoard.jsx": "dd6b467575d0c2236b92f14b0c0566ca8d1b150cb0b25d918c80a8aea3a88aeb",
     "frontend/src/DraftHub/ValueSheetTable.jsx": "0dccf85f22c16667ff4685d39e8f02d4f687a714b6db9d311fc9bfdb4e5769a9",
     "frontend/src/DraftHub/acquisitionWindow.js": "b5722410c6c37be20168daeb7dd0863f45852cf9e9bc91e12a60759c01869893",
     "frontend/src/DraftHub/hubDataCache.js": "2ecea907e3fa5c5d0c9bfce222a292de4087409fab546818728df2a17264bdbc",

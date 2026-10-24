@@ -1124,3 +1124,6 @@ Linux pointer diagnostics showed the first 320 action was covered before measure
 
 
 October 24 narrow Setup follow-up: the full Linux release suite rejected an intrinsic-width Sleeper input at 320 pixels before SSH deployment. Shared protected-flow controls now fit their available inline size, and compact disclosure rows put the title above metadata so words remain readable. The strict overlay assertion remains unchanged; the 152-case shared-chat suite now runs before merge as well as before deployment, with a three-line readability check for the narrow Setup title. Machine, screenshot and live evidence are recorded separately in the task output.
+
+
+October 24 live pagination follow-up: signed-in phone testing found the full-width Show more players button passing behind chat between scroll stops, although acquisition rows cleared it. Adopt the existing shared control marker on that button; no new CSS override. Four large-list cases at 320/390 in both themes reproduced the live collision before the fix. They now align pagination with chat, remove/restore the shared lane as a negative control, verify more rows appear on click, and retain the no-acquisition-write assertion. The 56-case Free agents suite now runs before merge as well as in the 288-case release gate. The previous release is healthy while this small follow-up is checked.
