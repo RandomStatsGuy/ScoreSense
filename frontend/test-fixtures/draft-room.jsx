@@ -3,6 +3,11 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import DraftRoom from "../src/DraftHub/DraftRoom";
+import {CommunicationProvider} from "../src/DraftHub/CommunicationContext";
+import MobileShell from "../src/layout/MobileShell";
+import FantasyChatDock from "../src/DraftHub/FantasyChatDock";
+import {hideFantasyChatDock} from "../src/DraftHub/fantasyChatPresentation";
+import "../src/styles/fantasy-chat.css";
 import "../src/styles.css";
 import "../src/styles/fantasy.css";
 import "../src/styles/product-hierarchy.css";
@@ -11,8 +16,10 @@ import "../src/styles/fantasy-phone.css";
 import "../src/styles/tools-draft.css";
 import "../src/styles/color-theme.css";
 const params = new URLSearchParams(location.search);
+const shell = params.get("shell") === "1";
 const state = params.get("state") || "bidding", practice = params.get("practice") === "1";
 const pick = params.get("format") === "snake", readonly = params.get("role") === "visitor";
+const commissioner = !readonly && params.get("role") !== "member";
 const setup = ["setup", "locked", "closed"].includes(state);
 const completed = state === "completed";
 const draftStatus = setup ? "setup" : completed ? "completed" : pick ? "picking" : state === "paused" ? "nominating" : state;
@@ -23,8 +30,8 @@ const pool = [
   {player_id:"sample-chase",name:"Ja'Marr Chase",position:"WR",team:"CIN",season_p50:300,season_p10:230,season_p90:380,fair_value:61},
 ].map(row=>({...row,player:row.name,player_name:row.name,status:"available",is_available:true,season_proj:row.season_p50,per_game_proj:row.season_p50/17,min_sal:1,max_sal:row.fair_value+5}));
 const rules = {salary_cap:200,draft_type:pick ? "snake" : "auction",roster_size_max:12,roster:{qb:{min:1,max:3},rb:{min:2,max:5},wr:{min:2,max:5},te:{min:1,max:3},flex:{min:1,max:2}},auction:{min_bid:1,nomination_timer_sec:60,bid_timer_sec:30,late_bid_extend_sec:5},contracts:{rookie_years:2,veteran_years:2}};
-const teams = Array.from({length:12},(_,i)=>({id:`sample-${i}`,name:i?`Sample team ${i+1}`:"Sunday Roster",owner_name:i?`Manager ${i+1}`:"Sample manager",budget_remaining:practice&&i===0?193:200,cap_remaining:practice&&i===0?193:200,roster_count:practice&&i===0?1:0,draft_slot:i+1,user_sub:setup && i>1 ? null : `synthetic-${i}`,is_bot:practice && i>0,is_commissioner:i===0}));
-let room = {league:{id:"sample",name:"Sample draft room",season:2026,team_count:12,test_mode:practice,draft_completed:completed,room_code:"SAMPLE",draft_timezone:"America/Los_Angeles",draft_starts_at:state==="locked"?new Date(Date.now()+86400000).toISOString():null,rules},teams,rosters:Object.fromEntries(teams.map(t=>[t.id,practice&&t.id==="sample-0"?[{player_id:"sample-practice-keeper",player_name:"Example practice tight end",position:"TE",team:"DAL",salary:7,years_remaining:2,source:"mock"}]:[]])),events:[],picks:[],viewer:{team_id:readonly?null:"sample-0",is_commissioner:!readonly,roster:[],nomination_queue:[]},nominator_team_id:"sample-0",draft_type:rules.draft_type,claimed_humans:state==="locked"?12:2,pick:pick?{round:1,overall:1,team_id:"sample-0"}:null,roster_limits:rules.roster,session:{status:draftStatus,conduct:params.get("offline")==="1"?"offline":"live",current_nominee:!pick&&state==="bidding"?pool[0]:null,high_bid:14,high_bidder_team_id:"sample-1",paused:state==="paused",nomination_order:teams.map(t=>t.id),nomination_index:0,bid_deadline:new Date(Date.now()+300000).toISOString(),nomination_deadline:new Date(Date.now()+300000).toISOString()}};
+const teams = Array.from({length:12},(_,i)=>({id:`sample-${i}`,name:i?`Sample team ${i+1}`:"Sunday Roster",owner_name:i?`Manager ${i+1}`:"Sample manager",budget_remaining:practice&&i===0?193:200,cap_remaining:practice&&i===0?193:200,roster_count:practice&&i===0?1:0,draft_slot:i+1,user_sub:setup && i>1 ? null : `synthetic-${i}`,is_bot:practice && i>0,is_commissioner:i===0&&commissioner}));
+let room = {league:{id:"sample",name:"Sample draft room",season:2026,team_count:12,test_mode:practice,draft_completed:completed,room_code:"SAMPLE",draft_timezone:"America/Los_Angeles",draft_starts_at:state==="locked"?new Date(Date.now()+86400000).toISOString():null,rules},teams,rosters:Object.fromEntries(teams.map(t=>[t.id,practice&&t.id==="sample-0"?[{player_id:"sample-practice-keeper",player_name:"Example practice tight end",position:"TE",team:"DAL",salary:7,years_remaining:2,source:"mock"}]:[]])),events:[],picks:[],viewer:{team_id:readonly?null:"sample-0",is_commissioner:commissioner,roster:[],nomination_queue:[]},nominator_team_id:"sample-0",draft_type:rules.draft_type,claimed_humans:state==="locked"?12:2,pick:pick?{round:1,overall:1,team_id:"sample-0"}:null,roster_limits:rules.roster,session:{status:draftStatus,conduct:params.get("offline")==="1"?"offline":"live",current_nominee:!pick&&state==="bidding"?pool[0]:null,high_bid:14,high_bidder_team_id:"sample-1",paused:state==="paused",nomination_order:teams.map(t=>t.id),nomination_index:0,bid_deadline:new Date(Date.now()+300000).toISOString(),nomination_deadline:new Date(Date.now()+300000).toISOString()}};
 const sockets = new Set();
 const clone = value => structuredClone(value);
 function broadcast() {
@@ -115,20 +122,24 @@ window.fetch=async(input,options={})=>{
   if(pathname.endsWith("/trades"))return respond({proposals:[]});
   if(pathname.endsWith("/draft-expire-preview"))return respond({rows:[]});
   if(pathname==="/api/hub/league/sample")return respond(room);
+  if(shell&&pathname.endsWith("/chat/summary"))return respond({threads:[],members:[{id:"sample-0",name:"Sample manager",team_name:"Sunday Roster",can_message:true},{id:"sample-1",name:"Manager with a very long surname",team_name:"Another very long fantasy team name",can_message:true}],notifications:[],preferences:{},unread:0});
   if(pathname.includes("/messages")||pathname.includes("/chat"))return respond({messages:[],channels:[]});
   return respond({media:{},players:{},items:[]});
 };
 function FixtureRoot() {
   const [exited, setExited] = React.useState(false);
   const [leagueId, setLeagueId] = React.useState("sample");
-  return <MemoryRouter><div className="app">
+  const content = <>
     <p className="chart-note">Isolated draft preview · synthetic data · no real league changes</p>
     <main id="main-content"><div className="draft-hub">
       {exited ? <p role="status">Practice room discarded.</p> : <DraftRoom leagueId={leagueId}
         onLeagueIdChange={id=>{fixture.changedLeague=id;setLeagueId(id);}}
         onExitRoom={()=>{fixture.exited=true;setExited(true);}} valueRows={pool} season={2026}
         toolMode={practice} toolLabel={practice?"Mock draft":"Draft"}
-        hubContext={{mode:"league",league_id:"sample",league_name:"Sample draft room",team_id:readonly?null:"sample-0",is_commissioner:!readonly,rules}} />}
-    </div></main></div></MemoryRouter>;
+        hubContext={{mode:"league",league_id:"sample",league_name:"Sample draft room",team_id:readonly?null:"sample-0",is_commissioner:commissioner,rules}} />}
+    </div></main></>;
+  return <MemoryRouter>{shell ? <CommunicationProvider enabled identity="draft-chat-audit" hubContext={{mode:"league",league_id:"sample",team_id:readonly?null:"sample-0"}}><MobileShell section={practice?"tools":"hub"} onSectionChange={()=>{}} onMoreOpen={()=>{}} hrefForSection={id=>`#${id}`}>
+    {content}<FantasyChatDock leagueId="sample" hidden={hideFantasyChatDock({hidden:params.get("duplicateChat")!=="1"})}/>
+  </MobileShell></CommunicationProvider> : <div className="app">{content}</div>}</MemoryRouter>;
 }
 createRoot(document.getElementById("root")).render(<FixtureRoot />);

@@ -131,7 +131,7 @@ export default function DraftLiveCommandBar({
   };
 
   return (
-    <div className="hub-draft-live-command" role="region" aria-label={picking ? "Live pick command bar" : "Live auction command bar"}>
+    <div data-top-actions className="hub-draft-live-command" role="region" aria-label={picking ? "Live pick command bar" : "Live auction command bar"}>
       <div className="hub-draft-live-command-main">
         {(modeLabel || leagueLabel) && (
           <div className="hub-draft-live-command-context">

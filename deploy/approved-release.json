@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "approved_release": "2026-10-24 shared chat clearance across Fantasy, Rules and Insights; preserves mappings, Bye, bounded loading and stable trades",
+  "approved_release": "2026-10-24 shared chat clearance including active drafts; preserves mappings, Bye, loading and steady trades",
   "protected_sources": {
     "frontend/src/DraftHub/TeamRoomView.jsx": "c77240e7dd45b00bd6f1211bc9fe2ee3d6f949eb1882df93aaab55986beffea1",
     "frontend/src/DraftHub/RulesWizard.jsx": "4ad906d32129daf82ca941fabc3da1fbef1a71abed9c707707d82a9199573d48",
     "frontend/src/DraftHub/LeagueTrades.jsx": "aaaede4a8fa54ddb4e01eb47e98eadbb356747b5590230360f305ada250fd7c7",
-    "frontend/src/styles/product-rhythm.css": "77e53cef2c3cd257e61ee2f79edd3879abd53fa8c4786820942a9e27225d0c14",
+    "frontend/src/styles/product-rhythm.css": "2c99d94179a2891ae33e2b0342158b34607ffdab3a56fddd4f320fcf68efa0f0",
     "src/draft_hub/player_identity.py": "b286aa7ac86dd572054cbf7e09e742a8edfddca4d514822e1cc6a7fc4d32d865",
     "frontend/src/DraftHub/gameCenterPresentation.js": "96e82c18890d2304c8c5c8820012e6491dd3c32e55a0984c3d8e5bbec18857f7",
     "frontend/src/DraftHub/GameCenterMatchup.jsx": "4bf8a406c849b5eb1b9683907a6b67dce7b29359db2f53432dfe8bc9588a7ad3",
@@ -30,13 +30,19 @@
     "frontend/src/DraftHub/WeekCorrections.jsx": "6a215a852057f44c7780d7c550bb6c69d38c3cc075bb7b1b0d748a1222044b6e",
     "frontend/src/DraftHub/RosterBuilder.jsx": "256ce08d82c9d48e027adaa780e21f08863b60942ad4771bf47425ea68ca5a20",
     "frontend/src/DraftHub/LeagueOffice.jsx": "9eb2b84194a978cac11fe634bfbc7c57066f9c191e181f470ec6fb6aa9a852c4",
-    "frontend/src/styles/fantasy-chat.css": "26a385f4acc17a956235084331a3a04b1f50b69e3e63e74959b59a6aeb359a9a",
+    "frontend/src/styles/fantasy-chat.css": "0c78c37cdc722fccd62eebee66d62c548381ba0c34105040bd4b25d628036471",
     "frontend/src/DraftHub/insights/InsightsTalk.jsx": "eb83e2f272c20e70020c89a438cb22f88f87d7a55f8434c6b2c86d18765889d7",
     "frontend/src/DraftHub/insights/InsightsBoards.jsx": "730501303b3cefaca22f115834b15b28d56ca6d619104b7b1d1706ab090bae70",
     "frontend/src/DraftHub/insights/InsightsContracts.jsx": "4d466f75037dee575dd7db9002ca3780c855da8dff74976267af004103e88283",
     "frontend/src/DraftHub/insights/InsightsHeader.jsx": "1d88eb2ad533e6507dc7d0c98e12bf5fb634cf6899fa564a331608d5451644c4",
     "frontend/src/DraftHub/LeagueInsights.jsx": "d2044a3df4575a342e6fa2ac785c98014f7e0f3a8a7821ceb598f78a46c906b0",
     "frontend/src/DraftHub/insights/InsightsOverview.jsx": "3cfaf59c4051a7849ae16e947b07d3d355a21cd0ddd57791d63ff17b51a9a0a5",
-    "frontend/src/DraftHub/insights/AwardTitlesEditor.jsx": "c76d17648ce55489ee1b695a00ae6ec36a042a0daa3fa10ee976bfc1afec0c54"
+    "frontend/src/DraftHub/insights/AwardTitlesEditor.jsx": "c76d17648ce55489ee1b695a00ae6ec36a042a0daa3fa10ee976bfc1afec0c54",
+    "frontend/src/DraftHub/DraftRoom.jsx": "3768b74ff05a8df17e5ad9a837b4ef9a53c69a31e928edfdb849ca54590225c0",
+    "frontend/src/DraftHub/fantasyChatPresentation.js": "a490212f68ae7f880a415fa4eb0e7039e8dbc28a5ba85b72984f2ce9698761ae",
+    "frontend/src/DraftHub/ChatLauncher.jsx": "51aad41c0d808bf6823829199c3ddcb7ac139e39a24c1915687a1abe6238b0e4",
+    "frontend/src/DraftHub/ChatThread.jsx": "92a1d4e8a3e0f2e47060cb0ca6ee8ed7e47d13533801ec1e649ac473c280defc",
+    "frontend/src/DraftHub/DraftLiveCommandBar.jsx": "63bacf85ca86ae8d3b353007596a0b32d6fdf2a3b1a57e04862ee2a3bb615235",
+    "frontend/src/ui/useBottomClearance.js": "9694e7f0b69aaab4c179879214df9847ac63483660e87189d8e5429afc9e34b0"
   }
 }

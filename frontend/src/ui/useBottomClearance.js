@@ -28,7 +28,13 @@ export default function useBottomClearance(root, mobileLayout) {
         const position=getComputedStyle(bar).position;
         if(bar.dataset.bottomPosition!==position)bar.dataset.bottomPosition=position;
       }
-      const elements = [nav, ...bars].filter(Boolean);
+      const topBars = [...shell.querySelectorAll('[data-top-actions]')];
+      write('--top-action-height', Math.ceil(Math.max(0,...topBars.map(element=>{
+        const css=getComputedStyle(element);
+        return ['sticky','fixed'].includes(css.position)&&element.getClientRects().length&&css.visibility!=='hidden'
+          ? Math.max(0,parseFloat(css.top)||0)+element.getBoundingClientRect().height : 0;
+      }))));
+      const elements = [nav, ...bars, ...topBars].filter(Boolean);
       for (const element of observed) if (!elements.includes(element)) { sizes.unobserve(element); observed.delete(element); }
       for (const element of elements) if (!observed.has(element)) { sizes.observe(element); observed.add(element); }
       write("--bottom-nav-height", navHeight);
@@ -39,14 +45,14 @@ export default function useBottomClearance(root, mobileLayout) {
       }))));
     }
     const changes = new MutationObserver(schedule);
-    changes.observe(shell, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "hidden"] });
+    changes.observe(shell, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "hidden", "data-top-actions"] });
     window.addEventListener("resize", schedule);
     window.visualViewport?.addEventListener("resize", schedule);
     measure();
     return () => {
       active = false; cancelAnimationFrame(frame); sizes.disconnect(); changes.disconnect();
       window.removeEventListener("resize", schedule); window.visualViewport?.removeEventListener("resize", schedule);
-      style.removeProperty("--bottom-nav-height"); style.removeProperty("--bottom-action-height");
+      style.removeProperty("--bottom-nav-height"); style.removeProperty("--bottom-action-height"); style.removeProperty("--top-action-height");
     };
   }, [root, mobileLayout]);
 }
