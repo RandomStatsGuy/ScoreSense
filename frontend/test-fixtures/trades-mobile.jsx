@@ -33,6 +33,7 @@ const context={mode:'league',league_id:'trades-fixture',team_id:state==='readonl
 const teamNames=['Sunday Roster','Sunday Rivals','Mountain Kings','Midnight Blitz','Fourth & Forever','Coastal Crew'];
 const owners=['Maya Chen','Jordan Davis','Morgan Lee','Alex Rivera','Taylor Reed','Sam Carter'];
 const people=[['Josh Allen','QB','BUF'],['James Cook','RB','BUF'],['Bijan Robinson','RB','ATL'],['DeVonta Smith','WR','PHI'],['CeeDee Lamb','WR','DAL'],['Trey McBride','TE','ARI']];
+if(params.has('fullRoster'))people.push(['Evan McPherson','K','CIN'],['Jacksonville Jaguars','DEF','JAX']);
 const blocks=teamNames.map((name,i)=>({team:{id:i?'team'+i:'mine',name:params.has('long')&&i===1?'The Incredibly Long Fantasy Team With No Short Name':name,owner_name:owners[i]},stats:{committed:100,dead_cap:6,by_position_count:{QB:1,RB:2,WR:2,TE:1}},roster:people.map(([player,pos,nfl],j)=>({player_id:`${i}-${j}`,player_name:params.has('long')&&j===0?'A Very Long Player Name With Several Surnames':player,position:pos,team:nfl,salary:10+j*2,contract_years:2,roster_status:'active',contract:{years_remaining:2}}))}));
 const players=Object.fromEntries(blocks.flatMap((b,i)=>b.roster.map((r,j)=>[r.player_id,{remaining_points:100+j*14+i*8,annual_points:160+j*20+i*8}])));
 if(state==='empty')blocks.splice(1);

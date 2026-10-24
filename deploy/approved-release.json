@@ -4,7 +4,7 @@
   "protected_sources": {
     "frontend/src/DraftHub/TeamRoomView.jsx": "870f49b61dee05802839aaf14b978383779664655dbd9adc6f188a443ae7f60b",
     "frontend/src/DraftHub/RulesWizard.jsx": "71bceda03ab6b5ae9a251d51f0fec59616e1852d0ee53710b4ee2e5f7712ba0d",
-    "frontend/src/DraftHub/LeagueTrades.jsx": "4509935f18a1f41dee571b173f29be98362250d78d152e28add430dfd71d1b65",
+    "frontend/src/DraftHub/LeagueTrades.jsx": "1fa42c5456f06a0f15bdf986ebb13869ee7cf0011f22c969e74f45886065605a",
     "frontend/src/styles/product-rhythm.css": "18c288516b06dbc8253ed6ab8d05a268957f1fadd80945bbf70a7f8a95005e74",
     "src/draft_hub/player_identity.py": "b286aa7ac86dd572054cbf7e09e742a8edfddca4d514822e1cc6a7fc4d32d865",
     "frontend/src/DraftHub/gameCenterPresentation.js": "96e82c18890d2304c8c5c8820012e6491dd3c32e55a0984c3d8e5bbec18857f7",

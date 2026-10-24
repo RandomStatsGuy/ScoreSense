@@ -1297,7 +1297,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         const defaultTo = activeParties.length > 2 ? "" : others[0] || "";
         const rows = visibleRosterRows(rosterByTeam[party.team_id] || [], party.team_id);
         const totalRows = (rosterByTeam[party.team_id] || []).length;
-        const teamProjected = party.team_id ? projectedByTeam[party.team_id] : null;
+        const teamCurrent = party.team_id ? statsByTeam[party.team_id] : null;
         const isYours = party.team_id === myTeamId;
         return (
           <React.Fragment key={idx}>
@@ -1311,8 +1311,8 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
               {!isYours && idx === 1 && !sourceReviewId && <button type="button" className="btn-ghost btn-sm" onClick={() => openPartnerPicker()}>{formatCopy.changePartner}</button>}
             </div>
 
-            <div className="hub-trade-roster-context"><span>{salaryLeague ? `${fmtSal(teamProjected?.unspent)} ${formatCopy.free}` : formatCopy.rosterCount(totalRows)}</span>
-              <span>{HUB_POS_ORDER.filter(pos => teamProjected?.by_position_count?.[pos]).map(pos => `${pos} ${teamProjected.by_position_count[pos]}`).join(" · ")}</span></div>
+            <div className="hub-trade-roster-context"><span>{salaryLeague ? `${fmtSal(teamCurrent?.unspent)} ${formatCopy.free}` : formatCopy.rosterCount(totalRows)}</span>
+              <span>{HUB_POS_ORDER.filter(pos => teamCurrent?.by_position_count?.[pos]).map(pos => `${pos} ${teamCurrent.by_position_count[pos]}`).join(" · ")}</span></div>
 
             <div className="hub-trade-column-key"><span>{formatCopy.currentRoster}</span><span>{formatCopy.weekPoints}{salaryLeague ? ` / ${formatCopy.salary}` : ""}</span></div>
             <ul className="hub-trade-player-list">
