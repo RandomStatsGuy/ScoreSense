@@ -8,6 +8,12 @@
   padding-bottom: calc(var(--bottom-nav-height) + max(var(--bottom-action-height), var(--chat-launcher-clearance)) + var(--space-4));
 }
 
+/* Registered top actions leave room for focus between the bar and navigation. */
+:root:has([data-top-actions]) {
+  scroll-padding-block-start:calc(var(--top-action-height, 0px) + var(--space-2));
+  scroll-padding-block-end:calc(var(--bottom-nav-height) + var(--space-4));
+}
+
 /* Scrolling action rows can reserve the same lane as detached page actions. */
 :root.has-fantasy-chat-launcher [data-chat-safe-actions]:not([data-chat-safe-actions="control"]) {
   padding-inline-end: var(--chat-launcher-clearance);

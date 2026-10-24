@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "node ../scripts/dev/run_frontend_tests.mjs",
     "audit:layout": "node ../scripts/dev/layout_audit.mjs",
-    "test:release-layout": "node ../scripts/dev/release_shared_spacing.mjs && node ../scripts/dev/release_spacing_browser.mjs && node ../scripts/dev/release_interactions.mjs && node ../scripts/dev/release_loading.mjs && node ../scripts/dev/free_agents_chat_browser.mjs && node ../scripts/dev/chat_pages_browser.mjs"
+    "test:release-layout": "node ../scripts/dev/release_shared_spacing.mjs && node ../scripts/dev/release_spacing_browser.mjs && node ../scripts/dev/release_interactions.mjs && node ../scripts/dev/release_loading.mjs && node ../scripts/dev/free_agents_chat_browser.mjs && node ../scripts/dev/chat_pages_browser.mjs && node ../scripts/dev/active_draft_chat_browser.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.3",

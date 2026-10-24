@@ -1139,3 +1139,16 @@ The extra all-rule 320-pixel pass found the pre-existing wrapped Insights tabs a
 
 
 Linux retained the strict 320-pixel Record book alignment failure where the text label exhausted the available row. The shared narrow icon-action pattern now renders Open scoring as a standard chart icon only at 360 pixels and below, with the same accessible name and title. Wider screens retain its visible label; write actions never use this pattern. This preserves three 44px controls, the chat lane and the approved single row across font metrics. The mobile composition assertions remain unchanged.
+
+
+## October 24 active draft chat clearance
+
+Task: complete the desktop/mobile chat audit on active Fantasy drafts and live practice rooms. Baseline: approved board-first draft, current bid/pick first, applicable leftover/roster constraint second, next action third; inline conversation remains secondary. Do not create a second floating overlay or start/reset a real draft to test it.
+
+Observed friction: the selected live native league has completed its draft. Isolated real-component bidding/nomination/paused/snake views pass at 1280/390, but short 320x568 bidding screens reproduce an obscured emoji picker in both themes. The absolute compact picker opens behind the wrapped sticky bid bar. The deeper tab-change check also exposed scrolling a control beneath that header.
+
+Bounded implementation: compact shared ChatThread keeps its emoji choices in flow, focuses/reveals the group and returns focus on Escape. The existing shared action-clearance hook measures opt-in `data-top-actions` bars; shared product CSS reserves their actual height and the measured navigation edge during focus scrolling. DraftLiveCommandBar opts in. No guessed header height, changed bid/pick logic, moving bubble, or page-specific spacing override. Preserve all 36 protected source paths, intentionally advance the two shared stylesheet hashes, and protect six draft/shared-chat/action-measurement files (42 total).
+
+Machine evidence is recorded in the task PR and outputs/agent/release-regressions/active-draft-chat/report.json. The final 72-case matrix covers Fantasy/practice, bidding/nomination/paused/snake, offline/member/visitor, both themes, 1280/390/320, and short phones. All layout rules remain strict. A valid-provider negative control proves the duplicate bubble would otherwise render, and the old absolute-picker style must reproduce obscured controls. Existing 384 scenarios remain required (456 total).
+
+Visual evidence: actual-component screenshots inspected at desktop/phone/narrow widths in both themes, including the reproduced sticky-header collision and repaired emoji choices. These use isolated data and optional logo fallbacks, not live active leagues. Interaction evidence: unsent composition, mentions/emoji, Escape/focus return, room tabs and measured header adaptation to a server state transition, without draft/chat-message mutations. Live completed-room checks and deployed build identity are recorded separately; do not label the isolated active state as a live league.
