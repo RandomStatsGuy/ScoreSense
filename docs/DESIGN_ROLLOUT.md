@@ -1060,3 +1060,24 @@ branch; a draft PR does not alter master. The runbook explains explicit baseline
 updates and bypass limitations. Local evidence lives under the task worktree's
 `outputs/agent/release-regressions/` and primary workspace's
 `outputs/agent/deploy-guards/`.
+
+
+### Mobile trade selection, bench Bye, and player loading — October 23, 2026
+
+Task: fix the three remaining issues observed in the live mobile audit and deploy the fixes. Baseline: the approved roster-first Trade desk, existing locker/bench, Free agents cards, shared spacing, and compact action panels. Attention order: player identity and truthful status; stationary rows and review controls; clear loading recovery. Surfaces: `hub.trades`, `hub.roster`, `hub.available`.
+
+Observed friction: adding a trade player inserted a comparison strip above the phone roster and triggered browser scroll anchoring; on desktop, a taller Exchange pushed the dock down. Bench responses discarded confirmed Bye metadata, so the room showed numeric zero. An earlier long-lived Free agents view stayed loading; a fresh live diagnostic returned HTTP 200 in 3.2 seconds. The backend failure did not reproduce. The client shared producer had no deadline, leaving a stuck promise reusable indefinitely.
+
+Bounded changes: keep the phone comparison in Exchange/Review; constrain the desktop Exchange to the roster stage; preserve confirmed Bye metadata and apply one shared formatter to rack, lockers, detail, and bench choices; bound shared player reads to 30 seconds, isolate the active consumer, and expose Retry without a false empty pool. Numeric zero and genuinely missing forecasts retain their meanings. No scoring, lineup eligibility, projection values, league rules, or provider ownership changes.
+
+Machine evidence: 1,445 frontend tests and production build PASS. Canonical fixture route audits below use current production components with synthetic responses, with all audit rules enabled. The release suite passes 64 shared/responsive spacing cases and 16 interaction/recovery workflows; 53 targeted release-guard, packaging, and crosswalk checks pass. The complete Python suite is recorded with the final release evidence.
+
+| Canonical fixture route | 390 | 1280 |
+|---|---|---|
+| My team | PASS | PASS |
+| Trades | PASS | PASS |
+| Free agents | PASS | PASS |
+
+Visual/interaction evidence: phone rack/lockers at 320 and 390 distinguish Bye, zero, and missing data; trade add/remove retains row height, row coordinates, page scroll and Review coordinates; package remove/Undo, salary/pick review/back, and cap blockers use synthetic validation only. Loading checks use the real application shell, controlled failed/delayed responses, explicit retry, and destination changes while the request is pending. Actual production mobile follow-through is recorded after deployment. Evidence: `outputs/agent/release-regressions/` and `outputs/agent/mobile-fixes/`. No trade proposal or lineup change is submitted.
+
+Protection: the reviewed source policy preserves the previous spacing/identity floor and adds the bench metadata/formatter and player loading dependencies. Deployment still checks the independent host policy before service shutdown and preserves live databases and artifacts.

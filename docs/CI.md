@@ -12,7 +12,7 @@ Production is **Vultr + Cloudflare Tunnel** (`app.fourthdownlabs.com`). Vercel i
 | Ready PR touching `frontend/src/styles.css`, `frontend/src/styles/**`, `HubUILayout.jsx`, `livingSurfaces.js`, or `layout_audit.mjs` | `Layout audit` (Playwright at 1280 and 390 on every `livingSurfaceRoutes()` URL). Starts the app with `start_hub_dev.sh` — API uses `.venv` when present, otherwise PATH Python from `pip install -r requirements-ci.txt`. The check **gates** `type`, `selects`, `collisions`, `grids`, `cursors`, `insets`. Other rules stay in the JSON. | Draft PRs |
 | Ready PR that is only docs / `render.yaml` / `vercel.json` | No Actions workflow | Vercel, pytest, npm |
 | Merge to `develop` | Nothing extra (already paid on the PR) | Second full pytest |
-| Push to `master` with app/image changes | Release source guard, mapping/Bye tests, frontend tests/build, and 64 isolated spacing cases plus four workflows; then `Deploy to VPS` | Docs-only master merges |
+| Push to `master` with app/image changes | Release source guard, mapping/Bye tests, frontend tests/build, and 64 isolated spacing cases plus bench, confirmed-Bye, stationary trade selection, and player-loading recovery workflows; then `Deploy to VPS` | Docs-only master merges |
 | Push to `master` that is only docs/CI/tests | Nothing | Docker rebuild |
 
 Draft → iterate in Cursor → mark **Ready for review** when you want the paid stack. That is the same rule as `.cursorrules`.

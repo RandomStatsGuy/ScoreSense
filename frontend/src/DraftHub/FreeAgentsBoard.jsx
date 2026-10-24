@@ -235,7 +235,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
   claims, claimsReady = true, priority, protectedIds, roster, rosterIds, onWatch, watchIds, onHistory, claimContent, ceilingFor,
   posFilter, positionOptions, setPosFilter, sortKey, sortOptions, onSort, search, setSearch,
   tierFilter, tierOptions, setTierFilter, riskProfile, riskOptions, setRiskProfile, needsOnly, needPositions, setNeedsOnly,
-  boardDirty, resetBoard, emptyMessage, draft, onOpen, onClose, onChange, onConfirm, busy, error,
+  loadError, onRetryLoad, boardDirty, resetBoard, emptyMessage, draft, onOpen, onClose, onChange, onConfirm, busy, error,
   faceoff = null, onTarget, groupStarts = null, listKey = "", notice = null, justSavedId = null }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -276,7 +276,8 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
     {error && !draft && <p className="fa-info" role="status">{error}</p>}
     <div className={`fa-pool${fresh ? " is-fresh" : ""}`} ref={scrollerRef} aria-busy={loading}>
       {loading && count === 0 ? <div role="status" aria-label={COPY.loading}>{[0, 1, 2, 3, 4].map(n => <div className="fa-skeleton" key={n} />)}</div> : null}
-      {!loading && count === 0 && <div className="fa-empty"><p>{emptyMessage}</p>{boardDirty && <button className="btn-ghost btn-sm" onClick={resetBoard}>{COPY.reset}</button>}</div>}
+      {loadError && <div className="fa-empty" role="alert"><p>{loadError}</p>{onRetryLoad && <button type="button" className="btn-ghost" onClick={onRetryLoad} disabled={loading}>{COPY.loadRetry}</button>}</div>}
+      {!loading && !loadError && count === 0 && <div className="fa-empty"><p>{emptyMessage}</p>{boardDirty && <button className="btn-ghost btn-sm" onClick={resetBoard}>{COPY.reset}</button>}</div>}
       {topPad > 0 && <div aria-hidden="true" style={{ height: topPad }} />}
       {rows.map((row, i) => {
         const band = resolveSeasonBand(row), suggested = effectiveAuctionBid(row, riskTolerance, rules);

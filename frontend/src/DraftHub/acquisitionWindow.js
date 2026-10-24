@@ -66,6 +66,8 @@ export const PLAYERS_TAB_COPY = {
   reset: "Reset filters",
   count: (count) => `${count} players`,
   loading: "Loading players",
+  loadTimeout: "Players took too long to load. Try again.",
+  loadRetry: "Retry players",
   more: "Show more players",
   openDetails: (name) => `Open ${name} details`,
   add: "Add",

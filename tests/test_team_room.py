@@ -116,6 +116,9 @@ def test_room_preview_metadata_uses_slot_rules_and_blocks_started_or_unknown_kic
         {"player_id": "started", "name": "Started receiver", "position": "WR", "team": "DEN", "proj": 9},
         {"player_id": "unknown", "name": "Unknown kickoff", "position": "WR", "team": "UNK", "proj": 8},
     ]
+    rows[2].update(on_bye=True, proj=0)
+    rows[3].update(projection_source="bye", proj=0)
+    rows[4]["proj"] = 0  # A real zero alone is not a bye.
     scoring = {"available": True, "season": 2026, "week": 6, "current_week": 6, "starting_slots": ["QB", "FLEX"],
         "matchups": [{"teams": [{"hub_team_id": team["id"], "is_viewer": True, "points": 0, "starters": rows[:2], "bench_players": rows[2:]}]}]}
     monkeypatch.setattr(storage, "list_roster", lambda *a: rows)
@@ -129,6 +132,10 @@ def test_room_preview_metadata_uses_slot_rules_and_blocks_started_or_unknown_kic
     room = team_room.build_room(team)
     bench = {p["player_id"]: p for p in room["bench"]}
     assert room["lineup_host"] == ("sleeper" if host == "sleeper" else "scoresense")
+    assert bench["bench"]["on_bye"] is True
+    assert bench["rb"]["on_bye"] is True
+    assert bench["started"]["on_bye"] is False
+    assert bench["unknown"]["on_bye"] is False
     assert bench["bench"]["preview_slots"] == [1]
     assert bench["rb"]["preview_slots"] == []  # This league's FLEX accepts WR only.
     assert bench["started"]["lineup_locked"] is True and bench["started"]["preview_slots"] == []

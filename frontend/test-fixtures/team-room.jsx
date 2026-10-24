@@ -65,6 +65,7 @@ const players = rows.map((r) => ({
 players[7].slot = "FLEX";
 for (const p of players) p.preview_slots = players.slice(0, 9).flatMap((starter, index) =>
   !p.lineup_locked && (starter.slot === p.position || starter.slot === "FLEX" && ["RB", "WR", "TE"].includes(p.position)) ? [index] : []);
+if (params.has("bye")) { players[9].on_bye = true; players[9].projection = 0; players[9].points = 0; players[10].projection = 0; players[11].projection = null; }
 if (params.has("missing")) { players[0].projection = null; players[11].projection = null; }
 if (params.has("locked")) { players[11].lineup_locked = true; players[11].preview_slots = []; }
 const media = Object.fromEntries(

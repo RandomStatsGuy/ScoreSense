@@ -19,12 +19,13 @@ import "../src/styles/color-theme.css";
 import "../src/styles/fantasy-chat.css";
 import "../src/styles/appearance.css";
 const fixtureParams=new URLSearchParams(location.search);
+if (fixtureParams.has("fixturePool")) history.replaceState(null,"","/hub/free-agents?"+fixtureParams);
 const preseasonScenario=(fixtureParams.get("fixtureMeta")|| (location.pathname.endsWith("/preseason")?"preseason":"live"))==="preseason";
 const rules={draft_type:"auction",salary_cap:200,roster_size_max:12,roster:{qb:{starter:1},rb:{starter:0},wr:{starter:0},te:{starter:0},k:{starter:0},def:{starter:0},flex:{starter:0}}};
 let context={mode:"league",league_id:"navigation-fixture",league_name:"Synthetic long league name for navigation testing",team_id:"mine",team_name:"Example team",season:2026,is_commissioner:true,draft_completed:true,rules,capabilities:capabilitiesFromRules(rules)};
 const row={player_id:"example-qb",Player:"Example quarterback",Team:"BUF",Position:"QB",Season:2026,Week:6,Age:30,"Projected Points":22.4,"Low (P10)":10,"High (P90)":32,"Season Proj":350,"Per-Game Proj":22.4,"Low (Season)":200,"High (Season)":450,P50:22.4,"ROS P50":220,"ROS Proj":220,model_rank:1,adp_rank:2,value_vs_adp:1};
 const starter={player_id:row.player_id,player_name:row.Player,position:"QB",team:"BUF",slot:"QB",p50:22.4,p10:10,p90:32};
-const fixture=window.__navigationFixture={requests:[],metadataMode:preseasonScenario?"preseason":"live",metadataPending:0,metadataResolved:0};
+const fixture=window.__navigationFixture={poolError:fixtureParams.has("fixturePoolError"),poolDelay:Number(fixtureParams.get("fixturePoolDelay"))||120,requests:[],metadataMode:preseasonScenario?"preseason":"live",metadataPending:0,metadataResolved:0};
 // Opt-in full-App account/focus races; the regular navigation fixture stays read-only.
 const shellMode=fixtureParams.has("fixtureShell");
 const firstContext={...context};
@@ -64,6 +65,11 @@ window.fetch=async(input,options={})=>{
   if(path.includes("/contract-history/player-journey"))return Response.json({player_name:"Example player with an exceptionally long name for wrapped headers",seasons:Array.from({length:9},(_,i)=>({season_year:2026-i,row_id:i+1,cap_hit:12,hub_team_name:"Example team",roster_status:"active",is_editing_season:i===0}))});
   if(path.includes("/contract-history"))return Response.json({season_year:2026,seasons:[2026],rows:[],row_issues:{},owner_season_map:[]});
   if(path.includes("/card"))return Response.json({player_id:row.player_id,player_name:row.Player,position:row.Position,team:row.Team,weekly_projection:{"Projected Points":22.4,"Low (P10)":10,"High (P90)":32},rest_of_season_projection:{p10:180,p50:220,p90:280,games_remaining:10},game_log:[],meta:{season:2026,week:6}});
+  if(fixtureParams.has("fixturePool") && /\/api\/hub\/(value-sheet|value-overlay)/.test(path)) {
+    await new Promise(resolve=>setTimeout(resolve,fixture.poolDelay));
+    if(fixture.poolError) return Response.json({detail:"Example player pool unavailable"},{status:503});
+    return Response.json({season:2026,team_count:12,hub_context:context,sleeper:{linked:false},rows:[{player_id:"pool-frank",status:"available",player:"Frank Gore Jr.",position:"RB",team:"BUF",season_proj:85,per_game_proj:5,season_p10:40,season_p50:85,season_p90:130,fair_value:1,min_sal:1,max_sal:2,is_on_roster:false,is_taken:false}]});
+  }
   if(path.includes("/api/hub/context"))return Response.json(context);
   if(path.includes("/api/hub/workspace"))return Response.json({season:2026,rules,hub_context:context,memberships:[{league_id:context.league_id,league_name:context.league_name,team:{id:"mine",name:"Example team"},is_commissioner:true}],prefs:{}});
   if(path.includes("/api/hub/week"))return Response.json({hub_context:context,meta:{season:2026,week:6,lineup_source:"hub",week_scored:false},status:{},sync:{},counts:{roster:1,missing_projections:0},decisions:[],roster:{starters:[starter],bench:[]}});
