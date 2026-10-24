@@ -53,14 +53,27 @@ try{
  for(const width of [320,390,1280])for(const state of ['salary','pick','invalid']){
  const trade=await open('trades-mobile',{state,fullRoster:'1'},width);await trade.locator('.hub-trade-desk-bar').waitFor();
  await trade.locator('.hub-trade-desk-bar').getByRole('button',{name:'Choose partner',exact:true}).click();await trade.getByRole('button',{name:/Sunday Rivals.*Select/}).click();
- const review=trade.locator('.hub-trade-desk-bar').getByRole('button',{name:/Review trade/});await review.waitFor();const before=await review.boundingBox();
- const row=trade.locator('.hub-trade-player-row:visible').filter({hasText:'Josh Allen'}).first();const rowBefore=await row.boundingBox();
- const scrollBefore=await trade.evaluate(()=>scrollY);const context=trade.locator('.hub-trade-party-col[data-party=send] .hub-trade-roster-context');const contextBefore=await context.innerText();
- const get=trade.locator('.hub-trade-player-row:visible').filter({hasText:'Josh Allen'}).locator('.hub-trade-player-actions > button').first();const clickBefore=await get.evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,receivesPointer:e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)),fonts:document.fonts.status};});await get.click();await trade.waitForTimeout(450);
+ const review=trade.locator('.hub-trade-desk-bar').getByRole('button',{name:/Review trade/});await review.waitFor();
+ const row=trade.locator('.hub-trade-player-row:visible').filter({hasText:'Josh Allen'}).first();
+ const get=row.locator('.hub-trade-player-actions > button').first();
+ // Establish a real clickable start before measuring selection. A covered target
+ // makes Playwright scroll during click, which is setup movement rather than a state change.
+ await get.evaluate(e=>e.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'}));await get.focus();
+ const clickBefore=await get.evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,receivesPointer:e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)),fonts:document.fonts.status};});
+ assert.equal(clickBefore.receivesPointer,true,'stability measurement begins on an unobscured, clickable action');
+ const before=await review.boundingBox(),rowBefore=await row.boundingBox(),scrollBefore=await trade.evaluate(()=>scrollY);
+ const context=trade.locator('.hub-trade-party-col[data-party=send] .hub-trade-roster-context'),contextBefore=await context.innerText();
+ await get.click();await trade.waitForTimeout(450);
  assert.equal(await context.innerText(),contextBefore,'current-roster context stays current through selection');const rowAfter=await row.boundingBox();
  assert.equal(rowAfter.height,rowBefore.height,'selection retains row height');
  assert.ok(Math.abs(rowAfter.y-rowBefore.y)<1,`selection retains row viewport position: ${JSON.stringify({width,state,rowBefore,rowAfter,scrollBefore,scrollAfter:await trade.evaluate(()=>scrollY),clickBefore,fontsAfter:await trade.evaluate(()=>document.fonts.status)})}`);
  assert.equal(await trade.evaluate(()=>scrollY),scrollBefore,'selection retains page scroll');
+ if(width===320&&state==='salary'){
+  const transform=await row.evaluate(e=>{const value=e.style.transform;e.style.transform='translateY(8px)';return value;});
+  assert.ok(Math.abs((await row.boundingBox()).y-rowAfter.y)>=7,'negative control detects a real visible row jump');
+  await row.evaluate((e,value)=>{e.style.transform=value;},transform);
+  assert.ok(Math.abs((await row.boundingBox()).y-rowAfter.y)<1,'restoring the row restores the strict position baseline');
+ }
  const after=await review.boundingBox();assert.ok(Math.abs(before.y-after.y)<1,`Review stays vertically anchored: ${JSON.stringify({width,state,before,after,bar:await trade.locator('.hub-trade-desk-bar').boundingBox()})}`);
  await get.click();await trade.waitForTimeout(450);
  assert.ok(Math.abs((await row.boundingBox()).y-rowBefore.y)<1,'removal retains row viewport position');

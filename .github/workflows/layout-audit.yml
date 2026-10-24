@@ -46,6 +46,13 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify bench and trade interaction anchors
         run: node scripts/dev/release_interactions.mjs
+      - name: Save interaction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interaction-anchors
+          path: outputs/agent/release-regressions/
+          retention-days: 7
       - name: Start API and Vite
         run: bash scripts/dev/start_hub_dev.sh
       # Gate the rules this PR already greened. JSON still includes tables /
