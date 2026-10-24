@@ -302,7 +302,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
       })}
       {bottomPad > 0 && <div aria-hidden="true" style={{ height: bottomPad }} />}
     </div>
-    {loadMore && <button className="btn-ghost btn-sm" onClick={loadMore}>{COPY.more}</button>}
+    {loadMore && <button className="btn-ghost btn-sm" data-chat-safe-actions="control" onClick={loadMore}>{COPY.more}</button>}
   </>;
   return <HubPage frameless className={`fa-main${faceoff ? " has-faceoff" : ""}`}>
     <h1 className="sr-only">{COPY.title}</h1>

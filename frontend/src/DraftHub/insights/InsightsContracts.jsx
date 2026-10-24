@@ -60,6 +60,6 @@ export default function InsightsContracts({ contracts, period, years, loading, o
         {!mobile && board.rows.length === 1 && <p className="chart-note">{copy.singleContract}</p>}
       </section>)}
     </div>
-    <details className="hub-insights-methodology"><summary>{copy.methodology}</summary><p className="chart-note">{contracts?.methodology || copy.explanation}</p>{coverage && <p className="chart-note">{copy.coverage(coverage)}</p>}{contracts?.excluded > 0 && <p className="chart-note">{copy.excluded(contracts.excluded)}</p>}</details>
+    <details className="hub-insights-methodology"><summary data-chat-safe-actions="control">{copy.methodology}</summary><p className="chart-note">{contracts?.methodology || copy.explanation}</p>{coverage && <p className="chart-note">{copy.coverage(coverage)}</p>}{contracts?.excluded > 0 && <p className="chart-note">{copy.excluded(contracts.excluded)}</p>}</details>
   </div>;
 }

@@ -33,6 +33,12 @@ specs.push(
  {id:'bulk-audit',surface:'hub.office.historic',fixture:'fantasy-spacing',query:{view:'office',tab:'historic'},ready:'.hub-office-advanced'},
 );
 specs.push({id:'setup',surface:'hub.setup',fixture:'app-spacing',query:{view:'setup',chat:'1'},ready:'.hub-setup'});
+specs.push({...specs.find(s=>s.id==='contracts'),id:'contracts-awards',action:'contracts-awards'});
+specs.push(...[['rules-contracts','Contracts'],['rules-draft','Draft behavior'],['rules-managers','Manager names']].map(([id,category])=>({...specs.find(s=>s.id==='rules'),id,category,action:'rules-category'})));
+specs.push(...[
+ ['insights-overview','overview'],['insights-contracts','contracts'],['insights-spend','cap'],['insights-scoring','scoring'],['insights-history','ownership'],
+ ['insights-spend-expanded','cap','insights-expand'],['insights-scoring-expanded','scoring','insights-expand'],['insights-period-expanded','overview','insights-period'],
+].map(([id,tab,action])=>({id,surface:'hub.insights',fixture:'insights-history',query:{chat:'1',linked:'1',tab},ready:tab==='ownership'?'.hub-insights-player-btn':tab==='contracts'?'.hub-insights-contract-list li':tab==='scoring'?'.hub-insights-score-row':tab==='cap'?'.hub-insights-spend-row':'.hub-insights-record-book',action})));
 const servedSpecs=[...specs,{id:'free-agents',surface:'hub.available',fixture:'free-agents-mobile',query:{state:'bid',chat:'1'},ready:'.fa-acquire'}];
 const fixtures=[...new Set(servedSpecs.map(s=>s.fixture))];
 await build({absWorkingDir:root,entryPoints:fixtures.map(f=>`frontend/test-fixtures/${f}.jsx`),bundle:true,jsx:'automatic',format:'esm',outdir:path.join(folder,'bundles'),logLevel:'error',resolveExtensions:['.mjs','.js','.jsx','.json'],external:['/art/*','/fonts/*','/assets/*'],loader:{'.js':'jsx','.svg':'dataurl','.png':'dataurl','.webp':'dataurl','.woff2':'dataurl','.jpg':'dataurl'},define:{'process.env.NODE_ENV':'"production"','import.meta.env':JSON.stringify({DEV:false,PROD:true,MODE:'test',BASE_URL:'/'})}});
@@ -58,7 +64,7 @@ else {
   try{
    await page.addInitScript(theme=>localStorage.setItem('scoresense-color-theme',theme),c.theme);
    await page.route('**/*',r=>new URL(r.request().url()).origin===base&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());
-   await page.goto(base+report.route+'?theme='+c.theme,{waitUntil:'domcontentloaded'});await page.locator(c.ready).first().waitFor();await page.locator('.fantasy-chat-bubble-a').waitFor();await page.evaluate(()=>document.fonts.ready);
+   await page.goto(base+report.route+'?'+new URLSearchParams({...c.query,theme:c.theme}),{waitUntil:'domcontentloaded'});await page.locator(c.ready).first().waitFor();await page.locator('.fantasy-chat-bubble-a').waitFor();await page.evaluate(()=>document.fonts.ready);
    await page.addStyleTag({content:'html{scroll-behavior:auto!important}'});
    if(c.id==='rosters'){await page.getByRole('tab',{name:'Team rosters',exact:true}).click();await page.locator('.rosters-team-card').first().waitFor();}
    if(c.action==='rankings')await page.getByRole('button',{name:'View my rankings',exact:true}).click();
@@ -71,6 +77,20 @@ else {
     else await page.locator('.hub-league-jump-pill').first().click();
     await page.locator('.hub-league-search input').waitFor();
    }
+   if(c.action==='rules-category'){await page.getByRole('button',{name:c.category,exact:true}).click();if(c.category==='Manager names')await page.locator('.hub-manager-names input').first().waitFor();}
+   if(c.action==='contracts-awards')await page.locator('.hub-office-award-disclosure > summary').click();
+   if(c.id.startsWith('insights-')&&c.width===320){
+    const tabs=page.locator('.hub-insights-tabs');
+    assert.ok(await tabs.evaluate(e=>{const a=e.querySelector('[aria-current="true"]'),r=a.getBoundingClientRect(),b=e.getBoundingClientRect();return r.left>=b.left-1&&r.right<=b.right+1;}),'active narrow tab is fully visible');
+    if(c.id==='insights-overview'&&c.theme==='dark'){
+     const before=await page.evaluate(()=>scrollY);
+     await tabs.getByRole('button',{name:'History',exact:true}).click();await page.locator('.hub-insights-player-btn').first().waitFor();
+     assert.equal(await page.evaluate(()=>scrollY),before,'changing tabs does not move the page vertically');
+     await tabs.getByRole('button',{name:'Overview',exact:true}).click();await page.locator('.hub-insights-record-book').waitFor();
+    }
+   }
+   if(c.action==='insights-expand')for(const summary of await page.locator('main details:not(.hub-insights-period) > summary').all())if(await summary.isVisible())await summary.click();
+   if(c.action==='insights-period')await page.locator('.hub-insights-period > summary').click();
    const audit=()=>page.evaluate(measureScript(),{...args,minTarget:c.width<=768?44:32});
    if(c.id==='cap'&&c.width<=768){
     await page.addStyleTag({content:'.app-header--hub .app-header-mobile-top--league {grid-template-columns:fit-content(55%) minmax(0,1fr);gap:var(--space-3);padding:var(--space-2);}'});
@@ -81,8 +101,17 @@ else {
     const titleMetrics=await title.evaluate(e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return {width:r.width,height:r.height,lineHeight:s.lineHeight,fontSize:s.fontSize};});
     assert.ok(titleMetrics.height<=3*(parseFloat(titleMetrics.lineHeight)||parseFloat(titleMetrics.fontSize)*1.2),`narrow disclosure title retains readable words within three lines: ${JSON.stringify(titleMetrics)}`);
    }
+   if(c.id.startsWith('insights-')&&c.width<=768)assert.deepEqual((await audit()).filter(x=>['insights-mobile','insights-tabs'].includes(x.rule)&&!x.ok),[],'phone Insights controls retain the approved row and balanced tab insets');
    const max=await page.evaluate(()=>document.documentElement.scrollHeight-innerHeight),samples=[];
    for(let y=0;y<=max+200;y+=200){await page.evaluate(y=>scrollTo(0,y),Math.min(y,max));const checks=await audit();const failures=checks.filter(x=>['overlay-clearance','chat-anchor','overflow'].includes(x.rule)&&!x.ok);assert.deepEqual(failures,[],`scroll ${y}: ${JSON.stringify(failures)}`);samples.push(Math.min(y,max));}
+   // Scroll every horizontally at-risk control through chat, including unmarked ones.
+   // Fixed 200px samples alone can skip a short summary or pagination button.
+   let alignedActions=0;
+   for(const control of await page.locator('main button,main a[href],main summary,main input,main select,main textarea,main [role="button"],main [role="tab"]').all()){
+    const moved=await control.evaluate(e=>{if(!e.checkVisibility())return false;const b=document.querySelector('.fantasy-chat-launcher-a').getBoundingClientRect(),r=e.getBoundingClientRect();if(!r.width||!r.height||r.right<=b.left+1)return false;const y=scrollY+r.top+r.height/2-b.top-b.height/2;if(y<0)return false;scrollTo(0,y);return true;});
+    if(moved){const failures=(await audit()).filter(x=>['overlay-clearance','chat-anchor','overflow'].includes(x.rule)&&!x.ok);assert.deepEqual(failures,[],`aligned interactive control: ${JSON.stringify(failures)}`);alignedActions++;}
+   }
+   report.alignedActions=alignedActions;
    report.scrollSamples=samples.length;
    if(c.id==='strategy'&&c.width===320){
     await page.evaluate(()=>{const d=document.createElement('details');d.id='closed-overlay-proof';d.dataset.chatSafeActions='';d.innerHTML='<summary>Hidden-control proof</summary><button style="position:fixed;right:16px;bottom:calc(var(--bottom-nav-height) + 16px);width:44px;height:44px">Proof</button>';document.querySelector('main').append(d);});
@@ -106,7 +135,7 @@ else {
     if(negative){await candidate.evaluate(e=>{const b=document.querySelector('.fantasy-chat-launcher-a').getBoundingClientRect(),r=e.getBoundingClientRect();scrollBy(0,r.top+r.height/2-b.top-b.height/2);});assert.ok((await audit()).filter(x=>['overlay-clearance','chat-anchor'].includes(x.rule)).every(x=>x.ok),'restoring shared lane clears chat');}
    }
    // Some desktop content is already left of chat (for example the Rules main column).
-   if(c.width<=390&&!['rankings','rules-roster'].includes(c.id))assert.equal(negative,true,'phone negative control recreates the original overlap');
+   if(c.width<=390&&!['rankings','rules-roster','insights-overview','insights-period-expanded'].includes(c.id))assert.equal(negative,true,'phone negative control recreates the original overlap');
    report.negativeControl=negative;
    report.screenshot=id+'.png';await page.screenshot({path:path.join(folder,report.screenshot)});
    await page.locator('.fantasy-chat-bubble-a').click();await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');await page.getByRole('dialog').waitFor({state:'hidden'});

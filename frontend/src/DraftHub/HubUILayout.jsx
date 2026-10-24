@@ -122,7 +122,7 @@ export function HubAlert({ variant = "warn", children, action, live, role }) {
 export function HubSection({ title, hint, children, className = "", disclosure = false, icon, defaultOpen = false, onToggle }) {
   if (disclosure) return (
     <details className={`hub-section hub-disclosure ${className}`} open={defaultOpen || undefined} onToggle={onToggle}>
-      <summary><span className="hub-disclosure-heading">
+      <summary data-chat-safe-actions="control"><span className="hub-disclosure-heading">
         <span className="hub-disclosure-icon" aria-hidden="true">{icon}</span>
         <span className="hub-disclosure-title"><strong>{title}</strong>{hint ? <small>{hint}</small> : null}</span>
         <span className="hub-disclosure-toggle" aria-hidden="true" />
@@ -151,23 +151,30 @@ export function HubTableCard({ children, className = "" }) {
   return <div className={`hub-table-card${className ? ` ${className}` : ""}`}>{children}</div>;
 }
 
-export function HubFilterScroll({ children, className = "" }) {
+export function HubFilterScroll({ children, className = "", as: Component = "div", rail = false, label }) {
   const ref = useRef(null);
+  const lastRail = useRef("");
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const active = root.querySelector(".filter-chip--active, [aria-pressed='true'], [aria-current='page']");
+    const active = root.querySelector(rail ? ".filter-chip--active, [aria-pressed='true'], [aria-current='page'], [aria-current='true']" : ".filter-chip--active, [aria-pressed='true'], [aria-current='page']");
     if (!active) return;
     const rootBox = root.getBoundingClientRect();
     const chipBox = active.getBoundingClientRect();
+    if (rail) {
+      const key = `${active.textContent}|${root.clientWidth}`;
+      if (lastRail.current === key) return;
+      lastRail.current = key;
+    }
     if (chipBox.left < rootBox.left || chipBox.right > rootBox.right) {
-      active.scrollIntoView({ inline: "center", block: "nearest" });
+      if (rail) root.scrollLeft += chipBox.left - rootBox.left - (rootBox.width - chipBox.width) / 2;
+      else active.scrollIntoView({ inline: "center", block: "nearest" });
     }
   });
   return (
-    <div ref={ref} className={`hub-filter-scroll${className ? ` ${className}` : ""}`}>
+    <Component ref={ref} className={`hub-filter-scroll${className ? ` ${className}` : ""}`} data-layout-rail={rail || undefined} aria-label={label}>
       {children}
-    </div>
+    </Component>
   );
 }
 
