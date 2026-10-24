@@ -8,6 +8,11 @@
   padding-bottom: calc(var(--bottom-nav-height) + max(var(--bottom-action-height), var(--chat-launcher-clearance)) + var(--space-4));
 }
 
+/* Scrolling action rows can reserve the same lane as detached page actions. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions] {
+  padding-inline-end: var(--chat-launcher-clearance);
+}
+
 .projection-refresh-status {
   display: flex;
   align-items: center;
