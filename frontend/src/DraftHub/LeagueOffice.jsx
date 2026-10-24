@@ -53,6 +53,7 @@ function OfficeAdvancedAudit({ leagueId, hubContext, seasonFilter }) {
   return (
     <details
       className="hub-office-advanced"
+      data-chat-safe-actions
       open={open}
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >
@@ -709,7 +710,7 @@ export default function LeagueOffice({
       )}
 
       {activeTab === "members" && isCommissioner && (
-        <HubPage>
+        <HubPage chatSafeActions>
           <OfficeMembers
             key={officeScope}
             onNavigate={onNavigate}
@@ -721,7 +722,7 @@ export default function LeagueOffice({
       )}
 
       {activeTab === "access" && isCommissioner && (
-        <HubPage>
+        <HubPage chatSafeActions>
           <OfficeAccess
             key={officeScope}
             leagueId={leagueId}

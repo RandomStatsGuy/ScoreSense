@@ -9,8 +9,27 @@
 }
 
 /* Scrolling action rows can reserve the same lane as detached page actions. */
-:root.has-fantasy-chat-launcher [data-chat-safe-actions] {
+:root.has-fantasy-chat-launcher [data-chat-safe-actions]:not([data-chat-safe-actions="control"]) {
   padding-inline-end: var(--chat-launcher-clearance);
+}
+
+/* A sticky panel inside an inset flow already shares its reserved lane.
+   Fixed panels remain viewport anchored and retain their own clearance. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions] [data-bottom-actions][data-bottom-position="sticky"] {
+  margin-inline-end: 0;
+}
+
+/* A full-width control or clipped rail reserves the lane outside its hit area.
+   Keep its own insets; padding alone would leave the target under chat. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions="control"] {
+  max-inline-size: calc(100% - var(--chat-launcher-clearance));
+  margin-inline-end: var(--chat-launcher-clearance);
+}
+
+/* The containing flow owns clearance; nested controls do not reserve it twice. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions] [data-chat-safe-actions="control"] {
+  max-inline-size: 100%;
+  margin-inline-end: 0;
 }
 
 /* Compact action context wraps within its column across font metrics. */

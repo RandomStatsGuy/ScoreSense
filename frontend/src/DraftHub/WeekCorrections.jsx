@@ -147,7 +147,7 @@ export default function WeekCorrections({ leagueId, season, onChanged }) {
       onChange={value => changePlayers(assignCorrectionPlayer(team.players, player, value))} /> :
       <button className="btn-ghost btn-sm" disabled={busy} onClick={() => fill(slot.id)}>{COPY.fill} {slot.label}</button>}
   </div>;
-  return <HubPage className="week-corrections">
+  return <HubPage className="week-corrections" chatSafeActions>
     <h2>{COPY.title}</h2><p>{COPY.support}</p>
     <div className="correction-toolbar"><HubFilterMenu label={COPY.week} value={String(week)} options={WEEK_OPTIONS} disabled={busy}
       onChange={changeWeek} />

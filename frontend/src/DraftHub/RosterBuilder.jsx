@@ -992,7 +992,7 @@ function RosterBuilderView({
           <span className="sr-only" role="status">{MY_TEAM_COPY.showingCount(displayedRoster.length, sortedRoster.length)}</span>
         </div>
         <p className="my-team-season-caption">{scoreError ? MY_TEAM_COPY.scoringError : seasonScores?.host === "sleeper" && !seasonScores?.available ? MY_TEAM_COPY.syncSeasonScores : MY_TEAM_COPY.seasonSoFar(seasonScores?.season ?? season)}</p>
-        <section className="my-team-roster" aria-label={MY_TEAM_COPY.rosterHeading}>
+        <section className="my-team-roster" data-chat-safe-actions aria-label={MY_TEAM_COPY.rosterHeading}>
           {displayedRoster.map((row) => {
             const vm = rowViewModel(row);
             const secondary = [normalizeHubPosition(row.position), row.team, usesSalaries ? contractTypeLabel(vm.ctype) : "", showManagerTeam ? row.manager_team : ""].filter(Boolean).join(" · ");
@@ -1010,7 +1010,7 @@ function RosterBuilderView({
         </section>
       </div>}
 
-      <footer className="my-team-footer">
+      <footer className="my-team-footer" data-chat-safe-actions>
         <nav aria-label={MY_TEAM_COPY.related}>
           {onNavigate && <button type="button" className="my-team-footer-action" onClick={() => onNavigate("trades")}>{MY_TEAM_COPY.trades} <span aria-hidden="true">↗</span></button>}
           {canWrite && isLeague && hubContext?.league_id && hubContext?.team_id && <button type="button" className="my-team-footer-action" onClick={() => setLookOpen(true)}>{MY_TEAM_COPY.appearance} <span aria-hidden="true">↗</span></button>}

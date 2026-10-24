@@ -375,7 +375,7 @@ both themes), and four bench/trade workflows. It injects the actual conflicting
 late CSS selectors, checks stable row/Review geometry, and verifies that the
 overlay check rejects an intentionally unclipped bench. Chromium must already
 be installed for Playwright on Linux; Windows defaults to the installed Edge.
-CI installs its own browser. Reports/screenshots live under
+CI installs its own browser. The shared chat-page suite adds 152 cases across 19 populated, expanded, and selected page states at 320, 390, 1280, and 1440 in both themes. It checks scrolling action clearance, deliberate removal of the shared lane, closed versus painted disclosure content, chat dismissal, and late phone-header styles. It keeps the existing trade, loading, mapping, Bye, and Free agents checks. Reports/screenshots live under
 `outputs/agent/release-regressions/`; unavailable cases fail the release job.
 
 The backend regression uses temporary provider/official roster caches and checks

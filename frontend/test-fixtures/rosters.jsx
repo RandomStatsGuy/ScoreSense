@@ -1,3 +1,4 @@
+import {ChatAuditShell} from "./chat-audit-shell";
 // Development-only fixture. Production build includes only index.html.
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -91,4 +92,4 @@ function Preview() {
       window.__history = payload;
     }} /></>;
 }
-createRoot(document.getElementById('root')).render(<Preview />);
+createRoot(document.getElementById('root')).render(<ChatAuditShell router shell main><Preview /></ChatAuditShell>);

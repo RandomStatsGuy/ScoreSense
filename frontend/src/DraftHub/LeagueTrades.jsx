@@ -1290,7 +1290,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
   const canPropose = validationStatus === "valid" && validatedPackage === packageKey && hasPartner && hasPackage && !busy;
 
   const renderPartyPlayerColumns = () => (
-    <div className={`hub-trade-faceoff${activeParties.length > 2 ? " is-multi" : ""}`}>
+    <div className={`hub-trade-faceoff${activeParties.length > 2 ? " is-multi" : ""}`} data-chat-safe-actions>
       {activeParties.map((party, order) => {
         const idx = party.idx;
         const others = parties.filter((p, i) => i !== idx && p.team_id).map((p) => p.team_id);
@@ -1860,7 +1860,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 {weekEligible && weekPayload?.meta?.week && <span className="hub-trade-week-basis">{formatCopy.weekLabel(weekPayload.meta.week)} · {formatCopy.pprEstimate}</span>}
               </div>
             </div>
-          </div> : <section className="hub-trade-review" ref={reviewRef} tabIndex={-1} aria-label={formatCopy.reviewHeading}>
+          </div> : <section className="hub-trade-review" data-chat-safe-actions ref={reviewRef} tabIndex={-1} aria-label={formatCopy.reviewHeading}>
             <header><h2>{formatCopy.reviewHeading}</h2><button type="button" className="btn-link" onClick={() => goBuilderStep("players")}>← {formatCopy.editPackage}</button></header>
             {renderDuel({ parties: activeParties, legsFor: party => packageLegs.filter(leg => leg.from === party.team_id),
               projectedFor: party => projectedByTeam[party.team_id], center: renderReviewCenter(), label: formatCopy.tradeReview })}

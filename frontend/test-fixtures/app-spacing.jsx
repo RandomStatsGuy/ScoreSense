@@ -1,3 +1,4 @@
+import {ChatAuditShell} from "./chat-audit-shell";
 // Real pages with synthetic data, isolated from account and league storage.
 import React from "react";
 import {createRoot} from "react-dom/client";
@@ -44,5 +45,5 @@ pages.entry=<DraftEntryPanel hubContext={context} league={{id:'sample',name:'Sam
 pages.alerts=<HubPage stack><h1>Alert spacing fixture</h1><HubAlertStack>{false}{null}{undefined}{[]}</HubAlertStack><section data-alert-content>Content after an empty alert slot</section><HubAlertStack><HubAlert variant="warn">A visible warning stays available.</HubAlert></HubAlertStack></HubPage>;
 const landing=view.startsWith('landing'),route=view==='landing'?'/' :view==='landing-projections'?'/projections':view==='landing-fantasy'?'/fantasy':'/tools';
 createRoot(document.getElementById('root')).render(<AuthContext.Provider value={auth}><MemoryRouter initialEntries={[landing?route:'/']}>
- {landing?<LandingPage/>:<main id="main-content" className="app-spacing-fixture" style={{maxWidth:1440,margin:'auto',padding:'var(--space-4)'}}>{pages[view]}</main>}
+ <ChatAuditShell shell>{landing?<LandingPage/>:<main id="main-content" className="app-spacing-fixture" style={{maxWidth:1440,margin:'auto',padding:'var(--space-4)'}}>{pages[view]}</main>}</ChatAuditShell>
 </MemoryRouter></AuthContext.Provider>);

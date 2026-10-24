@@ -1,3 +1,4 @@
+import {ChatAuditShell} from "./chat-audit-shell";
 // Production view with deterministic fixture data. No live league writes.
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -128,7 +129,7 @@ const context = {
   sleeper_league_id: "fixture",
 };
 createRoot(document.getElementById("root")).render(
-  <main id="main-content" style={{ maxWidth: 1510, margin: "auto" }}>
+  <ChatAuditShell router shell><main id="main-content" style={{ maxWidth: 1510, margin: "auto" }}>
     <TeamIdentityProvider leagueId="fixture">
       <GameCenter
         leagueId="fixture"
@@ -141,5 +142,5 @@ createRoot(document.getElementById("root")).render(
       />
     </TeamIdentityProvider>
     <output id="navigation-result" />
-  </main>,
+  </main></ChatAuditShell>,
 );

@@ -48,9 +48,9 @@ export function SortTh({ label, sub, col, sortKey, sortDir, onSort, className = 
   );
 }
 
-export function HubPage({ className = "", children, style, frameless = false, inset = false, stack = false }) {
+export function HubPage({ className = "", children, style, frameless = false, inset = false, stack = false, chatSafeActions = false }) {
   return (
-    <section className={`hub-page panel wide hub-panel${stack ? " hub-stack" : ""}${inset ? " hub-page--inset" : ""}${frameless ? " hub-page--frameless" : ""}${className ? ` ${className}` : ""}`} style={style} data-layout-stack={stack || undefined}>
+    <section className={`hub-page panel wide hub-panel${stack ? " hub-stack" : ""}${inset ? " hub-page--inset" : ""}${frameless ? " hub-page--frameless" : ""}${className ? ` ${className}` : ""}`} style={style} data-layout-stack={stack || undefined} data-chat-safe-actions={chatSafeActions || undefined}>
       {children}
     </section>
   );
@@ -62,7 +62,7 @@ export function HubStack({ children, className = "" }) {
 
 /** Shared summary row for framed or inline disclosures; the caller owns its card. */
 export function HubDisclosureSummary({ title, meta, className = "" }) {
-  return <summary className={`hub-inline-disclosure-summary ${className}`.trim()}>
+  return <summary className={`hub-inline-disclosure-summary ${className}`.trim()} data-chat-safe-actions="control">
     <span className="hub-inline-disclosure__row">
       <span className="hub-inline-disclosure__identity">{title}</span>
       {meta && <span className="hub-inline-disclosure__meta">{meta}</span>}

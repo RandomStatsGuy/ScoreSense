@@ -26,13 +26,13 @@ function SetupSection({
 }) {
   if (flat) {
     return (
-      <section className={`panel ${className}${flat && mobileLayout ? " hub-setup-panel--flat" : ""}`}>
+      <section className={`panel ${className}${flat && mobileLayout ? " hub-setup-panel--flat" : ""}`} data-chat-safe-actions>
         {children}
       </section>
     );
   }
   return (
-    <details className={`hub-setup-accordion panel ${className}`} open={defaultOpen}>
+    <details className={`hub-setup-accordion panel ${className}`} open={defaultOpen} data-chat-safe-actions>
       <HubDisclosureSummary title={title} meta={hint} />
       <div className="hub-setup-accordion-body">{children}</div>
     </details>
