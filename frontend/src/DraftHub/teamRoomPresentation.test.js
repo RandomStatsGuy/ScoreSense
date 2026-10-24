@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { roomNumber, roomDelta, roomResult } from "./rosterPresentation.js";
+import { roomNumber, roomDelta, roomResult, roomOnBye, roomForecast } from "./rosterPresentation.js";
 import { roomProjectionTotal, canPreviewRoomSwap, roomPreviewLineup, roomPreviewScope, roomSavesLineup, canMoveRoomPlayer, canPlaceRoomPlayer, roomHeldState, roomBenchEdge, roomAfterSwap, roomOpponentGap } from "./teamRoomPresentation.js";
 test("missing scores stay distinct from zero and negatives", () => {
   assert.equal(roomNumber(null), "—");
@@ -123,4 +123,17 @@ test("the opponent margin needs both projected totals", () => {
   assert.equal(roomOpponentGap(null, { projection: 127.9 }), null);
   assert.equal(roomOpponentGap(130.5, { projection: null }), null);
   assert.equal(roomOpponentGap(130.5, null), null);
+});
+
+
+test("room forecasts distinguish confirmed Bye, genuine zero, and missing data", () => {
+  for (const player of [{on_bye:true,projection:0},{projection_source:"bye",projection:null}]) {
+    assert.equal(roomOnBye(player),true);
+    assert.equal(roomForecast(player),"Bye");
+    assert.equal(roomDelta({...player,points:0},"final"),null);
+  }
+  assert.equal(roomForecast({on_bye:false,projection:0}),"0.0");
+  assert.equal(roomForecast({projection:null}),"—");
+  assert.equal(roomForecast({projection_status:"not_saved"}),"—");
+  assert.equal(roomOnBye({on_bye:"true",projection:0}),false);
 });

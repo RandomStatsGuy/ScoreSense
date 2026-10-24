@@ -223,3 +223,19 @@ test("Home cache separates season, host, draft phase and access context", () => 
     assert.notEqual(homeCacheKey(base), homeCacheKey({...base,...patch}));
   }
 });
+
+
+test("a hung shared pool request expires for every consumer and permits a retry", async () => {
+  resetValueSheetInflightForTests();
+  const key=valueSheetRequestKey(2026,{}, {scope:"timeout-test"});
+  let calls=0,signal,finish;
+  const factory=s=>{calls++;signal=s;return new Promise(resolve=>{finish=resolve;});};
+  const first=runValueSheetRequest(key,factory,{timeoutMs:10});
+  const second=runValueSheetRequest(key,factory,{timeoutMs:10});
+  await Promise.all([assert.rejects(first,{name:"TimeoutError"}),assert.rejects(second,{name:"TimeoutError"})]);
+  assert.equal(calls,1);assert.equal(signal.aborted,true);assert.equal(valueSheetInflightCount(),0);
+  const retry=runValueSheetRequest(key,async()=>({rows:["fresh"]}));
+  finish({rows:["late"]});
+  assert.deepEqual(await retry,{rows:["fresh"]});
+  assert.equal(valueSheetInflightCount(),0);
+});

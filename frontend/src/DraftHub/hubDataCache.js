@@ -110,10 +110,23 @@ export function valueSheetRequestKey(season, rules, { forcePool = false, scope =
   return `${cacheGeneration}:${poolCacheKey(season, rules, scope)}:${forcePool ? "force" : "soft"}`;
 }
 
-export function runValueSheetRequest(key, factory) {
+export function runValueSheetRequest(key, factory, { timeoutMs = 30_000 } = {}) {
   const existing = valueSheetInflight.get(key);
   if (existing) return existing;
-  const request = Promise.resolve().then(factory).finally(() => {
+  // The producer owns cancellation; leaving one destination must not cancel
+  // another caller sharing this request. A stuck producer cannot poison the key.
+  const controller = new AbortController();
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error("value_sheet_timeout");
+      error.name = "TimeoutError";
+      controller.abort(error);
+      reject(error);
+    }, timeoutMs);
+  });
+  const request = Promise.race([Promise.resolve().then(() => factory(controller.signal)), deadline]).finally(() => {
+    clearTimeout(timer);
     if (valueSheetInflight.get(key) === request) valueSheetInflight.delete(key);
   });
   valueSheetInflight.set(key, request);

@@ -108,6 +108,7 @@ export const MY_TEAM_COPY = {
   roomPosition: "Position",
   roomSlot: "Lineup spot",
   roomProjectionLabel: "Projected",
+  roomBye: "Bye",
   roomVsCurrent: "vs current lineup",
   roomDragPlayer: (name) => `Compare ${name} with a starter`,
   roomViewLineup: "Manage lineup",
@@ -175,7 +176,17 @@ export function roomNumber(value) {
   return value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(1);
 }
 
+/** Only confirmed schedule/scoring metadata identifies a bye; zero or missing does not. */
+export function roomOnBye(player) {
+  return player?.on_bye === true || player?.projection_source === "bye";
+}
+
+export function roomForecast(player) {
+  return roomOnBye(player) ? MY_TEAM_COPY.roomBye : roomNumber(player?.projection);
+}
+
 export function roomDelta(player, state) {
+  if (roomOnBye(player)) return null;
   if (state !== "final" || player?.points == null || player?.projection == null) return null;
   const delta = Number(player.points) - Number(player.projection);
   return Number.isFinite(delta) ? delta : null;

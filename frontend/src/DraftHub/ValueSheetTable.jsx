@@ -149,6 +149,8 @@ function ValueSheetTableView({
   showAdvancedColumns: showAdvancedProp,
   maxRows,
   loading = false,
+  loadError = "",
+  onRetryLoad,
   defaultPosFilter = "ALL",
   onPosFilterChange,
   showTierFilters = true,
@@ -961,7 +963,7 @@ function ValueSheetTableView({
     const priority = !claimsReady ? (claimLoadError || CLAIM_QUEUE_COPY.loading) : waiverPriority?.confirmed
       ? CLAIM_QUEUE_COPY.prioritySet(waiverPriority.teams?.find(team => team.team_id === waiverPriority.current_team_id)?.priority)
       : CLAIM_QUEUE_COPY.needsConfirm;
-    return <FreeAgentsBoard rows={mobileLayout ? mobileRows : visibleRows} count={sorted.length} loading={loading}
+    return <FreeAgentsBoard rows={mobileLayout ? mobileRows : visibleRows} count={sorted.length} loading={loading} loadError={loadError} onRetryLoad={onRetryLoad}
       media={playerMedia} scale={seasonScaleMax} scrollerRef={scrollerRef} topPad={topPad} bottomPad={bottomPad}
       loadMore={mobileLayout && mobileRows.length < sorted.length ? () => setMobileListLimit(n => n + MOBILE_LIST_PAGE) : null}
       pickDraft={pickDraft} rules={rules} riskTolerance={riskTolerance} banner={playersBanner} acquisitionWindow={acquisitionWindow}

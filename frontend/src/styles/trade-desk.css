@@ -72,7 +72,6 @@
 .hub-trade-exchange .hub-trade-comparison { grid-column: 1; grid-row: 3; }
 .hub-trade-exchange-more { align-self: flex-start; margin-top: var(--space-2); min-height: var(--control-h-sm); font-size: var(--text-xs); }
 .hub-trade-week-basis { margin-left: auto; font-size: var(--text-xs); color: var(--text-muted); }
-.hub-trade-phone-decision { display: none; }
 /* Duel card: review and Inbox */
 .hub-trade-duel { display: grid; grid-template-columns: minmax(0,1fr) 220px minmax(0,1fr); background: var(--bg-elevated); border-radius: var(--radius-lg); }
 .hub-trade-duel-half { position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; padding: var(--space-5); }
@@ -168,6 +167,11 @@
 .hub-trade-dialog .hub-trade-partner-card { min-width: 0; min-height: 132px; }
 .hub-trade-dialog .hub-trade-cap-review { grid-template-columns: repeat(auto-fill,minmax(min(260px,100%),1fr)); }
 .hub-trade-dialog .hub-trade-team-stats, .hub-trade-dialog .hub-trade-week-strip { font-size: var(--text-xs); }
+/* Package details scroll within the roster stage instead of pushing its action bar. */
+@media(min-width:769px) {
+ .hub-trade-exchange-col { contain: size; }
+ .hub-trade-exchange { max-height: 100%; overflow-y: auto; }
+}
 @media(max-width:768px) {
  .hub-page.hub-experience-page.hub-trade-desk { padding: 0 0 calc(var(--fantasy-fixed-action-height,144px) + 5rem + env(safe-area-inset-bottom,0px)); border: 0; border-radius: 0; background: transparent; }
  .hub-trade-desk > .hub-experience-hero.is-compact { display: none; }
@@ -179,8 +183,6 @@
  .hub-trade-phone-views [aria-pressed=true] { background: var(--bg-elevated); color: var(--accent-muted); }
  .hub-trade-workspace[data-phone-view=send] [data-party=receive], .hub-trade-workspace[data-phone-view=receive] [data-party=send] { display: none; }
  .hub-trade-workspace:not([data-phone-view=exchange]) .hub-trade-exchange-col { display: none; }
- .hub-trade-phone-decision { display: block; padding: var(--space-3); margin-bottom: var(--space-3); background: var(--bg-elevated); border-radius: var(--radius-md); }
- .hub-trade-workspace[data-phone-view=exchange] .hub-trade-phone-decision { display: none; }
  .hub-trade-workspace[data-phone-view=exchange] .hub-trade-filters, .hub-trade-workspace[data-phone-view=exchange] .hub-trade-party-col, .hub-trade-workspace[data-phone-view=exchange] .hub-trade-advanced-actions { display: none; }
  .hub-trade-desk .hub-trade-faceoff, .hub-trade-desk .hub-trade-faceoff.is-multi { display: block; }
  .hub-trade-desk .hub-trade-faceoff > .hub-trade-party-col + .hub-trade-party-col { margin-top: var(--space-3); }
