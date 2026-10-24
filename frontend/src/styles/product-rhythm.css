@@ -32,6 +32,15 @@
   margin-inline-end: 0;
 }
 
+/* Narrow action rows keep the full identity above the reserved control lane. */
+@media (max-width: 360px) {
+  :root .app [data-chat-safe-row] { flex-wrap: wrap; }
+  :root .app [data-chat-safe-row] > :first-child { flex-basis: 100%; }
+  :root .app [data-chat-safe-row] > [data-chat-safe-actions] { margin-inline-start: auto; }
+  :root.has-fantasy-chat-launcher .app [data-chat-safe-row] { padding-inline-end: var(--chat-launcher-clearance); }
+  :root.has-fantasy-chat-launcher .app [data-chat-safe-row] > [data-chat-safe-actions] { padding-inline-end: 0; }
+}
+
 /* Compact action context wraps within its column across font metrics. */
 :root .hub-wrap-copy { white-space: normal; overflow-wrap: anywhere; }
 

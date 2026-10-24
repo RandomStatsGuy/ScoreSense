@@ -94,7 +94,7 @@ else {
    for(let i=0;i<candidates&&!negative;i++){
     const candidate=page.locator('[data-chat-safe-actions] button,[data-chat-safe-actions] input,[data-chat-safe-actions] summary,button[data-chat-safe-actions],summary[data-chat-safe-actions]').nth(i);
     if(!await candidate.isVisible())continue;
-    const unsafe=await page.addStyleTag({content:':root.has-fantasy-chat-launcher [data-chat-safe-actions]{padding-inline-end:0!important;margin-inline-end:0!important;max-inline-size:none!important}'});
+    const unsafe=await page.addStyleTag({content:':root.has-fantasy-chat-launcher [data-chat-safe-actions],:root.has-fantasy-chat-launcher [data-chat-safe-row]{padding-inline-end:0!important;margin-inline-end:0!important;max-inline-size:none!important}'});
     await candidate.evaluate(e=>{const b=document.querySelector('.fantasy-chat-launcher-a').getBoundingClientRect(),r=e.getBoundingClientRect();scrollBy(0,r.top+r.height/2-b.top-b.height/2);});
     negative=(await audit()).some(x=>x.rule==='overlay-clearance'&&!x.ok);
     await unsafe.evaluate(e=>e.remove());

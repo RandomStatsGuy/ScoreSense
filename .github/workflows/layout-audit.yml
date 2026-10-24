@@ -9,6 +9,8 @@ on:
       - "frontend/src/styles.css"
       - "frontend/src/styles/**"
       - "frontend/src/DraftHub/HubUILayout.jsx"
+      - "frontend/src/DraftHub/LeagueTrades.jsx"
+      - "scripts/dev/release_interactions.mjs"
       - "scripts/dev/layout_audit.mjs"
       - "frontend/src/livingSurfaces.js"
       - ".github/workflows/layout-audit.yml"
@@ -42,6 +44,15 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+      - name: Verify bench and trade interaction anchors
+        run: node scripts/dev/release_interactions.mjs
+      - name: Save interaction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interaction-anchors
+          path: outputs/agent/release-regressions/
+          retention-days: 7
       - name: Start API and Vite
         run: bash scripts/dev/start_hub_dev.sh
       # Gate the rules this PR already greened. JSON still includes tables /
