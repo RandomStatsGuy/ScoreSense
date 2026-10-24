@@ -52,6 +52,14 @@
   :root .app [data-chat-safe-actions="control"] { min-inline-size: var(--control-h-lg); min-block-size: var(--control-h-lg); }
 }
 
+/* Content-width navigation rails preserve equal label insets on narrow screens. */
+:root .app .hub-filter-scroll[data-layout-rail] { flex-wrap: nowrap; max-inline-size: 100%; }
+:root .app .hub-filter-scroll[data-layout-rail] > * { flex: none; }
+@media (max-width: 768px) {
+  :root .app [data-chat-safe-actions="control"].hub-wrap-copy { line-height: var(--line-tight); }
+  :root .app .hub-filter-scroll[data-layout-rail] > * { padding-inline: var(--space-2); }
+}
+
 /* Narrow action rows keep the full identity above the reserved control lane. */
 @media (max-width: 360px) {
   :root .app [data-chat-safe-row] { flex-wrap: wrap; }
@@ -65,6 +73,9 @@
 :root .app .hub-numeric-row {
   grid-template-columns: minmax(var(--control-h-lg), 1fr) repeat(2, minmax(var(--control-h-lg), min(5.5rem, 30%)));
 }
+
+/* Compact rows retain one line of controls with the shared small gap. */
+:root .app .hub-action-row { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: var(--space-2); }
 
 /* Short action groups wrap whole labels when their reserved lane narrows. */
 .hub-wrap-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }

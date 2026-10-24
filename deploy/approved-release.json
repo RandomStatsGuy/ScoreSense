@@ -5,12 +5,12 @@
     "frontend/src/DraftHub/TeamRoomView.jsx": "c77240e7dd45b00bd6f1211bc9fe2ee3d6f949eb1882df93aaab55986beffea1",
     "frontend/src/DraftHub/RulesWizard.jsx": "4ad906d32129daf82ca941fabc3da1fbef1a71abed9c707707d82a9199573d48",
     "frontend/src/DraftHub/LeagueTrades.jsx": "aaaede4a8fa54ddb4e01eb47e98eadbb356747b5590230360f305ada250fd7c7",
-    "frontend/src/styles/product-rhythm.css": "421c6c97bc7bb6f601e5a6168d2cebadd8af2dc1823f618cf6f5c56b4f815da5",
+    "frontend/src/styles/product-rhythm.css": "d3df2e3ece40eb004329c8376d10f453982c988dc67877fee97b01211664fec0",
     "src/draft_hub/player_identity.py": "b286aa7ac86dd572054cbf7e09e742a8edfddca4d514822e1cc6a7fc4d32d865",
     "frontend/src/DraftHub/gameCenterPresentation.js": "96e82c18890d2304c8c5c8820012e6491dd3c32e55a0984c3d8e5bbec18857f7",
     "frontend/src/DraftHub/GameCenterMatchup.jsx": "4bf8a406c849b5eb1b9683907a6b67dce7b29359db2f53432dfe8bc9588a7ad3",
     "frontend/src/DraftHub/HubSetup.jsx": "a1db16a010baea860b50f70be9362d21dd379c7cbaff0dd1c552ed433a79791d",
-    "frontend/src/DraftHub/HubUILayout.jsx": "43f35bd367e877af608fe0d947e11f99dc90802d261f55994140d94baf9c1ad8",
+    "frontend/src/DraftHub/HubUILayout.jsx": "e6558202794e7abc99cd25c59ec093c84e495f67bb696cb9782f77b95b5d06fc",
     "frontend/src/DraftHub/StrategyBoard.jsx": "1a4a8b23fc048e17f240acbc245835f7e9fe4b40a0f9e4d5118fec4c1806fe87",
     "frontend/src/styles/fantasy.css": "8711f5910a411616ed62b7c35b78ed4233d01c96ce256b9368c15e81e957647c",
     "frontend/src/styles/tokens.css": "aafa83894dfb629c5658c973282141a4c64261339ebbb8c48f9fcd287ced32d1",
@@ -34,9 +34,9 @@
     "frontend/src/DraftHub/insights/InsightsTalk.jsx": "eb83e2f272c20e70020c89a438cb22f88f87d7a55f8434c6b2c86d18765889d7",
     "frontend/src/DraftHub/insights/InsightsBoards.jsx": "730501303b3cefaca22f115834b15b28d56ca6d619104b7b1d1706ab090bae70",
     "frontend/src/DraftHub/insights/InsightsContracts.jsx": "4d466f75037dee575dd7db9002ca3780c855da8dff74976267af004103e88283",
-    "frontend/src/DraftHub/insights/InsightsHeader.jsx": "5621f9bdab459c1fc7ff38ff32189a4f339cf3935646ec2f6d60cc53542d5334",
+    "frontend/src/DraftHub/insights/InsightsHeader.jsx": "1d88eb2ad533e6507dc7d0c98e12bf5fb634cf6899fa564a331608d5451644c4",
     "frontend/src/DraftHub/LeagueInsights.jsx": "d2044a3df4575a342e6fa2ac785c98014f7e0f3a8a7821ceb598f78a46c906b0",
-    "frontend/src/DraftHub/insights/InsightsOverview.jsx": "02d571046c3cfeb97c0e286a20adbacb9170ee6b024f19e927093806210eaeb1",
+    "frontend/src/DraftHub/insights/InsightsOverview.jsx": "64f66a3fa3c5a288cac43a28476bf503110a81e355e4e21a0affda9accaa241c",
     "frontend/src/DraftHub/insights/AwardTitlesEditor.jsx": "c76d17648ce55489ee1b695a00ae6ec36a042a0daa3fa10ee976bfc1afec0c54"
   }
 }

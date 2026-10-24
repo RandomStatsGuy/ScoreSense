@@ -3,6 +3,7 @@ import { formatRelativeTime } from "../../format";
 import { periodLabel, periodYears } from "./insightsPeriods";
 import { INSIGHTS_COPY } from "./insightsPresentation";
 import { InsightsProgress } from "./InsightsChrome";
+import { HubFilterScroll } from "../HubUILayout";
 
 export default function InsightsHeader({ tabs, active, onTab, landing, years, period, onPeriod, onRefresh, busy, showPeriod = true, seasonControl = null, refreshLabel = INSIGHTS_COPY.overview.refresh, titleMeta = null }) {
   const details = useRef(null);
@@ -36,7 +37,7 @@ export default function InsightsHeader({ tabs, active, onTab, landing, years, pe
       <p className="table-meta">{titleMeta || (landing?.available ? `${range} · ${landing.record_leaders?.length || 0} managers` : "Saved league history")}</p>
     </div>
     <div className="hub-insights-header-tabs">
-      <nav className="hub-insights-tabs" aria-label="Insights">{tabs.map((tab) => <button key={tab.id} type="button" aria-current={active === tab.id ? "true" : undefined} onClick={() => onTab(tab.id)}>{tab.label}</button>)}</nav>
+      <HubFilterScroll as="nav" rail className="hub-insights-tabs" label="Insights">{tabs.map((tab) => <button key={tab.id} type="button" aria-current={active === tab.id ? "true" : undefined} onClick={() => onTab(tab.id)}>{tab.label}</button>)}</HubFilterScroll>
       <InsightsProgress active={busy} />
     </div>
     {seasonControl && <div className="hub-insights-period-toolbar">{seasonControl}</div>}

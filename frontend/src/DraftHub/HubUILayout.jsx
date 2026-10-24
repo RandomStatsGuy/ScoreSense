@@ -151,23 +151,30 @@ export function HubTableCard({ children, className = "" }) {
   return <div className={`hub-table-card${className ? ` ${className}` : ""}`}>{children}</div>;
 }
 
-export function HubFilterScroll({ children, className = "" }) {
+export function HubFilterScroll({ children, className = "", as: Component = "div", rail = false, label }) {
   const ref = useRef(null);
+  const lastRail = useRef("");
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const active = root.querySelector(".filter-chip--active, [aria-pressed='true'], [aria-current='page']");
+    const active = root.querySelector(rail ? ".filter-chip--active, [aria-pressed='true'], [aria-current='page'], [aria-current='true']" : ".filter-chip--active, [aria-pressed='true'], [aria-current='page']");
     if (!active) return;
     const rootBox = root.getBoundingClientRect();
     const chipBox = active.getBoundingClientRect();
+    if (rail) {
+      const key = `${active.textContent}|${root.clientWidth}`;
+      if (lastRail.current === key) return;
+      lastRail.current = key;
+    }
     if (chipBox.left < rootBox.left || chipBox.right > rootBox.right) {
-      active.scrollIntoView({ inline: "center", block: "nearest" });
+      if (rail) root.scrollLeft += chipBox.left - rootBox.left - (rootBox.width - chipBox.width) / 2;
+      else active.scrollIntoView({ inline: "center", block: "nearest" });
     }
   });
   return (
-    <div ref={ref} className={`hub-filter-scroll${className ? ` ${className}` : ""}`}>
+    <Component ref={ref} className={`hub-filter-scroll${className ? ` ${className}` : ""}`} data-layout-rail={rail || undefined} aria-label={label}>
       {children}
-    </div>
+    </Component>
   );
 }
 

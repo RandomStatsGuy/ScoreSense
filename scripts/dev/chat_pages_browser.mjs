@@ -79,6 +79,16 @@ else {
    }
    if(c.action==='rules-category'){await page.getByRole('button',{name:c.category,exact:true}).click();if(c.category==='Manager names')await page.locator('.hub-manager-names input').first().waitFor();}
    if(c.action==='contracts-awards')await page.locator('.hub-office-award-disclosure > summary').click();
+   if(c.id.startsWith('insights-')&&c.width===320){
+    const tabs=page.locator('.hub-insights-tabs');
+    assert.ok(await tabs.evaluate(e=>{const a=e.querySelector('[aria-current="true"]'),r=a.getBoundingClientRect(),b=e.getBoundingClientRect();return r.left>=b.left-1&&r.right<=b.right+1;}),'active narrow tab is fully visible');
+    if(c.id==='insights-overview'&&c.theme==='dark'){
+     const before=await page.evaluate(()=>scrollY);
+     await tabs.getByRole('button',{name:'History',exact:true}).click();await page.locator('.hub-insights-player-btn').first().waitFor();
+     assert.equal(await page.evaluate(()=>scrollY),before,'changing tabs does not move the page vertically');
+     await tabs.getByRole('button',{name:'Overview',exact:true}).click();await page.locator('.hub-insights-record-book').waitFor();
+    }
+   }
    if(c.action==='insights-expand')for(const summary of await page.locator('main details:not(.hub-insights-period) > summary').all())if(await summary.isVisible())await summary.click();
    if(c.action==='insights-period')await page.locator('.hub-insights-period > summary').click();
    const audit=()=>page.evaluate(measureScript(),{...args,minTarget:c.width<=768?44:32});
