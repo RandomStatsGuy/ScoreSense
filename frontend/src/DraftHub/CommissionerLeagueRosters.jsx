@@ -1364,7 +1364,7 @@ function CommissionerLeagueRostersView({ leagueId, season, workspace, hubContext
 
   if (error && !overview) {
     return (
-      <div className="hub-league-rosters">
+      <div className="hub-league-rosters" data-chat-safe-actions>
         <div className="error">{error}</div>
       </div>
     );
@@ -1372,7 +1372,7 @@ function CommissionerLeagueRostersView({ leagueId, season, workspace, hubContext
 
   return (
     <OfficeMoneyContext.Provider value={showsMoney}>
-    <div className="hub-league-rosters">
+    <div className="hub-league-rosters" data-chat-safe-actions>
       {showsMoney && <LiveContractStageBanner stage={stage} />}
       <header className="hub-league-rosters-head">
         <div className="hub-league-rosters-intro">

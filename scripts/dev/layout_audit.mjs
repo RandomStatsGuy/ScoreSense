@@ -1081,6 +1081,8 @@ export function measureScript() {
     }
     const visibleBox = el => {
       if (!el || el.closest('[hidden], [inert]') || (el.checkVisibility && !el.checkVisibility())) return null;
+      const closed=el.closest('details:not([open])');
+      if(closed && !closed.querySelector(':scope > summary')?.contains(el))return null;
       const box=el.getBoundingClientRect();
       if (!box.width || !box.height || getComputedStyle(el).visibility !== 'visible') return null;
       // Scroll tracks paint only inside their clip; off-track chips cannot cover chat.
