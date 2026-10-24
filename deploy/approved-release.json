@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "approved_release": "2026-10-23 stable trade selection, bench Bye, bounded player loading; preserves approved spacing and identities",
+  "approved_release": "2026-10-23 Free agents chat-safe action rows; preserves spacing, stable trades, identities, Bye and bounded loading",
   "protected_sources": {
     "frontend/src/DraftHub/TeamRoomView.jsx": "870f49b61dee05802839aaf14b978383779664655dbd9adc6f188a443ae7f60b",
     "frontend/src/DraftHub/RulesWizard.jsx": "71bceda03ab6b5ae9a251d51f0fec59616e1852d0ee53710b4ee2e5f7712ba0d",
     "frontend/src/DraftHub/LeagueTrades.jsx": "1fa42c5456f06a0f15bdf986ebb13869ee7cf0011f22c969e74f45886065605a",
-    "frontend/src/styles/product-rhythm.css": "18c288516b06dbc8253ed6ab8d05a268957f1fadd80945bbf70a7f8a95005e74",
+    "frontend/src/styles/product-rhythm.css": "4e8f3cc3b6efba6ed82c941ccf180e0ea43bc2aba34ff3722d7f0bbfa2f6371f",
     "src/draft_hub/player_identity.py": "b286aa7ac86dd572054cbf7e09e742a8edfddca4d514822e1cc6a7fc4d32d865",
     "frontend/src/DraftHub/gameCenterPresentation.js": "96e82c18890d2304c8c5c8820012e6491dd3c32e55a0984c3d8e5bbec18857f7",
     "frontend/src/DraftHub/GameCenterMatchup.jsx": "712c95d661d7acd336686a781f6a9464f1a0155bed072fdbc23ef17c06fb0a6d",
@@ -16,7 +16,7 @@
     "frontend/src/styles/tokens.css": "aafa83894dfb629c5658c973282141a4c64261339ebbb8c48f9fcd287ced32d1",
     "frontend/src/styles/trade-desk.css": "4a88c4b50e5f00d6d4d3aeab4a3b9ed07e6857c81105137b64f57464fbd9e378",
     "frontend/src/DraftHub/DraftHub.jsx": "4e3ddb7c53f728148f6a9d227e32e52880fd6e0e9a1a244727cca515e8292821",
-    "frontend/src/DraftHub/FreeAgentsBoard.jsx": "e3343b780d9b8bd7000142d0516ab0e1f3f6e07d45914b4178aaea0770781bd7",
+    "frontend/src/DraftHub/FreeAgentsBoard.jsx": "3ac7806cf4f4fd4b6d70e68e8132dfed0894db461ced879c2a18cf68a7af8d51",
     "frontend/src/DraftHub/ValueSheetTable.jsx": "0dccf85f22c16667ff4685d39e8f02d4f687a714b6db9d311fc9bfdb4e5769a9",
     "frontend/src/DraftHub/acquisitionWindow.js": "b5722410c6c37be20168daeb7dd0863f45852cf9e9bc91e12a60759c01869893",
     "frontend/src/DraftHub/hubDataCache.js": "2ecea907e3fa5c5d0c9bfce222a292de4087409fab546818728df2a17264bdbc",

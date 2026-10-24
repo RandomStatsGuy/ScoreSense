@@ -1109,10 +1109,10 @@ export function measureScript() {
       const right=document.documentElement.clientWidth-box.right, bottom=innerHeight-box.bottom;
       const anchored=style.position==='fixed' && style.transform==='none' && Math.abs(parseFloat(style.right)-inset)<=1 && (!Number.isFinite(navHeight) || Math.abs(bottom-navHeight-gap)<=1);
       results.push({rule:'chat-anchor',ok:anchored,selector:classNameOf(overlay),detail:`right ${px(right)}px; bottom ${px(bottom)}px; fixed above navigation`});
-      // Scrolling content passes behind a fixed launcher. Protect other fixed
-      // chrome, sticky actions, and the currently focused control instead.
+      // Ordinary scrolling content can pass behind chat. Opted-in action rows,
+      // fixed chrome, sticky actions, and keyboard focus must remain clear.
       const blocked = [...document.querySelectorAll('#main-content button, #main-content a[href], #main-content summary, #main-content input, #main-content textarea, #main-content [role="button"], #main-content [role="tab"], #main-content [data-bottom-actions], #main-content [data-float-avoid], #main-content .hub-alert, .site-alert-toast')]
-        .filter(el => !overlay.contains(el) && visibleBox(el) && (viewportAttached(el) || el===document.activeElement || el.contains(document.activeElement)) && overlaps(box, visibleBox(el)));
+        .filter(el => !overlay.contains(el) && visibleBox(el) && (viewportAttached(el) || el.closest("[data-chat-safe-actions]") || el===document.activeElement || el.contains(document.activeElement)) && overlaps(box, visibleBox(el)));
       results.push({ rule:'overlay-clearance', ok:!blocked.length, selector:classNameOf(overlay), detail:blocked.length ? `obscures ${blocked.slice(0,3).map(el => (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0,50)).join('; ')}` : 'chat clears fixed actions and keyboard focus' });
     });
     const shell = document.querySelector('.app-with-bottom-nav'), nav = document.querySelector('.app-bottom-nav');
