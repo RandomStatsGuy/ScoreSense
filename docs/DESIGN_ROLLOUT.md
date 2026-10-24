@@ -1084,3 +1084,15 @@ Protection: the reviewed source policy preserves the previous spacing/identity f
 
 
 Live follow-through caught a second trade selection reflow at 320: projected position counts changed a long six-position roster summary between one and two lines. The original fixture had only four positions. The roster header now uses current cap/position counts, consistent with its current-roster listing, while Exchange/Review retain the projected result. The regression adds K/DEF and checks current-roster context plus row/Review coordinates through selection/removal. The expanded fixture fails against the first release before this fix. Live release `f7d8c7b5855428c3b4ad893477c5a1eddf274e67` otherwise verified confirmed bench Bye labels at 320/390, 20px chat clearance, a completed Free agents load, resolved identities, and exact host/image sources; a second release completes the remaining trade-header refinement.
+
+
+### Free agents chat clearance — October 23, 2026
+
+Task: prevent the desktop chat launcher covering Free agents Add controls, verify desktop/phone, and deploy. Approved baseline: existing Face-off list, action sheets, fixed chat anchor and shared token spacing. Attention order: player identity, outlook/comparison, unobscured acquisition action. The live audit measured the chat at x1353–1409 and Easton Stick's Add at x1314.6–1386.6, with overlapping vertical extents at 1440×900; the same collision occurs at 1280.
+
+Bounded change: let scrolling action rows opt into a shared CSS chat lane using `data-chat-safe-actions`; Free agents adopts it. Keep chat anchored, card identity/range data, permissions, calendar, loading, virtualization, and acquisition behavior. The layout audit must inspect these opted-in controls even when they are not focused or sticky. Regression scenarios cover the real list and launcher at desktop/phone widths, both themes, chat present/absent, locked and active acquisition states, scroll positions and sheet dismissal. Machine, visual, interaction and live deployment evidence will be recorded after execution.
+
+
+Machine evidence: 48 new real-component chat scenarios PASS at 320/390/768/1024/1280/1440 in both themes across Add, bid, claim, and locked states. Each removes clearance as a negative control and proves the shared audit rejects an unfocused overlapping action. Chat dismissal releases its lane; acquisition sheets open/close with focus return and no roster writes. All-rule canonical-route fixture audits at 390 and 1280 PASS. Frontend unit tests (1,445) and production build PASS. Existing protected-release regressions and full Python gate are recorded with the final checks.
+
+Visual evidence: inspected desktop Add at 1280 dark, phone bid at 320 dark, and locked Add/star at 390 light with synthetic data and blocked external portraits. Actions clear the fixed bubble, targets remain 44px, and the list stays within the viewport. Live desktop/phone follow-through will verify the deployed asset and real league rows separately.

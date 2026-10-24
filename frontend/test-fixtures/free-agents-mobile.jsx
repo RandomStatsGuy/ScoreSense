@@ -1,5 +1,8 @@
 // Real components with isolated sample data. Every league write is intercepted here.
 import React, { useState } from "react";
+import { CommunicationProvider } from "../src/DraftHub/CommunicationContext";
+import ChatLauncher from "../src/DraftHub/ChatLauncher";
+import CommunicationPanel from "../src/DraftHub/CommunicationPanel";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import ValueSheetTable from "../src/DraftHub/ValueSheetTable";
@@ -19,6 +22,7 @@ import "../src/styles/fantasy-phone.css";
 import "../src/styles/fantasy-header.css";
 import "../src/styles/color-theme.css";
 import "../src/styles/standalone-dialogs.css";
+import "../src/styles/fantasy-chat.css";
 
 const params = new URLSearchParams(location.search), state = params.get("state") || "bid";
 const pick = ["claim", "priority", "claim-error", "market-error", "add"].includes(state) || params.has("pick");
@@ -76,6 +80,7 @@ window.fetch = async (input, options = {}) => {
     if (path.endsWith("/bid")) myBids = [...myBids.filter(b => b.player_id !== body.player_id), { ...body, nfl_team: body.team, team_id: "mine" }];
     return Response.json({ claims, priority, high_bid: { high_bid: body.bid_amount } });
   }
+  if (path.includes("/chat/summary")) return Response.json({ threads: [], members: [], notifications: [], unread: 0, notification_unread: 0, preferences: {} });
   if (path.includes("/fa-market")) return state === "market-error" ? Response.json({ detail: "Could not load waiver claims" }, { status: 503 }) : Response.json({ market: { my_claims: claims, my_bids: myBids, waiver_priority: priority, protected_player_ids: params.has("protected") ? ["9500"] : [] } });
   if (path.includes("/hub/week")) return weekRoster ? Response.json({ hub_context: { league_id: "fixture", team_id: "mine" }, roster: weekRoster }) : Response.json({ detail: "No week yet" }, { status: 404 });
   if (path.includes("/players/media")) return Response.json({ media: photos });
@@ -110,4 +115,4 @@ function Preview() {
     <MobileMenuSheet open={more} onClose={() => setMore(false)} authReady authenticated user={{ name: "Maya Chen" }} onGoToAccount={() => navigate("account")} view="hub" />
   </MobileShell></LeagueChromeProvider>;
 }
-createRoot(document.getElementById("root")).render(<MemoryRouter><Preview /></MemoryRouter>);
+createRoot(document.getElementById("root")).render(<MemoryRouter>{params.has("chat") ? <CommunicationProvider enabled identity="free-agents-spacing" hubContext={{ mode: "league", league_id: "fixture", team_id: "mine" }}><Preview /><ChatLauncher leagueId="fixture" /><CommunicationPanel /></CommunicationProvider> : <Preview />}</MemoryRouter>);
