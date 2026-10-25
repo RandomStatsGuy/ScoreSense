@@ -4,7 +4,7 @@ import { HubFilterMenu, HubPage } from "./HubUILayout";
 import HubMediaImg from "./HubMediaImg";
 import { headshotCandidates, playerInitials } from "./draftMedia";
 import { nflTeamColors } from "./nflTeamColors";
-import useModalFocus from "../ui/useModalFocus";
+import useModalFocus, { openModalFrom } from "../ui/useModalFocus";
 import { resolveSeasonBand, seasonRangeTooltip } from "../seasonQuantiles";
 import { effectiveAuctionBid } from "../riskAdjustedValue";
 import { suggestedBidSubLabel } from "./suggestedBidLabel";
@@ -291,12 +291,12 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
         return <React.Fragment key={row.player_id}>
           {group && <p className={`fa-group${group.up ? " is-up" : ""}`}>{group.label}</p>}
           <article className={`fa-player${addMode === "locked" ? " is-locked" : ""}${justSavedId != null && String(justSavedId) === String(row.player_id) ? " is-just-saved" : ""}`} data-player-id={row.player_id} style={{ "--i": Math.min(i, 8) }}>
-            <div className="fa-player-top"><button className="fa-profile" onClick={() => onOpen(row)} aria-label={COPY.openDetails(row.player)}><Face row={row} media={media} /><span className="fa-name"><strong>{row.player}{isBest && <span className="fa-tag">{FO.bestUpgrade}</span>}</strong><span>{[row.position, row.team].filter(Boolean).join(" · ")}</span>{row.per_game_proj != null && <span>{pts(row.per_game_proj, 1)} {COPY.perGame}</span>}{edge && <span className={`fa-edge ${edge.cls}`}>{edge.text}</span>}</span></button>
+            <div className="fa-player-top"><button className="fa-profile" onClick={event => openModalFrom(event.currentTarget, () => onOpen(row))} aria-label={COPY.openDetails(row.player)}><Face row={row} media={media} /><span className="fa-name"><strong>{row.player}{isBest && <span className="fa-tag">{FO.bestUpgrade}</span>}</strong><span>{[row.position, row.team].filter(Boolean).join(" · ")}</span>{row.per_game_proj != null && <span>{pts(row.per_game_proj, 1)} {COPY.perGame}</span>}{edge && <span className={`fa-edge ${edge.cls}`}>{edge.text}</span>}</span></button>
               {targetSlot && cmp ? <div className="fa-outlook"><strong className={delta != null && delta >= 1 ? "is-up" : undefined}>{delta == null ? "—" : FO.delta(delta)}</strong><small>{targetSlot.player ? `${FO.compareTo(targetSurname)} ${FO.perGameUnit}` : `${FO.compareToOpen(slotName(targetSlot))} ${FO.perGameUnit}`}</small></div>
                 : <div className="fa-outlook"><strong>{pts(band.p50)}</strong><small>{COPY.seasonShort}</small></div>}</div>
             <div className="fa-player-bottom" data-chat-safe-actions><div className="fa-range" title={seasonRangeTooltip(band.method, { preliminary: band.preliminary })}><div className="fa-range-copy"><span>{pts(band.p10)}–{pts(band.p90)} {COPY.range}{marks?.season != null && against?.player && <> · <i className="fa-tick-key hub-wrap-copy">{FO.tickKey(faceoffSurname(against.player.name), marks.season)}</i></>}</span>{!pickDraft && suggested != null && <strong className={addMode === "bid" && bidBlockedByCeiling(suggested, ceilingFor?.(row.player_id)) ? "fa-warning" : undefined} title={addMode === "bid" && bidBlockedByCeiling(suggested, ceilingFor?.(row.player_id)) ? faWalkawayAbove(ceilingFor(row.player_id)) : undefined}>{COPY.suggested(suggested)}</strong>}</div><Range band={band} scale={scale} marks={marks} /></div>
               {addMode === "locked" && onWatch && <button className="fa-icon" aria-label={`${watched(row.player_id) ? COPY.unstar : COPY.star}: ${row.player}`} aria-pressed={watched(row.player_id)} onClick={() => onWatch(row)}>{watched(row.player_id) ? "★" : "☆"}</button>}
-              {addVisible && <button className={`fa-acquire${pending || claimed(row.player_id) ? " is-saved" : ""}`} disabled={!canAct(row) || busy} title={reasonFor(row)} aria-label={`${playersTabAddLabel(addMode)} ${row.player}`} onClick={() => onOpen(row)}>{claimed(row.player_id) ? CLAIM_QUEUE_COPY.claimed : pending ? FO.bidIn : playersTabAddLabel(addMode)}</button>}</div>
+              {addVisible && <button className={`fa-acquire${pending || claimed(row.player_id) ? " is-saved" : ""}`} disabled={!canAct(row) || busy} title={reasonFor(row)} aria-label={`${playersTabAddLabel(addMode)} ${row.player}`} onClick={event => openModalFrom(event.currentTarget, () => onOpen(row))}>{claimed(row.player_id) ? CLAIM_QUEUE_COPY.claimed : pending ? FO.bidIn : playersTabAddLabel(addMode)}</button>}</div>
           </article>
         </React.Fragment>;
       })}

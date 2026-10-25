@@ -1,3 +1,4 @@
+import {launchReleaseBrowser,releaseOutputRoot} from './release_browser.mjs';
 import {measureScript,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_PACK_RATIO,GUTTER_EDGE_SELECTORS} from './layout_audit.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -5,9 +6,9 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {fileURLToPath} from 'node:url';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),out=path.join(root,'outputs/agent/release-regressions'),stage='shared';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),out=releaseOutputRoot(root),stage='shared';
 const folder=path.join(out,stage+'-survey');await fs.mkdir(folder,{recursive:true});
-const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild'),{chromium}=require('playwright');
+const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild');
 const cases=[];
 const add=(id,fixture,query={},ready='main',action)=>cases.push({id,fixture,query,ready,action});
 for(const view of ['strategy','cap','vibes','week','draft','rules','agents'])add(view,'fantasy-spacing',{view},'[data-fixture-view]');
@@ -37,7 +38,7 @@ const server=createServer(async(req,res)=>{try {
  res.writeHead(404);res.end();
 }catch{res.writeHead(404);res.end();}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const base=`http://127.0.0.1:${server.address().port}`,browser=await chromium.launch({headless:true,channel:process.env.RELEASE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':'chromium'),args:['--no-proxy-server']}),reports=[];
+const base=`http://127.0.0.1:${server.address().port}`,browser=await launchReleaseBrowser(),reports=[];
 const only=process.argv.find(a=>a.startsWith('--only='))?.slice(7).split(',');
 const selected=cases.filter(c=>['strategy','cap','bestball','setup','draft','weekly-command','draft-entry','alerts','home'].includes(c.id));
 const jobs=selected.flatMap(c=>[1280,390].flatMap(width=>['dark','light'].map(theme=>({...c,width,theme}))));

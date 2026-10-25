@@ -1,3 +1,4 @@
+import {launchReleaseBrowser,releaseOutputRoot} from './release_browser.mjs';
 // Real Fantasy controls across scroll, with isolated synthetic data and no league writes.
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -8,8 +9,8 @@ import {fileURLToPath} from 'node:url';
 import {measureScript,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_PACK_RATIO,GUTTER_EDGE_SELECTORS} from './layout_audit.mjs';
 import {LIVING_SURFACES} from '../../frontend/src/livingSurfaces.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
-const folder=path.join(root,'outputs/agent/release-regressions/chat-pages');await fs.mkdir(folder,{recursive:true});
-const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild'),{chromium}=require('playwright');
+const folder=path.join(releaseOutputRoot(root),'chat-pages');await fs.mkdir(folder,{recursive:true});
+const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild');
 const specs=[
  {id:'strategy',surface:'hub.value',fixture:'fantasy-spacing',query:{view:'strategy'},ready:'.hub-strategy-take'},
  {id:'rules',surface:'hub.rules',fixture:'fantasy-spacing',query:{view:'rules'},ready:'.hub-rules-field-grid input'},
@@ -54,7 +55,7 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`htt
 await fs.writeFile(path.join(folder,'base.txt'),base);
 if(process.argv.includes('--serve')){console.log('Chat-enabled canonical route fixtures ready.');process.stdin.resume();process.stdin.on('data',()=>server.close(()=>process.exit(0)));}
 else {
- const browser=await chromium.launch({headless:true,channel:process.env.RELEASE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':'chromium'),args:['--no-proxy-server']}),reports=[];
+ const browser=await launchReleaseBrowser(),reports=[];
  const args={numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS};
  const jobs=specs.flatMap(spec=>[320,390,1280,1440].flatMap(width=>['dark','light'].map(theme=>({...spec,width,theme}))));let next=0;
  const only=process.argv.find(a=>a.startsWith('--only='))?.slice(7).split(',');const selected=only?jobs.filter(j=>only.includes(j.id)):jobs;

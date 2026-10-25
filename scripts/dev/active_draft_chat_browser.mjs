@@ -1,23 +1,23 @@
+import {launchReleaseBrowser,releaseOutputRoot} from './release_browser.mjs';
 // Real active draft and compact chat components; all league HTTP/WebSockets isolated.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {attachDraftFixture,draftFixtureUrl} from './draft_fixture_runtime.mjs';
 import {measureScript,minTargetForWidth,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_PACK_RATIO,GUTTER_EDGE_SELECTORS} from './layout_audit.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
-const require=createRequire(path.join(root,'frontend/package.json')),{chromium}=require('playwright');
-const out=path.join(root,'outputs/agent/release-regressions/active-draft-chat');await fs.mkdir(out,{recursive:true});
+const out=path.join(releaseOutputRoot(root),'active-draft-chat');await fs.mkdir(out,{recursive:true});
 // Full room owns inline chat; never introduce a duplicate floating launcher.
 assert.match(await fs.readFile(path.join(root,'frontend/src/DraftHub/DraftHub.jsx'),'utf8'),/hidden: !active \|\| subView === "room" \|\| createLeagueOpen/);
-const browser=await chromium.launch({headless:true,channel:process.platform==='win32'?'msedge':undefined});
+const browser=await launchReleaseBrowser();
 const specs=[];
 for(const practice of [false,true])for(const width of [1280,390,320])for(const theme of ['dark','light'])for(const mode of ['bidding','nominating','paused','snake'])specs.push({practice,width,theme,mode});
 for(const practice of [false,true])for(const width of [1280,390])for(const theme of ['dark','light'])for(const role of ['visitor','offline','member'])specs.push({practice,width,theme,mode:role==='offline'?'nominating':'bidding',role});
 const report=[];
 try{
-for(const spec of specs.filter(s=>!process.argv.includes('--narrow')||(!s.practice&&s.width===320&&s.mode==='bidding'&&s.theme==='dark'&&!s.role))){
+const onlyRole=process.argv.find(a=>a.startsWith('--role='))?.slice(7);
+for(const spec of specs.filter(s=>(!onlyRole||s.role===onlyRole)&&(!process.argv.includes('--narrow')||(!s.practice&&s.width===320&&s.mode==='bidding'&&s.theme==='dark'&&!s.role)))){
  const {practice,width,theme,mode,role}=spec,name=`${role||"commissioner"}-${practice?'mock':'native'}-${mode}-${width}-${theme}`;
  const context=await browser.newContext({viewport:{width,height:width===320?568:width===390?844:900},serviceWorkers:'block',reducedMotion:'reduce'});
  const errors=[],blocked=[],mediaFallbacks=[];let page;
@@ -35,7 +35,9 @@ for(const spec of specs.filter(s=>!process.argv.includes('--narrow')||(!s.practi
   const composer=page.getByRole('combobox',{name:'Chat message',exact:true});
   await composer.waitFor();if(role!=='visitor')await composer.fill('Unsent local draft preview');else assert.equal(await composer.isEnabled(),false,'visitor chat is read-only');
   await page.getByRole('button',{name:'Send',exact:true}).waitFor();
-  await composer.scrollIntoViewIfNeeded();
+  // Read-only visitors scroll the conversation; a disabled input cannot receive focus.
+  if(role==='visitor')await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));
+  else await composer.scrollIntoViewIfNeeded();
   assert.equal(await page.locator('.fantasy-chat-launcher-a').count(),0,'active room hides duplicate bubble');
   assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('has-fantasy-chat-launcher')),false,'no phantom bubble lane');
   const audit=()=>page.evaluate(measureScript(),{minTarget:minTargetForWidth(width),numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS});
@@ -47,7 +49,7 @@ for(const spec of specs.filter(s=>!process.argv.includes('--narrow')||(!s.practi
    const nav=document.querySelector('.app-bottom-nav'),r=el.getBoundingClientRect(),n=nav?.getBoundingClientRect();
    return {bottom:r.bottom,navTop:n?.top,clear:!n||getComputedStyle(nav).display==='none'||r.bottom<=n.top};
   });
-  assert.equal((await clear()).clear,true,'composer controls clear bottom navigation');
+  const composeClear=await clear();assert.equal(composeClear.clear,true,'composer controls clear bottom navigation '+JSON.stringify(composeClear));
   if(role!=='visitor'){for(const label of ['Mention a league manager','Add emoji']){
    await page.getByRole('button',{name:label,exact:true}).click();
    assert.equal((await clear()).clear,true,label+' preserves composer clearance');

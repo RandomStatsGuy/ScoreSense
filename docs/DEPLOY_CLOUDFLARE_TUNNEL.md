@@ -431,3 +431,6 @@ this guard is a release control, not a security boundary against an administrato
 The guarded entry points serialize deployments and wait up to 30 minutes for the existing projection-refresh lock before replacing source or stopping services. They retain that lock through the release; a timeout fails before mutation instead of interrupting a publishing worker.
 
 The active-draft chat guard adds 72 isolated real-component scenarios to the existing 384 (456 total). It checks hidden floating chat, inline composer tools and measured sticky-header/navigation clearance, including short 320px phones, paused/offline, practice, member and visitor states. Preserve all 36 existing protected paths and add six draft/shared-chat/action-measurement sources (42 total); intentional shared stylesheet updates require the same regression and review evidence.
+
+
+Cross-browser chat protection runs the same 456 scenarios in Chromium, Firefox and WebKit before server deployment. All three jobs must pass; an unavailable engine fails its job rather than falling back to Chromium. The source floor retains all 42 previous paths and adds the shared modal focus helper (43 total). Only the three reviewed focus-related runtime hashes advance; mappings, Bye, loading, trade anchors and prior shared styles remain exact. Actual Safari/macOS/iOS still requires platform-specific validation.
