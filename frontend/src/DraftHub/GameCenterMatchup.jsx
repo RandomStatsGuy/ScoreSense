@@ -150,7 +150,7 @@ export default function GameCenterMatchup({
     setDetailSide("home");
   };
   const around = (
-    <section className="gc-room-panel">
+    <section className="gc-room-panel" data-chat-safe-actions>
       <div className="gc-room-section-head">
         <h2>{COPY.leagueTitle}</h2>
         <small>Week {data.week}</small>
@@ -240,6 +240,7 @@ export default function GameCenterMatchup({
                 <>
                   <div
                     className="gc-room-position-strip"
+                    data-chat-safe-actions="control"
                     role="group"
                     aria-label={COPY.selectPosition}
                   >
@@ -258,7 +259,7 @@ export default function GameCenterMatchup({
                     ))}
                   </div>
                   <section
-                    className="gc-room-feature"
+                    className="gc-room-feature" data-chat-safe-actions
                     aria-label={COPY.headToHead}
                   >
                     <FeaturedPlayer
@@ -282,7 +283,7 @@ export default function GameCenterMatchup({
                   </section>
                 </>
               )}
-              <section className="gc-room-board" aria-label={COPY.everyStarter}>
+              <section className="gc-room-board" data-chat-safe-actions aria-label={COPY.everyStarter}>
                 <div className="gc-room-section-head">
                   <h2>{COPY.everyStarter}</h2>
                   <small>{COPY.selectPosition}</small>
@@ -311,7 +312,7 @@ export default function GameCenterMatchup({
             </>
           )}
           {section === "bench" && (
-            <section className="gc-room-panel">
+            <section className="gc-room-panel" data-chat-safe-actions>
               <h2>{COPY.benchTitle}</h2>
               <p>{COPY.benchNote}</p>
               <div className="gc-room-bench">
@@ -337,7 +338,7 @@ export default function GameCenterMatchup({
         </div>
         <aside className="gc-room-side">
           {section === "starters" && selected && (
-            <section className="gc-room-panel gc-room-selected">
+            <section className="gc-room-panel gc-room-selected" data-chat-safe-actions>
               <small>{COPY.selectedPlayer}</small>
               <div
                 className="gc-room-segments"
@@ -366,7 +367,7 @@ export default function GameCenterMatchup({
             </section>
           )}
           {section !== "league" && around}
-          <details className="gc-room-panel">
+          <details className="gc-room-panel" data-chat-safe-actions>
             <summary>{COPY.standingsAwards}</summary>
             <h2>
               {standingsView.historical
@@ -393,7 +394,7 @@ export default function GameCenterMatchup({
               support={COPY.trophiesSupport}
             />
           </details>
-          {weekly && <details className="gc-room-panel"><summary>{COPY.weeklyExtras}</summary>
+          {weekly && <details className="gc-room-panel" data-chat-safe-actions><summary>{COPY.weeklyExtras}</summary>
             <button type="button" className="btn-link" onClick={() => onNavigate?.("vibes")}>{COPY.ratePlayers}</button>
             {scoringControl}
           </details>}

@@ -375,12 +375,14 @@ both themes), and four bench/trade workflows. It injects the actual conflicting
 late CSS selectors, checks stable row/Review geometry, and verifies that the
 overlay check rejects an intentionally unclipped bench. Chromium must already
 be installed for Playwright on Linux; Windows defaults to the installed Edge.
-CI installs its own browser. Reports/screenshots live under
+CI installs its own browser. The shared chat-page suite adds 248 cases across 31 populated, expanded, and selected page states at 320, 390, 1280, and 1440 in both themes. It checks scrolling action clearance, deliberate removal of the shared lane, closed versus painted disclosure content, chat dismissal, and late phone-header styles. It keeps the existing trade, loading, mapping, Bye, and Free agents checks. Reports/screenshots live under
 `outputs/agent/release-regressions/`; unavailable cases fail the release job.
 
 The backend regression uses temporary provider/official roster caches and checks
 Frank Gore Jr., Antonio Williams, Kyle Williams, Brandon Smith, and James Cook
 III, plus ambiguity, conflicting IDs, season boundaries, and cache replacement.
+Trade interactions assert row coordinates, page scroll, and Review placement through add/remove at 320, 390, and 1280. Player-loading workflows cover failed reads, explicit Retry, shared navigation, and the real 30-second deadline.
+
 Bye tests distinguish confirmed bye flags/sources from missing projections,
 empty slots, and genuine zero scores. No test uses the live league database.
 
@@ -427,3 +429,5 @@ copies of scripts, or direct Docker commands bypass the supported entry points;
 this guard is a release control, not a security boundary against an administrator.
 
 The guarded entry points serialize deployments and wait up to 30 minutes for the existing projection-refresh lock before replacing source or stopping services. They retain that lock through the release; a timeout fails before mutation instead of interrupting a publishing worker.
+
+The active-draft chat guard adds 72 isolated real-component scenarios to the existing 384 (456 total). It checks hidden floating chat, inline composer tools and measured sticky-header/navigation clearance, including short 320px phones, paused/offline, practice, member and visitor states. Preserve all 36 existing protected paths and add six draft/shared-chat/action-measurement sources (42 total); intentional shared stylesheet updates require the same regression and review evidence.

@@ -117,7 +117,7 @@ function FaceCard({ row, media, pickDraft, ctx, riskTolerance, onTake }) {
             </div>
           ))}
         </div>
-        <button type="button" className="btn btn-ghost hub-strategy-take" onClick={onTake}>
+        <button type="button" className="btn btn-ghost hub-strategy-take" data-chat-safe-actions="control" onClick={onTake}>
           {takeLabel(row)}
         </button>
       </div>
@@ -495,7 +495,7 @@ export default function StrategyBoard({
                   onTake={() => take(pair.b, pair.a)}
                 />
               </div>
-              <div className="hub-strategy-vote">
+              <div className="hub-strategy-vote" data-chat-safe-actions>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={skipPair}>
                   {COPY.tooClose}
                 </button>

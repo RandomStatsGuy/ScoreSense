@@ -1,3 +1,4 @@
+import {ChatAuditShell} from "./chat-audit-shell";
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
@@ -91,4 +92,4 @@ function Preview() {
             }} /></TeamIdentityProvider></div></main>
  </MobileShell></LeagueChromeProvider>;
 }
-createRoot(document.getElementById('root')).render(<MemoryRouter><Preview /></MemoryRouter>);
+createRoot(document.getElementById('root')).render(<MemoryRouter><ChatAuditShell><Preview /></ChatAuditShell></MemoryRouter>);

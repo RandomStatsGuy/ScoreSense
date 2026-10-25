@@ -8,6 +8,95 @@
   padding-bottom: calc(var(--bottom-nav-height) + max(var(--bottom-action-height), var(--chat-launcher-clearance)) + var(--space-4));
 }
 
+/* Registered top actions leave room for focus between the bar and navigation. */
+:root:has([data-top-actions]) {
+  scroll-padding-block-start:calc(var(--top-action-height, 0px) + var(--space-2));
+  scroll-padding-block-end:calc(var(--bottom-nav-height) + var(--space-4));
+}
+
+/* Scrolling action rows can reserve the same lane as detached page actions. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions]:not([data-chat-safe-actions="control"]) {
+  padding-inline-end: var(--chat-launcher-clearance);
+}
+
+/* A sticky panel inside an inset flow already shares its reserved lane.
+   Fixed panels remain viewport anchored and retain their own clearance. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions] [data-bottom-actions][data-bottom-position="sticky"] {
+  margin-inline-end: 0;
+}
+
+/* A full-width control or clipped rail reserves the lane outside its hit area.
+   Keep its own insets; padding alone would leave the target under chat. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions="control"] {
+  max-inline-size: calc(100% - var(--chat-launcher-clearance));
+  margin-inline-end: var(--chat-launcher-clearance);
+}
+
+/* The containing flow owns clearance; nested controls do not reserve it twice. */
+:root.has-fantasy-chat-launcher [data-chat-safe-actions] [data-chat-safe-actions="control"] {
+  max-inline-size: 100%;
+  margin-inline-end: 0;
+}
+
+/* Intrinsic form widths must fit the action flow, including its chat lane. */
+:root .app [data-chat-safe-actions] :is(input, select, textarea) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  box-sizing: border-box;
+}
+
+/* Compact disclosure titles retain words when metadata shares a narrow row. */
+@media (max-width: 360px) {
+  :root .app .hub-inline-disclosure__row { grid-template-columns: minmax(0, 1fr) var(--form-control-height); }
+  :root .app .hub-inline-disclosure__identity { grid-column: 1 / -1; }
+  :root .app .hub-inline-disclosure__meta { grid-column: 1; grid-row: 2; }
+  :root .app .hub-inline-disclosure__toggle { grid-column: 2; grid-row: 2; }
+}
+
+/* Shared control targets keep the same touch size with chat shown or hidden. */
+@media (max-width: 768px) {
+  :root .app [data-chat-safe-actions="control"] { min-inline-size: var(--control-h-lg); min-block-size: var(--control-h-lg); }
+}
+
+/* Content-width navigation rails preserve equal label insets on narrow screens. */
+:root .app .hub-filter-scroll[data-layout-rail] { flex-wrap: nowrap; max-inline-size: 100%; }
+:root .app .hub-filter-scroll[data-layout-rail] > * { flex: none; }
+@media (max-width: 768px) {
+  :root .app [data-chat-safe-actions="control"].hub-wrap-copy { line-height: var(--line-tight); }
+  :root .app .hub-filter-scroll[data-layout-rail] > * { padding-inline: var(--space-2); }
+}
+
+/* Narrow action rows keep the full identity above the reserved control lane. */
+@media (max-width: 360px) {
+  :root .app [data-chat-safe-row] { flex-wrap: wrap; }
+  :root .app [data-chat-safe-row] > :first-child { flex-basis: 100%; }
+  :root .app [data-chat-safe-row] > :last-child { margin-inline-start: auto; }
+  :root.has-fantasy-chat-launcher .app [data-chat-safe-row]:not([data-chat-safe-actions="control"]) { padding-inline-end: var(--chat-launcher-clearance); }
+  :root.has-fantasy-chat-launcher .app [data-chat-safe-row] > [data-chat-safe-actions] { padding-inline-end: 0; }
+}
+
+/* Label + two numeric fields share tracks that keep each input usable. */
+:root .app .hub-numeric-row {
+  grid-template-columns: minmax(var(--control-h-lg), 1fr) repeat(2, minmax(var(--control-h-lg), min(5.5rem, 30%)));
+}
+
+/* Secondary navigation actions can keep their full accessible name at narrow widths. */
+.hub-icon-on-narrow > .hub-action-icon { display: none; }
+@media (max-width: 360px) {
+  :root .app .hub-icon-on-narrow { flex: none; inline-size: var(--control-h-lg); padding-inline: var(--space-2); }
+  .hub-icon-on-narrow > .hub-action-label { display: none; }
+  .hub-icon-on-narrow > .hub-action-icon { display: inline-flex; align-items: center; justify-content: center; }
+}
+
+/* Compact rows retain one line of controls with the shared small gap. */
+:root .app .hub-action-row { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: var(--space-2); }
+
+/* Short action groups wrap whole labels when their reserved lane narrows. */
+.hub-wrap-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* Compact action context wraps within its column across font metrics. */
+:root .hub-wrap-copy { white-space: normal; overflow-wrap: anywhere; }
+
 .projection-refresh-status {
   display: flex;
   align-items: center;

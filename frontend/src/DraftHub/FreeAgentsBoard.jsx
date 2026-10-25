@@ -159,7 +159,7 @@ function Duel({ row, media, scale, faceoff, mode }) {
     </div>
     <p className="fa-duel-head">{head}</p>
     <Range band={band} scale={scale} marks={marks} />
-    {marks?.season != null && out && <p className="fa-versus-note">{FO.duelNote(faceoffSurname(row.player), faceoffSurname(out.name))} <i className="fa-tick-key">{FO.tickKey(faceoffSurname(out.name), marks.season)}</i></p>}
+    {marks?.season != null && out && <p className="fa-versus-note">{FO.duelNote(faceoffSurname(row.player), faceoffSurname(out.name))} <i className="fa-tick-key hub-wrap-copy">{FO.tickKey(faceoffSurname(out.name), marks.season)}</i></p>}
     {after != null && <p className="fa-versus-lineup">{FO.lineupAfter(now, after, landsLabel(mode))}</p>}
   </div>;
 }
@@ -235,7 +235,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
   claims, claimsReady = true, priority, protectedIds, roster, rosterIds, onWatch, watchIds, onHistory, claimContent, ceilingFor,
   posFilter, positionOptions, setPosFilter, sortKey, sortOptions, onSort, search, setSearch,
   tierFilter, tierOptions, setTierFilter, riskProfile, riskOptions, setRiskProfile, needsOnly, needPositions, setNeedsOnly,
-  boardDirty, resetBoard, emptyMessage, draft, onOpen, onClose, onChange, onConfirm, busy, error,
+  loadError, onRetryLoad, boardDirty, resetBoard, emptyMessage, draft, onOpen, onClose, onChange, onConfirm, busy, error,
   faceoff = null, onTarget, groupStarts = null, listKey = "", notice = null, justSavedId = null }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -276,7 +276,8 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
     {error && !draft && <p className="fa-info" role="status">{error}</p>}
     <div className={`fa-pool${fresh ? " is-fresh" : ""}`} ref={scrollerRef} aria-busy={loading}>
       {loading && count === 0 ? <div role="status" aria-label={COPY.loading}>{[0, 1, 2, 3, 4].map(n => <div className="fa-skeleton" key={n} />)}</div> : null}
-      {!loading && count === 0 && <div className="fa-empty"><p>{emptyMessage}</p>{boardDirty && <button className="btn-ghost btn-sm" onClick={resetBoard}>{COPY.reset}</button>}</div>}
+      {loadError && <div className="fa-empty" role="alert"><p>{loadError}</p>{onRetryLoad && <button type="button" className="btn-ghost" onClick={onRetryLoad} disabled={loading}>{COPY.loadRetry}</button>}</div>}
+      {!loading && !loadError && count === 0 && <div className="fa-empty"><p>{emptyMessage}</p>{boardDirty && <button className="btn-ghost btn-sm" onClick={resetBoard}>{COPY.reset}</button>}</div>}
       {topPad > 0 && <div aria-hidden="true" style={{ height: topPad }} />}
       {rows.map((row, i) => {
         const band = resolveSeasonBand(row), suggested = effectiveAuctionBid(row, riskTolerance, rules);
@@ -293,7 +294,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
             <div className="fa-player-top"><button className="fa-profile" onClick={() => onOpen(row)} aria-label={COPY.openDetails(row.player)}><Face row={row} media={media} /><span className="fa-name"><strong>{row.player}{isBest && <span className="fa-tag">{FO.bestUpgrade}</span>}</strong><span>{[row.position, row.team].filter(Boolean).join(" · ")}</span>{row.per_game_proj != null && <span>{pts(row.per_game_proj, 1)} {COPY.perGame}</span>}{edge && <span className={`fa-edge ${edge.cls}`}>{edge.text}</span>}</span></button>
               {targetSlot && cmp ? <div className="fa-outlook"><strong className={delta != null && delta >= 1 ? "is-up" : undefined}>{delta == null ? "—" : FO.delta(delta)}</strong><small>{targetSlot.player ? `${FO.compareTo(targetSurname)} ${FO.perGameUnit}` : `${FO.compareToOpen(slotName(targetSlot))} ${FO.perGameUnit}`}</small></div>
                 : <div className="fa-outlook"><strong>{pts(band.p50)}</strong><small>{COPY.seasonShort}</small></div>}</div>
-            <div className="fa-player-bottom"><div className="fa-range" title={seasonRangeTooltip(band.method, { preliminary: band.preliminary })}><div className="fa-range-copy"><span>{pts(band.p10)}–{pts(band.p90)} {COPY.range}{marks?.season != null && against?.player && <> · <i className="fa-tick-key">{FO.tickKey(faceoffSurname(against.player.name), marks.season)}</i></>}</span>{!pickDraft && suggested != null && <strong className={addMode === "bid" && bidBlockedByCeiling(suggested, ceilingFor?.(row.player_id)) ? "fa-warning" : undefined} title={addMode === "bid" && bidBlockedByCeiling(suggested, ceilingFor?.(row.player_id)) ? faWalkawayAbove(ceilingFor(row.player_id)) : undefined}>{COPY.suggested(suggested)}</strong>}</div><Range band={band} scale={scale} marks={marks} /></div>
+            <div className="fa-player-bottom" data-chat-safe-actions><div className="fa-range" title={seasonRangeTooltip(band.method, { preliminary: band.preliminary })}><div className="fa-range-copy"><span>{pts(band.p10)}–{pts(band.p90)} {COPY.range}{marks?.season != null && against?.player && <> · <i className="fa-tick-key hub-wrap-copy">{FO.tickKey(faceoffSurname(against.player.name), marks.season)}</i></>}</span>{!pickDraft && suggested != null && <strong className={addMode === "bid" && bidBlockedByCeiling(suggested, ceilingFor?.(row.player_id)) ? "fa-warning" : undefined} title={addMode === "bid" && bidBlockedByCeiling(suggested, ceilingFor?.(row.player_id)) ? faWalkawayAbove(ceilingFor(row.player_id)) : undefined}>{COPY.suggested(suggested)}</strong>}</div><Range band={band} scale={scale} marks={marks} /></div>
               {addMode === "locked" && onWatch && <button className="fa-icon" aria-label={`${watched(row.player_id) ? COPY.unstar : COPY.star}: ${row.player}`} aria-pressed={watched(row.player_id)} onClick={() => onWatch(row)}>{watched(row.player_id) ? "★" : "☆"}</button>}
               {addVisible && <button className={`fa-acquire${pending || claimed(row.player_id) ? " is-saved" : ""}`} disabled={!canAct(row) || busy} title={reasonFor(row)} aria-label={`${playersTabAddLabel(addMode)} ${row.player}`} onClick={() => onOpen(row)}>{claimed(row.player_id) ? CLAIM_QUEUE_COPY.claimed : pending ? FO.bidIn : playersTabAddLabel(addMode)}</button>}</div>
           </article>
@@ -301,7 +302,7 @@ export default function FreeAgentsBoard({ rows, count, loading, media, scale, sc
       })}
       {bottomPad > 0 && <div aria-hidden="true" style={{ height: bottomPad }} />}
     </div>
-    {loadMore && <button className="btn-ghost btn-sm" onClick={loadMore}>{COPY.more}</button>}
+    {loadMore && <button className="btn-ghost btn-sm" data-chat-safe-actions="control" onClick={loadMore}>{COPY.more}</button>}
   </>;
   return <HubPage frameless className={`fa-main${faceoff ? " has-faceoff" : ""}`}>
     <h1 className="sr-only">{COPY.title}</h1>

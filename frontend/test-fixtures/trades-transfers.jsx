@@ -1,3 +1,4 @@
+import CommunicationPanel from "../src/DraftHub/CommunicationPanel";
 // Production trade components with isolated, deterministic writes; never contacts a league.
 import React, {useState} from "react";
 import LeagueContextBanner from "../src/DraftHub/LeagueContextBanner";
@@ -80,6 +81,6 @@ function Preview(){
  <LeagueContextBanner hubContext={context} memberships={[{league_id:context.league_id,league_name:context.league_name,team:{id:'mine',name:'Sunday Roster'}}]} onLeagueSwitch={()=>{}} onCreateLeague={()=>{}} showAttention={false} currentView="trades"/>
  <LeagueTrades key={`${previewContext.league_id}:${previewContext.team_id}`} leagueId={previewContext.league_id} hubContext={previewContext} onNavigate={navigate} cacheScope="fixture" revisionToken={revision} onChanged={()=>{window.fixtureChanges=(window.fixtureChanges||0)+1;}}/>
  </TeamIdentityProvider></div></main><MobileMenuSheet open={more} onClose={()=>setMore(false)} authReady authenticated user={{name:'Maya Chen'}} onGoToAccount={()=>navigate('account')} view="hub"/>
- {params.has("chat")&&<ChatLauncher leagueId={previewContext.league_id}/>}</MobileShell></LeagueChromeProvider></CommunicationProvider>;
+ {params.has("chat")&&<><ChatLauncher leagueId={previewContext.league_id}/><CommunicationPanel/></>}</MobileShell></LeagueChromeProvider></CommunicationProvider>;
 }
 createRoot(document.getElementById('root')).render(<MemoryRouter><Preview/></MemoryRouter>);

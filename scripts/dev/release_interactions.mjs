@@ -24,7 +24,8 @@ const base=`http://127.0.0.1:${server.address().port}`,browser=await chromium.la
 
 
 const reports=[];
-async function open(fixture,query={}){const page=await browser.newPage({viewport:{width:390,height:900},serviceWorkers:'block'});page.setDefaultTimeout(12000);page.setDefaultNavigationTimeout(60000);await page.route('**/*',r=>new URL(r.request().url()).origin===base&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());await page.goto(`${base}/test-fixtures/${fixture}.html?${new URLSearchParams(query)}`,{waitUntil:'domcontentloaded'});return page;}
+let activePage=null,activeCase=null;
+async function open(fixture,query={},width=390){const page=await browser.newPage({viewport:{width,height:900},serviceWorkers:'block'});activePage=page;activeCase={fixture,query,width};page.setDefaultTimeout(12000);page.setDefaultNavigationTimeout(60000);await page.route('**/*',r=>new URL(r.request().url()).origin===base&&!new URL(r.request().url()).pathname.startsWith('/api/')?r.continue():r.abort());await page.goto(`${base}/test-fixtures/${fixture}.html?${new URLSearchParams(query)}`,{waitUntil:'domcontentloaded'});return page;}
 try{
  if(!reports.some(r=>r.id==='bench')){
  const page=await open('team-room');await page.locator('.team-room-rack').waitFor();
@@ -36,20 +37,54 @@ try{
  await page.getByRole('button',{name:'Open league chat',exact:true}).click();await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');await page.locator('.fantasy-chat-bubble-a').waitFor();reports.push({id:'bench',status:'pass',evidence:'last chip reachable, pickup/put-back, clipped/unclipped overlay regression, chat open/Escape'});await page.close();
 
  }
- for(const state of ['salary','pick','invalid']){
- const trade=await open('trades-mobile',{state});await trade.locator('.hub-trade-desk-bar').waitFor();
+ for(const width of [320,390]) {
+ const page=await open('team-room',{bye:'1'});await page.setViewportSize({width,height:900});
+ const bye=page.getByRole('button',{name:'Pick up Travis Kelce · Bye',exact:true});await bye.waitFor();await page.screenshot({path:path.join(out,'browser',`room-bye-rack-${width}.png`)});
+ assert.equal(await page.getByRole('button',{name:'Pick up Dylan Sampson · 0.0 projected',exact:true}).count(),1,'zero stays numeric');
+ assert.equal(await page.getByRole('button',{name:'Pick up Josh Downs · Projection unavailable',exact:true}).count(),1,'missing stays missing');
+ await page.getByRole('button',{name:'Bench 3',exact:true}).click();
+ await page.getByRole('button',{name:"Open Travis Kelce's locker",exact:true}).waitFor();
+ const locker=page.getByRole('button',{name:"Open Travis Kelce's locker",exact:true});
+ assert.ok((await locker.innerText()).includes('Bye'));
+ assert.ok(!(await locker.innerText()).includes('Projected'));
+ await locker.scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'browser',`room-bye-${width}.png`)});
+ reports.push({id:'room-bye',width,status:'pass'});await page.close();
+ }
+ for(const width of [320,390,1280])for(const state of ['salary','pick','invalid']){
+ const trade=await open('trades-mobile',{state,fullRoster:'1'},width);await trade.locator('.hub-trade-desk-bar').waitFor();
  await trade.locator('.hub-trade-desk-bar').getByRole('button',{name:'Choose partner',exact:true}).click();await trade.getByRole('button',{name:/Sunday Rivals.*Select/}).click();
- const review=trade.locator('.hub-trade-desk-bar').getByRole('button',{name:/Review trade/});await review.waitFor();const before=await review.boundingBox();
- const row=trade.locator('.hub-trade-player-row:visible').first();const rowHeight=(await row.boundingBox()).height;
- const get=trade.locator('.hub-trade-player-row:visible').filter({hasText:'Josh Allen'}).locator('.hub-trade-player-actions > button').first();await get.click();await trade.waitForTimeout(450);
- assert.equal((await row.boundingBox()).height,rowHeight,'selection retains row height');
- const after=await review.boundingBox();assert.ok(Math.abs(before.y-after.y)<1,'Review stays vertically anchored');
- await trade.getByRole('button',{name:'View all 1 moves',exact:true}).click();await trade.getByRole('dialog',{name:'Edit package',exact:true}).waitFor();await trade.getByRole('button',{name:'Remove Josh Allen from package',exact:true}).click();await trade.keyboard.press('Escape');await trade.getByRole('button',{name:'Undo last package removal',exact:true}).click();await trade.waitForTimeout(450);
+ const review=trade.locator('.hub-trade-desk-bar').getByRole('button',{name:/Review trade/});await review.waitFor();
+ const row=trade.locator('.hub-trade-player-row:visible').filter({hasText:'Josh Allen'}).first();
+ const get=row.locator('.hub-trade-player-actions > button').first();
+ // Establish a real clickable start before measuring selection. A covered target
+ // makes Playwright scroll during click, which is setup movement rather than a state change.
+ await get.evaluate(e=>e.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'}));await get.focus();
+ const clickBefore=await get.evaluate(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,receivesPointer:e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)),fonts:document.fonts.status};});
+ assert.equal(clickBefore.receivesPointer,true,'stability measurement begins on an unobscured, clickable action');
+ const before=await review.boundingBox(),rowBefore=await row.boundingBox(),scrollBefore=await trade.evaluate(()=>scrollY);
+ const context=trade.locator('.hub-trade-party-col[data-party=send] .hub-trade-roster-context'),contextBefore=await context.innerText();
+ await get.click();await trade.waitForTimeout(450);
+ assert.equal(await context.innerText(),contextBefore,'current-roster context stays current through selection');const rowAfter=await row.boundingBox();
+ assert.equal(rowAfter.height,rowBefore.height,'selection retains row height');
+ assert.ok(Math.abs(rowAfter.y-rowBefore.y)<1,`selection retains row viewport position: ${JSON.stringify({width,state,rowBefore,rowAfter,scrollBefore,scrollAfter:await trade.evaluate(()=>scrollY),clickBefore,fontsAfter:await trade.evaluate(()=>document.fonts.status)})}`);
+ assert.equal(await trade.evaluate(()=>scrollY),scrollBefore,'selection retains page scroll');
+ if(width===320&&state==='salary'){
+  const transform=await row.evaluate(e=>{const value=e.style.transform;e.style.transform='translateY(8px)';return value;});
+  assert.ok(Math.abs((await row.boundingBox()).y-rowAfter.y)>=7,'negative control detects a real visible row jump');
+  await row.evaluate((e,value)=>{e.style.transform=value;},transform);
+  assert.ok(Math.abs((await row.boundingBox()).y-rowAfter.y)<1,'restoring the row restores the strict position baseline');
+ }
+ const after=await review.boundingBox();assert.ok(Math.abs(before.y-after.y)<1,`Review stays vertically anchored: ${JSON.stringify({width,state,before,after,bar:await trade.locator('.hub-trade-desk-bar').boundingBox()})}`);
+ await get.click();await trade.waitForTimeout(450);
+ assert.ok(Math.abs((await row.boundingBox()).y-rowBefore.y)<1,'removal retains row viewport position');
+ assert.equal(await trade.evaluate(()=>scrollY),scrollBefore,'removal retains page scroll');assert.ok(Math.abs((await review.boundingBox()).y-before.y)<1,'removal retains Review position');
+ await get.click();await trade.waitForTimeout(450);
+ if(width<=768){await trade.getByRole('button',{name:'View all 1 moves',exact:true}).click();await trade.getByRole('dialog',{name:'Edit package',exact:true}).waitFor();await trade.getByRole('button',{name:'Remove Josh Allen from package',exact:true}).click();await trade.keyboard.press('Escape');}else{await trade.locator('.hub-trade-desk-bar').getByRole('button',{name:'Remove Josh Allen from package',exact:true}).click();}await trade.getByRole('button',{name:'Undo last package removal',exact:true}).click();await trade.waitForTimeout(450);
  if(state==='invalid'){assert.equal(await review.isEnabled(),false);assert.ok(await trade.getByText('Your team is over the cap.',{exact:true}).count());}
- else {await review.click();await trade.getByRole('region',{name:'Review this trade',exact:true}).waitFor();assert.ok(await trade.getByRole('button',{name:'Propose trade',exact:true}).count());await trade.screenshot({path:path.join(out,'browser',`review-${state}-390.png`)});await trade.getByRole('button',{name:/Edit package/}).click();}
+ else {await review.click();await trade.getByRole('region',{name:'Review this trade',exact:true}).waitFor();assert.ok(await trade.getByRole('button',{name:'Propose trade',exact:true}).count());await trade.screenshot({path:path.join(out,'browser',`review-${state}-${width}.png`)});await trade.getByRole('button',{name:/Edit package/}).click();}
  const writes=await trade.evaluate(()=>window.fixtureWrites);assert.ok(writes.every(w=>w.body.validate_only),'only synthetic validation writes');
- reports.push({id:state,status:'pass',evidence:'partner, add, row height and Review anchor, package dialog/remove/Undo, review/back or cap blocker; no proposal'});await trade.close();
+ reports.push({id:state,width,status:'pass',evidence:'partner, add, row height and Review anchor, package dialog/remove/Undo, review/back or cap blocker; no proposal'});await trade.close();
  }
 
-} catch(e){reports.push({status:'fail',error:e.stack});console.log(e.stack);process.exitCode=1;}
+} catch(e){if(activePage&&!activePage.isClosed())await activePage.screenshot({path:path.join(out,'interaction-failure.png')}).catch(()=>{});reports.push({status:'fail',case:activeCase,error:e.stack});console.log(e.stack);process.exitCode=1;}
 finally{await fs.writeFile(path.join(out,'interactions.json'),JSON.stringify(reports,null,2));await browser.close();server.close();}

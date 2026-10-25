@@ -306,6 +306,7 @@ function TradePlayerRow({
     : `Drop ${row.player_name || row.player_id} for roster space`;
   return (
     <li
+      data-chat-safe-row
       className={[
         "hub-trade-player-row",
         sending ? "is-sending" : "",
@@ -351,7 +352,7 @@ function TradePlayerRow({
           </div>
         </div>
       </div>
-      <div className="hub-trade-player-actions">
+      <div className="hub-trade-player-actions" data-chat-safe-actions>
         {multiTeam && <HubFilterMenu
           label="To"
           ariaLabel={copy.recipientFor(row.player_name || row.player_id)}
@@ -1297,7 +1298,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
         const defaultTo = activeParties.length > 2 ? "" : others[0] || "";
         const rows = visibleRosterRows(rosterByTeam[party.team_id] || [], party.team_id);
         const totalRows = (rosterByTeam[party.team_id] || []).length;
-        const teamProjected = party.team_id ? projectedByTeam[party.team_id] : null;
+        const teamCurrent = party.team_id ? statsByTeam[party.team_id] : null;
         const isYours = party.team_id === myTeamId;
         return (
           <React.Fragment key={idx}>
@@ -1305,14 +1306,14 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
           <div className="hub-trade-party-col panel" data-party={isYours ? "send" : "receive"}>
             <TradeTeamArt identity={identityForTeam(party.team_id)} />
             <div className="hub-trade-party-direction"><h2>{isYours ? formatCopy.youSend : activeParties.length > 2 ? formatCopy.sendVerb : formatCopy.youReceive}</h2><span>{formatCopy.selectedCount(party.sends.length + party.drops.length)}</span></div>
-            <div className="hub-trade-party-head" ref={idx === 1 ? partnerHeadingRef : undefined}
+            <div className="hub-trade-party-head" data-chat-safe-actions={!isYours || undefined} ref={idx === 1 ? partnerHeadingRef : undefined}
               tabIndex={idx === 1 ? -1 : undefined}>
               <TradeTeamHead team={teamById[party.team_id]} identity={identityForTeam(party.team_id)} isYou={isYours} copy={formatCopy} />
               {!isYours && idx === 1 && !sourceReviewId && <button type="button" className="btn-ghost btn-sm" onClick={() => openPartnerPicker()}>{formatCopy.changePartner}</button>}
             </div>
 
-            <div className="hub-trade-roster-context"><span>{salaryLeague ? `${fmtSal(teamProjected?.unspent)} ${formatCopy.free}` : formatCopy.rosterCount(totalRows)}</span>
-              <span>{HUB_POS_ORDER.filter(pos => teamProjected?.by_position_count?.[pos]).map(pos => `${pos} ${teamProjected.by_position_count[pos]}`).join(" · ")}</span></div>
+            <div className="hub-trade-roster-context"><span>{salaryLeague ? `${fmtSal(teamCurrent?.unspent)} ${formatCopy.free}` : formatCopy.rosterCount(totalRows)}</span>
+              <span>{HUB_POS_ORDER.filter(pos => teamCurrent?.by_position_count?.[pos]).map(pos => `${pos} ${teamCurrent.by_position_count[pos]}`).join(" · ")}</span></div>
 
             <div className="hub-trade-column-key"><span>{formatCopy.currentRoster}</span><span>{formatCopy.weekPoints}{salaryLeague ? ` / ${formatCopy.salary}` : ""}</span></div>
             <ul className="hub-trade-player-list">
@@ -1438,14 +1439,14 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 })}
               </div>
             )}
-            <footer className="hub-trade-roster-footer"><span>{formatCopy.rosterCount(totalRows)}</span>{totalRows > 7 && !search && posFilter === "ALL" && <button type="button" className="btn-link" onClick={() => setExpandedTeams(prev => ({ ...prev, [party.team_id]: !prev[party.team_id] }))}>{expandedTeams[party.team_id] ? formatCopy.showFewer : formatCopy.viewRoster(totalRows)}</button>}</footer>
+            <footer className="hub-trade-roster-footer" data-chat-safe-actions><span>{formatCopy.rosterCount(totalRows)}</span>{totalRows > 7 && !search && posFilter === "ALL" && <button type="button" className="btn-link" onClick={() => setExpandedTeams(prev => ({ ...prev, [party.team_id]: !prev[party.team_id] }))}>{expandedTeams[party.team_id] ? formatCopy.showFewer : formatCopy.viewRoster(totalRows)}</button>}</footer>
           </div>
           </React.Fragment>
         );
       })}
       {!hasPartner && myTeamId && <>
         <div className="hub-trade-exchange-col">{renderExchange()}</div>
-        <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" onClick={() => openPartnerPicker()}>{formatCopy.choosePartner}</button>}</section>
+        <section className="hub-trade-party-col panel hub-trade-partner-empty" data-party="receive"><h2>{formatCopy.youReceive}</h2><p>{otherTeams.length ? formatCopy.rosterEmpty : formatCopy.noPartners}</p>{otherTeams.length > 0 && <button type="button" className="btn-ghost" data-chat-safe-actions="control" onClick={() => openPartnerPicker()}>{formatCopy.choosePartner}</button>}</section>
       </>}
     </div>
   );
@@ -1846,7 +1847,6 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 <button key={id} type="button" aria-label={aria} aria-pressed={phoneView === id} onClick={() => setPhoneView(id)}>{label}
                   {id !== "exchange" && <span className="hub-trade-view-count" aria-hidden="true">{packageLegs.filter(leg => id === "send" ? leg.from === myTeamId : leg.to === myTeamId).length}</span>}</button>)}
             </nav>
-            {(packageHeadline || otherDraft) && <div className="hub-trade-phone-decision">{renderDecision()}</div>}
             <div className="hub-trade-roster-workspace">
               <div className="hub-trade-filters">
                 <input ref={builderSearchRef} type="search" className="search-input hub-filter-search" placeholder={formatCopy.playerSearch}
@@ -1861,7 +1861,7 @@ export default function LeagueTrades({ leagueId, hubContext, onNavigate, cacheSc
                 {weekEligible && weekPayload?.meta?.week && <span className="hub-trade-week-basis">{formatCopy.weekLabel(weekPayload.meta.week)} · {formatCopy.pprEstimate}</span>}
               </div>
             </div>
-          </div> : <section className="hub-trade-review" ref={reviewRef} tabIndex={-1} aria-label={formatCopy.reviewHeading}>
+          </div> : <section className="hub-trade-review" data-chat-safe-actions ref={reviewRef} tabIndex={-1} aria-label={formatCopy.reviewHeading}>
             <header><h2>{formatCopy.reviewHeading}</h2><button type="button" className="btn-link" onClick={() => goBuilderStep("players")}>← {formatCopy.editPackage}</button></header>
             {renderDuel({ parties: activeParties, legsFor: party => packageLegs.filter(leg => leg.from === party.team_id),
               projectedFor: party => projectedByTeam[party.team_id], center: renderReviewCenter(), label: formatCopy.tradeReview })}

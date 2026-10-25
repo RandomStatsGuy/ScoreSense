@@ -64,7 +64,7 @@ export default function AwardTitlesEditor({
         <h3 className="hub-section-title">{copy.heading}</h3>
         <p className="hub-section-hint">{copy.support}</p>
       </header>
-      <div className="hub-insights-award-editor">
+      <div className="hub-insights-award-editor" data-chat-safe-actions>
         <p className="hub-section-hint">{copy.restore}</p>
         <div className="hub-insights-award-editor-grid">
           <fieldset>

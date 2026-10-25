@@ -1211,3 +1211,95 @@ trade or chat message was sent. All six public resources returned 200; publicati
 replaced only HTML and preserved CSS, PNGs and the protected running-app baseline.
 Evidence: `outputs/tessa-guide-site-checks/deployment-v4.json` and
 `live-vibes-factcheck.txt` in the original checkout. No app rebuild/restart.
+
+
+### Mobile trade selection, bench Bye, and player loading — October 23, 2026
+
+Task: fix the three remaining issues observed in the live mobile audit and deploy the fixes. Baseline: the approved roster-first Trade desk, existing locker/bench, Free agents cards, shared spacing, and compact action panels. Attention order: player identity and truthful status; stationary rows and review controls; clear loading recovery. Surfaces: `hub.trades`, `hub.roster`, `hub.available`.
+
+Observed friction: adding a trade player inserted a comparison strip above the phone roster and triggered browser scroll anchoring; on desktop, a taller Exchange pushed the dock down. Bench responses discarded confirmed Bye metadata, so the room showed numeric zero. An earlier long-lived Free agents view stayed loading; a fresh live diagnostic returned HTTP 200 in 3.2 seconds. The backend failure did not reproduce. The client shared producer had no deadline, leaving a stuck promise reusable indefinitely.
+
+Bounded changes: keep the phone comparison in Exchange/Review; constrain the desktop Exchange to the roster stage; preserve confirmed Bye metadata and apply one shared formatter to rack, lockers, detail, and bench choices; bound shared player reads to 30 seconds, isolate the active consumer, and expose Retry without a false empty pool. Numeric zero and genuinely missing forecasts retain their meanings. No scoring, lineup eligibility, projection values, league rules, or provider ownership changes.
+
+Machine evidence: 1,445 frontend tests and production build PASS. Canonical fixture route audits below use current production components with synthetic responses, with all audit rules enabled. The release suite passes 64 shared/responsive spacing cases and 16 interaction/recovery workflows; 53 targeted release-guard, packaging, and crosswalk checks pass. The complete Python suite is recorded with the final release evidence.
+
+| Canonical fixture route | 390 | 1280 |
+|---|---|---|
+| My team | PASS | PASS |
+| Trades | PASS | PASS |
+| Free agents | PASS | PASS |
+
+Visual/interaction evidence: phone rack/lockers at 320 and 390 distinguish Bye, zero, and missing data; trade add/remove retains row height, row coordinates, page scroll and Review coordinates; package remove/Undo, salary/pick review/back, and cap blockers use synthetic validation only. Loading checks use the real application shell, controlled failed/delayed responses, explicit retry, and destination changes while the request is pending. Actual production mobile follow-through is recorded after deployment. Evidence: `outputs/agent/release-regressions/` and `outputs/agent/mobile-fixes/`. No trade proposal or lineup change is submitted.
+
+Protection: the reviewed source policy preserves the previous spacing/identity floor and adds the bench metadata/formatter and player loading dependencies. Deployment still checks the independent host policy before service shutdown and preserves live databases and artifacts.
+
+
+Live follow-through caught a second trade selection reflow at 320: projected position counts changed a long six-position roster summary between one and two lines. The original fixture had only four positions. The roster header now uses current cap/position counts, consistent with its current-roster listing, while Exchange/Review retain the projected result. The regression adds K/DEF and checks current-roster context plus row/Review coordinates through selection/removal. The expanded fixture fails against the first release before this fix. Live release `f7d8c7b5855428c3b4ad893477c5a1eddf274e67` otherwise verified confirmed bench Bye labels at 320/390, 20px chat clearance, a completed Free agents load, resolved identities, and exact host/image sources; a second release completes the remaining trade-header refinement.
+
+
+### Free agents chat clearance — October 23, 2026
+
+Task: prevent the desktop chat launcher covering Free agents Add controls, verify desktop/phone, and deploy. Approved baseline: existing Face-off list, action sheets, fixed chat anchor and shared token spacing. Attention order: player identity, outlook/comparison, unobscured acquisition action. The live audit measured the chat at x1353–1409 and Easton Stick's Add at x1314.6–1386.6, with overlapping vertical extents at 1440×900; the same collision occurs at 1280.
+
+Bounded change: let scrolling action rows opt into a shared CSS chat lane using `data-chat-safe-actions`; Free agents adopts it. Keep chat anchored, card identity/range data, permissions, calendar, loading, virtualization, and acquisition behavior. The layout audit must inspect these opted-in controls even when they are not focused or sticky. Regression scenarios cover the real list and launcher at desktop/phone widths, both themes, chat present/absent, locked and active acquisition states, scroll positions and sheet dismissal. Machine, visual, interaction and live deployment evidence will be recorded after execution.
+
+
+Machine evidence: 52 new real-component chat scenarios PASS at 320/390/768/1024/1280/1440 in both themes across Add, bid, claim, and locked states. Four additional phone comparisons exercise the full Smith-Njigba starter label. Each removes clearance as a negative control and proves the shared audit rejects an unfocused overlapping action. Chat dismissal releases its lane; acquisition sheets open/close with focus return and no roster writes. All-rule canonical-route fixture audits at 390 and 1280 PASS. Frontend unit tests (1,445) and production build PASS. Existing protected-release regressions and full Python gate are recorded with the final checks.
+
+Visual evidence: inspected desktop Add at 1280 dark, phone bid at 320 dark, and locked Add/star at 390 light with synthetic data and blocked external portraits. Actions clear the fixed bubble, targets remain 44px, and the list stays within the viewport. Live desktop/phone follow-through will verify the deployed asset and real league rows separately.
+
+
+The clean Linux deployment runner caught a 320px long-comparison collision before restarting production. Its wider font metrics exposed the existing non-wrapping tick label inside the newly reserved chat lane. Add the shared `hub-wrap-copy` primitive to comparison context in rows and sheets. Preserve the failing check; force wider font metrics on the narrow comparison cases and verify removing the wrapping helper recreates the collision locally. The other 48 chat cases and both 390px comparison cases passed on the clean runner. Production remains on its previous healthy image until the complete corrected release passes.
+
+Follow-up evidence: all 52 chat scenarios, the existing 80 release scenarios, 1,445 frontend tests, the production build, and 116 affected static/protection Python checks PASS. The 4,482-pass full Python gate remains applicable to unchanged backend source. All-rule canonical audits at 390/1280 PASS. Inspected the corrected 320px wide-font screenshot: comparison labels wrap inside their column and clear Bid and chat. The original clean-runner failure remains recorded; no check was removed or weakened.
+
+
+## October 23 — chat clearance across Fantasy
+
+Task: audit other chat-enabled pages on desktop and phone, fix visible obstructions with the approved shared clearance, and deploy. Baseline: detached A chat, existing page layouts and Free agents lane. Attention: reachable controls, their decision context, quiet chat. Live native league evidence found phone Strategy rank actions, Game center position rail, Vibes disclosure, Rules fields, Members size picker and Corrections action crossing chat. Desktop Access disclosure also crosses the bubble. Hidden inputs in closed disclosures are excluded from findings.
+
+Bounded change: reuse `data-chat-safe-actions` on form pages; add a shared control variant that narrows a full-width hit target or clipped rail rather than merely padding inside its obscured bounds. Preserve fixed chat anchor, 44px phone targets, forms, permissions, saved focus, player identities/Bye labels and trade row/review anchors. Check 320/390 and 1280/1440, both themes, chat open/dismissed, long labels, actual scroll and keyboard focus. Fixtures and live evidence are recorded separately below when completed.
+
+Machine evidence: frontend unit suite (1,445), production build, all layout rules on 15 canonical routes at 1280 and 390 (30 passes), the existing 132 release scenarios plus 152 chat-page cases, and the affected guard/packaging/cached-identity checks (125). A final full backend gate and public post-deployment results are recorded in the release PR. Source protection retains every existing protected source and adds the newly covered components and header stylesheet (29 total).
+
+Visual evidence: inspected real-component fixture screenshots at 390 dark and 1280 light for Strategy, Vibes, Game center, My team Room and player details, Rosters, Cap, Trades, Rules, Members, Access & imports, selected Contracts, Corrections, Salary sheets bulk disclosure, and Setup. Also inspected 320 Rules/Members/Cap, expanded Access, and rankings. External portraits are isolated placeholders in fixtures. Refined Rules to keep explanations full width and kept read-only ranking names outside the action lane. Preserved full card framing on Cap and Game center.
+
+Interaction evidence: scroll sweeps and exact-target alignment, both themes and four widths, chat open/close and dismissal, expanded forms, selected rosters/rankings, and a negative control that restores the original collision. Closed native disclosure content is excluded only while it does not paint; opening that same control in chat's rectangle must fail. Existing trade add/remove and Review anchor workflows remain in the release gate. Live audit uses native and linked leagues without player moves, lineup saves, or messages; restore the observed starting league and viewport. Evidence: `outputs/agent/chat-app-audit/` and `outputs/agent/release-regressions/chat-pages/`.
+
+
+### Follow-up — narrow trade action ownership
+
+The clean Linux deployment gate rejected a row viewport-position mismatch before the VPS deploy job ran. Keep the existing row-height, viewport-position, scroll and Review assertions unchanged. Move chat clearance from the whole roster grid to player action columns, roster footers and partner controls, preserving full roster-header width and avoiding unnecessary wrapping above the rows. Review retains its separate lane. Add before-click hit/font geometry and a failure screenshot to the existing interaction evidence; run those same bench/trade checks in the ready PR layout job before merge as well as in the master deployment gate. The protected-source set remains 29; only the reviewed Trades and shared narrow-row CSS hashes advance. At 320, the shared row composition keeps player identity full width above its action lane so names and contract labels remain readable.
+
+Linux pointer diagnostics showed the first 320 action was covered before measurement (`receivesPointer=false`); the browser scrolled from 0 to 388 during its click while row height stayed unchanged. The guard now scrolls/focuses the target before capturing the baseline and requires its center to receive pointer input. Every original selection/removal row-height, row-position, page-scroll and Review assertion remains unchanged. A deliberately translated row must fail the position predicate, then return to the strict baseline on restore. The ready PR job retains its interaction JSON and failure screenshot for seven days.
+
+
+October 24 narrow Setup follow-up: the full Linux release suite rejected an intrinsic-width Sleeper input at 320 pixels before SSH deployment. Shared protected-flow controls now fit their available inline size, and compact disclosure rows put the title above metadata so words remain readable. The strict overlay assertion remains unchanged; the 152-case shared-chat suite now runs before merge as well as before deployment, with a three-line readability check for the narrow Setup title. Machine, screenshot and live evidence are recorded separately in the task output.
+
+
+October 24 live pagination follow-up: signed-in phone testing found the full-width Show more players button passing behind chat between scroll stops, although acquisition rows cleared it. Adopt the existing shared control marker on that button; no new CSS override. Four large-list cases at 320/390 in both themes reproduced the live collision before the fix. They now align pagination with chat, remove/restore the shared lane as a negative control, verify more rows appear on click, and retain the no-acquisition-write assertion. The 56-case Free agents suite now runs before merge as well as in the 288-case release gate. The previous release is healthy while this small follow-up is checked.
+
+
+October 24 expanded Insights follow-up: live Spend testing found closed award/position disclosures under chat; the strengthened all-interactive audit also found desktop Open scoring and narrow History rows. Adopt the existing shared control/flow markers on disclosure summaries/content, methodology/weekly highlights, expanded period controls, History rows and desktop Open scoring. Keep the approved phone Record book row intact; narrow History rows use the shared readable row composition. Phone control markers retain 44px targets whether chat is shown or hidden. Add 64 populated/expanded Insights cases (216 shared cases, 352 total release cases), and check unmarked interactive controls rather than requiring opt-in before detecting an overlap. Preserve all 29 existing protected sources and add the six touched Insights sources (35 total); reviewed changes to existing Free agents and rhythm hashes remain explicit.
+
+
+The final bounded matrix covers all six Rules categories and expanded award-name editing as well as Insights: 248 shared cases and 384 total release scenarios. Exact control alignment exposed the remaining policy toggles, narrow numeric inputs and common HubSection award disclosure; they use shared control/flow markers, wrapping action groups and the shared numeric-row tracks. All 29 previous protected sources remain required, with seven touched Insights sources added (36 total). Readiness now requires populated manager-account fixtures, and no check treats a failed or empty load as a populated form. Source and scripts are frozen for the final complete run; partial diagnostic runs are not reported as final evidence.
+
+
+The extra all-rule 320-pixel pass found the pre-existing wrapped Insights tabs and unequal Record book button heights. Insights now opts into the existing filter-scroll primitive as a navigation rail; it reveals the active tab with horizontal scrolling only, without moving the page. Protected wrapped phone controls use shared tight leading so both lines fit the 44px row. The final candidate must rerun affected all-rule audits and exact-head Linux checks after this narrow refinement.
+
+
+Linux retained the strict 320-pixel Record book alignment failure where the text label exhausted the available row. The shared narrow icon-action pattern now renders Open scoring as a standard chart icon only at 360 pixels and below, with the same accessible name and title. Wider screens retain its visible label; write actions never use this pattern. This preserves three 44px controls, the chat lane and the approved single row across font metrics. The mobile composition assertions remain unchanged.
+
+
+## October 24 active draft chat clearance
+
+Task: complete the desktop/mobile chat audit on active Fantasy drafts and live practice rooms. Baseline: approved board-first draft, current bid/pick first, applicable leftover/roster constraint second, next action third; inline conversation remains secondary. Do not create a second floating overlay or start/reset a real draft to test it.
+
+Observed friction: the selected live native league has completed its draft. Isolated real-component bidding/nomination/paused/snake views pass at 1280/390, but short 320x568 bidding screens reproduce an obscured emoji picker in both themes. The absolute compact picker opens behind the wrapped sticky bid bar. The deeper tab-change check also exposed scrolling a control beneath that header.
+
+Bounded implementation: compact shared ChatThread keeps its emoji choices in flow, focuses/reveals the group and returns focus on Escape. The existing shared action-clearance hook measures opt-in `data-top-actions` bars; shared product CSS reserves their actual height and the measured navigation edge during focus scrolling. DraftLiveCommandBar opts in. No guessed header height, changed bid/pick logic, moving bubble, or page-specific spacing override. Preserve all 36 protected source paths, intentionally advance the two shared stylesheet hashes, and protect six draft/shared-chat/action-measurement files (42 total).
+
+Machine evidence is recorded in the task PR and outputs/agent/release-regressions/active-draft-chat/report.json. The final 72-case matrix covers Fantasy/practice, bidding/nomination/paused/snake, offline/member/visitor, both themes, 1280/390/320, and short phones. All layout rules remain strict. A valid-provider negative control proves the duplicate bubble would otherwise render, and the old absolute-picker style must reproduce obscured controls. Existing 384 scenarios remain required (456 total).
+
+Visual evidence: actual-component screenshots inspected at desktop/phone/narrow widths in both themes, including the reproduced sticky-header collision and repaired emoji choices. These use isolated data and optional logo fallbacks, not live active leagues. Interaction evidence: unsent composition, mentions/emoji, Escape/focus return, room tabs and measured header adaptation to a server state transition, without draft/chat-message mutations. Live completed-room checks and deployed build identity are recorded separately; do not label the isolated active state as a live league.

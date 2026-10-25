@@ -32,7 +32,14 @@ export default function ChatThread({ leagueId, hubContext, compact=false, locked
   const [emojiFor,setEmojiFor]=useState(null);
   const [mention,setMention]=useState(null);
   const [selectedMention,setSelectedMention]=useState(0);
+  const composeEmojiRef=useRef(null);
   const listRef=useRef(null), inputRef=useRef(null), initialScroll=useRef(true), follow=useRef(true), readId=useRef(null);
+  useEffect(()=>{
+    if(!compact||emojiFor!=='compose')return;
+    const choices=composeEmojiRef.current;
+    choices?.querySelector('button')?.focus({preventScroll:true});
+    choices?.scrollIntoView({block:'end',behavior:'instant'});
+  },[compact,emojiFor]);
   const id=useId();
   const requestedThread=lockedKind || (floating ? shared?.thread : kind) || 'league';
   const thread=requestedThread==='office'&&!hubContext?.is_commissioner?'league':requestedThread;
@@ -200,7 +207,7 @@ export default function ChatThread({ leagueId, hubContext, compact=false, locked
         <div className="chat-compose-field"><textarea ref={inputRef} disabled={!canWrite} value={body} onChange={event=>{setBody(event.target.value);updateMention(event.target.value,event.target.selectionStart);}} onKeyDown={onInputKey}
           placeholder={isDirect?COPY.messageDirect(partner?.name||'manager'):thread==='office'?COPY.messageStaff:COPY.messageLeague} rows="2" maxLength={2000} aria-label="Chat message" role="combobox" aria-autocomplete="list" aria-expanded={Boolean(mention&&suggestions.length)} aria-controls={mention&&suggestions.length?`${id}-mention`:undefined} aria-activedescendant={mention&&suggestions.length?`${id}-person-${selectedMention}`:undefined}/>
           <div className="chat-compose-tools"><div><button className="chat-icon-btn" type="button" aria-label={COPY.mention} disabled={!canWrite} onClick={()=>{const input=inputRef.current;const at=input.selectionStart;const next=body.slice(0,at)+'@'+body.slice(at);setBody(next);updateMention(next,at+1);requestAnimationFrame(()=>{input.focus();input.setSelectionRange(at+1,at+1);});}}>@</button><button className="chat-icon-btn" type="button" aria-label={COPY.addEmoji} disabled={!canWrite} onClick={()=>setEmojiFor(emojiFor==='compose'?null:'compose')}><ChatIcon name="smile"/></button></div><button type="submit" className={floating?'chat-send':'btn-ghost btn-sm'} disabled={sending||loading||!body.trim()||!canWrite}>{sending?COPY.sending:COPY.send}{floating&&<ChatIcon name="send"/>}</button></div>
-        </div>{emojiFor==='compose'&&<div className="chat-compose-emoji chat-emoji-row" role="group" aria-label={COPY.addEmoji}>{CHAT_REACTIONS.map(emoji=><button type="button" key={emoji} onClick={()=>{setBody(text=>text+emoji);setEmojiFor(null);inputRef.current?.focus();}} aria-label={`Insert ${emoji}`}>{emoji}</button>)}</div>}
+        </div>{emojiFor==='compose'&&<div ref={composeEmojiRef} className="chat-compose-emoji chat-emoji-row" role="group" aria-label={COPY.addEmoji} onKeyDown={event=>{if(compact&&event.key==='Escape'){event.preventDefault();event.stopPropagation();setEmojiFor(null);inputRef.current?.focus();}}}>{CHAT_REACTIONS.map(emoji=><button type="button" key={emoji} onClick={()=>{setBody(text=>text+emoji);setEmojiFor(null);inputRef.current?.focus();}} aria-label={`Insert ${emoji}`}>{emoji}</button>)}</div>}
         {floating&&<p className="chat-compose-hint">{COPY.composerHint}</p>}
       </form>
     </>}

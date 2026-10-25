@@ -48,6 +48,7 @@ function PolicyToggle({ checked, disabled, title, description, onChange }) {
     <button
       type="button"
       role="switch"
+      data-chat-safe-actions="control"
       aria-checked={checked}
       className={`hub-rules-policy${checked ? " is-on" : ""}`}
       disabled={disabled}
@@ -373,7 +374,7 @@ export default function RulesWizard({
           ))}
           {presets.length > 0 && !readOnlyRules ? (
             <details className="hub-rules-category-templates">
-              <summary>{RULES_COPY.templatesTitle}</summary>
+              <summary data-chat-safe-actions="control">{RULES_COPY.templatesTitle}</summary>
               <p>{RULES_COPY.templatesHelp}</p>
               {presets.map((preset) => (
                 <button key={preset.id} type="button" className="btn-ghost btn-sm" disabled={saving} onClick={() => applyPreset(preset)}>
@@ -384,7 +385,7 @@ export default function RulesWizard({
           ) : null}
         </nav>
         <div className="hub-rules-sections">
-          {inLeague && hubContext?.is_commissioner && managerOpenedFor === hubContext.league_id && <div hidden={activeCategory !== "managers"}>
+          {inLeague && hubContext?.is_commissioner && managerOpenedFor === hubContext.league_id && <div hidden={activeCategory !== "managers"} data-chat-safe-actions>
             <ManagerNamesPanel key={hubContext.league_id} leagueId={hubContext.league_id} onDirtyChange={setManagerDirty} />
           </div>}
           <section hidden={activeCategory !== "scoring"} className="hub-rules-section" aria-labelledby="rules-scoring-title">
@@ -403,10 +404,10 @@ export default function RulesWizard({
                 <p className="chart-note">{SCORING_COPY.receptionHelp}</p>
                 {SCORING_GROUPS.map((group, index) => (
                   <details key={group.label} className="hub-rules-scoring-disclosure" open={index === 0 || group.fields.some(([key]) => errors[`scoring.${key}`])}>
-                    <summary>{group.label}</summary>
+                    <summary data-chat-safe-actions="control">{group.label}</summary>
                   <fieldset className="hub-rules-scoring-group" key={group.label}>
                     <legend>{group.label} · {SCORING_COPY.points}</legend>
-                    <div className="hub-rules-field-grid hub-rules-field-grid--scoring">
+                    <div className="hub-rules-field-grid hub-rules-field-grid--scoring" data-chat-safe-actions>
                   {group.fields.map(([key, label]) => (
                     <label key={key}>
                       <span>{label}</span>
@@ -437,7 +438,7 @@ export default function RulesWizard({
               </div>
             </header>
 
-            <div className="hub-rules-field-grid hub-rules-field-grid--foundation">
+            <div className="hub-rules-field-grid hub-rules-field-grid--foundation" data-chat-safe-actions>
               <label>
                 <span>League name</span>
                 <input
@@ -492,7 +493,7 @@ export default function RulesWizard({
               )}
             </div>
 
-            <fieldset className="hub-rules-format">
+            <fieldset className="hub-rules-format" data-chat-safe-actions>
               <legend>Draft format</legend>
               <div role="radiogroup" aria-label="Draft format">
                 {FORMAT_OPTIONS.map((format) => (
@@ -513,7 +514,7 @@ export default function RulesWizard({
             </fieldset>
 
             {!sleeperLinked && <>
-              <div className="hub-rules-field-grid">
+              <div className="hub-rules-field-grid" data-chat-safe-actions>
                 <label><span>{RULES_COPY.regularWeeks}</span><input type="number" min="1" max="18" value={rules.regular_season_games} disabled={readOnlyRules}
                   onChange={(e) => updateRules((current) => ({ ...current, regular_season_games: Number(e.target.value) }))} />
                   <RuleError>{errors.regular_season_games}</RuleError></label>
@@ -521,7 +522,7 @@ export default function RulesWizard({
               <PolicyToggle checked={rules.playoffs.enabled} disabled={readOnlyRules} title={RULES_COPY.playoffs} description={RULES_COPY.playoffsHelp}
                 onChange={(enabled) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, enabled } }))} />
               {rules.playoffs.enabled && <>
-                <div className="hub-rules-field-grid">
+                <div className="hub-rules-field-grid" data-chat-safe-actions>
                   <label><span>{RULES_COPY.playoffTeams}</span><input type="number" min="2" max="14" value={rules.playoffs.teams} disabled={readOnlyRules}
                     onChange={(e) => updateRules((current) => ({ ...current, playoffs: { ...current.playoffs, teams: Number(e.target.value) } }))} />
                     <RuleError>{errors.playoff_teams}</RuleError></label>
@@ -542,7 +543,7 @@ export default function RulesWizard({
                   <strong>Bid strategy</strong>
                   <span>How projection uncertainty influences suggested bids.</span>
                 </div>
-                <div className="hub-rules-risk-options" role="radiogroup" aria-label="Bid strategy">
+                <div className="hub-rules-risk-options hub-wrap-actions" data-chat-safe-actions role="radiogroup" aria-label="Bid strategy">
                   {RISK_TOLERANCE_OPTIONS.map((option) => (
                     <button
                       key={option.id}
@@ -575,7 +576,7 @@ export default function RulesWizard({
                 </div>
               </header>
 
-              <div className="hub-rules-field-grid hub-rules-field-grid--contracts">
+              <div className="hub-rules-field-grid hub-rules-field-grid--contracts" data-chat-safe-actions>
                 <label>
                   <span>Max extension length</span>
                   <HubFilterMenu
@@ -708,7 +709,7 @@ export default function RulesWizard({
                 {warningList.map((warning) => <p key={warning}>{warning}</p>)}
               </div>
             )}
-            <label className="hub-rules-roster-cap">
+            <label className="hub-rules-roster-cap" data-chat-safe-actions>
               <span><strong>Total roster size</strong><small>Maximum active players per team. Leave empty to let position limits set the cap.</small></span>
               <input
                 type="number"
@@ -726,14 +727,14 @@ export default function RulesWizard({
               />
               <RuleError id="rules-roster-cap-error">{errors.roster_size_max}</RuleError>
             </label>
-            <div className="hub-rules-roster-table" role="table" aria-label="Position limits">
-              <div className="hub-rules-roster-heading" role="row">
+            <div className="hub-rules-roster-table" data-chat-safe-actions role="table" aria-label="Position limits">
+              <div className="hub-rules-roster-heading hub-numeric-row" role="row">
                 <span role="columnheader">{RULES_COPY.rosterPosition}</span>
                 <span role="columnheader">{RULES_COPY.rosterMin}</span>
                 <span role="columnheader">{RULES_COPY.rosterMax}</span>
               </div>
               {ROSTER_LIMIT_KEYS.map((position) => (
-                <div className="hub-rules-roster-row" role="row" key={position}>
+                <div className="hub-rules-roster-row hub-numeric-row" role="row" key={position}>
                   <strong role="rowheader">{position === "def" ? "DEF" : position.toUpperCase()}</strong>
                   <label>
                     <span className="sr-only">{position.toUpperCase()} minimum</span>
@@ -772,7 +773,7 @@ export default function RulesWizard({
                   <p>{RULES_COPY.draftBehaviorHint}</p>
                 </div>
               </header>
-              <div className="hub-rules-field-grid hub-rules-field-grid--draft">
+              <div className="hub-rules-field-grid hub-rules-field-grid--draft" data-chat-safe-actions>
                 <label>
                   <span>Minimum bid</span>
                   <span className="hub-rules-money-input">
@@ -873,7 +874,7 @@ export default function RulesWizard({
           <p className="hub-rules-summary-note">{RULES_COPY.staffOnly}</p>
           <p className="hub-rules-summary-note">{lastSavedLabel}</p>
           {undo && (
-            <div className="hub-rules-undo" role="status">
+            <div className="hub-rules-undo" data-chat-safe-actions role="status">
               <p>{RULES_COPY.templateApplied(undo.label)}</p>
               <button type="button" className="btn-ghost btn-sm" onClick={undoTemplate}>
                 {RULES_COPY.templateUndo}

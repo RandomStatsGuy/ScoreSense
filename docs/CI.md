@@ -9,10 +9,10 @@ Production is **Vultr + Cloudflare Tunnel** (`app.fourthdownlabs.com`). Vercel i
 | Draft PR | Nothing required | Actions CI, frontend build |
 | Ready PR touching `app/`, `src/`, `tests/`, requirements | `CI` (pytest via `requirements-ci.txt`) | Vercel, VPS deploy |
 | Ready PR touching `frontend/` | `Frontend` (`npm ci` + `vite build`) | Vercel |
-| Ready PR touching `frontend/src/styles.css`, `frontend/src/styles/**`, `HubUILayout.jsx`, `livingSurfaces.js`, or `layout_audit.mjs` | `Layout audit` (Playwright at 1280 and 390 on every `livingSurfaceRoutes()` URL). Starts the app with `start_hub_dev.sh` — API uses `.venv` when present, otherwise PATH Python from `pip install -r requirements-ci.txt`. The check **gates** `type`, `selects`, `collisions`, `grids`, `cursors`, `insets`. Other rules stay in the JSON. | Draft PRs |
+| Ready PR touching `frontend/src/styles.css`, `frontend/src/styles/**`, `HubUILayout.jsx`, `livingSurfaces.js`, or `layout_audit.mjs` | `Layout audit` (Playwright at 1280 and 390 on every `livingSurfaceRoutes()` URL). Starts the app with `start_hub_dev.sh` — API uses `.venv` when present, otherwise PATH Python from `pip install -r requirements-ci.txt`. The check **gates** `type`, `selects`, `collisions`, `grids`, `cursors`, `insets`. Other rules stay in the JSON. The same ready-only job also runs the synthetic bench/trade interaction guards, a fast narrow Insights composition check, all 248 shared-chat cases, 72 active-draft chat cases, and 56 Free agents cases before the route audits; direct Trades, Free agents, Insights, fixture and guard-script edits trigger it too. | Draft PRs |
 | Ready PR that is only docs / `render.yaml` / `vercel.json` | No Actions workflow | Vercel, pytest, npm |
 | Merge to `develop` | Nothing extra (already paid on the PR) | Second full pytest |
-| Push to `master` with app/image changes | Release source guard, mapping/Bye tests, frontend tests/build, and 64 isolated spacing cases plus four workflows; then `Deploy to VPS` | Docs-only master merges |
+| Push to `master` with app/image changes | Release source guard, mapping/Bye tests, frontend tests/build, and 64 isolated spacing cases plus bench, confirmed-Bye, stationary trade selection, and player-loading recovery workflows; then `Deploy to VPS` | Docs-only master merges |
 | Push to `master` that is only docs/CI/tests | Nothing | Docker rebuild |
 
 Draft → iterate in Cursor → mark **Ready for review** when you want the paid stack. That is the same rule as `.cursorrules`.
@@ -58,3 +58,5 @@ npm run audit:layout -- --all --width 1280 --gate type,selects,collisions,grids,
 If those pass, the VPS image will build. Mark the PR ready only when you want a second machine to say the same thing.
 
 Production source preservation and explicit baseline updates are documented in [the protected release workflow](DEPLOY_CLOUDFLARE_TUNNEL.md#protected-spacing-player-identity-and-bye-behavior). A draft PR does not activate a master deployment workflow change.
+
+Active Fantasy/practice drafts run `active_draft_chat_browser.mjs` before merge and in the protected release gate: bidding, nominating, paused, snake, offline and visitor states; both themes; desktop/phone/short narrow viewports; real navigation and inline chat. Negative controls protect floating-dock suppression and detect the old picker behind the bid bar. Shared measured top-action clearance protects keyboard and scroll-to-control access.

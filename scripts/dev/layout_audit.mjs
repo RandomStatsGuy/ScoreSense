@@ -1081,6 +1081,8 @@ export function measureScript() {
     }
     const visibleBox = el => {
       if (!el || el.closest('[hidden], [inert]') || (el.checkVisibility && !el.checkVisibility())) return null;
+      const closed=el.closest('details:not([open])');
+      if(closed && !closed.querySelector(':scope > summary')?.contains(el))return null;
       const box=el.getBoundingClientRect();
       if (!box.width || !box.height || getComputedStyle(el).visibility !== 'visible') return null;
       // Scroll tracks paint only inside their clip; off-track chips cannot cover chat.
@@ -1109,11 +1111,11 @@ export function measureScript() {
       const right=document.documentElement.clientWidth-box.right, bottom=innerHeight-box.bottom;
       const anchored=style.position==='fixed' && style.transform==='none' && Math.abs(parseFloat(style.right)-inset)<=1 && (!Number.isFinite(navHeight) || Math.abs(bottom-navHeight-gap)<=1);
       results.push({rule:'chat-anchor',ok:anchored,selector:classNameOf(overlay),detail:`right ${px(right)}px; bottom ${px(bottom)}px; fixed above navigation`});
-      // Scrolling content passes behind a fixed launcher. Protect other fixed
-      // chrome, sticky actions, and the currently focused control instead.
-      const blocked = [...document.querySelectorAll('#main-content button, #main-content a[href], #main-content summary, #main-content input, #main-content textarea, #main-content [role="button"], #main-content [role="tab"], #main-content [data-bottom-actions], #main-content [data-float-avoid], #main-content .hub-alert, .site-alert-toast')]
-        .filter(el => !overlay.contains(el) && visibleBox(el) && (viewportAttached(el) || el===document.activeElement || el.contains(document.activeElement)) && overlaps(box, visibleBox(el)));
-      results.push({ rule:'overlay-clearance', ok:!blocked.length, selector:classNameOf(overlay), detail:blocked.length ? `obscures ${blocked.slice(0,3).map(el => (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0,50)).join('; ')}` : 'chat clears fixed actions and keyboard focus' });
+      // Static scrolling content can pass behind chat. Every interactive control,
+      // including one not yet opted into the shared lane, must remain clear.
+      const blocked = [...document.querySelectorAll('#main-content button, #main-content a[href], #main-content summary, #main-content input, #main-content select, #main-content textarea, #main-content [role="button"], #main-content [role="tab"], #main-content [data-bottom-actions], #main-content [data-float-avoid], #main-content .hub-alert, .site-alert-toast')]
+        .filter(el => !overlay.contains(el) && visibleBox(el) && (el.matches('button, a[href], summary, input, select, textarea, [role="button"], [role="tab"]') || viewportAttached(el) || el.closest("[data-chat-safe-actions], [data-chat-safe-row]") || el===document.activeElement || el.contains(document.activeElement)) && overlaps(box, visibleBox(el)));
+      results.push({ rule:'overlay-clearance', ok:!blocked.length, selector:classNameOf(overlay), detail:blocked.length ? `obscures ${blocked.slice(0,3).map(el => (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0,50)).join('; ')}` : 'chat clears interactive controls, fixed actions and keyboard focus' });
     });
     const shell = document.querySelector('.app-with-bottom-nav'), nav = document.querySelector('.app-bottom-nav');
     if (shell && nav && visibleBox(nav)) {

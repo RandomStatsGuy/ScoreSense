@@ -9,6 +9,22 @@ on:
       - "frontend/src/styles.css"
       - "frontend/src/styles/**"
       - "frontend/src/DraftHub/HubUILayout.jsx"
+      - "frontend/src/DraftHub/LeagueTrades.jsx"
+      - "frontend/src/DraftHub/FreeAgentsBoard.jsx"
+      - "frontend/src/DraftHub/LeagueInsights.jsx"
+      - "frontend/src/DraftHub/insights/**"
+      - "frontend/test-fixtures/**"
+      - "scripts/dev/release_interactions.mjs"
+      - "scripts/dev/chat_pages_browser.mjs"
+      - "scripts/dev/active_draft_chat_browser.mjs"
+      - "frontend/src/DraftHub/DraftRoom.jsx"
+      - "frontend/src/DraftHub/DraftLiveCommandBar.jsx"
+      - "frontend/src/ui/useBottomClearance.js"
+      - "frontend/src/layout/MobileShell.jsx"
+      - "frontend/src/DraftHub/ChatThread.jsx"
+      - "frontend/src/DraftHub/ChatLauncher.jsx"
+      - "frontend/src/DraftHub/fantasyChatPresentation.js"
+      - "scripts/dev/free_agents_chat_browser.mjs"
       - "scripts/dev/layout_audit.mjs"
       - "frontend/src/livingSurfaces.js"
       - ".github/workflows/layout-audit.yml"
@@ -42,6 +58,23 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+      - name: Verify bench and trade interaction anchors
+        run: node scripts/dev/release_interactions.mjs
+      - name: Verify active draft chat clearance
+        run: node scripts/dev/active_draft_chat_browser.mjs
+      - name: Verify narrow Insights composition
+        run: node scripts/dev/chat_pages_browser.mjs --only=insights-overview,insights-period-expanded
+      - name: Verify shared chat clearance across Fantasy
+        run: node scripts/dev/chat_pages_browser.mjs
+      - name: Verify Free agents rows and pagination
+        run: node scripts/dev/free_agents_chat_browser.mjs
+      - name: Save interaction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interaction-anchors
+          path: outputs/agent/release-regressions/
+          retention-days: 7
       - name: Start API and Vite
         run: bash scripts/dev/start_hub_dev.sh
       # Gate the rules this PR already greened. JSON still includes tables /
