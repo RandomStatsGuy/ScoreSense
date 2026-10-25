@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "approved_release": "2026-10-24 shared chat clearance including active drafts; preserves mappings, Bye, loading and steady trades",
+  "approved_release": "2026-10-24 cross-browser chat clearance; preserves all prior spacing, mappings, Bye, loading and stable trades",
   "protected_sources": {
     "frontend/src/DraftHub/TeamRoomView.jsx": "c77240e7dd45b00bd6f1211bc9fe2ee3d6f949eb1882df93aaab55986beffea1",
     "frontend/src/DraftHub/RulesWizard.jsx": "4ad906d32129daf82ca941fabc3da1fbef1a71abed9c707707d82a9199573d48",
@@ -16,7 +16,7 @@
     "frontend/src/styles/tokens.css": "aafa83894dfb629c5658c973282141a4c64261339ebbb8c48f9fcd287ced32d1",
     "frontend/src/styles/trade-desk.css": "4a88c4b50e5f00d6d4d3aeab4a3b9ed07e6857c81105137b64f57464fbd9e378",
     "frontend/src/DraftHub/DraftHub.jsx": "4e3ddb7c53f728148f6a9d227e32e52880fd6e0e9a1a244727cca515e8292821",
-    "frontend/src/DraftHub/FreeAgentsBoard.jsx": "dd6b467575d0c2236b92f14b0c0566ca8d1b150cb0b25d918c80a8aea3a88aeb",
+    "frontend/src/DraftHub/FreeAgentsBoard.jsx": "4e8ef3330585adfbba3bf8ba924bd7ae15037d38009fac233cdb3c5f4d027647",
     "frontend/src/DraftHub/ValueSheetTable.jsx": "0dccf85f22c16667ff4685d39e8f02d4f687a714b6db9d311fc9bfdb4e5769a9",
     "frontend/src/DraftHub/acquisitionWindow.js": "b5722410c6c37be20168daeb7dd0863f45852cf9e9bc91e12a60759c01869893",
     "frontend/src/DraftHub/hubDataCache.js": "2ecea907e3fa5c5d0c9bfce222a292de4087409fab546818728df2a17264bdbc",
@@ -41,8 +41,9 @@
     "frontend/src/DraftHub/DraftRoom.jsx": "3768b74ff05a8df17e5ad9a837b4ef9a53c69a31e928edfdb849ca54590225c0",
     "frontend/src/DraftHub/fantasyChatPresentation.js": "a490212f68ae7f880a415fa4eb0e7039e8dbc28a5ba85b72984f2ce9698761ae",
     "frontend/src/DraftHub/ChatLauncher.jsx": "51aad41c0d808bf6823829199c3ddcb7ac139e39a24c1915687a1abe6238b0e4",
-    "frontend/src/DraftHub/ChatThread.jsx": "92a1d4e8a3e0f2e47060cb0ca6ee8ed7e47d13533801ec1e649ac473c280defc",
+    "frontend/src/DraftHub/ChatThread.jsx": "4ef4e2c661fe9ed7209d47567c580cdd5ddf3f05c4aaa8d6cd83d72811209377",
     "frontend/src/DraftHub/DraftLiveCommandBar.jsx": "63bacf85ca86ae8d3b353007596a0b32d6fdf2a3b1a57e04862ee2a3bb615235",
-    "frontend/src/ui/useBottomClearance.js": "9694e7f0b69aaab4c179879214df9847ac63483660e87189d8e5429afc9e34b0"
+    "frontend/src/ui/useBottomClearance.js": "8a41ade1d1a5d3bbcf3947d89ed627b6f8138f7a2fb701742e19e84fb2f0ea22",
+    "frontend/src/ui/useModalFocus.js": "efdeb5106b0d2a58d421a0aa6d72ca741384f041196fe5b31650bc8f1435606b"
   }
 }

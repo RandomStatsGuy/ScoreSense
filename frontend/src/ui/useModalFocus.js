@@ -1,6 +1,12 @@
 import { useEffect, useRef } from "react";
 import { lockModalBackground } from "./modalBackground";
 
+// Keep the opener as the return target even when a pointer click does not focus it.
+export function openModalFrom(trigger, open) {
+  trigger?.focus({preventScroll:true});
+  return open();
+}
+
 // The top modal owns keyboard input, even if a lower editor unmounts first.
 export default function useModalFocus(open, ref, onClose, initialRef) {
   const closeRef = useRef(onClose);

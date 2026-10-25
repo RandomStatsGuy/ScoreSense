@@ -1,3 +1,4 @@
+import {launchReleaseBrowser,releaseOutputRoot} from './release_browser.mjs';
 // Real Free agents rows and chat, isolated from league data and external APIs.
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -8,10 +9,10 @@ import {fileURLToPath} from 'node:url';
 import {measureScript,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_PACK_RATIO,GUTTER_EDGE_SELECTORS} from './layout_audit.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
-const out=path.join(root,'outputs/agent/release-regressions/free-agents-chat');
+const out=path.join(releaseOutputRoot(root),'free-agents-chat');
 await fs.mkdir(out,{recursive:true});
 const require=createRequire(path.join(root,'frontend/package.json'));
-const {build}=require('esbuild'),{chromium}=require('playwright');
+const {build}=require('esbuild');
 await build({absWorkingDir:root,entryPoints:['frontend/test-fixtures/free-agents-mobile.jsx'],bundle:true,jsx:'automatic',format:'esm',outdir:path.join(out,'bundles'),logLevel:'error',resolveExtensions:['.mjs','.js','.jsx','.json'],external:['/art/*','/fonts/*','/assets/*'],loader:{'.js':'jsx','.svg':'dataurl','.png':'dataurl','.webp':'dataurl','.woff2':'dataurl','.jpg':'dataurl'},define:{'process.env.NODE_ENV':'"production"','import.meta.env':JSON.stringify({DEV:false,PROD:true,MODE:'test',BASE_URL:'/'})}});
 const server=createServer(async(req,res)=>{try{
  const url=new URL(req.url,'http://127.0.0.1');
@@ -28,7 +29,7 @@ const server=createServer(async(req,res)=>{try{
 }catch{res.writeHead(404);res.end();}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
-const browser=await chromium.launch({headless:true,channel:process.env.RELEASE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':'chromium'),args:['--no-proxy-server']});
+const browser=await launchReleaseBrowser();
 const reports=[];
 const auditArgs={numericRe:NUMERIC_RE.source,barControlSelector:BAR_CONTROL_SELECTOR,tableDeadZonePx:TABLE_DEAD_ZONE_PX,columnPackRatio:COLUMN_PACK_RATIO,gutterSelectors:GUTTER_EDGE_SELECTORS};
 async function audit(page){return page.evaluate(measureScript(),{...auditArgs,minTarget:page.viewportSize().width<=768?44:32});}
@@ -78,14 +79,19 @@ try{
    }
    await alignWithChat(page);
    const g=await geometry(page);report.geometry=g;
-   const contextFits=()=>page.locator('.fa-player').evaluateAll(rows=>rows.every(row=>{const text=row.querySelector('.fa-tick-key'),action=row.querySelector('.fa-acquire');return !text||!action||text.getBoundingClientRect().right<action.getBoundingClientRect().left;}));
+   const contextFits=()=>page.locator('.fa-player').evaluateAll(rows=>rows.every(row=>{const text=row.querySelector('.fa-tick-key'),action=row.querySelector('.fa-acquire');if(!text||!action)return true;const range=document.createRange();range.selectNodeContents(text);return Math.max(text.getBoundingClientRect().right,range.getBoundingClientRect().right)<action.getBoundingClientRect().left;}));
    if(target) {
     assert.ok(await contextFits(),'long comparison label clears acquisition action');
     if(width===320){
-     await page.locator('.fa-tick-key').evaluateAll(labels=>labels.forEach(e=>e.classList.remove('hub-wrap-copy')));
-     assert.equal(await contextFits(),false,'negative control recreates the nowrap collision');
-     await page.locator('.fa-tick-key').evaluateAll(labels=>labels.forEach(e=>e.classList.add('hub-wrap-copy')));
-     assert.ok(await contextFits(),'restored shared wrapping clears the action');
+     const labels=page.locator('.fa-tick-key'),original=await labels.allTextContents();
+     // Stress translated/longer context, rather than relying on one engine's font width.
+     await labels.evaluateAll(es=>es.forEach(e=>{e.textContent='Season comparison: '+e.textContent;}));
+     assert.ok(await contextFits(),'longer wrapped comparison labels clear the action');
+     await labels.evaluateAll(es=>es.forEach(e=>e.classList.remove('hub-wrap-copy')));
+     assert.equal(await contextFits(),false,'negative control recreates the unwrapped text collision');
+     await labels.evaluateAll(es=>es.forEach(e=>e.classList.add('hub-wrap-copy')));
+     assert.ok(await contextFits(),'restored shared wrapping clears longer labels');
+     await labels.evaluateAll((es,values)=>es.forEach((e,i)=>{e.textContent=values[i];}),original);
     }
    }
    assert.equal(g.theme,theme);assert.equal(g.overflow,false,'horizontal overflow');
