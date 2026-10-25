@@ -1,4 +1,4 @@
-import {launchReleaseBrowser,releaseOutputRoot} from './release_browser.mjs';
+import {launchReleaseBrowser,releaseOutputRoot,waitForMeasuredLayout} from './release_browser.mjs';
 import {measureScript,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_PACK_RATIO,GUTTER_EDGE_SELECTORS} from './layout_audit.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -34,12 +34,7 @@ async function worker(){while(next<jobs.length){const {c,width,theme}=jobs[next+
  await page.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base||u.pathname.startsWith('/api/')?r.abort():r.continue();});
  await page.goto(`${base}/test-fixtures/${c.fixture}.html?${new URLSearchParams({...c.query,theme,color:theme})}`,{waitUntil:"domcontentloaded"});
  await page.locator(c.id==='room'&&width>768?'.team-room-heading':c.ready).first().waitFor({timeout:15000});
- // A loaded panel is visible before MutationObserver/rAF publishes its measured position.
- // Apply the late-style stress only after the shared layout contract has initialized.
- if(c.id!=='room')await page.waitForFunction(selector=>{
-  const panel=document.querySelector(selector);
-  return !!panel && panel.dataset.bottomPosition===getComputedStyle(panel).position;
- },c.ready);
+ await waitForMeasuredLayout(page);
  await page.addStyleTag({content:'@media(max-width:768px){:root.has-fantasy-chat-launcher .hub-trade-desk-bar {grid-template-columns:minmax(0,1fr);} :root.has-fantasy-chat-launcher .hub-trade-desk-bar > button {width:100%;} .hub-rules-sticky-save {display:flex;flex-direction:column;}}'}); if(width<=768&&c.id!=='room')assert.equal(await page.locator(c.ready).evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'Late page/chat styles retain two action columns'); await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(200);
  await page.locator(c.id==='room'&&width>768?'.team-room-heading':c.ready).first().scrollIntoViewIfNeeded();
  report.geometry=await page.evaluate(()=>{const box=e=>{if(!e)return null;let r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom};};const panel=document.querySelector('.team-room-rack,.hub-rules-sticky-save,.hub-trade-desk-bar'),chat=document.querySelector('.fantasy-chat-launcher-a');return {overflow:document.documentElement.scrollWidth>innerWidth,panel:box(panel),chat:box(chat),position:panel?.dataset.bottomPosition,theme:document.documentElement.dataset.theme,buttons:[...(panel||document.createElement("div")).querySelectorAll('button')].filter(e=>e.getBoundingClientRect().width).map(e=>({text:e.textContent,box:box(e)})),contextOutside:!panel?.querySelector('#rules-save-context')};});

@@ -21,3 +21,15 @@ export async function launchReleaseBrowser({quiet=false}={}){
  if(!quiet)console.log('[browser]',browserEngine,browser.version());
  return browser;
 }
+
+// Dynamic panels can paint before the shell observer publishes their CSS lane marker.
+// Wait for the existing measurement contract; never replace geometry assertions with it.
+export async function waitForMeasuredLayout(page){
+ await page.waitForFunction(()=>{
+  const visible=e=>e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden';
+  const launcher=document.querySelector('.fantasy-chat-launcher-a:not([hidden])');
+  if(launcher&&visible(launcher)&&!document.documentElement.classList.contains('has-fantasy-chat-launcher'))return false;
+  return [...document.querySelectorAll('.app [data-bottom-actions]')].filter(visible)
+   .every(panel=>panel.dataset.bottomPosition===getComputedStyle(panel).position);
+ },undefined,{timeout:15000});
+}

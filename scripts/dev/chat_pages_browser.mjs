@@ -1,4 +1,4 @@
-import {launchReleaseBrowser,releaseOutputRoot} from './release_browser.mjs';
+import {launchReleaseBrowser,releaseOutputRoot,waitForMeasuredLayout} from './release_browser.mjs';
 // Real Fantasy controls across scroll, with isolated synthetic data and no league writes.
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -92,6 +92,7 @@ else {
    }
    if(c.action==='insights-expand')for(const summary of await page.locator('main details:not(.hub-insights-period) > summary').all())if(await summary.isVisible())await summary.click();
    if(c.action==='insights-period')await page.locator('.hub-insights-period > summary').click();
+   await waitForMeasuredLayout(page);
    const audit=()=>page.evaluate(measureScript(),{...args,minTarget:c.width<=768?44:32});
    if(c.id==='cap'&&c.width<=768){
     await page.addStyleTag({content:'.app-header--hub .app-header-mobile-top--league {grid-template-columns:fit-content(55%) minmax(0,1fr);gap:var(--space-3);padding:var(--space-2);}'});
@@ -146,8 +147,11 @@ else {
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'no horizontal overflow after dismissal');
    assert.deepEqual(await page.evaluate(()=>window.chatAuditWrites||window.fixtureWrites||[]),[],'audit does not save league changes');assert.deepEqual(errors,[]);
    report.status='pass';
-  }catch(e){report.status='fail';report.error=e.message;await page.screenshot({path:path.join(folder,id+'-fail.png')}).catch(()=>{});}
-  reports.push(report);console.log(id,report.status,report.error||'');await page.close();
+  }catch(e){report.status='fail';report.error=e.message;
+   report.clearance=await page.evaluate(()=>({chatLane:document.documentElement.classList.contains('has-fantasy-chat-launcher'),panels:[...document.querySelectorAll('[data-bottom-actions]')].map(panel=>{const r=panel.getBoundingClientRect();return {marker:panel.dataset.bottomPosition,position:getComputedStyle(panel).position,left:r.left,right:r.right,bottom:r.bottom};})})).catch(()=>null);
+   await page.screenshot({path:path.join(folder,id+'-fail.png')}).catch(()=>{});
+  }
+  reports.push(report);console.log(id,report.status,report.error||'',report.status==='fail'?JSON.stringify(report.clearance):'');await page.close();
  }}
  try{await Promise.all([worker(),worker(),worker()]);}finally{await fs.writeFile(path.join(folder,'report.json'),JSON.stringify(reports,null,2));await browser.close();await new Promise(resolve=>server.close(resolve));}
  if(reports.some(r=>r.status!=='pass'))process.exitCode=1;
