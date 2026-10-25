@@ -1,3 +1,4 @@
+import {launchReleaseBrowser,releaseOutputRoot,waitForMeasuredLayout} from './release_browser.mjs';
 import {measureScript,NUMERIC_RE,BAR_CONTROL_SELECTOR,TABLE_DEAD_ZONE_PX,COLUMN_PACK_RATIO,GUTTER_EDGE_SELECTORS} from './layout_audit.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -5,9 +6,9 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {fileURLToPath} from 'node:url';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),out=path.join(root,'outputs/agent/release-regressions'),stage='mobile';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),out=releaseOutputRoot(root),stage='mobile';
 const folder=path.join(out,stage+'-survey');await fs.mkdir(folder,{recursive:true});
-const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild'),{chromium}=require('playwright');
+const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild');
 const cases=[{id:'room',fixture:'team-room',query:{state:'pregame'},ready:'.team-room-rack'},{id:'rules',fixture:'rules-state',query:{},ready:'.hub-rules-sticky-save'},{id:'trades',fixture:'trades-mobile',query:{},ready:'.hub-trade-desk-bar'}];
 const fixtures=[...new Set(cases.map(x=>x.fixture))];
 await build({absWorkingDir:root,entryPoints:fixtures.map(f=>`frontend/test-fixtures/${f}.jsx`),bundle:true,jsx:'automatic',format:'esm',outdir:path.join(folder,'bundles'),logLevel:'error',resolveExtensions:['.mjs','.js','.jsx','.json'],external:['/art/*','/fonts/*','/assets/*'],loader:{'.js':'jsx','.svg':'dataurl','.png':'dataurl','.webp':'dataurl','.woff2':'dataurl','.jpg':'dataurl'},define:{'process.env.NODE_ENV':'"production"','import.meta.env':JSON.stringify({DEV:false,PROD:true,MODE:'test',BASE_URL:'/'})}});
@@ -20,7 +21,7 @@ const server=createServer(async(req,res)=>{try {
  res.writeHead(404);res.end();
 }catch{res.writeHead(404);res.end();}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const base=`http://127.0.0.1:${server.address().port}`,browser=await chromium.launch({headless:true,channel:process.env.RELEASE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':'chromium'),args:['--no-proxy-server']}),reports=[];
+const base=`http://127.0.0.1:${server.address().port}`,browser=await launchReleaseBrowser(),reports=[];
 
 const reportsOut=path.join(out,'browser');await fs.mkdir(reportsOut,{recursive:true});
 try {
@@ -32,7 +33,9 @@ async function worker(){while(next<jobs.length){const {c,width,theme}=jobs[next+
  await page.addInitScript(theme=>localStorage.setItem('scoresense-color-theme',theme),theme);
  await page.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base||u.pathname.startsWith('/api/')?r.abort():r.continue();});
  await page.goto(`${base}/test-fixtures/${c.fixture}.html?${new URLSearchParams({...c.query,theme,color:theme})}`,{waitUntil:"domcontentloaded"});
- await page.locator(c.id==='room'&&width>768?'.team-room-heading':c.ready).first().waitFor({timeout:15000});await page.addStyleTag({content:'@media(max-width:768px){:root.has-fantasy-chat-launcher .hub-trade-desk-bar {grid-template-columns:minmax(0,1fr);} :root.has-fantasy-chat-launcher .hub-trade-desk-bar > button {width:100%;} .hub-rules-sticky-save {display:flex;flex-direction:column;}}'}); if(width<=768&&c.id!=='room')assert.equal(await page.locator(c.ready).evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'Late page/chat styles retain two action columns'); await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(200);
+ await page.locator(c.id==='room'&&width>768?'.team-room-heading':c.ready).first().waitFor({timeout:15000});
+ await waitForMeasuredLayout(page);
+ await page.addStyleTag({content:'@media(max-width:768px){:root.has-fantasy-chat-launcher .hub-trade-desk-bar {grid-template-columns:minmax(0,1fr);} :root.has-fantasy-chat-launcher .hub-trade-desk-bar > button {width:100%;} .hub-rules-sticky-save {display:flex;flex-direction:column;}}'}); if(width<=768&&c.id!=='room')assert.equal(await page.locator(c.ready).evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),2,'Late page/chat styles retain two action columns'); await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(200);
  await page.locator(c.id==='room'&&width>768?'.team-room-heading':c.ready).first().scrollIntoViewIfNeeded();
  report.geometry=await page.evaluate(()=>{const box=e=>{if(!e)return null;let r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom};};const panel=document.querySelector('.team-room-rack,.hub-rules-sticky-save,.hub-trade-desk-bar'),chat=document.querySelector('.fantasy-chat-launcher-a');return {overflow:document.documentElement.scrollWidth>innerWidth,panel:box(panel),chat:box(chat),position:panel?.dataset.bottomPosition,theme:document.documentElement.dataset.theme,buttons:[...(panel||document.createElement("div")).querySelectorAll('button')].filter(e=>e.getBoundingClientRect().width).map(e=>({text:e.textContent,box:box(e)})),contextOutside:!panel?.querySelector('#rules-save-context')};});
  assert.equal(report.geometry.theme,theme,'active theme');assert.equal(report.geometry.overflow,false,'page overflow');assert.equal(errors.length,0,'runtime errors');

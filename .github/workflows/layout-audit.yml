@@ -14,7 +14,10 @@ on:
       - "frontend/src/DraftHub/LeagueInsights.jsx"
       - "frontend/src/DraftHub/insights/**"
       - "frontend/test-fixtures/**"
-      - "scripts/dev/release_interactions.mjs"
+      - "scripts/dev/release_*.mjs"
+      - "scripts/dev/draft_fixture_runtime.mjs"
+      - "frontend/src/ui/useModalFocus.js"
+      - "frontend/src/AppBottomNav.jsx"
       - "scripts/dev/chat_pages_browser.mjs"
       - "scripts/dev/active_draft_chat_browser.mjs"
       - "frontend/src/DraftHub/DraftRoom.jsx"
@@ -93,3 +96,34 @@ jobs:
         with:
           name: layout-audit-json
           path: artifacts/layout-audit-*.json
+
+  cross_browser_chat:
+    name: Chat clearance (${{ matrix.engine }})
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [firefox, webkit]
+    env:
+      RELEASE_BROWSER_ENGINE: ${{ matrix.engine }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+        working-directory: frontend
+      - run: npm run test:release-layout
+        working-directory: frontend
+      - name: Save cross-browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chat-clearance-${{ matrix.engine }}
+          path: outputs/agent/release-regressions/${{ matrix.engine }}/
+          retention-days: 7

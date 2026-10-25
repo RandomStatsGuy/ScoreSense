@@ -1,12 +1,13 @@
+import {launchReleaseBrowser,releaseOutputRoot} from './release_browser.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {fileURLToPath} from 'node:url';
-const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),out=path.join(root,'outputs/agent/release-regressions'),stage='mobile';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),out=releaseOutputRoot(root),stage='mobile';
 const folder=path.join(out,stage+'-survey');await fs.mkdir(folder,{recursive:true});
-const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild'),{chromium}=require('playwright');
+const require=createRequire(path.join(root,'frontend/package.json')),{build}=require('esbuild');
 const fixtures=['navigation-accessibility'];
 await build({absWorkingDir:root,entryPoints:fixtures.map(f=>`frontend/test-fixtures/${f}.jsx`),bundle:true,jsx:'automatic',format:'esm',outdir:path.join(folder,'bundles'),logLevel:'error',resolveExtensions:['.mjs','.js','.jsx','.json'],external:['/art/*','/fonts/*','/assets/*'],loader:{'.js':'jsx','.svg':'dataurl','.png':'dataurl','.webp':'dataurl','.woff2':'dataurl','.jpg':'dataurl'},define:{'process.env.NODE_ENV':'"production"','import.meta.env':JSON.stringify({DEV:false,PROD:true,MODE:'test',BASE_URL:'/'})}});
 const server=createServer(async(req,res)=>{try {
@@ -18,7 +19,7 @@ const server=createServer(async(req,res)=>{try {
  res.writeHead(404);res.end();
 }catch{res.writeHead(404);res.end();}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const base=`http://127.0.0.1:${server.address().port}`,browser=await chromium.launch({headless:true,channel:process.env.RELEASE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':'chromium'),args:['--no-proxy-server']});
+const base=`http://127.0.0.1:${server.address().port}`,browser=await launchReleaseBrowser();
 
 
 const reports=[];

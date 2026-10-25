@@ -205,24 +205,6 @@ async function loadSurfaces() {
   return livingSurfaceRoutes(mod.LIVING_SURFACES);
 }
 
-async function importPlaywright() {
-  const candidates = [
-    pathToFileURL(path.join(ROOT, "frontend/node_modules/playwright/index.mjs")).href,
-    pathToFileURL(path.join(ROOT, "node_modules/playwright/index.mjs")).href,
-    "playwright",
-  ];
-  for (const spec of candidates) {
-    try {
-      const mod = await import(spec);
-      if (mod.chromium) return mod;
-    } catch {
-      /* try next */
-    }
-  }
-  throw new Error(
-    "Playwright is not installed. From frontend/: npm install && npx playwright install chromium",
-  );
-}
 
 function fail(rule, selector, detail) {
   return { rule, ok: false, selector, detail };
@@ -1397,9 +1379,8 @@ async function main() {
     process.exit(2);
   }
 
-  const { chromium } = await importPlaywright();
-  const channel = process.env.PLAYWRIGHT_CHANNEL || (process.platform === "win32" ? "msedge" : undefined);
-  const browser = await chromium.launch({ headless: true, args: process.platform === "win32" ? ["--no-proxy-server"] : [], ...(channel ? {channel} : {}) });
+  const { launchReleaseBrowser } = await import("./release_browser.mjs");
+  const browser = await launchReleaseBrowser({quiet:true});
   const context = await browser.newContext();
   const report = [];
   try {

@@ -59,8 +59,38 @@ jobs:
           name: release-regressions
           path: outputs/agent/release-regressions/
 
+  cross_browser_chat:
+    name: Chat clearance (${{ matrix.engine }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [firefox, webkit]
+    env:
+      RELEASE_BROWSER_ENGINE: ${{ matrix.engine }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+        working-directory: frontend
+      - run: npm run test:release-layout
+        working-directory: frontend
+      - name: Save cross-browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chat-clearance-${{ matrix.engine }}
+          path: outputs/agent/release-regressions/${{ matrix.engine }}/
+          retention-days: 7
+
   deploy:
-    needs: regressions
+    needs: [regressions, cross_browser_chat]
     name: Deploy to production VPS
     runs-on: ubuntu-latest
     steps:

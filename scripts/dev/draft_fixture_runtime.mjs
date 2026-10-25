@@ -1,3 +1,4 @@
+import {browserEngine,releaseOutputRoot} from './release_browser.mjs';
 // Isolated production draft components. Every request is fulfilled locally;
 // an existing API/Vite server and real accounts are never contacted.
 import { createRequire } from "node:module";
@@ -7,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(path.join(root, "frontend/package.json"));
 const { build } = require("esbuild");
-const directory = path.join(root, "outputs/draft-room-fixture");
+const directory = browserEngine === "chromium" ? path.join(root, "outputs/draft-room-fixture") : path.join(releaseOutputRoot(root), "draft-room-fixture");
 const compiled=new Map();
 export const draftFixtureUrl = "http://127.0.0.1:5173/test-fixtures/draft-room.html";
 export async function attachDraftFixture(context, { fixture="draft-room" } = {}) {

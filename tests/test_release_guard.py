@@ -183,3 +183,22 @@ def test_releases_wait_for_refresh_before_source_or_service_mutation():
     server = (ROOT / "deploy/server/deploy-on-server.sh").read_text(encoding="utf-8")
     assert server.index("flock -x -w 1800 8") < server.index("build --pull")
     assert "SCORESENSE_DEPLOY_LOCK_HELD" in server
+
+
+def test_release_waits_for_the_same_firefox_and_webkit_gates_as_ready_review():
+    import yaml
+
+    workflows = [yaml.safe_load((ROOT / ".github/workflows" / name).read_text(encoding="utf-8"))
+                 for name in ("layout-audit.yml", "deploy.yml")]
+    for workflow in workflows:
+        gate = workflow["jobs"]["cross_browser_chat"]
+        assert set(gate["strategy"]["matrix"]["engine"]) == {"firefox", "webkit"}
+        assert gate["strategy"]["fail-fast"] is False
+        assert gate["env"]["RELEASE_BROWSER_ENGINE"] == "${{ matrix.engine }}"
+        commands = "\n".join(step.get("run", "") for step in gate["steps"])
+        assert "playwright install --with-deps ${{ matrix.engine }}" in commands
+        assert "npm run test:release-layout" in commands
+    assert workflows[0]["jobs"]["cross_browser_chat"]["if"] == "github.event.pull_request.draft == false"
+    deploy = workflows[1]["jobs"]["deploy"]
+    assert set(deploy["needs"]) == {"regressions", "cross_browser_chat"}
+    assert "always()" not in deploy.get("if", "")

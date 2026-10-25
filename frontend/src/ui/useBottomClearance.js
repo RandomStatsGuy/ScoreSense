@@ -7,11 +7,20 @@ export function bottomActionClearance(viewportHeight, navHeight, actions) {
     .map(({ top }) => Math.max(0, viewportHeight - top - navHeight))));
 }
 
+/** Reveal the action group when it fits; otherwise preserve its focused control. */
+export function focusClearanceDelta(focused, group, top, bottom) {
+  if (bottom <= top) return 0;
+  const target = group.bottom - group.top <= bottom - top ? group : focused;
+  if (target.bottom > bottom) return target.bottom - bottom;
+  if (target.top < top) return target.top - top;
+  return 0;
+}
+
 export default function useBottomClearance(root, mobileLayout) {
   useLayoutEffect(() => {
     const shell = root.current;
     if (!shell) return undefined;
-    let frame, active = true;
+    let frame, focusFrame, active = true;
     const observed = new Set();
     const style = document.documentElement.style;
     const write = (name, value) => {
@@ -44,13 +53,33 @@ export default function useBottomClearance(root, mobileLayout) {
         visible: (!element.checkVisibility || element.checkVisibility()) && getComputedStyle(element).visibility === "visible" && element.getBoundingClientRect().height > 0,
       }))));
     }
+    // Focus scrolling differs between engines; CSS owns the measured boundaries.
+    function revealFocus(event) {
+      const element = event?.target || document.activeElement;
+      if (!(element instanceof HTMLElement) || !shell.contains(element)
+        || !shell.querySelector('[data-top-actions]')
+        || element.closest('[data-top-actions], .app-bottom-nav, [role="dialog"], [aria-modal="true"]')) return;
+      const group = element.closest('[data-focus-group]') || element;
+      const css = getComputedStyle(document.documentElement);
+      const viewport = window.visualViewport;
+      const start = (viewport?.offsetTop || 0) + (parseFloat(css.scrollPaddingBlockStart) || 0);
+      const end = (viewport?.offsetTop || 0) + (viewport?.height || innerHeight) - (parseFloat(css.scrollPaddingBlockEnd) || 0);
+      const delta = focusClearanceDelta(element.getBoundingClientRect(), group.getBoundingClientRect(), start, end);
+      if (delta) window.scrollBy({top:delta,behavior:'instant'});
+    }
+    const onFocus = event => {
+      revealFocus(event);
+      cancelAnimationFrame(focusFrame);
+      focusFrame = requestAnimationFrame(() => revealFocus());
+    };
+    shell.addEventListener('focusin', onFocus);
     const changes = new MutationObserver(schedule);
     changes.observe(shell, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "hidden", "data-top-actions"] });
     window.addEventListener("resize", schedule);
     window.visualViewport?.addEventListener("resize", schedule);
     measure();
     return () => {
-      active = false; cancelAnimationFrame(frame); sizes.disconnect(); changes.disconnect();
+      active = false; cancelAnimationFrame(frame); cancelAnimationFrame(focusFrame); shell.removeEventListener('focusin', onFocus); sizes.disconnect(); changes.disconnect();
       window.removeEventListener("resize", schedule); window.visualViewport?.removeEventListener("resize", schedule);
       style.removeProperty("--bottom-nav-height"); style.removeProperty("--bottom-action-height"); style.removeProperty("--top-action-height");
     };
