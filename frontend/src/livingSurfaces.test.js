@@ -95,6 +95,22 @@ test("text lookup prefers the longest alias and ignores capture vs cap", () => {
   assert.equal(mobileWeekly.page, "frontend/src/WeeklyTable.jsx");
 });
 
+test("Tessa's family guide stays a standalone public reading surface", () => {
+  const guide = LIVING_SURFACES["public.tessa-guide"];
+  assert.equal(guide.route, "/api-guide/tessas-touchdown.html");
+  assert.equal(guide.page, "frontend/public/api-guide/tessas-touchdown.html");
+  assert.equal(guide.copy, guide.page);
+  assert.equal(guide.chrome, "account");
+  assert.equal(guide.auditRoot, ".league-guide");
+  assert.ok(guide.also.includes("frontend/public/api-guide/tessa-guide.css"));
+  assert.equal(resolveLivingSurfaceFromText("Tessa's Touchdown Memorial League guide"), guide);
+  assert.equal(resolveLivingSurfaceFromText("Tessa’s Touchdown guide"), guide);
+  assert.equal(surfacesForFile("frontend/public/api-guide/tessa-guide.css")[0].id, "public.tessa-guide");
+  assert.ok(livingSurfaceRoutes().some(row => row.id === "public.tessa-guide" && row.route === guide.route));
+  assert.match(guide.doNot, /no app navigation item/);
+  assert.match(guide.doNot, /Both Lineup and Room save starters/);
+});
+
 test("each product landing has its own public route while keeping the approved composition", () => {
   for (const [area, route] of [["projections", "/projections"], ["fantasy", "/fantasy"], ["tools", "/tools"]]) {
     const row = LIVING_SURFACES[`public.${area}`];
